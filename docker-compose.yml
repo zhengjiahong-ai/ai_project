@@ -1,0 +1,22 @@
+services:
+  # AI 算法服务 (Python)
+  ai-service:
+    build: ./ai-service-python
+    container_name: ai_service_python
+    volumes:
+      - ./ai-service-python:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=your_key_here
+
+  # 后端管理服务 (Java)
+  backend:
+    build: ./backend-java
+    container_name: backend_java
+    ports:
+      - "8080:8080"
+    depends_on:
+      - ai-service
+    environment:
+      - AI_SERVICE_URL=http://ai-service:8000

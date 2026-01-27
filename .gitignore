@@ -1,13 +1,21 @@
+# OS files
+.DS_Store
+Thumbs.db
+
 # Java
 target/
 *.class
+*.jar
+.mvn/
+.idea/
 
 # Python
 venv/
 __pycache__/
+*.pyc
 .env
 .pytest_cache/
+ai-service-python/models/* # 建议模型手动下载，不进 Git
 
-# OS
-.DS_Store
-Thumbs.db
+# Docker
+.docker/
