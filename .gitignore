@@ -1,0 +1,13 @@
+# Java
+target/
+*.class
+
+# Python
+venv/
+__pycache__/
+.env
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
