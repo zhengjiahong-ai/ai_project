@@ -1,22 +1,29 @@
 services:
-  # AI 算法服务 (Python)
-  ai-service:
-    build: ./ai-service-python
-    container_name: ai_service_python
-    volumes:
-      - ./ai-service-python:/app
+  # --- 前端 React 服务 ---
+  frontend:
+    build: ./frontend
+    container_name: paper_frontend
     ports:
-      - "8000:8000"
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app         # 核心：将本地代码映射进容器，实现热更新
+      - /app/node_modules       # 防止本地 node_modules 覆盖容器内的
     environment:
-      - OPENAI_API_KEY=your_key_here
+      - VITE_API_BASE_URL=http://localhost:8080 # 指向 Java 后端
+    depends_on:
+      - backend
 
-  # 后端管理服务 (Java)
+  # --- Java 后端服务 ---
   backend:
     build: ./backend-java
     container_name: backend_java
     ports:
       - "8080:8080"
-    depends_on:
-      - ai-service
-    environment:
-      - AI_SERVICE_URL=http://ai-service:8000
+    # 如果 Java 需要调用 Python，确保它知道 ai-service 这个主机名
+
+  # --- Python AI 服务 ---
+  ai-service:
+    build: ./ai-service-python
+    container_name: ai_service_python
+    ports:
+      - "8000:8000"
