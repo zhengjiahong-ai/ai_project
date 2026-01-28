@@ -1,0 +1,43 @@
+/* Tailwind CSS 核心指令 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局样式配置 */
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #f8f9fa;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  display: block;
+  min-height: 100vh;
+}
+
+#root {
+  height: 100vh;
+  width: 100%;
+}
+
+/* PDF 渲染器样式微调 */
+.rpv-core__viewer {
+  border: none !important;
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
