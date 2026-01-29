@@ -22,9 +22,7 @@ const Navbar = ({ onFileUpload, isReady = true }) => {
         <div className="bg-blue-600 p-1.5 rounded-lg">
           <BookOpen size={20} className="text-white" />
         </div>
-        <span className="font-bold text-lg tracking-tight">
-          Scholar<span className="text-blue-600">Next</span>
-        </span>
+        <span className="font-bold text-lg tracking-tight">Pixiu</span>
         <div className="ml-4 h-6 w-[1px] bg-slate-200"></div>
         <span className="text-sm text-slate-500 font-medium">2026 大创项目演示版</span>
       </div>

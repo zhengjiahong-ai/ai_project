@@ -46,9 +46,9 @@ const ChatPanel = ({ messages = [], onSendMessage }) => {
 
   // 快速标签
   const quickTags = [
+    '# 交互式助学',
     '# 总结核心贡献',
     '# 评估实验可靠性',
-    '# 解释专业名词',
     '# 批判性分析',
   ];
 
