@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronRight, Sparkles } from 'lucide-react';
-
+import ReactMarkdown from 'react-markdown';
 /**
  * 聊天面板组件
  * @param {Array} messages - 消息列表
@@ -79,7 +79,10 @@ const ChatPanel = ({ messages = [], onSendMessage }) => {
                   <span className="text-xs font-semibold text-blue-600">AI 助手</span>
                 </div>
               )}
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              {/* 修复：使用 ReactMarkdown 替换原来的 <p> */}
+              <div className={`text-sm ${msg.role === 'user' ? 'text-white' : 'prose prose-sm prose-slate'}`}>
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+              </div>
             </div>
           </div>
         ))}

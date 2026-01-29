@@ -21,7 +21,21 @@ export default function App() {
 
   // AI 就绪状态
   const [isAiReady, setIsAiReady] = useState(true);
-
+// 处理划词后的解释逻辑
+const handleExplain = (text) => {
+  // 1. 自动滚动到 AI 面板并展示“思考中”状态
+  const userMsg = { role: 'user', content: `请解释这段文字：${text}` };
+  setMessages(prev => [...prev, userMsg]);
+  
+  // 2. 模拟 AI 响应 (将来替换为 Axios 请求)
+  setTimeout(() => {
+    const aiMsg = { 
+      role: 'ai', 
+      content: `### 动态解释 \n\n 这段话的核心意思是：**${text.substring(0, 20)}...** \n\n 这里的专业术语可以理解为...` 
+    };
+    setMessages(prev => [...prev, aiMsg]);
+  }, 1000);
+};
   // 处理文件上传
   const handleFileUpload = useCallback((file) => {
     if (file && file.type === "application/pdf") {
@@ -116,8 +130,16 @@ export default function App() {
           {/* 左侧：PDF 视窗 */}
           <Panel defaultSize={65} minSize={30}>
             <div className="h-full bg-[#525659] p-4 flex flex-col relative">
+              {/* 新增：显示文件名，解决 pdfFileName 未使用的警告 */}
+                {pdfFileName && (
+                  <div className="mb-2 text-white text-sm font-medium truncate bg-black/20 px-3 py-1 rounded">
+                    📄 {pdfFileName}
+                  </div>
+                )}
               <div className="flex-1 bg-white rounded shadow-2xl overflow-hidden">
-                <PdfViewer fileUrl={pdfFile} />
+                <PdfViewer fileUrl={pdfFile} 
+                onSelection={handleExplain}
+                />
               </div>
               
               {/* 悬浮工具栏 */}
