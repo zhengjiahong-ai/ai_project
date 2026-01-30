@@ -2,3 +2,8 @@ fastapi
 uvicorn
 langchain
 openai
+pydantic
+pydantic-settings
+grobid-client
+requests
+python-multipart
