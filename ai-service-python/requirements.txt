@@ -4,6 +4,7 @@ langchain
 openai
 pydantic
 pydantic-settings
-grobid-client
+grobid-client-python
 requests
 python-multipart
+-i https://mirrors.aliyun.com/pypi/simple/
