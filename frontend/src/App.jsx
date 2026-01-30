@@ -22,20 +22,29 @@ export default function App() {
   // AI 就绪状态
   const [isAiReady, setIsAiReady] = useState(true);
 // 处理划词后的解释逻辑
-const handleExplain = (text) => {
-  // 1. 自动滚动到 AI 面板并展示“思考中”状态
-  const userMsg = { role: 'user', content: `请解释这段文字：${text}` };
-  setMessages(prev => [...prev, userMsg]);
-  
-  // 2. 模拟 AI 响应 (将来替换为 Axios 请求)
-  setTimeout(() => {
-    const aiMsg = { 
-      role: 'ai', 
-      content: `### 动态解释 \n\n 这段话的核心意思是：**${text.substring(0, 20)}...** \n\n 这里的专业术语可以理解为...` 
-    };
-    setMessages(prev => [...prev, aiMsg]);
-  }, 1000);
-};
+const handleExplain = useCallback((content, role = 'user') => {
+  // 1. 创建新消息对象
+  const newMessage = { 
+    role: role, 
+    content: content,
+    id: Date.now() // 加上 ID 避免 React 渲染 key 警告
+  };
+
+  // 2. 更新消息列表
+  setMessages(prev => [...prev, newMessage]);
+
+  // 3. 如果是用户发出的请求（比如划词瞬间），可以在这里触发 AI 的全局自动回复逻辑
+  if (role === 'user' && content.includes('请帮我解释')) {
+    setTimeout(() => {
+      const autoAiMsg = {
+        role: 'ai',
+        content: `我已经收到了您的划词请求，正在针对该段落进行深度解析... (您也可以在左侧小窗继续追问)`,
+        id: Date.now() + 1
+      };
+      setMessages(prev => [...prev, autoAiMsg]);
+    }, 800);
+  }
+}, []);
   // 处理文件上传
   const handleFileUpload = useCallback((file) => {
     if (file && file.type === "application/pdf") {
