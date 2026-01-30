@@ -4,6 +4,7 @@ import PdfViewer from './components/PdfViewer';
 import ChatPanel from './components/ChatPanel';
 import Navbar from './components/Navbar';
 import PdfToolbar from './components/PdfToolbar';
+import CriticalAnalysisPanel from './components/CriticalAnalysisPanel'; // 确认引入新组件
 // import { apiService } from './services/api';
 
 export default function App() {
@@ -18,7 +19,35 @@ export default function App() {
       content: '您好！我是您的 AI 学术助手。上传论文后，我可以为您进行批判性阅读或动态解释。' 
     }
   ]);
+  // --- 新增：右侧面板切换与分析状态 ---
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' 或 'analysis'
+  const [analysisData, setAnalysisData] = useState(null); // 存储后端返回的分析数据
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // 加载状态
+// 处理分析逻辑
+const handleStartAnalysis = useCallback(async () => {
+  setIsAnalyzing(true);
+  
+  /* // 未来对接后端接口
+  try {
+    const response = await apiService.fetchCriticalAnalysis(pdfFile);
+    setAnalysisData(response.data);
+  } catch (e) { console.error(e); }
+  */
 
+  // 模拟后端返回数据
+  setTimeout(() => {
+    setAnalysisData({
+      summary: "本文在实验设计上具有创新性，但在样本量控制和长短期效应对比上存在一定局限性。",
+      metrics: [
+        { name: '创新性', score: 85, detail: '提出了一种全新的自适应悬浮算法。' },
+        { name: '严谨性', score: 62, detail: '实验组数据在边缘条件下存在 5% 的统计偏差风险。' },
+        { name: '引用质量', score: 90, detail: '引用了近 3 年内 80% 的核心期刊文献。' },
+        { name: '逻辑链条', score: 75, detail: '结论推导部分对负面结果的讨论略显不足。' }
+      ]
+    });
+    setIsAnalyzing(false);
+  }, 2000);
+}, [pdfFile]);
   // AI 就绪状态
   const [isAiReady, setIsAiReady] = useState(true);
 // 处理划词后的解释逻辑
@@ -131,7 +160,12 @@ const handleExplain = useCallback((content, role = 'user') => {
   return (
     <div className="flex flex-col h-screen bg-[#F8F9FA] text-slate-900 font-sans">
       {/* 顶部导航栏 */}
-      <Navbar onFileUpload={handleFileUpload} isReady={isAiReady} />
+      {/* 1. 修改 Navbar：传入切换函数和当前状态 */}
+      <Navbar 
+        onFileUpload={handleFileUpload} 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+      />
 
       {/* 主体交互区 */}
       <main className="flex-1 overflow-hidden">
@@ -168,10 +202,21 @@ const handleExplain = useCallback((content, role = 'user') => {
 
           {/* 右侧：AI 对话面板 */}
           <Panel defaultSize={35} minSize={20}>
-            <ChatPanel 
-              messages={messages}
-              onSendMessage={handleSendMessage}
-            />
+            {/* 2. 修改右侧面板：根据 activeTab 实时切换 */}
+            <div className="h-full bg-white flex flex-col">
+              {activeTab === 'chat' ? (
+                <ChatPanel 
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                />
+              ) : (
+                <CriticalAnalysisPanel 
+                  data={analysisData} 
+                  onAnalyze={handleStartAnalysis} 
+                  isLoading={isAnalyzing}
+                />
+              )}
+            </div>
           </Panel>
         </Group>
       </main>
