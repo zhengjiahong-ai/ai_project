@@ -17,3 +17,5 @@ EXPOSE 5173
 
 # --host 必须加上，否则 Docker 外部无法访问容器内的 Vite
 CMD ["npm", "run", "dev", "--", "--host"]
+
+RUN npm install react-markdown
