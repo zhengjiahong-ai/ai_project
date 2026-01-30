@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 import os
 import tempfile
 from grobid_client.grobid_client import GrobidClient
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 import json
