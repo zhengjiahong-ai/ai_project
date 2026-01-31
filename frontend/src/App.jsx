@@ -1,12 +1,26 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback,useEffect } from 'react';
 import { Panel, Group, Separator } from 'react-resizable-panels';
 import PdfViewer from './components/PdfViewer';
 import ChatPanel from './components/ChatPanel';
 import Navbar from './components/Navbar';
 import PdfToolbar from './components/PdfToolbar';
+import { openDB } from 'idb'; // 引入数据库库
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel'; // 确认引入新组件
 // import { apiService } from './services/api';
 
+// 初始化 IndexedDB
+const initDB = async () => {
+  return openDB('PixiuAcademicDB', 1, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains('pdfStore')) {
+        db.createObjectStore('pdfStore'); // 存储 PDF Blob
+      }
+      if (!db.objectStoreNames.contains('historyStore')) {
+        db.createObjectStore('historyStore'); // 存储 聊天历史
+      }
+    },
+  });
+};
 export default function App() {
   // PDF 文件状态（存储 blob URL）
   const [pdfFile, setPdfFile] = useState(null);
@@ -23,7 +37,60 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' 或 'analysis'
   const [analysisData, setAnalysisData] = useState(null); // 存储后端返回的分析数据
   const [isAnalyzing, setIsAnalyzing] = useState(false); // 加载状态
+  const [isRestored, setIsRestored] = useState(false);
 // 处理分析逻辑
+// --- 逻辑 1: 页面加载时恢复数据 (刷新保护) ---
+useEffect(() => {
+  const restoreSession = async () => {
+    try {
+      // A. LocalStorage: 恢复 UI 配置
+      const savedTab = localStorage.getItem('activeTab');
+      if (savedTab) setActiveTab(savedTab);
+
+      // B. IndexedDB: 恢复大体积数据
+      const db = await initDB();
+      const savedPdf = await db.get('pdfStore', 'currentPdf');
+      const savedMessages = await db.get('historyStore', 'chatHistory');
+
+      if (savedPdf) {
+        setPdfFile(URL.createObjectURL(savedPdf.blob));
+        setPdfFileName(savedPdf.name);
+      }
+     // 只有数据库有数据时才覆盖默认欢迎语
+     if (savedMessages && savedMessages.length > 0) {
+      setMessages(savedMessages);
+    }
+    } catch (error) {
+      console.error("恢复数据失败:", error);
+    }finally {
+      // 重点：无论成功失败，标记“恢复流程已结束”，允许后续写入
+      setIsRestored(true);
+    }
+  };
+  
+  restoreSession(); // 执行异步恢复函数
+}, []);
+
+// --- 逻辑 2: 持久化聊天历史 ---
+useEffect(() => {
+  // 关键改动：如果还没恢复完成，绝对不要触发保存动作
+  if (!isRestored) return;
+
+  const saveToDB = async () => {
+    try {
+      const db = await initDB();
+      // 只有在 messages 确实有内容时才存
+      if (messages.length > 0) {
+        await db.put('historyStore', messages, 'chatHistory');
+        localStorage.setItem('lastUpdate', Date.now().toString());
+      }
+    } catch (error) {
+      console.error("保存失败:", error);
+    }
+  };
+
+  saveToDB();
+}, [messages, isRestored]); // 必须把 isRestored 也加入依赖数组
 const handleStartAnalysis = useCallback(async () => {
   setIsAnalyzing(true);
   
@@ -75,13 +142,15 @@ const handleExplain = useCallback((content, role = 'user') => {
   }
 }, []);
   // 处理文件上传
-  const handleFileUpload = useCallback((file) => {
+  const handleFileUpload = useCallback(async(file) => {
     if (file && file.type === "application/pdf") {
       // 创建本地临时 URL 用于预览
       const fileUrl = URL.createObjectURL(file);
       setPdfFile(fileUrl);
       setPdfFileName(file.name);
-      
+      // 存入 IndexedDB
+      const db = await initDB();
+      await db.put('pdfStore', { blob: file, name: file.name }, 'currentPdf');
       // 添加 AI 欢迎消息
       setMessages(prev => [...prev, { 
         role: 'ai', 
@@ -94,6 +163,7 @@ const handleExplain = useCallback((content, role = 'user') => {
       // }).catch(error => {
       //   console.error('Upload failed:', error);
       // });
+      setMessages(prev => [...prev, { role: 'ai', content: `文件 ${file.name} 已安全存入本地仓。` }]);
     } else {
       alert("请上传有效的 PDF 文件");
     }
