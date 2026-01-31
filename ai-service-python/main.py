@@ -4,16 +4,70 @@ from fastapi.responses import JSONResponse
 import os
 import tempfile
 from grobid_client.grobid_client import GrobidClient
-#from langchain_openai import ChatOpenAI
-from langchain_community.chat_models.dashscope import ChatDashScope
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 import json
 from pydantic import BaseModel
 from dotenv import load_dotenv
-
+#from langchain_openai import ChatOpenAI
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+import dashscope
+from dashscope import Generation
+from langchain.llms.base import LLM
+from typing import Any, List, Mapping, Optional, Dict
 # 加载环境变量
 load_dotenv()
+
+class CustomDashScopeLLM(LLM):
+    """自定义 DashScope LLM 类，适配 langchain 的 LLM 接口"""
+    model: str = "qwen-max"  # 默认模型
+    temperature: float = 0.3  # 温度系数
+    dashscope_api_key: Optional[str] = None  # API Key
+    
+    @property
+    def _llm_type(self) -> str:
+        return "dashscope"
+    
+    def _call(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> str:
+        """核心调用方法，实现 langchain 接口"""
+        # 配置 API Key
+        if self.dashscope_api_key:
+            dashscope.api_key = self.dashscope_api_key
+        elif os.environ.get("DASHSCOPE_API_KEY"):
+            dashscope.api_key = os.environ.get("DASHSCOPE_API_KEY")
+        else:
+            raise ValueError("未配置 DASHSCOPE_API_KEY")
+        
+        # 调用 DashScope 官方 API
+        try:
+            response = Generation.call(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=self.temperature,
+                result_format="message",
+                stream=False
+            )
+            
+            if response.status_code == 200:
+                return response.output.choices[0].message.content
+            else:
+                raise Exception(f"DashScope 调用失败: {response.code} - {response.message}")
+        except Exception as e:
+            raise Exception(f"LLM 调用异常: {str(e)}")
+    
+    @property
+    def _identifying_params(self) -> Mapping[str, Any]:
+        """返回模型标识参数，适配 langchain 接口"""
+        return {
+            "model": self.model,
+            "temperature": self.temperature,
+        }
+
 
 # 定义请求模型
 class TermExplainRequest(BaseModel):
@@ -39,7 +93,7 @@ grobid_client = GrobidClient(config_path=None, grobid_server="http://grobid:8070
 api_key = os.environ.get("DASHSCOPE_API_KEY")
 if not api_key:
     raise ValueError("请在 .env 文件中设置 DASHSCOPE_API_KEY 环境变量")
-llm = ChatDashScope(model="qwen-max", temperature=0.3, dashscope_api_key=api_key)
+llm = CustomDashScopeLLM(model="qwen-max", temperature=0.3, dashscope_api_key=api_key)
 
 # 定义摘要模板
 summary_template = PromptTemplate(

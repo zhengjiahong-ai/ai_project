@@ -1,18 +1,17 @@
-fastapi==0.110.0
-uvicorn==0.29.0
+fastapi>=0.109.0,<0.110.0
+uvicorn>=0.27.0,<0.28.0
 
-langchain==0.1.0
-#langchain_openai==0.0.2
-#openai==1.9.0
-langchain_community==0.0.9
-dashscope==1.14.0
+langchain>=0.1.10,<0.2.0
 
-pydantic==2.6.4
-pydantic-settings==2.2.1
-python-dotenv==1.0.0
+dashscope>=1.10.0,<2.0.0
 
-grobid-client-python==0.1.4
-requests==2.31.0
-python-multipart==0.0.9
+pydantic>=2.4.0,<3.0.0
+pydantic-settings>=2.0.0,<3.0.0
+python-dotenv>=1.0.0,<2.0.0
+grobid-client-python
+requests>=2.31.0,<3.0.0
+python-multipart>=0.0.9,<0.1.0
+typing-extensions>=4.8.0
+numpy>=1.26.0,<2.0.0
 
 -i https://mirrors.aliyun.com/pypi/simple/
