@@ -12,7 +12,7 @@ import '@react-pdf-viewer/highlight/lib/styles/index.css';
 
 // --- 新增：解释弹窗组件定义 ---
 // 放在 PdfViewer 外部，解决 "is not defined" 导致的白屏
-const ExplanationPopup = ({ text, position, onClose, onMessageSync }) => {
+const ExplanationPopup = ({ text, position, onClose, onMessageSync ,onSaveNote}) => {
   const [query, setQuery] = useState('');
   // 1. 新增：悬浮窗内部的消息历史状态，用于窗内更新
   const [chatHistory, setChatHistory] = useState([
@@ -46,7 +46,20 @@ const ExplanationPopup = ({ text, position, onClose, onMessageSync }) => {
       }
     }, 600);
   };
-
+  const handleSave = () => {
+    // 获取当前对话历史中最后一条 AI 回复
+    const lastAiResponse = chatHistory.filter(m => m.role === 'ai').pop();
+    
+    if (onSaveNote) {
+      onSaveNote({
+        text: text,
+        aiInterpretation: lastAiResponse ? lastAiResponse.content : "解析中...",
+        pageNumber: position.pageIndex // 自动记录页码
+      });
+      alert("笔记已收藏至‘学术笔记’栏目");
+      onClose();
+    }
+  };
   return (
     <div 
       className="absolute z-[999] bg-white rounded-xl shadow-2xl border border-blue-100 flex flex-col animate-in fade-in zoom-in duration-200"
@@ -66,7 +79,26 @@ const ExplanationPopup = ({ text, position, onClose, onMessageSync }) => {
         <span className="flex items-center gap-1.5 text-blue-700 font-bold text-xs">
           <Sparkles size={14} /> AI 解释
         </span>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+        
+        <div className="flex items-center gap-2">
+          {/* 如果你想加存为笔记的按钮，可以放在这里 */}
+          {onSaveNote && (
+           <button 
+           onClick={handleSave} // 👈 绑定保存函数
+           className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors"
+         >
+              存为笔记
+            </button>
+          )}
+
+          {/* ❌ 这里的 onClose 就是控制消失的关键 */}
+          <button 
+            onClick={onClose} 
+            className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-200/50 rounded-full transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
       {/* 内容区：支持内部滚动 */}
@@ -98,7 +130,7 @@ const ExplanationPopup = ({ text, position, onClose, onMessageSync }) => {
 };
 
 // --- 主组件 ---
-const PdfViewer = ({ fileUrl, onSelection }) => {
+const PdfViewer = ({ fileUrl, onSelection , onSaveNote}) => {
   const [activePopup, setActivePopup] = useState(null);
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
   const workerUrl = `https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js`;
@@ -172,6 +204,8 @@ const PdfViewer = ({ fileUrl, onSelection }) => {
         onSelection(content, role); 
       }
     }}
+    // 修改点 2：将 onSaveNote 传给弹窗组件
+    onSaveNote={onSaveNote}
     // 如果你之前的 ExplanationPopup 内部用的是 onAskMore 这个名字，
     // 请确保子组件内部调用的名字和这里定义的 Prop 名字一致
     onAskMore={(query) => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, BookOpen, CheckCircle2, MessageSquare, BarChart3 } from 'lucide-react';
+import { Upload, BookOpen, CheckCircle2, MessageSquare, BarChart3, Bookmark } from 'lucide-react';
 
 const Navbar = ({ onFileUpload, isReady = true, activeTab, onTabChange }) => {
   const handleFileChange = (e) => {
@@ -17,7 +17,7 @@ const Navbar = ({ onFileUpload, isReady = true, activeTab, onTabChange }) => {
         <span className="font-bold text-lg tracking-tight">Pixiu</span>
       </div>
 
-      {/* 新增：Tab 切换按钮组 */}
+      {/* 核心修改：Tab 切换按钮组增加“学术笔记” */}
       <div className="flex bg-slate-100 p-1 rounded-xl border">
         <button
           onClick={() => onTabChange('chat')}
@@ -34,6 +34,15 @@ const Navbar = ({ onFileUpload, isReady = true, activeTab, onTabChange }) => {
           }`}
         >
           <BarChart3 size={16} /> 批判性分析
+        </button>
+        {/* 新增按钮 */}
+        <button
+          onClick={() => onTabChange('notes')}
+          className={`flex items-center gap-2 px-4 py-1 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'notes' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Bookmark size={16} /> 学术笔记
         </button>
       </div>
 

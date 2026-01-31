@@ -5,12 +5,13 @@ import ChatPanel from './components/ChatPanel';
 import Navbar from './components/Navbar';
 import PdfToolbar from './components/PdfToolbar';
 import { openDB } from 'idb'; // 引入数据库库
+import ReactMarkdown from 'react-markdown';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel'; // 确认引入新组件
 // import { apiService } from './services/api';
 
 // 初始化 IndexedDB
 const initDB = async () => {
-  return openDB('PixiuAcademicDB', 2, {
+  return openDB('PixiuAcademicDB', 3, {
     upgrade(db) {
       if (!db.objectStoreNames.contains('pdfStore')) {
         db.createObjectStore('pdfStore'); // 存储 PDF Blob
@@ -20,7 +21,9 @@ const initDB = async () => {
       }
       // 新增：存放分析报告
       if (!db.objectStoreNames.contains('analysisStore')) db.createObjectStore('analysisStore');
-    
+      if (!db.objectStoreNames.contains('notesStore')) {
+        db.createObjectStore('notesStore'); 
+      }
     },
   });
 };
@@ -43,6 +46,7 @@ export default function App() {
   const [analysisData, setAnalysisData] = useState(null); // 存储后端返回的分析数据
   const [isAnalyzing, setIsAnalyzing] = useState(false); // 加载状态
   const [isRestored, setIsRestored] = useState(false);
+  const [notes, setNotes] = useState([]); // 新增笔记状态
 // 处理分析逻辑
 // --- 逻辑 1: 页面加载时恢复数据 (刷新保护) ---
 useEffect(() => {
@@ -57,6 +61,8 @@ useEffect(() => {
       const savedPdf = await db.get('pdfStore', 'currentPdf');
       const savedMessages = await db.get('historyStore', 'chatHistory');
       const savedAnalysis = await db.get('analysisStore', 'lastAnalysis');
+      const savedNotes = await db.get('notesStore', 'allNotes');
+        if (savedNotes) setNotes(savedNotes);
       if (savedPdf) {
         setPdfFile(URL.createObjectURL(savedPdf.blob));
         setPdfFileName(savedPdf.name);
@@ -99,6 +105,24 @@ useEffect(() => {
 
   saveToDB();
 }, [messages, activeTab, isRestored]); // 确保 activeTab 变化时也能保存当前页签状态
+// --- 逻辑 3: 持久化学术笔记 (新增) ---
+useEffect(() => {
+  // 只有在恢复完成后才允许写入，防止空状态覆盖数据库
+  if (!isRestored) return;
+
+  const saveNotesToDB = async () => {
+    try {
+      const db = await initDB();
+      // 将当前的 notes 数组存入 notesStore
+      await db.put('notesStore', notes, 'allNotes');
+      console.log("笔记已同步至数据库", notes);
+    } catch (error) {
+      console.error("笔记保存失败:", error);
+    }
+  };
+
+  saveNotesToDB();
+}, [notes, isRestored]); // 当 notes 数组改变时自动执行
 const handleStartAnalysis = useCallback(async () => {
   setIsAnalyzing(true);
   
@@ -249,7 +273,14 @@ const handleExplain = useCallback((content, role = 'user') => {
       }]);
     }, 1000);
   }, [pdfFile]);
-
+// 4. 新增：保存笔记的回调函数
+const handleAddNote = useCallback((noteData) => {
+  setNotes(prev => [{
+    id: Date.now(),
+    ...noteData,
+    time: new Date().toLocaleTimeString()
+  }, ...prev]);
+}, []);
   return (
     <div className="flex flex-col h-screen bg-[#F8F9FA] text-slate-900 font-sans">
       {/* 顶部导航栏 */}
@@ -275,6 +306,7 @@ const handleExplain = useCallback((content, role = 'user') => {
               <div className="flex-1 bg-white rounded shadow-2xl overflow-hidden">
                 <PdfViewer fileUrl={pdfFile} 
                 onSelection={handleExplain}
+                onSaveNote={handleAddNote}
                 />
               </div>
               
@@ -294,20 +326,33 @@ const handleExplain = useCallback((content, role = 'user') => {
           </Separator>
 
           {/* 右侧：AI 对话面板 */}
-          <Panel defaultSize={35} minSize={20}>
-            {/* 2. 修改右侧面板：根据 activeTab 实时切换 */}
+          <Panel defaultSize={35}>
             <div className="h-full bg-white flex flex-col">
-              {activeTab === 'chat' ? (
-                <ChatPanel 
-                  messages={messages}
-                  onSendMessage={handleSendMessage}
-                />
-              ) : (
-                <CriticalAnalysisPanel 
-                  data={analysisData} 
-                  onAnalyze={handleStartAnalysis} 
-                  isLoading={isAnalyzing}
-                />
+              {/* 根据 activeTab 切换三个面板 */}
+              {activeTab === 'chat' && (
+                <ChatPanel messages={messages} onSendMessage={handleSendMessage} />
+              )}
+              {activeTab === 'analysis' && (
+                <CriticalAnalysisPanel data={analysisData} onAnalyze={handleStartAnalysis} isLoading={isAnalyzing} />
+              )}
+              {activeTab === 'notes' && (
+                <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
+                  <div className="p-4 border-b bg-white font-bold text-slate-700">📌 学术笔记精华</div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {notes.map(note => (
+                      <div key={note.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="flex justify-between text-[10px] text-blue-500 font-bold mb-2">
+                          <span>PAGE {note.pageNumber + 1}</span>
+                          <span>{note.time}</span>
+                        </div>
+                        <p className="text-sm italic text-slate-500 border-l-2 border-slate-200 pl-3 mb-3">"{note.text}"</p>
+                        <div className="text-sm text-slate-700 bg-blue-50/50 p-3 rounded-lg">
+                          <ReactMarkdown>{note.aiInterpretation}</ReactMarkdown>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           </Panel>
