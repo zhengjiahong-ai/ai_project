@@ -5,7 +5,7 @@ import os
 import tempfile
 from grobid_client.grobid_client import GrobidClient
 #from langchain_openai import ChatOpenAI
-from langchain_community.chat_models import ChatDashScope
+from langchain_community.chat_models.dashscope import ChatDashScope
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 import json
