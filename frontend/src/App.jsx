@@ -10,7 +10,7 @@ import CriticalAnalysisPanel from './components/CriticalAnalysisPanel'; // 确�
 
 // 初始化 IndexedDB
 const initDB = async () => {
-  return openDB('PixiuAcademicDB', 1, {
+  return openDB('PixiuAcademicDB', 2, {
     upgrade(db) {
       if (!db.objectStoreNames.contains('pdfStore')) {
         db.createObjectStore('pdfStore'); // 存储 PDF Blob
@@ -18,6 +18,9 @@ const initDB = async () => {
       if (!db.objectStoreNames.contains('historyStore')) {
         db.createObjectStore('historyStore'); // 存储 聊天历史
       }
+      // 新增：存放分析报告
+      if (!db.objectStoreNames.contains('analysisStore')) db.createObjectStore('analysisStore');
+    
     },
   });
 };
@@ -26,6 +29,8 @@ export default function App() {
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
   
+  // AI 就绪状态
+  const [isAiReady, setIsAiReady] = useState(true);
   // 对话记录
   const [messages, setMessages] = useState([
     { 
@@ -51,10 +56,13 @@ useEffect(() => {
       const db = await initDB();
       const savedPdf = await db.get('pdfStore', 'currentPdf');
       const savedMessages = await db.get('historyStore', 'chatHistory');
-
+      const savedAnalysis = await db.get('analysisStore', 'lastAnalysis');
       if (savedPdf) {
         setPdfFile(URL.createObjectURL(savedPdf.blob));
         setPdfFileName(savedPdf.name);
+      }
+      if (savedAnalysis) {
+        setAnalysisData(savedAnalysis);
       }
      // 只有数据库有数据时才覆盖默认欢迎语
      if (savedMessages && savedMessages.length > 0) {
@@ -73,16 +81,16 @@ useEffect(() => {
 
 // --- 逻辑 2: 持久化聊天历史 ---
 useEffect(() => {
-  // 关键改动：如果还没恢复完成，绝对不要触发保存动作
+  // 核心修复：如果还没恢复完成，直接退出，防止空状态覆盖数据库
   if (!isRestored) return;
 
   const saveToDB = async () => {
     try {
       const db = await initDB();
-      // 只有在 messages 确实有内容时才存
-      if (messages.length > 0) {
+      // 只有在 messages 确实存在且不是由于还没读完数据库导致的假空状态时才存
+      if (messages && messages.length > 0) {
         await db.put('historyStore', messages, 'chatHistory');
-        localStorage.setItem('lastUpdate', Date.now().toString());
+        localStorage.setItem('activeTab', activeTab);
       }
     } catch (error) {
       console.error("保存失败:", error);
@@ -90,20 +98,25 @@ useEffect(() => {
   };
 
   saveToDB();
-}, [messages, isRestored]); // 必须把 isRestored 也加入依赖数组
+}, [messages, activeTab, isRestored]); // 确保 activeTab 变化时也能保存当前页签状态
 const handleStartAnalysis = useCallback(async () => {
   setIsAnalyzing(true);
   
-  /* // 未来对接后端接口
+ /* // 未来对接后端接口
   try {
     const response = await apiService.fetchCriticalAnalysis(pdfFile);
-    setAnalysisData(response.data);
+    const result = response.data;
+    setAnalysisData(result);
+    
+    // 后端返回后也需存入本地缓存
+    const db = await initDB();
+    await db.put('analysisStore', result, 'lastAnalysis');
   } catch (e) { console.error(e); }
   */
 
   // 模拟后端返回数据
-  setTimeout(() => {
-    setAnalysisData({
+  setTimeout(async () => {
+    const mockResult = {
       summary: "本文在实验设计上具有创新性，但在样本量控制和长短期效应对比上存在一定局限性。",
       metrics: [
         { name: '创新性', score: 85, detail: '提出了一种全新的自适应悬浮算法。' },
@@ -111,12 +124,22 @@ const handleStartAnalysis = useCallback(async () => {
         { name: '引用质量', score: 90, detail: '引用了近 3 年内 80% 的核心期刊文献。' },
         { name: '逻辑链条', score: 75, detail: '结论推导部分对负面结果的讨论略显不足。' }
       ]
-    });
+    };
+
+    // 1. 更新 React 状态，让 UI 立即响应
+    setAnalysisData(mockResult);
     setIsAnalyzing(false);
+
+    // 2. 写入 IndexedDB，确保刷新后不丢失
+    try {
+      const db = await initDB();
+      await db.put('analysisStore', mockResult, 'lastAnalysis');
+      console.log("分析数据已持久化至本地仓");
+    } catch (e) {
+      console.error("持久化分析数据失败:", e);
+    }
   }, 2000);
 }, [pdfFile]);
-  // AI 就绪状态
-  const [isAiReady, setIsAiReady] = useState(true);
 // 处理划词后的解释逻辑
 const handleExplain = useCallback((content, role = 'user') => {
   // 1. 创建新消息对象
