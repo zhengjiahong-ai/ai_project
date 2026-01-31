@@ -5,10 +5,15 @@ import os
 import tempfile
 from grobid_client.grobid_client import GrobidClient
 from langchain_openai import ChatOpenAI
+from langchain_community.chat_models import ChatDashScope
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 import json
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 # 定义请求模型
 class TermExplainRequest(BaseModel):
@@ -29,7 +34,12 @@ app = FastAPI()
 grobid_client = GrobidClient(config_path=None, grobid_server="http://grobid:8070")
 
 # 初始化LLM
-llm = ChatOpenAI(model_name="gpt-4o", temperature=0.3)
+#llm = ChatOpenAI(model_name="gpt-4o", temperature=0.3)
+# 从环境变量中获取 API 密钥
+api_key = os.environ.get("DASHSCOPE_API_KEY")
+if not api_key:
+    raise ValueError("请在 .env 文件中设置 DASHSCOPE_API_KEY 环境变量")
+llm = ChatDashScope(model="qwen-max", temperature=0.3, dashscope_api_key=api_key)
 
 # 定义摘要模板
 summary_template = PromptTemplate(
