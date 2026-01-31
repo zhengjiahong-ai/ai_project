@@ -16,7 +16,7 @@
     "axios": "^1.13.4",
     "idb": "^8.0.3",
     "lucide-react": "^0.563.0",
-    "pdfjs-dist": "^3.4.120",
+    "pdfjs-dist": "3.4.120",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",

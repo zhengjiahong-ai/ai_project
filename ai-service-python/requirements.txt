@@ -1,4 +1,11 @@
-fastapi
-uvicorn
-langchain
-openai
+fastapi==0.110.0
+uvicorn==0.29.0
+langchain==0.1.0
+langchain_openai==0.0.2
+openai==1.9.0
+pydantic==2.6.4
+pydantic-settings==2.2.1
+grobid-client-python==0.1.4
+requests==2.31.0
+python-multipart==0.0.9
+-i https://mirrors.aliyun.com/pypi/simple/

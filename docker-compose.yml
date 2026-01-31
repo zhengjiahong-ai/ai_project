@@ -20,6 +20,8 @@ services:
     ports:
       - "8080:8080"
     # 如果 Java 需要调用 Python，确保它知道 ai-service 这个主机名
+    depends_on:
+      - ai-service
 
   # --- Python AI 服务 ---
   ai-service:
@@ -27,3 +29,19 @@ services:
     container_name: ai_service_python
     ports:
       - "8000:8000"
+    depends_on:
+      - grobid
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}  # 从环境变量获取 OpenAI API Key
+
+  # --- GROBID 服务（用于PDF解析） ---
+  grobid:
+    image: lfoppiano/grobid:0.7.2
+    container_name: grobid_service
+    ports:
+      - "8070:8070"
+    volumes:
+      - grobid_data:/opt/grobid/home
+
+volumes:
+  grobid_data:
