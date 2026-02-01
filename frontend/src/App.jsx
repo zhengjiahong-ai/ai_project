@@ -47,6 +47,7 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false); // 加载状态
   const [isRestored, setIsRestored] = useState(false);
   const [notes, setNotes] = useState([]); // 新增笔记状态
+  const [isTranslated, setIsTranslated] = useState(false); // 新增：翻译开关状态
 // 处理分析逻辑
 // --- 逻辑 1: 页面加载时恢复数据 (刷新保护) ---
 useEffect(() => {
@@ -300,13 +301,16 @@ const handleAddNote = useCallback((noteData) => {
               {/* 新增：显示文件名，解决 pdfFileName 未使用的警告 */}
                 {pdfFileName && (
                   <div className="mb-2 text-white text-sm font-medium truncate bg-black/20 px-3 py-1 rounded">
-                    📄 {pdfFileName}
+                    <span>📄 {pdfFileName}</span>
+                  {/* 显示翻译模式状态 */}
+                  {isTranslated && <span className="text-blue-400 animate-pulse text-xs">智能双语图层已开启</span>}
                   </div>
                 )}
               <div className="flex-1 bg-white rounded shadow-2xl overflow-hidden">
                 <PdfViewer fileUrl={pdfFile} 
                 onSelection={handleExplain}
                 onSaveNote={handleAddNote}
+                isTranslated={isTranslated}
                 />
               </div>
               
@@ -315,6 +319,8 @@ const handleAddNote = useCallback((noteData) => {
                 <PdfToolbar 
                   onDynamicExplain={handleDynamicExplain}
                   onCriticalReading={handleCriticalReading}
+                  isTranslated={isTranslated} // 👈 传入状态
+                  onToggleTranslation={() => setIsTranslated(!isTranslated)} // 👈 传入切换函数
                 />
               )}
             </div>

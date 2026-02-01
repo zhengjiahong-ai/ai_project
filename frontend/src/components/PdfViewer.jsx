@@ -128,9 +128,31 @@ const ExplanationPopup = ({ text, position, onClose, onMessageSync ,onSaveNote})
     </div>
   );
 };
+// 1. 新增：翻译遮罩子组件 (用于模拟 Canvas/SVG 翻译效果)
+const TranslationOverlay = () => (
+  <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden select-none">
+    {/* 混合模式蒙版，营造“智能扫描”视觉感 */}
+    <div className="absolute inset-0 bg-blue-50/10 mix-blend-multiply" />
+    
+    {/* 模拟翻译条纹：实际开发中这里可以对接 OCR 坐标和翻译后的 Text 对象 */}
+    <div className="p-20 space-y-16 opacity-20">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="space-y-3">
+          <div className="h-3 bg-blue-400 rounded w-2/3 animate-pulse" />
+          <div className="h-3 bg-slate-300 rounded w-full" />
+          <div className="h-3 bg-blue-200 rounded w-1/2" />
+        </div>
+      ))}
+    </div>
 
+    {/* 水印标识 */}
+    <div className="absolute bottom-4 right-4 bg-blue-600/80 text-white text-[8px] px-2 py-0.5 rounded backdrop-blur-sm">
+      AI BILINGUAL ENGINE ACTIVE
+    </div>
+  </div>
+);
 // --- 主组件 ---
-const PdfViewer = ({ fileUrl, onSelection , onSaveNote}) => {
+const PdfViewer = ({ fileUrl, onSelection , onSaveNote, isTranslated}) => {
   const [activePopup, setActivePopup] = useState(null);
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
   const workerUrl = `https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js`;
@@ -175,6 +197,8 @@ const PdfViewer = ({ fileUrl, onSelection , onSaveNote}) => {
 
   return (
     <div className="h-full w-full relative"> 
+    {/* 🚀 核心逻辑：当开启翻译时渲染遮罩层 */}
+    {isTranslated && <TranslationOverlay />}
       {fileUrl ? (
         <Worker workerUrl={workerUrl}>
           <Viewer 
