@@ -29,10 +29,13 @@ services:
     container_name: ai_service_python
     ports:
       - "8000:8000"
+    env_file:
+      - .env  # 加载根目录的 .env 文件
+    environment:
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      #- OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - grobid
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}  # 从环境变量获取 OpenAI API Key
 
   # --- GROBID 服务（用于PDF解析） ---
   grobid:
