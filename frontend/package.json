@@ -19,6 +19,7 @@
     "pdfjs-dist": "3.4.120",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-force-graph-2d": "^1.29.0",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.5.2",
     "recharts": "^3.7.0"

@@ -1,4 +1,6 @@
-import React from 'react';
+
+import React, { useMemo, useEffect,useRef, useState } from 'react'; // 增加 useMemo
+import ForceGraph from 'react-force-graph-2d';// 👈 新增关系图
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell 
@@ -20,7 +22,56 @@ import ReactMarkdown from 'react-markdown';
  * @param {Boolean} isLoading - 加载状态
  */
 const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
-  
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(300);
+
+  // 监听容器大小变化
+  useEffect(() => {
+    if (containerRef.current) {
+      setContainerWidth(containerRef.current.offsetWidth - 40); // 减去 padding
+    }
+  }, [data, isLoading]); // 当状态切换时重新计算
+  // 模拟论文网络数据
+  /* --- 接口集成建议 (API Integration) ---
+    如果你想在组件加载时自动请求数据，可以参考以下写法：
+
+    useEffect(() => {
+      const fetchAnalysisData = async () => {
+        try {
+          // 1. 调用接口: const response = await fetch('/api/v1/analyze', { method: 'POST', body: JSON.stringify({ pdfId: "..." }) });
+          // 2. 解析数据: const result = await response.json();
+          // 3. 更新父组件状态: onAnalyze(result);
+        } catch (error) {
+          console.error("分析接口请求失败:", error);
+        }
+      };
+      if (isLoading) fetchAnalysisData();
+    }, [isLoading]);
+  */
+
+  // 1. 论文网络数据接口定义 (建议后端返回格式)
+  /*
+    Expect API Response Format:
+    {
+      nodes: [{ id: "string", name: "string", val: number, color: "hex" }],
+      links: [{ source: "nodeId", target: "nodeId" }]
+    }
+  */
+  const networkData = useMemo(() => ({
+    nodes: [
+      { id: 'current', name: '当前论文', val: 15, color: '#3b82f6' },
+      { id: 'ref1', name: '核心理论源', val: 8, color: '#94a3b8' },
+      { id: 'ref2', name: '实验对比组', val: 8, color: '#94a3b8' },
+      { id: 'cite1', name: '后续应用研究', val: 5, color: '#6366f1' },
+      { id: 'cite2', name: '算法优化扩展', val: 5, color: '#6366f1' },
+    ],
+    links: [
+      { source: 'current', target: 'ref1' },
+      { source: 'current', target: 'ref2' },
+      { source: 'cite1', target: 'current' },
+      { source: 'cite2', target: 'current' },
+    ]
+  }), []);
   // 1. 初始未分析状态
   if (!data && !isLoading) {
     return (
@@ -72,7 +123,34 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        
+        {/* 🚀 新增：论文网络位置图卡片 */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+              <LayoutDashboard size={14} className="text-blue-500" /> 论文领域学术地位
+            </h3>
+            <span className="text-[10px] text-slate-400 italic">滚轮缩放 / 拖拽节点</span>
+          </div>
+          
+          <div className="h-64 w-full bg-slate-50 rounded-xl border border-slate-100 relative">
+             <ForceGraph
+                graphData={networkData}
+                height={250}
+                width={containerWidth} // 建议根据 Panel 宽度动态调整
+                nodeLabel="name"
+                nodeRelSize={6}
+                linkColor={() => '#cbd5e1'}
+                linkDirectionalArrowLength={3}
+                linkDirectionalArrowRelPos={1}
+                cooldownTicks={100}
+             />
+             <div className="absolute bottom-2 left-2 flex gap-3 text-[9px] text-slate-500 bg-white/80 p-1 rounded">
+                <span className="flex items-center gap-1"><i className="w-2 h-2 bg-blue-500 rounded-full"></i> 本文</span>
+                <span className="flex items-center gap-1"><i className="w-2 h-2 bg-slate-400 rounded-full"></i> 参考文献</span>
+                <span className="flex items-center gap-1"><i className="w-2 h-2 bg-indigo-500 rounded-full"></i> 引用本文</span>
+             </div>
+          </div>
+        </div>
         {/* 文字总结卡片 */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
