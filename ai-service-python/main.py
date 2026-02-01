@@ -14,6 +14,8 @@ import dashscope
 from dashscope import Generation
 from langchain.llms.base import LLM
 from typing import Any, List, Mapping, Optional, Dict
+from bs4 import BeautifulSoup  # 👈 必须添加
+import shutil                  # 用于清理临时文件夹
 # 加载环境变量
 load_dotenv()
 
@@ -85,7 +87,12 @@ class BackgroundKnowledgeRequest(BaseModel):
 app = FastAPI()
 
 # 初始化GROBID客户端
-grobid_client = GrobidClient(config_path=None, grobid_server="http://grobid:8070")
+grobid_client = GrobidClient(
+    grobid_server="http://grobid:8070", 
+    batch_size=1,
+    sleep_time=1,
+    timeout=60
+)
 
 # 初始化LLM
 #llm = ChatOpenAI(model_name="gpt-4o", temperature=0.3)
@@ -107,70 +114,131 @@ summary_chain = LLMChain(llm=llm, prompt=summary_template)
 def read_root():
     return {"message": "AI Paper Assistant Service is Running"}
 
-@app.post("/api/deconstruct")
+import json # 确保顶部导入了 json
+
+@app.post("/api/analyze-pdf")
 async def deconstruct_paper(file: UploadFile = File(...)):
-    """自动化篇章解构功能"""
+    """
+    优化版：合并 AI 请求，减少网络等待，防止 Broken Pipe
+    """
+    input_dir = tempfile.mkdtemp()
+    output_dir = tempfile.mkdtemp()
+    
     try:
-        # 保存上传的PDF文件
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
-            temp_file.write(await file.read())
-            temp_file_path = temp_file.name
-        
-        # 使用GROBID解析PDF
-        output_dir = tempfile.mkdtemp()
+        # 1. 消耗 UploadFile 写入磁盘
+        file_path = os.path.join(input_dir, "target_paper.pdf")
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+
+        # 2. 调用 GROBID
         grobid_client.process(
             "processFulltextDocument",
-            input_path=temp_file_path,
+            input_path=input_dir,
             output=output_dir,
-            consolidate_citations=True,
+            consolidate_citations=False, # 👈 改为 False，不再联网查 DOI
             tei_coordinates=True
         )
+
+        # 3. 获取 XML
+        xml_files = [f for f in os.listdir(output_dir) if f.endswith('.tei.xml')]
+        if not xml_files:
+            raise Exception("GROBID 解析失败：未找到生成的 XML。")
+            
+        tei_file = os.path.join(output_dir, xml_files[0])
         
-        # 读取解析结果
-        tei_file = os.path.join(output_dir, os.path.basename(temp_file_path).replace(".pdf", ".tei.xml"))
-        
-        # 这里简化处理，实际应该解析TEI XML文件
-        # 提取各个部分的文本
+        # 4. 提取章节内容
+        with open(tei_file, 'r', encoding='utf-8') as f:
+            soup = BeautifulSoup(f, 'xml')
+            
+        # 核心改进：更灵活的章节容器
         sections = {
-            "abstract": "摘要内容",
-            "introduction": "引言内容",
-            "methods": "方法内容",
-            "results": "结果内容",
-            "discussion": "讨论内容",
-            "conclusion": "结论内容"
+            "abstract": "",
+            "introduction": "",
+            "methods": "",
+            "results": "",
+            "discussion": "",
+            "conclusion": ""
         }
         
-        # 为每个部分生成摘要
-        section_summaries = {}
-        for section, text in sections.items():
-            summary = summary_chain.run(text=text, section=section)
-            section_summaries[section] = summary
-        
-        # 清理临时文件
-        os.unlink(temp_file_path)
-        for root, dirs, files in os.walk(output_dir):
-            for file in files:
-                os.unlink(os.path.join(root, file))
-        os.rmdir(output_dir)
-        
-        # 返回结构化结果
+        # --- A. 专门处理 Abstract (GROBID 通常放在特定标签) ---
+        abstract_tag = soup.find('abstract')
+        if abstract_tag:
+            sections["abstract"] = abstract_tag.get_text(separator=' ', strip=True)
+
+        # --- B. 增强型章节匹配逻辑 ---
+        for div in soup.find_all('div'):
+            head = div.find('head')
+            if head:
+                head_text = head.get_text().lower()
+                # 提取该 div 下所有段落文本
+                p_text = " ".join([p.get_text(separator=' ', strip=True) for p in div.find_all('p')])
+                
+                # 模糊匹配关键词组，提高命中率
+                if any(kw in head_text for kw in ['intro', 'background', 'preliminar']):
+                    sections["introduction"] += p_text
+                elif any(kw in head_text for kw in ['method', 'approach', 'model', 'design', 'implementation']):
+                    sections["methods"] += p_text
+                elif any(kw in head_text for kw in ['result', 'experiment', 'evaluation', 'finding']):
+                    sections["results"] += p_text
+                elif any(kw in head_text for kw in ['discuss', 'limitation', 'related work']):
+                    sections["discussion"] += p_text
+                elif any(kw in head_text for kw in ['conclu', 'summary', 'future']):
+                    sections["conclusion"] += p_text
+
+        # 4. 构建 AI 批量总结上下文
+        combined_context = ""
+        for name, text in sections.items():
+            content_snippet = text.strip()
+            if len(content_snippet) > 50:
+                # 截断每个章节，保留前 2500 字符，确保不超大模型窗口
+                combined_context += f"### 章节: {name.upper()}\n内容: {content_snippet[:2500]}\n\n"
+
+        if combined_context:
+            # 改进 Prompt，强制要求 JSON 且处理“未识别”的情况
+            batch_prompt = f"""
+            你是一个学术论文精读专家。请根据以下提取的论文各部分内容，生成每部分的精炼总结。
+            
+            要求：
+            1. 必须返回标准 JSON 格式。
+            2. 键名(Key)固定为：abstract, introduction, methods, results, discussion, conclusion。
+            3. 如果某部分内容包含“未在该论文中识别到”，请尝试根据其他章节的信息进行推断总结。
+            4. 语言使用专业中文，每部分 150 字以内。
+            
+            论文提取内容：
+            {combined_context}
+            """
+            
+            raw_response = llm._call(prompt=batch_prompt)
+            
+            try:
+                # 处理大模型可能带有的 Markdown 修饰语
+                clean_json = raw_response.strip()
+                if "```json" in clean_json:
+                    clean_json = clean_json.split("```json")[1].split("```")[0].strip()
+                elif "```" in clean_json:
+                    clean_json = clean_json.split("```")[1].split("```")[0].strip()
+                
+                section_summaries = json.loads(clean_json)
+            except Exception as e:
+                print(f"JSON解析异常: {str(e)}")
+                # 降级处理：如果解析失败，直接返回原始文本
+                section_summaries = {"error": "解析失败", "raw": raw_response[:500]}
+        else:
+            section_summaries = {k: "未能从PDF中识别出有效文字，请确认PDF是否为扫描件。" for k in sections.keys()}
+
         return JSONResponse({
             "status": "success",
-            "sections": sections,
-            "summaries": section_summaries,
-            "paper_skeleton": {
-                "abstract": section_summaries.get("abstract"),
-                "introduction": section_summaries.get("introduction"),
-                "methods": section_summaries.get("methods"),
-                "results": section_summaries.get("results"),
-                "discussion": section_summaries.get("discussion"),
-                "conclusion": section_summaries.get("conclusion")
-            }
+            "paper_skeleton": section_summaries
         })
-        
-    except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
+    except Exception as e:
+        print(f"分析出错: {str(e)}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+    finally:
+        if os.path.exists(input_dir): shutil.rmtree(input_dir)
+        if os.path.exists(output_dir): shutil.rmtree(output_dir)
+        
 @app.post("/api/background-knowledge")
 async def get_background_knowledge(request: BackgroundKnowledgeRequest):
     """动态背景补课系统"""

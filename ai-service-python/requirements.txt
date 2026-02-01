@@ -13,5 +13,7 @@ requests>=2.31.0,<3.0.0
 python-multipart>=0.0.9,<0.1.0
 typing-extensions>=4.8.0
 numpy>=1.26.0,<2.0.0
-
+# --- 新增解析库 ---
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
 -i https://mirrors.aliyun.com/pypi/simple/

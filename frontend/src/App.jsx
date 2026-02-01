@@ -7,11 +7,12 @@ import PdfToolbar from './components/PdfToolbar';
 import { openDB } from 'idb'; // 引入数据库库
 import ReactMarkdown from 'react-markdown';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel'; // 确认引入新组件
-// import { apiService } from './services/api';
+import { apiService } from './services/api';
+import PaperAnalysis from './components/PaperAnalysis'; // 👈 补上这一行
 
 // 初始化 IndexedDB
 const initDB = async () => {
-  return openDB('PixiuAcademicDB', 3, {
+  return openDB('PixiuAcademicDB', 5, {
     upgrade(db) {
       if (!db.objectStoreNames.contains('pdfStore')) {
         db.createObjectStore('pdfStore'); // 存储 PDF Blob
@@ -24,6 +25,10 @@ const initDB = async () => {
       if (!db.objectStoreNames.contains('notesStore')) {
         db.createObjectStore('notesStore'); 
       }
+   // 👈 篇章解构报告用的新 Store
+   if (!db.objectStoreNames.contains('deconstructStore')) {
+    db.createObjectStore('deconstructStore');
+  }
     },
   });
 };
@@ -31,7 +36,7 @@ export default function App() {
   // PDF 文件状态（存储 blob URL）
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
-  
+  const [pdfId, setPdfId] = useState(null); // 新增：存储后端返回的 PDF 唯一 ID
   // AI 就绪状态
   const [isAiReady, setIsAiReady] = useState(true);
   // 对话记录
@@ -48,8 +53,48 @@ export default function App() {
   const [isRestored, setIsRestored] = useState(false);
   const [notes, setNotes] = useState([]); // 新增笔记状态
   const [isTranslated, setIsTranslated] = useState(false); // 新增：翻译开关状态
+  const [isDeconstructing, setIsDeconstructing] = useState(false); // 专门用于文件上传后的篇章解构
+  const [deconstructData, setDeconstructData] = useState(null); // 👈 专门存篇章解构结果
 // 处理分析逻辑
 // --- 逻辑 1: 页面加载时恢复数据 (刷新保护) ---
+// 在 App 组件内部定义
+const handlePdfUpload = async (file) => {
+  if (!file) return;
+
+  setPdfFileName(file.name);
+  // 1. 保留本地预览功能，让 PDF 立即显示出来
+  const fileUrl = URL.createObjectURL(file);
+  setPdfFile(fileUrl);
+  
+  setIsAiReady(false); // 正在上传，AI 还没准备好
+  setIsDeconstructing(true); // 👈 开启解构加载
+  try {
+    // 2. 关键：调用 api.js 里的接口传给 Java
+    // 这个接口会把文件发给 Java，Java 再发给 Python 的 main.py
+    const response = await apiService.uploadPdf(file);
+    
+    // 3. 记录后端返回的 ID (如果 Java 返回了结果)
+    // 如果 Python 返回了 metadata，你也可以在这里 set 状态
+    console.log("后端响应结果:", response);
+    // 2. 将后端返回的 paper_skeleton 数据存入状态
+    // 注意：这里要确保数据结构与 Python 返回的一致
+    if (response && response.status === "success") {
+      setDeconstructData(response);
+      setActiveTab('deconstruct'); // 👈 必须切到 deconstruct 才能看到报告组件
+      // 4. 持久化到 IndexedDB，防止刷新丢失
+      const db = await initDB();
+      // 1. 存储 PDF 文件本身（必须存 file 对象，而不是 fileUrl）
+      await db.put('pdfStore', file, 'currentPdf');
+      await db.put('deconstructStore', response, 'last_deconstruct'); // 使用新命名的 Store
+    }
+    setIsAiReady(true); // AI 准备就绪
+  } catch (error) {
+    console.error("上传至后端失败:", error);
+    alert("上传失败，请确保 Java 后端(8080)和 Python(8000) 已启动");
+  }finally {
+    setIsDeconstructing(false); // 👈 关闭解构加载
+  }
+};
 useEffect(() => {
   const restoreSession = async () => {
     try {
@@ -62,6 +107,8 @@ useEffect(() => {
       const savedPdf = await db.get('pdfStore', 'currentPdf');
       const savedMessages = await db.get('historyStore', 'chatHistory');
       const savedAnalysis = await db.get('analysisStore', 'lastAnalysis');
+      const savedDeconstruct = await db.get('deconstructStore', 'last_deconstruct');
+      if (savedDeconstruct) setDeconstructData(savedDeconstruct);
       const savedNotes = await db.get('notesStore', 'allNotes');
         if (savedNotes) setNotes(savedNotes);
       if (savedPdf) {
@@ -124,6 +171,7 @@ useEffect(() => {
 
   saveNotesToDB();
 }, [notes, isRestored]); // 当 notes 数组改变时自动执行
+
 const handleStartAnalysis = useCallback(async () => {
   setIsAnalyzing(true);
   
@@ -286,11 +334,17 @@ const handleAddNote = useCallback((noteData) => {
     <div className="flex flex-col h-screen bg-[#F8F9FA] text-slate-900 font-sans">
       {/* 顶部导航栏 */}
       {/* 1. 修改 Navbar：传入切换函数和当前状态 */}
-      <Navbar 
+      {/* <Navbar 
         onFileUpload={handleFileUpload} 
         activeTab={activeTab} 
         onTabChange={setActiveTab} 
-      />
+      /> */}
+      <Navbar 
+      activeTab={activeTab} 
+      onTabChange={setActiveTab} 
+      isReady={isAiReady} 
+      onFileUpload={handlePdfUpload} // 👈 绑定这个新函数
+    />
 
       {/* 主体交互区 */}
       <main className="flex-1 overflow-hidden">
@@ -338,6 +392,10 @@ const handleAddNote = useCallback((noteData) => {
               {activeTab === 'chat' && (
                 <ChatPanel messages={messages} onSendMessage={handleSendMessage} />
               )}
+              {/* 修正点 1：增加 deconstruct 选项卡挂载 */}
+  {activeTab === 'deconstruct' && (
+    <PaperAnalysis data={deconstructData} isLoading={isDeconstructing} />
+  )}
               {activeTab === 'analysis' && (
                 <CriticalAnalysisPanel data={analysisData} onAnalyze={handleStartAnalysis} isLoading={isAnalyzing} />
               )}

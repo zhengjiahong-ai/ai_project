@@ -9,7 +9,7 @@ services:
       - ./frontend:/app         # 核心：将本地代码映射进容器，实现热更新
       - /app/node_modules       # 防止本地 node_modules 覆盖容器内的
     environment:
-      - VITE_API_BASE_URL=http://localhost:8080 # 指向 Java 后端
+      - VITE_API_BASE_URL=http://localhost:8080/api # 指向 Java 后端
     depends_on:
       - backend
 
@@ -20,6 +20,10 @@ services:
     ports:
       - "8080:8080"
     # 如果 Java 需要调用 Python，确保它知道 ai-service 这个主机名
+    environment:
+      # 🚀 这里告诉 Java：去请求名为 ai-service 的容器
+      - SPRING_PROFILES_ACTIVE=dev
+      - PYTHON_URL=http://ai-service:8000/api
     depends_on:
       - ai-service
 
@@ -27,12 +31,14 @@ services:
   ai-service:
     build: ./ai-service-python
     container_name: ai_service_python
+    restart: always  # 🔥 重要：挂了自动重启，直到 Grobid 准备好
     ports:
       - "8000:8000"
     env_file:
       - .env  # 加载根目录的 .env 文件
     environment:
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - PYTHON_SERVICE_URL=http://ai-service:8000/api
       #- OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - grobid
@@ -43,8 +49,14 @@ services:
     container_name: grobid_service
     ports:
       - "8070:8070"
+    environment:
+      - JAVA_OPTS=-Xmx4g -Xms2g # 🔥 增加内存，防止频繁 GC 导致卡顿
     volumes:
       - grobid_data:/opt/grobid/home
+    deploy:
+      resources:
+        limits:
+          memory: 4G # 建议至少 4G
 
 volumes:
   grobid_data:

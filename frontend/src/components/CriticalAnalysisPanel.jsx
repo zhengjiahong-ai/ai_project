@@ -134,6 +134,8 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
           
           <div className="h-64 w-full bg-slate-50 rounded-xl border border-slate-100 relative">
              <ForceGraph
+
+             
                 graphData={networkData}
                 height={250}
                 width={containerWidth} // 建议根据 Panel 宽度动态调整

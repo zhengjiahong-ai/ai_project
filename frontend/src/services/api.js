@@ -2,11 +2,19 @@ import axios from 'axios';
 
 // 从环境变量获取 API 基础 URL，如果没有则使用默认值
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-
+export const uploadPdf = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  return axios.post(`${API_BASE_URL}/upload`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000 // 因为 AI 生成慢，设置 1 分钟超时
+  });
+};
 // 创建 axios 实例
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
   },

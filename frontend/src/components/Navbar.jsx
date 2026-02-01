@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, BookOpen, CheckCircle2, MessageSquare, BarChart3, Bookmark } from 'lucide-react';
+import { Upload, BookOpen, CheckCircle2, MessageSquare, BarChart3, Bookmark ,LayoutDashboard} from 'lucide-react';
 
 const Navbar = ({ onFileUpload, isReady = true, activeTab, onTabChange }) => {
   const handleFileChange = (e) => {
@@ -35,6 +35,15 @@ const Navbar = ({ onFileUpload, isReady = true, activeTab, onTabChange }) => {
         >
           <BarChart3 size={16} /> 批判性分析
         </button>
+        {/* 新增：篇章解构按钮 */}
+  <button
+    onClick={() => onTabChange('deconstruct')}
+    className={`flex items-center gap-2 px-4 py-1 rounded-lg text-sm font-medium transition-all ${
+      activeTab === 'deconstruct' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+    }`}
+  >
+    <LayoutDashboard size={16} /> 篇章解构
+  </button>
         {/* 新增按钮 */}
         <button
           onClick={() => onTabChange('notes')}
