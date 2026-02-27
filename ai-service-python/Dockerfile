@@ -23,3 +23,6 @@ EXPOSE 8000
 
 # 启动 FastAPI
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+ENV CHROMA_DB_DIR=/app/chroma_data
+RUN mkdir -p /app/chroma_data
