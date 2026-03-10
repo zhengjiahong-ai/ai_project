@@ -16,6 +16,12 @@ from langchain.llms.base import LLM
 from typing import Any, List, Mapping, Optional, Dict
 from bs4 import BeautifulSoup  # 👈 必须添加
 import shutil                  # 用于清理临时文件夹
+# RAG
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from core.rag_vector_db import LiteratureRAG
+
+rag = LiteratureRAG()
 # 加载环境变量
 load_dotenv()
 
@@ -87,12 +93,14 @@ class BackgroundKnowledgeRequest(BaseModel):
 app = FastAPI()
 
 # 初始化GROBID客户端
-grobid_client = GrobidClient(
-    grobid_server="http://grobid:8070", 
-    batch_size=1,
-    sleep_time=1,
-    timeout=60
-)
+#grobid_client = GrobidClient(
+#    grobid_server="http://grobid:8070",
+#    batch_size=1,
+#    sleep_time=1,
+#    timeout=60
+#)
+
+grobid_client=None #测试
 
 # 初始化LLM
 #llm = ChatOpenAI(model_name="gpt-4o", temperature=0.3)
@@ -109,6 +117,29 @@ summary_template = PromptTemplate(
 )
 
 summary_chain = LLMChain(llm=llm, prompt=summary_template)
+
+# 论文结构化抽取链
+structure_template = PromptTemplate(
+    input_variables=["text"],
+    template="""
+你是一名学术论文结构分析专家。
+请从以下论文内容中提取结构化信息，必须返回JSON格式：
+
+{
+    "research_problem": "",
+    "core_hypothesis": "",
+    "method_framework": [],
+    "claimed_contributions": [],
+    "experimental_logic": "",
+    "limitations": ""
+}
+
+论文内容：
+{text}
+"""
+)
+
+structure_chain = LLMChain(llm=llm, prompt=structure_template)
 
 @app.get("/")
 def read_root():
@@ -220,6 +251,17 @@ async def deconstruct_paper(file: UploadFile = File(...)):
                     clean_json = clean_json.split("```")[1].split("```")[0].strip()
                 
                 section_summaries = json.loads(clean_json)
+                # 论文结构化抽取
+                structure_raw = structure_chain.run(text=combined_context)
+
+                try:
+                    clean_struct = structure_raw.strip()
+                    if "```" in clean_struct:
+                        clean_struct = clean_struct.split("```")[1]
+                    paper_structure = json.loads(clean_struct)
+                except Exception as e:
+                    print(f"结构解析失败: {str(e)}")
+                    paper_structure = {"error": "structure_parse_failed", "raw": structure_raw[:500]}
             except Exception as e:
                 print(f"JSON解析异常: {str(e)}")
                 # 降级处理：如果解析失败，直接返回原始文本
@@ -229,7 +271,8 @@ async def deconstruct_paper(file: UploadFile = File(...)):
 
         return JSONResponse({
             "status": "success",
-            "paper_skeleton": section_summaries
+            "paper_skeleton": section_summaries,
+            "paper_structure": paper_structure
         })
 
     except Exception as e:
@@ -268,54 +311,182 @@ async def get_background_knowledge(request: BackgroundKnowledgeRequest):
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
+
 @app.post("/api/socratic-questions")
 async def generate_socratic_questions(request: SocraticQuestionRequest):
-    """引导式学习引擎（苏格拉底式提问）"""
+    """引导式学习引擎（苏格拉底式提问）（融合RAG检索）"""
     try:
         paper_content = request.paper_content
         reading_progress = request.reading_progress
-        
-        # 定义苏格拉底式提问模板
+
+        # ===== 新增：RAG检索相关片段 =====
+        rag_query = f"基于论文内容生成苏格拉底式问题，阅读进度：{reading_progress}，论文内容：{paper_content[:300]}"
+        rag_results = rag.retrieve(rag_query, top_k=3)
+        rag_context = "\n\n【补充文献片段】：\n"
+        MAX_CHUNK = 800
+        for res in rag_results:
+            text_part = res.get("text", "")
+            rag_context += f"- {text_part[:MAX_CHUNK]}\n"
+
+        # 定义苏格拉底式提问模板（融合RAG）
         socratic_template = PromptTemplate(
-            input_variables=["paper_content", "reading_progress"],
-            template="请作为一个学术导师，基于以下论文内容和用户的阅读进度，生成5个苏格拉底式问题，帮助用户深入思考论文的核心内容。\n\n论文内容：\n{paper_content}\n\n用户阅读进度：\n{reading_progress}\n\n要求：\n1. 问题应该引导用户思考论文的核心假设、方法论、结果和意义\n2. 问题应该具有层次性，从理解基本概念到深入分析\n3. 问题应该鼓励用户批判性思考，而不是简单的事实回忆\n4. 每个问题都应该具体针对论文内容，避免过于宽泛\n\n生成的问题："
+            input_variables=["paper_content", "reading_progress", "rag_context"],
+            template="请作为一个学术导师，基于以下论文内容、阅读进度和补充的文献片段，生成5个苏格拉底式问题，帮助用户深入思考论文的核心内容。\n\n论文内容：\n{paper_content}\n\n用户阅读进度：\n{reading_progress}\n{rag_context}\n\n要求：\n1. 问题应该引导用户思考论文的核心假设、方法论、结果和意义\n2. 问题应该具有层次性，从理解基本概念到深入分析\n3. 问题应该鼓励用户批判性思考，而不是简单的事实回忆\n4. 每个问题都应该具体针对论文内容，避免过于宽泛\n\n生成的问题："
         )
-        
+
         socratic_chain = LLMChain(llm=llm, prompt=socratic_template)
-        questions_text = socratic_chain.run(paper_content=paper_content, reading_progress=reading_progress)
-        
+        questions_text = socratic_chain.run(
+            paper_content=paper_content,
+            reading_progress=reading_progress,
+            rag_context=rag_context  # 传入RAG补充上下文
+        )
+
         # 解析生成的问题
         questions = [q.strip() for q in questions_text.split('\n') if q.strip()]
-        
+
         return JSONResponse({
             "status": "success",
-            "questions": questions
+            "questions": questions,
+            "rag_sources": rag_results  # 可选：返回检索来源
         })
-        
+
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
+
 @app.post("/api/explain-term")
 async def explain_term(request: TermExplainRequest):
-    """动态术语解释功能"""
+    """动态术语解释功能（融合RAG检索）"""
     try:
         term = request.term
         context = request.context
-        
-        # 定义术语解释模板
+
+        # ===== 新增：先通过RAG检索相关文献片段 =====
+        # 构造检索查询（术语+原始上下文）
+        rag_query = f"解释术语'{term}'，上下文：{context[:200]}"  # 截断避免过长
+        # 检索Top3相关片段
+        rag_results = rag.retrieve(rag_query, top_k=3)
+        # 拼接检索到的片段作为补充上下文
+        rag_context = "\n\n【补充文献片段】：\n"
+        MAX_CHUNK = 800
+        for res in rag_results:
+            text_part = res.get("text", "")
+            rag_context += f"- {text_part[:MAX_CHUNK]}\n"
+
+        # 定义术语解释模板（融合RAG上下文）
         term_explanation_template = PromptTemplate(
-            input_variables=["term", "context"],
-            template="请结合以下上下文，对术语 '{term}' 进行详细解释，包括：\n1. 该术语的基本定义\n2. 在本上下文中的具体含义\n3. 相关的应用案例或示例\n4. 与其他相关术语的区别\n\n上下文：\n{context}\n\n解释："
+            input_variables=["term", "context", "rag_context"],  # 新增rag_context变量
+            template="请结合以下上下文和补充的文献片段，对术语 '{term}' 进行详细解释，包括：\n1. 该术语的基本定义\n2. 在本上下文中的具体含义\n3. 相关的应用案例或示例\n4. 与其他相关术语的区别\n\n原始上下文：\n{context}\n{rag_context}\n\n解释："
         )
-        
+
         term_explanation_chain = LLMChain(llm=llm, prompt=term_explanation_template)
-        explanation = term_explanation_chain.run(term=term, context=context)
-        
+        # 传入rag_context参数
+        explanation = term_explanation_chain.run(term=term, context=context, rag_context=rag_context)
+
         return JSONResponse({
             "status": "success",
             "term": term,
-            "explanation": explanation
+            "explanation": explanation,
+            "rag_sources": rag_results  # 可选：返回检索来源，提升可信度
         })
-        
+
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# ===== 新增：RAG - 文献入库接口 =====
+@app.post("/api/rag/add-literature")
+async def rag_add_literature(file: UploadFile = File(...), metadata: dict = None):
+    """
+    将上传的文献解析后存入向量库
+    :param file: PDF/Word格式的文献文件
+    :param metadata: 文献元数据（可选，如{"title":"xxx", "author":"xxx"}）
+    :return: 入库结果
+    """
+    try:
+        # 1. 临时保存上传的文件
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+
+        # 2. 调用RAG入库方法
+        chunk_num = rag.add_literature_to_db(temp_file_path, metadata or {})
+
+        # 3. 清理临时文件
+        os.unlink(temp_file_path)
+
+        return JSONResponse({
+            "status": "success",
+            "message": f"文献成功入库，生成{chunk_num}个向量片段",
+            "chunk_num": chunk_num,
+            "total_chunks": rag.get_db_stats()
+        })
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+# ===== 新增：RAG - 相似片段检索接口 =====
+@app.post("/api/rag/retrieve")
+async def rag_retrieve(query: str, top_k: int = 5, filter_metadata: dict = None):
+    """
+    根据查询语句检索向量库中相似的文献片段
+    :param query: 用户查询（如"这篇论文的核心贡献是什么？"）
+    :param top_k: 召回Top-K个片段（默认5）
+    :param filter_metadata: 元数据筛选（可选，如{"author":"张三"}）
+    :return: 检索结果
+    """
+    try:
+        results = rag.retrieve(query, top_k, filter_metadata)
+        return JSONResponse({
+            "status": "success",
+            "query": query,
+            "results": results
+        })
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+@app.post("/api/deep-analysis")
+async def deep_analysis(paper_content: str):
+    """深度分析层：贡献与伪贡献识别"""
+    # Step 1
+    step1_prompt = f"""
+    请从论文中提取作者声称的贡献点，列表形式返回。
+    论文内容：
+    {paper_content[:4000]}
+    """
+
+    claimed = llm._call(step1_prompt)
+
+    # Step 2
+    step2_prompt = f"""
+    忽略作者自述，根据方法与实验内容推断论文真实贡献。
+    论文内容：
+    {paper_content[:4000]}
+    """
+
+    real = llm._call(step2_prompt)
+
+    # Step 3
+    step3_prompt = f"""
+    对比以下两组内容：
+    作者声明贡献：
+    {claimed}
+
+    推断真实贡献：
+    {real}
+
+    请指出：
+    1. 是否存在夸大
+    2. 是否存在伪创新
+    3. 是否存在贡献重复包装
+    """
+
+    critique = llm._call(step3_prompt)
+
+    return JSONResponse({
+        "status": "success",
+        "claimed_contributions": claimed,
+        "inferred_real_contributions": real,
+        "critical_analysis": critique
+    })
