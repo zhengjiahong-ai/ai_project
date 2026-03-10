@@ -1,0 +1,22 @@
+---
+description: 前后端与 Java/Python 接口契约，避免路径与请求体漂移
+globs: frontend/src/services/api.js,**/AcademicController.java,**/AiService.java,ai-service-python/main.py
+alwaysApply: false
+---
+
+# 接口约定
+
+## 前端 → Java (baseURL = VITE_API_BASE_URL，默认 /api)
+- `POST /api/upload`: multipart 字段 `file`，PDF 上传。
+- `POST /api/explain`: body `{ text, pdfId, pageNumber }` 或 `{ term, context }`，划词/术语解释。
+- `POST /api/chat`: body `{ message, pdfId }`，对话（Python 侧 /api/chat 待实现）。
+- 新增接口必须在 `api.js` 中封装，并更新 `docs/CONSTRAINTS.md`。
+
+## Java → Python (PYTHON_URL + 路径)
+- `/analyze-pdf`: multipart，返回 `{ status, paper_skeleton }`。
+- `/explain-term`: body `{ term, context }`，返回 `{ status, term, explanation }`。
+- `/chat`: 与前端 chat 对应，需在 Python 实现或临时占位。
+
+## 统一约定
+- 成功响应建议含 `"status": "success"`；错误用 HTTP 4xx/5xx + body `{ "status": "error", "message": "..." }`。
+- 修改路径或请求体时须同步改前端 `api.js`、Java Controller/Service、Python 路由及 `docs/CONSTRAINTS.md`。
