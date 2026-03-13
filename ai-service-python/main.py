@@ -20,8 +20,26 @@ import shutil                  # 用于清理临时文件夹
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from core.rag_vector_db import LiteratureRAG
-#
-rag = LiteratureRAG()
+# 延迟初始化rag，避免启动时因模型下载失败而崩溃
+rag = None
+
+def get_rag():
+    global rag
+    if rag is None:
+        try:
+            rag = LiteratureRAG()
+        except Exception as e:
+            print(f"RAG初始化失败: {str(e)}")
+            # 提供一个空实现，确保服务能够启动
+            class DummyRAG:
+                def retrieve(self, query, top_k=3, filter_metadata=None):
+                    return []
+                def add_literature_to_db(self, file_path, metadata=None):
+                    return 0
+                def get_db_stats(self):
+                    return 0
+            rag = DummyRAG()
+    return rag
 # 加载环境变量
 load_dotenv()
 
@@ -93,14 +111,14 @@ class BackgroundKnowledgeRequest(BaseModel):
 app = FastAPI()
 
 # 初始化GROBID客户端
-#grobid_client = GrobidClient(
-#    grobid_server="http://grobid:8070",
-#    batch_size=1,
-#    sleep_time=1,
-#    timeout=60
-#)
+grobid_client = GrobidClient(
+    grobid_server="http://grobid:8070",
+    batch_size=1,
+    sleep_time=1,
+    timeout=60
+)
 
-grobid_client=None #测试
+# grobid_client=None #测试
 
 # 初始化LLM
 #llm = ChatOpenAI(model_name="gpt-4o", temperature=0.3)
@@ -225,6 +243,9 @@ async def deconstruct_paper(file: UploadFile = File(...)):
                 # 截断每个章节，保留前 2500 字符，确保不超大模型窗口
                 combined_context += f"### 章节: {name.upper()}\n内容: {content_snippet[:2500]}\n\n"
 
+        # 初始化paper_structure变量
+        paper_structure = {}
+        
         if combined_context:
             # 改进 Prompt，强制要求 JSON 且处理“未识别”的情况
             batch_prompt = f"""
@@ -266,8 +287,10 @@ async def deconstruct_paper(file: UploadFile = File(...)):
                 print(f"JSON解析异常: {str(e)}")
                 # 降级处理：如果解析失败，直接返回原始文本
                 section_summaries = {"error": "解析失败", "raw": raw_response[:500]}
+                paper_structure = {"error": "structure_parse_failed", "raw": "JSON解析异常"}
         else:
             section_summaries = {k: "未能从PDF中识别出有效文字，请确认PDF是否为扫描件。" for k in sections.keys()}
+            paper_structure = {"error": "no_content", "raw": "未能从PDF中识别出有效文字"}
 
         return JSONResponse({
             "status": "success",
@@ -321,7 +344,7 @@ async def generate_socratic_questions(request: SocraticQuestionRequest):
 
         # ===== 新增：RAG检索相关片段 =====
         rag_query = f"基于论文内容生成苏格拉底式问题，阅读进度：{reading_progress}，论文内容：{paper_content[:300]}"
-        rag_results = rag.retrieve(rag_query, top_k=3)
+        rag_results = get_rag().retrieve(rag_query, top_k=3)
         rag_context = "\n\n【补充文献片段】：\n"
         MAX_CHUNK = 800
         for res in rag_results:
@@ -365,7 +388,7 @@ async def explain_term(request: TermExplainRequest):
         # 构造检索查询（术语+原始上下文）
         rag_query = f"解释术语'{term}'，上下文：{context[:200]}"  # 截断避免过长
         # 检索Top3相关片段
-        rag_results = rag.retrieve(rag_query, top_k=3)
+        rag_results = get_rag().retrieve(rag_query, top_k=3)
         # 拼接检索到的片段作为补充上下文
         rag_context = "\n\n【补充文献片段】：\n"
         MAX_CHUNK = 800
@@ -411,7 +434,7 @@ async def rag_add_literature(file: UploadFile = File(...), metadata: dict = None
             temp_file_path = temp_file.name
 
         # 2. 调用RAG入库方法
-        chunk_num = rag.add_literature_to_db(temp_file_path, metadata or {})
+        chunk_num = get_rag().add_literature_to_db(temp_file_path, metadata or {})
 
         # 3. 清理临时文件
         os.unlink(temp_file_path)
@@ -420,7 +443,7 @@ async def rag_add_literature(file: UploadFile = File(...), metadata: dict = None
             "status": "success",
             "message": f"文献成功入库，生成{chunk_num}个向量片段",
             "chunk_num": chunk_num,
-            "total_chunks": rag.get_db_stats()
+            "total_chunks": get_rag().get_db_stats()
         })
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -437,7 +460,7 @@ async def rag_retrieve(query: str, top_k: int = 5, filter_metadata: dict = None)
     :return: 检索结果
     """
     try:
-        results = rag.retrieve(query, top_k, filter_metadata)
+        results = get_rag().retrieve(query, top_k, filter_metadata)
         return JSONResponse({
             "status": "success",
             "query": query,
