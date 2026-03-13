@@ -14,7 +14,8 @@ RUN pip install --upgrade pip setuptools wheel
 
 # 安装依赖
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 拷贝代码
 COPY . .
