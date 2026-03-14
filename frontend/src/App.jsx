@@ -267,27 +267,18 @@ const handleExplain = useCallback((content, role = 'user') => {
 
   // 处理发送消息
   const handleSendMessage = useCallback((message) => {
-    // 添加用户消息
     setMessages(prev => [...prev, { role: 'user', content: message }]);
 
-    // TODO: 调用 AI API
-    // apiService.sendMessage(message, pdfId).then(response => {
-    //   setMessages(prev => [...prev, { role: 'ai', content: response.message }]);
-    // }).catch(error => {
-    //   setMessages(prev => [...prev, { 
-    //     role: 'ai', 
-    //     content: '抱歉，处理您的请求时出现了错误。' 
-    //   }]);
-    // });
-
-    // 临时模拟 AI 响应
-    setTimeout(() => {
-      setMessages(prev => [...prev, { 
-        role: 'ai', 
-        content: '这是一个模拟的 AI 响应。请连接后端 API 以获取真实的 AI 回复。' 
-      }]);
-    }, 1000);
-  }, []);
+    apiService.sendMessage(message, pdfId)
+      .then((response) => {
+        const content = response?.message ?? response?.content ?? '暂无回复';
+        setMessages(prev => [...prev, { role: 'ai', content }]);
+      })
+      .catch((error) => {
+        const errMsg = error?.response?.data?.message ?? error?.message ?? '请求失败，请稍后重试';
+        setMessages(prev => [...prev, { role: 'ai', content: `抱歉，处理您的请求时出现了错误：${errMsg}` }]);
+      });
+  }, [pdfId]);
 
   // 处理动态解释
   const handleDynamicExplain = useCallback(() => {

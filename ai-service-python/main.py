@@ -108,6 +108,13 @@ class BackgroundKnowledgeRequest(BaseModel):
     paper_topic: str
     user_knowledge_level: str
 
+
+class ChatRequest(BaseModel):
+    """简单对话请求：仅用户消息，快速响应"""
+    message: str
+    pdfId: Optional[Any] = None
+
+
 app = FastAPI()
 
 # 初始化GROBID客户端
@@ -413,6 +420,24 @@ async def explain_term(request: TermExplainRequest):
             "rag_sources": rag_results  # 可选：返回检索来源，提升可信度
         })
 
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    """简单 AI 对话：仅根据用户消息快速回复，不依赖 RAG/历史/论文上下文"""
+    try:
+        if not (request.message or request.message.strip()):
+            return JSONResponse(
+                {"status": "error", "message": "消息不能为空"},
+                status_code=400,
+            )
+        reply = llm._call(prompt=request.message.strip())
+        return JSONResponse({
+            "status": "success",
+            "message": reply or "",
+        })
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
