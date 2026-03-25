@@ -20,8 +20,10 @@ import shutil                  # 用于清理临时文件夹
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from core.rag_vector_db import LiteratureRAG
+from core.hybrid_retriever import HybridRetriever
 
 rag = LiteratureRAG()
+hybrid= HybridRetriever(rag)
 # 加载环境变量
 load_dotenv()
 
@@ -93,14 +95,14 @@ class BackgroundKnowledgeRequest(BaseModel):
 app = FastAPI()
 
 # 初始化GROBID客户端
-#grobid_client = GrobidClient(
-#    grobid_server="http://grobid:8070",
-#    batch_size=1,
-#    sleep_time=1,
-#    timeout=60
-#)
+grobid_client = GrobidClient(
+    grobid_server="http://grobid:8070",
+    batch_size=1,
+    sleep_time=1,
+    timeout=60
+)
 
-grobid_client=None #测试
+#grobid_client=None #测试
 
 # 初始化LLM
 #llm = ChatOpenAI(model_name="gpt-4o", temperature=0.3)
@@ -321,9 +323,9 @@ async def generate_socratic_questions(request: SocraticQuestionRequest):
 
         # ===== 新增：RAG检索相关片段 =====
         rag_query = f"基于论文内容生成苏格拉底式问题，阅读进度：{reading_progress}，论文内容：{paper_content[:300]}"
-        rag_results = rag.retrieve(rag_query, top_k=3)
+        rag_results = hybrid.retrieve(rag_query)["vector"]
         rag_context = "\n\n【补充文献片段】：\n"
-        MAX_CHUNK = 800
+        MAX_CHUNK = 400
         for res in rag_results:
             text_part = res.get("text", "")
             rag_context += f"- {text_part[:MAX_CHUNK]}\n"
@@ -356,42 +358,107 @@ async def generate_socratic_questions(request: SocraticQuestionRequest):
 
 @app.post("/api/explain-term")
 async def explain_term(request: TermExplainRequest):
-    """动态术语解释功能（融合RAG检索）"""
+    """动态术语解释功能（融合RAG检索 + Query Rewrite）"""
+
     try:
         term = request.term
         context = request.context
 
-        # ===== 新增：先通过RAG检索相关文献片段 =====
-        # 构造检索查询（术语+原始上下文）
-        rag_query = f"解释术语'{term}'，上下文：{context[:200]}"  # 截断避免过长
-        # 检索Top3相关片段
-        rag_results = rag.retrieve(rag_query, top_k=3)
-        # 拼接检索到的片段作为补充上下文
-        rag_context = "\n\n【补充文献片段】：\n"
-        MAX_CHUNK = 800
-        for res in rag_results:
-            text_part = res.get("text", "")
-            rag_context += f"- {text_part[:MAX_CHUNK]}\n"
+        # ===== 构造检索查询 =====
+        rag_query = f"解释术语 '{term}' ，上下文：{context[:200]}"
 
-        # 定义术语解释模板（融合RAG上下文）
+        # ===== Query Rewrite =====
+        rewrite_prompt = f"""
+You are helping a research retrieval system.
+
+Rewrite the following question into a concise academic search query.
+
+Focus on:
+- key technical terms
+- model names
+- research tasks
+
+Question:
+{rag_query}
+
+Search query:
+"""
+
+        try:
+            rewritten_query = llm._call(rewrite_prompt).strip()
+        except Exception:
+            rewritten_query = rag_query
+
+        print("Original Query:", rag_query)
+        print("Rewritten Query:", rewritten_query)
+
+        # ===== RAG检索 =====
+        rag_results = hybrid.retrieve(rewritten_query)["vector"]
+
+        print("RAG Results Count:", len(rag_results))
+
+        # ===== 构造RAG上下文 =====
+        rag_context = ""
+
+        if rag_results:
+            rag_context = "\n\nAdditional literature context:\n"
+
+            MAX_CHUNK = 600
+            for res in rag_results:
+                text_part = res.get("text", "")
+                rag_context += f"- {text_part[:MAX_CHUNK]}\n"
+
+        # ===== Prompt模板 =====
+        template = """
+You are an academic research assistant.
+
+Explain the technical term "{term}" using the context below.
+
+Requirements:
+1. Give a precise definition
+2. Explain how it is used in this paper
+3. Provide an example if possible
+4. Keep answer within 5 sentences
+5. Prefer information from the provided contexts
+
+Paper context:
+{context}
+
+Additional literature:
+{rag_context}
+
+Explanation:
+"""
+
         term_explanation_template = PromptTemplate(
-            input_variables=["term", "context", "rag_context"],  # 新增rag_context变量
-            template="请结合以下上下文和补充的文献片段，对术语 '{term}' 进行详细解释，包括：\n1. 该术语的基本定义\n2. 在本上下文中的具体含义\n3. 相关的应用案例或示例\n4. 与其他相关术语的区别\n\n原始上下文：\n{context}\n{rag_context}\n\n解释："
+            input_variables=["term", "context", "rag_context"],
+            template=template
         )
 
-        term_explanation_chain = LLMChain(llm=llm, prompt=term_explanation_template)
-        # 传入rag_context参数
-        explanation = term_explanation_chain.run(term=term, context=context, rag_context=rag_context)
+        term_explanation_chain = LLMChain(
+            llm=llm,
+            prompt=term_explanation_template
+        )
+
+        # ===== 生成解释 =====
+        explanation = term_explanation_chain.run(
+            term=term,
+            context=context,
+            rag_context=rag_context
+        )
 
         return JSONResponse({
             "status": "success",
             "term": term,
             "explanation": explanation,
-            "rag_sources": rag_results  # 可选：返回检索来源，提升可信度
+            "rag_sources": rag_results
         })
 
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+        return JSONResponse({
+            "status": "error",
+            "message": str(e)
+        }, status_code=500)
 
 
 # ===== 新增：RAG - 文献入库接口 =====
@@ -437,7 +504,7 @@ async def rag_retrieve(query: str, top_k: int = 5, filter_metadata: dict = None)
     :return: 检索结果
     """
     try:
-        results = rag.retrieve(query, top_k, filter_metadata)
+        results = hybrid.retrieve(query)
         return JSONResponse({
             "status": "success",
             "query": query,
