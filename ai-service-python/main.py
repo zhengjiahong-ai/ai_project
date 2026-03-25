@@ -22,8 +22,33 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from core.rag_vector_db import LiteratureRAG
 from core.hybrid_retriever import HybridRetriever
 
-rag = LiteratureRAG()
-hybrid= HybridRetriever(rag)
+# 延迟初始化rag，避免启动时因模型下载失败而崩溃
+rag = None
+hybrid = None
+
+def get_rag():
+    global rag
+    if rag is None:
+        try:
+            rag = LiteratureRAG()
+        except Exception as e:
+            print(f"RAG初始化失败: {str(e)}")
+            # 提供一个空实现，确保服务能够启动
+            class DummyRAG:
+                def retrieve(self, query, top_k=3, filter_metadata=None):
+                    return []
+                def add_literature_to_db(self, file_path, metadata=None):
+                    return 0
+                def get_db_stats(self):
+                    return 0
+            rag = DummyRAG()
+    return rag
+def get_hybrid():
+    global hybrid
+    if hybrid is None:
+        hybrid =HybridRetriever(get_rag())
+    return hybrid
+
 # 加载环境变量
 load_dotenv()
 
@@ -92,6 +117,13 @@ class BackgroundKnowledgeRequest(BaseModel):
     paper_topic: str
     user_knowledge_level: str
 
+
+class ChatRequest(BaseModel):
+    """简单对话请求：仅用户消息，快速响应"""
+    message: str
+    pdfId: Optional[Any] = None
+
+
 app = FastAPI()
 
 # 初始化GROBID客户端
@@ -102,7 +134,7 @@ grobid_client = GrobidClient(
     timeout=60
 )
 
-#grobid_client=None #测试
+# grobid_client=None #测试
 
 # 初始化LLM
 #llm = ChatOpenAI(model_name="gpt-4o", temperature=0.3)
@@ -227,6 +259,9 @@ async def deconstruct_paper(file: UploadFile = File(...)):
                 # 截断每个章节，保留前 2500 字符，确保不超大模型窗口
                 combined_context += f"### 章节: {name.upper()}\n内容: {content_snippet[:2500]}\n\n"
 
+        # 初始化paper_structure变量
+        paper_structure = {}
+        
         if combined_context:
             # 改进 Prompt，强制要求 JSON 且处理“未识别”的情况
             batch_prompt = f"""
@@ -268,8 +303,10 @@ async def deconstruct_paper(file: UploadFile = File(...)):
                 print(f"JSON解析异常: {str(e)}")
                 # 降级处理：如果解析失败，直接返回原始文本
                 section_summaries = {"error": "解析失败", "raw": raw_response[:500]}
+                paper_structure = {"error": "structure_parse_failed", "raw": "JSON解析异常"}
         else:
             section_summaries = {k: "未能从PDF中识别出有效文字，请确认PDF是否为扫描件。" for k in sections.keys()}
+            paper_structure = {"error": "no_content", "raw": "未能从PDF中识别出有效文字"}
 
         return JSONResponse({
             "status": "success",
@@ -369,20 +406,20 @@ async def explain_term(request: TermExplainRequest):
 
         # ===== Query Rewrite =====
         rewrite_prompt = f"""
-You are helping a research retrieval system.
+        You are helping a research retrieval system.
 
-Rewrite the following question into a concise academic search query.
+        Rewrite the following question into a concise academic search query.
 
-Focus on:
-- key technical terms
-- model names
-- research tasks
+        Focus on:
+        - key technical terms
+        - model names
+        - research tasks
 
-Question:
-{rag_query}
+        Question:
+        {rag_query}
 
-Search query:
-"""
+        Search query:
+       """
 
         try:
             rewritten_query = llm._call(rewrite_prompt).strip()
@@ -410,26 +447,25 @@ Search query:
 
         # ===== Prompt模板 =====
         template = """
-You are an academic research assistant.
+        You are an academic research assistant.
 
-Explain the technical term "{term}" using the context below.
+        Explain the technical term "{term}" using the context below.
 
-Requirements:
-1. Give a precise definition
-2. Explain how it is used in this paper
-3. Provide an example if possible
-4. Keep answer within 5 sentences
-5. Prefer information from the provided contexts
+        Requirements:
+        1. Give a precise definition
+        2. Explain how it is used in this paper
+        3. Provide an example if possible
+        4. Keep answer within 5 sentences
+        5. Prefer information from the provided contexts
 
-Paper context:
-{context}
+        Paper context:
+        {context}
 
-Additional literature:
-{rag_context}
+        Additional literature:
+        {rag_context}
 
-Explanation:
-"""
-
+        Explanation:
+        """
         term_explanation_template = PromptTemplate(
             input_variables=["term", "context", "rag_context"],
             template=template
@@ -461,6 +497,24 @@ Explanation:
         }, status_code=500)
 
 
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    """简单 AI 对话：仅根据用户消息快速回复，不依赖 RAG/历史/论文上下文"""
+    try:
+        if not request.message or not request.message.strip():
+            return JSONResponse(
+                {"status": "error", "message": "消息不能为空"},
+                status_code=400,
+            )
+        reply = llm._call(prompt=request.message.strip())
+        return JSONResponse({
+            "status": "success",
+            "message": reply or "",
+        })
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
 # ===== 新增：RAG - 文献入库接口 =====
 @app.post("/api/rag/add-literature")
 async def rag_add_literature(file: UploadFile = File(...), metadata: dict = None):
@@ -478,7 +532,7 @@ async def rag_add_literature(file: UploadFile = File(...), metadata: dict = None
             temp_file_path = temp_file.name
 
         # 2. 调用RAG入库方法
-        chunk_num = rag.add_literature_to_db(temp_file_path, metadata or {})
+        chunk_num = get_rag().add_literature_to_db(temp_file_path, metadata or {})
 
         # 3. 清理临时文件
         os.unlink(temp_file_path)
@@ -487,7 +541,7 @@ async def rag_add_literature(file: UploadFile = File(...), metadata: dict = None
             "status": "success",
             "message": f"文献成功入库，生成{chunk_num}个向量片段",
             "chunk_num": chunk_num,
-            "total_chunks": rag.get_db_stats()
+            "total_chunks": get_rag().get_db_stats()
         })
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -505,6 +559,7 @@ async def rag_retrieve(query: str, top_k: int = 5, filter_metadata: dict = None)
     """
     try:
         results = hybrid.retrieve(query)
+
         return JSONResponse({
             "status": "success",
             "query": query,

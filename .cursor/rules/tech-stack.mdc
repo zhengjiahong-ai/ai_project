@@ -1,0 +1,19 @@
+---
+description: 技术栈与项目结构约束，保持前后端与 AI 服务一致
+alwaysApply: true
+---
+
+# 学术论文 AI 助手 - 技术栈约束
+
+## 栈与版本
+- **前端**: React 19 + Vite 7 + Tailwind 3；请求统一用 Axios，经 `frontend/src/services/api.js`，baseURL 用 `VITE_API_BASE_URL`。
+- **后端**: Spring Boot 3.4 + Java 21；所有对外 REST 以 `/api` 为前缀；调用 Python 用环境变量 `PYTHON_URL`（Docker 下为 `http://ai-service:8000/api`）。
+- **AI 服务**: FastAPI，路由前缀 `/api`；大模型用 DashScope，API Key 从 `DASHSCOPE_API_KEY` 读取；GROBID 在 Docker 中主机名为 `grobid:8070`。
+
+## 目录与规范
+- 前端新请求只加在 `frontend/src/services/api.js`。
+- Java 新接口写在 `AcademicController` 或新 Controller，`@RequestMapping("/api")`；转发逻辑在 `AiService`。
+- Python 新路由挂在 `main.py` 的 `/api` 下；敏感配置从环境变量读取，禁止硬编码 API Key。
+
+## 参考
+- 详细约束见 `docs/CONSTRAINTS.md`；项目介绍与启动方式见根目录 `README.md`。

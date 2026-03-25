@@ -45,8 +45,28 @@ public class AiService {
 
     // 转发术语解释请求
     public Map<String, Object> explainTerm(Map<String, String> request) {
-        // 直接转发 JSON 给 Python 容器
-        return restTemplate.postForObject(PYTHON_SERVICE_URL + "/explain-term", request, Map.class);
+        // 转换前端参数为 Python 服务期望的格式
+        Map<String, String> convertedRequest = new java.util.HashMap<>();
+        // 前端传递 text，Python 期望 term
+        if (request.containsKey("text")) {
+            convertedRequest.put("term", request.get("text"));
+        }
+        // 构建 context，包含 pdfId 和 pageNumber
+        StringBuilder contextBuilder = new StringBuilder();
+        if (request.containsKey("pdfId")) {
+            contextBuilder.append("PDF ID: " + request.get("pdfId") + ". ");
+        }
+        if (request.containsKey("pageNumber")) {
+            contextBuilder.append("Page Number: " + request.get("pageNumber") + ". ");
+        }
+        // 如果有其他上下文信息，也添加进去
+        if (request.containsKey("context")) {
+            contextBuilder.append(request.get("context"));
+        }
+        convertedRequest.put("context", contextBuilder.toString());
+        
+        // 转发转换后的请求给 Python 容器
+        return restTemplate.postForObject(PYTHON_SERVICE_URL + "/explain-term", convertedRequest, Map.class);
     }
 
     // 转发聊天请求
