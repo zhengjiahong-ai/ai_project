@@ -74,4 +74,9 @@ public class AiService {
         // 直接转发聊天内容给 Python 容器
         return restTemplate.postForObject(PYTHON_SERVICE_URL + "/chat", chatRequest, Map.class);
     }
+
+    // 转发引导式学习请求（苏格拉底式提问）
+    public Map<String, Object> socraticQuestions(Map<String, Object> request) {
+        return restTemplate.postForObject(PYTHON_SERVICE_URL + "/socratic-questions", request, Map.class);
+    }
 }

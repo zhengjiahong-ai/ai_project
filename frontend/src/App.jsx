@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel'; // 确认引入新组件
 import { apiService } from './services/api';
 import PaperAnalysis from './components/PaperAnalysis'; // 👈 补上这一行
+import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 
 // 初始化 IndexedDB
 const initDB = async () => {
@@ -36,7 +37,7 @@ export default function App() {
   // PDF 文件状态（存储 blob URL）
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
-  const [pdfId, setPdfId] = useState(null); // 新增：存储后端返回的 PDF 唯一 ID
+  const [pdfId] = useState(null); // 新增：存储后端返回的 PDF 唯一 ID（当前先保留读取逻辑）
   // AI 就绪状态
   const [isAiReady, setIsAiReady] = useState(true);
   // 对话记录
@@ -55,6 +56,8 @@ export default function App() {
   const [isTranslated, setIsTranslated] = useState(false); // 新增：翻译开关状态
   const [isDeconstructing, setIsDeconstructing] = useState(false); // 专门用于文件上传后的篇章解构
   const [deconstructData, setDeconstructData] = useState(null); // 👈 专门存篇章解构结果
+  const [socraticQuestions, setSocraticQuestions] = useState([]); // 引导式学习问题列表
+  const [isSocraticLoading, setIsSocraticLoading] = useState(false); // 引导式学习生成状态
 // 处理分析逻辑
 // --- 逻辑 1: 页面加载时恢复数据 (刷新保护) ---
 // 在 App 组件内部定义
@@ -238,7 +241,7 @@ const handleExplain = useCallback((content, role = 'user') => {
   }
 }, []);
   // 处理文件上传
-  const handleFileUpload = useCallback(async(file) => {
+  const _handleFileUpload = useCallback(async(file) => {
     if (file && file.type === "application/pdf") {
       // 创建本地临时 URL 用于预览
       const fileUrl = URL.createObjectURL(file);
@@ -279,6 +282,26 @@ const handleExplain = useCallback((content, role = 'user') => {
         setMessages(prev => [...prev, { role: 'ai', content: `抱歉，处理您的请求时出现了错误：${errMsg}` }]);
       });
   }, [pdfId]);
+
+  // 生成引导式学习问题（苏格拉底式提问）
+  const handleGenerateSocratic = useCallback(async (readingProgress) => {
+    if (!deconstructData || !deconstructData.paper_skeleton) {
+      throw new Error('请先完成“篇章解构”，系统需要论文结构内容。');
+    }
+
+    setIsSocraticLoading(true);
+    try {
+      const paper_content = JSON.stringify(deconstructData.paper_skeleton);
+      const res = await apiService.socraticQuestions(paper_content, readingProgress);
+      if (res?.status === 'success') {
+        setSocraticQuestions(res.questions || []);
+      } else {
+        throw new Error(res?.message || '生成失败');
+      }
+    } finally {
+      setIsSocraticLoading(false);
+    }
+  }, [deconstructData]);
 
   // 处理动态解释
   const handleDynamicExplain = useCallback(() => {
@@ -364,6 +387,10 @@ const handleAddNote = useCallback((noteData) => {
                 <PdfToolbar 
                   onDynamicExplain={handleDynamicExplain}
                   onCriticalReading={handleCriticalReading}
+                  onSocraticLearning={() => {
+                    setActiveTab('socratic');
+                    setSocraticQuestions([]);
+                  }}
                   isTranslated={isTranslated} // 👈 传入状态
                   onToggleTranslation={() => setIsTranslated(!isTranslated)} // 👈 传入切换函数
                 />
@@ -382,6 +409,15 @@ const handleAddNote = useCallback((noteData) => {
               {/* 根据 activeTab 切换三个面板 */}
               {activeTab === 'chat' && (
                 <ChatPanel messages={messages} onSendMessage={handleSendMessage} />
+              )}
+              {activeTab === 'socratic' && (
+                <SocraticQuestionsPanel
+                  hasPaperContext={!!deconstructData?.paper_skeleton}
+                  isLoading={isSocraticLoading}
+                  questions={socraticQuestions}
+                  onGenerate={handleGenerateSocratic}
+                  onAskQuestion={handleSendMessage}
+                />
               )}
               {/* 修正点 1：增加 deconstruct 选项卡挂载 */}
   {activeTab === 'deconstruct' && (

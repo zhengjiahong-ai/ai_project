@@ -78,6 +78,14 @@ export const apiService = {
     });
   },
 
+  // 引导式学习（苏格拉底式提问）
+  socraticQuestions: async (paper_content, reading_progress) => {
+    return apiClient.post('/socratic-questions', {
+      paper_content,
+      reading_progress,
+    });
+  },
+
   // 批判性阅读
   criticalReading: async (pdfId) => {
     return apiClient.post(`/critical-reading/${pdfId}`);

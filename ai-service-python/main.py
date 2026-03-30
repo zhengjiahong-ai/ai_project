@@ -20,7 +20,12 @@ import shutil                  # 用于清理临时文件夹
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from core.rag_vector_db import LiteratureRAG
-from core.hybrid_retriever import HybridRetriever
+# HybridRetriever 依赖 rank-bm25；如果环境未安装该依赖，
+# 为了保证服务能启动（例如 /api/chat、/api/socratic-questions），做容错处理。
+try:
+    from core.hybrid_retriever import HybridRetriever
+except ModuleNotFoundError:
+    HybridRetriever = None
 
 # 延迟初始化rag，避免启动时因模型下载失败而崩溃
 rag = None
@@ -46,8 +51,61 @@ def get_rag():
 def get_hybrid():
     global hybrid
     if hybrid is None:
+        if HybridRetriever is None:
+            raise RuntimeError("HybridRetriever 依赖缺失：请安装 rank-bm25 后再启用混合检索。")
         hybrid =HybridRetriever(get_rag())
     return hybrid
+
+def parse_json_from_llm(raw_text: str):
+    """
+    尝试从大模型输出中提取并解析 JSON。
+    兼容常见的 ```json ... ``` 包裹，以及首尾夹杂非 JSON 文本的情况。
+    """
+    try:
+        txt = (raw_text or "").strip()
+        if not txt:
+            raise ValueError("empty json")
+        # 去掉 markdown code fence
+        if "```json" in txt:
+            txt = txt.split("```json", 1)[1].split("```", 1)[0].strip()
+        elif "```" in txt:
+            txt = txt.split("```", 1)[1].split("```", 1)[0].strip()
+
+        # 若直接解析失败，尝试截取外层 JSON 对象
+        try:
+            return json.loads(txt)
+        except Exception:
+            start = txt.find("{")
+            end = txt.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                return json.loads(txt[start:end + 1])
+            raise
+    except Exception as e:
+        raise ValueError(f"JSON解析失败: {str(e)}")
+
+def retrieve_vector_snippets(query: str, top_k: int = 3):
+    """只返回向量检索结果（List[{'text':...}]），失败则返回空列表。"""
+    try:
+        return get_rag().retrieve(query, top_k=top_k)
+    except Exception as e:
+        print(f"retrieve_vector_snippets failed: {str(e)}")
+        return []
+
+def retrieve_hybrid_for_vector(query: str, top_k: int = 3):
+    """
+    尝试使用 hybrid 检索返回 vector 片段；
+    若 rank-bm25 缺失或 hybrid 不可用，则退化为纯向量检索。
+    """
+    try:
+        h = get_hybrid()
+        return h.retrieve(query, top_k=top_k).get("vector", [])
+    except Exception as e:
+        print(
+            "retrieve_hybrid_for_vector failed:",
+            str(e),
+            f"(HybridRetriever={'set' if HybridRetriever is not None else 'None'}, hybrid={'set' if hybrid is not None else 'None'})",
+        )
+        return retrieve_vector_snippets(query, top_k=top_k)
 
 # 加载环境变量
 load_dotenv()
@@ -159,14 +217,14 @@ structure_template = PromptTemplate(
 你是一名学术论文结构分析专家。
 请从以下论文内容中提取结构化信息，必须返回JSON格式：
 
-{
+{{
     "research_problem": "",
     "core_hypothesis": "",
     "method_framework": [],
     "claimed_contributions": [],
     "experimental_logic": "",
     "limitations": ""
-}
+}}
 
 论文内容：
 {text}
@@ -280,29 +338,26 @@ async def deconstruct_paper(file: UploadFile = File(...)):
             raw_response = llm._call(prompt=batch_prompt)
             
             try:
-                # 处理大模型可能带有的 Markdown 修饰语
-                clean_json = raw_response.strip()
-                if "```json" in clean_json:
-                    clean_json = clean_json.split("```json")[1].split("```")[0].strip()
-                elif "```" in clean_json:
-                    clean_json = clean_json.split("```")[1].split("```")[0].strip()
-                
-                section_summaries = json.loads(clean_json)
-                # 论文结构化抽取
-                structure_raw = structure_chain.run(text=combined_context)
+                section_summaries = parse_json_from_llm(raw_response)
 
+                # 注意：paper_structure 失败不应污染 paper_skeleton
                 try:
-                    clean_struct = structure_raw.strip()
-                    if "```" in clean_struct:
-                        clean_struct = clean_struct.split("```")[1]
-                    paper_structure = json.loads(clean_struct)
+                    structure_raw = structure_chain.run(text=combined_context)
+                    try:
+                        paper_structure = parse_json_from_llm(structure_raw)
+                    except Exception as e:
+                        print(f"结构解析失败: {str(e)}")
+                        paper_structure = {
+                            "error": "structure_parse_failed",
+                            "raw": (structure_raw or "")[:500],
+                        }
                 except Exception as e:
-                    print(f"结构解析失败: {str(e)}")
-                    paper_structure = {"error": "structure_parse_failed", "raw": structure_raw[:500]}
+                    print(f"结构生成失败: {str(e)}")
+                    paper_structure = {"error": "structure_generate_failed", "raw": str(e)[:500]}
             except Exception as e:
                 print(f"JSON解析异常: {str(e)}")
-                # 降级处理：如果解析失败，直接返回原始文本
-                section_summaries = {"error": "解析失败", "raw": raw_response[:500]}
+                # 降级处理：如果总结解析失败，直接返回原始文本
+                section_summaries = {"error": "解析失败", "raw": (raw_response or "")[:500]}
                 paper_structure = {"error": "structure_parse_failed", "raw": "JSON解析异常"}
         else:
             section_summaries = {k: "未能从PDF中识别出有效文字，请确认PDF是否为扫描件。" for k in sections.keys()}
@@ -358,9 +413,12 @@ async def generate_socratic_questions(request: SocraticQuestionRequest):
         paper_content = request.paper_content
         reading_progress = request.reading_progress
 
-        # ===== 新增：RAG检索相关片段 =====
+        # ===== 新增：RAG检索相关片片段（可选，避免首次初始化模型导致超时）=====
         rag_query = f"基于论文内容生成苏格拉底式问题，阅读进度：{reading_progress}，论文内容：{paper_content[:300]}"
-        rag_results = hybrid.retrieve(rag_query)["vector"]
+        rag_results = []
+        # 只有当向量库已初始化成功时才进行检索；首次请求直接跳过RAG
+        if rag is not None:
+            rag_results = retrieve_hybrid_for_vector(rag_query, top_k=3)
         rag_context = "\n\n【补充文献片段】：\n"
         MAX_CHUNK = 400
         for res in rag_results:
@@ -429,8 +487,10 @@ async def explain_term(request: TermExplainRequest):
         print("Original Query:", rag_query)
         print("Rewritten Query:", rewritten_query)
 
-        # ===== RAG检索 =====
-        rag_results = hybrid.retrieve(rewritten_query)["vector"]
+        # ===== RAG检索（可选，避免首次初始化模型导致超时）=====
+        rag_results = []
+        if rag is not None:
+            rag_results = retrieve_hybrid_for_vector(rewritten_query, top_k=3)
 
         print("RAG Results Count:", len(rag_results))
 
@@ -558,7 +618,14 @@ async def rag_retrieve(query: str, top_k: int = 5, filter_metadata: dict = None)
     :return: 检索结果
     """
     try:
-        results = hybrid.retrieve(query)
+        # 如果 hybrid 不可用（例如缺失 rank-bm25），退化为向量检索
+        try:
+            results = get_hybrid().retrieve(query, top_k=top_k)
+        except Exception:
+            results = {
+                "vector": get_rag().retrieve(query, top_k=top_k),
+                "bm25": [],
+            }
 
         return JSONResponse({
             "status": "success",

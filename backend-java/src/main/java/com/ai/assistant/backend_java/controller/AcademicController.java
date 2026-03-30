@@ -37,4 +37,10 @@ public class AcademicController {
     public Map<String, Object> chat(@RequestBody Map<String, Object> chatRequest) {
         return aiService.chat(chatRequest);
     }
+
+    // 4. 处理引导式学习（苏格拉底式提问）
+    @PostMapping("/socratic-questions")
+    public Map<String, Object> socraticQuestions(@RequestBody Map<String, Object> request) {
+        return aiService.socraticQuestions(request);
+    }
 }

@@ -70,6 +70,7 @@
 | POST | `/api/upload` | `multipart/form-data`, 字段名 `file` | PDF 上传，Java 转发到 Python `/api/analyze-pdf` |
 | POST | `/api/explain` | `{ "text": string, "pdfId": any, "pageNumber": number }` 或 `{ "term": string, "context": string }` | 术语/划词解释，Java 转发到 Python `/api/explain-term` |
 | POST | `/api/chat` | `{ "message": string, "pdfId": any }` | 对话，Java 转发到 Python `/api/chat`；Python 返回 `{ "status": "success", "message": "<AI 回复>" }` |
+| POST | `/api/socratic-questions` | `{ "paper_content": string, "reading_progress": string }` | 引导式学习（苏格拉底式提问），Java 转发到 Python `/api/socratic-questions` |
 | GET | `/api/chat/history/:sessionId` | - | 对话历史；**后端未实现，前端已预留** |
 | POST | `/api/critical-reading/:pdfId` | - | 批判性阅读；**后端未实现，前端已预留** |
 
@@ -84,6 +85,7 @@
 | POST upload → 转发 | POST `/api/analyze-pdf` | 请求体为 multipart，Python 返回 `{ status, paper_skeleton }` |
 | POST explain → 转发 | POST `/api/explain-term` | 请求体 `{ term, context }`，Python 返回 `{ status, term, explanation }` |
 | POST chat → 转发 | POST `/api/chat` | 请求体 `{ message, pdfId? }`，Python 返回 `{ status, message }`（简单对话，无 RAG/历史） |
+| POST socratic questions → 转发 | POST `/api/socratic-questions` | 请求体 `{ paper_content, reading_progress }`，Python 返回 `{ status, questions }` |
 
 ### 2.4 Python 已实现的其他接口（可供 Java 扩展转发）
 
