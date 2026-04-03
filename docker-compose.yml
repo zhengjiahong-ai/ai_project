@@ -19,6 +19,8 @@ services:
     container_name: backend_java
     ports:
       - "8080:8080"
+    volumes:
+      - java_data:/app/data # 🔥 修复：挂载 H2 数据库目录防止数据丢失
     # 如果 Java 需要调用 Python，确保它知道 ai-service 这个主机名
     environment:
       # 🚀 这里告诉 Java：去请求名为 ai-service 的容器
@@ -34,6 +36,10 @@ services:
     restart: always  # 🔥 重要：挂了自动重启，直到 Grobid 准备好
     ports:
       - "8000:8000"
+    volumes:
+      - ./ai-service-python:/app      # 🔥 修复：映射代码本身，彻底激活 uvicorn --reload
+      - chroma_data:/app/chroma_data  # 🔥 修复：挂载向量数据库防止重启后 RAG 失忆
+      - huggingface_cache:/root/.cache/huggingface # 挂载 HF 缓存防止每次重启重新下载 1.3GB 模型
     env_file:
       - .env  # 加载根目录的 .env 文件
     environment:
@@ -60,3 +66,6 @@ services:
 
 volumes:
   grobid_data:
+  java_data:
+  chroma_data:
+  huggingface_cache:

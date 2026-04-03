@@ -22,7 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
     public RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(10000);
-        factory.setReadTimeout(120000); // 2分钟读取超时
+        factory.setReadTimeout(1200000); // 20分钟读取超时，支持超长 PDF (40+页) 的慢速 CPU RAG 索引
         return new RestTemplate(factory);
     }
 }

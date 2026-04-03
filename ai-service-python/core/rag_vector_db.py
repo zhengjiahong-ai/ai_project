@@ -14,7 +14,7 @@ from core.document_parser import parse_tei_xml
 from core.smart_chunker import chunk_sections
 
 
-EMBEDDING_MODEL_NAME = "BAAI/bge-large-en-v1.5"
+EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 
 CHROMA_DB_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -23,6 +23,14 @@ CHROMA_DB_PATH = os.path.join(
 
 
 class LiteratureRAG:
+    @staticmethod
+    def normalize_id(id_str):
+        """ 归一化 ID，去除特殊字符，防止编码不一致导致的检索失败 """
+        if not id_str: return "unknown"
+        # 只保留字母、数字、下划线、点、横杠
+        import re
+        clean_id = re.sub(r'[^a-zA-Z0-9.\-_]', '_', str(id_str))
+        return clean_id.lower()
 
     def __init__(self):
 
@@ -39,7 +47,7 @@ class LiteratureRAG:
         )
 
         self.collection = self.chroma_client.get_or_create_collection(
-            name="literature_collection",
+            name="literature_collection_v3", # 👈 再次升级名称以强制重置
             metadata={
                 "hnsw:space": "cosine"
             }
@@ -84,23 +92,39 @@ class LiteratureRAG:
             shutil.rmtree(output_dir)
 
     def add_literature_to_db(self, file_path, literature_metadata=None):
-
+        """ legacy method for backward compatibility """
         sections = self.parse_literature(file_path)
+        return self.add_sections_to_db(sections, file_path, literature_metadata)
 
+    def add_sections_to_db(self, sections, file_path, literature_metadata=None):
+        """ New method: Accept already parsed sections to save time """
         metadata = literature_metadata or {}
         metadata["file_name"] = os.path.basename(file_path)
 
         chunks = chunk_sections(sections)
+        
+        # --- 核心改进：兜底逻辑 ---
+        if not chunks:
+            print(f"警告: 论文 {metadata['file_name']} 未提取到结构化章节，尝试全文聚合切分。")
+            full_text = ""
+            for sec in sections:
+                if sec.get("content"):
+                    full_text += f"\n{sec['content']}"
+            
+            if full_text.strip():
+                fallback_sections = [{"section": "Full Text", "content": full_text}]
+                chunks = chunk_sections(fallback_sections)
+            
+            if not chunks:
+                print(f"致命警告: 论文 {metadata['file_name']} 彻底未提取到有效文本内容，跳过入库。")
+                return 0
+        
+        # 归一化元数据中的 ID
+        if "id" in metadata:
+            metadata["id"] = self.normalize_id(metadata["id"])
 
         texts = [
-            f"""
-Paper: {metadata.get('title','unknown')}
-
-Section: {c['section']}
-
-Content:
-{c['text']}
-"""
+            f"Paper: {metadata.get('title','unknown')}\n\nSection: {c['section']}\n\nContent:\n{c['text']}"
             for c in chunks
         ]
 
@@ -132,12 +156,20 @@ Content:
             normalize_embeddings=True
         ).tolist()
 
+        # 归一化过滤条件中的 ID
+        if filter_metadata and "id" in filter_metadata:
+            filter_metadata["id"] = self.normalize_id(filter_metadata["id"])
+
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
             where=filter_metadata,
             include=["documents", "distances", "metadatas"]
         )
+
+        # 调试日志：检查是否真的查到了数据
+        total_found = len(results.get("documents", [[]])[0])
+        print(f"RAG 检索完成: 查询='{query[:30]}...', 匹配到 {total_found} 条片段")
 
         docs = results["documents"][0]
         dists = results["distances"][0]

@@ -177,9 +177,11 @@ class BackgroundKnowledgeRequest(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """简单对话请求：仅用户消息，快速响应"""
+    """对话请求：包含用户消息、可选的 pdfId 以及历史记录"""
     message: str
-    pdfId: Optional[Any] = None
+    pdfId: Optional[str] = None
+    history: Optional[List[Dict[str, str]]] = None
+    paperSkeleton: Optional[Dict[str, str]] = None
 
 
 app = FastAPI()
@@ -233,6 +235,17 @@ structure_template = PromptTemplate(
 
 structure_chain = LLMChain(llm=llm, prompt=structure_template)
 
+@app.on_event("startup")
+async def startup_event():
+    print("🚀 正在初始化 AI 服务及其依赖...")
+    # 提前触发 RAG 的初始化，如果没下载模型，这里会阻塞下载并显示进度，而不会让聊天卡住
+    print("📥 检查并加载向量检索模型 (BAAI/bge-small-en-v1.5)，130MB 轻量版，如果是第一次下载通常需 1-2 分钟...")
+    try:
+        get_rag()
+        print("✅ 向量模型加载完成！")
+    except Exception as e:
+        print(f"❌ 向量模型加载失败: {e}")
+
 @app.get("/")
 def read_root():
     return {"message": "AI Paper Assistant Service is Running"}
@@ -270,12 +283,12 @@ async def deconstruct_paper(file: UploadFile = File(...)):
             
         tei_file = os.path.join(output_dir, xml_files[0])
         
-        # 4. 提取章节内容
-        with open(tei_file, 'r', encoding='utf-8') as f:
-            soup = BeautifulSoup(f, 'xml')
-            
-        # 核心改进：更灵活的章节容器
-        sections = {
+        # --- 3. 核心改进：调用专门的解析器获取结构化内容 ---
+        from core.document_parser import parse_tei_xml
+        parsed_sections = parse_tei_xml(tei_file)
+        
+        # 用于 AI 总结的章节容器
+        sections_for_summary = {
             "abstract": "",
             "introduction": "",
             "methods": "",
@@ -283,35 +296,34 @@ async def deconstruct_paper(file: UploadFile = File(...)):
             "discussion": "",
             "conclusion": ""
         }
-        
-        # --- A. 专门处理 Abstract (GROBID 通常放在特定标签) ---
-        abstract_tag = soup.find('abstract')
-        if abstract_tag:
-            sections["abstract"] = abstract_tag.get_text(separator=' ', strip=True)
+        # 从 XML 中提取 Abstract
+        with open(tei_file, 'r', encoding='utf-8') as f:
+            soup = BeautifulSoup(f, 'xml')
+            abstract_tag = soup.find('abstract')
+            if abstract_tag:
+                sections_for_summary["abstract"] = abstract_tag.get_text(separator=' ', strip=True)
 
-        # --- B. 增强型章节匹配逻辑 ---
-        for div in soup.find_all('div'):
-            head = div.find('head')
-            if head:
-                head_text = head.get_text().lower()
-                # 提取该 div 下所有段落文本
-                p_text = " ".join([p.get_text(separator=' ', strip=True) for p in div.find_all('p')])
-                
-                # 模糊匹配关键词组，提高命中率
-                if any(kw in head_text for kw in ['intro', 'background', 'preliminar']):
-                    sections["introduction"] += p_text
-                elif any(kw in head_text for kw in ['method', 'approach', 'model', 'design', 'implementation']):
-                    sections["methods"] += p_text
-                elif any(kw in head_text for kw in ['result', 'experiment', 'evaluation', 'finding']):
-                    sections["results"] += p_text
-                elif any(kw in head_text for kw in ['discuss', 'limitation', 'related work']):
-                    sections["discussion"] += p_text
-                elif any(kw in head_text for kw in ['conclu', 'summary', 'future']):
-                    sections["conclusion"] += p_text
+        # 增强型章节匹配逻辑：将 parsed_sections 映射到标准章节
+        for sec in parsed_sections:
+            # 使用正确的键名：section 和 content
+            head_text = sec.get("section", "").lower()
+            p_text = sec.get("content", "")
+            
+            # 模糊匹配关键词组，提高命中率
+            if any(kw in head_text for kw in ['intro', 'background', 'preliminar']):
+                sections_for_summary["introduction"] += p_text
+            elif any(kw in head_text for kw in ['method', 'approach', 'model', 'design', 'implementation']):
+                sections_for_summary["methods"] += p_text
+            elif any(kw in head_text for kw in ['result', 'experiment', 'evaluation', 'finding']):
+                sections_for_summary["results"] += p_text
+            elif any(kw in head_text for kw in ['discuss', 'limitation', 'related work']):
+                sections_for_summary["discussion"] += p_text
+            elif any(kw in head_text for kw in ['conclu', 'summary', 'future']):
+                sections_for_summary["conclusion"] += p_text
 
         # 4. 构建 AI 批量总结上下文
         combined_context = ""
-        for name, text in sections.items():
+        for name, text in sections_for_summary.items():
             content_snippet = text.strip()
             if len(content_snippet) > 50:
                 # 截断每个章节，保留前 2500 字符，确保不超大模型窗口
@@ -360,13 +372,33 @@ async def deconstruct_paper(file: UploadFile = File(...)):
                 section_summaries = {"error": "解析失败", "raw": (raw_response or "")[:500]}
                 paper_structure = {"error": "structure_parse_failed", "raw": "JSON解析异常"}
         else:
-            section_summaries = {k: "未能从PDF中识别出有效文字，请确认PDF是否为扫描件。" for k in sections.keys()}
+            section_summaries = {k: "未能从PDF中识别出有效文字，请确认PDF是否为扫描件。" for k in sections_for_summary.keys()}
             paper_structure = {"error": "no_content", "raw": "未能从PDF中识别出有效文字"}
+
+        # 5. RAG 入库逻辑：直接使用已解析的 sections，不再重复运行 GROBID
+        try:
+            clean_pdf_id = get_rag().normalize_id(file.filename)
+            # 💡 核心改进：从解析出的 Front Matter 中提取真实标题，而非仅使用文件名
+            doc_title = file.filename
+            if parsed_sections and parsed_sections[0].get("section") == "Front Matter (Metadata)":
+                content_lines = parsed_sections[0].get("content", "").split("\n")
+                for line in content_lines:
+                    if line.startswith("Title:"):
+                        extracted_title = line.replace("Title:", "").strip()
+                        if extracted_title:
+                            doc_title = extracted_title
+                        break
+
+            count = get_rag().add_sections_to_db(parsed_sections, file_path, {"id": clean_pdf_id, "title": doc_title})
+            print(f"已将论文 {doc_title} (ID: {clean_pdf_id}) 同步至 RAG 向量库，共计 {count} 个文本块")
+        except Exception as e:
+            print(f"RAG 入库失败: {str(e)}")
 
         return JSONResponse({
             "status": "success",
             "paper_skeleton": section_summaries,
-            "paper_structure": paper_structure
+            "paper_structure": paper_structure,
+            "pdfId": get_rag().normalize_id(file.filename) # 返回归一化后的 ID 给前端
         })
 
     except Exception as e:
@@ -559,19 +591,69 @@ async def explain_term(request: TermExplainRequest):
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    """简单 AI 对话：仅根据用户消息快速回复，不依赖 RAG/历史/论文上下文"""
+    """
+    上下文对话接口：
+    1. 如果有 pdfId，使用 RAG 检索论文相关片段。
+    2. 整合历史记录。
+    3. 生成增强后的 Prompt 调用 LLM。
+    """
     try:
-        if not request.message or not request.message.strip():
-            return JSONResponse(
-                {"status": "error", "message": "消息不能为空"},
-                status_code=400,
-            )
-        reply = llm._call(prompt=request.message.strip())
+        message = request.message
+        pdfId = request.pdfId
+        history = request.history or []
+        paperSkeleton = request.paperSkeleton or {}
+
+        if not message or not message.strip():
+            return JSONResponse({"status": "error", "message": "消息不能为空"}, status_code=400)
+
+        context = ""
+        if pdfId:
+            # 使用 RAG 检索相关片段
+            try:
+                # 显式使用归一化 ID 匹配
+                clean_pdf_id = get_rag().normalize_id(pdfId)
+                # 增加检索量到 12 条，覆盖更多复杂背景
+                rag_results = get_rag().retrieve(message, top_k=12, filter_metadata={"id": clean_pdf_id})
+                if rag_results:
+                    context = "\n\n【论文背景信息片段】:\n" + "\n".join([f"- {res['text']}" for res in rag_results])
+                else:
+                    print(f"RAG 检索为空: ID={clean_pdf_id}")
+            except Exception as e:
+                print(f"Chat RAG 检索失败: {str(e)}")
+
+        # 构建历史记录字符串
+        history_str = ""
+        for h in history[-5:]: # 取最近 5 轮对话
+            role_name = "用户" if h['role'] == 'user' else "助手"
+            history_str += f"{role_name}: {h['content']}\n"
+        
+        # 整合全局架构信息
+        skeleton_str = ""
+        if paperSkeleton:
+            skeleton_str = "\n【论文全局架构（总结树）】:\n"
+            for sec, summ in paperSkeleton.items():
+                skeleton_str += f"- {sec}: {summ}\n"
+
+        full_prompt = f"""你是一个专业的学术助手，擅长深度分析论文。
+请结合提供的【论文全局架构】和【论文背景信息片段】来精准回答用户的问题。
+
+{skeleton_str}
+
+{context}
+
+【对话历史】:
+{history_str}
+用户: {message}
+助手:"""
+        
+        reply = llm._call(prompt=full_prompt)
+        
         return JSONResponse({
             "status": "success",
             "message": reply or "",
         })
     except Exception as e:
+        print(f"Chat 服务出错: {str(e)}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 

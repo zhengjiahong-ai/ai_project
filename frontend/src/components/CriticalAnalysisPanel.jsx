@@ -59,11 +59,11 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
   */
   const networkData = useMemo(() => ({
     nodes: [
-      { id: 'current', name: '当前论文', val: 15, color: '#3b82f6' },
+      { id: 'current', name: '当前论文', val: 15, color: '#4D0099' },
       { id: 'ref1', name: '核心理论源', val: 8, color: '#94a3b8' },
       { id: 'ref2', name: '实验对比组', val: 8, color: '#94a3b8' },
-      { id: 'cite1', name: '后续应用研究', val: 5, color: '#6366f1' },
-      { id: 'cite2', name: '算法优化扩展', val: 5, color: '#6366f1' },
+      { id: 'cite1', name: '后续应用研究', val: 5, color: '#7c3aed' },
+      { id: 'cite2', name: '算法优化扩展', val: 5, color: '#7c3aed' },
     ],
     links: [
       { source: 'current', target: 'ref1' },
@@ -76,8 +76,8 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
   if (!data && !isLoading) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-slate-50">
-        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6 animate-pulse">
-          <LayoutDashboard className="text-blue-600" size={40} />
+        <div className="w-20 h-20 bg-pixiu/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
+          <LayoutDashboard className="text-pixiu" size={40} />
         </div>
         <h3 className="text-xl font-bold text-slate-800">开启深度批判性阅读</h3>
         <p className="text-sm text-slate-500 mt-2 mb-8 max-w-xs">
@@ -85,7 +85,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
         </p>
         <button 
           onClick={onAnalyze}
-          className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-200 active:scale-95 font-semibold"
+          className="flex items-center gap-2 px-8 py-3 bg-pixiu text-white rounded-xl hover:bg-pixiu-dark transition-all shadow-lg hover:shadow-pixiu/20 active:scale-95 font-semibold"
         >
           <BarChart3 size={20} />
           立即开始分析
@@ -99,9 +99,9 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 bg-white text-center">
         <div className="relative mb-6">
-          <Loader2 className="animate-spin text-blue-500" size={48} />
+          <Loader2 className="animate-spin text-pixiu" size={48} />
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+            <div className="w-2 h-2 bg-pixiu rounded-full animate-ping"></div>
           </div>
         </div>
         <p className="text-lg font-medium text-slate-700">正在构建逻辑模型...</p>
@@ -116,7 +116,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
       {/* 头部标题 */}
       <div className="px-6 py-4 bg-white border-b flex items-center justify-between sticky top-0 z-10">
         <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <FileText className="text-blue-600" size={20} />
+          <FileText className="text-pixiu" size={20} />
           批判性阅读报告
         </h2>
         <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">已生成</span>
@@ -127,7 +127,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-              <LayoutDashboard size={14} className="text-blue-500" /> 论文领域学术地位
+              <LayoutDashboard size={14} className="text-pixiu" /> 论文领域学术地位
             </h3>
             <span className="text-[10px] text-slate-400 italic">滚轮缩放 / 拖拽节点</span>
           </div>
@@ -147,7 +147,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
                 cooldownTicks={100}
              />
              <div className="absolute bottom-2 left-2 flex gap-3 text-[9px] text-slate-500 bg-white/80 p-1 rounded">
-                <span className="flex items-center gap-1"><i className="w-2 h-2 bg-blue-500 rounded-full"></i> 本文</span>
+                <span className="flex items-center gap-1"><i className="w-2 h-2 bg-pixiu rounded-full"></i> 本文</span>
                 <span className="flex items-center gap-1"><i className="w-2 h-2 bg-slate-400 rounded-full"></i> 参考文献</span>
                 <span className="flex items-center gap-1"><i className="w-2 h-2 bg-indigo-500 rounded-full"></i> 引用本文</span>
              </div>
@@ -158,7 +158,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
             <CheckCircle2 size={14} className="text-green-500" /> 核心结论总结
           </h3>
-          <div className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border-l-4 border-blue-400">
+          <div className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border-l-4 border-pixiu">
             <div className="prose prose-sm max-w-none">
                 <ReactMarkdown>{data.summary}</ReactMarkdown>
             </div>
@@ -192,7 +192,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
                         <div className="bg-slate-900 text-white p-3 rounded-xl shadow-2xl text-xs max-w-[220px] animate-in fade-in slide-in-from-bottom-1">
                           <div className="flex justify-between items-center mb-1.5 font-bold border-b border-white/10 pb-1.5">
                             <span>{item.name}</span>
-                            <span className="text-blue-400">{item.score}分</span>
+                            <span className="text-pixiu-dark">{item.score}分</span>
                           </div>
                           <p className="opacity-80 leading-normal">{item.detail}</p>
                         </div>
@@ -206,7 +206,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
                     <Cell 
                       key={`cell-${index}`} 
                       // 根据得分动态改变颜色
-                      fill={entry.score >= 80 ? '#3b82f6' : entry.score >= 60 ? '#6366f1' : '#94a3b8'} 
+                      fill={entry.score >= 80 ? '#4D0099' : entry.score >= 60 ? '#7c3aed' : '#94a3b8'} 
                     />
                   ))}
                 </Bar>

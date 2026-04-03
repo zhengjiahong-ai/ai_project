@@ -1,6 +1,9 @@
 package com.ai.assistant.backend_java.service;
 
 import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,46 +15,62 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-@Service
 
+import com.ai.assistant.backend_java.model.Paper;
+import com.ai.assistant.backend_java.model.ChatMessage;
+import com.ai.assistant.backend_java.repository.PaperRepository;
+import com.ai.assistant.backend_java.repository.ChatMessageRepository;
+
+@Service
 public class AiService {
 
     @Autowired
     private RestTemplate restTemplate;
 
-    /**
-     * 修改点 1：
-     * 在 Docker 中，localhost 意为容器自身。
-     * 必须改为 docker-compose.yml 中定义的 Python 服务名：ai-service
-     */
+    @Autowired
+    private PaperRepository paperRepository;
+
+    @Autowired
+    private ChatMessageRepository chatMessageRepository;
+
     @Value("${PYTHON_URL:http://localhost:8000/api}")
     private String PYTHON_SERVICE_URL;
 
-    // 转发 PDF 分析请求
+    // 转发 PDF 分析请求并持久化论文信息
     public Map<String, Object> analyzePdf(MultipartFile file) {
+        String fileName = file.getOriginalFilename();
+        
+        // 持久化论文元数据
+        Paper paper = new Paper();
+        paper.setId(fileName); // 暂时使用文件名作为唯一标识
+        paper.setFileName(fileName);
+        paperRepository.save(paper);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        // 保持不变，getResource() 是转发文件流的标准写法
         body.add("file", file.getResource()); 
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
         
-        // 调用 Python main.py 里的 /api/analyze-pdf
-        // 这里的地址会解析为 http://ai-service:8000/api/analyze-pdf
-        return restTemplate.postForObject(PYTHON_SERVICE_URL + "/analyze-pdf", requestEntity, Map.class);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> response = restTemplate.postForObject(PYTHON_SERVICE_URL + "/analyze-pdf", requestEntity, Map.class);
+        
+        if (response != null && "success".equals(response.get("status"))) {
+            response.put("pdfId", fileName);
+        }
+        
+        return response;
     }
 
     // 转发术语解释请求
     public Map<String, Object> explainTerm(Map<String, String> request) {
-        // 转换前端参数为 Python 服务期望的格式
-        Map<String, String> convertedRequest = new java.util.HashMap<>();
-        // 前端传递 text，Python 期望 term
+        Map<String, String> convertedRequest = new HashMap<>();
         if (request.containsKey("text")) {
             convertedRequest.put("term", request.get("text"));
         }
-        // 构建 context，包含 pdfId 和 pageNumber
+        
         StringBuilder contextBuilder = new StringBuilder();
         if (request.containsKey("pdfId")) {
             contextBuilder.append("PDF ID: " + request.get("pdfId") + ". ");
@@ -59,24 +78,57 @@ public class AiService {
         if (request.containsKey("pageNumber")) {
             contextBuilder.append("Page Number: " + request.get("pageNumber") + ". ");
         }
-        // 如果有其他上下文信息，也添加进去
         if (request.containsKey("context")) {
             contextBuilder.append(request.get("context"));
         }
         convertedRequest.put("context", contextBuilder.toString());
         
-        // 转发转换后的请求给 Python 容器
         return restTemplate.postForObject(PYTHON_SERVICE_URL + "/explain-term", convertedRequest, Map.class);
     }
 
-    // 转发聊天请求
+    // 转发聊天请求并实现上下文持久化
     public Map<String, Object> chat(Map<String, Object> chatRequest) {
-        // 直接转发聊天内容给 Python 容器
-        return restTemplate.postForObject(PYTHON_SERVICE_URL + "/chat", chatRequest, Map.class);
+        String message = (String) chatRequest.get("message");
+        String pdfId = (String) chatRequest.get("pdfId");
+
+        // 1. 保存用户消息
+        if (pdfId != null) {
+            ChatMessage userMsg = new ChatMessage();
+            userMsg.setPdfId(pdfId);
+            userMsg.setRole("user");
+            userMsg.setContent(message);
+            chatMessageRepository.save(userMsg);
+            
+            // 2. 获取该 PDF 的历史记录并传给 Python (可选：这里可以做历史窗口剪裁)
+            List<ChatMessage> history = chatMessageRepository.findByPdfIdOrderByTimestampAsc(pdfId);
+            List<Map<String, String>> historyList = new ArrayList<>();
+            for (ChatMessage m : history) {
+                Map<String, String> mData = new HashMap<>();
+                mData.put("role", m.getRole());
+                mData.put("content", m.getContent());
+                historyList.add(mData);
+            }
+            chatRequest.put("history", historyList);
+        }
+
+        // 3. 转发给 Python
+        @SuppressWarnings("unchecked")
+        Map<String, Object> response = restTemplate.postForObject(PYTHON_SERVICE_URL + "/chat", chatRequest, Map.class);
+
+        // 4. 保存 AI 响应
+        if (response != null && "success".equals(response.get("status")) && pdfId != null) {
+            String aiReply = (String) response.get("message");
+            ChatMessage aiMsg = new ChatMessage();
+            aiMsg.setPdfId(pdfId);
+            aiMsg.setRole("ai");
+            aiMsg.setContent(aiReply);
+            chatMessageRepository.save(aiMsg);
+        }
+
+        return response;
     }
 
-    // 转发引导式学习请求（苏格拉底式提问）
     public Map<String, Object> socraticQuestions(Map<String, Object> request) {
         return restTemplate.postForObject(PYTHON_SERVICE_URL + "/socratic-questions", request, Map.class);
     }
-}
+}

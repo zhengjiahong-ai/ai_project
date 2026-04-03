@@ -1,152 +1,216 @@
-import React, { useState, useCallback,useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Panel, Group, Separator } from 'react-resizable-panels';
+import { Trash2 } from 'lucide-react';
 import PdfViewer from './components/PdfViewer';
 import ChatPanel from './components/ChatPanel';
 import Navbar from './components/Navbar';
 import PdfToolbar from './components/PdfToolbar';
-import { openDB } from 'idb'; // 引入数据库库
+import { openDB } from 'idb';
 import ReactMarkdown from 'react-markdown';
-import CriticalAnalysisPanel from './components/CriticalAnalysisPanel'; // 确认引入新组件
+import CriticalAnalysisPanel from './components/CriticalAnalysisPanel';
 import { apiService } from './services/api';
-import PaperAnalysis from './components/PaperAnalysis'; // 👈 补上这一行
+import PaperAnalysis from './components/PaperAnalysis';
 import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
+import LibrarySidebar from './components/LibrarySidebar';
 
-// 初始化 IndexedDB
 const initDB = async () => {
-  return openDB('PixiuAcademicDB', 5, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('pdfStore')) {
-        db.createObjectStore('pdfStore'); // 存储 PDF Blob
-      }
-      if (!db.objectStoreNames.contains('historyStore')) {
-        db.createObjectStore('historyStore'); // 存储 聊天历史
-      }
-      // 新增：存放分析报告
+  return openDB('PixiuAcademicDB_v6', 2, {
+    upgrade(db, oldVersion, newVersion, transaction) {
+      if (!db.objectStoreNames.contains('pdfStore')) db.createObjectStore('pdfStore'); 
+      if (!db.objectStoreNames.contains('historyStore')) db.createObjectStore('historyStore'); 
       if (!db.objectStoreNames.contains('analysisStore')) db.createObjectStore('analysisStore');
-      if (!db.objectStoreNames.contains('notesStore')) {
-        db.createObjectStore('notesStore'); 
-      }
-   // 👈 篇章解构报告用的新 Store
-   if (!db.objectStoreNames.contains('deconstructStore')) {
-    db.createObjectStore('deconstructStore');
-  }
+      if (!db.objectStoreNames.contains('notesStore')) db.createObjectStore('notesStore'); 
+      if (!db.objectStoreNames.contains('deconstructStore')) db.createObjectStore('deconstructStore');
+      if (!db.objectStoreNames.contains('libraryStore')) db.createObjectStore('libraryStore', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('highlightStore')) db.createObjectStore('highlightStore');
     },
   });
 };
 export default function App() {
-  // PDF 文件状态（存储 blob URL）
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
-  const [pdfId] = useState(null); // 新增：存储后端返回的 PDF 唯一 ID（当前先保留读取逻辑）
-  // AI 就绪状态
+  const [pdfId, setPdfId] = useState(null);
   const [isAiReady, setIsAiReady] = useState(true);
-  // 对话记录
   const [messages, setMessages] = useState([
     { 
       role: 'ai', 
-      content: '您好！我是您的 AI 学术助手。上传论文后，我可以为您进行批判性阅读或动态解释。' 
+      content: '您好！我是您的 AI 学术助手。上传论文后，您可以直接**划选正文句子**进行深度解释，或在右侧进行批判性问答。' 
     }
   ]);
-  // --- 新增：右侧面板切换与分析状态 ---
-  const [activeTab, setActiveTab] = useState('chat'); // 'chat' 或 'analysis'
-  const [analysisData, setAnalysisData] = useState(null); // 存储后端返回的分析数据
-  const [isAnalyzing, setIsAnalyzing] = useState(false); // 加载状态
+  const [activeTab, setActiveTab] = useState('chat');
+  const [analysisData, setAnalysisData] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
-  const [notes, setNotes] = useState([]); // 新增笔记状态
-  const [isTranslated, setIsTranslated] = useState(false); // 新增：翻译开关状态
-  const [isDeconstructing, setIsDeconstructing] = useState(false); // 专门用于文件上传后的篇章解构
-  const [deconstructData, setDeconstructData] = useState(null); // 👈 专门存篇章解构结果
-  const [socraticQuestions, setSocraticQuestions] = useState([]); // 引导式学习问题列表
-  const [isSocraticLoading, setIsSocraticLoading] = useState(false); // 引导式学习生成状态
-// 处理分析逻辑
-// --- 逻辑 1: 页面加载时恢复数据 (刷新保护) ---
-// 在 App 组件内部定义
+  const [notes, setNotes] = useState([]);
+  const [isTranslated, setIsTranslated] = useState(false);
+  const [isDeconstructing, setIsDeconstructing] = useState(false);
+  const [deconstructData, setDeconstructData] = useState(null); 
+  const [socraticQuestions, setSocraticQuestions] = useState([]); 
+  const [isSocraticLoading, setIsSocraticLoading] = useState(false); 
+  const [loadingPapers, setLoadingPapers] = useState({});
+  const [pdfHighlights, setPdfHighlights] = useState([]);
+  const abortControllers = React.useRef({});
+  
+  const [papersList, setPapersList] = useState([]);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+
 const handlePdfUpload = async (file) => {
   if (!file) return;
 
   setPdfFileName(file.name);
-  // 1. 保留本地预览功能，让 PDF 立即显示出来
   const fileUrl = URL.createObjectURL(file);
   setPdfFile(fileUrl);
   
-  setIsAiReady(false); // 正在上传，AI 还没准备好
-  setIsDeconstructing(true); // 👈 开启解构加载
+  setIsAiReady(false);
+  setIsDeconstructing(true);
   try {
-    // 2. 关键：调用 api.js 里的接口传给 Java
-    // 这个接口会把文件发给 Java，Java 再发给 Python 的 main.py
     const response = await apiService.uploadPdf(file);
     
-    // 3. 记录后端返回的 ID (如果 Java 返回了结果)
-    // 如果 Python 返回了 metadata，你也可以在这里 set 状态
     console.log("后端响应结果:", response);
-    // 2. 将后端返回的 paper_skeleton 数据存入状态
-    // 注意：这里要确保数据结构与 Python 返回的一致
     if (response && response.status === "success") {
       setDeconstructData(response);
-      setActiveTab('deconstruct'); // 👈 必须切到 deconstruct 才能看到报告组件
-      // 4. 持久化到 IndexedDB，防止刷新丢失
+      setPdfId(response.pdfId);
+      setActiveTab('deconstruct');
       const db = await initDB();
-      // 1. 存储 PDF 文件本身（必须存 file 对象，而不是 fileUrl）
-      await db.put('pdfStore', file, 'currentPdf');
-      await db.put('deconstructStore', response, 'last_deconstruct'); // 使用新命名的 Store
+      await db.put('pdfStore', file, response.pdfId);
+      await db.put('deconstructStore', response, response.pdfId);
+      
+      const newEntry = {
+        id: response.pdfId,
+        filename: file.name,
+        timestamp: Date.now()
+      };
+      await db.put('libraryStore', newEntry);
+
+      localStorage.setItem('lastPdfId', response.pdfId);
+      
+      setPapersList(prev => [newEntry, ...prev.filter(p => p.id !== response.pdfId)]);
+      
+      setMessages([{ role: 'ai', content: `已成功加载论文：${file.name}。我现在可以为您分析该文章了。` }]);
+      setNotes([]);
+      setAnalysisData(null);
     }
-    setIsAiReady(true); // AI 准备就绪
+    setIsAiReady(true);
   } catch (error) {
     console.error("上传至后端失败:", error);
     alert("上传失败，请确保 Java 后端(8080)和 Python(8000) 已启动");
   }finally {
-    setIsDeconstructing(false); // 👈 关闭解构加载
+    setIsDeconstructing(false);
   }
 };
+
 useEffect(() => {
   const restoreSession = async () => {
     try {
-      // A. LocalStorage: 恢复 UI 配置
       const savedTab = localStorage.getItem('activeTab');
       if (savedTab) setActiveTab(savedTab);
 
-      // B. IndexedDB: 恢复大体积数据
       const db = await initDB();
-      const savedPdf = await db.get('pdfStore', 'currentPdf');
-      const savedMessages = await db.get('historyStore', 'chatHistory');
-      const savedAnalysis = await db.get('analysisStore', 'lastAnalysis');
-      const savedDeconstruct = await db.get('deconstructStore', 'last_deconstruct');
-      if (savedDeconstruct) setDeconstructData(savedDeconstruct);
-      const savedNotes = await db.get('notesStore', 'allNotes');
+      
+      const list = await db.getAll('libraryStore');
+      const sortedList = list.sort((a,b) => b.timestamp - a.timestamp);
+      setPapersList(sortedList);
+
+      const savedPdfId = localStorage.getItem('lastPdfId');
+      if (savedPdfId) {
+        const savedPdf = await db.get('pdfStore', savedPdfId);
+        const savedMessages = await db.get('historyStore', savedPdfId);
+        const savedAnalysis = await db.get('analysisStore', savedPdfId);
+        const savedDeconstruct = await db.get('deconstructStore', savedPdfId);
+        const savedNotes = await db.get('notesStore', savedPdfId);
+        const savedHighlights = await db.get('highlightStore', savedPdfId);
+        
+        setPdfId(savedPdfId);
+        if (savedPdf) {
+          setPdfFile(URL.createObjectURL(savedPdf));
+          const libItem = sortedList.find(p => p.id === savedPdfId);
+          if (libItem) setPdfFileName(libItem.filename);
+        }
+        
+        if (savedDeconstruct) setDeconstructData(savedDeconstruct);
         if (savedNotes) setNotes(savedNotes);
-      if (savedPdf) {
-        setPdfFile(URL.createObjectURL(savedPdf.blob));
-        setPdfFileName(savedPdf.name);
+        if (savedAnalysis) setAnalysisData(savedAnalysis);
+        if (savedMessages && savedMessages.length > 0) setMessages(savedMessages);
+        if (savedHighlights) setPdfHighlights(savedHighlights);
       }
-      if (savedAnalysis) {
-        setAnalysisData(savedAnalysis);
-      }
-     // 只有数据库有数据时才覆盖默认欢迎语
-     if (savedMessages && savedMessages.length > 0) {
-      setMessages(savedMessages);
-    }
     } catch (error) {
       console.error("恢复数据失败:", error);
     }finally {
-      // 重点：无论成功失败，标记“恢复流程已结束”，允许后续写入
       setIsRestored(true);
     }
   };
   
-  restoreSession(); // 执行异步恢复函数
+  restoreSession();
 }, []);
 
-// --- 逻辑 2: 持久化聊天历史 ---
+const handleSelectPaper = useCallback(async (targetPdfId) => {
+  setIsAiReady(false);
+  try {
+    const db = await initDB();
+    const savedPdf = await db.get('pdfStore', targetPdfId);
+    if (!savedPdf) return;
+
+    const savedMessages = await db.get('historyStore', targetPdfId);
+    const savedAnalysis = await db.get('analysisStore', targetPdfId);
+    const savedDeconstruct = await db.get('deconstructStore', targetPdfId);
+    const savedNotes = await db.get('notesStore', targetPdfId);
+    const savedHighlights = await db.get('highlightStore', targetPdfId);
+
+    setPdfId(targetPdfId);
+    setPdfFile(URL.createObjectURL(savedPdf));
+    const libItem = papersList.find(p => p.id === targetPdfId);
+    if (libItem) setPdfFileName(libItem.filename);
+    localStorage.setItem('lastPdfId', targetPdfId);
+
+    setDeconstructData(savedDeconstruct || null);
+    setNotes(savedNotes || []);
+    setAnalysisData(savedAnalysis || null);
+    setMessages(savedMessages && savedMessages.length > 0 ? savedMessages : [{ role: 'ai', content: `您好！我是您的学术助手 貔貅。` }]);
+    setPdfHighlights(savedHighlights || []);
+  } catch (error) {
+    console.error("加载指定论文失败", error);
+  } finally {
+    setIsAiReady(true);
+  }
+}, [papersList]);
+
+const handleDeletePaper = useCallback(async (targetPdfId) => {
+  if (!confirm("确定移除该论文及所有关联聊天、笔记记录吗？")) return;
+  try {
+    const db = await initDB();
+    await db.delete('pdfStore', targetPdfId);
+    await db.delete('historyStore', targetPdfId);
+    await db.delete('analysisStore', targetPdfId);
+    await db.delete('notesStore', targetPdfId);
+    await db.delete('deconstructStore', targetPdfId);
+    await db.delete('libraryStore', targetPdfId);
+    await db.delete('highlightStore', targetPdfId);
+    
+    setPapersList(prev => prev.filter(p => p.id !== targetPdfId));
+    
+    if (pdfId === targetPdfId) {
+      setPdfId(null);
+      setPdfFile(null);
+      setPdfFileName(null);
+      localStorage.removeItem('lastPdfId');
+      setMessages([{ role: 'ai', content: `请从左边侧边栏选择论文或重新上传。` }]);
+      setNotes([]);
+      setDeconstructData(null);
+      setAnalysisData(null);
+    }
+  } catch (err) {
+    console.error("删除论文失败", err);
+  }
+}, [pdfId]);
+
 useEffect(() => {
-  // 核心修复：如果还没恢复完成，直接退出，防止空状态覆盖数据库
-  if (!isRestored) return;
+  if (!isRestored || !pdfId) return;
 
   const saveToDB = async () => {
     try {
       const db = await initDB();
-      // 只有在 messages 确实存在且不是由于还没读完数据库导致的假空状态时才存
       if (messages && messages.length > 0) {
-        await db.put('historyStore', messages, 'chatHistory');
+        await db.put('historyStore', messages, pdfId);
         localStorage.setItem('activeTab', activeTab);
       }
     } catch (error) {
@@ -155,17 +219,15 @@ useEffect(() => {
   };
 
   saveToDB();
-}, [messages, activeTab, isRestored]); // 确保 activeTab 变化时也能保存当前页签状态
-// --- 逻辑 3: 持久化学术笔记 (新增) ---
+}, [messages, activeTab, isRestored, pdfId]);
+
 useEffect(() => {
-  // 只有在恢复完成后才允许写入，防止空状态覆盖数据库
-  if (!isRestored) return;
+  if (!isRestored || !pdfId) return;
 
   const saveNotesToDB = async () => {
     try {
       const db = await initDB();
-      // 将当前的 notes 数组存入 notesStore
-      await db.put('notesStore', notes, 'allNotes');
+      await db.put('notesStore', notes, pdfId);
       console.log("笔记已同步至数据库", notes);
     } catch (error) {
       console.error("笔记保存失败:", error);
@@ -173,24 +235,11 @@ useEffect(() => {
   };
 
   saveNotesToDB();
-}, [notes, isRestored]); // 当 notes 数组改变时自动执行
+}, [notes, isRestored, pdfId]);
 
 const handleStartAnalysis = useCallback(async () => {
   setIsAnalyzing(true);
-  
- /* // 未来对接后端接口
-  try {
-    const response = await apiService.fetchCriticalAnalysis(pdfFile);
-    const result = response.data;
-    setAnalysisData(result);
-    
-    // 后端返回后也需存入本地缓存
-    const db = await initDB();
-    await db.put('analysisStore', result, 'lastAnalysis');
-  } catch (e) { console.error(e); }
-  */
 
-  // 模拟后端返回数据
   setTimeout(async () => {
     const mockResult = {
       summary: "本文在实验设计上具有创新性，但在样本量控制和长短期效应对比上存在一定局限性。",
@@ -202,88 +251,144 @@ const handleStartAnalysis = useCallback(async () => {
       ]
     };
 
-    // 1. 更新 React 状态，让 UI 立即响应
     setAnalysisData(mockResult);
     setIsAnalyzing(false);
 
-    // 2. 写入 IndexedDB，确保刷新后不丢失
     try {
-      const db = await initDB();
-      await db.put('analysisStore', mockResult, 'lastAnalysis');
-      console.log("分析数据已持久化至本地仓");
+      if (pdfId) {
+        const db = await initDB();
+        await db.put('analysisStore', mockResult, pdfId);
+        console.log("分析数据已持久化至本地仓", pdfId);
+      }
     } catch (e) {
       console.error("持久化分析数据失败:", e);
     }
   }, 2000);
-}, [pdfFile]);
-// 处理划词后的解释逻辑
-const handleExplain = useCallback((content, role = 'user') => {
-  // 1. 创建新消息对象
-  const newMessage = { 
-    role: role, 
-    content: content,
-    id: Date.now() // 加上 ID 避免 React 渲染 key 警告
-  };
+}, [pdfId]);
 
-  // 2. 更新消息列表
-  setMessages(prev => [...prev, newMessage]);
-
-  // 3. 如果是用户发出的请求（比如划词瞬间），可以在这里触发 AI 的全局自动回复逻辑
-  if (role === 'user' && content.includes('请帮我解释')) {
-    setTimeout(() => {
-      const autoAiMsg = {
-        role: 'ai',
-        content: `我已经收到了您的划词请求，正在针对该段落进行深度解析... (您也可以在左侧小窗继续追问)`,
-        id: Date.now() + 1
-      };
-      setMessages(prev => [...prev, autoAiMsg]);
-    }, 800);
-  }
-}, []);
-  // 处理文件上传
-  const _handleFileUpload = useCallback(async(file) => {
-    if (file && file.type === "application/pdf") {
-      // 创建本地临时 URL 用于预览
-      const fileUrl = URL.createObjectURL(file);
-      setPdfFile(fileUrl);
-      setPdfFileName(file.name);
-      // 存入 IndexedDB
-      const db = await initDB();
-      await db.put('pdfStore', { blob: file, name: file.name }, 'currentPdf');
-      // 添加 AI 欢迎消息
-      setMessages(prev => [...prev, { 
-        role: 'ai', 
-        content: `已成功加载论文：${file.name}。我现在可以为您分析该文章了。` 
-      }]);
-
-      // TODO: 这里可以调用 API 上传文件到后端
-      // apiService.uploadPdf(file).then(response => {
-      //   console.log('File uploaded:', response);
-      // }).catch(error => {
-      //   console.error('Upload failed:', error);
-      // });
-      setMessages(prev => [...prev, { role: 'ai', content: `文件 ${file.name} 已安全存入本地仓。` }]);
-    } else {
-      alert("请上传有效的 PDF 文件");
-    }
-  }, []);
-
-  // 处理发送消息
   const handleSendMessage = useCallback((message) => {
-    setMessages(prev => [...prev, { role: 'user', content: message }]);
+    if (!pdfId || loadingPapers[pdfId]) return; 
 
-    apiService.sendMessage(message, pdfId)
+    setActiveTab('chat');
+    setMessages(prev => [...prev, { role: 'user', content: message }]);
+    
+    const controller = new AbortController();
+    abortControllers.current[pdfId] = controller;
+
+    setLoadingPapers(prev => ({ ...prev, [pdfId]: true }));
+
+    const skeleton = deconstructData?.paper_skeleton || null;
+    const history = messages.slice(-6).map(m => ({ 
+      role: m.role === 'ai' ? 'assistant' : 'user', 
+      content: m.content 
+    }));
+
+    apiService.sendMessage(message, pdfId, history, skeleton, controller.signal)
       .then((response) => {
-        const content = response?.message ?? response?.content ?? '暂无回复';
+        const content = response?.data?.reply ?? response?.reply ?? response?.message ?? '暂无回复';
         setMessages(prev => [...prev, { role: 'ai', content }]);
       })
       .catch((error) => {
+        if (error.name === 'CanceledError' || error.message === 'canceled') {
+          console.log("对话已手动中止");
+          return;
+        }
         const errMsg = error?.response?.data?.message ?? error?.message ?? '请求失败，请稍后重试';
         setMessages(prev => [...prev, { role: 'ai', content: `抱歉，处理您的请求时出现了错误：${errMsg}` }]);
+      })
+      .finally(() => {
+        setLoadingPapers(prev => ({ ...prev, [pdfId]: false }));
+        delete abortControllers.current[pdfId];
       });
-  }, [pdfId]);
+  }, [pdfId, loadingPapers, messages, deconstructData]);
 
-  // 生成引导式学习问题（苏格拉底式提问）
+  const handleAbortChat = useCallback((targetId) => {
+    const controller = abortControllers.current[targetId];
+    if (controller) {
+      controller.abort();
+      
+      // 添加中止提示
+      setMessages(prev => [...prev, { 
+        role: 'ai', 
+        isSystem: true,
+        content: '⚠️ 本次回答已由用户取消。' 
+      }]);
+
+      setLoadingPapers(prev => ({ ...prev, [targetId]: false }));
+      delete abortControllers.current[targetId];
+    }
+  }, []);
+
+  const handleDeleteChatMessage = useCallback((index) => {
+    setMessages(prev => {
+      const targetMsg = prev[index];
+      if (!targetMsg) return prev;
+
+      const indicesToDelete = [index];
+      
+      if (targetMsg.role === 'user') {
+        if (index + 1 < prev.length && prev[index + 1].role === 'ai') {
+          indicesToDelete.push(index + 1);
+        }
+      } 
+      else if (targetMsg.role === 'ai' && index > 0) {
+        if (prev[index - 1].role === 'user') {
+          indicesToDelete.push(index - 1);
+        }
+      }
+
+      return prev.filter((_, i) => !indicesToDelete.includes(i));
+    });
+  }, []);
+
+  const handleExplain = useCallback((content, role = 'user', isSyncOnly = false) => {
+    setActiveTab('chat');
+    if (role === 'user' && !isSyncOnly) {
+      handleSendMessage(`请解释以下内容：${content}`);
+    } else {
+      setMessages(prev => [...prev, { 
+        role: role, 
+        content: content,
+        id: Date.now() 
+      }]);
+    }
+  }, [handleSendMessage]);
+  
+  const handleAddNote = useCallback((noteData) => {
+    setNotes(prev => [{
+      id: Date.now(),
+      ...noteData,
+      time: new Date().toLocaleTimeString()
+    }, ...prev]);
+  }, []);
+  
+  // 保存对话到笔记
+  const handleSaveChatToNote = useCallback((index) => {
+    const msg = messages[index];
+    if (!msg) return;
+
+    let question = "";
+    let answer = "";
+
+    if (msg.role === 'user') {
+      question = msg.content;
+      const nextMsg = messages[index + 1];
+      answer = (nextMsg && nextMsg.role === 'ai') ? nextMsg.content : "等待 AI 回答中...";
+    } else {
+      answer = msg.content;
+      const prevMsg = messages[index - 1];
+      question = (prevMsg && prevMsg.role === 'user') ? prevMsg.content : "提问内容定位失败";
+    }
+
+    handleAddNote({
+      text: question,
+      aiInterpretation: answer,
+      pageNumber: -1 // 表示来自通用对话，非 PDF 特定页码
+    });
+    
+    alert("已将该对话内容收藏至‘学术笔记’！");
+  }, [messages, handleAddNote]);
+
   const handleGenerateSocratic = useCallback(async (readingProgress) => {
     if (!deconstructData || !deconstructData.paper_skeleton) {
       throw new Error('请先完成“篇章解构”，系统需要论文结构内容。');
@@ -303,15 +408,14 @@ const handleExplain = useCallback((content, role = 'user') => {
     }
   }, [deconstructData]);
 
-  // 处理动态解释
   const handleDynamicExplain = useCallback(() => {
+    setActiveTab('chat');
     setMessages(prev => [...prev, { 
       role: 'ai', 
-      content: '动态解释功能：请在 PDF 中选择文本，我将为您解释其含义。' 
+      content: '💡 **功能提示**：在左侧 PDF 视窗中直接**鼠标划选**任何不理解的句子或段落，点击弹出的“AI 解释”按钮，我将结合整篇论文上下文为您深度解析。' 
     }]);
   }, []);
 
-  // 处理批判性阅读
   const handleCriticalReading = useCallback(() => {
     if (!pdfFile) {
       alert('请先上传 PDF 文件');
@@ -323,12 +427,6 @@ const handleExplain = useCallback((content, role = 'user') => {
       content: '请对这篇论文进行批判性阅读分析。' 
     }]);
 
-    // TODO: 调用批判性阅读 API
-    // apiService.criticalReading(pdfId).then(response => {
-    //   setMessages(prev => [...prev, { role: 'ai', content: response.analysis }]);
-    // });
-
-    // 临时模拟响应
     setTimeout(() => {
       setMessages(prev => [...prev, { 
         role: 'ai', 
@@ -336,53 +434,54 @@ const handleExplain = useCallback((content, role = 'user') => {
       }]);
     }, 1000);
   }, [pdfFile]);
-// 4. 新增：保存笔记的回调函数
-const handleAddNote = useCallback((noteData) => {
-  setNotes(prev => [{
-    id: Date.now(),
-    ...noteData,
-    time: new Date().toLocaleTimeString()
-  }, ...prev]);
-}, []);
+
+
   return (
+    <>
+    <LibrarySidebar 
+      isOpen={isLibraryOpen}
+      onClose={() => setIsLibraryOpen(false)}
+      papers={papersList}
+      currentPdfId={pdfId}
+      onSelectPaper={handleSelectPaper}
+      onDeletePaper={handleDeletePaper}
+    />
     <div className="flex flex-col h-screen bg-[#F8F9FA] text-slate-900 font-sans">
-      {/* 顶部导航栏 */}
-      {/* 1. 修改 Navbar：传入切换函数和当前状态 */}
-      {/* <Navbar 
-        onFileUpload={handleFileUpload} 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
-      /> */}
       <Navbar 
       activeTab={activeTab} 
       onTabChange={setActiveTab} 
       isReady={isAiReady} 
-      onFileUpload={handlePdfUpload} // 👈 绑定这个新函数
+      onFileUpload={handlePdfUpload}
+      onToggleLibrary={() => setIsLibraryOpen(true)}
     />
 
-      {/* 主体交互区 */}
       <main className="flex-1 overflow-hidden">
         <Group orientation="horizontal">
-          {/* 左侧：PDF 视窗 */}
           <Panel defaultSize={65} minSize={30}>
             <div className="h-full bg-[#525659] p-4 flex flex-col relative">
-              {/* 新增：显示文件名，解决 pdfFileName 未使用的警告 */}
                 {pdfFileName && (
                   <div className="mb-2 text-white text-sm font-medium truncate bg-black/20 px-3 py-1 rounded">
                     <span>📄 {pdfFileName}</span>
-                  {/* 显示翻译模式状态 */}
-                  {isTranslated && <span className="text-blue-400 animate-pulse text-xs">智能双语图层已开启</span>}
+                  {isTranslated && <span className="text-pixiu animate-pulse text-xs">智能双语图层已开启</span>}
                   </div>
                 )}
               <div className="flex-1 bg-white rounded shadow-2xl overflow-hidden">
-                <PdfViewer fileUrl={pdfFile} 
-                onSelection={handleExplain}
-                onSaveNote={handleAddNote}
-                isTranslated={isTranslated}
+                <PdfViewer 
+                  fileUrl={pdfFile} 
+                  pdfId={pdfId}
+                  onSelection={handleExplain}
+                  onSaveNote={handleAddNote}
+                  isTranslated={isTranslated}
+                  initialHighlights={pdfHighlights}
+                  onHighlightsChange={(newHighlights) => {
+                    setPdfHighlights(newHighlights);
+                    initDB().then(db => {
+                      if (pdfId) db.put('highlightStore', newHighlights, pdfId);
+                    });
+                  }}
                 />
               </div>
               
-              {/* 悬浮工具栏 */}
               {pdfFile && (
                 <PdfToolbar 
                   onDynamicExplain={handleDynamicExplain}
@@ -391,35 +490,39 @@ const handleAddNote = useCallback((noteData) => {
                     setActiveTab('socratic');
                     setSocraticQuestions([]);
                   }}
-                  isTranslated={isTranslated} // 👈 传入状态
-                  onToggleTranslation={() => setIsTranslated(!isTranslated)} // 👈 传入切换函数
+                  isTranslated={isTranslated}
+                  onToggleTranslation={() => setIsTranslated(!isTranslated)}
                 />
               )}
             </div>
           </Panel>
 
-          {/* 拖拽手柄 */}
-          <Separator className="w-1.5 group transition-all hover:bg-blue-100 relative">
-            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-slate-200 group-hover:bg-blue-400 transition-colors"></div>
+          <Separator className="w-1.5 group transition-all hover:bg-pixiu/10 relative">
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-slate-200 group-hover:bg-pixiu/40 transition-colors"></div>
           </Separator>
 
-          {/* 右侧：AI 对话面板 */}
           <Panel defaultSize={35}>
             <div className="h-full bg-white flex flex-col">
-              {/* 根据 activeTab 切换三个面板 */}
               {activeTab === 'chat' && (
-                <ChatPanel messages={messages} onSendMessage={handleSendMessage} />
+                <ChatPanel 
+                  messages={messages} 
+                  onSendMessage={handleSendMessage} 
+                  onDeleteMessage={handleDeleteChatMessage}
+                  onSaveToNote={handleSaveChatToNote}
+                  onAbortChat={() => handleAbortChat(pdfId)}
+                  isLoading={!!loadingPapers[pdfId]} 
+                />
               )}
               {activeTab === 'socratic' && (
                 <SocraticQuestionsPanel
                   hasPaperContext={!!deconstructData?.paper_skeleton}
                   isLoading={isSocraticLoading}
+                  isChatLoading={!!loadingPapers[pdfId]}
                   questions={socraticQuestions}
                   onGenerate={handleGenerateSocratic}
                   onAskQuestion={handleSendMessage}
                 />
               )}
-              {/* 修正点 1：增加 deconstruct 选项卡挂载 */}
   {activeTab === 'deconstruct' && (
     <PaperAnalysis data={deconstructData} isLoading={isDeconstructing} />
   )}
@@ -428,16 +531,28 @@ const handleAddNote = useCallback((noteData) => {
               )}
               {activeTab === 'notes' && (
                 <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
-                  <div className="p-4 border-b bg-white font-bold text-slate-700">📌 学术笔记精华</div>
+                  <div className="p-4 border-b bg-white font-bold text-pixiu">📌 学术笔记精华</div>
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {notes.map(note => (
-                      <div key={note.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <div className="flex justify-between text-[10px] text-blue-500 font-bold mb-2">
+                      <div key={note.id} className="relative group bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <button 
+                          onClick={() => {
+                            if (window.confirm("确定删除这条学术笔记吗？")) {
+                              setNotes(prev => prev.filter(n => n.id !== note.id));
+                            }
+                          }}
+                          className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded-md bg-red-50 text-red-500 hover:bg-red-100"
+                          title="删除此笔记"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+
+                        <div className="flex justify-between text-[10px] text-pixiu font-bold mb-2">
                           <span>PAGE {note.pageNumber + 1}</span>
                           <span>{note.time}</span>
                         </div>
                         <p className="text-sm italic text-slate-500 border-l-2 border-slate-200 pl-3 mb-3">"{note.text}"</p>
-                        <div className="text-sm text-slate-700 bg-blue-50/50 p-3 rounded-lg">
+                        <div className="text-sm bg-pixiu/5 p-3 rounded-lg prose prose-sm prose-slate max-w-none">
                           <ReactMarkdown>{note.aiInterpretation}</ReactMarkdown>
                         </div>
                       </div>
@@ -450,5 +565,6 @@ const handleAddNote = useCallback((noteData) => {
         </Group>
       </main>
     </div>
+    </>
   );
 }

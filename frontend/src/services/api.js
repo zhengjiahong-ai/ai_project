@@ -8,13 +8,13 @@ export const uploadPdf = async (file) => {
   
   return axios.post(`${API_BASE_URL}/upload`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 60000 // 因为 AI 生成慢，设置 1 分钟超时
+    timeout: 1200000 // 提升至 20 分钟，支持超长 PDF 的慢速 CPU RAG 索引
   });
 };
 // 创建 axios 实例
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000,
+  timeout: 1200000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -57,11 +57,13 @@ export const apiService = {
   },
 
   // 发送消息给 AI
-  sendMessage: async (message, pdfId = null) => {
+  sendMessage: async (message, pdfId = null, history = [], paperSkeleton = null, signal = null) => {
     return apiClient.post('/chat', {
       message,
       pdfId,
-    });
+      history,
+      paperSkeleton
+    }, { signal });
   },
 
   // 获取对话历史

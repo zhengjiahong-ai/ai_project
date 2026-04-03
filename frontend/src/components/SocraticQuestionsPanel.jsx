@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const SocraticQuestionsPanel = ({
   hasPaperContext = false,
   isLoading = false,
+  isChatLoading = false, // 新增：正在对话的状态
   questions = [],
   onGenerate,
   onAskQuestion,
@@ -31,10 +32,10 @@ const SocraticQuestionsPanel = ({
     <div className="h-full flex flex-col bg-slate-50/30 overflow-hidden">
       <div className="px-6 py-4 bg-white border-b flex items-center justify-between sticky top-0 z-10">
         <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <Sparkles className="text-blue-600" size={20} />
+          <Sparkles className="text-pixiu" size={20} />
           引导式学习
         </h2>
-        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">
+        <span className="text-[10px] bg-pixiu/10 text-pixiu px-2 py-0.5 rounded-full font-bold">
           苏格拉底式提问
         </span>
       </div>
@@ -46,21 +47,22 @@ const SocraticQuestionsPanel = ({
             value={readingProgress}
             onChange={(e) => setReadingProgress(e.target.value)}
             rows={4}
-            className="w-full border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+            disabled={isLoading}
+            className="w-full border border-slate-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-pixiu/20 disabled:bg-slate-50"
             placeholder="例如：我已阅读摘要与引言，理解了研究问题；接下来准备重点看方法部分。"
           />
 
           <div className="mt-4 flex items-center gap-3">
             <button
               onClick={handleGenerate}
-              disabled={isLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow-sm disabled:opacity-60 disabled:cursor-not-allowed font-semibold"
+              disabled={isLoading || isChatLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-pixiu text-white rounded-xl hover:bg-pixiu-dark transition shadow-sm disabled:opacity-60 disabled:cursor-not-allowed font-semibold text-sm"
             >
               {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
               生成引导问题
             </button>
             {localError && (
-              <div className="text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-lg">
+              <div className="text-sm text-red-600 bg-red-50 border border-red-100 px-3 py-2 rounded-lg text-xs">
                 {localError}
               </div>
             )}
@@ -72,7 +74,7 @@ const SocraticQuestionsPanel = ({
 
           {isLoading && (
             <div className="flex items-center gap-3 text-sm text-slate-600">
-              <Loader2 className="animate-spin text-blue-500" size={18} />
+              <Loader2 className="animate-spin text-pixiu" size={18} />
               正在生成问题...
             </div>
           )}
@@ -86,10 +88,9 @@ const SocraticQuestionsPanel = ({
           {!isLoading && questions && questions.length > 0 && (
             <div className="space-y-3">
               {questions.map((q, idx) => (
-                <button
+                <div
                   key={`${idx}-${q}`}
-                  onClick={() => onAskQuestion?.(q)}
-                  className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition"
+                  className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-pixiu/50 hover:bg-pixiu/5 transition"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="text-sm font-semibold text-slate-800">
@@ -99,7 +100,14 @@ const SocraticQuestionsPanel = ({
                   <div className="mt-2 text-sm text-slate-700 prose prose-sm max-w-none">
                     <ReactMarkdown>{q}</ReactMarkdown>
                   </div>
-                </button>
+                  <button 
+                    onClick={() => onAskQuestion?.(q)}
+                    disabled={isChatLoading}
+                    className="w-full mt-4 flex items-center justify-center gap-2 py-2 bg-pixiu text-white rounded-lg hover:bg-pixiu-dark transition-all shadow-sm font-medium disabled:opacity-50"
+                  >
+                    回答此问题 <ChevronRight size={16} />
+                  </button>
+                </div>
               ))}
             </div>
           )}
