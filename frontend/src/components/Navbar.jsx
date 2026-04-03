@@ -13,7 +13,7 @@ const Navbar = ({ onFileUpload, isReady = true, activeTab, onTabChange, onToggle
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
           <div className="bg-pixiu p-1 rounded-lg w-9 h-9 flex items-center justify-center overflow-hidden">
-            <img src="/logo.png" alt="Pixiu Logo" className="w-full h-full object-contain" />
+            <img src="/貔貅白.png" alt="Pixiu Logo" className="w-full h-full object-contain" />
           </div>
           <span className="font-bold text-xl tracking-tight text-slate-800">Pixiu</span>
         </div>
