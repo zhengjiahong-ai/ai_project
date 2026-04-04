@@ -1,97 +1,74 @@
 import axios from 'axios';
 
-// 从环境变量获取 API 基础 URL，如果没有则使用默认值
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-export const uploadPdf = async (file) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  return axios.post(`${API_BASE_URL}/upload`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 1200000 // 提升至 20 分钟，支持超长 PDF 的慢速 CPU RAG 索引
+export const resolveApiBaseUrl = (
+  env = globalThis.__VITE_ENV__ ?? (typeof import.meta !== 'undefined' ? import.meta.env : undefined),
+) => env?.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
+export const createApiClient = (baseURL = resolveApiBaseUrl(), axiosInstance = axios) => {
+  const client = axiosInstance.create({
+    baseURL,
+    timeout: 1200000,
+    headers: {
+      'Content-Type': 'application/json',
+    },
   });
+
+  client.interceptors.response.use(
+    (response) => response.data,
+    (error) => {
+      console.error('API Error:', error);
+      return Promise.reject(error);
+    },
+  );
+
+  return client;
 };
-// 创建 axios 实例
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 1200000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
 
-// 请求拦截器
-apiClient.interceptors.request.use(
-  (config) => {
-    // 可以在这里添加 token 等认证信息
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// 响应拦截器
-apiClient.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
-  (error) => {
-    // 统一错误处理
-    console.error('API Error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// API 方法定义
-export const apiService = {
-  // 上传 PDF 文件
+export const createApiService = (client) => ({
   uploadPdf: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return apiClient.post('/upload', formData, {
+    return client.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
   },
 
-  // 发送消息给 AI
-  sendMessage: async (message, pdfId = null, history = [], paperSkeleton = null, signal = null) => {
-    return apiClient.post('/chat', {
-      message,
-      pdfId,
-      history,
-      paperSkeleton
-    }, { signal });
-  },
+  sendMessage: async (message, pdfId = null, history = [], paperSkeleton = null, signal = null) =>
+    client.post(
+      '/chat',
+      {
+        message,
+        pdfId,
+        history,
+        paperSkeleton,
+      },
+      { signal },
+    ),
 
-  // 获取对话历史
-  getChatHistory: async (sessionId) => {
-    return apiClient.get(`/chat/history/${sessionId}`);
-  },
+  getChatHistory: async (sessionId) => client.get(`/chat/history/${encodeURIComponent(sessionId)}`),
 
-  // 划词解释
-  explainText: async (text, pdfId, pageNumber) => {
-    return apiClient.post('/explain', {
+  explainText: async (text, pdfId, pageNumber, context = '') =>
+    client.post('/explain', {
       text,
       pdfId,
       pageNumber,
-    });
-  },
+      context,
+    }),
 
-  // 引导式学习（苏格拉底式提问）
-  socraticQuestions: async (paper_content, reading_progress) => {
-    return apiClient.post('/socratic-questions', {
+  socraticQuestions: async (paper_content, reading_progress) =>
+    client.post('/socratic-questions', {
       paper_content,
       reading_progress,
-    });
-  },
+    }),
 
-  // 批判性阅读
-  criticalReading: async (pdfId) => {
-    return apiClient.post(`/critical-reading/${pdfId}`);
-  },
-};
+  criticalReading: async (pdfId) => client.post(`/critical-reading/${encodeURIComponent(pdfId)}`),
+});
+
+const apiClient = createApiClient();
+
+export const apiService = createApiService(apiClient);
+export const uploadPdf = apiService.uploadPdf;
 
 export default apiClient;

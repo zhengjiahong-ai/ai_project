@@ -175,7 +175,7 @@ const PdfViewer = ({ fileUrl, onSelection, onSaveNote, isTranslated, pdfId, init
     if (onHighlightsChange) {
         onHighlightsChange(highlights);
     }
-  }, [highlights]);
+  }, [highlights, onHighlightsChange]);
 
   // --- 网络请求逻辑提升到此 --- 
   const handleInitialAsk = async (id, text) => {
@@ -190,7 +190,7 @@ const PdfViewer = ({ fileUrl, onSelection, onSaveNote, isTranslated, pdfId, init
         if (onSelection) {
             onSelection(content, 'ai', true);
         }
-    } catch (err) {
+    } catch {
         setHighlights(prev => prev.map(h => h.id === id ? {
             ...h,
             chatHistory: [...h.chatHistory, { role: 'ai', content: '抱歉，解析请求失败。' }],
@@ -223,7 +223,7 @@ const PdfViewer = ({ fileUrl, onSelection, onSaveNote, isTranslated, pdfId, init
        } : h));
        
        if (onSelection) onSelection(aiResponse, 'ai', true);
-    } catch (err) {
+    } catch {
        setHighlights(prev => prev.map(h => h.id === id ? {
            ...h,
            chatHistory: [...h.chatHistory, { role: 'ai', content: '抱歉，请求失败。' }],

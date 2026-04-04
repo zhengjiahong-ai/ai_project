@@ -188,3 +188,28 @@ class LiteratureRAG:
             })
 
         return output
+
+    def get_documents_by_metadata(self, filter_metadata=None, limit=200):
+        if filter_metadata and "id" in filter_metadata:
+            filter_metadata["id"] = self.normalize_id(filter_metadata["id"])
+
+        results = self.collection.get(
+            where=filter_metadata,
+            limit=limit,
+            include=["documents", "metadatas"]
+        )
+
+        documents = results.get("documents", [])
+        metadatas = results.get("metadatas", [])
+        paired = sorted(
+            zip(metadatas, documents),
+            key=lambda item: item[0].get("chunk_index", 0)
+        )
+
+        return [
+            {
+                "text": text,
+                "metadata": metadata,
+            }
+            for metadata, text in paired
+        ]

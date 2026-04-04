@@ -2,6 +2,14 @@
 
 基于 AI 的学术论文阅读与批判性分析平台，支持 PDF 上传、篇章解构、术语解释、对话式问答与批判性阅读报告。
 
+## 2026-04-04 更新摘要
+
+- 已打通真实“批判性阅读”链路：`frontend -> Java /api/critical-reading/{pdfId} -> Python /api/deep-analysis`。
+- 已补齐 `GET /api/chat/history/{sessionId}`，前端恢复会话和切换论文时会实际读取 Java/H2 中的对话历史。
+- `ai-service-python/main.py` 已拆分为 `routes / services / llm / rag / schemas`，但 `main.py` 仍保留为入口，现有 `/api/*` 路径不变。
+- 前端接口统一继续走 `frontend/src/services/api.js`，并新增最小 API smoke test。
+- 清理了未引用的旧组件、模板 README、旧测试脚本和未使用 Python 模块。
+
 ---
 
 ## 项目概述
@@ -39,7 +47,6 @@
 │   ├── src/
 │   │   ├── components/       # PdfViewer, ChatPanel, Navbar, PaperAnalysis, CriticalAnalysisPanel 等
 │   │   ├── services/         # api.js 封装后端请求
-│   │   ├── hooks/            # usePdfFile 等
 │   │   └── App.jsx
 │   ├── .env                  # VITE_API_BASE_URL 指向 Java 后端
 │   └── package.json

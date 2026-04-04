@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-04-04
+1. **打通批判性阅读真实链路**：前端移除 `mockResult`，改为调用 Java `POST /api/critical-reading/{pdfId}`；Java 再转发到 Python `/api/deep-analysis`；Python 支持通过 `pdf_id` 从 RAG 分块反查论文内容后再输出真实分析结果。
+2. **补齐聊天历史接口**：Java 新增 `GET /api/chat/history/{sessionId}`，按时间顺序从 H2 返回结构化消息；前端在恢复会话和切换论文时会调用该接口并与 IndexedDB 缓存同步。
+3. **拆分 Python 服务结构**：将原本臃肿的 `ai-service-python/main.py` 拆分为 `routes / services / llm / rag / schemas` 模块，同时保留 `main.py` 入口与现有 `/api/*` 路径兼容。
+4. **补基础测试并清理旧文件**：新增前端 API smoke test、Java controller/service 测试、Python 路由测试；清理未引用的 `GuidedLearningPanel.jsx`、`usePdfFile.js`、前端模板 README、旧测试脚本和未使用 Python 模块。
+
 ### 2026-04-03
 1. **AI 响应提速**：将底层向量模型更换为 130MB 轻量版，彻底解决了首次提问时的长延时和卡顿问题。
 2. **加载机制优化**：新增模型持久化卷，模型仅需在首次启动时下载一次，后续开机即用。

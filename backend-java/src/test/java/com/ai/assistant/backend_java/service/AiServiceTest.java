@@ -1,0 +1,109 @@
+package com.ai.assistant.backend_java.service;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
+
+import com.ai.assistant.backend_java.model.ChatMessage;
+import com.ai.assistant.backend_java.model.Paper;
+import com.ai.assistant.backend_java.repository.ChatMessageRepository;
+import com.ai.assistant.backend_java.repository.PaperRepository;
+
+@ExtendWith(MockitoExtension.class)
+class AiServiceTest {
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @Mock
+    private PaperRepository paperRepository;
+
+    @Mock
+    private ChatMessageRepository chatMessageRepository;
+
+    @InjectMocks
+    private AiService aiService;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(aiService, "PYTHON_SERVICE_URL", "http://python/api");
+    }
+
+    @Test
+    void analyzePdfPersistsResolvedPdfId() {
+        MockMultipartFile file = new MockMultipartFile("file", "Paper Name.pdf", "application/pdf", "pdf".getBytes());
+        Map<String, Object> pythonResponse = new HashMap<>();
+        pythonResponse.put("status", "success");
+        pythonResponse.put("pdfId", "paper_name.pdf");
+
+        when(restTemplate.postForObject(eq("http://python/api/analyze-pdf"), any(), eq(Map.class)))
+                .thenReturn(pythonResponse);
+
+        Map<String, Object> response = aiService.analyzePdf(file);
+
+        ArgumentCaptor<Paper> captor = ArgumentCaptor.forClass(Paper.class);
+        verify(paperRepository).save(captor.capture());
+        assertEquals("paper_name.pdf", captor.getValue().getId());
+        assertEquals("paper_name.pdf", response.get("pdfId"));
+    }
+
+    @Test
+    void getChatHistoryReturnsOrderedMessages() {
+        ChatMessage first = new ChatMessage();
+        first.setId(1L);
+        first.setPdfId("session-1");
+        first.setRole("user");
+        first.setContent("hello");
+        first.setTimestamp(LocalDateTime.of(2026, 4, 4, 10, 0));
+
+        ChatMessage second = new ChatMessage();
+        second.setId(2L);
+        second.setPdfId("session-1");
+        second.setRole("ai");
+        second.setContent("world");
+        second.setTimestamp(LocalDateTime.of(2026, 4, 4, 10, 1));
+
+        when(chatMessageRepository.findByPdfIdOrderByTimestampAsc("session-1"))
+                .thenReturn(List.of(first, second));
+
+        Map<String, Object> response = aiService.getChatHistory("session-1");
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> messages = (List<Map<String, Object>>) response.get("messages");
+        assertEquals("success", response.get("status"));
+        assertEquals(2, response.get("messageCount"));
+        assertEquals("hello", messages.get(0).get("content"));
+        assertEquals("world", messages.get(1).get("content"));
+    }
+
+    @Test
+    void criticalReadingWrapsPythonResponse() {
+        when(restTemplate.postForObject(eq("http://python/api/deep-analysis"), any(Map.class), eq(Map.class)))
+                .thenReturn(Map.of("status", "success", "critical_analysis", "done"));
+
+        Map<String, Object> response = aiService.criticalReading("paper-1");
+
+        assertEquals("success", response.get("status"));
+        assertEquals("paper-1", response.get("pdfId"));
+        assertNotNull(response.get("analysis"));
+    }
+}
