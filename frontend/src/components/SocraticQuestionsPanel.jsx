@@ -13,6 +13,14 @@ const SocraticQuestionsPanel = ({
   const [readingProgress, setReadingProgress] = useState('');
   const [localError, setLocalError] = useState(null);
 
+  const getCardTitle = (index, total) => {
+    if (index === 0) return null;
+    if (index === total - 1) return '总结';
+    return `问题 ${index}`;
+  };
+
+  const shouldShowAskButton = (index, total) => index !== 0 && index !== total - 1;
+
   const handleGenerate = async () => {
     setLocalError(null);
     if (!hasPaperContext) {
@@ -92,19 +100,23 @@ const SocraticQuestionsPanel = ({
                   key={`${index}-${question}`}
                   className="rounded-xl border border-slate-200 px-4 py-3 transition hover:border-pixiu/50 hover:bg-pixiu/5"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-sm font-semibold text-slate-800">问题 {index + 1}：</div>
-                  </div>
+                  {getCardTitle(index, questions.length) && (
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-sm font-semibold text-slate-800">{getCardTitle(index, questions.length)}：</div>
+                    </div>
+                  )}
                   <div className="prose prose-sm mt-2 max-w-none text-sm text-slate-700">
                     <ReactMarkdown>{question}</ReactMarkdown>
                   </div>
-                  <button
-                    onClick={() => onAskQuestion?.(question)}
-                    disabled={isChatLoading}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-pixiu py-2 font-medium text-white shadow-sm transition-all hover:bg-pixiu-dark disabled:opacity-50"
-                  >
-                    回答此问题 <ChevronRight size={16} />
-                  </button>
+                  {shouldShowAskButton(index, questions.length) && (
+                    <button
+                      onClick={() => onAskQuestion?.(question)}
+                      disabled={isChatLoading}
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-pixiu py-2 font-medium text-white shadow-sm transition-all hover:bg-pixiu-dark disabled:opacity-50"
+                    >
+                      回答此问题 <ChevronRight size={16} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
