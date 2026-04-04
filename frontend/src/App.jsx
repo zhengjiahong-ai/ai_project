@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { openDB } from 'idb';
 import { Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -14,11 +14,13 @@ import PdfViewer from './components/PdfViewer';
 import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 import { apiService } from './services/api';
 
-
 const WELCOME_MESSAGE = {
   role: 'ai',
-  content: '请先上传论文。我会结合论文内容帮你提问、解释术语、批判阅读，并保留对话历史。',
+  content:
+    '您好！我是您的 AI 学术助手。上传论文后，您可以直接划选正文句子进行解释、批判阅读，并保留对话历史。',
 };
+
+const SESSION_SNAPSHOT_KEY = 'pixiu-session-snapshot-v1';
 
 const initDB = async () =>
   openDB('PixiuAcademicDB_v6', 2, {
@@ -33,7 +35,6 @@ const initDB = async () =>
     },
   });
 
-
 const normalizeHistoryMessages = (messages = []) =>
   messages.map((message, index) => ({
     id: message.id ?? `${message.timestamp ?? 'local'}-${index}`,
@@ -42,14 +43,30 @@ const normalizeHistoryMessages = (messages = []) =>
     timestamp: message.timestamp ?? null,
   }));
 
-
 const createReadyMessage = (filename) => [
   {
     role: 'ai',
-    content: `已载入《${filename}》。你可以继续提问、运行批判阅读，或生成苏格拉底式追问。`,
+    content: `已成功加载论文：${filename}。我现在可以为您分析这篇文章了。`,
   },
 ];
 
+const readSessionSnapshot = () => {
+  try {
+    const raw = localStorage.getItem(SESSION_SNAPSHOT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    console.warn('Failed to parse local session snapshot.', error);
+    return null;
+  }
+};
+
+const writeSessionSnapshot = (snapshot) => {
+  try {
+    localStorage.setItem(SESSION_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  } catch (error) {
+    console.warn('Failed to persist local session snapshot.', error);
+  }
+};
 
 export default function App() {
   const [pdfFile, setPdfFile] = useState(null);
@@ -73,8 +90,14 @@ export default function App() {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
   const abortControllers = useRef({});
+  const papersListRef = useRef([]);
+  const hasRestoredSessionRef = useRef(false);
 
-  const fetchChatHistory = useCallback(async (sessionId, fallbackMessages = []) => {
+  useEffect(() => {
+    papersListRef.current = papersList;
+  }, [papersList]);
+
+  const loadRemoteHistory = useCallback(async (sessionId, fallbackMessages = []) => {
     try {
       const response = await apiService.getChatHistory(sessionId);
       const remoteMessages = normalizeHistoryMessages(response?.messages || []);
@@ -84,14 +107,14 @@ export default function App() {
         return remoteMessages;
       }
     } catch (error) {
-      console.warn('Failed to load remote chat history, falling back to local cache.', error);
+      console.warn('Failed to load remote chat history, falling back to IndexedDB.', error);
     }
 
-    return fallbackMessages.length > 0 ? normalizeHistoryMessages(fallbackMessages) : [WELCOME_MESSAGE];
+    return fallbackMessages.length > 0 ? fallbackMessages : [WELCOME_MESSAGE];
   }, []);
 
   const loadPaperState = useCallback(
-    async (targetPdfId, entries = papersList) => {
+    async (targetPdfId, currentPapers = null) => {
       const db = await initDB();
       const [savedPdf, savedMessages, savedAnalysis, savedDeconstruct, savedNotes, savedHighlights] = await Promise.all([
         db.get('pdfStore', targetPdfId),
@@ -106,12 +129,14 @@ export default function App() {
         return false;
       }
 
-      const entryList = Array.isArray(entries) ? entries : papersList;
+      const entryList = Array.isArray(currentPapers) ? currentPapers : papersListRef.current;
       const libraryEntry = entryList.find((paper) => paper.id === targetPdfId);
-      const nextMessages = await fetchChatHistory(
-        targetPdfId,
-        savedMessages || (libraryEntry ? createReadyMessage(libraryEntry.filename) : [WELCOME_MESSAGE]),
-      );
+      const fallbackMessages =
+        savedMessages && savedMessages.length > 0
+          ? savedMessages
+          : createReadyMessage(libraryEntry?.filename ?? savedPdf.name ?? '当前论文');
+
+      const nextMessages = await loadRemoteHistory(targetPdfId, fallbackMessages);
 
       setPdfId(targetPdfId);
       setPdfFile(URL.createObjectURL(savedPdf));
@@ -125,7 +150,7 @@ export default function App() {
 
       return true;
     },
-    [fetchChatHistory, papersList],
+    [loadRemoteHistory],
   );
 
   const handlePdfUpload = useCallback(async (file) => {
@@ -138,11 +163,12 @@ export default function App() {
 
     try {
       const response = await apiService.uploadPdf(file);
-      if (response?.status !== 'success') {
+      if (!response || response.status !== 'success') {
         throw new Error(response?.message || '论文上传失败');
       }
 
       const db = await initDB();
+      const readyMessages = createReadyMessage(file.name);
       const newEntry = {
         id: response.pdfId,
         filename: file.name,
@@ -153,22 +179,23 @@ export default function App() {
         db.put('pdfStore', file, response.pdfId),
         db.put('deconstructStore', response, response.pdfId),
         db.put('analysisStore', null, response.pdfId),
-        db.put('historyStore', createReadyMessage(file.name), response.pdfId),
+        db.put('historyStore', readyMessages, response.pdfId),
+        db.put('highlightStore', [], response.pdfId),
         db.put('libraryStore', newEntry),
       ]);
 
-      setPdfId(response.pdfId);
       setDeconstructData(response);
-      setAnalysisData(null);
-      setNotes([]);
-      setMessages(createReadyMessage(file.name));
-      setPdfHighlights([]);
+      setPdfId(response.pdfId);
       setActiveTab('deconstruct');
       setPapersList((prev) => [newEntry, ...prev.filter((paper) => paper.id !== response.pdfId)]);
+      setMessages(readyMessages);
+      setNotes([]);
+      setAnalysisData(null);
+      setPdfHighlights([]);
       localStorage.setItem('lastPdfId', response.pdfId);
     } catch (error) {
       console.error('Failed to upload PDF.', error);
-      window.alert(error?.response?.data?.message || error?.message || '上传失败，请检查后端服务是否可用。');
+      window.alert(error?.response?.data?.message || error?.message || '上传失败，请确认后端服务已启动。');
     } finally {
       setIsAiReady(true);
       setIsDeconstructing(false);
@@ -176,21 +203,35 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (hasRestoredSessionRef.current) {
+      return undefined;
+    }
+    hasRestoredSessionRef.current = true;
+
     const restoreSession = async () => {
       try {
-        const savedTab = localStorage.getItem('activeTab');
+        const snapshot = readSessionSnapshot();
+        const savedTab = localStorage.getItem('activeTab') || snapshot?.activeTab;
         if (savedTab) {
           setActiveTab(savedTab);
         }
 
         const db = await initDB();
         const list = await db.getAll('libraryStore');
-        const sortedList = list.sort((left, right) => right.timestamp - left.timestamp);
+        const fallbackList = Array.isArray(snapshot?.papersList) ? snapshot.papersList : [];
+        const mergedList =
+          list.length > 0
+            ? list
+            : fallbackList;
+        const sortedList = mergedList.sort((left, right) => right.timestamp - left.timestamp);
         setPapersList(sortedList);
 
-        const savedPdfId = localStorage.getItem('lastPdfId');
+        const savedPdfId = localStorage.getItem('lastPdfId') || snapshot?.lastPdfId;
         if (savedPdfId) {
-          await loadPaperState(savedPdfId, sortedList);
+          const restored = await loadPaperState(savedPdfId, sortedList);
+          if (!restored && sortedList.length > 0) {
+            await loadPaperState(sortedList[0].id, sortedList);
+          }
         }
       } catch (error) {
         console.error('Failed to restore local session.', error);
@@ -200,6 +241,7 @@ export default function App() {
     };
 
     restoreSession();
+    return undefined;
   }, [loadPaperState]);
 
   const handleSelectPaper = useCallback(
@@ -208,7 +250,7 @@ export default function App() {
       try {
         await loadPaperState(targetPdfId);
       } catch (error) {
-        console.error('Failed to load paper session.', error);
+        console.error('Failed to load selected paper.', error);
       } finally {
         setIsAiReady(true);
       }
@@ -218,7 +260,7 @@ export default function App() {
 
   const handleDeletePaper = useCallback(
     async (targetPdfId) => {
-      if (!window.confirm('确认删除这篇论文及其本地缓存内容吗？')) return;
+      if (!window.confirm('确定移除该论文及所有关联聊天、笔记记录吗？')) return;
 
       try {
         const db = await initDB();
@@ -283,9 +325,21 @@ export default function App() {
     saveNotes();
   }, [isRestored, notes, pdfId]);
 
+  useEffect(() => {
+    if (!isRestored) return;
+
+    writeSessionSnapshot({
+      activeTab,
+      lastPdfId: pdfId,
+      pdfFileName,
+      papersList,
+      updatedAt: Date.now(),
+    });
+  }, [activeTab, isRestored, papersList, pdfFileName, pdfId]);
+
   const handleStartAnalysis = useCallback(async () => {
     if (!pdfId) {
-      window.alert('请先上传论文。');
+      window.alert('请先上传 PDF 文件。');
       return;
     }
 
@@ -295,17 +349,17 @@ export default function App() {
     try {
       const response = await apiService.criticalReading(pdfId);
       const payload = response?.analysis ?? response;
-      const isSuccess = response?.status === 'success' || payload?.status === 'success';
+      const isSuccess = response?.status === 'success' || payload?.status === 'success' || Boolean(payload);
       if (!isSuccess) {
         throw new Error(response?.message || payload?.message || '批判性阅读失败');
       }
 
-      const db = await initDB();
       setAnalysisData(payload);
+      const db = await initDB();
       await db.put('analysisStore', payload, pdfId);
     } catch (error) {
-      console.error('Failed to analyze paper critically.', error);
-      window.alert(error?.response?.data?.message || error?.message || '批判性阅读失败。');
+      console.error('Failed to run critical reading.', error);
+      window.alert(error?.response?.data?.message || error?.message || '批判性阅读失败，请稍后重试。');
     } finally {
       setIsAnalyzing(false);
     }
@@ -322,15 +376,16 @@ export default function App() {
       abortControllers.current[pdfId] = controller;
       setLoadingPapers((prev) => ({ ...prev, [pdfId]: true }));
 
+      const skeleton = deconstructData?.paper_skeleton || null;
       const history = messages.slice(-6).map((item) => ({
         role: item.role === 'ai' ? 'assistant' : item.role,
         content: item.content,
       }));
 
       apiService
-        .sendMessage(message, pdfId, history, deconstructData?.paper_skeleton || null, controller.signal)
+        .sendMessage(message, pdfId, history, skeleton, controller.signal)
         .then((response) => {
-          const content = response?.reply ?? response?.message ?? '暂无回复。';
+          const content = response?.reply ?? response?.message ?? response?.data?.reply ?? '暂无回复';
           setMessages((prev) => [...prev, { role: 'ai', content }]);
         })
         .catch((error) => {
@@ -338,8 +393,14 @@ export default function App() {
             return;
           }
 
-          const errMsg = error?.response?.data?.message ?? error?.message ?? '请求失败，请稍后重试。';
-          setMessages((prev) => [...prev, { role: 'ai', content: `处理请求时出现错误：${errMsg}` }]);
+          const errMsg = error?.response?.data?.message ?? error?.message ?? '请求失败，请稍后重试';
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'ai',
+              content: `抱歉，处理您的请求时出现了错误：${errMsg}`,
+            },
+          ]);
         })
         .finally(() => {
           setLoadingPapers((prev) => ({ ...prev, [pdfId]: false }));
@@ -354,8 +415,15 @@ export default function App() {
     if (!controller) return;
 
     controller.abort();
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'ai',
+        isSystem: true,
+        content: '本次回答已由用户取消。',
+      },
+    ]);
     setLoadingPapers((prev) => ({ ...prev, [targetPdfId]: false }));
-    setMessages((prev) => [...prev, { role: 'ai', isSystem: true, content: '本次回答已停止。' }]);
     delete abortControllers.current[targetPdfId];
   }, []);
 
@@ -384,7 +452,14 @@ export default function App() {
         return;
       }
 
-      setMessages((prev) => [...prev, { role, content, id: Date.now() }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role,
+          content,
+          id: Date.now(),
+        },
+      ]);
     },
     [handleSendMessage],
   );
@@ -402,24 +477,21 @@ export default function App() {
 
   const handleSaveChatToNote = useCallback(
     (index) => {
-      const current = messages[index];
-      if (!current) return;
+      const message = messages[index];
+      if (!message) return;
 
-      const next = messages[index + 1];
-      const previous = messages[index - 1];
+      let question = '';
+      let answer = '';
 
-      const question =
-        current.role === 'user'
-          ? current.content
-          : previous?.role === 'user'
-            ? previous.content
-            : '未找到对应问题';
-      const answer =
-        current.role === 'ai'
-          ? current.content
-          : next?.role === 'ai'
-            ? next.content
-            : '等待 AI 回复中。';
+      if (message.role === 'user') {
+        question = message.content;
+        const nextMessage = messages[index + 1];
+        answer = nextMessage?.role === 'ai' ? nextMessage.content : '等待 AI 回答中...';
+      } else {
+        answer = message.content;
+        const previousMessage = messages[index - 1];
+        question = previousMessage?.role === 'user' ? previousMessage.content : '提问内容定位失败';
+      }
 
       handleAddNote({
         text: question,
@@ -427,7 +499,7 @@ export default function App() {
         pageNumber: -1,
       });
 
-      window.alert('已保存到学术笔记。');
+      window.alert('已将该对话内容收藏至“学术笔记”！');
     },
     [handleAddNote, messages],
   );
@@ -435,7 +507,7 @@ export default function App() {
   const handleGenerateSocratic = useCallback(
     async (readingProgress) => {
       if (!deconstructData?.paper_skeleton) {
-        throw new Error('请先完成论文解析，再生成引导问题。');
+        throw new Error('请先完成“篇章解构”，系统需要论文结构内容。');
       }
 
       setIsSocraticLoading(true);
@@ -463,7 +535,8 @@ export default function App() {
       ...prev,
       {
         role: 'ai',
-        content: '在左侧 PDF 中选中文本即可发起术语解释，我会结合当前论文上下文回答。',
+        content:
+          '功能提示：在左侧 PDF 视窗中直接鼠标划选任何不理解的句子或段落，点击弹出的“AI 解释”按钮，我将结合整篇论文上下文为您深度解析。',
       },
     ]);
   }, []);
@@ -481,13 +554,8 @@ export default function App() {
   );
 
   const handleCriticalReading = useCallback(() => {
-    if (!pdfId) {
-      window.alert('请先上传论文。');
-      return;
-    }
-
     handleStartAnalysis();
-  }, [handleStartAnalysis, pdfId]);
+  }, [handleStartAnalysis]);
 
   return (
     <>
@@ -514,9 +582,9 @@ export default function App() {
             <Panel defaultSize={65} minSize={30}>
               <div className="relative flex h-full flex-col bg-[#525659] p-4">
                 {pdfFileName && (
-                  <div className="mb-2 truncate rounded bg-black/20 px-3 py-1 text-sm font-medium text-white">
-                    <span>当前论文：{pdfFileName}</span>
-                    {isTranslated && <span className="ml-2 text-xs text-pixiu">翻译图层已开启</span>}
+                  <div className="mb-2 flex items-center justify-between truncate rounded bg-black/20 px-3 py-1 text-sm font-medium text-white">
+                    <span>📄 {pdfFileName}</span>
+                    {isTranslated && <span className="text-xs text-pixiu">智能双语图层已开启</span>}
                   </div>
                 )}
 
@@ -524,12 +592,12 @@ export default function App() {
                   <PdfViewer
                     fileUrl={pdfFile}
                     pdfId={pdfId}
-                  onSelection={handleExplain}
-                  onSaveNote={handleAddNote}
-                  isTranslated={isTranslated}
-                  initialHighlights={pdfHighlights}
-                  onHighlightsChange={handleHighlightsChange}
-                />
+                    onSelection={handleExplain}
+                    onSaveNote={handleAddNote}
+                    isTranslated={isTranslated}
+                    initialHighlights={pdfHighlights}
+                    onHighlightsChange={handleHighlightsChange}
+                  />
                 </div>
 
                 {pdfFile && (
@@ -589,7 +657,7 @@ export default function App() {
 
                 {activeTab === 'notes' && (
                   <div className="flex flex-1 flex-col overflow-hidden bg-slate-50">
-                    <div className="border-b bg-white p-4 font-bold text-pixiu">学术笔记</div>
+                    <div className="border-b bg-white p-4 font-bold text-pixiu">📌 学术笔记精华</div>
                     <div className="flex-1 space-y-4 overflow-y-auto p-4">
                       {notes.map((note) => (
                         <div
@@ -598,12 +666,12 @@ export default function App() {
                         >
                           <button
                             onClick={() => {
-                              if (window.confirm('确认删除这条笔记吗？')) {
+                              if (window.confirm('确定删除这条学术笔记吗？')) {
                                 setNotes((prev) => prev.filter((item) => item.id !== note.id));
                               }
                             }}
                             className="absolute right-2 top-2 rounded-md bg-red-50 p-1.5 text-red-500 opacity-0 transition-opacity hover:bg-red-100 group-hover:opacity-100"
-                            title="删除笔记"
+                            title="删除此笔记"
                           >
                             <Trash2 size={14} />
                           </button>

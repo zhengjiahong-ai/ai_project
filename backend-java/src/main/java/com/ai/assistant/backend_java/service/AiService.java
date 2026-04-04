@@ -121,7 +121,7 @@ public class AiService {
         for (ChatMessage message : history) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", message.getId());
-            item.put("role", message.getRole());
+            item.put("role", normalizeRoleForApi(message.getRole()));
             item.put("content", message.getContent());
             item.put("timestamp", message.getTimestamp());
             messages.add(item);
@@ -167,13 +167,22 @@ public class AiService {
         List<ChatMessage> history = chatMessageRepository.findByPdfIdOrderByTimestampAsc(pdfId);
         List<Map<String, String>> historyList = new ArrayList<>();
 
-        for (ChatMessage item : history) {
+        int lastIndex = history.size() - 1;
+        for (int index = 0; index < history.size(); index++) {
+            ChatMessage item = history.get(index);
+            if (index == lastIndex && "user".equals(item.getRole())) {
+                continue;
+            }
             Map<String, String> message = new HashMap<>();
-            message.put("role", item.getRole());
+            message.put("role", normalizeRoleForApi(item.getRole()));
             message.put("content", item.getContent());
             historyList.add(message);
         }
 
         return historyList;
+    }
+
+    private String normalizeRoleForApi(String role) {
+        return "ai".equals(role) ? "assistant" : role;
     }
 }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -91,8 +92,44 @@ class AiServiceTest {
         List<Map<String, Object>> messages = (List<Map<String, Object>>) response.get("messages");
         assertEquals("success", response.get("status"));
         assertEquals(2, response.get("messageCount"));
+        assertEquals("assistant", messages.get(1).get("role"));
         assertEquals("hello", messages.get(0).get("content"));
         assertEquals("world", messages.get(1).get("content"));
+    }
+
+    @Test
+    void chatBuildsAssistantHistoryWithoutDuplicatingLatestUserMessage() {
+        ChatMessage existingUser = new ChatMessage();
+        existingUser.setRole("user");
+        existingUser.setContent("older question");
+
+        ChatMessage existingAi = new ChatMessage();
+        existingAi.setRole("ai");
+        existingAi.setContent("older answer");
+
+        ChatMessage latestUser = new ChatMessage();
+        latestUser.setRole("user");
+        latestUser.setContent("new question");
+
+        when(chatMessageRepository.findByPdfIdOrderByTimestampAsc("paper-1"))
+                .thenReturn(List.of(existingUser, existingAi, latestUser));
+
+        doAnswer(invocation -> invocation.getArgument(0)).when(chatMessageRepository).save(any(ChatMessage.class));
+
+        when(restTemplate.postForObject(eq("http://python/api/chat"), any(), eq(Map.class)))
+                .thenReturn(Map.of("status", "success", "message", "reply"));
+
+        Map<String, Object> request = new HashMap<>();
+        request.put("pdfId", "paper-1");
+        request.put("message", "new question");
+
+        aiService.chat(request);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
+        assertEquals(2, history.size());
+        assertEquals("assistant", history.get(1).get("role"));
+        assertEquals("older answer", history.get(1).get("content"));
     }
 
     @Test

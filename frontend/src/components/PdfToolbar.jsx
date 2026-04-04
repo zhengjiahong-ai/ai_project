@@ -1,39 +1,40 @@
-import { Sparkles, FileText, Languages, Zap, ShieldAlert } from 'lucide-react';
+import { Languages, ShieldAlert, Sparkles, Zap } from 'lucide-react';
 
-/**
- * PDF 工具栏组件（悬浮在 PDF 视窗底部）
- * @param {Function} onDynamicExplain - 动态解释回调
- * @param {Function} onCriticalReading - 批判性阅读回调
- */
-const PdfToolbar = ({ onDynamicExplain, onCriticalReading, onSocraticLearning, isTranslated, onToggleTranslation }) => {
+const PdfToolbar = ({
+  onDynamicExplain,
+  onCriticalReading,
+  onSocraticLearning,
+  isTranslated,
+  onToggleTranslation,
+}) => {
   return (
-    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md shadow-2xl border border-slate-200/60 px-2 py-2 rounded-2xl flex items-center gap-2 z-20">
-      <button 
+    <div className="absolute bottom-10 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-slate-200/60 bg-white/95 px-2 py-2 shadow-2xl backdrop-blur-md">
+      <button
         onClick={onDynamicExplain}
-        className="px-4 py-2 rounded-xl flex items-center gap-2 transition-all bg-pixiu text-white hover:bg-pixiu-dark shadow-md shadow-pixiu/20 active:scale-95"
+        className="flex items-center gap-2 rounded-xl bg-pixiu px-4 py-2 text-white shadow-md shadow-pixiu/20 transition-all hover:bg-pixiu-dark active:scale-95"
         title="动态解释模式"
       >
         <Zap size={16} />
         <span className="text-sm font-semibold">动态解释</span>
       </button>
 
-      <button 
+      <button
         onClick={onToggleTranslation}
-        className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-all border font-semibold text-sm active:scale-95 ${
-          isTranslated 
-          ? 'bg-amber-50 text-amber-600 border-amber-200 shadow-sm' 
-          : 'bg-white text-slate-600 border-slate-200 hover:border-pixiu hover:text-pixiu'
+        className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all active:scale-95 ${
+          isTranslated
+            ? 'border-amber-200 bg-amber-50 text-amber-600 shadow-sm'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-pixiu hover:text-pixiu'
         }`}
       >
-        <Languages size={16} className={isTranslated ? 'text-amber-500' : 'text-pixiu'}/>
+        <Languages size={16} className={isTranslated ? 'text-amber-500' : 'text-pixiu'} />
         <span>全景翻译</span>
       </button>
 
-      <div className="w-[1px] h-6 bg-slate-200 mx-1"></div>
+      <div className="mx-1 h-6 w-[1px] bg-slate-200" />
 
-      <button 
+      <button
         onClick={onCriticalReading}
-        className="px-4 py-2 rounded-xl flex items-center gap-2 transition-all border border-slate-200 bg-white text-slate-600 font-semibold text-sm hover:border-pixiu hover:text-pixiu hover:bg-pixiu/5 active:scale-95"
+        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-all hover:border-pixiu hover:bg-pixiu/5 hover:text-pixiu active:scale-95"
         title="批判性阅读"
       >
         <ShieldAlert size={16} className="text-pixiu" />
@@ -42,7 +43,8 @@ const PdfToolbar = ({ onDynamicExplain, onCriticalReading, onSocraticLearning, i
 
       <button
         onClick={onSocraticLearning}
-        className="px-4 py-2 rounded-xl flex items-center gap-2 transition-all border border-slate-200 bg-white text-slate-600 font-semibold text-sm hover:border-pixiu hover:text-pixiu hover:bg-pixiu/5 active:scale-95"
+        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-all hover:border-pixiu hover:bg-pixiu/5 hover:text-pixiu active:scale-95"
+        title="引导式学习"
       >
         <Sparkles size={16} className="text-pixiu" />
         <span>引导式学习</span>
