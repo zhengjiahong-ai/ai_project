@@ -6,8 +6,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -43,7 +45,7 @@ public class AiService {
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("file", file.getResource());
+        body.add("file", toNamedPdfResource(file));
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
@@ -63,6 +65,20 @@ public class AiService {
         }
 
         return response;
+    }
+
+    private ByteArrayResource toNamedPdfResource(MultipartFile file) {
+        try {
+            final String originalFilename = Objects.toString(file.getOriginalFilename(), "uploaded.pdf");
+            return new ByteArrayResource(file.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return originalFilename;
+                }
+            };
+        } catch (IOException error) {
+            throw new IllegalStateException("Failed to read uploaded PDF bytes.", error);
+        }
     }
 
     public Map<String, Object> explainTerm(Map<String, String> request) {

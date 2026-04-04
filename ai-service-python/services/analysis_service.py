@@ -162,6 +162,8 @@ Paper context:
 
         clean_pdf_id = get_rag().normalize_id(file.filename)
         title = _extract_title(parsed_sections, file.filename)
+        rag_indexed = True
+        rag_message = None
         try:
             count = get_rag().add_sections_to_db(
                 parsed_sections,
@@ -171,13 +173,19 @@ Paper context:
             print(f"Indexed paper {title} ({clean_pdf_id}) into RAG with {count} chunks.")
         except Exception as error:
             print(f"RAG indexing failed: {error}")
+            rag_indexed = False
+            rag_message = f"Paper parsed successfully, but RAG indexing failed: {error}"
 
-        return {
+        response = {
             "status": "success",
             "paper_skeleton": section_summaries,
             "paper_structure": paper_structure,
             "pdfId": clean_pdf_id,
+            "ragIndexed": rag_indexed,
         }
+        if rag_message:
+            response["message"] = rag_message
+        return response
     finally:
         if os.path.exists(input_dir):
             shutil.rmtree(input_dir)

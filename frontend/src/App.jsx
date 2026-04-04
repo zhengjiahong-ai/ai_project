@@ -16,14 +16,11 @@ import { apiService } from './services/api';
 
 const WELCOME_MESSAGE = {
   role: 'ai',
-  content:
-    '您好！我是您的 AI 学术助手。上传论文后，您可以直接划选正文句子进行解释、批判阅读，并保留对话历史。',
+  content: '您好！我是您的 AI 学术助手。上传论文后，您可以直接划选正文句子进行解释、批判阅读，并保留对话历史。',
 };
 
-const SESSION_SNAPSHOT_KEY = 'pixiu-session-snapshot-v1';
-
 const initDB = async () =>
-  openDB('PixiuAcademicDB_v6', 2, {
+  openDB('PixiuAcademicDB_v6', 3, {
     upgrade(db) {
       if (!db.objectStoreNames.contains('pdfStore')) db.createObjectStore('pdfStore');
       if (!db.objectStoreNames.contains('historyStore')) db.createObjectStore('historyStore');
@@ -32,6 +29,7 @@ const initDB = async () =>
       if (!db.objectStoreNames.contains('deconstructStore')) db.createObjectStore('deconstructStore');
       if (!db.objectStoreNames.contains('libraryStore')) db.createObjectStore('libraryStore', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('highlightStore')) db.createObjectStore('highlightStore');
+      if (!db.objectStoreNames.contains('sessionStore')) db.createObjectStore('sessionStore');
     },
   });
 
@@ -50,22 +48,26 @@ const createReadyMessage = (filename) => [
   },
 ];
 
-const readSessionSnapshot = () => {
-  try {
-    const raw = localStorage.getItem(SESSION_SNAPSHOT_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (error) {
-    console.warn('Failed to parse local session snapshot.', error);
+const resolveStoredPdfRecord = (storedValue) => {
+  if (!storedValue) {
     return null;
   }
-};
 
-const writeSessionSnapshot = (snapshot) => {
-  try {
-    localStorage.setItem(SESSION_SNAPSHOT_KEY, JSON.stringify(snapshot));
-  } catch (error) {
-    console.warn('Failed to persist local session snapshot.', error);
+  if (storedValue instanceof Blob) {
+    return {
+      blob: storedValue,
+      name: storedValue.name ?? null,
+    };
   }
+
+  if (storedValue.blob instanceof Blob) {
+    return {
+      blob: storedValue.blob,
+      name: storedValue.name ?? storedValue.blob.name ?? null,
+    };
+  }
+
+  return null;
 };
 
 export default function App() {
@@ -91,13 +93,12 @@ export default function App() {
 
   const abortControllers = useRef({});
   const papersListRef = useRef([]);
-  const hasRestoredSessionRef = useRef(false);
 
   useEffect(() => {
     papersListRef.current = papersList;
   }, [papersList]);
 
-  const loadRemoteHistory = useCallback(async (sessionId, fallbackMessages = []) => {
+  const fetchRemoteHistory = useCallback(async (sessionId, fallbackMessages = []) => {
     try {
       const response = await apiService.getChatHistory(sessionId);
       const remoteMessages = normalizeHistoryMessages(response?.messages || []);
@@ -107,51 +108,49 @@ export default function App() {
         return remoteMessages;
       }
     } catch (error) {
-      console.warn('Failed to load remote chat history, falling back to IndexedDB.', error);
+      console.warn('Failed to load remote chat history, using local cache instead.', error);
     }
 
     return fallbackMessages.length > 0 ? fallbackMessages : [WELCOME_MESSAGE];
   }, []);
 
-  const loadPaperState = useCallback(
-    async (targetPdfId, currentPapers = null) => {
-      const db = await initDB();
-      const [savedPdf, savedMessages, savedAnalysis, savedDeconstruct, savedNotes, savedHighlights] = await Promise.all([
-        db.get('pdfStore', targetPdfId),
-        db.get('historyStore', targetPdfId),
-        db.get('analysisStore', targetPdfId),
-        db.get('deconstructStore', targetPdfId),
-        db.get('notesStore', targetPdfId),
-        db.get('highlightStore', targetPdfId),
-      ]);
+  const restorePaperState = useCallback(async (targetPdfId, entryList = null) => {
+    const db = await initDB();
+    const [savedPdf, savedMessages, savedAnalysis, savedDeconstruct, savedNotes, savedHighlights] = await Promise.all([
+      db.get('pdfStore', targetPdfId),
+      db.get('historyStore', targetPdfId),
+      db.get('analysisStore', targetPdfId),
+      db.get('deconstructStore', targetPdfId),
+      db.get('notesStore', targetPdfId),
+      db.get('highlightStore', targetPdfId),
+    ]);
 
-      if (!savedPdf) {
-        return false;
-      }
+    const resolvedPdf = resolveStoredPdfRecord(savedPdf);
+    if (!resolvedPdf) {
+      return false;
+    }
 
-      const entryList = Array.isArray(currentPapers) ? currentPapers : papersListRef.current;
-      const libraryEntry = entryList.find((paper) => paper.id === targetPdfId);
-      const fallbackMessages =
-        savedMessages && savedMessages.length > 0
-          ? savedMessages
-          : createReadyMessage(libraryEntry?.filename ?? savedPdf.name ?? '当前论文');
+    const currentEntries = Array.isArray(entryList) ? entryList : papersListRef.current;
+    const libraryEntry = currentEntries.find((paper) => paper.id === targetPdfId);
+    const fallbackMessages =
+      savedMessages && savedMessages.length > 0
+        ? savedMessages
+        : createReadyMessage(libraryEntry?.filename ?? resolvedPdf.name ?? '当前论文');
 
-      const nextMessages = await loadRemoteHistory(targetPdfId, fallbackMessages);
+    const nextMessages = await fetchRemoteHistory(targetPdfId, fallbackMessages);
 
-      setPdfId(targetPdfId);
-      setPdfFile(URL.createObjectURL(savedPdf));
-      setPdfFileName(libraryEntry?.filename ?? savedPdf.name ?? null);
-      setDeconstructData(savedDeconstruct || null);
-      setNotes(savedNotes || []);
-      setAnalysisData(savedAnalysis || null);
-      setMessages(nextMessages);
-      setPdfHighlights(savedHighlights || []);
-      localStorage.setItem('lastPdfId', targetPdfId);
+    setPdfId(targetPdfId);
+    setPdfFile(URL.createObjectURL(resolvedPdf.blob));
+    setPdfFileName(libraryEntry?.filename ?? resolvedPdf.name ?? null);
+    setDeconstructData(savedDeconstruct || null);
+    setNotes(savedNotes || []);
+    setAnalysisData(savedAnalysis || null);
+    setMessages(nextMessages);
+    setPdfHighlights(savedHighlights || []);
+    localStorage.setItem('lastPdfId', targetPdfId);
 
-      return true;
-    },
-    [loadRemoteHistory],
-  );
+    return true;
+  }, [fetchRemoteHistory]);
 
   const handlePdfUpload = useCallback(async (file) => {
     if (!file) return;
@@ -167,7 +166,6 @@ export default function App() {
         throw new Error(response?.message || '论文上传失败');
       }
 
-      const db = await initDB();
       const readyMessages = createReadyMessage(file.name);
       const newEntry = {
         id: response.pdfId,
@@ -175,6 +173,7 @@ export default function App() {
         timestamp: Date.now(),
       };
 
+      const db = await initDB();
       await Promise.all([
         db.put('pdfStore', file, response.pdfId),
         db.put('deconstructStore', response, response.pdfId),
@@ -184,17 +183,24 @@ export default function App() {
         db.put('libraryStore', newEntry),
       ]);
 
-      setDeconstructData(response);
       setPdfId(response.pdfId);
+      setDeconstructData(response);
+      setAnalysisData(null);
+      setNotes([]);
+      setMessages(readyMessages);
+      setPdfHighlights([]);
       setActiveTab('deconstruct');
       setPapersList((prev) => [newEntry, ...prev.filter((paper) => paper.id !== response.pdfId)]);
-      setMessages(readyMessages);
-      setNotes([]);
-      setAnalysisData(null);
-      setPdfHighlights([]);
       localStorage.setItem('lastPdfId', response.pdfId);
+
+      if (response?.ragIndexed === false && response?.message) {
+        window.alert(response.message);
+      }
     } catch (error) {
       console.error('Failed to upload PDF.', error);
+      setPdfFile(null);
+      setPdfFileName(null);
+      setPdfId(null);
       window.alert(error?.response?.data?.message || error?.message || '上传失败，请确认后端服务已启动。');
     } finally {
       setIsAiReady(true);
@@ -203,35 +209,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (hasRestoredSessionRef.current) {
-      return undefined;
-    }
-    hasRestoredSessionRef.current = true;
-
     const restoreSession = async () => {
       try {
-        const snapshot = readSessionSnapshot();
-        const savedTab = localStorage.getItem('activeTab') || snapshot?.activeTab;
+        const savedTab = localStorage.getItem('activeTab');
         if (savedTab) {
           setActiveTab(savedTab);
         }
 
         const db = await initDB();
         const list = await db.getAll('libraryStore');
-        const fallbackList = Array.isArray(snapshot?.papersList) ? snapshot.papersList : [];
-        const mergedList =
-          list.length > 0
-            ? list
-            : fallbackList;
-        const sortedList = mergedList.sort((left, right) => right.timestamp - left.timestamp);
+        const sortedList = [...list].sort((left, right) => right.timestamp - left.timestamp);
         setPapersList(sortedList);
 
-        const savedPdfId = localStorage.getItem('lastPdfId') || snapshot?.lastPdfId;
+        const savedPdfId = localStorage.getItem('lastPdfId');
         if (savedPdfId) {
-          const restored = await loadPaperState(savedPdfId, sortedList);
+          const restored = await restorePaperState(savedPdfId, sortedList);
           if (!restored && sortedList.length > 0) {
-            await loadPaperState(sortedList[0].id, sortedList);
+            await restorePaperState(sortedList[0].id, sortedList);
           }
+        } else if (sortedList.length > 0) {
+          await restorePaperState(sortedList[0].id, sortedList);
         }
       } catch (error) {
         console.error('Failed to restore local session.', error);
@@ -241,58 +238,51 @@ export default function App() {
     };
 
     restoreSession();
-    return undefined;
-  }, [loadPaperState]);
+  }, [restorePaperState]);
 
-  const handleSelectPaper = useCallback(
-    async (targetPdfId) => {
-      setIsAiReady(false);
-      try {
-        await loadPaperState(targetPdfId);
-      } catch (error) {
-        console.error('Failed to load selected paper.', error);
-      } finally {
-        setIsAiReady(true);
+  const handleSelectPaper = useCallback(async (targetPdfId) => {
+    setIsAiReady(false);
+    try {
+      await restorePaperState(targetPdfId);
+    } catch (error) {
+      console.error('Failed to load selected paper.', error);
+    } finally {
+      setIsAiReady(true);
+    }
+  }, [restorePaperState]);
+
+  const handleDeletePaper = useCallback(async (targetPdfId) => {
+    if (!window.confirm('确定移除该论文及所有关联聊天、笔记记录吗？')) return;
+
+    try {
+      const db = await initDB();
+      await Promise.all([
+        db.delete('pdfStore', targetPdfId),
+        db.delete('historyStore', targetPdfId),
+        db.delete('analysisStore', targetPdfId),
+        db.delete('notesStore', targetPdfId),
+        db.delete('deconstructStore', targetPdfId),
+        db.delete('libraryStore', targetPdfId),
+        db.delete('highlightStore', targetPdfId),
+      ]);
+
+      setPapersList((prev) => prev.filter((paper) => paper.id !== targetPdfId));
+
+      if (pdfId === targetPdfId) {
+        setPdfId(null);
+        setPdfFile(null);
+        setPdfFileName(null);
+        setMessages([WELCOME_MESSAGE]);
+        setNotes([]);
+        setDeconstructData(null);
+        setAnalysisData(null);
+        setPdfHighlights([]);
+        localStorage.removeItem('lastPdfId');
       }
-    },
-    [loadPaperState],
-  );
-
-  const handleDeletePaper = useCallback(
-    async (targetPdfId) => {
-      if (!window.confirm('确定移除该论文及所有关联聊天、笔记记录吗？')) return;
-
-      try {
-        const db = await initDB();
-        await Promise.all([
-          db.delete('pdfStore', targetPdfId),
-          db.delete('historyStore', targetPdfId),
-          db.delete('analysisStore', targetPdfId),
-          db.delete('notesStore', targetPdfId),
-          db.delete('deconstructStore', targetPdfId),
-          db.delete('libraryStore', targetPdfId),
-          db.delete('highlightStore', targetPdfId),
-        ]);
-
-        setPapersList((prev) => prev.filter((paper) => paper.id !== targetPdfId));
-
-        if (pdfId === targetPdfId) {
-          setPdfId(null);
-          setPdfFile(null);
-          setPdfFileName(null);
-          setMessages([WELCOME_MESSAGE]);
-          setNotes([]);
-          setDeconstructData(null);
-          setAnalysisData(null);
-          setPdfHighlights([]);
-          localStorage.removeItem('lastPdfId');
-        }
-      } catch (error) {
-        console.error('Failed to delete paper.', error);
-      }
-    },
-    [pdfId],
-  );
+    } catch (error) {
+      console.error('Failed to delete paper.', error);
+    }
+  }, [pdfId]);
 
   useEffect(() => {
     if (!isRestored || !pdfId) return;
@@ -300,8 +290,10 @@ export default function App() {
     const saveMessages = async () => {
       try {
         const db = await initDB();
-        await db.put('historyStore', messages, pdfId);
-        localStorage.setItem('activeTab', activeTab);
+        if (messages && messages.length > 0) {
+          await db.put('historyStore', messages, pdfId);
+          localStorage.setItem('activeTab', activeTab);
+        }
       } catch (error) {
         console.error('Failed to persist messages.', error);
       }
@@ -324,18 +316,6 @@ export default function App() {
 
     saveNotes();
   }, [isRestored, notes, pdfId]);
-
-  useEffect(() => {
-    if (!isRestored) return;
-
-    writeSessionSnapshot({
-      activeTab,
-      lastPdfId: pdfId,
-      pdfFileName,
-      papersList,
-      updatedAt: Date.now(),
-    });
-  }, [activeTab, isRestored, papersList, pdfFileName, pdfId]);
 
   const handleStartAnalysis = useCallback(async () => {
     if (!pdfId) {
@@ -365,65 +345,51 @@ export default function App() {
     }
   }, [pdfId]);
 
-  const handleSendMessage = useCallback(
-    (message) => {
-      if (!pdfId || loadingPapers[pdfId]) return;
+  const handleSendMessage = useCallback((message) => {
+    if (!pdfId || loadingPapers[pdfId]) return;
 
-      setActiveTab('chat');
-      setMessages((prev) => [...prev, { role: 'user', content: message }]);
+    setActiveTab('chat');
+    setMessages((prev) => [...prev, { role: 'user', content: message }]);
 
-      const controller = new AbortController();
-      abortControllers.current[pdfId] = controller;
-      setLoadingPapers((prev) => ({ ...prev, [pdfId]: true }));
+    const controller = new AbortController();
+    abortControllers.current[pdfId] = controller;
+    setLoadingPapers((prev) => ({ ...prev, [pdfId]: true }));
 
-      const skeleton = deconstructData?.paper_skeleton || null;
-      const history = messages.slice(-6).map((item) => ({
-        role: item.role === 'ai' ? 'assistant' : item.role,
-        content: item.content,
-      }));
+    const history = messages.slice(-6).map((item) => ({
+      role: item.role === 'ai' ? 'assistant' : item.role,
+      content: item.content,
+    }));
 
-      apiService
-        .sendMessage(message, pdfId, history, skeleton, controller.signal)
-        .then((response) => {
-          const content = response?.reply ?? response?.message ?? response?.data?.reply ?? '暂无回复';
-          setMessages((prev) => [...prev, { role: 'ai', content }]);
-        })
-        .catch((error) => {
-          if (error.name === 'CanceledError' || error.message === 'canceled') {
-            return;
-          }
+    apiService
+      .sendMessage(message, pdfId, history, deconstructData?.paper_skeleton || null, controller.signal)
+      .then((response) => {
+        const content = response?.reply ?? response?.message ?? response?.data?.reply ?? '暂无回复';
+        setMessages((prev) => [...prev, { role: 'ai', content }]);
+      })
+      .catch((error) => {
+        if (error.name === 'CanceledError' || error.message === 'canceled') {
+          return;
+        }
 
-          const errMsg = error?.response?.data?.message ?? error?.message ?? '请求失败，请稍后重试';
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: 'ai',
-              content: `抱歉，处理您的请求时出现了错误：${errMsg}`,
-            },
-          ]);
-        })
-        .finally(() => {
-          setLoadingPapers((prev) => ({ ...prev, [pdfId]: false }));
-          delete abortControllers.current[pdfId];
-        });
-    },
-    [deconstructData, loadingPapers, messages, pdfId],
-  );
+        const errMsg = error?.response?.data?.message ?? error?.message ?? '请求失败，请稍后重试';
+        setMessages((prev) => [
+          ...prev,
+          { role: 'ai', content: `抱歉，处理您的请求时出现了错误：${errMsg}` },
+        ]);
+      })
+      .finally(() => {
+        setLoadingPapers((prev) => ({ ...prev, [pdfId]: false }));
+        delete abortControllers.current[pdfId];
+      });
+  }, [deconstructData, loadingPapers, messages, pdfId]);
 
   const handleAbortChat = useCallback((targetPdfId) => {
     const controller = abortControllers.current[targetPdfId];
     if (!controller) return;
 
     controller.abort();
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: 'ai',
-        isSystem: true,
-        content: '本次回答已由用户取消。',
-      },
-    ]);
     setLoadingPapers((prev) => ({ ...prev, [targetPdfId]: false }));
+    setMessages((prev) => [...prev, { role: 'ai', isSystem: true, content: '本次回答已由用户取消。' }]);
     delete abortControllers.current[targetPdfId];
   }, []);
 
@@ -444,25 +410,15 @@ export default function App() {
     });
   }, []);
 
-  const handleExplain = useCallback(
-    (content, role = 'user', isSyncOnly = false) => {
-      setActiveTab('chat');
-      if (role === 'user' && !isSyncOnly) {
-        handleSendMessage(`请解释以下内容：${content}`);
-        return;
-      }
+  const handleExplain = useCallback((content, role = 'user', isSyncOnly = false) => {
+    setActiveTab('chat');
+    if (role === 'user' && !isSyncOnly) {
+      handleSendMessage(`请解释以下内容：${content}`);
+      return;
+    }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role,
-          content,
-          id: Date.now(),
-        },
-      ]);
-    },
-    [handleSendMessage],
-  );
+    setMessages((prev) => [...prev, { role, content, id: Date.now() }]);
+  }, [handleSendMessage]);
 
   const handleAddNote = useCallback((noteData) => {
     setNotes((prev) => [
@@ -475,59 +431,53 @@ export default function App() {
     ]);
   }, []);
 
-  const handleSaveChatToNote = useCallback(
-    (index) => {
-      const message = messages[index];
-      if (!message) return;
+  const handleSaveChatToNote = useCallback((index) => {
+    const message = messages[index];
+    if (!message) return;
 
-      let question = '';
-      let answer = '';
+    let question = '';
+    let answer = '';
 
-      if (message.role === 'user') {
-        question = message.content;
-        const nextMessage = messages[index + 1];
-        answer = nextMessage?.role === 'ai' ? nextMessage.content : '等待 AI 回答中...';
-      } else {
-        answer = message.content;
-        const previousMessage = messages[index - 1];
-        question = previousMessage?.role === 'user' ? previousMessage.content : '提问内容定位失败';
+    if (message.role === 'user') {
+      question = message.content;
+      const nextMessage = messages[index + 1];
+      answer = nextMessage?.role === 'ai' ? nextMessage.content : '等待 AI 回答中...';
+    } else {
+      answer = message.content;
+      const previousMessage = messages[index - 1];
+      question = previousMessage?.role === 'user' ? previousMessage.content : '提问内容定位失败';
+    }
+
+    handleAddNote({
+      text: question,
+      aiInterpretation: answer,
+      pageNumber: -1,
+    });
+
+    window.alert('已将该对话内容收藏至“学术笔记”！');
+  }, [handleAddNote, messages]);
+
+  const handleGenerateSocratic = useCallback(async (readingProgress) => {
+    if (!deconstructData?.paper_skeleton) {
+      throw new Error('请先完成“篇章解构”，系统需要论文结构内容。');
+    }
+
+    setIsSocraticLoading(true);
+    try {
+      const response = await apiService.socraticQuestions(
+        JSON.stringify(deconstructData.paper_skeleton),
+        readingProgress,
+      );
+
+      if (response?.status !== 'success') {
+        throw new Error(response?.message || '生成失败');
       }
 
-      handleAddNote({
-        text: question,
-        aiInterpretation: answer,
-        pageNumber: -1,
-      });
-
-      window.alert('已将该对话内容收藏至“学术笔记”！');
-    },
-    [handleAddNote, messages],
-  );
-
-  const handleGenerateSocratic = useCallback(
-    async (readingProgress) => {
-      if (!deconstructData?.paper_skeleton) {
-        throw new Error('请先完成“篇章解构”，系统需要论文结构内容。');
-      }
-
-      setIsSocraticLoading(true);
-      try {
-        const response = await apiService.socraticQuestions(
-          JSON.stringify(deconstructData.paper_skeleton),
-          readingProgress,
-        );
-
-        if (response?.status !== 'success') {
-          throw new Error(response?.message || '生成失败');
-        }
-
-        setSocraticQuestions(response.questions || []);
-      } finally {
-        setIsSocraticLoading(false);
-      }
-    },
-    [deconstructData],
-  );
+      setSocraticQuestions(response.questions || []);
+    } finally {
+      setIsSocraticLoading(false);
+    }
+  }, [deconstructData]);
 
   const handleDynamicExplain = useCallback(() => {
     setActiveTab('chat');
@@ -535,27 +485,28 @@ export default function App() {
       ...prev,
       {
         role: 'ai',
-        content:
-          '功能提示：在左侧 PDF 视窗中直接鼠标划选任何不理解的句子或段落，点击弹出的“AI 解释”按钮，我将结合整篇论文上下文为您深度解析。',
+        content: '功能提示：在左侧 PDF 视窗中直接划选任何不理解的句子或段落，点击弹出的“AI 解释”按钮，我将结合整篇论文上下文为您深度解析。',
       },
     ]);
   }, []);
 
-  const handleHighlightsChange = useCallback(
-    (nextHighlights) => {
-      setPdfHighlights(nextHighlights);
-      initDB().then((db) => {
-        if (pdfId) {
-          db.put('highlightStore', nextHighlights, pdfId);
-        }
-      });
-    },
-    [pdfId],
-  );
+  const handleHighlightsChange = useCallback((nextHighlights) => {
+    setPdfHighlights(nextHighlights);
+    initDB().then((db) => {
+      if (pdfId) {
+        db.put('highlightStore', nextHighlights, pdfId);
+      }
+    });
+  }, [pdfId]);
 
   const handleCriticalReading = useCallback(() => {
+    if (!pdfId) {
+      window.alert('请先上传 PDF 文件。');
+      return;
+    }
+
     handleStartAnalysis();
-  }, [handleStartAnalysis]);
+  }, [handleStartAnalysis, pdfId]);
 
   return (
     <>
