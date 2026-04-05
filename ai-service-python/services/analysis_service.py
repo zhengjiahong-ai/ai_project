@@ -10,6 +10,7 @@ from core.document_parser import parse_tei_xml
 from llm.client import get_llm
 from rag.store import get_rag, preload_rag
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
+from services.math_markdown import MATH_MARKDOWN_GUIDELINE
 from services.utils import parse_json_from_llm
 
 
@@ -231,9 +232,11 @@ def resolve_paper_content(request: DeepAnalysisRequest) -> tuple[str, str, str |
 
 def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
     paper_content, resolved_from, normalized_id = resolve_paper_content(request)
+    math_markdown_guideline = MATH_MARKDOWN_GUIDELINE
 
     step1_prompt = f"""
 从论文内容中提取作者显式宣称的贡献点，请用列表形式回答。
+{math_markdown_guideline}
 
 论文内容：
 {paper_content[:4000]}
@@ -242,6 +245,7 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
 
     step2_prompt = f"""
 忽略作者自述，根据方法和实验内容推断论文真正成立的贡献。
+{math_markdown_guideline}
 
 论文内容：
 {paper_content[:4000]}
@@ -261,6 +265,7 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
 1. 是否存在夸大
 2. 是否存在伪创新或贡献重包装
 3. 哪些论证链路仍然薄弱
+{math_markdown_guideline}
 """
     critique = get_llm()._call(step3_prompt)
 

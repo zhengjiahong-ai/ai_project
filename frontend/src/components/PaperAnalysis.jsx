@@ -1,6 +1,6 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
 import { FileText, CheckCircle2, Loader2, LayoutDashboard } from 'lucide-react';
+import MarkdownContent from './MarkdownContent';
 
 // 接收 App.jsx 传下来的 data 和 isLoading
 const PaperAnalysis = ({ data, isLoading }) => {
@@ -66,7 +66,7 @@ const PaperAnalysis = ({ data, isLoading }) => {
                 <div 
                   className="h-2 rounded-full bg-pixiu transition-all duration-1000"
                 />
-                <ReactMarkdown>{content}</ReactMarkdown>
+                <MarkdownContent>{content}</MarkdownContent>
               </div>
             </div>
           );

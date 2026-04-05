@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronRight, Loader2, RotateCcw, Sparkles } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import MarkdownContent from './MarkdownContent';
 
 const DEFAULT_TOTAL_QUESTIONS = 5;
 
@@ -43,9 +43,7 @@ const CurrentQuestionCard = ({ index, question, isLoading, onSubmit }) => {
   return (
     <div className="rounded-xl border border-pixiu/20 bg-white px-4 py-4 shadow-sm ring-1 ring-pixiu/10">
       <div className="mb-2 text-sm font-semibold text-slate-800">问题 {index}：</div>
-      <div className="prose prose-sm max-w-none text-sm text-slate-700">
-        <ReactMarkdown>{question}</ReactMarkdown>
-      </div>
+      <MarkdownContent className="prose prose-sm max-w-none text-sm text-slate-700">{question}</MarkdownContent>
 
       <div className="mt-4">
         <div className="mb-2 text-xs font-semibold tracking-wide text-slate-500">请输入你的回答</div>
@@ -128,9 +126,9 @@ const SocraticQuestionsPanel = ({
         </span>
       </div>
 
-      <div className="prose prose-sm max-w-none text-sm text-slate-700">
-        <ReactMarkdown>{turn.question}</ReactMarkdown>
-      </div>
+      <MarkdownContent className="prose prose-sm max-w-none text-sm text-slate-700">
+        {turn.question}
+      </MarkdownContent>
 
       <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
         <div className="mb-2 text-xs font-semibold tracking-wide text-slate-500">你的回答</div>
@@ -140,16 +138,16 @@ const SocraticQuestionsPanel = ({
       <div className="mt-4 space-y-3">
         <div className="rounded-xl border border-pixiu/10 bg-pixiu/5 px-4 py-3">
           <div className="mb-1 text-xs font-semibold tracking-wide text-pixiu">AI 简评</div>
-          <div className="prose prose-sm max-w-none text-sm text-slate-700">
-            <ReactMarkdown>{turn.feedback || '这一轮已完成。'}</ReactMarkdown>
-          </div>
+          <MarkdownContent className="prose prose-sm max-w-none text-sm text-slate-700">
+            {turn.feedback || '这一轮已完成。'}
+          </MarkdownContent>
         </div>
 
         <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
           <div className="mb-1 text-xs font-semibold tracking-wide text-slate-500">下一步提示</div>
-          <div className="prose prose-sm max-w-none text-sm text-slate-700">
-            <ReactMarkdown>{turn.hint || '继续结合论文原文梳理关键逻辑。'}</ReactMarkdown>
-          </div>
+          <MarkdownContent className="prose prose-sm max-w-none text-sm text-slate-700">
+            {turn.hint || '继续结合论文原文梳理关键逻辑。'}
+          </MarkdownContent>
         </div>
       </div>
     </div>
@@ -254,11 +252,9 @@ const SocraticQuestionsPanel = ({
 
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
           <div className="mb-3 text-sm font-bold text-slate-700">学习引导</div>
-          <div className="prose prose-sm max-w-none text-sm text-slate-700">
-            <ReactMarkdown>
-              {sessionData.intro || '我会根据你的阅读进度逐步提问。你先作答，我会判断掌握程度，再继续追问。'}
-            </ReactMarkdown>
-          </div>
+          <MarkdownContent className="prose prose-sm max-w-none text-sm text-slate-700">
+            {sessionData.intro || '我会根据你的阅读进度逐步提问。你先作答，我会判断掌握程度，再继续追问。'}
+          </MarkdownContent>
         </div>
 
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -276,9 +272,9 @@ const SocraticQuestionsPanel = ({
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
           <div className="mb-3 text-sm font-bold text-slate-700">总结</div>
           {sessionData.isComplete ? (
-            <div className="prose prose-sm max-w-none text-sm text-slate-700">
-              <ReactMarkdown>{sessionData.finalSummary || '本轮引导学习已完成。'}</ReactMarkdown>
-            </div>
+            <MarkdownContent className="prose prose-sm max-w-none text-sm text-slate-700">
+              {sessionData.finalSummary || '本轮引导学习已完成。'}
+            </MarkdownContent>
           ) : (
             <div className="text-sm text-slate-500">完成 5 个问题后，AI 会在这里给出整体掌握情况总结。</div>
           )}

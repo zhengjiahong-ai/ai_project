@@ -26,6 +26,30 @@ body {
   border: none !important;
 }
 
+.markdown-content {
+  min-width: 0;
+}
+
+.markdown-content .katex {
+  color: inherit;
+  font-size: 1em;
+}
+
+.markdown-content .katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.25rem;
+}
+
+.markdown-content .katex-display::-webkit-scrollbar {
+  height: 4px;
+}
+
+.markdown-content .katex-display > .katex {
+  white-space: nowrap;
+}
+
 /* 自定义滚动条样式 */
 ::-webkit-scrollbar {
   width: 6px;

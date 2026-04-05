@@ -13,10 +13,13 @@ from schemas.requests import (
     SocraticSessionStartRequest,
     TermExplainRequest,
 )
+from services.math_markdown import MATH_MARKDOWN_GUIDELINE as SHARED_MATH_MARKDOWN_GUIDELINE
 
 
 SOCRATIC_TOTAL_QUESTIONS = 5
 SOCRATIC_MASTERY_LEVELS = ("需加强", "一般", "较好")
+MATH_MARKDOWN_GUIDELINE = "如需表达数学公式，请使用 Markdown LaTeX 语法：行内公式用 $...$，独立公式用 $$...$$。"
+MATH_MARKDOWN_GUIDELINE = SHARED_MATH_MARKDOWN_GUIDELINE
 
 
 def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any] | None) -> str:
@@ -410,6 +413,7 @@ Question:
     prompt = f"""
 You are an academic research assistant.
 Explain the technical term "{request.term}" in Chinese using the provided context.
+{MATH_MARKDOWN_GUIDELINE}
 
 Paper context:
 {request.context}
@@ -461,6 +465,7 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
 
     prompt = f"""你是一位学术论文阅读助手。
 请结合论文摘要结构、相关证据片段和对话历史，用中文回答用户问题。
+{MATH_MARKDOWN_GUIDELINE}
 
 {skeleton_str}
 

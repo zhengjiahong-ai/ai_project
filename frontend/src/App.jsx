@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { openDB } from 'idb';
 import { Trash2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 
 import ChatPanel from './components/ChatPanel';
@@ -13,6 +12,7 @@ import PdfToolbar from './components/PdfToolbar';
 import PdfViewer from './components/PdfViewer';
 import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 import TranslationPanel from './components/TranslationPanel';
+import MarkdownContent from './components/MarkdownContent';
 import { apiService } from './services/api';
 
 const WELCOME_MESSAGE = {
@@ -1121,7 +1121,7 @@ export default function App() {
                             "{note.text}"
                           </p>
                           <div className="prose prose-sm max-w-none rounded-lg bg-pixiu/5 p-3 prose-slate">
-                            <ReactMarkdown>{note.aiInterpretation}</ReactMarkdown>
+                            <MarkdownContent>{note.aiInterpretation}</MarkdownContent>
                           </div>
                         </div>
                       ))}

@@ -3,12 +3,13 @@ import { Worker, Viewer } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import { highlightPlugin } from '@react-pdf-viewer/highlight';
 import { Send, Sparkles, Trash2, X } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import '@react-pdf-viewer/highlight/lib/styles/index.css';
 import { apiService } from '../services/api';
+import { buildExplainSelectionPayload } from '../utils/pdfFormulaSelection';
+import MarkdownContent from './MarkdownContent';
 
 const workerUrl = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -101,7 +102,7 @@ const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }
     }
 
     if (!interpretationMarkdown.trim()) {
-      interpretationMarkdown = '解析中...';
+      interpretationMarkdown = '解析�?..';
     }
 
     if (onSaveNote) {
@@ -167,13 +168,13 @@ const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }
                     : 'bg-slate-50 text-slate-700'
                 }`}
               >
-                <ReactMarkdown>{message.content}</ReactMarkdown>
+                <MarkdownContent>{message.content}</MarkdownContent>
               </div>
             );
           })}
           {highlight.isLoading && (
             <div className="flex items-center gap-2 p-2 text-xs italic text-slate-400">
-              <Sparkles size={12} className="animate-pulse" /> AI 正在思考...
+              <Sparkles size={12} className="animate-pulse" /> AI 正在思�?..
             </div>
           )}
         </div>
@@ -292,31 +293,34 @@ const PdfViewer = ({
     [extractPageText, onPageChange],
   );
 
-  const handleInitialAsk = async (id, text) => {
+  const handleInitialAsk = async (id, promptText) => {
     try {
-      const response = await apiService.sendMessage(`请解释以下内容：\n> ${text}`, pdfId);
-      const content = response?.data?.reply ?? response?.reply ?? response?.message ?? '暂无回复';
+      const normalizedResponse = await apiService.sendMessage(promptText, pdfId);
+      const normalizedContent =
+        normalizedResponse?.data?.reply ?? normalizedResponse?.reply ?? normalizedResponse?.message ?? 'No response.';
       setHighlights((prev) =>
         prev.map((highlight) =>
           highlight.id === id
             ? {
                 ...highlight,
-                chatHistory: [...highlight.chatHistory, { role: 'ai', content }],
+                chatHistory: [...highlight.chatHistory, { role: 'ai', content: normalizedContent }],
                 isLoading: false,
               }
             : highlight,
         ),
       );
       if (onSelection) {
-        onSelection(content, 'ai', true);
+        onSelection(normalizedContent, 'ai', true);
       }
+      return;
+
     } catch {
       setHighlights((prev) =>
         prev.map((highlight) =>
           highlight.id === id
             ? {
                 ...highlight,
-                chatHistory: [...highlight.chatHistory, { role: 'ai', content: '抱歉，解析请求失败。' }],
+                chatHistory: [...highlight.chatHistory, { role: 'ai', content: 'Sorry, the explanation request failed.' }],
                 isLoading: false,
               }
             : highlight,
@@ -363,7 +367,7 @@ const PdfViewer = ({
           item.id === id
             ? {
                 ...item,
-                chatHistory: [...item.chatHistory, { role: 'ai', content: '抱歉，请求失败。' }],
+                chatHistory: [...item.chatHistory, { role: 'ai', content: 'Sorry, the follow-up request failed.' }],
                 isLoading: false,
               }
             : item,
@@ -386,6 +390,7 @@ const PdfViewer = ({
           <button
             onClick={() => {
               const selectedText = props.selectedText;
+              const selectionPayload = buildExplainSelectionPayload(selectedText);
               const id = Date.now();
 
               setHighlights((prev) => [
@@ -395,16 +400,17 @@ const PdfViewer = ({
                   text: selectedText,
                   highlightAreas: props.highlightAreas,
                   position: props.selectionRegion,
-                  chatHistory: [{ role: 'user', content: `请解释以下内容：\n> ${selectedText}` }],
+                  chatHistory: [{ role: 'user', content: selectionPayload.displayMessage }],
                   isLoading: true,
                 },
               ]);
 
               setActiveHighlightId(id);
               props.cancel();
+              if (onSelection) onSelection(selectionPayload.displayMessage, 'user', true);
+              handleInitialAsk(id, selectionPayload.backendPrompt);
+              return;
 
-              if (onSelection) onSelection(`请解释以下内容：\n> ${selectedText}`, 'user', true);
-              handleInitialAsk(id, selectedText);
             }}
             className="flex items-center gap-1 rounded-full bg-pixiu p-2 text-white shadow-lg transition-transform hover:scale-110"
           >

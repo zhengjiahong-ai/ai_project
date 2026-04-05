@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bookmark, ChevronRight, Sparkles, Trash2, X } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import MarkdownContent from './MarkdownContent';
 /**
  * 聊天面板组件
  * @param {Array} messages - 消息列表
@@ -103,7 +103,7 @@ const ChatPanel = ({ messages = [], onSendMessage, onDeleteMessage, onSaveToNote
                 </div>
               )}
               <div className={`text-sm ${msg.role === 'user' ? 'text-white' : 'prose prose-sm prose-slate'}`}>
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <MarkdownContent>{msg.content}</MarkdownContent>
               </div>
             </div>
 

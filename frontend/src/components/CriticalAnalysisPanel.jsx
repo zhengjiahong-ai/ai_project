@@ -18,7 +18,7 @@ import {
   LayoutDashboard,
   Loader2,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import MarkdownContent from './MarkdownContent';
 
 const fallbackNetworkData = {
   nodes: [
@@ -205,9 +205,9 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
             核心结论总结
           </h3>
           <div className="rounded-xl border-l-4 border-pixiu bg-slate-50 p-4 text-sm leading-relaxed text-slate-600">
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>{summary}</ReactMarkdown>
-            </div>
+            <MarkdownContent className="prose prose-sm max-w-none">
+              {summary}
+            </MarkdownContent>
           </div>
         </div>
 
@@ -216,9 +216,9 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
             {detailSections.map((section) => (
               <div key={section.key} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
                 <h3 className="mb-3 text-sm font-bold text-slate-700">{section.title}</h3>
-                <div className="prose prose-sm max-w-none text-slate-700">
-                  <ReactMarkdown>{section.content}</ReactMarkdown>
-                </div>
+                <MarkdownContent className="prose prose-sm max-w-none text-slate-700">
+                  {section.content}
+                </MarkdownContent>
               </div>
             ))}
           </div>
