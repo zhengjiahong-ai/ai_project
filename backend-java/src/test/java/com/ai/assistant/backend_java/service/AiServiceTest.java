@@ -143,4 +143,21 @@ class AiServiceTest {
         assertEquals("paper-1", response.get("pdfId"));
         assertNotNull(response.get("analysis"));
     }
+
+    @Test
+    void translatePageForwardsRequestToPythonService() {
+        Map<String, Object> request = new HashMap<>();
+        request.put("pdfId", "paper-1");
+        request.put("pageIndex", 2);
+        request.put("pageText", "source text");
+
+        when(restTemplate.postForObject(eq("http://python/api/translate-page"), eq(request), eq(Map.class)))
+                .thenReturn(Map.of("status", "success", "pageIndex", 2, "translatedText", "译文"));
+
+        Map<String, Object> response = aiService.translatePage(request);
+
+        assertEquals("success", response.get("status"));
+        assertEquals(2, response.get("pageIndex"));
+        assertEquals("译文", response.get("translatedText"));
+    }
 }

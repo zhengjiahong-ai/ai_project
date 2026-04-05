@@ -90,6 +90,38 @@ export const createApiService = (client) => ({
     }),
 
   criticalReading: async (pdfId) => client.post(`/critical-reading/${encodeURIComponent(pdfId)}`),
+
+  translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null) => {
+    const controller = new AbortController();
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      controller.abort();
+    }, 90000);
+
+    try {
+      return await client.post(
+        '/translate-page',
+        {
+          pdfId,
+          pageIndex,
+          pageText,
+          paperSkeleton,
+        },
+        {
+          signal: controller.signal,
+          timeout: 90000,
+        },
+      );
+    } catch (error) {
+      if (didTimeout || error?.code === 'ECONNABORTED') {
+        throw new Error('当前页翻译超时，请重试或减少等待时间。');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
 });
 
 const apiClient = createApiClient();

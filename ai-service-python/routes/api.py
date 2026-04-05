@@ -7,6 +7,7 @@ from schemas.requests import (
     BackgroundKnowledgeRequest,
     ChatRequest,
     DeepAnalysisRequest,
+    PageTranslationRequest,
     SocraticSessionAnswerRequest,
     SocraticSessionStartRequest,
     SocraticQuestionRequest,
@@ -70,6 +71,14 @@ async def explain_term(request: TermExplainRequest):
 async def chat(request: ChatRequest):
     try:
         return JSONResponse(chat_service.chat(request))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/translate-page")
+async def translate_page(request: PageTranslationRequest):
+    try:
+        return JSONResponse(chat_service.translate_page(request))
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 

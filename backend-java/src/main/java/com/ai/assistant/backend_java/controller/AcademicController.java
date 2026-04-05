@@ -38,6 +38,11 @@ public class AcademicController {
         return aiService.chat(chatRequest);
     }
 
+    @PostMapping("/translate-page")
+    public Map<String, Object> translatePage(@RequestBody Map<String, Object> request) {
+        return aiService.translatePage(request);
+    }
+
     @GetMapping("/chat/history/{sessionId}")
     public Map<String, Object> getChatHistory(@PathVariable String sessionId) {
         return aiService.getChatHistory(sessionId);

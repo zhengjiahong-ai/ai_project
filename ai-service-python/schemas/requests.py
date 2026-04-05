@@ -50,6 +50,13 @@ class ChatRequest(BaseModel):
     paperSkeleton: Optional[Dict[str, Any]] = None
 
 
+class PageTranslationRequest(BaseModel):
+    pdfId: Optional[str] = None
+    pageIndex: int
+    pageText: str
+    paperSkeleton: Optional[Dict[str, Any]] = None
+
+
 class DeepAnalysisRequest(BaseModel):
     paper_content: Optional[str] = None
     pdf_id: Optional[str] = None

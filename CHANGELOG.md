@@ -7,7 +7,7 @@
 2. **新增会话式引导学习接口**：Python 新增 `/api/socratic-session/start` 与 `/api/socratic-session/answer` 两个接口及对应请求模型，Java 同步补齐透传路由，前端改为调用新接口而不再复用普通聊天接口。
 3. **支持引导学习进度恢复**：前端将引导学习状态单独持久化到 IndexedDB `sessionStore`，按论文隔离保存阅读进度、当前题目、用户回答、掌握度评估与最终总结，刷新页面或切换论文后可恢复。
 4. **升级引导式学习界面**：右侧面板改为“学习引导 + 已完成题卡 + 当前作答卡 + 未解锁题卡 + 总结”结构，展示用户回答、掌握度、AI 简评和下一步提示，并提供“重新开始”入口。
-5. **修复引导学习启动问题**：修正 `ai-service-python` 中会导致容器启动失败的 `f-string` 语法错误，同时补充 `启动服务.md` 说明，明确 Java 后端改动后需要重新 `docker-compose up -d --build backend`。
+5. **新增全景翻译真实链路**：将原本仅切换视觉占位层的“全景翻译”按钮升级为真实功能，前端基于当前 PDF 页提取文本并在右侧展示逐页中文译文，Java 与 Python 同步新增 `/api/translate-page` 接口，译文结果按论文与页码缓存到 IndexedDB `translationStore`，且保留原有聊天、划词解释、批判阅读、引导式学习与笔记功能不受影响。
 
 ### 2026-04-04
 1. **打通批判性阅读真实链路**：前端移除 `mockResult`，改为调用 Java `POST /api/critical-reading/{pdfId}`；Java 再转发到 Python `/api/deep-analysis`；Python 支持通过 `pdf_id` 从 RAG 分块反查论文内容后再输出真实分析结果。

@@ -44,6 +44,30 @@ const run = async () => {
   await criticalReadingService.criticalReading('paper-1');
   assert.equal(criticalReadingUrl, '/critical-reading/paper-1');
 
+  let translatePayload = null;
+  let translateUrl = '';
+  let translateConfig = null;
+  const translationService = createApiService({
+    post: async (url, body, config) => {
+      translateUrl = url;
+      translatePayload = body;
+      translateConfig = config;
+      return { status: 'success' };
+    },
+    get: async () => ({}),
+  });
+
+  await translationService.translatePage('paper-1', 3, 'Source text', { abstract: 'summary' });
+  assert.equal(translateUrl, '/translate-page');
+  assert.deepEqual(translatePayload, {
+    pdfId: 'paper-1',
+    pageIndex: 3,
+    pageText: 'Source text',
+    paperSkeleton: { abstract: 'summary' },
+  });
+  assert.equal(translateConfig.timeout, 90000);
+  assert.ok(translateConfig.signal);
+
   console.log('frontend api smoke tests passed');
 };
 

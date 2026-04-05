@@ -12,6 +12,7 @@ import PaperAnalysis from './components/PaperAnalysis';
 import PdfToolbar from './components/PdfToolbar';
 import PdfViewer from './components/PdfViewer';
 import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
+import TranslationPanel from './components/TranslationPanel';
 import { apiService } from './services/api';
 
 const WELCOME_MESSAGE = {
@@ -20,9 +21,10 @@ const WELCOME_MESSAGE = {
 };
 
 const SOCRATIC_TOTAL_QUESTIONS = 5;
+const DEFAULT_ACTIVE_TAB = 'chat';
 
 const initDB = async () =>
-  openDB('PixiuAcademicDB_v6', 3, {
+  openDB('PixiuAcademicDB_v6', 4, {
     upgrade(db) {
       if (!db.objectStoreNames.contains('pdfStore')) db.createObjectStore('pdfStore');
       if (!db.objectStoreNames.contains('historyStore')) db.createObjectStore('historyStore');
@@ -32,6 +34,7 @@ const initDB = async () =>
       if (!db.objectStoreNames.contains('libraryStore')) db.createObjectStore('libraryStore', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('highlightStore')) db.createObjectStore('highlightStore');
       if (!db.objectStoreNames.contains('sessionStore')) db.createObjectStore('sessionStore');
+      if (!db.objectStoreNames.contains('translationStore')) db.createObjectStore('translationStore');
     },
   });
 
@@ -87,6 +90,14 @@ const createEmptySocraticSession = (pdfId = null, overrides = {}) => ({
   ...overrides,
 });
 
+const createEmptyTranslationState = (pdfId = null, overrides = {}) => ({
+  pdfId,
+  currentPage: 0,
+  pages: {},
+  updatedAt: null,
+  ...overrides,
+});
+
 const normalizeSocraticSession = (storedValue, pdfId = null) => {
   if (!storedValue) {
     return createEmptySocraticSession(pdfId);
@@ -126,6 +137,34 @@ const normalizeSocraticSession = (storedValue, pdfId = null) => {
   });
 };
 
+const normalizeTranslationState = (storedValue, pdfId = null) => {
+  if (!storedValue) {
+    return createEmptyTranslationState(pdfId);
+  }
+
+  const pages = Object.entries(storedValue.pages || {}).reduce((accumulator, [pageKey, pageValue]) => {
+    const pageIndex = Number(pageKey);
+    if (Number.isNaN(pageIndex)) {
+      return accumulator;
+    }
+
+    accumulator[pageIndex] = {
+      sourceText: pageValue?.sourceText || '',
+      translatedText: pageValue?.translatedText || '',
+      status: pageValue?.status || (pageValue?.translatedText ? 'success' : 'idle'),
+      error: pageValue?.error || '',
+      updatedAt: pageValue?.updatedAt || null,
+    };
+    return accumulator;
+  }, {});
+
+  return createEmptyTranslationState(pdfId ?? storedValue.pdfId ?? null, {
+    currentPage: Math.max(0, Number(storedValue.currentPage) || 0),
+    pages,
+    updatedAt: storedValue.updatedAt || null,
+  });
+};
+
 export default function App() {
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
@@ -144,15 +183,24 @@ export default function App() {
   const [isSocraticLoading, setIsSocraticLoading] = useState(false);
   const [loadingPapers, setLoadingPapers] = useState({});
   const [pdfHighlights, setPdfHighlights] = useState([]);
+  const [translationState, setTranslationState] = useState(createEmptyTranslationState());
   const [papersList, setPapersList] = useState([]);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
   const abortControllers = useRef({});
   const papersListRef = useRef([]);
+  const currentPageTextRef = useRef({ pageIndex: 0, pageText: '' });
+  const lastNonTranslationTabRef = useRef(DEFAULT_ACTIVE_TAB);
 
   useEffect(() => {
     papersListRef.current = papersList;
   }, [papersList]);
+
+  useEffect(() => {
+    if (activeTab !== 'translation') {
+      lastNonTranslationTabRef.current = activeTab;
+    }
+  }, [activeTab]);
 
   const fetchRemoteHistory = useCallback(async (sessionId, fallbackMessages = []) => {
     try {
@@ -172,7 +220,16 @@ export default function App() {
 
   const restorePaperState = useCallback(async (targetPdfId, entryList = null) => {
     const db = await initDB();
-    const [savedPdf, savedMessages, savedAnalysis, savedDeconstruct, savedNotes, savedHighlights, savedSocraticSession] = await Promise.all([
+    const [
+      savedPdf,
+      savedMessages,
+      savedAnalysis,
+      savedDeconstruct,
+      savedNotes,
+      savedHighlights,
+      savedSocraticSession,
+      savedTranslationState,
+    ] = await Promise.all([
       db.get('pdfStore', targetPdfId),
       db.get('historyStore', targetPdfId),
       db.get('analysisStore', targetPdfId),
@@ -180,6 +237,7 @@ export default function App() {
       db.get('notesStore', targetPdfId),
       db.get('highlightStore', targetPdfId),
       db.get('sessionStore', targetPdfId),
+      db.get('translationStore', targetPdfId),
     ]);
 
     const resolvedPdf = resolveStoredPdfRecord(savedPdf);
@@ -205,6 +263,12 @@ export default function App() {
     setMessages(nextMessages);
     setPdfHighlights(savedHighlights || []);
     setSocraticSession(normalizeSocraticSession(savedSocraticSession, targetPdfId));
+    setTranslationState(normalizeTranslationState(savedTranslationState, targetPdfId));
+    setIsTranslated(false);
+    currentPageTextRef.current = { pageIndex: 0, pageText: '' };
+    setActiveTab((currentTab) =>
+      currentTab === 'translation' ? lastNonTranslationTabRef.current || DEFAULT_ACTIVE_TAB : currentTab,
+    );
     localStorage.setItem('lastPdfId', targetPdfId);
 
     return true;
@@ -240,6 +304,7 @@ export default function App() {
         db.put('highlightStore', [], response.pdfId),
         db.put('libraryStore', newEntry),
         db.delete('sessionStore', response.pdfId),
+        db.delete('translationStore', response.pdfId),
       ]);
 
       setPdfId(response.pdfId);
@@ -249,6 +314,9 @@ export default function App() {
       setMessages(readyMessages);
       setPdfHighlights([]);
       setSocraticSession(createEmptySocraticSession(response.pdfId));
+      setTranslationState(createEmptyTranslationState(response.pdfId));
+      setIsTranslated(false);
+      currentPageTextRef.current = { pageIndex: 0, pageText: '' };
       setActiveTab('deconstruct');
       setPapersList((prev) => [newEntry, ...prev.filter((paper) => paper.id !== response.pdfId)]);
       localStorage.setItem('lastPdfId', response.pdfId);
@@ -262,6 +330,9 @@ export default function App() {
       setPdfFileName(null);
       setPdfId(null);
       setSocraticSession(createEmptySocraticSession());
+      setTranslationState(createEmptyTranslationState());
+      setIsTranslated(false);
+      currentPageTextRef.current = { pageIndex: 0, pageText: '' };
       window.alert(error?.response?.data?.message || error?.message || '上传失败，请确认后端服务已启动。');
     } finally {
       setIsAiReady(true);
@@ -273,7 +344,7 @@ export default function App() {
     const restoreSession = async () => {
       try {
         const savedTab = localStorage.getItem('activeTab');
-        if (savedTab) {
+        if (savedTab && savedTab !== 'translation') {
           setActiveTab(savedTab);
         }
 
@@ -326,6 +397,7 @@ export default function App() {
         db.delete('libraryStore', targetPdfId),
         db.delete('highlightStore', targetPdfId),
         db.delete('sessionStore', targetPdfId),
+        db.delete('translationStore', targetPdfId),
       ]);
 
       setPapersList((prev) => prev.filter((paper) => paper.id !== targetPdfId));
@@ -340,6 +412,10 @@ export default function App() {
         setAnalysisData(null);
         setPdfHighlights([]);
         setSocraticSession(createEmptySocraticSession());
+        setTranslationState(createEmptyTranslationState());
+        setIsTranslated(false);
+        currentPageTextRef.current = { pageIndex: 0, pageText: '' };
+        setActiveTab(DEFAULT_ACTIVE_TAB);
         localStorage.removeItem('lastPdfId');
       }
     } catch (error) {
@@ -355,7 +431,10 @@ export default function App() {
         const db = await initDB();
         if (messages && messages.length > 0) {
           await db.put('historyStore', messages, pdfId);
-          localStorage.setItem('activeTab', activeTab);
+          localStorage.setItem(
+            'activeTab',
+            activeTab === 'translation' ? lastNonTranslationTabRef.current || DEFAULT_ACTIVE_TAB : activeTab,
+          );
         }
       } catch (error) {
         console.error('Failed to persist messages.', error);
@@ -411,6 +490,28 @@ export default function App() {
 
     saveSocraticSession();
   }, [isRestored, pdfId, socraticSession]);
+
+  useEffect(() => {
+    if (!isRestored || !pdfId || translationState?.pdfId !== pdfId) return;
+
+    const saveTranslationState = async () => {
+      try {
+        const db = await initDB();
+        await db.put(
+          'translationStore',
+          {
+            ...translationState,
+            updatedAt: Date.now(),
+          },
+          pdfId,
+        );
+      } catch (error) {
+        console.error('Failed to persist translation state.', error);
+      }
+    };
+
+    saveTranslationState();
+  }, [isRestored, pdfId, translationState]);
 
   const handleStartAnalysis = useCallback(async () => {
     if (!pdfId) {
@@ -693,6 +794,176 @@ export default function App() {
     ]);
   }, []);
 
+  const requestPageTranslation = useCallback(async ({ pageIndex, pageText, force = false }) => {
+    if (!pdfId) return;
+
+    const sourceText = (pageText || '').trim();
+    let shouldRequest = false;
+
+    setTranslationState((prev) => {
+      const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
+      const existingPage = baseState.pages?.[pageIndex];
+
+      if (!sourceText) {
+        return {
+          ...baseState,
+          currentPage: pageIndex,
+          pages: {
+            ...baseState.pages,
+            [pageIndex]: {
+              sourceText: '',
+              translatedText: '',
+              status: 'empty',
+              error: '当前页未提取到可翻译文本，可能是扫描页或图片页。',
+              updatedAt: Date.now(),
+            },
+          },
+        };
+      }
+
+      const isCacheHit =
+        !force &&
+        existingPage &&
+        existingPage.sourceText === sourceText &&
+        existingPage.status === 'success' &&
+        existingPage.translatedText;
+
+      const isAlreadyLoading =
+        !force &&
+        existingPage &&
+        existingPage.sourceText === sourceText &&
+        existingPage.status === 'loading';
+
+      if (isCacheHit || isAlreadyLoading) {
+        return baseState.currentPage === pageIndex ? baseState : { ...baseState, currentPage: pageIndex };
+      }
+
+      shouldRequest = true;
+      return {
+        ...baseState,
+        currentPage: pageIndex,
+        pages: {
+          ...baseState.pages,
+          [pageIndex]: {
+            sourceText,
+            translatedText:
+              existingPage?.sourceText === sourceText && !force ? existingPage?.translatedText || '' : '',
+            status: 'loading',
+            error: '',
+            updatedAt: Date.now(),
+          },
+        },
+      };
+    });
+
+    if (!sourceText || !shouldRequest) {
+      return;
+    }
+
+    try {
+      const response = await apiService.translatePage(pdfId, pageIndex, sourceText, deconstructData?.paper_skeleton || null);
+      const translatedText = response?.translatedText ?? response?.data?.translatedText ?? '';
+
+      setTranslationState((prev) => {
+        if (prev?.pdfId !== pdfId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          currentPage: pageIndex,
+          pages: {
+            ...prev.pages,
+            [pageIndex]: {
+              sourceText,
+              translatedText: translatedText || '暂无译文',
+              status: 'success',
+              error: '',
+              updatedAt: Date.now(),
+            },
+          },
+        };
+      });
+    } catch (error) {
+      const errorMessage = error?.response?.data?.message ?? error?.message ?? '当前页翻译失败，请稍后重试。';
+      setTranslationState((prev) => {
+        if (prev?.pdfId !== pdfId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          currentPage: pageIndex,
+          pages: {
+            ...prev.pages,
+            [pageIndex]: {
+              sourceText,
+              translatedText: '',
+              status: 'error',
+              error: errorMessage,
+              updatedAt: Date.now(),
+            },
+          },
+        };
+      });
+    }
+  }, [deconstructData, pdfId]);
+
+  const handlePdfPageChange = useCallback((pageIndex) => {
+    currentPageTextRef.current = { pageIndex, pageText: '' };
+    setTranslationState((prev) => {
+      const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
+      return baseState.currentPage === pageIndex ? baseState : { ...baseState, currentPage: pageIndex };
+    });
+  }, [pdfId]);
+
+  const handlePageTextExtracted = useCallback(({ pageIndex, pageText }) => {
+    currentPageTextRef.current = { pageIndex, pageText };
+    setTranslationState((prev) => {
+      const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
+      return baseState.currentPage === pageIndex ? baseState : { ...baseState, currentPage: pageIndex };
+    });
+
+    if (isTranslated) {
+      requestPageTranslation({ pageIndex, pageText });
+    }
+  }, [isTranslated, pdfId, requestPageTranslation]);
+
+  const handleToggleTranslation = useCallback(() => {
+    if (!pdfId) {
+      window.alert('请先上传 PDF 文件。');
+      return;
+    }
+
+    if (isTranslated) {
+      setIsTranslated(false);
+      if (activeTab === 'translation') {
+        setActiveTab(lastNonTranslationTabRef.current || DEFAULT_ACTIVE_TAB);
+      }
+      return;
+    }
+
+    if (activeTab !== 'translation') {
+      lastNonTranslationTabRef.current = activeTab;
+    }
+
+    setIsTranslated(true);
+    setActiveTab('translation');
+    if (currentPageTextRef.current.pageText) {
+      requestPageTranslation(currentPageTextRef.current);
+    }
+  }, [activeTab, isTranslated, pdfId, requestPageTranslation]);
+
+  const handleRetryTranslation = useCallback(() => {
+    const currentPage = translationState.currentPage ?? currentPageTextRef.current.pageIndex ?? 0;
+    const pageText =
+      currentPageTextRef.current.pageIndex === currentPage
+        ? currentPageTextRef.current.pageText
+        : translationState.pages?.[currentPage]?.sourceText || '';
+
+    requestPageTranslation({ pageIndex: currentPage, pageText, force: true });
+  }, [requestPageTranslation, translationState.currentPage, translationState.pages]);
+
   const handleHighlightsChange = useCallback((nextHighlights) => {
     setPdfHighlights(nextHighlights);
     initDB().then((db) => {
@@ -710,6 +981,8 @@ export default function App() {
 
     handleStartAnalysis();
   }, [handleStartAnalysis, pdfId]);
+
+  const currentTranslationPage = translationState.pages?.[translationState.currentPage] || null;
 
   return (
     <>
@@ -738,7 +1011,7 @@ export default function App() {
                 {pdfFileName && (
                   <div className="mb-2 flex items-center justify-between truncate rounded bg-black/20 px-3 py-1 text-sm font-medium text-white">
                     <span>📄 {pdfFileName}</span>
-                    {isTranslated && <span className="text-xs text-pixiu">智能双语图层已开启</span>}
+                    {isTranslated && <span className="text-xs text-pixiu">当前页译文已开启</span>}
                   </div>
                 )}
 
@@ -748,9 +1021,10 @@ export default function App() {
                     pdfId={pdfId}
                     onSelection={handleExplain}
                     onSaveNote={handleAddNote}
-                    isTranslated={isTranslated}
                     initialHighlights={pdfHighlights}
                     onHighlightsChange={handleHighlightsChange}
+                    onPageChange={handlePdfPageChange}
+                    onPageTextExtracted={handlePageTextExtracted}
                   />
                 </div>
 
@@ -762,7 +1036,7 @@ export default function App() {
                       setActiveTab('socratic');
                     }}
                     isTranslated={isTranslated}
-                    onToggleTranslation={() => setIsTranslated((prev) => !prev)}
+                    onToggleTranslation={handleToggleTranslation}
                   />
                 )}
               </div>
@@ -806,6 +1080,15 @@ export default function App() {
                     data={analysisData}
                     onAnalyze={handleStartAnalysis}
                     isLoading={isAnalyzing}
+                  />
+                )}
+
+                {activeTab === 'translation' && (
+                  <TranslationPanel
+                    pdfFileName={pdfFileName}
+                    currentPage={translationState.currentPage}
+                    pageData={currentTranslationPage}
+                    onRetry={handleRetryTranslation}
                   />
                 )}
 

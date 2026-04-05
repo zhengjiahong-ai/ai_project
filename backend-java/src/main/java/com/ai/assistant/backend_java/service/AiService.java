@@ -130,6 +130,10 @@ public class AiService {
         return response;
     }
 
+    public Map<String, Object> translatePage(Map<String, Object> request) {
+        return restTemplate.postForObject(PYTHON_SERVICE_URL + "/translate-page", request, Map.class);
+    }
+
     public Map<String, Object> getChatHistory(String sessionId) {
         List<ChatMessage> history = chatMessageRepository.findByPdfIdOrderByTimestampAsc(sessionId);
         List<Map<String, Object>> messages = new ArrayList<>();

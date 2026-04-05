@@ -54,4 +54,22 @@ class AcademicControllerTest {
                 .andExpect(jsonPath("$.pdfId").value("paper-1"))
                 .andExpect(jsonPath("$.analysis.critical_analysis").value("done"));
     }
+
+    @Test
+    void translatePageReturnsForwardedPayload() throws Exception {
+        when(aiService.translatePage(eq(Map.of(
+                "pdfId", "paper-1",
+                "pageIndex", 0,
+                "pageText", "source")))).thenReturn(Map.of(
+                        "status", "success",
+                        "pageIndex", 0,
+                        "translatedText", "译文"));
+
+        mockMvc.perform(post("/api/translate-page")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pdfId\":\"paper-1\",\"pageIndex\":0,\"pageText\":\"source\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pageIndex").value(0))
+                .andExpect(jsonPath("$.translatedText").value("译文"));
+    }
 }

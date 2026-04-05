@@ -45,6 +45,7 @@ class CustomDashScopeLLM:
 
 
 _llm: Optional[CustomDashScopeLLM] = None
+_translation_llm: Optional[CustomDashScopeLLM] = None
 
 
 def get_llm() -> CustomDashScopeLLM:
@@ -62,3 +63,20 @@ def get_llm() -> CustomDashScopeLLM:
         )
 
     return _llm
+
+
+def get_translation_llm() -> CustomDashScopeLLM:
+    global _translation_llm
+
+    if _translation_llm is None:
+        api_key = os.environ.get("DASHSCOPE_API_KEY")
+        if not api_key:
+            raise ValueError("Please configure DASHSCOPE_API_KEY before starting the AI service.")
+
+        _translation_llm = CustomDashScopeLLM(
+            model=os.environ.get("DASHSCOPE_TRANSLATION_MODEL", "qwen-plus"),
+            temperature=0.1,
+            dashscope_api_key=api_key,
+        )
+
+    return _translation_llm
