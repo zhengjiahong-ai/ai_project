@@ -2,14 +2,6 @@
 
 基于 AI 的学术论文阅读与批判性分析平台，支持 PDF 上传、篇章解构、术语解释、对话式问答与批判性阅读报告。
 
-## 2026-04-04 更新摘要
-
-- 已打通真实“批判性阅读”链路：`frontend -> Java /api/critical-reading/{pdfId} -> Python /api/deep-analysis`。
-- 已补齐 `GET /api/chat/history/{sessionId}`，前端恢复会话和切换论文时会实际读取 Java/H2 中的对话历史。
-- `ai-service-python/main.py` 已拆分为 `routes / services / llm / rag / schemas`，但 `main.py` 仍保留为入口，现有 `/api/*` 路径不变。
-- 前端接口统一继续走 `frontend/src/services/api.js`，并新增最小 API smoke test。
-- 清理了未引用的旧组件、模板 README、旧测试脚本和未使用 Python 模块。
-
 ---
 
 ## 项目概述
@@ -124,6 +116,8 @@ docker-compose up --build
 - **对话与划词解释**：聊天面板发送消息；在 PDF 中划词可触发解释（对接 `/api/explain`）。
 - **批判性阅读**：生成创新性、严谨性、引用质量等维度的分析（当前部分为前端 Mock，可对接后端）。
 - **学术笔记**：支持在阅读时添加笔记并持久化到 IndexedDB。
+- **全景翻译**：支持按当前 PDF 页提取文本并进行逐页全文翻译，译文显示在右侧专用面板中；翻页后自动跟随当前页更新，并对已翻译页面进行缓存，避免重复请求。
+- **引导式学习**：基于论文内容、阅读进度和论文骨架生成苏格拉底式问题，支持逐轮作答、掌握度评估、提示反馈和最终总结，帮助用户用问答方式推进理解。
 
 ---
 
