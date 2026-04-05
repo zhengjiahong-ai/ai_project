@@ -13,6 +13,31 @@ class SocraticQuestionRequest(BaseModel):
     reading_progress: str
 
 
+class SocraticTurn(BaseModel):
+    index: int
+    question: str
+    answer: str
+    masteryLevel: Optional[str] = None
+    feedback: Optional[str] = None
+    hint: Optional[str] = None
+
+
+class SocraticSessionStartRequest(BaseModel):
+    pdfId: Optional[str] = None
+    paperSkeleton: Optional[Dict[str, Any]] = None
+    readingProgress: str
+
+
+class SocraticSessionAnswerRequest(BaseModel):
+    pdfId: Optional[str] = None
+    paperSkeleton: Optional[Dict[str, Any]] = None
+    readingProgress: str
+    currentIndex: int
+    currentQuestion: str
+    userAnswer: str
+    turns: Optional[List[SocraticTurn]] = None
+
+
 class BackgroundKnowledgeRequest(BaseModel):
     paper_topic: str
     user_knowledge_level: str

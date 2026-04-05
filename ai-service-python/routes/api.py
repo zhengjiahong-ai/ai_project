@@ -7,6 +7,8 @@ from schemas.requests import (
     BackgroundKnowledgeRequest,
     ChatRequest,
     DeepAnalysisRequest,
+    SocraticSessionAnswerRequest,
+    SocraticSessionStartRequest,
     SocraticQuestionRequest,
     TermExplainRequest,
 )
@@ -36,6 +38,22 @@ async def background_knowledge(request: BackgroundKnowledgeRequest):
 async def socratic_questions(request: SocraticQuestionRequest):
     try:
         return JSONResponse(chat_service.generate_socratic_questions(request))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/socratic-session/start")
+async def start_socratic_session(request: SocraticSessionStartRequest):
+    try:
+        return JSONResponse(chat_service.start_socratic_session(request))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/socratic-session/answer")
+async def answer_socratic_session(request: SocraticSessionAnswerRequest):
+    try:
+        return JSONResponse(chat_service.answer_socratic_question(request))
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 

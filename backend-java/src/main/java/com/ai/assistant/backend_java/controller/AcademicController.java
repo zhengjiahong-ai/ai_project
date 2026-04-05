@@ -52,4 +52,14 @@ public class AcademicController {
     public Map<String, Object> socraticQuestions(@RequestBody Map<String, Object> request) {
         return aiService.socraticQuestions(request);
     }
+
+    @PostMapping("/socratic-session/start")
+    public Map<String, Object> startSocraticSession(@RequestBody Map<String, Object> request) {
+        return aiService.startSocraticSession(request);
+    }
+
+    @PostMapping("/socratic-session/answer")
+    public Map<String, Object> answerSocraticSession(@RequestBody Map<String, Object> request) {
+        return aiService.answerSocraticSession(request);
+    }
 }

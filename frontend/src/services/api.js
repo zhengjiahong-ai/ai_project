@@ -63,6 +63,32 @@ export const createApiService = (client) => ({
       reading_progress,
     }),
 
+  startSocraticSession: async (pdfId, paperSkeleton, readingProgress) =>
+    client.post('/socratic-session/start', {
+      pdfId,
+      paperSkeleton,
+      readingProgress,
+    }),
+
+  answerSocraticSession: async (
+    pdfId,
+    paperSkeleton,
+    readingProgress,
+    currentIndex,
+    currentQuestion,
+    userAnswer,
+    turns = [],
+  ) =>
+    client.post('/socratic-session/answer', {
+      pdfId,
+      paperSkeleton,
+      readingProgress,
+      currentIndex,
+      currentQuestion,
+      userAnswer,
+      turns,
+    }),
+
   criticalReading: async (pdfId) => client.post(`/critical-reading/${encodeURIComponent(pdfId)}`),
 });
 

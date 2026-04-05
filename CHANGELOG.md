@@ -2,11 +2,19 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-04-05
+1. **重构引导式学习链路**：将原本“生成问题后由 AI 自答”的伪苏格拉底流程，改为“AI 提问、用户作答、AI 评估并继续追问”的真实引导式学习模式，共 5 轮并在末尾输出总结。
+2. **新增会话式引导学习接口**：Python 新增 `/api/socratic-session/start` 与 `/api/socratic-session/answer` 两个接口及对应请求模型，Java 同步补齐透传路由，前端改为调用新接口而不再复用普通聊天接口。
+3. **支持引导学习进度恢复**：前端将引导学习状态单独持久化到 IndexedDB `sessionStore`，按论文隔离保存阅读进度、当前题目、用户回答、掌握度评估与最终总结，刷新页面或切换论文后可恢复。
+4. **升级引导式学习界面**：右侧面板改为“学习引导 + 已完成题卡 + 当前作答卡 + 未解锁题卡 + 总结”结构，展示用户回答、掌握度、AI 简评和下一步提示，并提供“重新开始”入口。
+5. **修复引导学习启动问题**：修正 `ai-service-python` 中会导致容器启动失败的 `f-string` 语法错误，同时补充 `启动服务.md` 说明，明确 Java 后端改动后需要重新 `docker-compose up -d --build backend`。
+
 ### 2026-04-04
 1. **打通批判性阅读真实链路**：前端移除 `mockResult`，改为调用 Java `POST /api/critical-reading/{pdfId}`；Java 再转发到 Python `/api/deep-analysis`；Python 支持通过 `pdf_id` 从 RAG 分块反查论文内容后再输出真实分析结果。
 2. **补齐聊天历史接口**：Java 新增 `GET /api/chat/history/{sessionId}`，按时间顺序从 H2 返回结构化消息；前端在恢复会话和切换论文时会调用该接口并与 IndexedDB 缓存同步。
 3. **拆分 Python 服务结构**：将原本臃肿的 `ai-service-python/main.py` 拆分为 `routes / services / llm / rag / schemas` 模块，同时保留 `main.py` 入口与现有 `/api/*` 路径兼容。
 4. **补基础测试并清理旧文件**：新增前端 API smoke test、Java controller/service 测试、Python 路由测试；清理未引用的 `GuidedLearningPanel.jsx`、`usePdfFile.js`、前端模板 README、旧测试脚本和未使用 Python 模块。
+5. **修复引导式学习逻辑**：将原本的“问题一”删除，最后一个问题改为结论，同时删除两个不必要的“回答此问题”按钮。
 
 ### 2026-04-03
 1. **AI 响应提速**：将底层向量模型更换为 130MB 轻量版，彻底解决了首次提问时的长延时和卡顿问题。

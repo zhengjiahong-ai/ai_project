@@ -19,6 +19,8 @@ const WELCOME_MESSAGE = {
   content: '您好！我是您的 AI 学术助手。上传论文后，您可以直接划选正文句子进行解释、批判阅读，并保留对话历史。',
 };
 
+const SOCRATIC_TOTAL_QUESTIONS = 5;
+
 const initDB = async () =>
   openDB('PixiuAcademicDB_v6', 3, {
     upgrade(db) {
@@ -70,6 +72,60 @@ const resolveStoredPdfRecord = (storedValue) => {
   return null;
 };
 
+const createEmptySocraticSession = (pdfId = null, overrides = {}) => ({
+  pdfId,
+  started: false,
+  readingProgress: '',
+  intro: '',
+  totalQuestions: SOCRATIC_TOTAL_QUESTIONS,
+  currentIndex: 1,
+  currentQuestion: '',
+  turns: [],
+  finalSummary: '',
+  isComplete: false,
+  updatedAt: null,
+  ...overrides,
+});
+
+const normalizeSocraticSession = (storedValue, pdfId = null) => {
+  if (!storedValue) {
+    return createEmptySocraticSession(pdfId);
+  }
+
+  const turns = Array.isArray(storedValue.turns)
+    ? storedValue.turns
+        .map((turn, index) => ({
+          index: Number(turn?.index) || index + 1,
+          question: turn?.question || '',
+          answer: turn?.answer || '',
+          masteryLevel: turn?.masteryLevel || '一般',
+          feedback: turn?.feedback || '',
+          hint: turn?.hint || '',
+        }))
+        .filter((turn) => turn.question && turn.answer)
+    : [];
+
+  const totalQuestions = Number(storedValue.totalQuestions) || SOCRATIC_TOTAL_QUESTIONS;
+  const isComplete = Boolean(storedValue.isComplete);
+  const inferredCurrentIndex = Math.min(turns.length + 1, totalQuestions);
+  const currentIndex = isComplete
+    ? totalQuestions
+    : Math.max(1, Math.min(Number(storedValue.currentIndex) || inferredCurrentIndex, totalQuestions));
+
+  return createEmptySocraticSession(pdfId ?? storedValue.pdfId ?? null, {
+    started: Boolean(storedValue.started || turns.length > 0 || storedValue.currentQuestion || isComplete),
+    readingProgress: storedValue.readingProgress || '',
+    intro: storedValue.intro || '',
+    totalQuestions,
+    currentIndex,
+    currentQuestion: isComplete ? '' : storedValue.currentQuestion || '',
+    turns,
+    finalSummary: storedValue.finalSummary || '',
+    isComplete,
+    updatedAt: storedValue.updatedAt || null,
+  });
+};
+
 export default function App() {
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
@@ -84,7 +140,7 @@ export default function App() {
   const [isTranslated, setIsTranslated] = useState(false);
   const [isDeconstructing, setIsDeconstructing] = useState(false);
   const [deconstructData, setDeconstructData] = useState(null);
-  const [socraticQuestions, setSocraticQuestions] = useState([]);
+  const [socraticSession, setSocraticSession] = useState(createEmptySocraticSession());
   const [isSocraticLoading, setIsSocraticLoading] = useState(false);
   const [loadingPapers, setLoadingPapers] = useState({});
   const [pdfHighlights, setPdfHighlights] = useState([]);
@@ -116,13 +172,14 @@ export default function App() {
 
   const restorePaperState = useCallback(async (targetPdfId, entryList = null) => {
     const db = await initDB();
-    const [savedPdf, savedMessages, savedAnalysis, savedDeconstruct, savedNotes, savedHighlights] = await Promise.all([
+    const [savedPdf, savedMessages, savedAnalysis, savedDeconstruct, savedNotes, savedHighlights, savedSocraticSession] = await Promise.all([
       db.get('pdfStore', targetPdfId),
       db.get('historyStore', targetPdfId),
       db.get('analysisStore', targetPdfId),
       db.get('deconstructStore', targetPdfId),
       db.get('notesStore', targetPdfId),
       db.get('highlightStore', targetPdfId),
+      db.get('sessionStore', targetPdfId),
     ]);
 
     const resolvedPdf = resolveStoredPdfRecord(savedPdf);
@@ -147,6 +204,7 @@ export default function App() {
     setAnalysisData(savedAnalysis || null);
     setMessages(nextMessages);
     setPdfHighlights(savedHighlights || []);
+    setSocraticSession(normalizeSocraticSession(savedSocraticSession, targetPdfId));
     localStorage.setItem('lastPdfId', targetPdfId);
 
     return true;
@@ -181,6 +239,7 @@ export default function App() {
         db.put('historyStore', readyMessages, response.pdfId),
         db.put('highlightStore', [], response.pdfId),
         db.put('libraryStore', newEntry),
+        db.delete('sessionStore', response.pdfId),
       ]);
 
       setPdfId(response.pdfId);
@@ -189,6 +248,7 @@ export default function App() {
       setNotes([]);
       setMessages(readyMessages);
       setPdfHighlights([]);
+      setSocraticSession(createEmptySocraticSession(response.pdfId));
       setActiveTab('deconstruct');
       setPapersList((prev) => [newEntry, ...prev.filter((paper) => paper.id !== response.pdfId)]);
       localStorage.setItem('lastPdfId', response.pdfId);
@@ -201,6 +261,7 @@ export default function App() {
       setPdfFile(null);
       setPdfFileName(null);
       setPdfId(null);
+      setSocraticSession(createEmptySocraticSession());
       window.alert(error?.response?.data?.message || error?.message || '上传失败，请确认后端服务已启动。');
     } finally {
       setIsAiReady(true);
@@ -252,7 +313,7 @@ export default function App() {
   }, [restorePaperState]);
 
   const handleDeletePaper = useCallback(async (targetPdfId) => {
-    if (!window.confirm('确定移除该论文及所有关联聊天、笔记记录吗？')) return;
+    if (!window.confirm('确定移除这篇论文及其所有关联聊天、笔记和引导学习记录吗？')) return;
 
     try {
       const db = await initDB();
@@ -264,6 +325,7 @@ export default function App() {
         db.delete('deconstructStore', targetPdfId),
         db.delete('libraryStore', targetPdfId),
         db.delete('highlightStore', targetPdfId),
+        db.delete('sessionStore', targetPdfId),
       ]);
 
       setPapersList((prev) => prev.filter((paper) => paper.id !== targetPdfId));
@@ -277,6 +339,7 @@ export default function App() {
         setDeconstructData(null);
         setAnalysisData(null);
         setPdfHighlights([]);
+        setSocraticSession(createEmptySocraticSession());
         localStorage.removeItem('lastPdfId');
       }
     } catch (error) {
@@ -316,6 +379,38 @@ export default function App() {
 
     saveNotes();
   }, [isRestored, notes, pdfId]);
+
+  useEffect(() => {
+    if (!isRestored || !pdfId || socraticSession?.pdfId !== pdfId) return;
+
+    const saveSocraticSession = async () => {
+      try {
+        const db = await initDB();
+        const shouldPersist =
+          socraticSession.started ||
+          socraticSession.isComplete ||
+          Boolean((socraticSession.readingProgress || '').trim());
+
+        if (!shouldPersist) {
+          await db.delete('sessionStore', pdfId);
+          return;
+        }
+
+        await db.put(
+          'sessionStore',
+          {
+            ...socraticSession,
+            updatedAt: Date.now(),
+          },
+          pdfId,
+        );
+      } catch (error) {
+        console.error('Failed to persist Socratic session.', error);
+      }
+    };
+
+    saveSocraticSession();
+  }, [isRestored, pdfId, socraticSession]);
 
   const handleStartAnalysis = useCallback(async () => {
     if (!pdfId) {
@@ -457,27 +552,135 @@ export default function App() {
     window.alert('已将该对话内容收藏至“学术笔记”！');
   }, [handleAddNote, messages]);
 
-  const handleGenerateSocratic = useCallback(async (readingProgress) => {
+  const handleReadingProgressChange = useCallback((readingProgress) => {
+    setSocraticSession((prev) =>
+      normalizeSocraticSession(
+        {
+          ...prev,
+          pdfId: pdfId ?? prev?.pdfId ?? null,
+          readingProgress,
+        },
+        pdfId ?? prev?.pdfId ?? null,
+      ),
+    );
+  }, [pdfId]);
+
+  const handleStartSocratic = useCallback(async (readingProgress) => {
     if (!deconstructData?.paper_skeleton) {
       throw new Error('请先完成“篇章解构”，系统需要论文结构内容。');
+    }
+    if (!pdfId) {
+      throw new Error('请先上传并选择一篇论文。');
     }
 
     setIsSocraticLoading(true);
     try {
-      const response = await apiService.socraticQuestions(
-        JSON.stringify(deconstructData.paper_skeleton),
-        readingProgress,
+      const normalizedProgress =
+        readingProgress?.trim() || '已阅读摘要与引言，正在继续梳理论文的方法设计、实验结果与关键结论。';
+      const response = await apiService.startSocraticSession(
+        pdfId,
+        deconstructData.paper_skeleton,
+        normalizedProgress,
       );
 
       if (response?.status !== 'success') {
-        throw new Error(response?.message || '生成失败');
+        throw new Error(response?.message || '启动引导学习失败');
       }
 
-      setSocraticQuestions(response.questions || []);
+      setSocraticSession(
+        normalizeSocraticSession(
+          {
+            pdfId,
+            started: true,
+            readingProgress: normalizedProgress,
+            intro: response?.intro || '',
+            totalQuestions: response?.totalQuestions || SOCRATIC_TOTAL_QUESTIONS,
+            currentIndex: response?.currentIndex || 1,
+            currentQuestion: response?.currentQuestion || '',
+            turns: [],
+            finalSummary: '',
+            isComplete: false,
+          },
+          pdfId,
+        ),
+      );
     } finally {
       setIsSocraticLoading(false);
     }
-  }, [deconstructData]);
+  }, [deconstructData, pdfId]);
+
+  const handleSubmitSocraticAnswer = useCallback(async (userAnswer) => {
+    if (!deconstructData?.paper_skeleton) {
+      throw new Error('请先完成“篇章解构”，系统需要论文结构内容。');
+    }
+    if (!pdfId) {
+      throw new Error('请先上传并选择一篇论文。');
+    }
+
+    const currentSession = normalizeSocraticSession(socraticSession, pdfId);
+    if (!currentSession.started || !currentSession.currentQuestion) {
+      throw new Error('请先开始引导学习。');
+    }
+
+    setIsSocraticLoading(true);
+    try {
+      const response = await apiService.answerSocraticSession(
+        pdfId,
+        deconstructData.paper_skeleton,
+        currentSession.readingProgress,
+        currentSession.currentIndex,
+        currentSession.currentQuestion,
+        userAnswer,
+        currentSession.turns,
+      );
+
+      if (response?.status !== 'success') {
+        throw new Error(response?.message || '提交回答失败');
+      }
+
+      const nextTurn = {
+        index: currentSession.currentIndex,
+        question: currentSession.currentQuestion,
+        answer: userAnswer,
+        masteryLevel: response?.evaluation?.masteryLevel || '一般',
+        feedback: response?.evaluation?.feedback || '',
+        hint: response?.evaluation?.hint || '',
+      };
+
+      setSocraticSession(
+        normalizeSocraticSession(
+          {
+            ...currentSession,
+            turns: [...currentSession.turns, nextTurn],
+            currentIndex: response?.isComplete
+              ? currentSession.totalQuestions
+              : response?.nextIndex || currentSession.currentIndex + 1,
+            currentQuestion: response?.isComplete ? '' : response?.nextQuestion || '',
+            finalSummary: response?.isComplete ? response?.finalSummary || '' : '',
+            isComplete: Boolean(response?.isComplete),
+            started: true,
+          },
+          pdfId,
+        ),
+      );
+    } finally {
+      setIsSocraticLoading(false);
+    }
+  }, [deconstructData, pdfId, socraticSession]);
+
+  const handleRestartSocratic = useCallback(async () => {
+    if (!pdfId) return;
+    if (!window.confirm('确定重新开始这一篇论文的引导式学习吗？当前作答记录将被清空。')) return;
+
+    try {
+      const db = await initDB();
+      await db.delete('sessionStore', pdfId);
+      setSocraticSession(createEmptySocraticSession(pdfId));
+    } catch (error) {
+      console.error('Failed to reset Socratic session.', error);
+      window.alert('重新开始失败，请稍后再试。');
+    }
+  }, [pdfId]);
 
   const handleDynamicExplain = useCallback(() => {
     setActiveTab('chat');
@@ -485,7 +688,7 @@ export default function App() {
       ...prev,
       {
         role: 'ai',
-        content: '功能提示：在左侧 PDF 视窗中直接划选任何不理解的句子或段落，点击弹出的“AI 解释”按钮，我将结合整篇论文上下文为您深度解析。',
+        content: '功能提示：在左侧 PDF 视窗中直接划选任何不理解的句子或段落，点击弹出的“AI 解释”按钮，我将结合整篇论文上下文为您深入解析。',
       },
     ]);
   }, []);
@@ -557,7 +760,6 @@ export default function App() {
                     onCriticalReading={handleCriticalReading}
                     onSocraticLearning={() => {
                       setActiveTab('socratic');
-                      setSocraticQuestions([]);
                     }}
                     isTranslated={isTranslated}
                     onToggleTranslation={() => setIsTranslated((prev) => !prev)}
@@ -587,10 +789,11 @@ export default function App() {
                   <SocraticQuestionsPanel
                     hasPaperContext={!!deconstructData?.paper_skeleton}
                     isLoading={isSocraticLoading}
-                    isChatLoading={!!loadingPapers[pdfId]}
-                    questions={socraticQuestions}
-                    onGenerate={handleGenerateSocratic}
-                    onAskQuestion={handleSendMessage}
+                    session={socraticSession}
+                    onReadingProgressChange={handleReadingProgressChange}
+                    onStart={handleStartSocratic}
+                    onSubmitAnswer={handleSubmitSocraticAnswer}
+                    onRestart={handleRestartSocratic}
                   />
                 )}
 
@@ -608,7 +811,7 @@ export default function App() {
 
                 {activeTab === 'notes' && (
                   <div className="flex flex-1 flex-col overflow-hidden bg-slate-50">
-                    <div className="border-b bg-white p-4 font-bold text-pixiu">📌 学术笔记精华</div>
+                    <div className="border-b bg-white p-4 font-bold text-pixiu">📝 学术笔记精华</div>
                     <div className="flex-1 space-y-4 overflow-y-auto p-4">
                       {notes.map((note) => (
                         <div
