@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import { highlightPlugin } from '@react-pdf-viewer/highlight';
@@ -10,6 +10,7 @@ import '@react-pdf-viewer/highlight/lib/styles/index.css';
 import { apiService } from '../services/api';
 import { buildExplainSelectionPayload } from '../utils/pdfFormulaSelection';
 import MarkdownContent from './MarkdownContent';
+import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 
 const workerUrl = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
@@ -77,7 +78,7 @@ const buildPageText = (textContent) => {
   return segments.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 };
 
-const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }) => {
+export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }) => {
   const [query, setQuery] = useState('');
 
   const handleAsk = () => {
@@ -95,14 +96,14 @@ const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }
     } else if (historyToSave.length > 1) {
       interpretationMarkdown = historyToSave
         .map((message) => {
-          if (message.role === 'user') return `> **我的追问**：_${message.content}_`;
+          if (message.role === 'user') return `> **我的追问**：\n_${message.content}_`;
           return `**AI 解答**：\n${message.content}`;
         })
         .join('\n\n---\n\n');
     }
 
     if (!interpretationMarkdown.trim()) {
-      interpretationMarkdown = '解析�?..';
+      interpretationMarkdown = '解析中...';
     }
 
     if (onSaveNote) {
@@ -111,7 +112,7 @@ const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }
         aiInterpretation: interpretationMarkdown,
         pageNumber: highlight.position.pageIndex,
       });
-      alert("包含追问记录的完整笔记已收藏至‘学术笔记’栏目！");
+      alert('包含追问记录的完整笔记已收藏到“学术笔记”栏目。');
       onClose();
     }
   };
@@ -128,7 +129,7 @@ const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }
     >
       <div className="flex shrink-0 items-center justify-between rounded-t-xl border-b bg-blue-50/50 p-3">
         <span className="flex items-center gap-1.5 text-xs font-bold text-pixiu">
-          <Sparkles size={14} /> AI 解释
+          <Sparkles size={14} /> AI 翻译
         </span>
         <div className="flex items-center gap-2">
           {onSaveNote && (
@@ -168,13 +169,17 @@ const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }
                     : 'bg-slate-50 text-slate-700'
                 }`}
               >
-                <MarkdownContent>{message.content}</MarkdownContent>
+                <MarkdownContent
+                  className={getMessageMarkdownClassName(message.role, 'popup')}
+                >
+                  {message.content}
+                </MarkdownContent>
               </div>
             );
           })}
           {highlight.isLoading && (
             <div className="flex items-center gap-2 p-2 text-xs italic text-slate-400">
-              <Sparkles size={12} className="animate-pulse" /> AI 正在思�?..
+              <Sparkles size={12} className="animate-pulse" /> AI 正在处理中...
             </div>
           )}
         </div>
@@ -346,7 +351,7 @@ const PdfViewer = ({
         content: message.content,
       }));
       const response = await apiService.sendMessage(query, pdfId, backendHistory);
-      const aiResponse = response?.data?.reply ?? response?.reply ?? response?.message ?? '暂无回复';
+      const aiResponse = response?.data?.reply ?? response?.reply ?? response?.message ?? '鏆傛棤鍥炲';
 
       setHighlights((prev) =>
         prev.map((item) =>
@@ -415,7 +420,7 @@ const PdfViewer = ({
             className="flex items-center gap-1 rounded-full bg-pixiu p-2 text-white shadow-lg transition-transform hover:scale-110"
           >
             <Sparkles size={18} />
-            <span className="pr-1 text-xs font-bold">AI 解释</span>
+            <span className="pr-1 text-xs font-bold">AI 翻译</span>
           </button>
         )}
       </div>
@@ -495,3 +500,4 @@ const PdfViewer = ({
 };
 
 export default PdfViewer;
+

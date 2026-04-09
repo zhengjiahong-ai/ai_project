@@ -15,8 +15,22 @@ const looksLikeFlattenedFormula = (text) => {
     return false;
   }
 
+  const wordTokens = normalized.match(/[A-Za-z]{3,}/g) || [];
   const singleLetterCount = (normalized.match(SINGLE_LETTER_TOKEN_PATTERN) || []).length;
-  return FORMULA_PUNCTUATION_PATTERN.test(normalized) || singleLetterCount >= 4;
+  const hasStrongMathPattern =
+    /[_^]\{?[^}\s]+\}?/.test(normalized) ||
+    /\|\s*[A-Za-z](?:_[A-Za-z0-9]+)?\s*\|/.test(normalized) ||
+    /[=][^=]/.test(normalized) ||
+    /\([^)]+,[^)]+\)/.test(normalized);
+
+  if (wordTokens.length >= 4) {
+    return false;
+  }
+
+  return (
+    (FORMULA_PUNCTUATION_PATTERN.test(normalized) && hasStrongMathPattern) ||
+    (singleLetterCount >= 4 && wordTokens.length <= 2)
+  );
 };
 
 const normalizeIndexedTokens = (text) => {
@@ -32,15 +46,34 @@ const normalizeIndexedTokens = (text) => {
     normalized = `${normalized}}`;
   }
 
+  normalized = normalized.replace(
+    /^\(([^()]+)\)\}\|([A-Za-z](?:_[A-Za-z0-9]+)?)\|i=([0-9]+),?$/,
+    (_, pair, token, start) => `{(${pair})}_{i=${start}}^{|${token}|}`,
+  );
+
   return normalized;
 };
 
+const normalizeCardinalityForDisplay = (text) =>
+  String(text || '').replace(/\^\{\|([^}]+)\|\}/g, '^{\\lvert $1 \\rvert}');
+
+const formatNormalizedFormulaForDisplay = (text) => {
+  let formatted = String(text || '').trim();
+
+  formatted = formatted.replace(
+    /\{(\([^()]+\))\}(_\{[^}]+\})?(\^\{[^}]+\})?/g,
+    (_, tuple, subscript = '', superscript = '') => `{\\left\\{${tuple}\\right\\}}${subscript}${superscript}`,
+  );
+
+  return normalizeCardinalityForDisplay(formatted);
+};
+
 const wrapFormulaForMarkdown = (text) => {
-  const trimmed = text.trim();
+  const trimmed = formatNormalizedFormulaForDisplay(text).trim();
   if (!trimmed || trimmed.startsWith('$') || trimmed.includes('\n')) {
     return trimmed;
   }
-  return `$${trimmed}$`;
+  return `$$\n${trimmed}\n$$`;
 };
 
 export const normalizePdfSelectionText = (rawText = '') => {
@@ -66,24 +99,35 @@ export const normalizePdfSelectionText = (rawText = '') => {
 
 export const buildExplainSelectionPayload = (rawText = '') => {
   const normalized = normalizePdfSelectionText(rawText);
+  const displayMessage = normalized.isFormulaLike ? normalized.displayText : normalized.rawText;
 
   if (!normalized.isFormulaLike) {
     return {
-      displayMessage: `请解释以下内容：\n> ${normalized.displayText}`,
-      backendPrompt: `请解释以下内容：\n> ${normalized.normalizedText}`,
+      displayMessage,
+      backendPrompt: [
+        '请直接解释下面这段内容。',
+        '不要添加客套话或铺垫，直接给出解释。',
+        '',
+        '内容：',
+        `> ${normalized.normalizedText}`,
+      ].join('\n'),
     };
   }
 
   return {
-    displayMessage: `请解释以下内容：\n> ${normalized.displayText}`,
+    displayMessage,
     backendPrompt: [
-      '下面内容来自 PDF 选区，复制时可能丢失了上下标、分式、求和或绝对值符号。',
-      '如果它明显是数学公式，请先将其恢复为标准数学记号或 Markdown LaTeX，再用中文解释。',
+      '请直接解释下面这个数学公式，用中文回答。',
+      '要求：',
+      '- 直接进入解释，不要添加来源说明、恢复说明或其他铺垫',
+      '- 不要描述公式恢复或归一化过程',
+      '- 如果需要展示公式，直接使用 Markdown LaTeX',
+      '- 如果公式中的符号可以逐项解释，就直接解释每个符号和整体含义',
       '',
-      '归一化后的选区：',
+      '标准公式：',
       `> ${normalized.displayText}`,
       '',
-      '原始选区：',
+      '原始选区仅供消歧，不要在回答中复述：',
       `> ${normalized.rawText}`,
     ].join('\n'),
   };

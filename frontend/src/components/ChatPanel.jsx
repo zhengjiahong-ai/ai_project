@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bookmark, ChevronRight, Sparkles, Trash2, X } from 'lucide-react';
 import MarkdownContent from './MarkdownContent';
+import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 /**
  * 聊天面板组件
  * @param {Array} messages - 消息列表
@@ -90,10 +91,10 @@ const ChatPanel = ({ messages = [], onSendMessage, onDeleteMessage, onSaveToNote
             )}
 
             <div 
-              className={`max-w-[85%] p-4 rounded-2xl shadow-sm leading-relaxed ${
+              className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
                 msg.role === 'user' 
-                  ? 'bg-pixiu text-white rounded-br-none' 
-                  : 'bg-slate-100 text-slate-800 rounded-bl-none border border-slate-200'
+                  ? 'bg-pixiu text-white rounded-br-none leading-normal' 
+                  : 'bg-slate-100 text-slate-800 rounded-bl-none border border-slate-200 leading-relaxed'
               }`}
             >
               {msg.role === 'ai' && (
@@ -102,8 +103,12 @@ const ChatPanel = ({ messages = [], onSendMessage, onDeleteMessage, onSaveToNote
                   <span className="text-xs font-semibold text-pixiu">貔貅</span>
                 </div>
               )}
-              <div className={`text-sm ${msg.role === 'user' ? 'text-white' : 'prose prose-sm prose-slate'}`}>
-                  <MarkdownContent>{msg.content}</MarkdownContent>
+              <div className="text-sm">
+                <MarkdownContent
+                  className={getMessageMarkdownClassName(msg.role, 'chat')}
+                >
+                  {msg.content}
+                </MarkdownContent>
               </div>
             </div>
 
