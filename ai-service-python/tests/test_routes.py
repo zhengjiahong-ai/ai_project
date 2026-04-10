@@ -27,15 +27,33 @@ class ApiRoutesTests(unittest.TestCase):
     def test_translate_page_route_returns_service_payload(self):
         with patch(
             "routes.api.chat_service.translate_page",
-            return_value={"status": "success", "pageIndex": 0, "translatedText": "译文", "sourceText": "source"},
+            return_value={
+                "status": "success",
+                "pageIndex": 0,
+                "translatedText": "译文",
+                "sourceText": "source",
+                "translatedBlocks": [{"id": "block-1", "translatedText": "译文"}],
+                "renderMode": "overlay",
+            },
         ) as mocked:
             response = self.client.post(
                 "/api/translate-page",
-                json={"pdfId": "paper-1", "pageIndex": 0, "pageText": "source", "paperSkeleton": {}},
+                json={
+                    "pdfId": "paper-1",
+                    "pageIndex": 0,
+                    "pageText": "source",
+                    "paperSkeleton": {},
+                    "pageLayout": {
+                        "viewport": {"width": 600, "height": 800},
+                        "blocks": [{"id": "block-1", "text": "source"}],
+                        "excludedZonesVersion": 1,
+                    },
+                },
             )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["translatedText"], "译文")
+        self.assertEqual(response.json()["renderMode"], "overlay")
         mocked.assert_called_once()
 
     def test_translate_page_route_rejects_blank_text(self):

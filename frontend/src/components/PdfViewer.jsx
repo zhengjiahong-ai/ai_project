@@ -9,73 +9,82 @@ import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import '@react-pdf-viewer/highlight/lib/styles/index.css';
 import { apiService } from '../services/api';
 import { buildExplainSelectionPayload } from '../utils/pdfFormulaSelection';
+import { buildPageLayout, normalizeExcludedZones } from '../utils/pdfTranslationLayout.js';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 
 const workerUrl = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
-const normalizeTextItems = (items = []) =>
-  items
-    .filter((item) => typeof item?.str === 'string' && item.str.trim())
-    .map((item) => ({
-      text: item.str.replace(/\s+/g, ' ').trim(),
-      x: Number(item.transform?.[4] || 0),
-      y: Number(item.transform?.[5] || 0),
-    }))
-    .filter((item) => item.text);
+const buildPageSnapshot = async (page, maxRenderWidth = 1200) => {
+  const baseViewport = page.getViewport({ scale: 1 });
+  const safeWidth = Math.max(baseViewport.width || 1, 1);
+  const scale = Math.min(2, Math.max(1, maxRenderWidth / safeWidth));
+  const renderViewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d', { alpha: false });
 
-const buildPageText = (textContent) => {
-  const items = normalizeTextItems(textContent?.items);
-  if (items.length === 0) {
-    return '';
+  canvas.width = Math.ceil(renderViewport.width);
+  canvas.height = Math.ceil(renderViewport.height);
+
+  if (!context) {
+    throw new Error('Canvas 2D context is unavailable.');
   }
 
-  const sortedItems = [...items].sort((left, right) => {
-    if (Math.abs(left.y - right.y) > 2.5) {
-      return right.y - left.y;
-    }
-    return left.x - right.x;
+  await page.render({ canvasContext: context, viewport: renderViewport }).promise;
+  return canvas.toDataURL('image/png');
+};
+
+const loadImage = (src) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
   });
 
-  const lines = [];
-  sortedItems.forEach((item) => {
-    const currentLine = lines[lines.length - 1];
-    if (!currentLine || Math.abs(currentLine.y - item.y) > 3.5) {
-      lines.push({ y: item.y, items: [item] });
-      return;
-    }
-    currentLine.items.push(item);
-  });
+const buildFigureSnippets = async (backgroundImage, excludedZones = []) => {
+  const normalizedZones = normalizeExcludedZones(excludedZones);
+  if (!backgroundImage || normalizedZones.length === 0) {
+    return [];
+  }
 
-  const segments = [];
-  lines.forEach((line, index) => {
-    const sortedLineItems = [...line.items].sort((left, right) => left.x - right.x);
-    const lineText = sortedLineItems
-      .map((item, itemIndex) => {
-        if (itemIndex === 0) {
-          return item.text;
-        }
+  const image = await loadImage(backgroundImage);
 
-        const previous = sortedLineItems[itemIndex - 1];
-        const horizontalGap = item.x - previous.x;
-        return horizontalGap > 10 ? ` ${item.text}` : item.text;
-      })
-      .join('')
-      .trim();
+  return normalizedZones.reduce((snippets, zone, index) => {
+    const left = Math.max(0, Math.floor(zone.bbox.left * image.width));
+    const top = Math.max(0, Math.floor(zone.bbox.top * image.height));
+    const width = Math.max(1, Math.ceil(zone.bbox.width * image.width));
+    const height = Math.max(1, Math.ceil(zone.bbox.height * image.height));
+    const paddingX = Math.max(6, Math.round(width * 0.015));
+    const paddingY = Math.max(6, Math.round(height * 0.02));
+    const sourceX = Math.max(0, left - paddingX);
+    const sourceY = Math.max(0, top - paddingY);
+    const sourceWidth = Math.min(image.width - sourceX, width + paddingX * 2);
+    const sourceHeight = Math.min(image.height - sourceY, height + paddingY * 2);
 
-    if (!lineText) {
-      return;
+    if (sourceWidth <= 0 || sourceHeight <= 0) {
+      return snippets;
     }
 
-    segments.push(lineText);
-
-    const nextLine = lines[index + 1];
-    if (nextLine && Math.abs(line.y - nextLine.y) > 14) {
-      segments.push('');
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return snippets;
     }
-  });
 
-  return segments.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    canvas.width = sourceWidth;
+    canvas.height = sourceHeight;
+    context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
+
+    snippets.push({
+      id: `figure-${index + 1}`,
+      type: zone.type || 'figure',
+      bbox: zone.bbox,
+      image: canvas.toDataURL('image/png'),
+    });
+
+    return snippets;
+  }, []);
 };
 
 export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }) => {
@@ -214,6 +223,7 @@ const PdfViewer = ({
   onHighlightsChange,
   onPageChange,
   onPageTextExtracted,
+  translationLayoutIndex = {},
 }) => {
   const [highlights, setHighlights] = useState([]);
   const [activeHighlightId, setActiveHighlightId] = useState(null);
@@ -259,12 +269,28 @@ const PdfViewer = ({
       try {
         const page = await doc.getPage(pageIndex + 1);
         const textContent = await page.getTextContent();
+        const viewport = page.getViewport({ scale: 1 });
+        const { pageText, pageLayout } = buildPageLayout(textContent, viewport);
+        const excludedZones = translationLayoutIndex?.[pageIndex]?.excludedZones || [];
+        let backgroundImage = '';
+        let figureSnippets = [];
+
+        try {
+          backgroundImage = await buildPageSnapshot(page);
+          figureSnippets = await buildFigureSnippets(backgroundImage, excludedZones);
+        } catch (snapshotError) {
+          console.warn(`Failed to render page snapshot for page ${pageIndex + 1}.`, snapshotError);
+        }
+
         if (requestedPdfId !== latestPdfIdRef.current) {
           return;
         }
         onPageTextExtracted({
           pageIndex,
-          pageText: buildPageText(textContent),
+          pageText,
+          pageLayout,
+          backgroundImage,
+          figureSnippets,
         });
       } catch (error) {
         console.warn(`Failed to extract text for page ${pageIndex + 1}.`, error);
@@ -274,10 +300,13 @@ const PdfViewer = ({
         onPageTextExtracted({
           pageIndex,
           pageText: '',
+          pageLayout: null,
+          backgroundImage: '',
+          figureSnippets: [],
         });
       }
     },
-    [onPageTextExtracted],
+    [onPageTextExtracted, translationLayoutIndex],
   );
 
   const handleDocumentLoad = useCallback(

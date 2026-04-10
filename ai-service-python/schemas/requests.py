@@ -55,6 +55,7 @@ class PageTranslationRequest(BaseModel):
     pageIndex: int
     pageText: str
     paperSkeleton: Optional[Dict[str, Any]] = None
+    pageLayout: Optional[Dict[str, Any]] = None
 
 
 class DeepAnalysisRequest(BaseModel):

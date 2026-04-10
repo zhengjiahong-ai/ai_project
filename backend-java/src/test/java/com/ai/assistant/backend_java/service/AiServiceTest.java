@@ -150,14 +150,24 @@ class AiServiceTest {
         request.put("pdfId", "paper-1");
         request.put("pageIndex", 2);
         request.put("pageText", "source text");
+        request.put("pageLayout", Map.of(
+                "viewport", Map.of("width", 600, "height", 800),
+                "blocks", List.of(Map.of("id", "block-1", "text", "source text")),
+                "excludedZonesVersion", 1));
 
         when(restTemplate.postForObject(eq("http://python/api/translate-page"), eq(request), eq(Map.class)))
-                .thenReturn(Map.of("status", "success", "pageIndex", 2, "translatedText", "译文"));
+                .thenReturn(Map.of(
+                        "status", "success",
+                        "pageIndex", 2,
+                        "translatedText", "译文",
+                        "renderMode", "overlay",
+                        "translatedBlocks", List.of(Map.of("id", "block-1", "translatedText", "译文"))));
 
         Map<String, Object> response = aiService.translatePage(request);
 
         assertEquals("success", response.get("status"));
         assertEquals(2, response.get("pageIndex"));
         assertEquals("译文", response.get("translatedText"));
+        assertEquals("overlay", response.get("renderMode"));
     }
 }

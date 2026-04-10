@@ -14,6 +14,7 @@ from schemas.requests import (
     TermExplainRequest,
 )
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE as SHARED_MATH_MARKDOWN_GUIDELINE
+from services.page_translation_service import translate_page as translate_page_v2
 
 
 SOCRATIC_TOTAL_QUESTIONS = 5
@@ -481,9 +482,7 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
 
 
 def translate_page(request: PageTranslationRequest) -> Dict[str, Any]:
-    page_text = (request.pageText or "").strip()
-    if not page_text:
-        raise ValueError("Page text cannot be empty.")
+    return translate_page_v2(request)
 
     page_index = max(0, int(request.pageIndex or 0))
     paper_skeleton = request.paperSkeleton or {}

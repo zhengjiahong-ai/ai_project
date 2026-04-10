@@ -6,7 +6,7 @@ from typing import Any, Dict
 from bs4 import BeautifulSoup
 from fastapi import UploadFile
 
-from core.document_parser import parse_tei_xml
+from core.document_parser import extract_translation_layout_index, parse_tei_xml
 from llm.client import get_llm
 from rag.store import get_rag, preload_rag
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
@@ -75,6 +75,7 @@ async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
 
         tei_file = os.path.join(output_dir, xml_files[0])
         parsed_sections = parse_tei_xml(tei_file)
+        translation_layout_index = extract_translation_layout_index(tei_file)
 
         sections_for_summary = {
             "abstract": "",
@@ -181,6 +182,7 @@ Paper context:
             "status": "success",
             "paper_skeleton": section_summaries,
             "paper_structure": paper_structure,
+            "translationLayoutIndex": translation_layout_index,
             "pdfId": clean_pdf_id,
             "ragIndexed": rag_indexed,
         }

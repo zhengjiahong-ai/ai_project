@@ -91,7 +91,7 @@ export const createApiService = (client) => ({
 
   criticalReading: async (pdfId) => client.post(`/critical-reading/${encodeURIComponent(pdfId)}`),
 
-  translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null) => {
+  translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null, pageLayout = null) => {
     const controller = new AbortController();
     let didTimeout = false;
     const timeoutId = setTimeout(() => {
@@ -107,6 +107,7 @@ export const createApiService = (client) => ({
           pageIndex,
           pageText,
           paperSkeleton,
+          pageLayout,
         },
         {
           signal: controller.signal,

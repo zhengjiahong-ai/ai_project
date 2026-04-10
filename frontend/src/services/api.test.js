@@ -57,13 +57,28 @@ const run = async () => {
     get: async () => ({}),
   });
 
-  await translationService.translatePage('paper-1', 3, 'Source text', { abstract: 'summary' });
+  await translationService.translatePage(
+    'paper-1',
+    3,
+    'Source text',
+    { abstract: 'summary' },
+    {
+      viewport: { width: 600, height: 800 },
+      blocks: [{ id: 'block-1', text: 'Source text', bbox: { left: 0.1, top: 0.1, width: 0.2, height: 0.1 } }],
+      excludedZonesVersion: 1,
+    },
+  );
   assert.equal(translateUrl, '/translate-page');
   assert.deepEqual(translatePayload, {
     pdfId: 'paper-1',
     pageIndex: 3,
     pageText: 'Source text',
     paperSkeleton: { abstract: 'summary' },
+    pageLayout: {
+      viewport: { width: 600, height: 800 },
+      blocks: [{ id: 'block-1', text: 'Source text', bbox: { left: 0.1, top: 0.1, width: 0.2, height: 0.1 } }],
+      excludedZonesVersion: 1,
+    },
   });
   assert.equal(translateConfig.timeout, 90000);
   assert.ok(translateConfig.signal);

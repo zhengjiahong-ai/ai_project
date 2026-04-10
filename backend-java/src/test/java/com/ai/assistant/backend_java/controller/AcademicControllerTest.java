@@ -60,16 +60,24 @@ class AcademicControllerTest {
         when(aiService.translatePage(eq(Map.of(
                 "pdfId", "paper-1",
                 "pageIndex", 0,
-                "pageText", "source")))).thenReturn(Map.of(
-                        "status", "success",
-                        "pageIndex", 0,
-                        "translatedText", "译文"));
+                "pageText", "source",
+                "pageLayout", Map.of(
+                        "viewport", Map.of("width", 600, "height", 800),
+                        "blocks", List.of(Map.of("id", "block-1", "text", "source")),
+                        "excludedZonesVersion", 1))))).thenReturn(Map.of(
+                                "status", "success",
+                                "pageIndex", 0,
+                                "translatedText", "译文",
+                                "renderMode", "overlay"));
 
         mockMvc.perform(post("/api/translate-page")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"pdfId\":\"paper-1\",\"pageIndex\":0,\"pageText\":\"source\"}"))
+                .content("""
+                        {"pdfId":"paper-1","pageIndex":0,"pageText":"source","pageLayout":{"viewport":{"width":600,"height":800},"blocks":[{"id":"block-1","text":"source"}],"excludedZonesVersion":1}}
+                        """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pageIndex").value(0))
-                .andExpect(jsonPath("$.translatedText").value("译文"));
+                .andExpect(jsonPath("$.translatedText").value("译文"))
+                .andExpect(jsonPath("$.renderMode").value("overlay"));
     }
 }
