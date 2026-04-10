@@ -28,6 +28,7 @@ const WELCOME_MESSAGE = {
 
 const SOCRATIC_TOTAL_QUESTIONS = 5;
 const DEFAULT_ACTIVE_TAB = 'chat';
+const THEME_STORAGE_KEY = 'pixiu-theme';
 
 const initDB = async () =>
   openDB('PixiuAcademicDB_v6', 4, {
@@ -136,6 +137,13 @@ const normalizeSocraticSession = (storedValue, pdfId = null) => {
 };
 
 export default function App() {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') {
+      return 'light';
+    }
+
+    return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
+  });
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
   const [pdfId, setPdfId] = useState(null);
@@ -173,10 +181,19 @@ export default function App() {
   }, [papersList]);
 
   useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
+  useEffect(() => {
     if (activeTab !== 'translation') {
       lastNonTranslationTabRef.current = activeTab;
     }
   }, [activeTab]);
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'));
+  }, []);
 
   const fetchRemoteHistory = useCallback(async (sessionId, fallbackMessages = []) => {
     try {
@@ -1059,30 +1076,33 @@ export default function App() {
         onDeletePaper={handleDeletePaper}
       />
 
-      <div className="flex h-screen flex-col bg-[#F8F9FA] font-sans text-slate-900">
+      <div className="theme-app-shell flex h-screen flex-col font-sans">
         <Navbar
           activeTab={activeTab}
           onTabChange={setActiveTab}
           isReady={isAiReady}
+          theme={theme}
           onFileUpload={handlePdfUpload}
+          onToggleTheme={handleToggleTheme}
           onToggleLibrary={() => setIsLibraryOpen(true)}
         />
 
         <main className="flex-1 overflow-hidden">
           <Group orientation="horizontal">
             <Panel defaultSize={65} minSize={30}>
-              <div className="relative flex h-full flex-col bg-[#525659] p-4">
+              <div className="pdf-stage relative flex h-full flex-col p-4">
                 {pdfFileName && (
-                  <div className="mb-2 flex items-center justify-between truncate rounded bg-black/20 px-3 py-1 text-sm font-medium text-white">
+                  <div className="pdf-file-chip mb-2 flex items-center justify-between truncate rounded px-3 py-1 text-sm font-medium">
                     <span>📄 {pdfFileName}</span>
                     {isTranslated && <span className="text-xs text-pixiu">当前页译文已开启</span>}
                   </div>
                 )}
 
-                <div className="flex-1 overflow-hidden rounded bg-white shadow-2xl">
+                <div className="pdf-viewer-shell flex-1 overflow-hidden rounded">
                   <PdfViewer
                     fileUrl={pdfFile}
                     pdfId={pdfId}
+                    theme={theme}
                     translationLayoutIndex={deconstructData?.translationLayoutIndex || {}}
                     onSelection={handleExplain}
                     onSaveNote={handleAddNote}
@@ -1108,11 +1128,11 @@ export default function App() {
             </Panel>
 
             <Separator className="group relative w-1.5 transition-all hover:bg-pixiu/10">
-              <div className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-slate-200 transition-colors group-hover:bg-pixiu/40" />
+              <div className="app-separator-line absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 transition-colors group-hover:bg-pixiu/40" />
             </Separator>
 
             <Panel defaultSize={35}>
-              <div className="flex h-full flex-col bg-white">
+              <div className="panel-shell flex h-full flex-col">
                 {activeTab === 'chat' && (
                   <ChatPanel
                     messages={messages}
@@ -1158,13 +1178,13 @@ export default function App() {
                 )}
 
                 {activeTab === 'notes' && (
-                  <div className="flex flex-1 flex-col overflow-hidden bg-slate-50">
-                    <div className="border-b bg-white p-4 font-bold text-pixiu">📝 学术笔记精华</div>
+                  <div className="theme-panel-muted flex flex-1 flex-col overflow-hidden">
+                    <div className="theme-panel theme-border border-b p-4 font-bold text-pixiu">📝 学术笔记精华</div>
                     <div className="flex-1 space-y-4 overflow-y-auto p-4">
                       {notes.map((note) => (
                         <div
                           key={note.id}
-                          className="group relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                          className="theme-card group relative rounded-xl p-4"
                         >
                           <button
                             onClick={() => {
@@ -1172,7 +1192,7 @@ export default function App() {
                                 setNotes((prev) => prev.filter((item) => item.id !== note.id));
                               }
                             }}
-                            className="absolute right-2 top-2 rounded-md bg-red-50 p-1.5 text-red-500 opacity-0 transition-opacity hover:bg-red-100 group-hover:opacity-100"
+                            className="theme-danger-button absolute right-2 top-2 rounded-md p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
                             title="删除此笔记"
                           >
                             <Trash2 size={14} />
@@ -1182,10 +1202,10 @@ export default function App() {
                             <span>PAGE {note.pageNumber + 1}</span>
                             <span>{note.time}</span>
                           </div>
-                          <p className="mb-3 border-l-2 border-slate-200 pl-3 text-sm italic text-slate-500">
+                          <p className="theme-note-quote mb-3 pl-3 text-sm italic">
                             "{note.text}"
                           </p>
-                          <div className="prose prose-sm max-w-none rounded-lg bg-pixiu/5 p-3 prose-slate">
+                          <div className="theme-markdown-panel rounded-lg p-3">
                             <MarkdownContent>{note.aiInterpretation}</MarkdownContent>
                           </div>
                         </div>

@@ -7,9 +7,9 @@ import { canRenderOverlay } from '../utils/translationState.js';
 
 const ROLE_CLASS_NAMES = {
   title: 'text-center',
-  meta: 'text-center text-slate-600',
-  heading: 'text-slate-800',
-  body: 'text-slate-700',
+  meta: 'text-center theme-text-secondary',
+  heading: 'theme-text-primary',
+  body: 'theme-text-secondary',
 };
 
 const FIGURE_TYPE_LABELS = {
@@ -98,22 +98,15 @@ const TranslationFigureSnippet = ({ figure, isColumn = false }) => {
 
   return (
     <figure
-      className={`overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm ${resolveFigureAlignment(
-        figure,
-      )}`}
+      className={`theme-card-soft overflow-hidden rounded-2xl shadow-sm ${resolveFigureAlignment(figure)}`}
       style={{ width: resolveFigureWidth(figure, isColumn) }}
     >
-      <div className="flex items-center gap-2 border-b border-slate-200 bg-white/80 px-4 py-2 text-xs font-semibold text-slate-500">
+      <div className="theme-panel theme-border flex items-center gap-2 border-b px-4 py-2 text-xs font-semibold theme-text-secondary">
         <Image size={14} className="text-pixiu" />
         <span>{label}</span>
       </div>
-      <div className="bg-slate-100 p-3">
-        <img
-          src={figure?.image}
-          alt={label}
-          className="w-full rounded-xl bg-white object-contain"
-          loading="lazy"
-        />
+      <div className="theme-panel-muted p-3">
+        <img src={figure?.image} alt={label} className="w-full rounded-xl bg-white object-contain" loading="lazy" />
       </div>
     </figure>
   );
@@ -133,8 +126,8 @@ const TranslationStructuredStage = ({ readableLayout }) => {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-100 p-4 shadow-sm">
-      <div className="mx-auto max-w-[960px] rounded-[28px] bg-white px-6 py-8 shadow-sm sm:px-8 md:px-10">
+    <div className="theme-card-soft rounded-2xl p-4">
+      <div className="theme-panel mx-auto max-w-[960px] rounded-[28px] px-6 py-8 shadow-sm sm:px-8 md:px-10">
         <div className="space-y-8">
           {readableLayout.sections.map((section, index) => {
             if (section.type === 'columns') {
@@ -184,21 +177,21 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
     (pageData?.renderMode === 'overlay' || canRenderOverlay(pageData));
 
   return (
-    <div className="flex h-full flex-col bg-slate-50/40">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
+    <div className="theme-panel-muted flex h-full flex-col">
+      <div className="theme-panel theme-border sticky top-0 z-10 flex items-center justify-between border-b px-6 py-4">
         <div>
-          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+          <h2 className="theme-text-primary flex items-center gap-2 text-lg font-bold">
             <Languages size={20} className="text-pixiu" />
             全景翻译
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="theme-text-secondary mt-1 text-xs">
             {pdfFileName ? `${pdfFileName} · 第 ${pageNumber} 页` : `第 ${pageNumber} 页`}
           </p>
         </div>
 
         <button
           onClick={onRetry}
-          className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-pixiu hover:text-pixiu"
+          className="theme-button-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition"
         >
           <RefreshCw size={14} />
           重试当前页
@@ -207,24 +200,24 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
 
       <div className="flex-1 space-y-5 overflow-y-auto p-6">
         {status === 'loading' && (
-          <div className="flex items-center gap-3 rounded-2xl border border-pixiu/10 bg-white p-5 shadow-sm">
+          <div className="theme-card flex items-center gap-3 rounded-2xl p-5">
             <Loader2 size={18} className="animate-spin text-pixiu" />
             <div>
-              <p className="text-sm font-semibold text-slate-700">正在生成当前页译文...</p>
-              <p className="text-xs text-slate-500">会优先保留图表和结构化排版，失败时自动降级为连续译文。</p>
+              <p className="theme-text-primary text-sm font-semibold">正在生成当前页译文...</p>
+              <p className="theme-text-secondary text-xs">会优先保留图表和结构化排版，失败时自动降级为连续译文。</p>
             </div>
           </div>
         )}
 
         {status === 'error' && (
-          <div className="rounded-2xl border border-red-100 bg-red-50 p-5 text-sm text-red-600 shadow-sm">
+          <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-5 text-sm text-red-500 shadow-sm">
             <p className="font-semibold">当前页翻译失败</p>
             <p className="mt-2 leading-relaxed">{errorMessage || '请稍后重试，或切换页面后再返回。'}</p>
           </div>
         )}
 
         {status === 'empty' && !canRenderStructured && (
-          <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 text-sm text-amber-700 shadow-sm">
+          <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-5 text-sm text-amber-500 shadow-sm">
             <p className="font-semibold">当前页没有可翻译的正文内容</p>
             <p className="mt-2 leading-relaxed">
               {errorMessage || '这一页可能主要由图片、图表或空白区域组成，所以没有生成译文。'}
@@ -233,12 +226,12 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
         )}
 
         {status === 'idle' && (
-          <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center shadow-sm">
+          <div className="theme-card flex min-h-[220px] flex-col items-center justify-center rounded-2xl border-dashed p-8 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-pixiu/10">
               <ScrollText size={24} className="text-pixiu" />
             </div>
-            <p className="text-sm font-semibold text-slate-700">打开全景翻译后，这里会显示当前页的译文。</p>
-            <p className="mt-2 max-w-xs text-xs leading-relaxed text-slate-500">
+            <p className="theme-text-primary text-sm font-semibold">打开全景翻译后，这里会显示当前页的译文。</p>
+            <p className="theme-text-secondary mt-2 max-w-xs text-xs leading-relaxed">
               如果本页包含图片或图表，右侧会在保留原图的同时显示中文正文。
             </p>
           </div>
@@ -247,12 +240,12 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
         {canRenderStructured && <TranslationStructuredStage readableLayout={readableLayout} />}
 
         {translatedText && !canRenderStructured && (
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-            <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+          <div className="theme-card rounded-2xl p-5">
+            <div className="theme-text-muted mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
               <Languages size={14} className="text-pixiu" />
               中文译文
             </div>
-            <div className="whitespace-pre-wrap text-[15px] leading-8 text-slate-700">{translatedText}</div>
+            <div className="theme-text-secondary whitespace-pre-wrap text-[15px] leading-8">{translatedText}</div>
           </div>
         )}
       </div>

@@ -6,11 +6,29 @@ import {
   CheckCircle2,
   LayoutDashboard,
   MessageSquare,
+  Moon,
   Sparkles,
+  Sun,
   Upload,
 } from 'lucide-react';
 
-const Navbar = ({ onFileUpload, isReady = true, activeTab, onTabChange, onToggleLibrary }) => {
+const navItems = [
+  { id: 'chat', label: 'AI 对话', icon: MessageSquare },
+  { id: 'analysis', label: '批判性分析', icon: BarChart3 },
+  { id: 'socratic', label: '引导式学习', icon: Sparkles },
+  { id: 'deconstruct', label: '篇章解构', icon: LayoutDashboard },
+  { id: 'notes', label: '学术笔记', icon: Bookmark },
+];
+
+const Navbar = ({
+  onFileUpload,
+  isReady = true,
+  activeTab,
+  onTabChange,
+  onToggleLibrary,
+  theme = 'light',
+  onToggleTheme,
+}) => {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -20,76 +38,59 @@ const Navbar = ({ onFileUpload, isReady = true, activeTab, onTabChange, onToggle
   };
 
   return (
-    <header className="z-50 flex h-14 items-center justify-between border-b bg-white px-6 shadow-sm">
+    <header className="theme-header theme-border z-50 flex h-14 items-center justify-between border-b px-6">
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-pixiu p-1">
-            <img src="/貔貅白.png" alt="Pixiu Logo" className="h-full w-full object-contain" />
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-pixiu p-1 shadow-sm shadow-pixiu/30">
+            <img src="/logo.png" alt="Pixiu Logo" className="h-full w-full object-contain" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-800">Pixiu</span>
+          <span className="theme-text-primary text-xl font-bold tracking-tight">Pixiu</span>
         </div>
 
         <button
           onClick={onToggleLibrary}
-          className="flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors hover:text-pixiu"
+          className="theme-text-secondary flex items-center gap-2 text-sm font-medium transition-colors hover:text-pixiu"
         >
           <BookOpen size={16} />
           论文库
         </button>
       </div>
 
-      <div className="flex rounded-xl border bg-slate-100 p-1">
-        <button
-          onClick={() => onTabChange('chat')}
-          className={`flex items-center gap-2 rounded-lg px-4 py-1 text-sm font-medium transition-all ${
-            activeTab === 'chat' ? 'bg-white text-pixiu shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <MessageSquare size={16} />
-          AI 对话
-        </button>
-        <button
-          onClick={() => onTabChange('analysis')}
-          className={`flex items-center gap-2 rounded-lg px-4 py-1 text-sm font-medium transition-all ${
-            activeTab === 'analysis' ? 'bg-white text-pixiu shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <BarChart3 size={16} />
-          批判性分析
-        </button>
-        <button
-          onClick={() => onTabChange('socratic')}
-          className={`flex items-center gap-2 rounded-lg px-4 py-1 text-sm font-medium transition-all ${
-            activeTab === 'socratic' ? 'bg-white text-pixiu shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Sparkles size={16} />
-          引导式学习
-        </button>
-        <button
-          onClick={() => onTabChange('deconstruct')}
-          className={`flex items-center gap-2 rounded-lg px-4 py-1 text-sm font-medium transition-all ${
-            activeTab === 'deconstruct' ? 'bg-white text-pixiu shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <LayoutDashboard size={16} />
-          篇章解构
-        </button>
-        <button
-          onClick={() => onTabChange('notes')}
-          className={`flex items-center gap-2 rounded-lg px-4 py-1 text-sm font-medium transition-all ${
-            activeTab === 'notes' ? 'bg-white text-pixiu shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Bookmark size={16} />
-          学术笔记
-        </button>
+      <div className="theme-tab-group flex rounded-xl p-1">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              className={`theme-tab flex items-center gap-2 rounded-lg px-4 py-1 text-sm font-medium transition-all ${
+                isActive ? 'theme-tab-active' : ''
+              }`}
+            >
+              <Icon size={16} />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          className="theme-button-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium"
+          aria-label={theme === 'dark' ? '切换到日间模式' : '切换到夜间模式'}
+          title={theme === 'dark' ? '切换到日间模式' : '切换到夜间模式'}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          <span>{theme === 'dark' ? '日间' : '夜间'}</span>
+        </button>
+
         <div className="flex items-center gap-2 text-sm">
-          <CheckCircle2 size={16} className={isReady ? 'text-green-500' : 'text-slate-400'} />
-          <span className={isReady ? 'text-green-600' : 'text-slate-400'}>AI 就绪</span>
+          <CheckCircle2 size={16} className={isReady ? 'text-emerald-400' : 'theme-text-muted'} />
+          <span className={isReady ? 'text-emerald-500' : 'theme-text-muted'}>AI 就绪</span>
         </div>
 
         <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-pixiu px-4 py-1.5 font-medium text-white shadow-sm transition hover:bg-pixiu-dark">

@@ -10,14 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import {
-  AlertCircle,
-  BarChart3,
-  CheckCircle2,
-  FileText,
-  LayoutDashboard,
-  Loader2,
-} from 'lucide-react';
+import { AlertCircle, BarChart3, CheckCircle2, FileText, LayoutDashboard, Loader2 } from 'lucide-react';
 import MarkdownContent from './MarkdownContent';
 
 const fallbackNetworkData = {
@@ -87,15 +80,12 @@ const buildSummary = (data) => {
   return sections.map(([title, value]) => `### ${title}\n${value}`).join('\n\n');
 };
 
-const getDetailSections = (data) => {
-  const sections = [
+const getDetailSections = (data) =>
+  [
     { key: 'claimed', title: '作者宣称的贡献', content: data?.claimed_contributions },
     { key: 'inferred', title: '推断出的真实贡献', content: data?.inferred_real_contributions },
     { key: 'critical', title: '批判性阅读结论', content: data?.critical_analysis },
-  ];
-
-  return sections.filter((section) => typeof section.content === 'string' && section.content.trim());
-};
+  ].filter((section) => typeof section.content === 'string' && section.content.trim());
 
 const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
   const containerRef = useRef(null);
@@ -114,12 +104,12 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
 
   if (!data && !isLoading) {
     return (
-      <div className="flex h-full flex-col items-center justify-center bg-slate-50 p-8 text-center">
+      <div className="theme-panel-muted flex h-full flex-col items-center justify-center p-8 text-center">
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-pixiu/10">
           <LayoutDashboard className="text-pixiu" size={40} />
         </div>
-        <h3 className="text-xl font-bold text-slate-800">开启深度批判性阅读</h3>
-        <p className="mt-2 mb-8 max-w-xs text-sm text-slate-500">
+        <h3 className="theme-text-primary text-xl font-bold">开启深度批判性阅读</h3>
+        <p className="theme-text-secondary mb-8 mt-2 max-w-xs text-sm">
           AI 将从创新性、论证链条与实验可信度等维度，对整篇论文进行深度分析。
         </p>
         <button
@@ -135,57 +125,57 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
 
   if (isLoading) {
     return (
-      <div className="flex h-full flex-col items-center justify-center bg-white p-8 text-center">
+      <div className="theme-panel flex h-full flex-col items-center justify-center p-8 text-center">
         <div className="relative mb-6">
           <Loader2 className="animate-spin text-pixiu" size={48} />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="h-2 w-2 animate-ping rounded-full bg-pixiu" />
           </div>
         </div>
-        <p className="text-lg font-medium text-slate-700">正在构建批判性分析...</p>
-        <p className="mt-2 text-xs text-slate-400">AI 正在读取全文并生成真实分析结果</p>
+        <p className="theme-text-primary text-lg font-medium">正在构建批判性分析...</p>
+        <p className="theme-text-secondary mt-2 text-xs">AI 正在读取全文并生成真实分析结果</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col bg-slate-50/30">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+    <div className="theme-panel-muted flex h-full flex-col">
+      <div className="theme-panel theme-border sticky top-0 z-10 flex items-center justify-between border-b px-6 py-4">
+        <h2 className="theme-text-primary flex items-center gap-2 text-lg font-bold">
           <FileText className="text-pixiu" size={20} />
           批判性阅读报告
         </h2>
         <button
           onClick={onAnalyze}
-          className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-pixiu hover:text-pixiu"
+          className="theme-button-secondary rounded-lg px-3 py-1.5 text-sm font-medium transition"
         >
           重新分析
         </button>
       </div>
 
       <div className="flex-1 space-y-6 overflow-y-auto p-6">
-        <div ref={containerRef} className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <div ref={containerRef} className="theme-card overflow-hidden rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <h3 className="theme-text-muted flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
               <LayoutDashboard size={14} className="text-pixiu" />
               论文领域学术地位
             </h3>
-            <span className="text-[10px] italic text-slate-400">滚轮缩放 / 拖拽节点</span>
+            <span className="theme-text-muted text-[10px] italic">滚轮缩放 / 拖拽节点</span>
           </div>
 
-          <div className="relative h-64 w-full rounded-xl border border-slate-100 bg-slate-50">
+          <div className="theme-card-soft relative h-64 w-full rounded-xl">
             <ForceGraph
               graphData={networkData}
               height={250}
               width={containerWidth}
               nodeLabel="name"
               nodeRelSize={6}
-              linkColor={() => '#cbd5e1'}
+              linkColor={() => '#64748b'}
               linkDirectionalArrowLength={3}
               linkDirectionalArrowRelPos={1}
               cooldownTicks={100}
             />
-            <div className="absolute bottom-2 left-2 flex gap-3 rounded bg-white/80 p-1 text-[9px] text-slate-500">
+            <div className="theme-panel absolute bottom-2 left-2 flex gap-3 rounded p-1 text-[9px] theme-text-secondary">
               <span className="flex items-center gap-1">
                 <i className="h-2 w-2 rounded-full bg-pixiu" /> 本文
               </span>
@@ -199,58 +189,49 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-            <CheckCircle2 size={14} className="text-green-500" />
+        <div className="theme-card rounded-2xl p-5">
+          <h3 className="theme-text-muted mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+            <CheckCircle2 size={14} className="text-emerald-400" />
             核心结论总结
           </h3>
-          <div className="rounded-xl border-l-4 border-pixiu bg-slate-50 p-4 text-sm leading-relaxed text-slate-600">
-            <MarkdownContent className="prose prose-sm max-w-none">
-              {summary}
-            </MarkdownContent>
+          <div className="theme-markdown-panel rounded-xl border-l-4 border-pixiu p-4 text-sm leading-relaxed">
+            <MarkdownContent className="prose prose-sm max-w-none">{summary}</MarkdownContent>
           </div>
         </div>
 
         {detailSections.length > 0 && (
           <div className="grid gap-4">
             {detailSections.map((section) => (
-              <div key={section.key} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-bold text-slate-700">{section.title}</h3>
-                <MarkdownContent className="prose prose-sm max-w-none text-slate-700">
-                  {section.content}
-                </MarkdownContent>
+              <div key={section.key} className="theme-card rounded-2xl p-5">
+                <h3 className="theme-text-primary mb-3 text-sm font-bold">{section.title}</h3>
+                <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none">{section.content}</MarkdownContent>
               </div>
             ))}
           </div>
         )}
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+        <div className="theme-card rounded-2xl p-5">
           <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">多维度评价</h3>
-            <span className="text-[10px] italic text-slate-400">鼠标悬停查看详情</span>
+            <h3 className="theme-text-muted text-xs font-bold uppercase tracking-wider">多维度评价</h3>
+            <span className="theme-text-muted text-[10px] italic">鼠标悬停查看详情</span>
           </div>
 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={metrics} layout="vertical" margin={{ left: -20, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(148, 163, 184, 0.18)" />
                 <XAxis type="number" domain={[0, 100]} hide />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  width={80}
-                  tick={{ fontSize: 11, fontWeight: 600, fill: '#64748b' }}
-                />
+                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} />
                 <Tooltip
-                  cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
+                  cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const item = payload[0].payload;
                     return (
-                      <div className="max-w-[220px] animate-in fade-in slide-in-from-bottom-1 rounded-xl bg-slate-900 p-3 text-xs text-white shadow-2xl">
+                      <div className="max-w-[220px] rounded-xl bg-slate-950 p-3 text-xs text-white shadow-2xl">
                         <div className="mb-1.5 flex items-center justify-between border-b border-white/10 pb-1.5 font-bold">
                           <span>{item.name}</span>
-                          <span className="text-pixiu-dark">{item.score} 分</span>
+                          <span className="text-pixiu">{item.score} 分</span>
                         </div>
                         <p className="leading-normal opacity-80">{item.detail}</p>
                       </div>
@@ -270,11 +251,13 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
           </div>
         </div>
 
-        <div className="flex gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4">
-          <AlertCircle className="shrink-0 text-amber-500" size={18} />
-          <p className="text-[11px] leading-normal text-amber-700">
-            提示：分析结果已兼容真实后端返回结构与旧展示结构，建议结合 PDF 原文和划词解释功能交叉核对。
-          </p>
+        <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-4">
+          <div className="flex gap-3">
+            <AlertCircle className="shrink-0 text-amber-500" size={18} />
+            <p className="text-[11px] leading-normal text-amber-500">
+              提示：分析结果已兼容真实后端返回结构与旧展示结构，建议结合 PDF 原文和划词解释功能交叉核对。
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -128,7 +128,7 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
 
   return (
     <div
-      className="absolute z-[999] flex max-h-[400px] w-80 flex-col rounded-xl border border-blue-100 bg-white shadow-2xl animate-in fade-in zoom-in duration-200"
+      className="theme-popup absolute z-[999] flex max-h-[400px] w-80 flex-col rounded-xl animate-in fade-in zoom-in duration-200"
       style={{
         ...(highlight.position.top > 55
           ? { bottom: `${100 - highlight.position.top}%`, transform: 'translateY(-12px)' }
@@ -136,7 +136,7 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
         left: `min(${highlight.position.left}%, calc(100% - 340px))`,
       }}
     >
-      <div className="flex shrink-0 items-center justify-between rounded-t-xl border-b bg-blue-50/50 p-3">
+      <div className="theme-popup-header flex shrink-0 items-center justify-between rounded-t-xl border-b p-3">
         <span className="flex items-center gap-1.5 text-xs font-bold text-pixiu">
           <Sparkles size={14} /> AI 翻译
         </span>
@@ -151,21 +151,21 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
           )}
           <button
             onClick={onDelete}
-            className="rounded-full p-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            className="theme-danger-button rounded-full p-1 transition-colors"
             title="删除划线"
           >
             <Trash2 size={14} />
           </button>
           <button
             onClick={onClose}
-            className="rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-200/50 hover:text-slate-600"
+            className="theme-icon-button rounded-full p-1 transition-colors"
           >
             <X size={16} />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-white p-4 text-sm">
+      <div className="theme-panel flex-1 overflow-y-auto p-4 text-sm">
         <div className="prose prose-sm flex flex-col gap-4">
           {highlight.chatHistory.map((message, index) => {
             if (index === 0 && message.role === 'user') return null;
@@ -174,8 +174,8 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
                 key={index}
                 className={`rounded-xl p-3 ${
                   message.role === 'user'
-                    ? 'border border-pixiu/10 bg-pixiu/5 text-slate-800'
-                    : 'bg-slate-50 text-slate-700'
+                    ? 'theme-markdown-panel theme-border border'
+                    : 'theme-card-soft'
                 }`}
               >
                 <MarkdownContent
@@ -187,20 +187,20 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
             );
           })}
           {highlight.isLoading && (
-            <div className="flex items-center gap-2 p-2 text-xs italic text-slate-400">
+            <div className="theme-text-muted flex items-center gap-2 p-2 text-xs italic">
               <Sparkles size={12} className="animate-pulse" /> AI 正在处理中...
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex shrink-0 gap-2 rounded-b-xl border-t bg-slate-50 p-3">
+      <div className="theme-popup-footer flex shrink-0 gap-2 rounded-b-xl border-t p-3">
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => event.key === 'Enter' && handleAsk()}
           placeholder="继续追问..."
-          className="flex-1 rounded-md border px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-pixiu/20"
+          className="theme-input flex-1 rounded-md px-2 py-1.5 text-xs outline-none"
         />
         <button
           onClick={handleAsk}
@@ -223,6 +223,7 @@ const PdfViewer = ({
   onHighlightsChange,
   onPageChange,
   onPageTextExtracted,
+  theme = 'light',
   translationLayoutIndex = {},
 }) => {
   const [highlights, setHighlights] = useState([]);
@@ -501,13 +502,13 @@ const PdfViewer = ({
           <Viewer
             fileUrl={fileUrl}
             plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
-            theme="light"
+            theme={theme}
             onDocumentLoad={handleDocumentLoad}
             onPageChange={handleViewerPageChange}
           />
         </Worker>
       ) : (
-        <div className="flex h-full flex-col items-center justify-center bg-slate-50 text-slate-400">
+        <div className="theme-empty-state flex h-full flex-col items-center justify-center">
           <p>暂无预览内容</p>
         </div>
       )}
