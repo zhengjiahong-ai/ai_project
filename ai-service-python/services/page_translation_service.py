@@ -6,6 +6,11 @@ from typing import Any, Dict, List
 from llm.client import get_translation_llm
 from schemas.requests import PageTranslationRequest
 
+STRUCTURED_MAX_BLOCKS_PER_BATCH = 24
+STRUCTURED_MAX_CHARS_PER_BATCH = 1800
+STRUCTURED_INDIVIDUAL_RETRY_LIMIT = 160
+STRUCTURED_INDIVIDUAL_RETRY_WORKERS = 4
+
 
 def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any] | None) -> str:
     if not paper_skeleton:
@@ -162,6 +167,101 @@ def _normalize_translated_blocks(payload: Any, source_blocks: List[Dict[str, Any
     ]
 
 
+def _chunk_layout_blocks(
+    blocks: List[Dict[str, Any]],
+    max_blocks: int = STRUCTURED_MAX_BLOCKS_PER_BATCH,
+    max_chars: int = STRUCTURED_MAX_CHARS_PER_BATCH,
+) -> List[List[Dict[str, Any]]]:
+    batches: List[List[Dict[str, Any]]] = []
+    current_batch: List[Dict[str, Any]] = []
+    current_chars = 0
+
+    for block in blocks:
+        block_chars = len(block["text"])
+        should_start_next_batch = (
+            current_batch
+            and (len(current_batch) >= max_blocks or current_chars + block_chars > max_chars)
+        )
+
+        if should_start_next_batch:
+            batches.append(current_batch)
+            current_batch = []
+            current_chars = 0
+
+        current_batch.append(block)
+        current_chars += block_chars
+
+    if current_batch:
+        batches.append(current_batch)
+
+    return batches
+
+
+def _translate_block_batch(page_index: int, skeleton_text: str, blocks: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    prompt = _build_structured_translation_prompt(page_index, skeleton_text, blocks)
+    raw_response = _call_translation_with_timeout(prompt, timeout_seconds=60)
+    payload = _extract_json_payload(raw_response)
+    return _normalize_translated_blocks(payload, blocks)
+
+
+def _build_single_block_translation_prompt(page_index: int, skeleton_text: str, block: Dict[str, Any]) -> str:
+    return f"""Translate one PDF text box into Simplified Chinese.
+
+Rules:
+- Return only the translated text for this one box.
+- Do not add labels, quotes, markdown fences, explanations, or JSON.
+- Preserve citation numbers, equations, code identifiers, emails, and proper nouns when appropriate.
+- Keep the result concise because it will be rendered back into the original PDF text box.
+
+Paper context:
+{skeleton_text}
+
+Page: {page_index + 1}
+Block id: {block["id"]}
+Text:
+{block["text"]}
+"""
+
+
+def _clean_single_block_translation(raw_text: str) -> str:
+    cleaned = (raw_text or "").strip()
+    cleaned = re.sub(r"^```(?:text|markdown)?\s*", "", cleaned)
+    cleaned = re.sub(r"\s*```$", "", cleaned).strip()
+
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in {'"', "'"}:
+        cleaned = cleaned[1:-1].strip()
+
+    return cleaned
+
+
+def _translate_single_block(page_index: int, skeleton_text: str, block: Dict[str, Any]) -> Dict[str, str] | None:
+    prompt = _build_single_block_translation_prompt(page_index, skeleton_text, block)
+    translated_text = _clean_single_block_translation(_call_translation_with_timeout(prompt, timeout_seconds=45))
+    if not translated_text:
+        return None
+    return {"id": block["id"], "translatedText": translated_text}
+
+
+def _translate_missing_blocks_individually(
+    page_index: int,
+    skeleton_text: str,
+    missing_blocks: List[Dict[str, Any]],
+) -> List[Dict[str, str]]:
+    if not missing_blocks or len(missing_blocks) > STRUCTURED_INDIVIDUAL_RETRY_LIMIT:
+        return []
+
+    def translate_one(block: Dict[str, Any]) -> Dict[str, str] | None:
+        try:
+            return _translate_single_block(page_index, skeleton_text, block)
+        except Exception as error:
+            print(f"Structured translation single-block retry failed for {block['id']}: {error}")
+            return None
+
+    max_workers = min(STRUCTURED_INDIVIDUAL_RETRY_WORKERS, len(missing_blocks))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        return [result for result in executor.map(translate_one, missing_blocks) if result]
+
+
 def _translate_blocks(
     page_index: int,
     skeleton_text: str,
@@ -171,17 +271,27 @@ def _translate_blocks(
     if not blocks:
         return []
 
-    total_chars = sum(len(block["text"]) for block in blocks)
-    if len(blocks) > 120 or total_chars > 7000:
-        return []
-
-    prompt = _build_structured_translation_prompt(page_index, skeleton_text, blocks)
-    raw_response = _call_translation_with_timeout(prompt, timeout_seconds=60)
-    payload = _extract_json_payload(raw_response)
-    translated_blocks = _normalize_translated_blocks(payload, blocks)
+    translated_blocks: List[Dict[str, str]] = []
+    for batch in _chunk_layout_blocks(blocks):
+        try:
+            translated_blocks.extend(_translate_block_batch(page_index, skeleton_text, batch))
+        except Exception as error:
+            print(f"Structured translation batch failed, continuing with remaining batches: {error}")
 
     minimum_expected = max(1, len(blocks) // 2)
-    return translated_blocks if len(translated_blocks) >= minimum_expected else []
+    translated_by_id = {block["id"]: block for block in translated_blocks}
+    if len(translated_by_id) < minimum_expected:
+        missing_blocks = [block for block in blocks if block["id"] not in translated_by_id]
+        for translated_block in _translate_missing_blocks_individually(page_index, skeleton_text, missing_blocks):
+            translated_by_id[translated_block["id"]] = translated_block
+
+    ordered_translated_blocks = [
+        {"id": block["id"], "translatedText": translated_by_id[block["id"]]["translatedText"]}
+        for block in blocks
+        if block["id"] in translated_by_id
+    ]
+
+    return ordered_translated_blocks if len(ordered_translated_blocks) >= minimum_expected else []
 
 
 def translate_page(request: PageTranslationRequest) -> Dict[str, Any]:

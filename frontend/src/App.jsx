@@ -840,15 +840,17 @@ export default function App() {
         existingPage &&
         existingPage.sourceText === sourceText &&
         existingPage.status === 'success' &&
-        existingPage.translatedText;
+        existingPage.translatedText &&
+        (!requestPageLayout?.blocks?.length || existingPage.renderMode === 'overlay');
 
-      const isAlreadyLoading =
+      const isFreshLoading =
         !force &&
         existingPage &&
         existingPage.sourceText === sourceText &&
-        existingPage.status === 'loading';
+        existingPage.status === 'loading' &&
+        Date.now() - Number(existingPage.updatedAt || 0) < 100000;
 
-      if (isCacheHit || isAlreadyLoading) {
+      if (isCacheHit || isFreshLoading) {
         return baseState.currentPage === pageIndex ? baseState : { ...baseState, currentPage: pageIndex };
       }
 
@@ -878,7 +880,38 @@ export default function App() {
       };
     });
 
-    if (!translationSourceText || !shouldRequest) {
+    if (!translationSourceText) {
+      setTranslationState((prev) => {
+        if (prev?.pdfId !== pdfId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          currentPage: pageIndex,
+          pages: {
+            ...prev.pages,
+            [pageIndex]: normalizeTranslationPage({
+              ...prev.pages?.[pageIndex],
+              sourceText,
+              translatedText: '',
+              translatedBlocks: [],
+              renderMode: 'plain',
+              pageLayout: pageLayout || prev.pages?.[pageIndex]?.pageLayout || null,
+              backgroundImage: backgroundImage || prev.pages?.[pageIndex]?.backgroundImage || '',
+              figureSnippets: figureSnippets.length > 0 ? figureSnippets : prev.pages?.[pageIndex]?.figureSnippets || [],
+              excludedZones,
+              status: 'empty',
+              error: prev.pages?.[pageIndex]?.error || 'No translatable text was extracted from this page.',
+              updatedAt: Date.now(),
+            }),
+          },
+        };
+      });
+      return;
+    }
+
+    if (!shouldRequest) {
       return;
     }
 

@@ -1,3 +1,5 @@
+import json
+import re
 import unittest
 from unittest.mock import patch
 
@@ -84,6 +86,7 @@ class TranslatePageServiceTests(unittest.TestCase):
         with patch("services.page_translation_service.get_translation_llm") as mocked_get_llm:
             mocked_get_llm.return_value._call.side_effect = [
                 "not json",
+                RuntimeError("single block retry failed"),
                 "纯文本兜底译文",
             ]
             response = translate_page(request)
@@ -91,6 +94,74 @@ class TranslatePageServiceTests(unittest.TestCase):
         self.assertEqual(response["renderMode"], "plain")
         self.assertEqual(response["translatedText"], "纯文本兜底译文")
         self.assertEqual(response["translatedBlocks"], [])
+
+    def test_translate_page_retries_single_block_when_structured_json_is_invalid(self):
+        request = PageTranslationRequest(
+            pdfId="paper-1",
+            pageIndex=0,
+            pageText="Source text",
+            paperSkeleton={},
+            pageLayout={
+                "viewport": {"width": 600, "height": 800},
+                "blocks": [
+                    {
+                        "id": "block-1",
+                        "text": "Source text",
+                        "bbox": {"left": 0.1, "top": 0.1, "width": 0.2, "height": 0.1},
+                    }
+                ],
+                "excludedZonesVersion": 1,
+            },
+        )
+
+        with patch("services.page_translation_service.get_translation_llm") as mocked_get_llm:
+            mocked_get_llm.return_value._call.side_effect = ["not json", "单块译文"]
+            response = translate_page(request)
+
+        self.assertEqual(response["renderMode"], "overlay")
+        self.assertEqual(response["translatedText"], "单块译文")
+        self.assertEqual(response["translatedBlocks"], [{"id": "block-1", "translatedText": "单块译文"}])
+
+    def test_translate_page_batches_large_structured_layout(self):
+        blocks = [
+            {
+                "id": f"block-{index + 1}",
+                "text": f"Source line {index + 1}",
+                "bbox": {"left": 0.08 if index < 65 else 0.56, "top": 0.2, "width": 0.36, "height": 0.02},
+            }
+            for index in range(125)
+        ]
+        request = PageTranslationRequest(
+            pdfId="paper-1",
+            pageIndex=0,
+            pageText="\n".join(block["text"] for block in blocks),
+            paperSkeleton={},
+            pageLayout={
+                "viewport": {"width": 600, "height": 800},
+                "blocks": blocks,
+                "excludedZonesVersion": 1,
+            },
+        )
+
+        def translate_batch(prompt):
+            block_ids = re.findall(r'"id":\s*"(block-\d+)"', prompt)
+            return json.dumps(
+                {
+                    "translatedBlocks": [
+                        {"id": block_id, "translatedText": f"Translated {block_id}"}
+                        for block_id in block_ids
+                    ]
+                }
+            )
+
+        with patch("services.page_translation_service.get_translation_llm") as mocked_get_llm:
+            mocked_get_llm.return_value._call.side_effect = translate_batch
+            response = translate_page(request)
+
+        self.assertEqual(response["renderMode"], "overlay")
+        self.assertEqual(len(response["translatedBlocks"]), 125)
+        self.assertEqual(response["translatedBlocks"][0]["id"], "block-1")
+        self.assertEqual(response["translatedBlocks"][-1]["id"], "block-125")
 
     def test_translate_page_rejects_empty_page_text(self):
         request = PageTranslationRequest(pdfId="paper-1", pageIndex=0, pageText="   ", paperSkeleton={})
