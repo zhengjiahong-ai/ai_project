@@ -101,34 +101,11 @@ export const buildExplainSelectionPayload = (rawText = '') => {
   const normalized = normalizePdfSelectionText(rawText);
   const displayMessage = normalized.isFormulaLike ? normalized.displayText : normalized.rawText;
 
-  if (!normalized.isFormulaLike) {
-    return {
-      displayMessage,
-      backendPrompt: [
-        '请直接解释下面这段内容。',
-        '不要添加客套话或铺垫，直接给出解释。',
-        '',
-        '内容：',
-        `> ${normalized.normalizedText}`,
-      ].join('\n'),
-    };
-  }
-
   return {
     displayMessage,
-    backendPrompt: [
-      '请直接解释下面这个数学公式，用中文回答。',
-      '要求：',
-      '- 直接进入解释，不要添加来源说明、恢复说明或其他铺垫',
-      '- 不要描述公式恢复或归一化过程',
-      '- 如果需要展示公式，直接使用 Markdown LaTeX',
-      '- 如果公式中的符号可以逐项解释，就直接解释每个符号和整体含义',
-      '',
-      '标准公式：',
-      `> ${normalized.displayText}`,
-      '',
-      '原始选区仅供消歧，不要在回答中复述：',
-      `> ${normalized.rawText}`,
-    ].join('\n'),
+    explainText: normalized.isFormulaLike ? normalized.displayText : normalized.normalizedText,
+    rawText: normalized.rawText,
+    normalizedText: normalized.normalizedText,
+    isFormulaLike: normalized.isFormulaLike,
   };
 };

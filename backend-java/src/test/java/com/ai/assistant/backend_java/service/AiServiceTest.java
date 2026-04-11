@@ -98,6 +98,50 @@ class AiServiceTest {
     }
 
     @Test
+    void explainTermForwardsSelectionPayloadWithPdfContext() {
+        when(restTemplate.postForObject(eq("http://python/api/explain-term"), any(Map.class), eq(Map.class)))
+                .thenReturn(Map.of("status", "success", "explanation", "解释"));
+
+        Map<String, Object> request = new HashMap<>();
+        request.put("text", "contrastive loss");
+        request.put("pdfId", "paper-1");
+        request.put("pageNumber", 4);
+        request.put("context", "This page introduces contrastive learning.");
+
+        aiService.explainTerm(request);
+
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
+        verify(restTemplate).postForObject(eq("http://python/api/explain-term"), captor.capture(), eq(Map.class));
+
+        Map<String, Object> forwarded = captor.getValue();
+        assertEquals("contrastive loss", forwarded.get("term"));
+        assertEquals("paper-1", forwarded.get("pdfId"));
+        assertEquals(4, forwarded.get("pageNumber"));
+        assertEquals("This page introduces contrastive learning.", forwarded.get("context"));
+    }
+
+    @Test
+    void explainTermKeepsLegacyTermContextPayload() {
+        when(restTemplate.postForObject(eq("http://python/api/explain-term"), any(Map.class), eq(Map.class)))
+                .thenReturn(Map.of("status", "success", "explanation", "解释"));
+
+        Map<String, Object> request = new HashMap<>();
+        request.put("term", "attention");
+        request.put("context", "Legacy context");
+
+        aiService.explainTerm(request);
+
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
+        verify(restTemplate).postForObject(eq("http://python/api/explain-term"), captor.capture(), eq(Map.class));
+
+        Map<String, Object> forwarded = captor.getValue();
+        assertEquals("attention", forwarded.get("term"));
+        assertEquals("Legacy context", forwarded.get("context"));
+    }
+
+    @Test
     void chatBuildsAssistantHistoryWithoutDuplicatingLatestUserMessage() {
         ChatMessage existingUser = new ChatMessage();
         existingUser.setRole("user");

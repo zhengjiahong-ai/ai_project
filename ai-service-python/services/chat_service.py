@@ -389,7 +389,8 @@ Reading progress:
 
 
 def explain_term(request: TermExplainRequest) -> Dict[str, Any]:
-    rag_query = f"Explain the term '{request.term}' with the following context: {request.context[:200]}"
+    page_context = request.context or ""
+    rag_query = f"Explain the selected academic text '{request.term}' with the following context: {page_context[:200]}"
 
     rewrite_prompt = f"""
 You are helping a research retrieval system.
@@ -404,22 +405,36 @@ Question:
     except Exception:
         rewritten_query = rag_query
 
-    rag_results = retrieve_hybrid_for_vector(rewritten_query, top_k=3)
+    rag_results: List[Dict[str, Any]] = []
+    rag_scope = ""
+    if request.pdfId:
+        try:
+            clean_pdf_id = get_rag().normalize_id(request.pdfId)
+            rag_results = get_rag().retrieve(rewritten_query, top_k=5, filter_metadata={"id": clean_pdf_id})
+            if rag_results:
+                rag_scope = "current_paper"
+        except Exception as error:
+            print(f"Explain-term PDF RAG retrieval failed: {error}")
+
+    if not rag_results:
+        rag_results = retrieve_hybrid_for_vector(rewritten_query, top_k=3)
+        rag_scope = "literature" if rag_results else ""
+
     rag_context = ""
     if rag_results:
-        rag_context = "\n\nAdditional literature context:\n"
+        context_title = "Current paper RAG context" if rag_scope == "current_paper" else "Additional literature context"
+        rag_context = f"\n\n{context_title}:\n"
         for result in rag_results:
             rag_context += f"- {result.get('text', '')[:600]}\n"
 
     prompt = f"""
 You are an academic research assistant.
-Explain the technical term "{request.term}" in Chinese using the provided context.
+Explain the selected term, formula, or passage "{request.term}" in Chinese using the provided context.
 {MATH_MARKDOWN_GUIDELINE}
 
-Paper context:
-{request.context}
+Current page context{f" (page {request.pageNumber})" if request.pageNumber else ""}:
+{page_context}
 
-Additional literature:
 {rag_context}
 
 Keep the answer within 5 sentences.

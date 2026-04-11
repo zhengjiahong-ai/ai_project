@@ -5,7 +5,9 @@ from pydantic import BaseModel
 
 class TermExplainRequest(BaseModel):
     term: str
-    context: str
+    context: Optional[str] = ""
+    pdfId: Optional[str] = None
+    pageNumber: Optional[int] = None
 
 
 class SocraticQuestionRequest(BaseModel):

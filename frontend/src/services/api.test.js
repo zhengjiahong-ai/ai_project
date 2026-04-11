@@ -44,6 +44,26 @@ const run = async () => {
   await criticalReadingService.criticalReading('paper-1');
   assert.equal(criticalReadingUrl, '/critical-reading/paper-1');
 
+  let explainPayload = null;
+  let explainUrl = '';
+  const explainService = createApiService({
+    post: async (url, body) => {
+      explainUrl = url;
+      explainPayload = body;
+      return { status: 'success', explanation: '解释' };
+    },
+    get: async () => ({}),
+  });
+
+  await explainService.explainText('contrastive loss', 'paper-1', 4, 'This page introduces contrastive learning.');
+  assert.equal(explainUrl, '/explain');
+  assert.deepEqual(explainPayload, {
+    text: 'contrastive loss',
+    pdfId: 'paper-1',
+    pageNumber: 4,
+    context: 'This page introduces contrastive learning.',
+  });
+
   let translatePayload = null;
   let translateUrl = '';
   let translateConfig = null;

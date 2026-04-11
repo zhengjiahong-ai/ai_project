@@ -81,23 +81,18 @@ public class AiService {
         }
     }
 
-    public Map<String, Object> explainTerm(Map<String, String> request) {
-        Map<String, String> convertedRequest = new HashMap<>();
-        if (request.containsKey("text")) {
-            convertedRequest.put("term", request.get("text"));
-        }
+    public Map<String, Object> explainTerm(Map<String, Object> request) {
+        Map<String, Object> convertedRequest = new HashMap<>();
+        Object text = request.getOrDefault("text", request.get("term"));
+        convertedRequest.put("term", Objects.toString(text, ""));
+        convertedRequest.put("context", Objects.toString(request.get("context"), ""));
 
-        StringBuilder contextBuilder = new StringBuilder();
         if (request.containsKey("pdfId")) {
-            contextBuilder.append("PDF ID: ").append(request.get("pdfId")).append(". ");
+            convertedRequest.put("pdfId", request.get("pdfId"));
         }
         if (request.containsKey("pageNumber")) {
-            contextBuilder.append("Page Number: ").append(request.get("pageNumber")).append(". ");
+            convertedRequest.put("pageNumber", request.get("pageNumber"));
         }
-        if (request.containsKey("context")) {
-            contextBuilder.append(request.get("context"));
-        }
-        convertedRequest.put("context", contextBuilder.toString());
 
         return restTemplate.postForObject(PYTHON_SERVICE_URL + "/explain-term", convertedRequest, Map.class);
     }

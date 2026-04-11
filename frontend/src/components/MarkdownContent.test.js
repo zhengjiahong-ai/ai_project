@@ -88,8 +88,9 @@ const run = async () => {
     selectionPayload.displayMessage,
     '$$\nT_t={\\left\\{(x_t^i, y_t^i)\\right\\}}_{i=1}^{\\lvert T_t \\rvert}\n$$',
   );
-  assert.match(selectionPayload.backendPrompt, /不要描述公式恢复或归一化过程/);
-  assert.doesNotMatch(selectionPayload.backendPrompt, /归一化后的选区|恢复后的公式如下|根据你提供的原始选区内容|可以将其恢复为/);
+  assert.equal(selectionPayload.explainText, selectionPayload.displayMessage);
+  assert.equal(selectionPayload.normalizedText, 'T_t={(x_t^i, y_t^i)}_{i=1}^{|T_t|}');
+  assert.equal(selectionPayload.isFormulaLike, true);
 
   const displayMarkup = renderMarkdown(preprocessMathMarkdown(selectionPayload.displayMessage));
   assert.match(displayMarkup, /katex-display/);
@@ -98,7 +99,8 @@ const run = async () => {
 
   const plainSelectionPayload = buildExplainSelectionPayload('The optimization objective');
   assert.equal(plainSelectionPayload.displayMessage, 'The optimization objective');
-  assert.match(plainSelectionPayload.backendPrompt, /请直接解释下面这段内容/);
+  assert.equal(plainSelectionPayload.explainText, 'The optimization objective');
+  assert.equal(plainSelectionPayload.isFormulaLike, false);
 
   assert.equal(getMessageMarkdownClassName('user', 'chat'), 'chat-message-user text-white');
   assert.equal(getMessageMarkdownClassName('user', 'popup'), 'chat-message-user chat-message-popup');

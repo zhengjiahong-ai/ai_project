@@ -113,7 +113,7 @@ docker-compose up --build
 ## 主要功能
 
 - **PDF 上传与篇章解构**：上传 PDF → GROBID 解析 → AI 生成 abstract/introduction/methods/results/discussion/conclusion 摘要。
-- **对话与划词解释**：聊天面板发送消息；在 PDF 中划词可触发解释（对接 `/api/explain`）。
+- **对话与划词解释**：聊天面板发送消息；在 PDF 中划词可触发解释（对接 `/api/explain`，携带当前页上下文并优先基于当前论文 RAG）。
 - **批判性阅读**：生成创新性、严谨性、引用质量等维度的分析（当前部分为前端 Mock，可对接后端）。
 - **学术笔记**：支持在阅读时添加笔记并持久化到 IndexedDB。
 - **全景翻译**：支持按当前 PDF 页提取文本并进行逐页全文翻译，译文显示在右侧专用面板中；翻页后自动跟随当前页更新，并对已翻译页面进行缓存，避免重复请求。

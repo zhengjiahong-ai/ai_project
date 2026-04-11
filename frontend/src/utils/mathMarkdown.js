@@ -8,7 +8,7 @@ const SUB_OR_SUP_PATTERN = /(?:[A-Za-z][A-Za-z0-9]*|[|][A-Za-z][A-Za-z0-9|]*[|])
 const CJK_PATTERN = /[\u3400-\u9fff]/g;
 const INLINE_MATH_BOUNDARY_PATTERN = /(^|[\s(:,])(\|?[A-Za-z][A-Za-z0-9|]*(?:_\{?[^}\s]+\}?|\^\{?[^}\s]+\}?)+\|?)(?=$|[\s).,;:])/gm;
 const LITERAL_SET_PATTERN =
-  /(^|[\s=+\-*/(:,\[])\{([^{}]+)\}(?=(?:_\{[^}]+\})?(?:\^\{[^}]+\})?(?:$|[\s),.;:]))/g;
+  /(^|[\s=+\-*/(:,[])\{([^{}]+)\}(?=(?:_\{[^}]+\})?(?:\^\{[^}]+\})?(?:$|[\s),.;:]))/g;
 const PURE_MATH_LINE_PATTERN = /^[A-Za-z0-9\\{}()[\]|_^=+\-*/.,:;\s]+$/;
 const COMPACT_FORMULA_SPAN_PATTERN =
   /((?:[A-Za-z][A-Za-z0-9]*\s*=\s*)?\{?\([A-Za-z0-9,.\s|_^\\-]+\)\}?(?:_\{[^}\n]+\})?(?:\^\{[^}\n]+\})?)/g;
@@ -116,12 +116,6 @@ const wrapCompactFormulaSpans = (text) =>
 const wrapCommandExpressions = (text) =>
   text.replace(
     /(^|[\s:,\u3001\u3002\uff0c\uff1a])((?:\\(?:sum|frac|prod|int|sqrt|alpha|beta|gamma|delta|theta|lambda|mu|sigma|pi|cdot|times|leq|geq|neq|approx|left|right|mathbb|mathbf|mathrm|operatorname|ell)[^`$\u3400-\u9fff\u3001\u3002\uff0c\uff1a,;:\n]*)+)/gm,
-    (match, prefix, candidate) => `${prefix}${replaceWrappedCandidate(candidate.trim())}`,
-  );
-
-const wrapAssignmentExpressions = (text) =>
-  text.replace(
-    /(^|[\s:,\u3001\u3002\uff0c\uff1a])([A-Za-z|][A-Za-z0-9|{}^_]*(?:\s*=\s*[^,\u3001\u3002\uff0c\uff1a;:\u3400-\u9fff\n]{1,160}))/gm,
     (match, prefix, candidate) => `${prefix}${replaceWrappedCandidate(candidate.trim())}`,
   );
 

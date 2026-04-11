@@ -29,7 +29,7 @@ public class AcademicController {
     }
 
     @PostMapping("/explain")
-    public Map<String, Object> explainTerm(@RequestBody Map<String, String> request) {
+    public Map<String, Object> explainTerm(@RequestBody Map<String, Object> request) {
         return aiService.explainTerm(request);
     }
 

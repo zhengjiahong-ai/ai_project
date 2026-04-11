@@ -14,6 +14,15 @@ import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 
 const workerUrl = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+const EXPLAIN_CONTEXT_MAX_CHARS = 4500;
+
+const trimExplainContext = (text = '') => {
+  const trimmed = String(text || '').trim();
+  if (trimmed.length <= EXPLAIN_CONTEXT_MAX_CHARS) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, EXPLAIN_CONTEXT_MAX_CHARS).trimEnd()}\n\n[当前页上下文过长，已截断]`;
+};
 
 const buildPageSnapshot = async (page, maxRenderWidth = 1200) => {
   const baseViewport = page.getViewport({ scale: 1 });
@@ -138,7 +147,7 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
     >
       <div className="theme-popup-header flex shrink-0 items-center justify-between rounded-t-xl border-b p-3">
         <span className="flex items-center gap-1.5 text-xs font-bold text-pixiu">
-          <Sparkles size={14} /> AI 翻译
+          <Sparkles size={14} /> AI 解释
         </span>
         <div className="flex items-center gap-2">
           {onSaveNote && (
@@ -234,6 +243,7 @@ const PdfViewer = ({
   const currentPageRef = useRef(0);
   const isFirstRender = useRef(true);
   const latestPdfIdRef = useRef(pdfId);
+  const pageTextByIndexRef = useRef({});
 
   useEffect(() => {
     latestPdfIdRef.current = pdfId;
@@ -244,6 +254,7 @@ const PdfViewer = ({
     setHighlights(initialHighlights || []);
     pdfDocRef.current = null;
     currentPageRef.current = 0;
+    pageTextByIndexRef.current = {};
     // We only want to reset annotations when switching papers, not when parent persistence echoes state back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfId]);
@@ -261,7 +272,7 @@ const PdfViewer = ({
 
   const extractPageText = useCallback(
     async (pageIndex, doc = pdfDocRef.current) => {
-      if (!doc || !onPageTextExtracted) {
+      if (!doc) {
         return;
       }
 
@@ -286,7 +297,8 @@ const PdfViewer = ({
         if (requestedPdfId !== latestPdfIdRef.current) {
           return;
         }
-        onPageTextExtracted({
+        pageTextByIndexRef.current[pageIndex] = pageText;
+        onPageTextExtracted?.({
           pageIndex,
           pageText,
           pageLayout,
@@ -298,7 +310,8 @@ const PdfViewer = ({
         if (requestedPdfId !== latestPdfIdRef.current) {
           return;
         }
-        onPageTextExtracted({
+        pageTextByIndexRef.current[pageIndex] = '';
+        onPageTextExtracted?.({
           pageIndex,
           pageText: '',
           pageLayout: null,
@@ -328,11 +341,17 @@ const PdfViewer = ({
     [extractPageText, onPageChange],
   );
 
-  const handleInitialAsk = async (id, promptText) => {
+  const handleInitialAsk = async (id, explainText, pageIndex, context) => {
     try {
-      const normalizedResponse = await apiService.sendMessage(promptText, pdfId);
+      const normalizedResponse = await apiService.explainText(explainText, pdfId, pageIndex + 1, context);
       const normalizedContent =
-        normalizedResponse?.data?.reply ?? normalizedResponse?.reply ?? normalizedResponse?.message ?? 'No response.';
+        normalizedResponse?.data?.explanation ??
+        normalizedResponse?.explanation ??
+        normalizedResponse?.data?.reply ??
+        normalizedResponse?.data?.message ??
+        normalizedResponse?.reply ??
+        normalizedResponse?.message ??
+        'No response.';
       setHighlights((prev) =>
         prev.map((highlight) =>
           highlight.id === id
@@ -355,7 +374,7 @@ const PdfViewer = ({
           highlight.id === id
             ? {
                 ...highlight,
-                chatHistory: [...highlight.chatHistory, { role: 'ai', content: 'Sorry, the explanation request failed.' }],
+                chatHistory: [...highlight.chatHistory, { role: 'ai', content: '抱歉，解释请求失败，请稍后重试。' }],
                 isLoading: false,
               }
             : highlight,
@@ -426,6 +445,9 @@ const PdfViewer = ({
             onClick={() => {
               const selectedText = props.selectedText;
               const selectionPayload = buildExplainSelectionPayload(selectedText);
+              const pageIndex = props.highlightAreas?.[0]?.pageIndex ?? props.selectionRegion?.pageIndex ?? currentPageRef.current;
+              const selectionPosition = { ...props.selectionRegion, pageIndex };
+              const context = trimExplainContext(pageTextByIndexRef.current[pageIndex] || '');
               const id = Date.now();
 
               setHighlights((prev) => [
@@ -434,7 +456,7 @@ const PdfViewer = ({
                   id,
                   text: selectedText,
                   highlightAreas: props.highlightAreas,
-                  position: props.selectionRegion,
+                  position: selectionPosition,
                   chatHistory: [{ role: 'user', content: selectionPayload.displayMessage }],
                   isLoading: true,
                 },
@@ -443,14 +465,14 @@ const PdfViewer = ({
               setActiveHighlightId(id);
               props.cancel();
               if (onSelection) onSelection(selectionPayload.displayMessage, 'user', true);
-              handleInitialAsk(id, selectionPayload.backendPrompt);
+              handleInitialAsk(id, selectionPayload.explainText, pageIndex, context);
               return;
 
             }}
             className="flex items-center gap-1 rounded-full bg-pixiu p-2 text-white shadow-lg transition-transform hover:scale-110"
           >
             <Sparkles size={18} />
-            <span className="pr-1 text-xs font-bold">AI 翻译</span>
+            <span className="pr-1 text-xs font-bold">AI 解释</span>
           </button>
         )}
       </div>
