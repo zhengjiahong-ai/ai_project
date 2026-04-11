@@ -77,6 +77,25 @@ class ApiRoutesTests(unittest.TestCase):
         self.assertEqual(response.json()["critical_analysis"], "done")
         mocked.assert_called_once()
 
+    def test_background_knowledge_accepts_pdf_payload(self):
+        with patch(
+            "routes.api.analysis_service.get_background_knowledge",
+            return_value={
+                "status": "success",
+                "pdfId": "paper-1",
+                "background_knowledge": ["RAG"],
+                "graph": {"nodes": [], "links": []},
+            },
+        ) as mocked:
+            response = self.client.post(
+                "/api/background-knowledge",
+                json={"pdfId": "paper-1", "paperSkeleton": {"abstract": "summary"}},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["pdfId"], "paper-1")
+        mocked.assert_called_once()
+
     def test_analyze_pdf_route_uses_service(self):
         with patch(
             "routes.api.analysis_service.analyze_pdf",

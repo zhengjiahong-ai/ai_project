@@ -186,6 +186,10 @@ public class AiService {
         return restTemplate.postForObject(PYTHON_SERVICE_URL + "/socratic-session/answer", request, Map.class);
     }
 
+    public Map<String, Object> backgroundKnowledge(Map<String, Object> request) {
+        return restTemplate.postForObject(PYTHON_SERVICE_URL + "/background-knowledge", request, Map.class);
+    }
+
     private List<Map<String, String>> buildHistoryPayload(String pdfId) {
         List<ChatMessage> history = chatMessageRepository.findByPdfIdOrderByTimestampAsc(pdfId);
         List<Map<String, String>> historyList = new ArrayList<>();

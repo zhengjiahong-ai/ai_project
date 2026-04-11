@@ -67,4 +67,9 @@ public class AcademicController {
     public Map<String, Object> answerSocraticSession(@RequestBody Map<String, Object> request) {
         return aiService.answerSocraticSession(request);
     }
+
+    @PostMapping("/background-knowledge")
+    public Map<String, Object> backgroundKnowledge(@RequestBody Map<String, Object> request) {
+        return aiService.backgroundKnowledge(request);
+    }
 }

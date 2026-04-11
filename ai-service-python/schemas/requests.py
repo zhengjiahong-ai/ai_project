@@ -41,8 +41,11 @@ class SocraticSessionAnswerRequest(BaseModel):
 
 
 class BackgroundKnowledgeRequest(BaseModel):
-    paper_topic: str
-    user_knowledge_level: str
+    paper_topic: Optional[str] = None
+    user_knowledge_level: Optional[str] = "普通/一般"
+    pdfId: Optional[str] = None
+    paperSkeleton: Optional[Dict[str, Any]] = None
+    paperStructure: Optional[Dict[str, Any]] = None
 
 
 class ChatRequest(BaseModel):

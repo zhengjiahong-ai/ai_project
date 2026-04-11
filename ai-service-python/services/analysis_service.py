@@ -10,6 +10,7 @@ from core.document_parser import extract_translation_layout_index, parse_tei_xml
 from llm.client import get_llm
 from rag.store import get_rag, preload_rag
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
+from services.background_knowledge_service import get_background_knowledge as build_background_knowledge
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE
 from services.utils import parse_json_from_llm
 
@@ -197,23 +198,7 @@ Paper context:
 
 
 def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, Any]:
-    prompt = f"""
-Recommend prerequisite knowledge for reading a paper.
-
-Paper topic: {request.paper_topic}
-User knowledge level: {request.user_knowledge_level}
-
-Return a short ordered list, one item per line.
-"""
-
-    background_knowledge = get_llm()._call(prompt)
-
-    return {
-        "status": "success",
-        "paper_topic": request.paper_topic,
-        "user_knowledge_level": request.user_knowledge_level,
-        "background_knowledge": [item.strip() for item in background_knowledge.splitlines() if item.strip()],
-    }
+    return build_background_knowledge(request)
 
 
 def resolve_paper_content(request: DeepAnalysisRequest) -> tuple[str, str, str | None]:

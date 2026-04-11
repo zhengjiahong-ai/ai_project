@@ -121,6 +121,25 @@ docker-compose up --build
 
 ---
 
+## 背景补课 / 前置知识图谱
+
+- 独立“背景补课”页签会手动调用 Java `/api/background-knowledge`，Java 再转发到 Python `/api/background-knowledge`。
+- Python 结合当前论文 `pdfId`、篇章结构、Chroma RAG 片段和 LLM 返回前置概念图谱、学习路径、补课清单和 RAG 依据片段。
+- Neo4j 是可选持久化增强；未配置时接口仍返回 JSON 图谱，不影响默认开发和 Docker 启动。
+
+可选启用 Neo4j：
+
+```bash
+NEO4J_URI=bolt://neo4j:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=pixiu_neo4j_password
+NEO4J_AUTH=neo4j/pixiu_neo4j_password
+
+docker-compose --profile neo4j up --build
+```
+
+---
+
 ## 相关文档
 
 - [前端排错指南](frontend/TROUBLESHOOTING.md)

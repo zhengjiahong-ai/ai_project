@@ -91,6 +91,21 @@ export const createApiService = (client) => ({
 
   criticalReading: async (pdfId) => client.post(`/critical-reading/${encodeURIComponent(pdfId)}`),
 
+  backgroundKnowledge: async ({
+    pdfId,
+    paperSkeleton = null,
+    paperStructure = null,
+    paper_topic = null,
+    user_knowledge_level = '普通/一般',
+  }) =>
+    client.post('/background-knowledge', {
+      pdfId,
+      paperSkeleton,
+      paperStructure,
+      paper_topic,
+      user_knowledge_level,
+    }),
+
   translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null, pageLayout = null) => {
     const controller = new AbortController();
     let didTimeout = false;

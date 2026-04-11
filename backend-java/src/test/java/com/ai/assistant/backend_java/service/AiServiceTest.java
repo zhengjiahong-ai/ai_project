@@ -214,4 +214,22 @@ class AiServiceTest {
         assertEquals("译文", response.get("translatedText"));
         assertEquals("overlay", response.get("renderMode"));
     }
+
+    @Test
+    void backgroundKnowledgeForwardsRequestToPythonService() {
+        Map<String, Object> request = new HashMap<>();
+        request.put("pdfId", "paper-1");
+        request.put("user_knowledge_level", "normal");
+
+        when(restTemplate.postForObject(eq("http://python/api/background-knowledge"), eq(request), eq(Map.class)))
+                .thenReturn(Map.of(
+                        "status", "success",
+                        "pdfId", "paper-1",
+                        "background_knowledge", List.of("RAG", "knowledge graph")));
+
+        Map<String, Object> response = aiService.backgroundKnowledge(request);
+
+        assertEquals("success", response.get("status"));
+        assertEquals("paper-1", response.get("pdfId"));
+    }
 }

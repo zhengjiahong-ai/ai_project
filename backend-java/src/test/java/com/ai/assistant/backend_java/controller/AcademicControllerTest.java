@@ -80,4 +80,23 @@ class AcademicControllerTest {
                 .andExpect(jsonPath("$.translatedText").value("译文"))
                 .andExpect(jsonPath("$.renderMode").value("overlay"));
     }
+
+    @Test
+    void backgroundKnowledgeReturnsForwardedPayload() throws Exception {
+        when(aiService.backgroundKnowledge(eq(Map.of(
+                "pdfId", "paper-1",
+                "user_knowledge_level", "normal")))).thenReturn(Map.of(
+                        "status", "success",
+                        "pdfId", "paper-1",
+                        "background_knowledge", List.of("RAG", "knowledge graph")));
+
+        mockMvc.perform(post("/api/background-knowledge")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"pdfId":"paper-1","user_knowledge_level":"normal"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pdfId").value("paper-1"))
+                .andExpect(jsonPath("$.background_knowledge[0]").value("RAG"));
+    }
 }

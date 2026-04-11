@@ -143,3 +143,13 @@
 - [ ] 前端 `npm run lint`、Java 编译、Python 导入与关键路径测试通过。
 
 遵守以上约束可最大程度避免前后端联调失败、环境不一致和接口漂移问题。如有例外需求，需在文档中注明原因并同步更新约束。
+
+---
+
+## 2026-04-11 前置知识图谱接口补充
+
+- 前端新增独立“背景补课”页签，所有请求继续集中走 `frontend/src/services/api.js` 的 `backgroundKnowledge` 方法。
+- Java 新增 `POST /api/background-knowledge`，只透传 JSON 到 Python `POST /api/background-knowledge`，不写入 H2。
+- Python `BackgroundKnowledgeRequest` 兼容旧 `{ paper_topic, user_knowledge_level }`，并新增 `{ pdfId, paperSkeleton, paperStructure }`。成功响应包含 `{ status, pdfId, paper_topic, user_knowledge_level, graph, learning_path, background_knowledge, rag_sources, neo4j }`。
+- Neo4j 只作为可选持久化增强：配置 `NEO4J_URI`、`NEO4J_USER`、`NEO4J_PASSWORD` 时尝试写入；未配置或连接失败不得阻断接口成功。
+- `docker-compose.yml` 中 Neo4j 必须保留在 `neo4j` profile 下，默认启动不得依赖该服务。

@@ -45,11 +45,27 @@ services:
     environment:
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
       - PYTHON_SERVICE_URL=http://ai-service:8000/api
+      - NEO4J_URI=${NEO4J_URI:-}
+      - NEO4J_USER=${NEO4J_USER:-}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-}
       #- OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - grobid
 
   # --- GROBID 服务（用于PDF解析） ---
+  neo4j:
+    profiles:
+      - neo4j
+    image: neo4j:5-community
+    container_name: pixiu_neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=${NEO4J_AUTH:-neo4j/pixiu_neo4j_password}
+    volumes:
+      - neo4j_data:/data
+
   grobid:
     image: lfoppiano/grobid:0.7.2
     container_name: grobid_service
@@ -69,3 +85,4 @@ volumes:
   java_data:
   chroma_data:
   huggingface_cache:
+  neo4j_data:

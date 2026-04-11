@@ -3,6 +3,7 @@ import { openDB } from 'idb';
 import { Trash2 } from 'lucide-react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 
+import BackgroundKnowledgePanel from './components/BackgroundKnowledgePanel';
 import ChatPanel from './components/ChatPanel';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel';
 import LibrarySidebar from './components/LibrarySidebar';
@@ -31,7 +32,7 @@ const DEFAULT_ACTIVE_TAB = 'chat';
 const THEME_STORAGE_KEY = 'pixiu-theme';
 
 const initDB = async () =>
-  openDB('PixiuAcademicDB_v6', 4, {
+  openDB('PixiuAcademicDB_v6', 5, {
     upgrade(db) {
       if (!db.objectStoreNames.contains('pdfStore')) db.createObjectStore('pdfStore');
       if (!db.objectStoreNames.contains('historyStore')) db.createObjectStore('historyStore');
@@ -42,6 +43,7 @@ const initDB = async () =>
       if (!db.objectStoreNames.contains('highlightStore')) db.createObjectStore('highlightStore');
       if (!db.objectStoreNames.contains('sessionStore')) db.createObjectStore('sessionStore');
       if (!db.objectStoreNames.contains('translationStore')) db.createObjectStore('translationStore');
+      if (!db.objectStoreNames.contains('backgroundKnowledgeStore')) db.createObjectStore('backgroundKnowledgeStore');
     },
   });
 
@@ -152,6 +154,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('chat');
   const [analysisData, setAnalysisData] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [backgroundKnowledgeData, setBackgroundKnowledgeData] = useState(null);
+  const [isBackgroundKnowledgeLoading, setIsBackgroundKnowledgeLoading] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
   const [notes, setNotes] = useState([]);
   const [isTranslated, setIsTranslated] = useState(false);
@@ -222,6 +226,7 @@ export default function App() {
       savedHighlights,
       savedSocraticSession,
       savedTranslationState,
+      savedBackgroundKnowledge,
     ] = await Promise.all([
       db.get('pdfStore', targetPdfId),
       db.get('historyStore', targetPdfId),
@@ -231,6 +236,7 @@ export default function App() {
       db.get('highlightStore', targetPdfId),
       db.get('sessionStore', targetPdfId),
       db.get('translationStore', targetPdfId),
+      db.get('backgroundKnowledgeStore', targetPdfId),
     ]);
 
     const resolvedPdf = resolveStoredPdfRecord(savedPdf);
@@ -253,6 +259,7 @@ export default function App() {
     setDeconstructData(savedDeconstruct || null);
     setNotes(savedNotes || []);
     setAnalysisData(savedAnalysis || null);
+    setBackgroundKnowledgeData(savedBackgroundKnowledge || null);
     setMessages(nextMessages);
     setPdfHighlights(savedHighlights || []);
     setSocraticSession(normalizeSocraticSession(savedSocraticSession, targetPdfId));
@@ -298,11 +305,13 @@ export default function App() {
         db.put('libraryStore', newEntry),
         db.delete('sessionStore', response.pdfId),
         db.delete('translationStore', response.pdfId),
+        db.delete('backgroundKnowledgeStore', response.pdfId),
       ]);
 
       setPdfId(response.pdfId);
       setDeconstructData(response);
       setAnalysisData(null);
+      setBackgroundKnowledgeData(null);
       setNotes([]);
       setMessages(readyMessages);
       setPdfHighlights([]);
@@ -323,6 +332,7 @@ export default function App() {
       setPdfFileName(null);
       setPdfId(null);
       setSocraticSession(createEmptySocraticSession());
+      setBackgroundKnowledgeData(null);
       setTranslationState(createEmptyTranslationState());
       setIsTranslated(false);
       currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
@@ -391,6 +401,7 @@ export default function App() {
         db.delete('highlightStore', targetPdfId),
         db.delete('sessionStore', targetPdfId),
         db.delete('translationStore', targetPdfId),
+        db.delete('backgroundKnowledgeStore', targetPdfId),
       ]);
 
       setPapersList((prev) => prev.filter((paper) => paper.id !== targetPdfId));
@@ -403,6 +414,7 @@ export default function App() {
         setNotes([]);
         setDeconstructData(null);
         setAnalysisData(null);
+        setBackgroundKnowledgeData(null);
         setPdfHighlights([]);
         setSocraticSession(createEmptySocraticSession());
         setTranslationState(createEmptyTranslationState());
@@ -533,6 +545,42 @@ export default function App() {
       setIsAnalyzing(false);
     }
   }, [pdfId]);
+
+  const handleGenerateBackgroundKnowledge = useCallback(async () => {
+    if (!pdfId) {
+      window.alert('请先上传 PDF 文件。');
+      return;
+    }
+
+    setActiveTab('background');
+    setIsBackgroundKnowledgeLoading(true);
+
+    try {
+      const response = await apiService.backgroundKnowledge({
+        pdfId,
+        paperSkeleton: deconstructData?.paper_skeleton || null,
+        paperStructure: deconstructData?.paper_structure || null,
+        paper_topic:
+          deconstructData?.paper_structure?.research_problem ||
+          deconstructData?.paper_structure?.core_hypothesis ||
+          null,
+        user_knowledge_level: '\u666e\u901a/\u4e00\u822c',
+      });
+
+      if (!response || response.status !== 'success') {
+        throw new Error(response?.message || '背景补课图谱生成失败');
+      }
+
+      setBackgroundKnowledgeData(response);
+      const db = await initDB();
+      await db.put('backgroundKnowledgeStore', response, pdfId);
+    } catch (error) {
+      console.error('Failed to generate background knowledge graph.', error);
+      window.alert(error?.response?.data?.message || error?.message || '背景补课图谱生成失败，请稍后重试。');
+    } finally {
+      setIsBackgroundKnowledgeLoading(false);
+    }
+  }, [deconstructData, pdfId]);
 
   const handleSendMessage = useCallback((message) => {
     if (!pdfId || loadingPapers[pdfId]) return;
@@ -1186,6 +1234,15 @@ export default function App() {
                     onStart={handleStartSocratic}
                     onSubmitAnswer={handleSubmitSocraticAnswer}
                     onRestart={handleRestartSocratic}
+                  />
+                )}
+
+                {activeTab === 'background' && (
+                  <BackgroundKnowledgePanel
+                    data={backgroundKnowledgeData}
+                    isLoading={isBackgroundKnowledgeLoading}
+                    hasPaperContext={!!deconstructData?.paper_skeleton}
+                    onGenerate={handleGenerateBackgroundKnowledge}
                   />
                 )}
 

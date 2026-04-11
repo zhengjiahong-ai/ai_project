@@ -44,6 +44,33 @@ const run = async () => {
   await criticalReadingService.criticalReading('paper-1');
   assert.equal(criticalReadingUrl, '/critical-reading/paper-1');
 
+  let backgroundPayload = null;
+  let backgroundUrl = '';
+  const backgroundService = createApiService({
+    post: async (url, body) => {
+      backgroundUrl = url;
+      backgroundPayload = body;
+      return { status: 'success' };
+    },
+    get: async () => ({}),
+  });
+
+  await backgroundService.backgroundKnowledge({
+    pdfId: 'paper-1',
+    paperSkeleton: { abstract: 'summary' },
+    paperStructure: { research_problem: 'RAG' },
+    paper_topic: 'RAG',
+    user_knowledge_level: 'normal',
+  });
+  assert.equal(backgroundUrl, '/background-knowledge');
+  assert.deepEqual(backgroundPayload, {
+    pdfId: 'paper-1',
+    paperSkeleton: { abstract: 'summary' },
+    paperStructure: { research_problem: 'RAG' },
+    paper_topic: 'RAG',
+    user_knowledge_level: 'normal',
+  });
+
   let explainPayload = null;
   let explainUrl = '';
   const explainService = createApiService({
