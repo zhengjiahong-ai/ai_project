@@ -42,7 +42,7 @@ const Navbar = ({
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-pixiu p-1 shadow-sm shadow-pixiu/30">
-            <img src="/logo.png" alt="Pixiu Logo" className="h-full w-full object-contain" />
+            <img src="/貔貅白.png" alt="Pixiu Logo" className="h-full w-full object-contain" />
           </div>
           <span className="theme-text-primary text-xl font-bold tracking-tight">Pixiu</span>
         </div>
