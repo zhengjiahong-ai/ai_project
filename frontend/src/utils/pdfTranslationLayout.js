@@ -32,8 +32,16 @@ const normalizeTextItem = (item, viewport) => {
 
   const viewportWidth = Math.max(toFiniteNumber(viewport?.width, 0), 1);
   const viewportHeight = Math.max(toFiniteNumber(viewport?.height, 0), 1);
-  const x = toFiniteNumber(item?.transform?.[4], 0);
-  const y = toFiniteNumber(item?.transform?.[5], 0);
+  const transform = item?.transform || [];
+  const x = toFiniteNumber(transform?.[4], 0);
+  const y = toFiniteNumber(transform?.[5], 0);
+  const isRotatedMarginText =
+    Math.abs(toFiniteNumber(transform?.[1], 0)) > Math.abs(toFiniteNumber(transform?.[0], 0)) + 1 &&
+    Math.abs(toFiniteNumber(transform?.[2], 0)) > Math.abs(toFiniteNumber(transform?.[3], 0)) + 1 &&
+    (x / viewportWidth < 0.08 || x / viewportWidth > 0.92);
+  if (isRotatedMarginText) {
+    return null;
+  }
   const width = Math.max(toFiniteNumber(item?.width, 0), 1);
   const height = Math.max(Math.abs(toFiniteNumber(item?.height, 0)) || inferFontSize(item), 1);
   const fontSize = inferFontSize(item);
@@ -260,7 +268,7 @@ const detectTwoColumnCandidates = (items = []) => {
     const bbox = item?.bbox || {};
     const center = bbox.left + bbox.width / 2;
     const spansMiddle = bbox.left < 0.46 && bbox.left + bbox.width > 0.54;
-    const isTrueFullWidth = spansMiddle && bbox.width >= 0.52 && Math.abs(center - 0.5) <= 0.12;
+    const isTrueFullWidth = spansMiddle && Math.abs(center - 0.5) <= 0.12 && bbox.width >= 0.34;
     return !isTrueFullWidth && bbox.width >= 0.12 && bbox.width <= 0.5 && bbox.top >= 0.14 && center >= 0.06 && center <= 0.94;
   });
 
@@ -301,6 +309,31 @@ const sortBlocksByGeometry = (blocks = []) =>
 
     return (left?.bbox?.left || 0) - (right?.bbox?.left || 0);
   });
+
+const buildLineBlocksFromOrderedItems = (orderedItems = [], viewport = {}) => {
+  const lines = [];
+
+  orderedItems.forEach((item) => {
+    const currentLine = lines[lines.length - 1];
+    if (!currentLine) {
+      lines.push({ y: item.y, items: [item] });
+      return;
+    }
+
+    const tolerance = Math.max(currentLine.items[0]?.height || 0, item.height) * 0.45 + 1.5;
+    if (Math.abs(currentLine.y - item.y) <= tolerance) {
+      currentLine.items.push(item);
+      return;
+    }
+
+    lines.push({ y: item.y, items: [item] });
+  });
+
+  return lines
+    .flatMap((line) => splitLineItemsIntoSegments(line.items, viewport))
+    .map((segmentItems) => createLineBlock(segmentItems))
+    .filter(Boolean);
+};
 
 const buildColumnFirstReadingOrder = (blocks = [], viewport = {}) => {
   const sortedBlocks = sortBlocksByGeometry(blocks);
@@ -390,6 +423,21 @@ const canMergeInColumnLayout = (currentBlock, nextLine, columnLayout) => {
   return currentPlacement === nextPlacement;
 };
 
+const mergeOrderedLineBlocks = (orderedLineBlocks = [], columnLayout = null, viewport = {}) =>
+  orderedLineBlocks.reduce((blocks, lineBlock) => {
+    const currentBlock = blocks[blocks.length - 1];
+    if (
+      canMergeInColumnLayout(currentBlock, lineBlock, columnLayout) &&
+      shouldMergeLine(currentBlock, lineBlock, viewport)
+    ) {
+      blocks[blocks.length - 1] = mergeLineIntoBlock(currentBlock, lineBlock);
+      return blocks;
+    }
+
+    blocks.push(lineBlock);
+    return blocks;
+  }, []);
+
 const resolveReadableBlockRole = (block, medianFontSize, bodyStartTop) => {
   const fontSize = Number(block?.style?.fontSize || medianFontSize || 12);
   const bbox = block?.bbox || {};
@@ -430,7 +478,7 @@ const resolveItemPlacement = (item, columnDetection, bodyStartTop) => {
     return 'full';
   }
 
-  if (spansMiddle && bbox.width >= 0.52 && Math.abs(center - 0.5) <= 0.12) {
+  if (spansMiddle && Math.abs(center - 0.5) <= 0.12 && bbox.width >= 0.34) {
     return 'full';
   }
 
@@ -530,15 +578,20 @@ export const buildReadableTranslationLayout = (pageLayout, translatedBlocks = []
       readingOrder: Number.MAX_SAFE_INTEGER / 4 + index,
     })),
   ].sort((left, right) => {
+    const leftOrder = Number.isFinite(Number(left?.readingOrder)) ? Number(left.readingOrder) : Number.MAX_SAFE_INTEGER;
+    const rightOrder = Number.isFinite(Number(right?.readingOrder))
+      ? Number(right.readingOrder)
+      : Number.MAX_SAFE_INTEGER;
+    const bothTextBlocks = left?.kind !== 'figure' && right?.kind !== 'figure';
+    if (bothTextBlocks && leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+
     const topDiff = (left?.bbox?.top || 0) - (right?.bbox?.top || 0);
     if (Math.abs(topDiff) > 0.004) {
       return topDiff;
     }
 
-    const leftOrder = Number.isFinite(Number(left?.readingOrder)) ? Number(left.readingOrder) : Number.MAX_SAFE_INTEGER;
-    const rightOrder = Number.isFinite(Number(right?.readingOrder))
-      ? Number(right.readingOrder)
-      : Number.MAX_SAFE_INTEGER;
     if (leftOrder !== rightOrder) {
       return leftOrder - rightOrder;
     }
@@ -840,61 +893,34 @@ export const buildPageLayout = (textContent, viewport) => {
       pageText: '',
       pageLayout: {
         viewport: normalizedViewport,
+        orientation: getPageOrientation(normalizedViewport),
+        columnMode: 'single-column',
         blocks: [],
       },
     };
   }
 
-  const sortedItems = [...items].sort((left, right) => {
-    if (Math.abs(left.y - right.y) > Math.max(left.height, right.height) * 0.4) {
-      return right.y - left.y;
-    }
+  const rawLineBlocks = buildLineBlocksFromOrderedItems(items, normalizedViewport);
+  const rawColumnLayout = detectColumnLayout(rawLineBlocks, normalizedViewport);
+  const shouldUseRawColumnOrder =
+    rawColumnLayout.orientation === 'portrait' && rawColumnLayout.columnMode === 'two-column';
 
-    return left.x - right.x;
-  });
+  const sortedItems = shouldUseRawColumnOrder
+    ? []
+    : [...items].sort((left, right) => {
+        if (Math.abs(left.y - right.y) > Math.max(left.height, right.height) * 0.4) {
+          return right.y - left.y;
+        }
 
-  const lines = [];
-  sortedItems.forEach((item) => {
-    const currentLine = lines[lines.length - 1];
-    if (!currentLine) {
-      lines.push({ y: item.y, items: [item] });
-      return;
-    }
+        return left.x - right.x;
+      });
 
-    const tolerance = Math.max(currentLine.items[0]?.height || 0, item.height) * 0.45 + 1.5;
-    if (Math.abs(currentLine.y - item.y) <= tolerance) {
-      currentLine.items.push(item);
-      return;
-    }
-
-    lines.push({ y: item.y, items: [item] });
-  });
-
-  const lineBlocks = lines
-    .flatMap((line) => splitLineItemsIntoSegments(line.items, normalizedViewport))
-    .map((segmentItems) => createLineBlock(segmentItems))
-    .filter(Boolean);
-
-  const lineColumnLayout = detectColumnLayout(lineBlocks, normalizedViewport);
+  const lineBlocks = shouldUseRawColumnOrder
+    ? rawLineBlocks
+    : buildLineBlocksFromOrderedItems(sortedItems, normalizedViewport);
+  const lineColumnLayout = shouldUseRawColumnOrder ? rawColumnLayout : detectColumnLayout(lineBlocks, normalizedViewport);
   const orderedLineBlocks = buildColumnFirstReadingOrder(lineBlocks, normalizedViewport);
-  const shouldPreserveLineBoxes =
-    lineColumnLayout.orientation === 'portrait' && lineColumnLayout.columnMode === 'two-column';
-
-  const blocks = shouldPreserveLineBoxes ? orderedLineBlocks : [];
-  if (!shouldPreserveLineBoxes) {
-    orderedLineBlocks.forEach((lineBlock) => {
-      const currentBlock = blocks[blocks.length - 1];
-      if (
-        canMergeInColumnLayout(currentBlock, lineBlock, lineColumnLayout) &&
-        shouldMergeLine(currentBlock, lineBlock, normalizedViewport)
-      ) {
-        blocks[blocks.length - 1] = mergeLineIntoBlock(currentBlock, lineBlock);
-        return;
-      }
-
-      blocks.push(lineBlock);
-    });
-  }
+  const blocks = mergeOrderedLineBlocks(orderedLineBlocks, lineColumnLayout, normalizedViewport);
 
   const finalizedBlocks = blocks.map((block, index) => ({
     id: `block-${index + 1}`,
@@ -911,6 +937,8 @@ export const buildPageLayout = (textContent, viewport) => {
     pageText: finalizedBlocks.map((block) => block.text).join('\n\n').trim(),
     pageLayout: {
       viewport: normalizedViewport,
+      orientation: lineColumnLayout.orientation,
+      columnMode: lineColumnLayout.columnMode,
       blocks: finalizedBlocks,
     },
   };

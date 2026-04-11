@@ -103,7 +103,19 @@ const resolveFigureWidth = (figure, isColumn) => {
 const getPlainFallbackColumnMode = (pageLayout) => {
   const viewport = pageLayout?.viewport || {};
   const blocks = Array.isArray(pageLayout?.blocks) ? pageLayout.blocks : [];
-  const isPortrait = Number(viewport?.height || 0) >= Number(viewport?.width || 0);
+  const declaredOrientation = pageLayout?.orientation;
+  const declaredColumnMode = pageLayout?.columnMode;
+  const isPortrait =
+    declaredOrientation === 'portrait' || Number(viewport?.height || 0) >= Number(viewport?.width || 0);
+
+  if (declaredOrientation === 'landscape') {
+    return 'single-column';
+  }
+
+  if (isPortrait && declaredColumnMode === 'two-column') {
+    return 'two-column';
+  }
+
   if (!isPortrait || blocks.length < 2) {
     return 'single-column';
   }

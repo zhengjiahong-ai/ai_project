@@ -91,16 +91,16 @@ const run = () => {
     ],
   };
   const { pageText: twoColumnPageText, pageLayout: twoColumnPageLayout } = buildPageLayout(twoColumnTextContent, viewport);
-  assert.equal(twoColumnPageLayout.blocks.length, 5);
+  assert.equal(twoColumnPageLayout.blocks.length, 3);
   assert.match(twoColumnPageLayout.blocks[0].text, /A Cross-Column Paper Title/);
   assert.match(twoColumnPageLayout.blocks[1].text, /Left line 1/);
-  assert.match(twoColumnPageLayout.blocks[2].text, /Left line 2/);
-  assert.match(twoColumnPageLayout.blocks[3].text, /Right line 1/);
-  assert.match(twoColumnPageLayout.blocks[4].text, /Right line 2/);
+  assert.match(twoColumnPageLayout.blocks[1].text, /Left line 2/);
+  assert.match(twoColumnPageLayout.blocks[2].text, /Right line 1/);
+  assert.match(twoColumnPageLayout.blocks[2].text, /Right line 2/);
   assert.ok(twoColumnPageText.indexOf('A Cross-Column Paper Title') < twoColumnPageText.indexOf('Left line 1'));
   assert.ok(twoColumnPageText.indexOf('Left line 1') < twoColumnPageText.indexOf('Right line 1'));
   assert.ok(twoColumnPageText.indexOf('Left line 2') < twoColumnPageText.indexOf('Right line 1'));
-  assert.ok(twoColumnPageLayout.blocks[2].readingOrder < twoColumnPageLayout.blocks[3].readingOrder);
+  assert.ok(twoColumnPageLayout.blocks[1].readingOrder < twoColumnPageLayout.blocks[2].readingOrder);
 
   const twoColumnFidelityLayout = buildFidelityTranslationLayout(
     twoColumnPageLayout,
@@ -109,7 +109,7 @@ const run = () => {
   assert.equal(twoColumnFidelityLayout.orientation, 'portrait');
   assert.equal(twoColumnFidelityLayout.columnMode, 'two-column');
   const leftLineItem = twoColumnFidelityLayout.positionedItems.find((item) => item.id === twoColumnPageLayout.blocks[1].id);
-  const rightLineItem = twoColumnFidelityLayout.positionedItems.find((item) => item.id === twoColumnPageLayout.blocks[3].id);
+  const rightLineItem = twoColumnFidelityLayout.positionedItems.find((item) => item.id === twoColumnPageLayout.blocks[2].id);
   assert.ok(leftLineItem.left < 0.5);
   assert.ok(rightLineItem.left > 0.5);
 
@@ -181,12 +181,77 @@ const run = () => {
     ],
   };
   const { pageText: tightGutterPageText, pageLayout: tightGutterPageLayout } = buildPageLayout(tightGutterTextContent, viewport);
-  assert.equal(tightGutterPageLayout.blocks.length, 4);
+  assert.equal(tightGutterPageLayout.blocks.length, 2);
   assert.match(tightGutterPageLayout.blocks[0].text, /Left wide line/);
-  assert.match(tightGutterPageLayout.blocks[1].text, /Left wide line 2/);
-  assert.match(tightGutterPageLayout.blocks[2].text, /Right close line/);
-  assert.match(tightGutterPageLayout.blocks[3].text, /Right close line 2/);
+  assert.match(tightGutterPageLayout.blocks[0].text, /Left wide line 2/);
+  assert.match(tightGutterPageLayout.blocks[1].text, /Right close line/);
+  assert.match(tightGutterPageLayout.blocks[1].text, /Right close line 2/);
   assert.ok(tightGutterPageText.indexOf('Left wide line 2') < tightGutterPageText.indexOf('Right close line'));
+
+  const rawColumnOrderTextContent = {
+    items: [
+      {
+        str: 'A Cross-Column Header',
+        transform: [18, 0, 0, 18, 80, 740],
+        width: 440,
+        height: 18,
+        fontName: 'Times-Bold',
+      },
+      {
+        str: 'Left column first line',
+        transform: [12, 0, 0, 12, 60, 640],
+        width: 240,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Left column second line',
+        transform: [12, 0, 0, 12, 60, 625],
+        width: 240,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'arXiv:2409.19894v4 [cs.SE] 17 Sep 2025',
+        transform: [0, 20, -20, 0, 32, 223],
+        width: 344,
+        height: 20,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Right column first line',
+        transform: [12, 0, 0, 12, 312, 640],
+        width: 240,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Right column second line',
+        transform: [12, 0, 0, 12, 312, 625],
+        width: 240,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+    ],
+  };
+  const { pageText: rawColumnOrderPageText, pageLayout: rawColumnOrderPageLayout } = buildPageLayout(
+    rawColumnOrderTextContent,
+    viewport,
+  );
+  assert.equal(rawColumnOrderPageLayout.orientation, 'portrait');
+  assert.equal(rawColumnOrderPageLayout.columnMode, 'two-column');
+  assert.equal(rawColumnOrderPageLayout.blocks.length, 3);
+  assert.match(rawColumnOrderPageLayout.blocks[0].text, /A Cross-Column Header/);
+  assert.match(rawColumnOrderPageLayout.blocks[1].text, /Left column first line/);
+  assert.match(rawColumnOrderPageLayout.blocks[1].text, /Left column second line/);
+  assert.match(rawColumnOrderPageLayout.blocks[2].text, /Right column first line/);
+  assert.match(rawColumnOrderPageLayout.blocks[2].text, /Right column second line/);
+  assert.equal(
+    rawColumnOrderPageLayout.blocks.some((block) => /Left column first line.*Right column first line/.test(block.text)),
+    false,
+  );
+  assert.equal(rawColumnOrderPageLayout.blocks.some((block) => /arXiv:2409/.test(block.text)), false);
+  assert.ok(rawColumnOrderPageText.indexOf('Left column second line') < rawColumnOrderPageText.indexOf('Right column first line'));
 
   const landscapeViewport = { width: 800, height: 500 };
   const landscapeTextContent = {
@@ -215,6 +280,7 @@ const run = () => {
   assert.equal(landscapeFidelityLayout.orientation, 'landscape');
   assert.equal(landscapeFidelityLayout.pageAspectRatio, 0.625);
   assert.ok(landscapeFidelityLayout.positionedItems[0].left < landscapeFidelityLayout.positionedItems[1].left);
+  assert.ok(landscapePageLayout.blocks[0].readingOrder < landscapePageLayout.blocks[1].readingOrder);
 
   const figureSnippets = normalizeFigureSnippets([
     {
@@ -246,6 +312,17 @@ const run = () => {
     ),
     true,
   );
+
+  const readableTwoColumnLayout = buildReadableTranslationLayout(
+    rawColumnOrderPageLayout,
+    rawColumnOrderPageLayout.blocks.map((block) => ({ id: block.id, translatedText: `Translated ${block.text}` })),
+  );
+  const readableTwoColumnSection = readableTwoColumnLayout.sections.find((section) => section.type === 'columns');
+  assert.ok(readableTwoColumnSection);
+  assert.match(readableTwoColumnSection.left[0].translatedText, /Left column first line/);
+  assert.match(readableTwoColumnSection.left[0].translatedText, /Left column second line/);
+  assert.match(readableTwoColumnSection.right[0].translatedText, /Right column first line/);
+  assert.match(readableTwoColumnSection.right[0].translatedText, /Right column second line/);
 
   const fidelityLayout = buildFidelityTranslationLayout(
     pageLayout,

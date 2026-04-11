@@ -59,6 +59,25 @@ const run = () => {
   assert.equal(overlayPage.renderMode, 'overlay');
   assert.equal(canRenderOverlay(overlayPage), true);
   assert.equal(overlayPage.figureSnippets.length, 1);
+  assert.equal(overlayPage.pageLayout.orientation, 'portrait');
+  assert.equal(overlayPage.pageLayout.columnMode, 'single-column');
+
+  const preservedLayoutMetaPage = normalizeTranslationPage({
+    pageLayout: {
+      viewport: { width: 600, height: 800 },
+      orientation: 'portrait',
+      columnMode: 'two-column',
+      blocks: [
+        {
+          id: 'block-1',
+          text: 'source',
+          bbox: { left: 0.1, top: 0.1, width: 0.2, height: 0.1 },
+        },
+      ],
+    },
+  });
+  assert.equal(preservedLayoutMetaPage.pageLayout.orientation, 'portrait');
+  assert.equal(preservedLayoutMetaPage.pageLayout.columnMode, 'two-column');
 
   const figureOnlyPage = normalizeTranslationPage({
     renderMode: 'plain',

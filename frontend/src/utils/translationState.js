@@ -10,8 +10,18 @@ const normalizePageLayout = (pageLayout) => {
     return null;
   }
 
+  const viewport = normalizeViewport(pageLayout.viewport || {});
+  const orientation =
+    pageLayout.orientation === 'landscape' || pageLayout.orientation === 'portrait'
+      ? pageLayout.orientation
+      : viewport.width > viewport.height
+        ? 'landscape'
+        : 'portrait';
+
   return {
-    viewport: normalizeViewport(pageLayout.viewport || {}),
+    viewport,
+    orientation,
+    columnMode: pageLayout.columnMode === 'two-column' ? 'two-column' : 'single-column',
     blocks: pageLayout.blocks
       .map((block, index) => ({
         id: String(block?.id || `block-${index + 1}`),
