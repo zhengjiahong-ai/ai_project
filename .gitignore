@@ -19,3 +19,7 @@ ai-service-python/models/* # 建议模型手动下载，不进 Git
 
 # Docker
 .docker/
+# 忽略 Chroma 向量数据库文件
+ai-service-python/core/chroma_literature_db/
+*.sqlite3
+*.bin
