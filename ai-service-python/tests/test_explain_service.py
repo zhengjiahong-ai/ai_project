@@ -60,6 +60,7 @@ class ExplainTermServiceTests(unittest.TestCase):
         self.assertEqual(response["rag_sources"][0]["pdfId"], "paper-1")
         self.assertEqual(response["rag_sources"][0]["sourceType"], "current_paper")
         self.assertEqual(response["queryPlan"]["rewritten"], "contrastive loss query")
+        self.assertEqual(response["retrievalJudge"]["verdict"], "CORRECT")
         self.assertEqual(fake_rag.retrieve_calls[0]["filter_metadata"], {"id": "paper-1"})
         self.assertEqual(fake_rag.retrieve_calls[0]["query"], "contrastive loss query")
         self.assertEqual(fake_rag.retrieve_calls[0]["top_k"], 5)
@@ -99,7 +100,9 @@ class ExplainTermServiceTests(unittest.TestCase):
         self.assertEqual(response["rag_sources"][0]["pdfId"], "other-paper")
         self.assertEqual(response["rag_sources"][0]["sourceType"], "library")
         self.assertEqual(response["queryPlan"]["rewritten"], "attention query")
-        mocked_hybrid.assert_called_once_with("attention query", top_k=3)
+        self.assertIn(response["retrievalJudge"]["verdict"], ("AMBIGUOUS", "INCORRECT"))
+        self.assertEqual(mocked_hybrid.call_count, 2)
+        mocked_hybrid.assert_any_call("attention query", top_k=3)
 
     def test_explain_term_uses_fallback_query_plan_when_rewrite_fails(self):
         fake_rag = FakeRag(results=[{"text": "Original query evidence.", "metadata": {"id": "paper-1"}}])
@@ -123,6 +126,36 @@ class ExplainTermServiceTests(unittest.TestCase):
         self.assertIn("attention", response["queryPlan"]["rewritten"])
         self.assertEqual(fake_rag.retrieve_calls[0]["query"], response["queryPlan"]["rewritten"])
         self.assertEqual(response["explanation"], "原始查询解释。")
+
+    def test_explain_term_retries_once_when_evidence_is_missing(self):
+        fake_rag = FakeRag(results=[])
+
+        with (
+            patch("services.chat_service.get_rag", return_value=fake_rag),
+            patch("services.chat_service.build_retrieval_queries", return_value={
+                "original": "original results query",
+                "rewritten": "results query",
+                "keywords": ["results"],
+                "taskType": "explain",
+                "source": "llm",
+            }),
+            patch("services.chat_service.retrieve_hybrid_results", return_value={"vector": [], "bm25": []}) as mocked_hybrid,
+            patch("services.chat_service.get_llm") as mocked_get_llm,
+        ):
+            mocked_get_llm.return_value._call.return_value = "当前论文证据不足。"
+
+            response = explain_term(TermExplainRequest(
+                term="results",
+                context="The selected page context.",
+                pdfId="paper-1",
+                pageNumber=3,
+            ))
+
+        self.assertEqual(response["retrievalJudge"]["verdict"], "INCORRECT")
+        self.assertEqual(len(fake_rag.retrieve_calls), 2)
+        self.assertEqual(mocked_hybrid.call_count, 2)
+        final_prompt = mocked_get_llm.return_value._call.call_args[0][0]
+        self.assertIn("当前论文或资料库证据不足", final_prompt)
 
 
 if __name__ == "__main__":

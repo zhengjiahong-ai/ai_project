@@ -21,6 +21,7 @@ from services.evidence_service import (
 )
 from services.page_translation_service import translate_page as translate_page_v2
 from services.query_service import build_retrieval_queries
+from services.retrieval_judge_service import judge_evidence_quality
 
 
 SOCRATIC_TOTAL_QUESTIONS = 5
@@ -86,6 +87,130 @@ def _deduplicate_evidence(items: List[Dict[str, Any]], limit: int | None = None)
             break
 
     return deduped
+
+
+def _retrieve_evidence_for_query(
+    retrieval_query: str,
+    pdf_id: str | None = None,
+    current_top_k: int = 5,
+    library_top_k: int = 3,
+    current_limit: int = 5,
+    library_limit: int = 3,
+) -> tuple[List[Dict[str, Any]], str]:
+    if pdf_id:
+        try:
+            rag = get_rag()
+            clean_pdf_id = rag.normalize_id(pdf_id)
+            raw_results = rag.retrieve(retrieval_query, top_k=current_top_k, filter_metadata={"id": clean_pdf_id})
+            evidence = normalize_evidence_items(
+                raw_results,
+                source_type="current_paper",
+                pdf_id=clean_pdf_id,
+                limit=current_limit,
+            )
+            if evidence:
+                return evidence, "current_paper"
+        except Exception as error:
+            print(f"PDF RAG retrieval failed: {error}")
+
+    raw_results = retrieve_hybrid_results(retrieval_query, top_k=library_top_k)
+    evidence = _normalize_hybrid_evidence(raw_results, limit=library_limit)
+    return evidence, "literature" if evidence else ""
+
+
+def _should_retry_retrieval(judge_result: Dict[str, Any]) -> bool:
+    return bool(judge_result.get("shouldRetry")) and (
+        judge_result.get("verdict") != "CORRECT" or float(judge_result.get("confidence") or 0) < 0.68
+    )
+
+
+def _build_retry_query(base_question: str, query_plan: Dict[str, Any], judge_result: Dict[str, Any]) -> str:
+    parts = [
+        query_plan.get("original") or base_question,
+        query_plan.get("rewritten") or "",
+        *(query_plan.get("keywords") or []),
+        *(judge_result.get("missingAspects") or []),
+    ]
+
+    unique_parts = []
+    seen = set()
+    for part in parts:
+        text = " ".join(str(part or "").strip().split())
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_parts.append(text)
+
+    return " ".join(unique_parts)[:500] or base_question
+
+
+def _judge_and_retry_evidence(
+    question: str,
+    retrieval_query: str,
+    query_plan: Dict[str, Any],
+    pdf_id: str | None = None,
+    current_top_k: int = 5,
+    library_top_k: int = 3,
+    current_limit: int = 5,
+    library_limit: int = 3,
+) -> tuple[List[Dict[str, Any]], str, Dict[str, Any]]:
+    evidence, scope = _retrieve_evidence_for_query(
+        retrieval_query,
+        pdf_id=pdf_id,
+        current_top_k=current_top_k,
+        library_top_k=library_top_k,
+        current_limit=current_limit,
+        library_limit=library_limit,
+    )
+    judge_result = judge_evidence_quality(
+        question,
+        evidence,
+        keywords=query_plan.get("keywords") or [],
+    )
+
+    if not _should_retry_retrieval(judge_result):
+        return evidence, scope, judge_result
+
+    retry_query = _build_retry_query(question, query_plan, judge_result)
+    retry_evidence, retry_scope = _retrieve_evidence_for_query(
+        retry_query,
+        pdf_id=pdf_id,
+        current_top_k=current_top_k,
+        library_top_k=library_top_k,
+        current_limit=current_limit,
+        library_limit=library_limit,
+    )
+    retry_judge = judge_evidence_quality(
+        question,
+        retry_evidence,
+        keywords=[*(query_plan.get("keywords") or []), *(judge_result.get("missingAspects") or [])],
+    )
+
+    if retry_evidence:
+        return retry_evidence, retry_scope, retry_judge
+    return evidence, scope, retry_judge
+
+
+def _evidence_context_title(scope: str, current_title: str, library_title: str) -> str:
+    return current_title if scope == "current_paper" else library_title
+
+
+def _evidence_quality_instruction(judge_result: Dict[str, Any]) -> str:
+    verdict = judge_result.get("verdict")
+    if verdict == "INCORRECT":
+        return (
+            "\n证据质量判断：当前论文或资料库证据不足。"
+            "回答时必须先明确说明依据不足，只能基于用户提供内容和已有片段做有限解释，不得编造论文结论。\n"
+        )
+    if verdict == "AMBIGUOUS":
+        return (
+            "\n证据质量判断：当前证据只部分相关。"
+            "回答时需要说明不确定性，并避免把片段外的信息说成论文结论。\n"
+        )
+    return ""
 
 
 def _build_pdf_context(pdf_id: str | None, query: str, top_k: int = 4) -> str:
@@ -449,37 +574,31 @@ def explain_term(request: TermExplainRequest) -> Dict[str, Any]:
     query_plan = build_retrieval_queries(rag_query, context=page_context, task_type="explain")
     retrieval_query = query_plan.get("rewritten") or query_plan.get("original") or rag_query
 
-    rag_results: List[Dict[str, Any]] = []
-    rag_scope = ""
-    if request.pdfId:
-        try:
-            clean_pdf_id = get_rag().normalize_id(request.pdfId)
-            raw_results = get_rag().retrieve(retrieval_query, top_k=5, filter_metadata={"id": clean_pdf_id})
-            rag_results = normalize_evidence_items(
-                raw_results,
-                source_type="current_paper",
-                pdf_id=clean_pdf_id,
-                limit=5,
-            )
-            if rag_results:
-                rag_scope = "current_paper"
-        except Exception as error:
-            print(f"Explain-term PDF RAG retrieval failed: {error}")
-
-    if not rag_results:
-        raw_results = retrieve_hybrid_results(retrieval_query, top_k=3)
-        rag_results = _normalize_hybrid_evidence(raw_results, limit=3)
-        rag_scope = "literature" if rag_results else ""
+    rag_results, rag_scope, retrieval_judge = _judge_and_retry_evidence(
+        rag_query,
+        retrieval_query,
+        query_plan,
+        pdf_id=request.pdfId,
+        current_top_k=5,
+        library_top_k=3,
+        current_limit=5,
+        library_limit=3,
+    )
 
     rag_context = ""
     if rag_results:
-        context_title = "Current paper RAG context" if rag_scope == "current_paper" else "Additional literature context"
+        context_title = _evidence_context_title(
+            rag_scope,
+            current_title="Current paper RAG context",
+            library_title="Additional literature context",
+        )
         rag_context = format_evidence_context(rag_results, title=context_title, max_items=5, max_text_chars=600)
 
     prompt = f"""
 You are an academic research assistant.
 Explain the selected term, formula, or passage "{request.term}" in Chinese using the provided context.
 {MATH_MARKDOWN_GUIDELINE}
+{_evidence_quality_instruction(retrieval_judge)}
 
 Current page context{f" (page {request.pageNumber})" if request.pageNumber else ""}:
 {page_context}
@@ -496,6 +615,7 @@ Keep the answer within 5 sentences.
         "explanation": explanation,
         "rag_sources": compact_evidence_for_response(rag_results, max_items=5, max_text_chars=700),
         "queryPlan": query_plan,
+        "retrievalJudge": retrieval_judge,
     }
 
 
@@ -515,26 +635,23 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
     )
     retrieval_query = query_plan.get("rewritten") or query_plan.get("original") or message
 
-    if request.pdfId:
-        try:
-            clean_pdf_id = get_rag().normalize_id(request.pdfId)
-            raw_results = get_rag().retrieve(retrieval_query, top_k=12, filter_metadata={"id": clean_pdf_id})
-            rag_results = normalize_evidence_items(
-                raw_results,
-                source_type="current_paper",
-                pdf_id=clean_pdf_id,
-                limit=12,
-            )
-            if rag_results:
-                context = format_evidence_context(rag_results, title="Paper evidence", max_items=12, max_text_chars=900)
-        except Exception as error:
-            print(f"Chat RAG retrieval failed: {error}")
-
-    if not rag_results:
-        raw_results = retrieve_hybrid_results(retrieval_query, top_k=5)
-        rag_results = _normalize_hybrid_evidence(raw_results, limit=5)
-        if rag_results:
-            context = format_evidence_context(rag_results, title="Library evidence", max_items=5, max_text_chars=900)
+    rag_results, rag_scope, retrieval_judge = _judge_and_retry_evidence(
+        message,
+        retrieval_query,
+        query_plan,
+        pdf_id=request.pdfId,
+        current_top_k=12,
+        library_top_k=5,
+        current_limit=12,
+        library_limit=5,
+    )
+    if rag_results:
+        context = format_evidence_context(
+            rag_results,
+            title=_evidence_context_title(rag_scope, current_title="Paper evidence", library_title="Library evidence"),
+            max_items=12 if rag_scope == "current_paper" else 5,
+            max_text_chars=900,
+        )
 
     history_str = ""
     for item in history[-5:]:
@@ -551,6 +668,7 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
     prompt = f"""你是一位学术论文阅读助手。
 请结合论文摘要结构、相关证据片段和对话历史，用中文回答用户问题。
 {MATH_MARKDOWN_GUIDELINE}
+{_evidence_quality_instruction(retrieval_judge)}
 
 {skeleton_str}
 
@@ -567,6 +685,7 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
         "message": reply or "",
         "rag_sources": compact_evidence_for_response(rag_results, max_items=12, max_text_chars=700),
         "queryPlan": query_plan,
+        "retrievalJudge": retrieval_judge,
     }
 
 

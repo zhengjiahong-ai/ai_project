@@ -18,6 +18,7 @@
 - Python 返回的 `rag_sources` 必须使用统一证据结构，标准字段为 `sourceId`、`text`、`metadata`、`similarity`、`score`、`pdfId`、`chunkIndex`、`sourceType`。
 - `rag_sources[].id` 仅作为旧背景补课 UI 的兼容别名保留，新代码应优先使用 `sourceId`。
 - Python 聊天、划词解释和背景补课可返回可选 `queryPlan`，字段为 `original`、`rewritten`、`keywords`、`taskType`、`source`；前端可忽略该字段。
+- Python 聊天和划词解释可返回可选 `retrievalJudge`，字段为 `verdict`、`confidence`、`reason`、`missingAspects`、`shouldRetry`；前端可忽略该字段。
 
 ---
 
@@ -85,8 +86,8 @@
 | 方法 | 路径 | 请求体/参数 | 说明 |
 |------|------|-------------|------|
 | POST | `/api/upload` | `multipart/form-data`, 字段名 `file` | PDF 上传，Java 转发到 Python `/api/analyze-pdf` |
-| POST | `/api/explain` | `{ "text": string, "pdfId": any, "pageNumber": number, "context": string }` 或 `{ "term": string, "context": string }` | 术语/划词解释，Java 转发到 Python `/api/explain-term`；带 `pdfId` 时优先基于当前论文 RAG，响应可附带 `queryPlan` |
-| POST | `/api/chat` | `{ "message": string, "pdfId": any, "history": array?, "paperSkeleton": object? }` | 对话，Java 持久化当前论文会话并转发到 Python `/api/chat`；Python 结合论文摘要、历史、查询重写和 RAG 片段返回回答、统一 `rag_sources` 与可选 `queryPlan` |
+| POST | `/api/explain` | `{ "text": string, "pdfId": any, "pageNumber": number, "context": string }` 或 `{ "term": string, "context": string }` | 术语/划词解释，Java 转发到 Python `/api/explain-term`；带 `pdfId` 时优先基于当前论文 RAG，响应可附带 `queryPlan` 与 `retrievalJudge` |
+| POST | `/api/chat` | `{ "message": string, "pdfId": any, "history": array?, "paperSkeleton": object? }` | 对话，Java 持久化当前论文会话并转发到 Python `/api/chat`；Python 结合论文摘要、历史、查询重写、证据质量判断和 RAG 片段返回回答、统一 `rag_sources` 与可选 `queryPlan`、`retrievalJudge` |
 | GET | `/api/chat/history/:sessionId` | - | 读取 Java H2 中按 `pdfId/sessionId` 保存的聊天历史，前端用于恢复远端会话 |
 | POST | `/api/translate-page` | `{ "pdfId": string?, "pageIndex": number, "pageText": string, "paperSkeleton": object?, "pageLayout": object? }` | 逐页翻译，Java 转发到 Python `/api/translate-page`，支持版面块与译文缓存 |
 | POST | `/api/critical-reading/:pdfId` | - | 批判性阅读，Java 转发到 Python `/api/deep-analysis`，基于当前论文索引内容生成分析 |
@@ -104,8 +105,8 @@
 | Java 调用 | Python 路径 | 说明 |
 |-----------|-------------|------|
 | POST upload → 转发 | POST `/api/analyze-pdf` | 请求体为 multipart，Python 返回 `{ status, paper_skeleton, paper_structure, translationLayoutIndex, pdfId, ragIndexed }` |
-| POST explain → 转发 | POST `/api/explain-term` | 请求体 `{ term, context, pdfId?, pageNumber? }`，Python 返回 `{ status, term, explanation, rag_sources, queryPlan? }` |
-| POST chat → 转发 | POST `/api/chat` | 请求体 `{ message, pdfId?, history?, paperSkeleton? }`，Python 返回 `{ status, message, rag_sources, queryPlan? }`，并优先使用当前论文 RAG 片段 |
+| POST explain → 转发 | POST `/api/explain-term` | 请求体 `{ term, context, pdfId?, pageNumber? }`，Python 返回 `{ status, term, explanation, rag_sources, queryPlan?, retrievalJudge? }` |
+| POST chat → 转发 | POST `/api/chat` | 请求体 `{ message, pdfId?, history?, paperSkeleton? }`，Python 返回 `{ status, message, rag_sources, queryPlan?, retrievalJudge? }`，并优先使用当前论文 RAG 片段 |
 | POST translate page → 转发 | POST `/api/translate-page` | 请求体 `{ pdfId?, pageIndex, pageText, paperSkeleton?, pageLayout? }`，Python 返回页级译文、译文块和渲染模式 |
 | POST critical reading → 转发 | POST `/api/deep-analysis` | Java 传 `{ pdf_id }`，Python 通过已索引论文内容生成批判性阅读结果 |
 | POST socratic questions → 转发 | POST `/api/socratic-questions` | 请求体 `{ paper_content, reading_progress }`，Python 返回 `{ status, questions }` |
