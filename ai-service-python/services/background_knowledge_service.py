@@ -3,9 +3,10 @@ import re
 from typing import Any, Dict, List, Optional
 
 from llm.client import get_llm
-from rag.store import get_rag, retrieve_hybrid_for_vector
+from rag.store import get_rag, retrieve_hybrid_results
 from schemas.requests import BackgroundKnowledgeRequest
 from services.evidence_service import compact_evidence_for_response, normalize_evidence_items
+from services.query_service import build_retrieval_queries
 from services.utils import parse_json_from_llm
 
 
@@ -28,7 +29,8 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
     normalized_pdf_id = _normalize_pdf_id(request.pdfId)
     paper_context, current_paper_sources = _load_current_paper_context(request, normalized_pdf_id)
     paper_topic = _resolve_topic(request, paper_context)
-    rag_sources = _retrieve_related_sources(paper_topic, normalized_pdf_id)
+    query_plan = build_retrieval_queries(paper_topic, context=paper_context, task_type="background")
+    rag_sources = _retrieve_related_sources(query_plan, normalized_pdf_id)
 
     try:
         llm_payload = _generate_graph_payload(
@@ -58,6 +60,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
             limit=5,
         )
     )
+    payload["queryPlan"] = query_plan
     payload["neo4j"] = _persist_optional_neo4j(payload)
     return payload
 
@@ -120,10 +123,12 @@ def _resolve_topic(request: BackgroundKnowledgeRequest, paper_context: str) -> s
     return "当前论文"
 
 
-def _retrieve_related_sources(paper_topic: str, normalized_pdf_id: Optional[str]) -> List[dict]:
-    query = f"prerequisite concepts background knowledge for {paper_topic}"
+def _retrieve_related_sources(query_plan: Dict[str, Any], normalized_pdf_id: Optional[str]) -> List[dict]:
+    query = query_plan.get("rewritten") or query_plan.get("original") or "prerequisite concepts background knowledge"
     try:
-        return retrieve_hybrid_for_vector(query, top_k=5)
+        sources = _normalize_hybrid_sources(retrieve_hybrid_results(query, top_k=5))
+        if sources:
+            return sources
     except Exception as error:
         print(f"background knowledge related-source retrieval skipped: {error}")
 
@@ -134,6 +139,25 @@ def _retrieve_related_sources(paper_topic: str, normalized_pdf_id: Optional[str]
             print(f"background knowledge filtered retrieval skipped: {error}")
 
     return []
+
+
+def _normalize_hybrid_sources(hybrid_results: Dict[str, List[dict]]) -> List[dict]:
+    vector_results = hybrid_results.get("vector", []) if isinstance(hybrid_results, dict) else []
+    bm25_results = hybrid_results.get("bm25", []) if isinstance(hybrid_results, dict) else []
+    evidence = normalize_evidence_items([*vector_results, *bm25_results], source_type="library", limit=10)
+
+    deduped = []
+    seen = set()
+    for item in evidence:
+        text_key = " ".join(str(item.get("text") or "").lower().split())
+        if not text_key or text_key in seen:
+            continue
+        seen.add(text_key)
+        deduped.append(item)
+        if len(deduped) >= 5:
+            break
+
+    return deduped
 
 
 def _generate_graph_payload(

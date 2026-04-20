@@ -34,7 +34,14 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
     def test_legacy_topic_payload_returns_graph_and_list(self):
         with (
             patch.dict(os.environ, self.neo4j_env, clear=False),
-            patch("services.background_knowledge_service.retrieve_hybrid_for_vector", return_value=[]),
+            patch("services.background_knowledge_service.build_retrieval_queries", return_value={
+                "original": "AcademicRAG",
+                "rewritten": "AcademicRAG prerequisites",
+                "keywords": ["AcademicRAG"],
+                "taskType": "background",
+                "source": "llm",
+            }),
+            patch("services.background_knowledge_service.retrieve_hybrid_results", return_value={"vector": [], "bm25": []}),
             patch("services.background_knowledge_service.get_llm") as mocked_llm,
         ):
             mocked_llm.return_value._call.return_value = "RAG\nKnowledge graph\nPrerequisites"
@@ -47,6 +54,7 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
         self.assertEqual(response["status"], "success")
         self.assertEqual(response["paper_topic"], "AcademicRAG")
         self.assertEqual(response["background_knowledge"][0], "RAG")
+        self.assertEqual(response["queryPlan"]["rewritten"], "AcademicRAG prerequisites")
         self.assertGreaterEqual(len(response["graph"]["nodes"]), 2)
         self.assertEqual(response["neo4j"]["status"], "skipped")
 
@@ -69,9 +77,19 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
         with (
             patch.dict(os.environ, self.neo4j_env, clear=False),
             patch("services.background_knowledge_service.get_rag", return_value=FakeRag()),
+            patch("services.background_knowledge_service.build_retrieval_queries", return_value={
+                "original": "AcademicRAG",
+                "rewritten": "AcademicRAG knowledge graph prerequisites",
+                "keywords": ["AcademicRAG", "knowledge graph"],
+                "taskType": "background",
+                "source": "llm",
+            }),
             patch(
-                "services.background_knowledge_service.retrieve_hybrid_for_vector",
-                return_value=[{"text": "Related literature source.", "metadata": {"title": "source"}}],
+                "services.background_knowledge_service.retrieve_hybrid_results",
+                return_value={
+                    "vector": [{"text": "Related literature source.", "metadata": {"title": "source"}}],
+                    "bm25": [{"text": "BM25 prerequisite source.", "score": 3.0}],
+                },
             ),
             patch("services.background_knowledge_service.get_llm") as mocked_llm,
         ):
@@ -89,12 +107,20 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
         self.assertEqual(response["rag_sources"][0]["sourceId"], "source-1")
         self.assertEqual(response["rag_sources"][0]["id"], "source-1")
         self.assertEqual(response["rag_sources"][0]["sourceType"], "library")
+        self.assertEqual(response["queryPlan"]["taskType"], "background")
         self.assertEqual(response["neo4j"]["enabled"], False)
 
     def test_unstructured_llm_response_falls_back_to_linear_graph(self):
         with (
             patch.dict(os.environ, self.neo4j_env, clear=False),
-            patch("services.background_knowledge_service.retrieve_hybrid_for_vector", return_value=[]),
+            patch("services.background_knowledge_service.build_retrieval_queries", return_value={
+                "original": "RAG",
+                "rewritten": "RAG prerequisites",
+                "keywords": ["RAG"],
+                "taskType": "background",
+                "source": "llm",
+            }),
+            patch("services.background_knowledge_service.retrieve_hybrid_results", return_value={"vector": [], "bm25": []}),
             patch("services.background_knowledge_service.get_llm") as mocked_llm,
         ):
             mocked_llm.return_value._call.return_value = "1. Embeddings\n2. Vector search"
@@ -107,7 +133,14 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
     def test_non_string_topic_payload_is_coerced(self):
         with (
             patch.dict(os.environ, self.neo4j_env, clear=False),
-            patch("services.background_knowledge_service.retrieve_hybrid_for_vector", return_value=[]),
+            patch("services.background_knowledge_service.build_retrieval_queries", return_value={
+                "original": "Graph RAG",
+                "rewritten": "Graph RAG prerequisites",
+                "keywords": ["Graph RAG"],
+                "taskType": "background",
+                "source": "llm",
+            }),
+            patch("services.background_knowledge_service.retrieve_hybrid_results", return_value={"vector": [], "bm25": []}),
             patch("services.background_knowledge_service.get_llm") as mocked_llm,
         ):
             mocked_llm.return_value._call.return_value = "Embeddings\nVector search"

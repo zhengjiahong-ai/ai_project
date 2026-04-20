@@ -33,10 +33,17 @@ class ExplainTermServiceTests(unittest.TestCase):
 
         with (
             patch("services.chat_service.get_rag", return_value=fake_rag),
-            patch("services.chat_service.retrieve_hybrid_for_vector") as mocked_hybrid,
+            patch("services.chat_service.build_retrieval_queries", return_value={
+                "original": "original explain query",
+                "rewritten": "contrastive loss query",
+                "keywords": ["contrastive loss"],
+                "taskType": "explain",
+                "source": "llm",
+            }),
+            patch("services.chat_service.retrieve_hybrid_results") as mocked_hybrid,
             patch("services.chat_service.get_llm") as mocked_get_llm,
         ):
-            mocked_get_llm.return_value._call.side_effect = ["contrastive loss query", "这是当前论文中的术语解释。"]
+            mocked_get_llm.return_value._call.return_value = "这是当前论文中的术语解释。"
 
             response = explain_term(TermExplainRequest(
                 term="contrastive loss",
@@ -52,7 +59,9 @@ class ExplainTermServiceTests(unittest.TestCase):
         self.assertEqual(response["rag_sources"][0]["text"], "Current paper context about contrastive loss.")
         self.assertEqual(response["rag_sources"][0]["pdfId"], "paper-1")
         self.assertEqual(response["rag_sources"][0]["sourceType"], "current_paper")
+        self.assertEqual(response["queryPlan"]["rewritten"], "contrastive loss query")
         self.assertEqual(fake_rag.retrieve_calls[0]["filter_metadata"], {"id": "paper-1"})
+        self.assertEqual(fake_rag.retrieve_calls[0]["query"], "contrastive loss query")
         self.assertEqual(fake_rag.retrieve_calls[0]["top_k"], 5)
         mocked_hybrid.assert_not_called()
 
@@ -62,10 +71,20 @@ class ExplainTermServiceTests(unittest.TestCase):
 
         with (
             patch("services.chat_service.get_rag", return_value=fake_rag),
-            patch("services.chat_service.retrieve_hybrid_for_vector", return_value=fallback_results) as mocked_hybrid,
+            patch("services.chat_service.build_retrieval_queries", return_value={
+                "original": "original attention query",
+                "rewritten": "attention query",
+                "keywords": ["attention"],
+                "taskType": "explain",
+                "source": "llm",
+            }),
+            patch(
+                "services.chat_service.retrieve_hybrid_results",
+                return_value={"vector": fallback_results, "bm25": []},
+            ) as mocked_hybrid,
             patch("services.chat_service.get_llm") as mocked_get_llm,
         ):
-            mocked_get_llm.return_value._call.side_effect = ["attention query", "这是兜底解释。"]
+            mocked_get_llm.return_value._call.return_value = "这是兜底解释。"
 
             response = explain_term(TermExplainRequest(
                 term="attention",
@@ -79,7 +98,31 @@ class ExplainTermServiceTests(unittest.TestCase):
         self.assertEqual(response["rag_sources"][0]["text"], "General literature context.")
         self.assertEqual(response["rag_sources"][0]["pdfId"], "other-paper")
         self.assertEqual(response["rag_sources"][0]["sourceType"], "library")
+        self.assertEqual(response["queryPlan"]["rewritten"], "attention query")
         mocked_hybrid.assert_called_once_with("attention query", top_k=3)
+
+    def test_explain_term_uses_fallback_query_plan_when_rewrite_fails(self):
+        fake_rag = FakeRag(results=[{"text": "Original query evidence.", "metadata": {"id": "paper-1"}}])
+
+        with (
+            patch("services.chat_service.get_rag", return_value=fake_rag),
+            patch("services.query_service.get_llm") as mocked_query_llm,
+            patch("services.chat_service.get_llm") as mocked_get_llm,
+        ):
+            mocked_query_llm.return_value._call.side_effect = RuntimeError("rewrite failed")
+            mocked_get_llm.return_value._call.return_value = "原始查询解释。"
+
+            response = explain_term(TermExplainRequest(
+                term="attention",
+                context="The selected page context.",
+                pdfId="paper-1",
+                pageNumber=2,
+            ))
+
+        self.assertEqual(response["queryPlan"]["source"], "fallback")
+        self.assertIn("attention", response["queryPlan"]["rewritten"])
+        self.assertEqual(fake_rag.retrieve_calls[0]["query"], response["queryPlan"]["rewritten"])
+        self.assertEqual(response["explanation"], "原始查询解释。")
 
 
 if __name__ == "__main__":

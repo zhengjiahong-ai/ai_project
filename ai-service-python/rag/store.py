@@ -83,5 +83,24 @@ def retrieve_hybrid_for_vector(query: str, top_k: int = 3) -> List[Dict[str, Any
         return retrieve_vector_snippets(query, top_k=top_k)
 
 
+def retrieve_hybrid_results(query: str, top_k: int = 3) -> Dict[str, List[Dict[str, Any]]]:
+    try:
+        results = get_hybrid().retrieve(query, top_k=top_k)
+        return {
+            "vector": results.get("vector", []) if isinstance(results, dict) else [],
+            "bm25": results.get("bm25", []) if isinstance(results, dict) else [],
+        }
+    except Exception as error:
+        print(
+            "retrieve_hybrid_results failed:",
+            str(error),
+            f"(HybridRetriever={'set' if HybridRetriever is not None else 'None'}, hybrid={'set' if _hybrid is not None else 'None'})",
+        )
+        return {
+            "vector": retrieve_vector_snippets(query, top_k=top_k),
+            "bm25": [],
+        }
+
+
 def preload_rag() -> None:
     get_rag()

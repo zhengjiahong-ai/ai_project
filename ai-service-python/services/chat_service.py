@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from typing import Any, Dict, List
 
 from llm.client import get_llm, get_translation_llm
-from rag.store import get_rag, retrieve_hybrid_for_vector
+from rag.store import get_rag, retrieve_hybrid_for_vector, retrieve_hybrid_results
 from schemas.requests import (
     ChatRequest,
     PageTranslationRequest,
@@ -20,6 +20,7 @@ from services.evidence_service import (
     normalize_evidence_items,
 )
 from services.page_translation_service import translate_page as translate_page_v2
+from services.query_service import build_retrieval_queries
 
 
 SOCRATIC_TOTAL_QUESTIONS = 5
@@ -36,6 +37,55 @@ def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any] | None) -> str:
     for section, summary in paper_skeleton.items():
         lines.append(f"- {section}: {summary}")
     return "\n".join(lines)
+
+
+def _build_chat_query_context(history: List[Dict[str, Any]], paper_skeleton: Dict[str, Any]) -> str:
+    parts = []
+
+    if paper_skeleton:
+        parts.append("Paper summary:")
+        for section, summary in list(paper_skeleton.items())[:8]:
+            parts.append(f"- {section}: {str(summary)[:300]}")
+
+    if history:
+        parts.append("Recent conversation:")
+        for item in history[-3:]:
+            role = item.get("role", "")
+            role_name = "user" if role == "user" else "assistant"
+            parts.append(f"{role_name}: {str(item.get('content', ''))[:240]}")
+
+    return "\n".join(parts)[:1600]
+
+
+def _normalize_hybrid_evidence(
+    hybrid_results: Dict[str, List[Dict[str, Any]]],
+    limit: int = 5,
+    max_text_chars: int = 900,
+) -> List[Dict[str, Any]]:
+    vector_results = hybrid_results.get("vector", []) if isinstance(hybrid_results, dict) else []
+    bm25_results = hybrid_results.get("bm25", []) if isinstance(hybrid_results, dict) else []
+    evidence = normalize_evidence_items(
+        [*vector_results, *bm25_results],
+        source_type="library",
+        max_text_chars=max_text_chars,
+    )
+    return _deduplicate_evidence(evidence, limit=limit)
+
+
+def _deduplicate_evidence(items: List[Dict[str, Any]], limit: int | None = None) -> List[Dict[str, Any]]:
+    deduped = []
+    seen = set()
+
+    for item in items:
+        text_key = " ".join(str(item.get("text") or "").lower().split())
+        if not text_key or text_key in seen:
+            continue
+        seen.add(text_key)
+        deduped.append(item)
+        if limit is not None and len(deduped) >= limit:
+            break
+
+    return deduped
 
 
 def _build_pdf_context(pdf_id: str | None, query: str, top_k: int = 4) -> str:
@@ -396,26 +446,15 @@ Reading progress:
 def explain_term(request: TermExplainRequest) -> Dict[str, Any]:
     page_context = request.context or ""
     rag_query = f"Explain the selected academic text '{request.term}' with the following context: {page_context[:200]}"
-
-    rewrite_prompt = f"""
-You are helping a research retrieval system.
-Rewrite the following question into a concise academic search query.
-
-Question:
-{rag_query}
-"""
-
-    try:
-        rewritten_query = get_llm()._call(rewrite_prompt).strip()
-    except Exception:
-        rewritten_query = rag_query
+    query_plan = build_retrieval_queries(rag_query, context=page_context, task_type="explain")
+    retrieval_query = query_plan.get("rewritten") or query_plan.get("original") or rag_query
 
     rag_results: List[Dict[str, Any]] = []
     rag_scope = ""
     if request.pdfId:
         try:
             clean_pdf_id = get_rag().normalize_id(request.pdfId)
-            raw_results = get_rag().retrieve(rewritten_query, top_k=5, filter_metadata={"id": clean_pdf_id})
+            raw_results = get_rag().retrieve(retrieval_query, top_k=5, filter_metadata={"id": clean_pdf_id})
             rag_results = normalize_evidence_items(
                 raw_results,
                 source_type="current_paper",
@@ -428,8 +467,8 @@ Question:
             print(f"Explain-term PDF RAG retrieval failed: {error}")
 
     if not rag_results:
-        raw_results = retrieve_hybrid_for_vector(rewritten_query, top_k=3)
-        rag_results = normalize_evidence_items(raw_results, source_type="library", limit=3)
+        raw_results = retrieve_hybrid_results(retrieval_query, top_k=3)
+        rag_results = _normalize_hybrid_evidence(raw_results, limit=3)
         rag_scope = "literature" if rag_results else ""
 
     rag_context = ""
@@ -456,6 +495,7 @@ Keep the answer within 5 sentences.
         "term": request.term,
         "explanation": explanation,
         "rag_sources": compact_evidence_for_response(rag_results, max_items=5, max_text_chars=700),
+        "queryPlan": query_plan,
     }
 
 
@@ -468,11 +508,17 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
     paper_skeleton = request.paperSkeleton or {}
     context = ""
     rag_results: List[Dict[str, Any]] = []
+    query_plan = build_retrieval_queries(
+        message,
+        context=_build_chat_query_context(history, paper_skeleton),
+        task_type="chat",
+    )
+    retrieval_query = query_plan.get("rewritten") or query_plan.get("original") or message
 
     if request.pdfId:
         try:
             clean_pdf_id = get_rag().normalize_id(request.pdfId)
-            raw_results = get_rag().retrieve(message, top_k=12, filter_metadata={"id": clean_pdf_id})
+            raw_results = get_rag().retrieve(retrieval_query, top_k=12, filter_metadata={"id": clean_pdf_id})
             rag_results = normalize_evidence_items(
                 raw_results,
                 source_type="current_paper",
@@ -483,6 +529,12 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
                 context = format_evidence_context(rag_results, title="Paper evidence", max_items=12, max_text_chars=900)
         except Exception as error:
             print(f"Chat RAG retrieval failed: {error}")
+
+    if not rag_results:
+        raw_results = retrieve_hybrid_results(retrieval_query, top_k=5)
+        rag_results = _normalize_hybrid_evidence(raw_results, limit=5)
+        if rag_results:
+            context = format_evidence_context(rag_results, title="Library evidence", max_items=5, max_text_chars=900)
 
     history_str = ""
     for item in history[-5:]:
@@ -514,6 +566,7 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
         "status": "success",
         "message": reply or "",
         "rag_sources": compact_evidence_for_response(rag_results, max_items=12, max_text_chars=700),
+        "queryPlan": query_plan,
     }
 
 
