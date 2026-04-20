@@ -47,7 +47,11 @@ class ExplainTermServiceTests(unittest.TestCase):
 
         self.assertEqual(response["status"], "success")
         self.assertEqual(response["explanation"], "这是当前论文中的术语解释。")
-        self.assertEqual(response["rag_sources"], fake_rag.results)
+        self.assertEqual(response["rag_sources"][0]["sourceId"], "source-1")
+        self.assertEqual(response["rag_sources"][0]["id"], "source-1")
+        self.assertEqual(response["rag_sources"][0]["text"], "Current paper context about contrastive loss.")
+        self.assertEqual(response["rag_sources"][0]["pdfId"], "paper-1")
+        self.assertEqual(response["rag_sources"][0]["sourceType"], "current_paper")
         self.assertEqual(fake_rag.retrieve_calls[0]["filter_metadata"], {"id": "paper-1"})
         self.assertEqual(fake_rag.retrieve_calls[0]["top_k"], 5)
         mocked_hybrid.assert_not_called()
@@ -72,7 +76,9 @@ class ExplainTermServiceTests(unittest.TestCase):
 
         self.assertEqual(response["status"], "success")
         self.assertEqual(response["explanation"], "这是兜底解释。")
-        self.assertEqual(response["rag_sources"], fallback_results)
+        self.assertEqual(response["rag_sources"][0]["text"], "General literature context.")
+        self.assertEqual(response["rag_sources"][0]["pdfId"], "other-paper")
+        self.assertEqual(response["rag_sources"][0]["sourceType"], "library")
         mocked_hybrid.assert_called_once_with("attention query", top_k=3)
 
 

@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from llm.client import get_llm
 from rag.store import get_rag, retrieve_hybrid_for_vector
 from schemas.requests import BackgroundKnowledgeRequest
+from services.evidence_service import compact_evidence_for_response, normalize_evidence_items
 from services.utils import parse_json_from_llm
 
 
@@ -47,7 +48,16 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
             error=error,
         )
 
-    payload["rag_sources"] = _compact_sources(rag_sources or current_paper_sources)
+    response_sources = rag_sources or current_paper_sources
+    response_source_type = "library" if rag_sources else "current_paper" if current_paper_sources else "unknown"
+    payload["rag_sources"] = compact_evidence_for_response(
+        normalize_evidence_items(
+            response_sources,
+            source_type=response_source_type,
+            pdf_id=normalized_pdf_id if response_source_type == "current_paper" else None,
+            limit=5,
+        )
+    )
     payload["neo4j"] = _persist_optional_neo4j(payload)
     return payload
 
@@ -459,21 +469,6 @@ def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None
             label=link.get("label"),
             relation=link.get("relation"),
         )
-
-
-def _compact_sources(sources: List[dict]) -> List[dict]:
-    compacted = []
-    for index, item in enumerate(sources[:5] if isinstance(sources, list) else []):
-        if not isinstance(item, dict):
-            continue
-        compacted.append({
-            "id": f"source-{index + 1}",
-            "text": str(item.get("text") or "")[:700],
-            "metadata": item.get("metadata") or {},
-            "similarity": item.get("similarity"),
-            "score": item.get("score"),
-        })
-    return compacted
 
 
 def _parse_line_items(raw: str) -> List[str]:

@@ -86,7 +86,9 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
         self.assertEqual(response["pdfId"], "paper-1")
         self.assertEqual(response["graph"]["nodes"][1]["id"], "rag")
         self.assertEqual(response["learning_path"][0]["title"], "RAG")
+        self.assertEqual(response["rag_sources"][0]["sourceId"], "source-1")
         self.assertEqual(response["rag_sources"][0]["id"], "source-1")
+        self.assertEqual(response["rag_sources"][0]["sourceType"], "library")
         self.assertEqual(response["neo4j"]["enabled"], False)
 
     def test_unstructured_llm_response_falls_back_to_linear_graph(self):

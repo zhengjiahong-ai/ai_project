@@ -14,6 +14,11 @@ from schemas.requests import (
     TermExplainRequest,
 )
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE as SHARED_MATH_MARKDOWN_GUIDELINE
+from services.evidence_service import (
+    compact_evidence_for_response,
+    format_evidence_context,
+    normalize_evidence_items,
+)
 from services.page_translation_service import translate_page as translate_page_v2
 
 
@@ -410,22 +415,27 @@ Question:
     if request.pdfId:
         try:
             clean_pdf_id = get_rag().normalize_id(request.pdfId)
-            rag_results = get_rag().retrieve(rewritten_query, top_k=5, filter_metadata={"id": clean_pdf_id})
+            raw_results = get_rag().retrieve(rewritten_query, top_k=5, filter_metadata={"id": clean_pdf_id})
+            rag_results = normalize_evidence_items(
+                raw_results,
+                source_type="current_paper",
+                pdf_id=clean_pdf_id,
+                limit=5,
+            )
             if rag_results:
                 rag_scope = "current_paper"
         except Exception as error:
             print(f"Explain-term PDF RAG retrieval failed: {error}")
 
     if not rag_results:
-        rag_results = retrieve_hybrid_for_vector(rewritten_query, top_k=3)
+        raw_results = retrieve_hybrid_for_vector(rewritten_query, top_k=3)
+        rag_results = normalize_evidence_items(raw_results, source_type="library", limit=3)
         rag_scope = "literature" if rag_results else ""
 
     rag_context = ""
     if rag_results:
         context_title = "Current paper RAG context" if rag_scope == "current_paper" else "Additional literature context"
-        rag_context = f"\n\n{context_title}:\n"
-        for result in rag_results:
-            rag_context += f"- {result.get('text', '')[:600]}\n"
+        rag_context = format_evidence_context(rag_results, title=context_title, max_items=5, max_text_chars=600)
 
     prompt = f"""
 You are an academic research assistant.
@@ -445,7 +455,7 @@ Keep the answer within 5 sentences.
         "status": "success",
         "term": request.term,
         "explanation": explanation,
-        "rag_sources": rag_results,
+        "rag_sources": compact_evidence_for_response(rag_results, max_items=5, max_text_chars=700),
     }
 
 
@@ -457,13 +467,20 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
     history = request.history or []
     paper_skeleton = request.paperSkeleton or {}
     context = ""
+    rag_results: List[Dict[str, Any]] = []
 
     if request.pdfId:
         try:
             clean_pdf_id = get_rag().normalize_id(request.pdfId)
-            rag_results = get_rag().retrieve(message, top_k=12, filter_metadata={"id": clean_pdf_id})
+            raw_results = get_rag().retrieve(message, top_k=12, filter_metadata={"id": clean_pdf_id})
+            rag_results = normalize_evidence_items(
+                raw_results,
+                source_type="current_paper",
+                pdf_id=clean_pdf_id,
+                limit=12,
+            )
             if rag_results:
-                context = "\n\nPaper evidence:\n" + "\n".join(f"- {item['text']}" for item in rag_results)
+                context = format_evidence_context(rag_results, title="Paper evidence", max_items=12, max_text_chars=900)
         except Exception as error:
             print(f"Chat RAG retrieval failed: {error}")
 
@@ -493,7 +510,11 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
 助手："""
 
     reply = get_llm()._call(prompt)
-    return {"status": "success", "message": reply or ""}
+    return {
+        "status": "success",
+        "message": reply or "",
+        "rag_sources": compact_evidence_for_response(rag_results, max_items=12, max_text_chars=700),
+    }
 
 
 def translate_page(request: PageTranslationRequest) -> Dict[str, Any]:
