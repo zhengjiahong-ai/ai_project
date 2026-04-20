@@ -556,14 +556,20 @@ export default function App() {
     setIsBackgroundKnowledgeLoading(true);
 
     try {
+      const researchProblem = deconstructData?.paper_structure?.research_problem;
+      const coreHypothesis = deconstructData?.paper_structure?.core_hypothesis;
+      const paperTopic =
+        typeof researchProblem === 'string' && researchProblem.trim()
+          ? researchProblem
+          : typeof coreHypothesis === 'string' && coreHypothesis.trim()
+            ? coreHypothesis
+            : null;
+
       const response = await apiService.backgroundKnowledge({
         pdfId,
         paperSkeleton: deconstructData?.paper_skeleton || null,
         paperStructure: deconstructData?.paper_structure || null,
-        paper_topic:
-          deconstructData?.paper_structure?.research_problem ||
-          deconstructData?.paper_structure?.core_hypothesis ||
-          null,
+        paper_topic: paperTopic,
         user_knowledge_level: '\u666e\u901a/\u4e00\u822c',
       });
 

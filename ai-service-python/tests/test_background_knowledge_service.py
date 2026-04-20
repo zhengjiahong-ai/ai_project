@@ -102,6 +102,22 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
         self.assertEqual(response["background_knowledge"], ["Embeddings", "Vector search"])
         self.assertTrue(any(link["target"] == "current-paper" for link in response["graph"]["links"]))
 
+    def test_non_string_topic_payload_is_coerced(self):
+        with (
+            patch.dict(os.environ, self.neo4j_env, clear=False),
+            patch("services.background_knowledge_service.retrieve_hybrid_for_vector", return_value=[]),
+            patch("services.background_knowledge_service.get_llm") as mocked_llm,
+        ):
+            mocked_llm.return_value._call.return_value = "Embeddings\nVector search"
+
+            response = get_background_knowledge(BackgroundKnowledgeRequest(
+                paper_topic={"title": "Graph RAG"},
+                user_knowledge_level={"label": "beginner"},
+            ))
+
+        self.assertEqual(response["paper_topic"], "Graph RAG")
+        self.assertEqual(response["user_knowledge_level"], "beginner")
+
 
 if __name__ == "__main__":
     unittest.main()

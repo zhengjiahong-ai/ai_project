@@ -23,7 +23,7 @@ RELATION_TYPE_MAP = {
 
 
 def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, Any]:
-    user_level = (request.user_knowledge_level or DEFAULT_USER_LEVEL).strip() or DEFAULT_USER_LEVEL
+    user_level = _coerce_text(request.user_knowledge_level) or DEFAULT_USER_LEVEL
     normalized_pdf_id = _normalize_pdf_id(request.pdfId)
     paper_context, current_paper_sources = _load_current_paper_context(request, normalized_pdf_id)
     paper_topic = _resolve_topic(request, paper_context)
@@ -86,8 +86,9 @@ def _load_current_paper_context(request: BackgroundKnowledgeRequest, normalized_
 
 
 def _resolve_topic(request: BackgroundKnowledgeRequest, paper_context: str) -> str:
-    if request.paper_topic and request.paper_topic.strip():
-        return request.paper_topic.strip()
+    topic = _coerce_text(request.paper_topic)
+    if topic:
+        return topic
 
     structure = request.paperStructure if isinstance(request.paperStructure, dict) else {}
     for key in ("research_problem", "core_hypothesis", "method_framework"):
@@ -481,6 +482,22 @@ def _parse_line_items(raw: str) -> List[str]:
         for item in (raw or "").splitlines()
         if item.strip("-* 0123456789.、").strip()
     ]
+
+
+def _coerce_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        return ", ".join(_coerce_text(item) for item in value if _coerce_text(item)).strip()
+    if isinstance(value, dict):
+        for key in ("title", "name", "label", "value", "text", "summary"):
+            text = _coerce_text(value.get(key))
+            if text:
+                return text
+        return _stringify_mapping(value).replace("\n", "; ").strip()
+    return str(value).strip()
 
 
 def _stringify_mapping(value: Any) -> str:
