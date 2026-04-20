@@ -15,6 +15,7 @@ __pycache__/
 *.pyc
 .env
 .pytest_cache/
+ai-service-python/tmp*/
 ai-service-python/models/* # 建议模型手动下载，不进 Git
 
 # Docker

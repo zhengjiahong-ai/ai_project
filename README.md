@@ -8,7 +8,7 @@
 
 - **前端**：React 单页应用，提供 PDF 预览、划词解释、聊天与多 Tab 分析面板。
 - **后端网关**：Spring Boot 统一对外 API，转发请求到 Python AI 服务。
-- **AI 服务**：FastAPI + GROBID 解析 PDF，通义千问（DashScope）做摘要与解释。
+- **AI 服务**：FastAPI + GROBID 解析 PDF，通义千问（DashScope）结合 RAG 做摘要、解释、翻译与分析。
 - **部署**：Docker Compose 一键启动前端、Java、Python、GROBID 四类服务。
 
 ---
@@ -114,7 +114,7 @@ docker-compose up --build
 
 - **PDF 上传与篇章解构**：上传 PDF → GROBID 解析 → AI 生成 abstract/introduction/methods/results/discussion/conclusion 摘要。
 - **对话与划词解释**：聊天面板发送消息；在 PDF 中划词可触发解释（对接 `/api/explain`，携带当前页上下文并优先基于当前论文 RAG）。
-- **批判性阅读**：生成创新性、严谨性、引用质量等维度的分析（当前部分为前端 Mock，可对接后端）。
+- **批判性阅读**：前端调用 Java `/api/critical-reading/{pdfId}`，Java 转发 Python `/api/deep-analysis`，基于当前论文索引内容生成贡献对比与批判性分析。
 - **学术笔记**：支持在阅读时添加笔记并持久化到 IndexedDB。
 - **全景翻译**：支持按当前 PDF 页提取文本并进行逐页全文翻译，译文显示在右侧专用面板中；翻页后自动跟随当前页更新，并对已翻译页面进行缓存，避免重复请求。
 - **引导式学习**：基于论文内容、阅读进度和论文骨架生成苏格拉底式问题，支持逐轮作答、掌握度评估、提示反馈和最终总结，帮助用户用问答方式推进理解。
@@ -137,6 +137,35 @@ NEO4J_AUTH=neo4j/pixiu_neo4j_password
 
 docker-compose --profile neo4j up --build
 ```
+
+---
+
+## 本地基线检查
+
+模块 0 基线审计使用以下命令确认当前项目状态：
+
+```bash
+# 前端
+cd frontend
+npm test
+npm run lint
+npm run build
+
+# Python AI 服务
+cd ../ai-service-python
+python -m pytest -q
+
+# Java 网关
+cd ../backend-java
+./mvnw test
+```
+
+当前基线说明：
+
+- 前端 `npm test` 与 `npm run lint` 通过。
+- Python 默认 `python -m pytest -q` 已限定收集 `tests/`，避免扫描临时目录。
+- Java 测试使用内存 H2 数据库，避免污染 `backend-java/data/academic_db.mv.db`。
+- 前端 `npm run build` 在当前 Windows/Node 环境下仍可能在 Vite transform 完成后以非零状态退出且无明确错误栈；该项作为后续构建专项继续排查。
 
 ---
 
