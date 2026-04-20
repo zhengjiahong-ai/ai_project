@@ -22,8 +22,8 @@ COPY . .
 
 EXPOSE 8000
 
-# 启动 FastAPI (添加 --reload 支持热更新)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# 启动 FastAPI。容器内禁用 --reload，避免 watchfiles 扫描 bind mount 中的残留临时目录后崩溃。
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 ENV CHROMA_DB_DIR=/app/chroma_data
 RUN mkdir -p /app/chroma_data

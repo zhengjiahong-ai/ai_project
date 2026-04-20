@@ -7,13 +7,14 @@ import { Send, Sparkles, Trash2, X } from 'lucide-react';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import '@react-pdf-viewer/highlight/lib/styles/index.css';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url';
 import { apiService } from '../services/api';
 import { buildExplainSelectionPayload } from '../utils/pdfFormulaSelection';
 import { buildPageLayout, normalizeExcludedZones } from '../utils/pdfTranslationLayout.js';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 
-const workerUrl = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+const workerUrl = pdfWorkerUrl;
 const EXPLAIN_CONTEXT_MAX_CHARS = 4500;
 
 const trimExplainContext = (text = '') => {
