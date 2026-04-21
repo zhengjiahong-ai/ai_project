@@ -69,12 +69,35 @@ class ApiRoutesTests(unittest.TestCase):
     def test_deep_analysis_accepts_pdf_id_payload(self):
         with patch(
             "routes.api.analysis_service.deep_analysis",
-            return_value={"status": "success", "critical_analysis": "done"},
+            return_value={
+                "status": "success",
+                "critical_analysis": "done",
+                "evidence_based_contributions": "基于证据的真实贡献",
+                "weaknesses": ["实验覆盖范围有限"],
+                "rag_sources": [{"sourceId": "chunk-1", "text": "evidence", "sourceType": "current_paper"}],
+            },
         ) as mocked:
             response = self.client.post("/api/deep-analysis", json={"pdf_id": "paper-1"})
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["critical_analysis"], "done")
+        self.assertEqual(response.json()["evidence_based_contributions"], "基于证据的真实贡献")
+        self.assertEqual(response.json()["weaknesses"], ["实验覆盖范围有限"])
+        mocked.assert_called_once()
+
+    def test_deep_analysis_accepts_paper_content_payload(self):
+        with patch(
+            "routes.api.analysis_service.deep_analysis",
+            return_value={
+                "status": "success",
+                "critical_analysis": "证据不足，需要进一步核对。",
+                "missing_evidence": ["跨领域评测不足"],
+            },
+        ) as mocked:
+            response = self.client.post("/api/deep-analysis", json={"paper_content": "paper content"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["missing_evidence"], ["跨领域评测不足"])
         mocked.assert_called_once()
 
     def test_background_knowledge_accepts_pdf_payload(self):

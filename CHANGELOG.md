@@ -7,6 +7,9 @@
 2. **扩展结构化聊天查询计划**：新增聊天专用 query planner，`queryPlan` 在保留 `original`、`rewritten`、`keywords`、`taskType`、`source` 的同时，补充 `intent`、`needsRetrieval`、`queries`、`answerStyle`。
 3. **增强当前论文优先与证据边界**：聊天优先检索当前论文，证据不足时按计划补充文献库，并在回答中明确区分证据充足、部分相关和不足三类情况。
 4. **补齐聊天模块测试**：新增聊天规划、当前论文问答、文献库补充、证据不足重试和历史上下文等 Python 回归测试。
+5. **批判阅读升级为全文证据化分析**：`/api/deep-analysis` 不再只截取前 4000 字，而是基于当前论文全文 chunks 或临时分块内容，围绕贡献、方法、实验和局限四个分析轴进行证据检索、judge 与最多一次重试。
+6. **扩展结构化批判阅读返回**：在保留 `claimed_contributions`、`inferred_real_contributions`、`critical_analysis` 的同时，新增 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence` 与统一 `rag_sources`，并保持旧字段兼容。
+7. **增强批判阅读前端面板**：`CriticalAnalysisPanel` 继续沿用原有概览和图表布局，同时新增紧凑的薄弱点、夸大风险、缺失证据和参考证据区块.
 
 ### 2026-04-20
 1. **完成基线审计**：确认前端测试与 lint、Python 测试目录、Java Maven 测试的当前运行状态，并记录前端 build 待查问题。

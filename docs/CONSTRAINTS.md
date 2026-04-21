@@ -28,6 +28,14 @@
 - `queryPlan.queries` 最多 2 条，元素字段固定为 `query`、`scope`、`reason`；`scope` 只允许 `current_paper` 或 `library`。
 - 证据不足时，聊天回答必须明确说明当前论文或资料库缺少足够依据，不得将未检索到的信息表述为论文结论。
 
+## 2026-04-21 批判阅读证据化补充
+
+- `/api/deep-analysis` 继续兼容 `{ pdf_id }` 与 `{ paper_content }` 两种请求；`pdf_id` 路径只分析当前论文已索引 chunks，禁止在模块 5 中自动扩展到全库文献综述。
+- Python 批判阅读服务内部已升级为基于全文 chunks 的证据化分析，固定覆盖贡献、方法、实验、局限四个分析轴，并在证据不足时最多自动重试 1 次。
+- 批判阅读响应在兼容旧字段的同时，可新增 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence`、`rag_sources`；前端和 Java 可忽略新增字段但不得破坏旧字段。
+- `inferred_real_contributions` 作为 `evidence_based_contributions` 的兼容别名继续保留。
+- 批判阅读不得编造实验结论、指标或局限；证据不足时必须进入 `missing_evidence` 或在 `critical_analysis` 中显式说明“证据不足”。
+
 ---
 
 ## 一、技术栈要求
@@ -98,7 +106,7 @@
 | POST | `/api/chat` | `{ "message": string, "pdfId": any, "history": array?, "paperSkeleton": object? }` | 对话，Java 持久化当前论文会话并转发到 Python `/api/chat`；Python 使用轻量 Agentic RAG 流程（意图识别、查询计划、当前论文优先检索、证据质量判断、最多一次重试）返回回答、统一 `rag_sources` 与可选 `queryPlan`、`retrievalJudge` |
 | GET | `/api/chat/history/:sessionId` | - | 读取 Java H2 中按 `pdfId/sessionId` 保存的聊天历史，前端用于恢复远端会话 |
 | POST | `/api/translate-page` | `{ "pdfId": string?, "pageIndex": number, "pageText": string, "paperSkeleton": object?, "pageLayout": object? }` | 逐页翻译，Java 转发到 Python `/api/translate-page`，支持版面块与译文缓存 |
-| POST | `/api/critical-reading/:pdfId` | - | 批判性阅读，Java 转发到 Python `/api/deep-analysis`，基于当前论文索引内容生成分析 |
+| POST | `/api/critical-reading/:pdfId` | - | 批判性阅读，Java 转发到 Python `/api/deep-analysis`；Java 继续返回 `{ status, pdfId, analysis }` 包裹结构，其中 `analysis` 为基于当前论文全文 chunks 的结构化批判阅读结果 |
 | POST | `/api/socratic-questions` | `{ "paper_content": string, "reading_progress": string }` | 引导式学习（苏格拉底式提问），Java 转发到 Python `/api/socratic-questions` |
 | POST | `/api/socratic-session/start` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string }` | 启动 5 轮苏格拉底式引导会话 |
 | POST | `/api/socratic-session/answer` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string, "currentIndex": number, "currentQuestion": string, "userAnswer": string, "turns": array? }` | 提交当前回答，返回掌握度评估、提示与下一题或最终总结 |
@@ -116,7 +124,7 @@
 | POST explain → 转发 | POST `/api/explain-term` | 请求体 `{ term, context, pdfId?, pageNumber? }`，Python 返回 `{ status, term, explanation, rag_sources, queryPlan?, retrievalJudge? }` |
 | POST chat → 转发 | POST `/api/chat` | 请求体 `{ message, pdfId?, history?, paperSkeleton? }`，Python 返回 `{ status, message, rag_sources, queryPlan?, retrievalJudge? }`，其中 `queryPlan` 兼容旧字段并可新增 `intent`、`needsRetrieval`、`queries`、`answerStyle`，且检索时优先使用当前论文证据 |
 | POST translate page → 转发 | POST `/api/translate-page` | 请求体 `{ pdfId?, pageIndex, pageText, paperSkeleton?, pageLayout? }`，Python 返回页级译文、译文块和渲染模式 |
-| POST critical reading → 转发 | POST `/api/deep-analysis` | Java 传 `{ pdf_id }`，Python 通过已索引论文内容生成批判性阅读结果 |
+| POST critical reading → 转发 | POST `/api/deep-analysis` | Java 传 `{ pdf_id }`，Python 基于当前论文全文 chunks 生成结构化批判阅读结果；Java 保持 `{ status, pdfId, analysis }` 包裹，不改对外契约 |
 | POST socratic questions → 转发 | POST `/api/socratic-questions` | 请求体 `{ paper_content, reading_progress }`，Python 返回 `{ status, questions }` |
 | POST socratic start → 转发 | POST `/api/socratic-session/start` | 请求体 `{ pdfId?, paperSkeleton?, readingProgress }`，Python 返回开场引导和第 1 题 |
 | POST socratic answer → 转发 | POST `/api/socratic-session/answer` | 请求体包含当前题目、用户回答和历史轮次，Python 返回评估、下一题或最终总结 |
@@ -130,7 +138,7 @@
 |------|-------------|--------|------|
 | POST | `/api/rag/add-literature` | `multipart/form-data`, 字段名 `file`，可选 metadata | 向 Python 文献库追加索引，当前前端未直接使用 |
 | POST | `/api/rag/retrieve` | query/top_k/filter_metadata | 直接检索 Python RAG，当前前端未直接使用 |
-| POST | `/api/deep-analysis` | `{ "paper_content": string? }` 或 `{ "pdf_id": string? }` | 深度/批判分析能力；当前 Java 通过 `/api/critical-reading/{pdfId}` 转发 `pdf_id` |
+| POST | `/api/deep-analysis` | `{ "paper_content": string? }` 或 `{ "pdf_id": string? }` | 深度/批判分析能力；兼容临时 `paper_content` 与当前论文 `pdf_id` 两种路径，成功响应除旧字段外还可包含 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence`、`rag_sources` |
 
 ---
 

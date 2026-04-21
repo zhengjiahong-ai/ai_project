@@ -114,7 +114,7 @@ docker-compose up --build
 
 - **PDF 上传与篇章解构**：上传 PDF → GROBID 解析 → AI 生成 abstract/introduction/methods/results/discussion/conclusion 摘要。
 - **对话与划词解释**：聊天面板发送消息；在 PDF 中划词可触发解释（对接 `/api/explain`，携带当前页上下文，经过轻量学术查询重写后优先基于当前论文 RAG 检索）。其中 `/api/chat` 已升级为轻量 Agentic RAG 流程：先做意图识别和查询计划，再优先检索当前论文、必要时补充文献库，并在回答前进行证据质量判断与最多一次重试；响应继续返回结构统一的 `rag_sources`，并可附带 `queryPlan` 与 `retrievalJudge`。
-- **批判性阅读**：前端调用 Java `/api/critical-reading/{pdfId}`，Java 转发 Python `/api/deep-analysis`，基于当前论文索引内容生成贡献对比与批判性分析。
+- **批判性阅读**：前端调用 Java `/api/critical-reading/{pdfId}`，Java 转发 Python `/api/deep-analysis`，基于当前论文全文 chunks 做贡献、方法、实验与局限的证据化批判阅读；响应在兼容旧字段的同时，还可附带 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence` 与 `rag_sources`，前端面板会在原有布局上紧凑展示这些补充信息。
 - **学术笔记**：支持在阅读时添加笔记并持久化到 IndexedDB。
 - **全景翻译**：支持按当前 PDF 页提取文本并进行逐页全文翻译，译文显示在右侧专用面板中；翻页后自动跟随当前页更新，并对已翻译页面进行缓存，避免重复请求。
 - **引导式学习**：基于论文内容、阅读进度和论文骨架生成苏格拉底式问题，支持逐轮作答、掌握度评估、提示反馈和最终总结，帮助用户用问答方式推进理解。

@@ -12,6 +12,13 @@ import {
 } from 'recharts';
 import { AlertCircle, BarChart3, CheckCircle2, FileText, LayoutDashboard, Loader2 } from 'lucide-react';
 import MarkdownContent from './MarkdownContent';
+import {
+  buildMetricCards,
+  buildSummary,
+  getDetailSections,
+  getEvidencePreview,
+  getStructuredSections,
+} from './criticalAnalysisData.js';
 
 const fallbackNetworkData = {
   nodes: [
@@ -29,64 +36,6 @@ const fallbackNetworkData = {
   ],
 };
 
-const buildMetricCards = (data) => {
-  if (Array.isArray(data?.metrics) && data.metrics.length > 0) {
-    return data.metrics;
-  }
-
-  if (!data) {
-    return [];
-  }
-
-  const textLength = (value) => (typeof value === 'string' ? value.trim().length : 0);
-  const claimedLength = textLength(data.claimed_contributions);
-  const inferredLength = textLength(data.inferred_real_contributions);
-  const criticalLength = textLength(data.critical_analysis);
-
-  return [
-    {
-      name: '作者主张',
-      score: Math.min(95, Math.max(45, Math.round(claimedLength / 6) || 58)),
-      detail: data.claimed_contributions || '系统未返回作者主张摘要。',
-    },
-    {
-      name: '真实贡献',
-      score: Math.min(95, Math.max(45, Math.round(inferredLength / 6) || 62)),
-      detail: data.inferred_real_contributions || '系统未返回推断贡献。',
-    },
-    {
-      name: '批判深度',
-      score: Math.min(95, Math.max(45, Math.round(criticalLength / 8) || 66)),
-      detail: data.critical_analysis || '系统未返回批判性结论。',
-    },
-  ];
-};
-
-const buildSummary = (data) => {
-  if (typeof data?.summary === 'string' && data.summary.trim()) {
-    return data.summary;
-  }
-
-  const sections = [
-    ['作者宣称的贡献', data?.claimed_contributions],
-    ['推断出的真实贡献', data?.inferred_real_contributions],
-    ['批判性阅读结论', data?.critical_analysis],
-  ].filter(([, value]) => typeof value === 'string' && value.trim());
-
-  if (sections.length === 0) {
-    return '暂无分析结果。';
-  }
-
-  return sections.map(([title, value]) => `### ${title}\n${value}`).join('\n\n');
-};
-
-const getDetailSections = (data) =>
-  [
-    { key: 'claimed', title: '作者宣称的贡献', content: data?.claimed_contributions },
-    { key: 'inferred', title: '推断出的真实贡献', content: data?.inferred_real_contributions },
-    { key: 'critical', title: '批判性阅读结论', content: data?.critical_analysis },
-  ].filter((section) => typeof section.content === 'string' && section.content.trim());
-
 const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(320);
@@ -101,6 +50,8 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
   const metrics = useMemo(() => buildMetricCards(data), [data]);
   const summary = useMemo(() => buildSummary(data), [data]);
   const detailSections = useMemo(() => getDetailSections(data), [data]);
+  const structuredSections = useMemo(() => getStructuredSections(data), [data]);
+  const evidencePreview = useMemo(() => getEvidencePreview(data), [data]);
 
   if (!data && !isLoading) {
     return (
@@ -207,6 +158,46 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
                 <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none">{section.content}</MarkdownContent>
               </div>
             ))}
+          </div>
+        )}
+
+        {structuredSections.length > 0 && (
+          <div className="grid gap-4 md:grid-cols-3">
+            {structuredSections.map((section) => (
+              <div key={section.key} className="theme-card rounded-2xl p-5">
+                <h3 className="theme-text-primary mb-3 text-sm font-bold">{section.title}</h3>
+                <div className="space-y-2">
+                  {section.items.map((item, index) => (
+                    <div key={`${section.key}-${index}`} className="theme-card-soft rounded-xl p-3 text-sm leading-relaxed theme-text-secondary">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {evidencePreview.length > 0 && (
+          <div className="theme-card rounded-2xl p-5">
+            <h3 className="theme-text-muted mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+              <FileText size={14} className="text-pixiu" />
+              参考证据
+            </h3>
+            <div className="space-y-3">
+              {evidencePreview.map((item) => (
+                <div key={item.id} className="theme-card-soft rounded-xl p-3">
+                  <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+                    <span className="rounded-full bg-pixiu/10 px-2 py-1 text-pixiu">{item.sourceLabel}</span>
+                    <span className="theme-text-muted">{item.sourceId}</span>
+                    {item.chunkIndex !== null && (
+                      <span className="theme-text-muted">chunk #{item.chunkIndex + 1}</span>
+                    )}
+                  </div>
+                  <p className="theme-text-secondary text-sm leading-relaxed">{item.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
