@@ -871,6 +871,9 @@ export default function App() {
     if (!pdfId) return;
 
     const excludedZones = deconstructData?.translationLayoutIndex?.[pageIndex]?.excludedZones || [];
+    const shouldPreferPlainTranslation = excludedZones.some((zone) =>
+      ['figure', 'table'].includes(String(zone?.type || '').trim().toLowerCase()),
+    );
     const {
       sourceText,
       requestPageLayout,
@@ -881,7 +884,9 @@ export default function App() {
       pageText,
       pageLayout,
       excludedZones,
+      preferPlain: shouldPreferPlainTranslation,
     });
+    const expectsStructuredResponse = Boolean(requestPayloadPageLayout?.blocks?.length);
     let shouldRequest = false;
 
     setTranslationState((prev) => {
@@ -917,7 +922,7 @@ export default function App() {
         existingPage.sourceText === sourceText &&
         existingPage.status === 'success' &&
         existingPage.translatedText &&
-        (!requestPageLayout?.blocks?.length || existingPage.renderMode === 'overlay');
+        (!expectsStructuredResponse || existingPage.renderMode === 'overlay');
 
       const isFreshLoading =
         !force &&

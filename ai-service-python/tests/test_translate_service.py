@@ -163,6 +163,39 @@ class TranslatePageServiceTests(unittest.TestCase):
         self.assertEqual(response["translatedBlocks"][0]["id"], "block-1")
         self.assertEqual(response["translatedBlocks"][-1]["id"], "block-125")
 
+    def test_translate_page_falls_back_to_plain_without_mass_single_block_retries(self):
+        blocks = [
+            {
+                "id": f"block-{index + 1}",
+                "text": f"Source line {index + 1}",
+                "bbox": {"left": 0.08, "top": 0.12 + index * 0.04, "width": 0.4, "height": 0.03},
+            }
+            for index in range(6)
+        ]
+        request = PageTranslationRequest(
+            pdfId="paper-1",
+            pageIndex=0,
+            pageText="\n".join(block["text"] for block in blocks),
+            paperSkeleton={},
+            pageLayout={
+                "viewport": {"width": 600, "height": 800},
+                "blocks": blocks,
+                "excludedZonesVersion": 1,
+            },
+        )
+
+        with patch("services.page_translation_service.get_translation_llm") as mocked_get_llm:
+            mocked_get_llm.return_value._call.side_effect = [
+                "not json",
+                "大页回退纯文本译文",
+            ]
+            response = translate_page(request)
+
+        self.assertEqual(response["renderMode"], "plain")
+        self.assertEqual(response["translatedText"], "大页回退纯文本译文")
+        self.assertEqual(response["translatedBlocks"], [])
+        self.assertEqual(mocked_get_llm.return_value._call.call_count, 2)
+
     def test_translate_page_rejects_empty_page_text(self):
         request = PageTranslationRequest(pdfId="paper-1", pageIndex=0, pageText="   ", paperSkeleton={})
 

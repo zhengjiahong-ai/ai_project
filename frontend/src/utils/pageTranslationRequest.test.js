@@ -31,6 +31,32 @@ const run = () => {
   assert.equal(plainFallbackRequest.requestPageLayout.blocks.length, 0);
   assert.equal(plainFallbackRequest.requestPayloadPageLayout, null);
 
+  const figurePagePlainRequest = preparePageTranslationRequest({
+    pageText: 'Body paragraph with a nearby figure.',
+    pageLayout: {
+      viewport: { width: 600, height: 800 },
+      blocks: [
+        {
+          id: 'block-1',
+          text: 'Body paragraph with a nearby figure.',
+          bbox: { left: 0.08, top: 0.18, width: 0.4, height: 0.08 },
+          style: { fontSize: 12, fontWeight: 'normal', italic: false },
+        },
+      ],
+    },
+    excludedZones: [
+      {
+        type: 'figure',
+        bbox: { left: 0.52, top: 0.32, width: 0.3, height: 0.2 },
+      },
+    ],
+    preferPlain: true,
+  });
+  assert.equal(figurePagePlainRequest.requestMode, 'plain');
+  assert.equal(figurePagePlainRequest.translationSourceText, 'Body paragraph with a nearby figure.');
+  assert.equal(figurePagePlainRequest.requestPageLayout.blocks.length, 1);
+  assert.equal(figurePagePlainRequest.requestPayloadPageLayout, null);
+
   const emptyRequest = preparePageTranslationRequest({
     pageText: '   ',
     pageLayout: samplePageLayout,

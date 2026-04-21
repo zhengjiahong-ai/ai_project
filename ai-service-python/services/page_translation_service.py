@@ -8,7 +8,10 @@ from schemas.requests import PageTranslationRequest
 
 STRUCTURED_MAX_BLOCKS_PER_BATCH = 24
 STRUCTURED_MAX_CHARS_PER_BATCH = 1800
-STRUCTURED_INDIVIDUAL_RETRY_LIMIT = 160
+STRUCTURED_BATCH_TIMEOUT_SECONDS = 30
+PLAIN_TRANSLATION_TIMEOUT_SECONDS = 40
+STRUCTURED_SINGLE_BLOCK_TIMEOUT_SECONDS = 10
+STRUCTURED_INDIVIDUAL_RETRY_LIMIT = 4
 STRUCTURED_INDIVIDUAL_RETRY_WORKERS = 4
 
 
@@ -199,7 +202,7 @@ def _chunk_layout_blocks(
 
 def _translate_block_batch(page_index: int, skeleton_text: str, blocks: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     prompt = _build_structured_translation_prompt(page_index, skeleton_text, blocks)
-    raw_response = _call_translation_with_timeout(prompt, timeout_seconds=60)
+    raw_response = _call_translation_with_timeout(prompt, timeout_seconds=STRUCTURED_BATCH_TIMEOUT_SECONDS)
     payload = _extract_json_payload(raw_response)
     return _normalize_translated_blocks(payload, blocks)
 
@@ -236,7 +239,9 @@ def _clean_single_block_translation(raw_text: str) -> str:
 
 def _translate_single_block(page_index: int, skeleton_text: str, block: Dict[str, Any]) -> Dict[str, str] | None:
     prompt = _build_single_block_translation_prompt(page_index, skeleton_text, block)
-    translated_text = _clean_single_block_translation(_call_translation_with_timeout(prompt, timeout_seconds=45))
+    translated_text = _clean_single_block_translation(
+        _call_translation_with_timeout(prompt, timeout_seconds=STRUCTURED_SINGLE_BLOCK_TIMEOUT_SECONDS)
+    )
     if not translated_text:
         return None
     return {"id": block["id"], "translatedText": translated_text}
@@ -282,8 +287,9 @@ def _translate_blocks(
     translated_by_id = {block["id"]: block for block in translated_blocks}
     if len(translated_by_id) < minimum_expected:
         missing_blocks = [block for block in blocks if block["id"] not in translated_by_id]
-        for translated_block in _translate_missing_blocks_individually(page_index, skeleton_text, missing_blocks):
-            translated_by_id[translated_block["id"]] = translated_block
+        if len(missing_blocks) <= STRUCTURED_INDIVIDUAL_RETRY_LIMIT:
+            for translated_block in _translate_missing_blocks_individually(page_index, skeleton_text, missing_blocks):
+                translated_by_id[translated_block["id"]] = translated_block
 
     ordered_translated_blocks = [
         {"id": block["id"], "translatedText": translated_by_id[block["id"]]["translatedText"]}
@@ -323,7 +329,7 @@ def translate_page(request: PageTranslationRequest) -> Dict[str, Any]:
 
     trimmed_page_text = _trim_page_text(page_text)
     prompt = _build_plain_translation_prompt(page_index, skeleton_text, trimmed_page_text)
-    translated_text = _call_translation_with_timeout(prompt).strip()
+    translated_text = _call_translation_with_timeout(prompt, timeout_seconds=PLAIN_TRANSLATION_TIMEOUT_SECONDS).strip()
     if not translated_text:
         raise RuntimeError("Translation model returned empty content.")
 
