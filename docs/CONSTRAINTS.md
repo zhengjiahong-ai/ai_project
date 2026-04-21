@@ -17,8 +17,16 @@
 - README、CHANGELOG 与本文档必须反映当前已实现接口；聊天历史、批判性阅读、逐页翻译、苏格拉底会话与背景补课均不再标记为“预留”或“Mock”。
 - Python 返回的 `rag_sources` 必须使用统一证据结构，标准字段为 `sourceId`、`text`、`metadata`、`similarity`、`score`、`pdfId`、`chunkIndex`、`sourceType`。
 - `rag_sources[].id` 仅作为旧背景补课 UI 的兼容别名保留，新代码应优先使用 `sourceId`。
-- Python 聊天、划词解释和背景补课可返回可选 `queryPlan`，字段为 `original`、`rewritten`、`keywords`、`taskType`、`source`；前端可忽略该字段。
+- Python 聊天、划词解释和背景补课可返回可选 `queryPlan`；其中通用字段为 `original`、`rewritten`、`keywords`、`taskType`、`source`，聊天场景还可附带 `intent`、`needsRetrieval`、`queries`、`answerStyle`；前端可忽略该字段。
 - Python 聊天和划词解释可返回可选 `retrievalJudge`，字段为 `verdict`、`confidence`、`reason`、`missingAspects`、`shouldRetry`；前端可忽略该字段。
+
+## 2026-04-21 聊天 Agentic RAG 补充
+
+- `/api/chat` 请求体保持不变，仍为 `{ message, pdfId, history, paperSkeleton }`，禁止为模块 4 引入额外必填字段。
+- Python 聊天服务内部已升级为轻量 Agentic RAG：意图识别、查询计划、当前论文优先检索、按需补充文献库、证据质量判断、最多一次自动重试。
+- `queryPlan.intent` 只允许 `解释方法`、`总结实验`、`批判分析`、`背景补课`、`自由问答`；`queryPlan.answerStyle` 只允许 `concise`、`detailed`。
+- `queryPlan.queries` 最多 2 条，元素字段固定为 `query`、`scope`、`reason`；`scope` 只允许 `current_paper` 或 `library`。
+- 证据不足时，聊天回答必须明确说明当前论文或资料库缺少足够依据，不得将未检索到的信息表述为论文结论。
 
 ---
 
@@ -87,7 +95,7 @@
 |------|------|-------------|------|
 | POST | `/api/upload` | `multipart/form-data`, 字段名 `file` | PDF 上传，Java 转发到 Python `/api/analyze-pdf` |
 | POST | `/api/explain` | `{ "text": string, "pdfId": any, "pageNumber": number, "context": string }` 或 `{ "term": string, "context": string }` | 术语/划词解释，Java 转发到 Python `/api/explain-term`；带 `pdfId` 时优先基于当前论文 RAG，响应可附带 `queryPlan` 与 `retrievalJudge` |
-| POST | `/api/chat` | `{ "message": string, "pdfId": any, "history": array?, "paperSkeleton": object? }` | 对话，Java 持久化当前论文会话并转发到 Python `/api/chat`；Python 结合论文摘要、历史、查询重写、证据质量判断和 RAG 片段返回回答、统一 `rag_sources` 与可选 `queryPlan`、`retrievalJudge` |
+| POST | `/api/chat` | `{ "message": string, "pdfId": any, "history": array?, "paperSkeleton": object? }` | 对话，Java 持久化当前论文会话并转发到 Python `/api/chat`；Python 使用轻量 Agentic RAG 流程（意图识别、查询计划、当前论文优先检索、证据质量判断、最多一次重试）返回回答、统一 `rag_sources` 与可选 `queryPlan`、`retrievalJudge` |
 | GET | `/api/chat/history/:sessionId` | - | 读取 Java H2 中按 `pdfId/sessionId` 保存的聊天历史，前端用于恢复远端会话 |
 | POST | `/api/translate-page` | `{ "pdfId": string?, "pageIndex": number, "pageText": string, "paperSkeleton": object?, "pageLayout": object? }` | 逐页翻译，Java 转发到 Python `/api/translate-page`，支持版面块与译文缓存 |
 | POST | `/api/critical-reading/:pdfId` | - | 批判性阅读，Java 转发到 Python `/api/deep-analysis`，基于当前论文索引内容生成分析 |
@@ -106,7 +114,7 @@
 |-----------|-------------|------|
 | POST upload → 转发 | POST `/api/analyze-pdf` | 请求体为 multipart，Python 返回 `{ status, paper_skeleton, paper_structure, translationLayoutIndex, pdfId, ragIndexed }` |
 | POST explain → 转发 | POST `/api/explain-term` | 请求体 `{ term, context, pdfId?, pageNumber? }`，Python 返回 `{ status, term, explanation, rag_sources, queryPlan?, retrievalJudge? }` |
-| POST chat → 转发 | POST `/api/chat` | 请求体 `{ message, pdfId?, history?, paperSkeleton? }`，Python 返回 `{ status, message, rag_sources, queryPlan?, retrievalJudge? }`，并优先使用当前论文 RAG 片段 |
+| POST chat → 转发 | POST `/api/chat` | 请求体 `{ message, pdfId?, history?, paperSkeleton? }`，Python 返回 `{ status, message, rag_sources, queryPlan?, retrievalJudge? }`，其中 `queryPlan` 兼容旧字段并可新增 `intent`、`needsRetrieval`、`queries`、`answerStyle`，且检索时优先使用当前论文证据 |
 | POST translate page → 转发 | POST `/api/translate-page` | 请求体 `{ pdfId?, pageIndex, pageText, paperSkeleton?, pageLayout? }`，Python 返回页级译文、译文块和渲染模式 |
 | POST critical reading → 转发 | POST `/api/deep-analysis` | Java 传 `{ pdf_id }`，Python 通过已索引论文内容生成批判性阅读结果 |
 | POST socratic questions → 转发 | POST `/api/socratic-questions` | 请求体 `{ paper_content, reading_progress }`，Python 返回 `{ status, questions }` |

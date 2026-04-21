@@ -20,7 +20,7 @@ from services.evidence_service import (
     normalize_evidence_items,
 )
 from services.page_translation_service import translate_page as translate_page_v2
-from services.query_service import build_retrieval_queries
+from services.query_service import build_chat_query_plan, build_retrieval_queries
 from services.retrieval_judge_service import judge_evidence_quality
 
 
@@ -89,6 +89,39 @@ def _deduplicate_evidence(items: List[Dict[str, Any]], limit: int | None = None)
     return deduped
 
 
+def _retrieve_current_paper_evidence(
+    retrieval_query: str,
+    pdf_id: str | None = None,
+    current_top_k: int = 5,
+    current_limit: int = 5,
+) -> List[Dict[str, Any]]:
+    if not pdf_id:
+        return []
+
+    try:
+        rag = get_rag()
+        clean_pdf_id = rag.normalize_id(pdf_id)
+        raw_results = rag.retrieve(retrieval_query, top_k=current_top_k, filter_metadata={"id": clean_pdf_id})
+        return normalize_evidence_items(
+            raw_results,
+            source_type="current_paper",
+            pdf_id=clean_pdf_id,
+            limit=current_limit,
+        )
+    except Exception as error:
+        print(f"PDF RAG retrieval failed: {error}")
+        return []
+
+
+def _retrieve_library_evidence(
+    retrieval_query: str,
+    library_top_k: int = 3,
+    library_limit: int = 3,
+) -> List[Dict[str, Any]]:
+    raw_results = retrieve_hybrid_results(retrieval_query, top_k=library_top_k)
+    return _normalize_hybrid_evidence(raw_results, limit=library_limit)
+
+
 def _retrieve_evidence_for_query(
     retrieval_query: str,
     pdf_id: str | None = None,
@@ -97,25 +130,21 @@ def _retrieve_evidence_for_query(
     current_limit: int = 5,
     library_limit: int = 3,
 ) -> tuple[List[Dict[str, Any]], str]:
-    if pdf_id:
-        try:
-            rag = get_rag()
-            clean_pdf_id = rag.normalize_id(pdf_id)
-            raw_results = rag.retrieve(retrieval_query, top_k=current_top_k, filter_metadata={"id": clean_pdf_id})
-            evidence = normalize_evidence_items(
-                raw_results,
-                source_type="current_paper",
-                pdf_id=clean_pdf_id,
-                limit=current_limit,
-            )
-            if evidence:
-                return evidence, "current_paper"
-        except Exception as error:
-            print(f"PDF RAG retrieval failed: {error}")
+    evidence = _retrieve_current_paper_evidence(
+        retrieval_query,
+        pdf_id=pdf_id,
+        current_top_k=current_top_k,
+        current_limit=current_limit,
+    )
+    if evidence:
+        return evidence, "current_paper"
 
-    raw_results = retrieve_hybrid_results(retrieval_query, top_k=library_top_k)
-    evidence = _normalize_hybrid_evidence(raw_results, limit=library_limit)
-    return evidence, "literature" if evidence else ""
+    evidence = _retrieve_library_evidence(
+        retrieval_query,
+        library_top_k=library_top_k,
+        library_limit=library_limit,
+    )
+    return evidence, "library" if evidence else ""
 
 
 def _should_retry_retrieval(judge_result: Dict[str, Any]) -> bool:
@@ -194,8 +223,232 @@ def _judge_and_retry_evidence(
     return evidence, scope, retry_judge
 
 
-def _evidence_context_title(scope: str, current_title: str, library_title: str) -> str:
-    return current_title if scope == "current_paper" else library_title
+def _merge_chat_evidence(
+    current_evidence: List[Dict[str, Any]],
+    library_evidence: List[Dict[str, Any]],
+    limit: int | None = None,
+) -> List[Dict[str, Any]]:
+    return _deduplicate_evidence([*current_evidence, *library_evidence], limit=limit)
+
+
+def _build_chat_keywords(query_plan: Dict[str, Any], extra_terms: List[str] | None = None) -> List[str]:
+    keywords = []
+    seen = set()
+    for raw_term in [*(query_plan.get("keywords") or []), *(extra_terms or [])]:
+        term = " ".join(str(raw_term or "").strip().split())
+        if not term:
+            continue
+        key = term.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        keywords.append(term[:80])
+    return keywords
+
+
+def _build_no_retrieval_judge(reason: str = "规划阶段判断该问题不需要额外检索。") -> Dict[str, Any]:
+    return {
+        "verdict": "CORRECT",
+        "confidence": 0.55,
+        "reason": reason,
+        "missingAspects": [],
+        "shouldRetry": False,
+    }
+
+
+def _execute_chat_query_step(
+    step: Dict[str, Any],
+    pdf_id: str | None = None,
+    current_top_k: int = 12,
+    library_top_k: int = 5,
+    current_limit: int = 12,
+    library_limit: int = 5,
+) -> tuple[List[Dict[str, Any]], str]:
+    query = " ".join(str(step.get("query") or "").strip().split())
+    scope = str(step.get("scope") or "").strip() or ("current_paper" if pdf_id else "library")
+    if not query:
+        return [], ""
+    if scope == "current_paper" and not pdf_id:
+        scope = "library"
+
+    if scope == "current_paper":
+        return _retrieve_current_paper_evidence(
+            query,
+            pdf_id=pdf_id,
+            current_top_k=current_top_k,
+            current_limit=current_limit,
+        ), "current_paper"
+
+    return _retrieve_library_evidence(
+        query,
+        library_top_k=library_top_k,
+        library_limit=library_limit,
+    ), "library"
+
+
+def _resolve_chat_scope(current_evidence: List[Dict[str, Any]], library_evidence: List[Dict[str, Any]]) -> str:
+    if current_evidence and library_evidence:
+        return "mixed"
+    if current_evidence:
+        return "current_paper"
+    if library_evidence:
+        return "library"
+    return ""
+
+
+def _should_run_follow_up_query(step: Dict[str, Any], judge_result: Dict[str, Any]) -> bool:
+    scope = str(step.get("scope") or "").strip()
+    if scope != "library":
+        return True
+    return _should_retry_retrieval(judge_result)
+
+
+def _select_retry_scope(
+    attempted_scopes: List[str],
+    pdf_id: str | None,
+    current_evidence: List[Dict[str, Any]],
+    library_evidence: List[Dict[str, Any]],
+) -> str:
+    normalized_attempts = [scope for scope in attempted_scopes if scope]
+    if pdf_id and "current_paper" not in normalized_attempts:
+        return "current_paper"
+    if pdf_id and "library" not in normalized_attempts:
+        return "library"
+    if pdf_id and current_evidence and not library_evidence:
+        return "library"
+    if pdf_id and current_evidence:
+        return "current_paper"
+    return "library"
+
+
+def _run_chat_agentic_retrieval(
+    question: str,
+    query_plan: Dict[str, Any],
+    pdf_id: str | None = None,
+    current_top_k: int = 12,
+    library_top_k: int = 5,
+    current_limit: int = 12,
+    library_limit: int = 5,
+) -> tuple[List[Dict[str, Any]], str, Dict[str, Any]]:
+    if not query_plan.get("needsRetrieval", True):
+        return [], "", _build_no_retrieval_judge()
+
+    planned_queries = list(query_plan.get("queries") or [])
+    if not planned_queries:
+        planned_queries = [{
+            "query": query_plan.get("rewritten") or query_plan.get("original") or question,
+            "scope": "current_paper" if pdf_id else "library",
+            "reason": "默认检索计划。",
+        }]
+
+    current_evidence: List[Dict[str, Any]] = []
+    library_evidence: List[Dict[str, Any]] = []
+    attempted_scopes: List[str] = []
+
+    primary_evidence, primary_scope = _execute_chat_query_step(
+        planned_queries[0],
+        pdf_id=pdf_id,
+        current_top_k=current_top_k,
+        library_top_k=library_top_k,
+        current_limit=current_limit,
+        library_limit=library_limit,
+    )
+    if primary_scope:
+        attempted_scopes.append(primary_scope)
+    if primary_scope == "current_paper":
+        current_evidence.extend(primary_evidence)
+    elif primary_scope == "library":
+        library_evidence.extend(primary_evidence)
+
+    combined_evidence = _merge_chat_evidence(current_evidence, library_evidence)
+    judge_result = judge_evidence_quality(question, combined_evidence, keywords=_build_chat_keywords(query_plan))
+
+    if len(planned_queries) > 1 and _should_run_follow_up_query(planned_queries[1], judge_result):
+        follow_up_evidence, follow_up_scope = _execute_chat_query_step(
+            planned_queries[1],
+            pdf_id=pdf_id,
+            current_top_k=current_top_k,
+            library_top_k=library_top_k,
+            current_limit=current_limit,
+            library_limit=library_limit,
+        )
+        if follow_up_scope:
+            attempted_scopes.append(follow_up_scope)
+        if follow_up_scope == "current_paper":
+            current_evidence.extend(follow_up_evidence)
+        elif follow_up_scope == "library":
+            library_evidence.extend(follow_up_evidence)
+        combined_evidence = _merge_chat_evidence(current_evidence, library_evidence)
+        judge_result = judge_evidence_quality(question, combined_evidence, keywords=_build_chat_keywords(query_plan))
+
+    if _should_retry_retrieval(judge_result):
+        retry_query = _build_retry_query(question, query_plan, judge_result)
+        retry_scope = _select_retry_scope(attempted_scopes, pdf_id, current_evidence, library_evidence)
+        retry_evidence, resolved_retry_scope = _execute_chat_query_step(
+            {"query": retry_query, "scope": retry_scope},
+            pdf_id=pdf_id,
+            current_top_k=current_top_k,
+            library_top_k=library_top_k,
+            current_limit=current_limit,
+            library_limit=library_limit,
+        )
+        if resolved_retry_scope:
+            attempted_scopes.append(resolved_retry_scope)
+        if resolved_retry_scope == "current_paper":
+            current_evidence.extend(retry_evidence)
+        elif resolved_retry_scope == "library":
+            library_evidence.extend(retry_evidence)
+        combined_evidence = _merge_chat_evidence(current_evidence, library_evidence)
+        judge_result = judge_evidence_quality(
+            question,
+            combined_evidence,
+            keywords=_build_chat_keywords(query_plan, judge_result.get("missingAspects") or []),
+        )
+
+    return combined_evidence, _resolve_chat_scope(current_evidence, library_evidence), judge_result
+
+
+def _evidence_context_title(scope: str, current_title: str, library_title: str, mixed_title: str | None = None) -> str:
+    if scope == "current_paper":
+        return current_title
+    if scope == "mixed":
+        return mixed_title or library_title
+    return library_title
+
+
+def _chat_answer_style_instruction(answer_style: str) -> str:
+    if answer_style == "detailed":
+        return "回答风格：使用 2-4 个自然段，先给结论，再说明依据、步骤和不确定性。"
+    return "回答风格：先直接回答，尽量控制在 4-6 句内，并只保留最关键的依据。"
+
+
+def _chat_intent_instruction(intent: str) -> str:
+    instructions = {
+        "解释方法": "优先解释方法目标、核心模块和工作机制。",
+        "总结实验": "优先概括实验设置、主要结果和指标边界。",
+        "批判分析": "优先指出局限、证据薄弱点和不可确认部分。",
+        "背景补课": "优先补充理解当前问题所需的基础概念和上下文。",
+        "自由问答": "优先直接回答用户问题，并保持证据边界清晰。",
+    }
+    return instructions.get(intent, instructions["自由问答"])
+
+
+def _format_query_plan_summary(query_plan: Dict[str, Any]) -> str:
+    queries = query_plan.get("queries") or []
+    if not queries:
+        return "检索计划：当前问题无需额外检索。"
+
+    lines = [
+        "检索计划：",
+        f"- intent: {query_plan.get('intent') or '自由问答'}",
+        f"- answerStyle: {query_plan.get('answerStyle') or 'concise'}",
+    ]
+    for item in queries[:2]:
+        lines.append(
+            f"- {item.get('scope', 'library')}: {item.get('query', '')}"
+            f" ({item.get('reason', '检索相关证据。')})"
+        )
+    return "\n".join(lines)
 
 
 def _evidence_quality_instruction(judge_result: Dict[str, Any]) -> str:
@@ -626,18 +879,16 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
 
     history = request.history or []
     paper_skeleton = request.paperSkeleton or {}
-    context = ""
-    rag_results: List[Dict[str, Any]] = []
-    query_plan = build_retrieval_queries(
+    planner_context = _build_chat_query_context(history, paper_skeleton)
+    query_plan = build_chat_query_plan(
         message,
-        context=_build_chat_query_context(history, paper_skeleton),
+        context=planner_context,
         task_type="chat",
+        has_pdf=bool(request.pdfId),
     )
-    retrieval_query = query_plan.get("rewritten") or query_plan.get("original") or message
 
-    rag_results, rag_scope, retrieval_judge = _judge_and_retry_evidence(
+    rag_results, rag_scope, retrieval_judge = _run_chat_agentic_retrieval(
         message,
-        retrieval_query,
         query_plan,
         pdf_id=request.pdfId,
         current_top_k=12,
@@ -645,11 +896,19 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
         current_limit=12,
         library_limit=5,
     )
+
+    context = ""
     if rag_results:
+        max_items = 12 if rag_scope == "current_paper" else 8
         context = format_evidence_context(
             rag_results,
-            title=_evidence_context_title(rag_scope, current_title="Paper evidence", library_title="Library evidence"),
-            max_items=12 if rag_scope == "current_paper" else 5,
+            title=_evidence_context_title(
+                rag_scope,
+                current_title="Paper evidence",
+                library_title="Library evidence",
+                mixed_title="Paper and library evidence",
+            ),
+            max_items=max_items,
             max_text_chars=900,
         )
 
@@ -665,12 +924,21 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
         for section, summary in paper_skeleton.items():
             skeleton_str += f"- {section}: {summary}\n"
 
+    plan_summary = _format_query_plan_summary(query_plan)
+    intent = str(query_plan.get("intent") or "自由问答")
+    answer_style = str(query_plan.get("answerStyle") or "concise")
+
     prompt = f"""你是一位学术论文阅读助手。
-请结合论文摘要结构、相关证据片段和对话历史，用中文回答用户问题。
+请结合论文摘要结构、检索计划、相关证据片段和对话历史，用中文回答用户问题。
+当前意图：{intent}
+{_chat_intent_instruction(intent)}
+{_chat_answer_style_instruction(answer_style)}
 {MATH_MARKDOWN_GUIDELINE}
 {_evidence_quality_instruction(retrieval_judge)}
 
 {skeleton_str}
+
+{plan_summary}
 
 {context}
 
