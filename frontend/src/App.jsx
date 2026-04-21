@@ -3,7 +3,7 @@ import { openDB } from 'idb';
 import { Trash2 } from 'lucide-react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 
-import BackgroundKnowledgePanel from './components/BackgroundKnowledgePanel';
+import BackgroundKnowledgePanel from './components/BackgroundKnowledgePanel.jsx';
 import ChatPanel from './components/ChatPanel';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel';
 import LibrarySidebar from './components/LibrarySidebar';
