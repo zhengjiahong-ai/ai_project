@@ -60,7 +60,7 @@ const run = async () => {
     paperSkeleton: { abstract: 'summary' },
     paperStructure: { research_problem: 'RAG' },
     paper_topic: 'RAG',
-    user_knowledge_level: 'normal',
+    user_knowledge_level: '进阶',
   });
   assert.equal(backgroundUrl, '/background-knowledge');
   assert.deepEqual(backgroundPayload, {
@@ -68,7 +68,7 @@ const run = async () => {
     paperSkeleton: { abstract: 'summary' },
     paperStructure: { research_problem: 'RAG' },
     paper_topic: 'RAG',
-    user_knowledge_level: 'normal',
+    user_knowledge_level: '进阶',
   });
 
   let explainPayload = null;

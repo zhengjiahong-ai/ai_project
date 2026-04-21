@@ -30,6 +30,18 @@ const WELCOME_MESSAGE = {
 const SOCRATIC_TOTAL_QUESTIONS = 5;
 const DEFAULT_ACTIVE_TAB = 'chat';
 const THEME_STORAGE_KEY = 'pixiu-theme';
+const DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL = '一般';
+
+const normalizeBackgroundKnowledgeLevel = (value) => {
+  const text = `${value ?? ''}`.trim().toLowerCase();
+  if (['入门', 'beginner', 'novice', '基础'].includes(text)) {
+    return '入门';
+  }
+  if (['进阶', 'advanced', 'expert', '深入'].includes(text)) {
+    return '进阶';
+  }
+  return '一般';
+};
 
 const initDB = async () =>
   openDB('PixiuAcademicDB_v6', 5, {
@@ -155,6 +167,7 @@ export default function App() {
   const [analysisData, setAnalysisData] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [backgroundKnowledgeData, setBackgroundKnowledgeData] = useState(null);
+  const [backgroundKnowledgeLevel, setBackgroundKnowledgeLevel] = useState(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
   const [isBackgroundKnowledgeLoading, setIsBackgroundKnowledgeLoading] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
   const [notes, setNotes] = useState([]);
@@ -260,6 +273,7 @@ export default function App() {
     setNotes(savedNotes || []);
     setAnalysisData(savedAnalysis || null);
     setBackgroundKnowledgeData(savedBackgroundKnowledge || null);
+    setBackgroundKnowledgeLevel(normalizeBackgroundKnowledgeLevel(savedBackgroundKnowledge?.user_knowledge_level));
     setMessages(nextMessages);
     setPdfHighlights(savedHighlights || []);
     setSocraticSession(normalizeSocraticSession(savedSocraticSession, targetPdfId));
@@ -312,6 +326,7 @@ export default function App() {
       setDeconstructData(response);
       setAnalysisData(null);
       setBackgroundKnowledgeData(null);
+      setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
       setNotes([]);
       setMessages(readyMessages);
       setPdfHighlights([]);
@@ -333,6 +348,7 @@ export default function App() {
       setPdfId(null);
       setSocraticSession(createEmptySocraticSession());
       setBackgroundKnowledgeData(null);
+      setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
       setTranslationState(createEmptyTranslationState());
       setIsTranslated(false);
       currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
@@ -415,6 +431,7 @@ export default function App() {
         setDeconstructData(null);
         setAnalysisData(null);
         setBackgroundKnowledgeData(null);
+        setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
         setPdfHighlights([]);
         setSocraticSession(createEmptySocraticSession());
         setTranslationState(createEmptyTranslationState());
@@ -546,7 +563,7 @@ export default function App() {
     }
   }, [pdfId]);
 
-  const handleGenerateBackgroundKnowledge = useCallback(async () => {
+  const handleGenerateBackgroundKnowledge = useCallback(async (selectedLevel = backgroundKnowledgeLevel) => {
     if (!pdfId) {
       window.alert('请先上传 PDF 文件。');
       return;
@@ -556,6 +573,7 @@ export default function App() {
     setIsBackgroundKnowledgeLoading(true);
 
     try {
+      const requestedKnowledgeLevel = normalizeBackgroundKnowledgeLevel(selectedLevel);
       const researchProblem = deconstructData?.paper_structure?.research_problem;
       const coreHypothesis = deconstructData?.paper_structure?.core_hypothesis;
       const paperTopic =
@@ -570,7 +588,7 @@ export default function App() {
         paperSkeleton: deconstructData?.paper_skeleton || null,
         paperStructure: deconstructData?.paper_structure || null,
         paper_topic: paperTopic,
-        user_knowledge_level: '\u666e\u901a/\u4e00\u822c',
+        user_knowledge_level: requestedKnowledgeLevel,
       });
 
       if (!response || response.status !== 'success') {
@@ -578,6 +596,7 @@ export default function App() {
       }
 
       setBackgroundKnowledgeData(response);
+      setBackgroundKnowledgeLevel(normalizeBackgroundKnowledgeLevel(response?.user_knowledge_level || requestedKnowledgeLevel));
       const db = await initDB();
       await db.put('backgroundKnowledgeStore', response, pdfId);
     } catch (error) {
@@ -586,7 +605,7 @@ export default function App() {
     } finally {
       setIsBackgroundKnowledgeLoading(false);
     }
-  }, [deconstructData, pdfId]);
+  }, [backgroundKnowledgeLevel, deconstructData, pdfId]);
 
   const handleSendMessage = useCallback((message) => {
     if (!pdfId || loadingPapers[pdfId]) return;
@@ -1249,6 +1268,8 @@ export default function App() {
                     isLoading={isBackgroundKnowledgeLoading}
                     hasPaperContext={!!deconstructData?.paper_skeleton}
                     onGenerate={handleGenerateBackgroundKnowledge}
+                    knowledgeLevel={backgroundKnowledgeLevel}
+                    onKnowledgeLevelChange={setBackgroundKnowledgeLevel}
                   />
                 )}
 

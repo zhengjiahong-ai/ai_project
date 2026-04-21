@@ -30,17 +30,18 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
             "NEO4J_USER": "",
             "NEO4J_PASSWORD": "",
         }
+        self.query_plan = {
+            "original": "AcademicRAG",
+            "rewritten": "AcademicRAG prerequisites",
+            "keywords": ["AcademicRAG"],
+            "taskType": "background",
+            "source": "llm",
+        }
 
-    def test_legacy_topic_payload_returns_graph_and_list(self):
+    def test_legacy_topic_payload_returns_sections_and_normalized_level(self):
         with (
             patch.dict(os.environ, self.neo4j_env, clear=False),
-            patch("services.background_knowledge_service.build_retrieval_queries", return_value={
-                "original": "AcademicRAG",
-                "rewritten": "AcademicRAG prerequisites",
-                "keywords": ["AcademicRAG"],
-                "taskType": "background",
-                "source": "llm",
-            }),
+            patch("services.background_knowledge_service.build_retrieval_queries", return_value=self.query_plan),
             patch("services.background_knowledge_service.retrieve_hybrid_results", return_value={"vector": [], "bm25": []}),
             patch("services.background_knowledge_service.get_llm") as mocked_llm,
         ):
@@ -48,28 +49,41 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
 
             response = get_background_knowledge(BackgroundKnowledgeRequest(
                 paper_topic="AcademicRAG",
-                user_knowledge_level="beginner",
+                user_knowledge_level="normal",
             ))
 
         self.assertEqual(response["status"], "success")
         self.assertEqual(response["paper_topic"], "AcademicRAG")
+        self.assertEqual(response["user_knowledge_level"], "一般")
         self.assertEqual(response["background_knowledge"][0], "RAG")
         self.assertEqual(response["queryPlan"]["rewritten"], "AcademicRAG prerequisites")
-        self.assertGreaterEqual(len(response["graph"]["nodes"]), 2)
+        self.assertEqual(len(response["learning_path_sections"]), 4)
+        self.assertTrue(any(section["items"] for section in response["learning_path_sections"]))
+        self.assertEqual(response["sourceCoverage"]["totalConcepts"], len(response["graph"]["nodes"]) - 1)
         self.assertEqual(response["neo4j"]["status"], "skipped")
 
-    def test_pdf_payload_uses_rag_and_structured_llm_json(self):
+    def test_pdf_payload_dedupes_nodes_backfills_sources_and_reports_coverage(self):
         llm_json = """
         {
           "paper_topic": "AcademicRAG",
-          "background_knowledge": ["RAG", "Knowledge graph"],
-          "learning_path": [{"step": 1, "title": "RAG", "goal": "Understand retrieval", "conceptIds": ["rag"]}],
+          "background_knowledge": ["RAG", "Graph retrieval", "Overclaim risk", "RAG"],
+          "learning_path": [
+            {"step": 1, "stage": "foundation", "title": "RAG", "goal": "Understand retrieval", "conceptIds": ["rag-node"]},
+            {"step": 2, "stage": "method_prerequisite", "title": "Graph retrieval", "goal": "Understand graph retrieval", "conceptIds": ["graph-retrieval"], "sourceIds": ["source-2"]},
+            {"step": 3, "stage": "critical_perspective", "title": "Overclaim risk", "goal": "Inspect boundary conditions", "conceptIds": ["critical-view"]}
+          ],
           "graph": {
             "nodes": [
               {"id": "current-paper", "label": "AcademicRAG", "type": "paper", "level": "target", "summary": "", "why": "", "sourceIds": []},
-              {"id": "rag", "label": "RAG", "type": "concept", "level": "basic", "summary": "Retrieval augmented generation", "why": "Core method", "sourceIds": ["source-1"]}
+              {"id": "rag-node", "label": "RAG", "type": "concept", "level": "basic", "summary": "Retrieval augmented generation", "why": "Core method", "sourceIds": []},
+              {"id": "rag-duplicate", "label": "RAG", "type": "concept", "level": "basic", "summary": "Duplicate", "why": "", "sourceIds": []},
+              {"id": "graph-retrieval", "label": "Graph retrieval", "type": "method", "level": "intermediate", "stage": "method_prerequisite", "summary": "Graph-based retrieval", "why": "Reading prerequisite", "sourceIds": ["source-2"]},
+              {"id": "critical-view", "label": "Overclaim risk", "type": "concept", "level": "advanced", "stage": "critical_perspective", "summary": "", "why": "Review limitations", "sourceIds": []}
             ],
-            "links": [{"source": "rag", "target": "current-paper", "relation": "prerequisite", "label": "prerequisite"}]
+            "links": [
+              {"source": "rag-node", "target": "graph-retrieval", "relation": "prerequisite", "label": "prerequisite"},
+              {"source": "graph-retrieval", "target": "current-paper", "relation": "supports", "label": "supports"}
+            ]
           }
         }
         """
@@ -78,17 +92,18 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
             patch.dict(os.environ, self.neo4j_env, clear=False),
             patch("services.background_knowledge_service.get_rag", return_value=FakeRag()),
             patch("services.background_knowledge_service.build_retrieval_queries", return_value={
-                "original": "AcademicRAG",
-                "rewritten": "AcademicRAG knowledge graph prerequisites",
-                "keywords": ["AcademicRAG", "knowledge graph"],
-                "taskType": "background",
-                "source": "llm",
+                **self.query_plan,
+                "rewritten": "AcademicRAG graph retrieval prerequisites",
+                "keywords": ["AcademicRAG", "Graph retrieval"],
             }),
             patch(
                 "services.background_knowledge_service.retrieve_hybrid_results",
                 return_value={
-                    "vector": [{"text": "Related literature source.", "metadata": {"title": "source"}}],
-                    "bm25": [{"text": "BM25 prerequisite source.", "score": 3.0}],
+                    "vector": [{"text": "RAG source explains retrieval augmented generation.", "metadata": {"title": "source"}}],
+                    "bm25": [
+                        {"text": "Graph retrieval source explains graph retrieval for knowledge graphs.", "score": 3.0},
+                        {"text": "Evaluation metrics focus on accuracy and calibration.", "score": 1.0},
+                    ],
                 },
             ),
             patch("services.background_knowledge_service.get_llm") as mocked_llm,
@@ -99,26 +114,38 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
                 pdfId="paper-1",
                 paperSkeleton={"abstract": "AcademicRAG combines KG and RAG."},
                 paperStructure={"research_problem": "AcademicRAG"},
+                user_knowledge_level="进阶",
             ))
 
-        self.assertEqual(response["pdfId"], "paper-1")
-        self.assertEqual(response["graph"]["nodes"][1]["id"], "rag")
-        self.assertEqual(response["learning_path"][0]["title"], "RAG")
+        node_ids = [node["id"] for node in response["graph"]["nodes"]]
+        rag_node = next(node for node in response["graph"]["nodes"] if node["id"] == "rag")
+        graph_node = next(node for node in response["graph"]["nodes"] if node["id"] == "graph-retrieval")
+        critical_node = next(node for node in response["graph"]["nodes"] if node["id"] == "overclaim-risk")
+
+        self.assertEqual(node_ids.count("rag"), 1)
+        self.assertEqual(response["background_knowledge"], ["RAG", "Graph retrieval", "Overclaim risk"])
+        self.assertEqual(response["learning_path_sections"][0]["title"], "基础概念")
+        self.assertEqual(response["learning_path"][0]["stage"], "foundation")
         self.assertEqual(response["rag_sources"][0]["sourceId"], "source-1")
-        self.assertEqual(response["rag_sources"][0]["id"], "source-1")
-        self.assertEqual(response["rag_sources"][0]["sourceType"], "library")
-        self.assertEqual(response["queryPlan"]["taskType"], "background")
+        self.assertEqual(rag_node["sourceIds"], ["source-1"])
+        self.assertEqual(graph_node["sourceIds"], ["source-2"])
+        self.assertEqual(critical_node["sourceIds"], [])
+        self.assertEqual(response["sourceCoverage"]["totalConcepts"], 3)
+        self.assertEqual(response["sourceCoverage"]["conceptsWithSources"], 2)
+        self.assertEqual(response["sourceCoverage"]["ratio"], 0.67)
+        self.assertEqual(response["sourceCoverage"]["uncoveredConceptIds"], ["overclaim-risk"])
+        self.assertGreater(response["confidence"], 0.6)
+        self.assertEqual(response["user_knowledge_level"], "进阶")
         self.assertEqual(response["neo4j"]["enabled"], False)
 
-    def test_unstructured_llm_response_falls_back_to_linear_graph(self):
+    def test_unstructured_llm_response_still_builds_learning_sections(self):
         with (
             patch.dict(os.environ, self.neo4j_env, clear=False),
             patch("services.background_knowledge_service.build_retrieval_queries", return_value={
+                **self.query_plan,
                 "original": "RAG",
                 "rewritten": "RAG prerequisites",
                 "keywords": ["RAG"],
-                "taskType": "background",
-                "source": "llm",
             }),
             patch("services.background_knowledge_service.retrieve_hybrid_results", return_value={"vector": [], "bm25": []}),
             patch("services.background_knowledge_service.get_llm") as mocked_llm,
@@ -129,29 +156,41 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
 
         self.assertEqual(response["background_knowledge"], ["Embeddings", "Vector search"])
         self.assertTrue(any(link["target"] == "current-paper" for link in response["graph"]["links"]))
+        self.assertTrue(any(section["items"] for section in response["learning_path_sections"]))
+        self.assertTrue(all(
+            step["stage"] in {
+                "foundation",
+                "method_prerequisite",
+                "experiment_understanding",
+                "critical_perspective",
+            }
+            for step in response["learning_path"]
+        ))
 
-    def test_non_string_topic_payload_is_coerced(self):
-        with (
-            patch.dict(os.environ, self.neo4j_env, clear=False),
-            patch("services.background_knowledge_service.build_retrieval_queries", return_value={
-                "original": "Graph RAG",
-                "rewritten": "Graph RAG prerequisites",
-                "keywords": ["Graph RAG"],
-                "taskType": "background",
-                "source": "llm",
-            }),
-            patch("services.background_knowledge_service.retrieve_hybrid_results", return_value={"vector": [], "bm25": []}),
-            patch("services.background_knowledge_service.get_llm") as mocked_llm,
-        ):
-            mocked_llm.return_value._call.return_value = "Embeddings\nVector search"
+    def test_user_level_variants_are_normalized_to_supported_values(self):
+        cases = {
+            "beginner": "入门",
+            "普通/一般": "一般",
+            "advanced": "进阶",
+        }
 
-            response = get_background_knowledge(BackgroundKnowledgeRequest(
-                paper_topic={"title": "Graph RAG"},
-                user_knowledge_level={"label": "beginner"},
-            ))
+        for request_level, expected_level in cases.items():
+            with self.subTest(request_level=request_level):
+                with (
+                    patch.dict(os.environ, self.neo4j_env, clear=False),
+                    patch("services.background_knowledge_service.build_retrieval_queries", return_value=self.query_plan),
+                    patch("services.background_knowledge_service.retrieve_hybrid_results", return_value={"vector": [], "bm25": []}),
+                    patch("services.background_knowledge_service.get_llm") as mocked_llm,
+                ):
+                    mocked_llm.return_value._call.return_value = "Embeddings\nVector search"
 
-        self.assertEqual(response["paper_topic"], "Graph RAG")
-        self.assertEqual(response["user_knowledge_level"], "beginner")
+                    response = get_background_knowledge(BackgroundKnowledgeRequest(
+                        paper_topic={"title": "Graph RAG"},
+                        user_knowledge_level=request_level,
+                    ))
+
+                self.assertEqual(response["paper_topic"], "Graph RAG")
+                self.assertEqual(response["user_knowledge_level"], expected_level)
 
 
 if __name__ == "__main__":

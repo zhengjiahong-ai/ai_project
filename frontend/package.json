@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node src/utils/pdfTranslationLayout.test.js && node src/utils/translationState.test.js && node src/services/api.test.js && node src/components/MarkdownContent.test.js && node src/components/criticalAnalysisData.test.js"
+    "test": "node src/utils/pdfTranslationLayout.test.js && node src/utils/translationState.test.js && node src/services/api.test.js && node src/components/MarkdownContent.test.js && node src/components/criticalAnalysisData.test.js && node src/components/BackgroundKnowledgePanel.test.js"
   },
   "dependencies": {
     "@react-pdf-viewer/core": "^3.12.0",

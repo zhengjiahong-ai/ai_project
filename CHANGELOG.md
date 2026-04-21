@@ -10,6 +10,9 @@
 5. **批判阅读升级为全文证据化分析**：`/api/deep-analysis` 不再只截取前 4000 字，而是基于当前论文全文 chunks 或临时分块内容，围绕贡献、方法、实验和局限四个分析轴进行证据检索、judge 与最多一次重试。
 6. **扩展结构化批判阅读返回**：在保留 `claimed_contributions`、`inferred_real_contributions`、`critical_analysis` 的同时，新增 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence` 与统一 `rag_sources`，并保持旧字段兼容。
 7. **增强批判阅读前端面板**：`CriticalAnalysisPanel` 继续沿用原有概览和图表布局，同时新增紧凑的薄弱点、夸大风险、缺失证据和参考证据区块.
+8. **深化背景补课图谱结构**：`/api/background-knowledge` 现在会对概念节点做轻量去重、稳定 `node id`、补齐节点 `stage`，并新增四段式 `learning_path_sections`，同时继续兼容旧 `learning_path`。
+9. **增强背景补课证据覆盖信息**：背景补课响应新增 `confidence` 与 `sourceCoverage`，图谱节点会尽量绑定本次返回的 `rag_sources`，证据缺口则通过未覆盖节点显式暴露。
+10. **补齐背景补课知识水平与前端展示**：背景补课面板新增 `入门 / 一般 / 进阶` 三档知识水平选择，缓存恢复时会回填最近一次结果，并在面板中展示四段式学习路径、证据覆盖和 Neo4j 持久化状态。
 
 ### 2026-04-20
 1. **完成基线审计**：确认前端测试与 lint、Python 测试目录、Java Maven 测试的当前运行状态，并记录前端 build 待查问题。

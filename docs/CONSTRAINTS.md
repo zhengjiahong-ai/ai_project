@@ -36,6 +36,15 @@
 - `inferred_real_contributions` 作为 `evidence_based_contributions` 的兼容别名继续保留。
 - 批判阅读不得编造实验结论、指标或局限；证据不足时必须进入 `missing_evidence` 或在 `critical_analysis` 中显式说明“证据不足”。
 
+## 2026-04-21 背景补课图谱深化补充
+
+- `/api/background-knowledge` 请求体保持不变，仍为 `{ pdfId?, paperSkeleton?, paperStructure?, paper_topic?, user_knowledge_level? }`，禁止为模块 6 引入额外必填字段。
+- 前端背景补课面板只允许 `user_knowledge_level ∈ {入门, 一般, 进阶}`；旧值如 `普通/一般` 可在前端或 Python 内部归一化为 `一般`。
+- Python 背景补课响应在兼容旧字段的同时，可新增 `confidence`、`sourceCoverage`、`learning_path_sections`；前端和 Java 可忽略这些新增字段但不得破坏旧字段。
+- `learning_path_sections` 固定按 `foundation`、`method_prerequisite`、`experiment_understanding`、`critical_perspective` 四段组织；兼容字段 `learning_path[*].stage` 也只允许这四个取值。
+- `graph.nodes[*]` 可新增 `stage`、`stageLabel`、`confidence`、`sourceIds`；其中 `sourceIds` 只能引用同一次响应里的 `rag_sources[*].sourceId`，不得返回脱离本次响应的外部引用。
+- 背景补课图谱允许做轻量概念去重和稳定 `node id` 重建，但必须保留 `current-paper` 根节点，且 Neo4j 未配置或写入失败时不得阻断接口成功。
+
 ---
 
 ## 一、技术栈要求
@@ -110,7 +119,7 @@
 | POST | `/api/socratic-questions` | `{ "paper_content": string, "reading_progress": string }` | 引导式学习（苏格拉底式提问），Java 转发到 Python `/api/socratic-questions` |
 | POST | `/api/socratic-session/start` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string }` | 启动 5 轮苏格拉底式引导会话 |
 | POST | `/api/socratic-session/answer` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string, "currentIndex": number, "currentQuestion": string, "userAnswer": string, "turns": array? }` | 提交当前回答，返回掌握度评估、提示与下一题或最终总结 |
-| POST | `/api/background-knowledge` | `{ "pdfId": string?, "paperSkeleton": object?, "paperStructure": object?, "paper_topic": any?, "user_knowledge_level": any? }` | 背景补课图谱，Java 转发到 Python `/api/background-knowledge`，响应可附带 `queryPlan` |
+| POST | `/api/background-knowledge` | `{ "pdfId": string?, "paperSkeleton": object?, "paperStructure": object?, "paper_topic": any?, "user_knowledge_level": any? }` | 背景补课图谱，Java 转发到 Python `/api/background-knowledge`，响应可附带 `queryPlan`、`confidence`、`sourceCoverage`、`learning_path_sections` |
 
 - **说明**：  
   - Java `AcademicController` 中 `explainTerm` 接收 `Map<String, Object>`，会将 `text`/`term` 适配为 Python 所需的 `term`，并透传 `pdfId`、`pageNumber`、`context`。
@@ -128,7 +137,7 @@
 | POST socratic questions → 转发 | POST `/api/socratic-questions` | 请求体 `{ paper_content, reading_progress }`，Python 返回 `{ status, questions }` |
 | POST socratic start → 转发 | POST `/api/socratic-session/start` | 请求体 `{ pdfId?, paperSkeleton?, readingProgress }`，Python 返回开场引导和第 1 题 |
 | POST socratic answer → 转发 | POST `/api/socratic-session/answer` | 请求体包含当前题目、用户回答和历史轮次，Python 返回评估、下一题或最终总结 |
-| POST background knowledge → 转发 | POST `/api/background-knowledge` | 请求体兼容 `pdfId`、论文结构和用户知识水平，Python 返回前置知识图谱、学习路径与可选 `queryPlan` |
+| POST background knowledge → 转发 | POST `/api/background-knowledge` | 请求体兼容 `pdfId`、论文结构和用户知识水平，Python 返回前置知识图谱、四段式学习路径、统一 `rag_sources` 以及可选 `queryPlan`、`confidence`、`sourceCoverage` |
 
 ### 2.4 Python 已实现的其他接口（内部或后续扩展）
 
@@ -186,6 +195,6 @@
 
 - 前端新增独立“背景补课”页签，所有请求继续集中走 `frontend/src/services/api.js` 的 `backgroundKnowledge` 方法。
 - Java 新增 `POST /api/background-knowledge`，只透传 JSON 到 Python `POST /api/background-knowledge`，不写入 H2。
-- Python `BackgroundKnowledgeRequest` 兼容旧 `{ paper_topic, user_knowledge_level }`，并新增 `{ pdfId, paperSkeleton, paperStructure }`。成功响应包含 `{ status, pdfId, paper_topic, user_knowledge_level, graph, learning_path, background_knowledge, rag_sources, neo4j }`。
+- Python `BackgroundKnowledgeRequest` 兼容旧 `{ paper_topic, user_knowledge_level }`，并新增 `{ pdfId, paperSkeleton, paperStructure }`。成功响应包含 `{ status, pdfId, paper_topic, user_knowledge_level, graph, learning_path, learning_path_sections, background_knowledge, rag_sources, confidence, sourceCoverage, neo4j }`，其中新增字段均为兼容式扩展。
 - Neo4j 只作为可选持久化增强：配置 `NEO4J_URI`、`NEO4J_USER`、`NEO4J_PASSWORD` 时尝试写入；未配置或连接失败不得阻断接口成功。
 - `docker-compose.yml` 中 Neo4j 必须保留在 `neo4j` profile 下，默认启动不得依赖该服务。

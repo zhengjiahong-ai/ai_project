@@ -124,7 +124,10 @@ docker-compose up --build
 ## 背景补课 / 前置知识图谱
 
 - 独立“背景补课”页签会手动调用 Java `/api/background-knowledge`，Java 再转发到 Python `/api/background-knowledge`。
+- 面板支持按 `入门`、`一般`、`进阶` 三档知识水平生成补课结果；切换论文后会恢复该论文最近一次背景补课结果中的知识水平。
 - Python 结合当前论文 `pdfId`、篇章结构、改写后的检索查询、Chroma RAG 片段和 LLM 返回前置概念图谱、学习路径、补课清单和结构统一的 RAG 依据片段。
+- 图谱生成阶段会对概念节点做轻量去重并稳定 `node id`，优先把概念组织为“基础概念 -> 方法前置 -> 实验理解 -> 批判视角”四段式学习路径；旧 `learning_path` 仍保留以兼容旧缓存和旧前端结构。
+- 每个概念节点会尽量绑定本次响应中的 `rag_sources`，响应可额外返回 `confidence` 与 `sourceCoverage`，用于衡量当前图谱的证据覆盖程度和整体可靠性。
 - Neo4j 是可选持久化增强；未配置时接口仍返回 JSON 图谱，不影响默认开发和 Docker 启动。
 
 可选启用 Neo4j：
