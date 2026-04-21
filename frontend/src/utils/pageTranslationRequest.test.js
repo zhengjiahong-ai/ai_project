@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 
-import { preparePageTranslationRequest } from './pageTranslationRequest.js';
+import {
+  planPageTranslationState,
+  preparePageTranslationRequest,
+  shouldPreferPlainPageTranslation,
+} from './pageTranslationRequest.js';
 
 const samplePageLayout = {
   viewport: { width: 600, height: 800 },
@@ -84,6 +88,68 @@ const run = () => {
   assert.equal(structuredRequest.requestMode, 'structured');
   assert.equal(structuredRequest.translationSourceText, 'Body paragraph');
   assert.equal(structuredRequest.requestPayloadPageLayout.blocks.length, 1);
+
+  assert.equal(
+    shouldPreferPlainPageTranslation({
+      excludedZones: [],
+      figureSnippets: [{ id: 'figure-1', image: 'data:image/png;base64,abc' }],
+    }),
+    true,
+  );
+  assert.equal(
+    shouldPreferPlainPageTranslation({
+      excludedZones: [{ type: 'figure', bbox: { left: 0.1, top: 0.1, width: 0.3, height: 0.3 } }],
+      figureSnippets: [],
+    }),
+    true,
+  );
+  assert.equal(
+    shouldPreferPlainPageTranslation({
+      excludedZones: [],
+      figureSnippets: [],
+    }),
+    false,
+  );
+
+  const requestPlan = planPageTranslationState({
+    translationState: {
+      pdfId: 'paper-1',
+      currentPage: 0,
+      pages: {},
+    },
+    pdfId: 'paper-1',
+    pageIndex: 0,
+    sourceText: 'Body paragraph',
+    pageLayout: samplePageLayout,
+    backgroundImage: '',
+    figureSnippets: [{ id: 'figure-1', image: 'data:image/png;base64,abc' }],
+    excludedZones: [],
+    force: false,
+    expectsStructuredResponse: false,
+    shouldMarkEmpty: false,
+    hasActiveRequest: false,
+  });
+  assert.equal(requestPlan.shouldRequest, true);
+  assert.equal(requestPlan.nextState.currentPage, 0);
+  assert.equal(requestPlan.nextState.pages[0].status, 'loading');
+  assert.equal(requestPlan.nextState.pages[0].sourceText, 'Body paragraph');
+
+  const loadingReusePlan = planPageTranslationState({
+    translationState: requestPlan.nextState,
+    pdfId: 'paper-1',
+    pageIndex: 0,
+    sourceText: 'Body paragraph',
+    pageLayout: samplePageLayout,
+    backgroundImage: '',
+    figureSnippets: [],
+    excludedZones: [],
+    force: false,
+    expectsStructuredResponse: false,
+    shouldMarkEmpty: false,
+    hasActiveRequest: true,
+  });
+  assert.equal(loadingReusePlan.shouldRequest, false);
+  assert.equal(loadingReusePlan.nextState.pages[0].status, 'loading');
 
   console.log('frontend page translation request tests passed');
 };

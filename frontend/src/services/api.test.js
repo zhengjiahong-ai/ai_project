@@ -129,6 +129,24 @@ const run = async () => {
   });
   assert.equal(translateConfig.timeout, 90000);
   assert.ok(translateConfig.signal);
+  assert.equal(translateConfig.skipErrorLog, true);
+
+  let customTranslateConfig = null;
+  const customTranslationService = createApiService({
+    post: async (_url, _body, config) => {
+      customTranslateConfig = config;
+      return { status: 'success' };
+    },
+    get: async () => ({}),
+  });
+  const customController = new AbortController();
+  await customTranslationService.translatePage('paper-1', 1, 'Source text', null, null, {
+    timeoutMs: 12345,
+    signal: customController.signal,
+  });
+  assert.equal(customTranslateConfig.timeout, 12345);
+  assert.ok(customTranslateConfig.signal);
+  assert.equal(customTranslateConfig.skipErrorLog, true);
 
   console.log('frontend api smoke tests passed');
 };

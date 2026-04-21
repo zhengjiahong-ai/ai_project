@@ -16,7 +16,14 @@ export const createApiClient = (baseURL = resolveApiBaseUrl(), axiosInstance = a
   client.interceptors.response.use(
     (response) => response.data,
     (error) => {
-      console.error('API Error:', error);
+      const shouldSuppressLog =
+        axios.isCancel(error) ||
+        error?.name === 'CanceledError' ||
+        error?.message === 'canceled' ||
+        Boolean(error?.config?.skipErrorLog);
+      if (!shouldSuppressLog) {
+        console.error('API Error:', error);
+      }
       return Promise.reject(error);
     },
   );
@@ -106,13 +113,24 @@ export const createApiService = (client) => ({
       user_knowledge_level,
     }),
 
-  translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null, pageLayout = null) => {
+  translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null, pageLayout = null, options = {}) => {
+    const timeoutMs = Number(options?.timeoutMs) > 0 ? Number(options.timeoutMs) : 90000;
+    const externalSignal = options?.signal || null;
     const controller = new AbortController();
     let didTimeout = false;
+    const handleExternalAbort = () => controller.abort();
     const timeoutId = setTimeout(() => {
       didTimeout = true;
       controller.abort();
-    }, 90000);
+    }, timeoutMs);
+
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        handleExternalAbort();
+      } else {
+        externalSignal.addEventListener('abort', handleExternalAbort, { once: true });
+      }
+    }
 
     try {
       return await client.post(
@@ -126,7 +144,8 @@ export const createApiService = (client) => ({
         },
         {
           signal: controller.signal,
-          timeout: 90000,
+          timeout: timeoutMs,
+          skipErrorLog: true,
         },
       );
     } catch (error) {
@@ -136,6 +155,9 @@ export const createApiService = (client) => ({
       throw error;
     } finally {
       clearTimeout(timeoutId);
+      if (externalSignal) {
+        externalSignal.removeEventListener('abort', handleExternalAbort);
+      }
     }
   },
 });

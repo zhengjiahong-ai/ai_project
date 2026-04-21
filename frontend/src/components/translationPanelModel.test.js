@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { createTranslationPanelViewModel } from './translationPanelModel.js';
+import { buildDisplayFigureSnippets, createTranslationPanelViewModel } from './translationPanelModel.js';
 
 const singleColumnLayout = {
   viewport: { width: 600, height: 800 },
@@ -61,6 +61,31 @@ const run = () => {
   });
   assert.equal(structuredOverlay.canRenderFidelity, true);
   assert.equal(structuredOverlay.shouldRenderFigureGallery, false);
+
+  const derivedDisplayFigures = buildDisplayFigureSnippets({
+    status: 'success',
+    translatedText: '这是正文译文。',
+    translatedBlocks: [],
+    figureSnippets: [],
+    backgroundImage: 'data:image/png;base64,page',
+    excludedZones: [{ type: 'figure', bbox: { left: 0.5, top: 0.34, width: 0.3, height: 0.22 } }],
+    pageLayout: singleColumnLayout,
+  });
+  assert.equal(derivedDisplayFigures.length, 1);
+  assert.equal(derivedDisplayFigures[0].cropMode, 'viewport');
+
+  const plainWithDerivedFigures = createTranslationPanelViewModel({
+    status: 'success',
+    renderMode: 'plain',
+    translatedText: '这是图文混排页面的译文。',
+    translatedBlocks: [],
+    figureSnippets: [],
+    backgroundImage: 'data:image/png;base64,page',
+    excludedZones: [{ type: 'figure', bbox: { left: 0.5, top: 0.34, width: 0.3, height: 0.22 } }],
+    pageLayout: singleColumnLayout,
+  });
+  assert.equal(plainWithDerivedFigures.displayFigureSnippets.length, 1);
+  assert.equal(plainWithDerivedFigures.shouldRenderFigureGallery, true);
 
   console.log('frontend translation panel model tests passed');
 };

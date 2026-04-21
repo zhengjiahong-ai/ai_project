@@ -115,7 +115,13 @@ export const normalizeTranslationState = (storedValue, pdfId = null) => {
       return accumulator;
     }
 
-    accumulator[pageIndex] = normalizeTranslationPage(pageValue);
+    const normalizedPage = normalizeTranslationPage(pageValue);
+    if (normalizedPage.status === 'loading') {
+      normalizedPage.status = normalizedPage.translatedText ? 'success' : 'idle';
+      normalizedPage.error = '';
+    }
+
+    accumulator[pageIndex] = normalizedPage;
     return accumulator;
   }, {});
 

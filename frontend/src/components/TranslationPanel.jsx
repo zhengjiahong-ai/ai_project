@@ -132,6 +132,12 @@ const TranslationStructuredBlock = ({ block }) => (
 
 const TranslationFigureSnippet = ({ figure, isColumn = false }) => {
   const label = FIGURE_TYPE_LABELS[figure?.type] || FIGURE_TYPE_LABELS.figure;
+  const viewportWidth = Math.max(Number(figure?.viewport?.width || 0), 1);
+  const viewportHeight = Math.max(Number(figure?.viewport?.height || 0), 1);
+  const bboxWidth = Math.max(Number(figure?.bbox?.width || 0), 0.01);
+  const bboxHeight = Math.max(Number(figure?.bbox?.height || 0), 0.01);
+  const cropAspectRatio = Math.max(0.2, (bboxWidth * viewportWidth) / Math.max(bboxHeight * viewportHeight, 1));
+  const usesViewportCrop = figure?.cropMode === 'viewport';
 
   return (
     <figure
@@ -143,7 +149,23 @@ const TranslationFigureSnippet = ({ figure, isColumn = false }) => {
         <span>{label}</span>
       </div>
       <div className="theme-panel-muted p-3">
-        <img src={figure?.image} alt={label} className="w-full rounded-xl bg-white object-contain" loading="lazy" />
+        {usesViewportCrop ? (
+          <div className="relative overflow-hidden rounded-xl bg-white" style={{ aspectRatio: `${cropAspectRatio}` }}>
+            <img
+              src={figure?.image}
+              alt={label}
+              className="absolute max-w-none select-none"
+              loading="lazy"
+              style={{
+                width: `${100 / bboxWidth}%`,
+                left: `-${(Number(figure?.bbox?.left || 0) / bboxWidth) * 100}%`,
+                top: `-${(Number(figure?.bbox?.top || 0) / bboxHeight) * 100}%`,
+              }}
+            />
+          </div>
+        ) : (
+          <img src={figure?.image} alt={label} className="w-full rounded-xl bg-white object-contain" loading="lazy" />
+        )}
       </div>
     </figure>
   );
@@ -455,6 +477,7 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
     canRenderFidelity,
     canRenderStructuredFallback,
     canRenderPlainColumnFallback,
+    displayFigureSnippets,
     shouldRenderFigureGallery,
     shouldShowPlainTranslation,
   } = viewModel;
@@ -472,7 +495,8 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
 
         <button
           onClick={onRetry}
-          className="theme-button-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition"
+          disabled={status === 'loading'}
+          className="theme-button-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshCw size={14} />
           重试翻译
@@ -527,7 +551,7 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
 
         {canRenderStructuredFallback && <TranslationStructuredStage readableLayout={readableLayout} />}
 
-        {shouldRenderFigureGallery && <TranslationFigureGalleryStage figureSnippets={pageData?.figureSnippets} />}
+        {shouldRenderFigureGallery && <TranslationFigureGalleryStage figureSnippets={displayFigureSnippets} />}
 
         {canRenderPlainColumnFallback && (
           <TranslationPlainColumnFallbackStage pageLayout={pageData?.pageLayout} translatedText={translatedText} />

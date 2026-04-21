@@ -30,6 +30,22 @@ const run = () => {
   assert.equal(legacyState.pages[2].renderMode, 'plain');
   assert.equal(legacyState.pages[2].translatedText, 'translated');
 
+  const restoredLoadingState = normalizeTranslationState(
+    {
+      pdfId: 'paper-1',
+      currentPage: 1,
+      pages: {
+        1: {
+          sourceText: 'source',
+          status: 'loading',
+          updatedAt: Date.now(),
+        },
+      },
+    },
+    'paper-1',
+  );
+  assert.equal(restoredLoadingState.pages[1].status, 'idle');
+
   const overlayPage = normalizeTranslationPage({
     sourceText: 'source',
     translatedText: 'translated',

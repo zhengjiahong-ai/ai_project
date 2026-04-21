@@ -15,7 +15,11 @@ import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 import TranslationPanel from './components/TranslationPanel';
 import MarkdownContent from './components/MarkdownContent';
 import { apiService } from './services/api';
-import { preparePageTranslationRequest } from './utils/pageTranslationRequest.js';
+import {
+  planPageTranslationState,
+  preparePageTranslationRequest,
+  shouldPreferPlainPageTranslation,
+} from './utils/pageTranslationRequest.js';
 import {
   createEmptyTranslationState,
   normalizeTranslationPage,
@@ -31,6 +35,7 @@ const SOCRATIC_TOTAL_QUESTIONS = 5;
 const DEFAULT_ACTIVE_TAB = 'chat';
 const THEME_STORAGE_KEY = 'pixiu-theme';
 const DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL = '一般';
+const STRUCTURED_TRANSLATION_TIMEOUT_MS = 15000;
 
 const normalizeBackgroundKnowledgeLevel = (value) => {
   const text = `${value ?? ''}`.trim().toLowerCase();
@@ -183,6 +188,10 @@ export default function App() {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
   const abortControllers = useRef({});
+  const translationRequestsRef = useRef({});
+  const translationRequestSequenceRef = useRef(0);
+  const latestTranslationTokensRef = useRef({});
+  const translationStateRef = useRef(createEmptyTranslationState());
   const papersListRef = useRef([]);
   const currentPageTextRef = useRef({
     pageIndex: 0,
@@ -198,6 +207,16 @@ export default function App() {
   }, [papersList]);
 
   useEffect(() => {
+    translationStateRef.current = translationState;
+  }, [translationState]);
+
+  useEffect(() => {
+    Object.values(translationRequestsRef.current).forEach((entry) => entry?.controller?.abort());
+    translationRequestsRef.current = {};
+    latestTranslationTokensRef.current = {};
+  }, [pdfId]);
+
+  useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
@@ -210,6 +229,20 @@ export default function App() {
 
   const handleToggleTheme = useCallback(() => {
     setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  const commitTranslationState = useCallback((nextStateOrUpdater) => {
+    if (typeof nextStateOrUpdater === 'function') {
+      setTranslationState((previousState) => {
+        const nextState = nextStateOrUpdater(previousState);
+        translationStateRef.current = nextState;
+        return nextState;
+      });
+      return;
+    }
+
+    translationStateRef.current = nextStateOrUpdater;
+    setTranslationState(nextStateOrUpdater);
   }, []);
 
   const fetchRemoteHistory = useCallback(async (sessionId, fallbackMessages = []) => {
@@ -277,7 +310,7 @@ export default function App() {
     setMessages(nextMessages);
     setPdfHighlights(savedHighlights || []);
     setSocraticSession(normalizeSocraticSession(savedSocraticSession, targetPdfId));
-    setTranslationState(normalizeTranslationState(savedTranslationState, targetPdfId));
+    commitTranslationState(normalizeTranslationState(savedTranslationState, targetPdfId));
     setIsTranslated(false);
     currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
     setActiveTab((currentTab) =>
@@ -286,7 +319,7 @@ export default function App() {
     localStorage.setItem('lastPdfId', targetPdfId);
 
     return true;
-  }, [fetchRemoteHistory]);
+  }, [commitTranslationState, fetchRemoteHistory]);
 
   const handlePdfUpload = useCallback(async (file) => {
     if (!file) return;
@@ -331,7 +364,7 @@ export default function App() {
       setMessages(readyMessages);
       setPdfHighlights([]);
       setSocraticSession(createEmptySocraticSession(response.pdfId));
-      setTranslationState(createEmptyTranslationState(response.pdfId));
+      commitTranslationState(createEmptyTranslationState(response.pdfId));
       setIsTranslated(false);
       currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
       setActiveTab('deconstruct');
@@ -349,7 +382,7 @@ export default function App() {
       setSocraticSession(createEmptySocraticSession());
       setBackgroundKnowledgeData(null);
       setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
-      setTranslationState(createEmptyTranslationState());
+      commitTranslationState(createEmptyTranslationState());
       setIsTranslated(false);
       currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
       window.alert(error?.response?.data?.message || error?.message || '上传失败，请确认后端服务已启动。');
@@ -357,7 +390,7 @@ export default function App() {
       setIsAiReady(true);
       setIsDeconstructing(false);
     }
-  }, []);
+  }, [commitTranslationState]);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -434,7 +467,7 @@ export default function App() {
         setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
         setPdfHighlights([]);
         setSocraticSession(createEmptySocraticSession());
-        setTranslationState(createEmptyTranslationState());
+        commitTranslationState(createEmptyTranslationState());
         setIsTranslated(false);
         currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
         setActiveTab(DEFAULT_ACTIVE_TAB);
@@ -443,7 +476,7 @@ export default function App() {
     } catch (error) {
       console.error('Failed to delete paper.', error);
     }
-  }, [pdfId]);
+  }, [commitTranslationState, pdfId]);
 
   useEffect(() => {
     if (!isRestored || !pdfId) return;
@@ -871,12 +904,12 @@ export default function App() {
     if (!pdfId) return;
 
     const excludedZones = deconstructData?.translationLayoutIndex?.[pageIndex]?.excludedZones || [];
-    const shouldPreferPlainTranslation = excludedZones.some((zone) =>
-      ['figure', 'table'].includes(String(zone?.type || '').trim().toLowerCase()),
-    );
+    const shouldPreferPlainTranslation = shouldPreferPlainPageTranslation({
+      excludedZones,
+      figureSnippets,
+    });
     const {
       sourceText,
-      requestPageLayout,
       requestPayloadPageLayout,
       translationSourceText,
       shouldMarkEmpty,
@@ -887,131 +920,87 @@ export default function App() {
       preferPlain: shouldPreferPlainTranslation,
     });
     const expectsStructuredResponse = Boolean(requestPayloadPageLayout?.blocks?.length);
-    let shouldRequest = false;
-
-    setTranslationState((prev) => {
-      const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
-      const existingPage = normalizeTranslationPage(baseState.pages?.[pageIndex] || {});
-
-      if (shouldMarkEmpty) {
-        return {
-          ...baseState,
-          currentPage: pageIndex,
-          pages: {
-            ...baseState.pages,
-            [pageIndex]: normalizeTranslationPage({
-              sourceText: '',
-              translatedText: '',
-              translatedBlocks: [],
-              renderMode: 'plain',
-              pageLayout,
-              backgroundImage,
-              figureSnippets,
-              excludedZones,
-              status: 'empty',
-              error: '当前页未提取到可翻译文本，可能是扫描页或图片页。',
-              updatedAt: Date.now(),
-            }),
-          },
-        };
-      }
-
-      const isCacheHit =
-        !force &&
-        existingPage &&
-        existingPage.sourceText === sourceText &&
-        existingPage.status === 'success' &&
-        existingPage.translatedText &&
-        (!expectsStructuredResponse || existingPage.renderMode === 'overlay');
-
-      const isFreshLoading =
-        !force &&
-        existingPage &&
-        existingPage.sourceText === sourceText &&
-        existingPage.status === 'loading' &&
-        Date.now() - Number(existingPage.updatedAt || 0) < 100000;
-
-      if (isCacheHit || isFreshLoading) {
-        return baseState.currentPage === pageIndex ? baseState : { ...baseState, currentPage: pageIndex };
-      }
-
-      shouldRequest = true;
-      return {
-        ...baseState,
-        currentPage: pageIndex,
-        pages: {
-          ...baseState.pages,
-          [pageIndex]: normalizeTranslationPage({
-            ...existingPage,
-            sourceText,
-            translatedText:
-              existingPage?.sourceText === sourceText && !force ? existingPage?.translatedText || '' : '',
-            translatedBlocks:
-              existingPage?.sourceText === sourceText && !force ? existingPage?.translatedBlocks || [] : [],
-            renderMode: existingPage?.renderMode || 'plain',
-            pageLayout: pageLayout || existingPage?.pageLayout || null,
-            backgroundImage: backgroundImage || existingPage?.backgroundImage || '',
-            figureSnippets: figureSnippets.length > 0 ? figureSnippets : existingPage?.figureSnippets || [],
-            excludedZones: excludedZones.length > 0 ? excludedZones : existingPage?.excludedZones || [],
-            status: 'loading',
-            error: '',
-            updatedAt: Date.now(),
-          }),
-        },
-      };
+    const requestPlan = planPageTranslationState({
+      translationState: translationStateRef.current,
+      pdfId,
+      pageIndex,
+      sourceText,
+      pageLayout,
+      backgroundImage,
+      figureSnippets,
+      excludedZones,
+      force,
+      expectsStructuredResponse,
+      shouldMarkEmpty,
+      hasActiveRequest: Boolean(translationRequestsRef.current[pageIndex]),
     });
 
-    if (!translationSourceText) {
-      setTranslationState((prev) => {
-        if (prev?.pdfId !== pdfId) {
-          return prev;
-        }
+    commitTranslationState(requestPlan.nextState);
 
-        return {
-          ...prev,
-          currentPage: pageIndex,
-          pages: {
-            ...prev.pages,
-            [pageIndex]: normalizeTranslationPage({
-              ...prev.pages?.[pageIndex],
-              sourceText,
-              translatedText: '',
-              translatedBlocks: [],
-              renderMode: 'plain',
-              pageLayout: pageLayout || prev.pages?.[pageIndex]?.pageLayout || null,
-              backgroundImage: backgroundImage || prev.pages?.[pageIndex]?.backgroundImage || '',
-              figureSnippets: figureSnippets.length > 0 ? figureSnippets : prev.pages?.[pageIndex]?.figureSnippets || [],
-              excludedZones,
-              status: 'empty',
-              error: prev.pages?.[pageIndex]?.error || 'No translatable text was extracted from this page.',
-              updatedAt: Date.now(),
-            }),
-          },
-        };
-      });
+    if (!requestPlan.shouldRequest || !translationSourceText) {
       return;
     }
 
-    if (!shouldRequest) {
-      return;
+    const previousRequest = translationRequestsRef.current[pageIndex];
+    if (previousRequest?.controller) {
+      previousRequest.controller.abort();
     }
 
-    try {
-      const response = await apiService.translatePage(
+    const requestToken = ++translationRequestSequenceRef.current;
+    latestTranslationTokensRef.current[pageIndex] = requestToken;
+    const isCurrentRequest = () => latestTranslationTokensRef.current[pageIndex] === requestToken;
+    const clearCurrentRequest = () => {
+      if (translationRequestsRef.current[pageIndex]?.token === requestToken) {
+        delete translationRequestsRef.current[pageIndex];
+      }
+    };
+    const runTranslateRequest = async (requestText, requestLayout, timeoutMs = 90000) => {
+      const controller = new AbortController();
+      translationRequestsRef.current[pageIndex] = { token: requestToken, controller };
+      return apiService.translatePage(
         pdfId,
         pageIndex,
-        translationSourceText,
+        requestText,
         deconstructData?.paper_skeleton || null,
-        requestPayloadPageLayout,
+        requestLayout,
+        {
+          timeoutMs,
+          signal: controller.signal,
+        },
       );
+    };
+
+    try {
+      let response;
+      if (expectsStructuredResponse) {
+        try {
+          response = await runTranslateRequest(
+            translationSourceText,
+            requestPayloadPageLayout,
+            STRUCTURED_TRANSLATION_TIMEOUT_MS,
+          );
+        } catch {
+          if (!isCurrentRequest()) {
+            return;
+          }
+          response = await runTranslateRequest(sourceText, null);
+        }
+      } else {
+        response = await runTranslateRequest(translationSourceText, requestPayloadPageLayout);
+      }
+
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       const translatedText = response?.translatedText ?? response?.data?.translatedText ?? '';
       const translatedBlocks = Array.isArray(response?.translatedBlocks) ? response.translatedBlocks : [];
       const renderMode =
         response?.renderMode ||
         (translatedBlocks.length > 0 && pageLayout?.blocks?.length ? 'overlay' : 'plain');
 
-      setTranslationState((prev) => {
-        if (prev?.pdfId !== pdfId) {
+      commitTranslationState((prev) => {
+        if (prev?.pdfId !== pdfId || !isCurrentRequest()) {
           return prev;
         }
 
@@ -1038,9 +1027,13 @@ export default function App() {
         };
       });
     } catch (error) {
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       const errorMessage = error?.response?.data?.message ?? error?.message ?? '当前页翻译失败，请稍后重试。';
-      setTranslationState((prev) => {
-        if (prev?.pdfId !== pdfId) {
+      commitTranslationState((prev) => {
+        if (prev?.pdfId !== pdfId || !isCurrentRequest()) {
           return prev;
         }
 
@@ -1066,8 +1059,10 @@ export default function App() {
           },
         };
       });
+    } finally {
+      clearCurrentRequest();
     }
-  }, [deconstructData, pdfId]);
+  }, [commitTranslationState, deconstructData, pdfId]);
 
   const handlePdfPageChange = useCallback((pageIndex) => {
     currentPageTextRef.current = {
@@ -1077,11 +1072,11 @@ export default function App() {
       backgroundImage: '',
       figureSnippets: [],
     };
-    setTranslationState((prev) => {
+    commitTranslationState((prev) => {
       const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
       return baseState.currentPage === pageIndex ? baseState : { ...baseState, currentPage: pageIndex };
     });
-  }, [pdfId]);
+  }, [commitTranslationState, pdfId]);
 
   const handlePageTextExtracted = useCallback(({
     pageIndex,
@@ -1092,7 +1087,7 @@ export default function App() {
   }) => {
     const excludedZones = deconstructData?.translationLayoutIndex?.[pageIndex]?.excludedZones || [];
     currentPageTextRef.current = { pageIndex, pageText, pageLayout, backgroundImage, figureSnippets };
-    setTranslationState((prev) => {
+    commitTranslationState((prev) => {
       const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
       const existingPage = normalizeTranslationPage(baseState.pages?.[pageIndex] || {});
 
@@ -1116,7 +1111,7 @@ export default function App() {
     if (isTranslated) {
       requestPageTranslation({ pageIndex, pageText, pageLayout, backgroundImage, figureSnippets });
     }
-  }, [deconstructData, isTranslated, pdfId, requestPageTranslation]);
+  }, [commitTranslationState, deconstructData, isTranslated, pdfId, requestPageTranslation]);
 
   const handleToggleTranslation = useCallback(() => {
     if (!pdfId) {

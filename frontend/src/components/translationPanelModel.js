@@ -1,6 +1,36 @@
 import { buildFidelityTranslationLayout, buildReadableTranslationLayout } from '../utils/pdfTranslationLayout.js';
 import { canRenderOverlay } from '../utils/translationState.js';
 
+const isRenderableExcludedZone = (zone) => {
+  const bbox = zone?.bbox || {};
+  return Boolean(zone?.type) && Number(bbox.width || 0) > 0 && Number(bbox.height || 0) > 0;
+};
+
+export const buildDisplayFigureSnippets = (pageData = null) => {
+  const explicitFigures = Array.isArray(pageData?.figureSnippets) ? pageData.figureSnippets : [];
+  if (explicitFigures.length > 0) {
+    return explicitFigures;
+  }
+
+  const backgroundImage = typeof pageData?.backgroundImage === 'string' ? pageData.backgroundImage : '';
+  const excludedZones = Array.isArray(pageData?.excludedZones) ? pageData.excludedZones : [];
+  const viewport = pageData?.pageLayout?.viewport || null;
+  if (!backgroundImage || excludedZones.length === 0 || !viewport) {
+    return [];
+  }
+
+  return excludedZones
+    .filter(isRenderableExcludedZone)
+    .map((zone, index) => ({
+      id: `excluded-zone-${index + 1}`,
+      type: String(zone.type || 'figure'),
+      bbox: zone.bbox,
+      image: backgroundImage,
+      viewport,
+      cropMode: 'viewport',
+    }));
+};
+
 export const getPlainFallbackColumnMode = (pageLayout) => {
   const viewport = pageLayout?.viewport || {};
   const blocks = Array.isArray(pageLayout?.blocks) ? pageLayout.blocks : [];
@@ -44,12 +74,13 @@ export const sortFigureSnippetsForDisplay = (figureSnippets = []) =>
 export const createTranslationPanelViewModel = (pageData = null) => {
   const translatedText = String(pageData?.translatedText || '');
   const translatedBlocks = Array.isArray(pageData?.translatedBlocks) ? pageData.translatedBlocks : [];
-  const figureSnippets = Array.isArray(pageData?.figureSnippets) ? pageData.figureSnippets : [];
+  const rawFigureSnippets = Array.isArray(pageData?.figureSnippets) ? pageData.figureSnippets : [];
+  const displayFigureSnippets = buildDisplayFigureSnippets(pageData);
   const overlayEnabled = pageData?.renderMode === 'overlay' || canRenderOverlay(pageData);
-  const baseFidelityLayout = buildFidelityTranslationLayout(pageData?.pageLayout, translatedBlocks, figureSnippets);
-  const readableLayout = buildReadableTranslationLayout(pageData?.pageLayout, translatedBlocks, figureSnippets);
+  const baseFidelityLayout = buildFidelityTranslationLayout(pageData?.pageLayout, translatedBlocks, rawFigureSnippets);
+  const readableLayout = buildReadableTranslationLayout(pageData?.pageLayout, translatedBlocks, rawFigureSnippets);
   const hasTranslatedBlocks = translatedBlocks.length > 0;
-  const hasFigures = figureSnippets.length > 0;
+  const hasFigures = displayFigureSnippets.length > 0;
   const canRenderFidelity = hasTranslatedBlocks && Boolean(baseFidelityLayout?.positionedItems?.length) && overlayEnabled;
   const canRenderStructuredFallback =
     hasTranslatedBlocks && !canRenderFidelity && Boolean(readableLayout?.sections?.length) && overlayEnabled;
@@ -65,6 +96,7 @@ export const createTranslationPanelViewModel = (pageData = null) => {
     canRenderFidelity,
     canRenderStructuredFallback,
     canRenderPlainColumnFallback,
+    displayFigureSnippets,
     shouldRenderFigureGallery: hasFigures && !hasTranslatedBlocks,
     shouldShowPlainTranslation:
       Boolean(translatedText) &&
