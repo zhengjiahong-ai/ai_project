@@ -2,8 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { Image, Languages, Loader2, RefreshCw, ScrollText } from 'lucide-react';
 
 import MarkdownContent from './MarkdownContent';
-import { buildFidelityTranslationLayout, buildReadableTranslationLayout } from '../utils/pdfTranslationLayout.js';
-import { canRenderOverlay } from '../utils/translationState.js';
+import { createTranslationPanelViewModel, sortFigureSnippetsForDisplay } from './translationPanelModel.js';
 
 const ROLE_CLASS_NAMES = {
   title: 'text-center',
@@ -98,36 +97,6 @@ const resolveFigureWidth = (figure, isColumn) => {
   const bboxWidth = Number(figure?.bbox?.width || 0.8);
   const percentage = Math.max(42, Math.min(96, bboxWidth * 100 + 6));
   return `${percentage}%`;
-};
-
-const getPlainFallbackColumnMode = (pageLayout) => {
-  const viewport = pageLayout?.viewport || {};
-  const blocks = Array.isArray(pageLayout?.blocks) ? pageLayout.blocks : [];
-  const declaredOrientation = pageLayout?.orientation;
-  const declaredColumnMode = pageLayout?.columnMode;
-  const isPortrait =
-    declaredOrientation === 'portrait' || Number(viewport?.height || 0) >= Number(viewport?.width || 0);
-
-  if (declaredOrientation === 'landscape') {
-    return 'single-column';
-  }
-
-  if (isPortrait && declaredColumnMode === 'two-column') {
-    return 'two-column';
-  }
-
-  if (!isPortrait || blocks.length < 2) {
-    return 'single-column';
-  }
-
-  const bodyBlocks = blocks.filter((block) => {
-    const bbox = block?.bbox || {};
-    const center = Number(bbox.left || 0) + Number(bbox.width || 0) / 2;
-    return Number(bbox.top || 0) >= 0.14 && Number(bbox.width || 0) <= 0.58 && center >= 0.06 && center <= 0.94;
-  });
-  const hasLeftColumn = bodyBlocks.some((block) => (block.bbox.left || 0) + (block.bbox.width || 0) / 2 < 0.5);
-  const hasRightColumn = bodyBlocks.some((block) => (block.bbox.left || 0) + (block.bbox.width || 0) / 2 >= 0.5);
-  return hasLeftColumn && hasRightColumn ? 'two-column' : 'single-column';
 };
 
 const splitPlainTranslationParagraphs = (translatedText) =>
@@ -226,6 +195,24 @@ const TranslationStructuredStage = ({ readableLayout }) => {
             );
           })}
         </div>
+      </div>
+    </div>
+  );
+};
+
+const TranslationFigureGalleryStage = ({ figureSnippets = [] }) => {
+  const sortedFigures = useMemo(() => sortFigureSnippetsForDisplay(figureSnippets), [figureSnippets]);
+
+  if (sortedFigures.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="theme-card-soft rounded-2xl p-4">
+      <div className="grid gap-5 md:grid-cols-2">
+        {sortedFigures.map((figure) => (
+          <TranslationFigureSnippet key={figure.id} figure={figure} />
+        ))}
       </div>
     </div>
   );
@@ -458,25 +445,19 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
   const status = pageData?.status || 'idle';
   const translatedText = pageData?.translatedText || '';
   const errorMessage = pageData?.error || '';
-  const overlayEnabled = pageData?.renderMode === 'overlay' || canRenderOverlay(pageData);
   const fidelityResetKey = `${currentPage}:${pageData?.updatedAt || 0}:${pageData?.translatedBlocks?.length || 0}:${
     pageData?.figureSnippets?.length || 0
   }`;
-  const baseFidelityLayout = useMemo(
-    () => buildFidelityTranslationLayout(pageData?.pageLayout, pageData?.translatedBlocks, pageData?.figureSnippets),
-    [pageData?.figureSnippets, pageData?.pageLayout, pageData?.translatedBlocks],
-  );
-  const readableLayout = useMemo(
-    () => buildReadableTranslationLayout(pageData?.pageLayout, pageData?.translatedBlocks, pageData?.figureSnippets),
-    [pageData?.figureSnippets, pageData?.pageLayout, pageData?.translatedBlocks],
-  );
-  const canRenderFidelity = Boolean(baseFidelityLayout?.positionedItems?.length) && overlayEnabled;
-  const canRenderStructuredFallback = !canRenderFidelity && Boolean(readableLayout?.sections?.length) && overlayEnabled;
-  const canRenderPlainColumnFallback =
-    Boolean(translatedText) &&
-    !canRenderFidelity &&
-    !canRenderStructuredFallback &&
-    getPlainFallbackColumnMode(pageData?.pageLayout) === 'two-column';
+  const viewModel = useMemo(() => createTranslationPanelViewModel(pageData), [pageData]);
+  const {
+    baseFidelityLayout,
+    readableLayout,
+    canRenderFidelity,
+    canRenderStructuredFallback,
+    canRenderPlainColumnFallback,
+    shouldRenderFigureGallery,
+    shouldShowPlainTranslation,
+  } = viewModel;
 
   return (
     <div className="theme-panel-muted flex h-full flex-col">
@@ -516,7 +497,7 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
           </div>
         )}
 
-        {status === 'empty' && !canRenderFidelity && !canRenderStructuredFallback && (
+        {status === 'empty' && (
           <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-5 text-sm text-amber-500 shadow-sm">
             <p className="font-semibold">当前页没有可翻译的正文内容</p>
             <p className="mt-2 leading-relaxed">{errorMessage || '这一页可能主要由图片、表格或扫描内容组成，因此没有提取到可翻译正文。'}</p>
@@ -546,11 +527,13 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
 
         {canRenderStructuredFallback && <TranslationStructuredStage readableLayout={readableLayout} />}
 
+        {shouldRenderFigureGallery && <TranslationFigureGalleryStage figureSnippets={pageData?.figureSnippets} />}
+
         {canRenderPlainColumnFallback && (
           <TranslationPlainColumnFallbackStage pageLayout={pageData?.pageLayout} translatedText={translatedText} />
         )}
 
-        {translatedText && !canRenderFidelity && !canRenderStructuredFallback && !canRenderPlainColumnFallback && (
+        {shouldShowPlainTranslation && (
           <div className="theme-card rounded-2xl p-5">
             <div className="theme-text-muted mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
               <Languages size={14} className="text-pixiu" />

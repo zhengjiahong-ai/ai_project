@@ -15,7 +15,7 @@ import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 import TranslationPanel from './components/TranslationPanel';
 import MarkdownContent from './components/MarkdownContent';
 import { apiService } from './services/api';
-import { buildTranslationRequestPageLayout } from './utils/pdfTranslationLayout.js';
+import { preparePageTranslationRequest } from './utils/pageTranslationRequest.js';
 import {
   createEmptyTranslationState,
   normalizeTranslationPage,
@@ -870,22 +870,25 @@ export default function App() {
   }) => {
     if (!pdfId) return;
 
-    const sourceText = (pageText || '').trim();
     const excludedZones = deconstructData?.translationLayoutIndex?.[pageIndex]?.excludedZones || [];
-    const requestPageLayout = pageLayout
-      ? buildTranslationRequestPageLayout(pageLayout, excludedZones, pageLayout?.excludedZonesVersion || 1)
-      : null;
-    const translationSourceText =
-      requestPageLayout?.blocks?.length > 0
-        ? requestPageLayout.blocks.map((block) => block.text).join('\n\n').trim()
-        : sourceText;
+    const {
+      sourceText,
+      requestPageLayout,
+      requestPayloadPageLayout,
+      translationSourceText,
+      shouldMarkEmpty,
+    } = preparePageTranslationRequest({
+      pageText,
+      pageLayout,
+      excludedZones,
+    });
     let shouldRequest = false;
 
     setTranslationState((prev) => {
       const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
       const existingPage = normalizeTranslationPage(baseState.pages?.[pageIndex] || {});
 
-      if (!sourceText || (pageLayout && excludedZones.length > 0 && requestPageLayout && requestPageLayout.blocks.length === 0)) {
+      if (shouldMarkEmpty) {
         return {
           ...baseState,
           currentPage: pageIndex,
@@ -994,7 +997,7 @@ export default function App() {
         pageIndex,
         translationSourceText,
         deconstructData?.paper_skeleton || null,
-        requestPageLayout,
+        requestPayloadPageLayout,
       );
       const translatedText = response?.translatedText ?? response?.data?.translatedText ?? '';
       const translatedBlocks = Array.isArray(response?.translatedBlocks) ? response.translatedBlocks : [];
