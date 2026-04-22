@@ -45,6 +45,15 @@
 - `graph.nodes[*]` 可新增 `stage`、`stageLabel`、`confidence`、`sourceIds`；其中 `sourceIds` 只能引用同一次响应里的 `rag_sources[*].sourceId`，不得返回脱离本次响应的外部引用。
 - 背景补课图谱允许做轻量概念去重和稳定 `node id` 重建，但必须保留 `current-paper` 根节点，且 Neo4j 未配置或写入失败时不得阻断接口成功。
 
+## 2026-04-22 苏格拉底引导学习证据化补充
+
+- `/api/socratic-session/start` 与 `/api/socratic-session/answer` 顶层请求体保持不变，仍分别为 `{ pdfId?, paperSkeleton?, readingProgress }` 与 `{ pdfId?, paperSkeleton?, readingProgress, currentIndex, currentQuestion, userAnswer, turns? }`。
+- Python Socratic 会话必须继续保持固定 5 题顺序：研究问题与价值、核心方法与创新、方法逻辑与关键模块、实验依据与结果支撑、局限性与可改进方向；禁止在模块 7 中改成可变题数或自由跳题。
+- 有 `pdfId` 时，Socratic 流程只允许优先使用当前论文 RAG 证据，不得默认补充文献库检索；无 `pdfId` 时才允许退回 `paperSkeleton` 与固定 fallback。
+- `turns[*]` 在兼容旧字段的同时，可附带 `coveredAspects`、`missingAspects`、`evidenceQuality`；其中 `evidenceQuality` 只允许包含 `verdict`、`confidence`、`reason`，前端和 Java 可忽略这些字段但不得在透传时破坏旧结构。
+- `/api/socratic-session/answer` 的 `evaluation` 可兼容新增 `coveredAspects`、`missingAspects`、`evidenceQuality`；完成态响应可兼容新增 `reviewSuggestions`，所有新增字段都必须保持兼容式扩展。
+- 当当前论文证据不足或只部分相关时，Socratic 的 `feedback`、`hint` 和 `finalSummary` 必须明确说明“证据不足/证据部分相关”，不得把证据缺口错误表述成论文已有结论或用户答错。
+
 ---
 
 ## 一、技术栈要求
@@ -117,8 +126,8 @@
 | POST | `/api/translate-page` | `{ "pdfId": string?, "pageIndex": number, "pageText": string, "paperSkeleton": object?, "pageLayout": object? }` | 逐页翻译，Java 转发到 Python `/api/translate-page`，支持版面块与译文缓存 |
 | POST | `/api/critical-reading/:pdfId` | - | 批判性阅读，Java 转发到 Python `/api/deep-analysis`；Java 继续返回 `{ status, pdfId, analysis }` 包裹结构，其中 `analysis` 为基于当前论文全文 chunks 的结构化批判阅读结果 |
 | POST | `/api/socratic-questions` | `{ "paper_content": string, "reading_progress": string }` | 引导式学习（苏格拉底式提问），Java 转发到 Python `/api/socratic-questions` |
-| POST | `/api/socratic-session/start` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string }` | 启动 5 轮苏格拉底式引导会话 |
-| POST | `/api/socratic-session/answer` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string, "currentIndex": number, "currentQuestion": string, "userAnswer": string, "turns": array? }` | 提交当前回答，返回掌握度评估、提示与下一题或最终总结 |
+| POST | `/api/socratic-session/start` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string }` | 启动 5 轮苏格拉底式引导会话，并在有 `pdfId` 时优先基于当前论文证据生成第 1 题 |
+| POST | `/api/socratic-session/answer` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string, "currentIndex": number, "currentQuestion": string, "userAnswer": string, "turns": array? }` | 提交当前回答，返回掌握度评估、提示与下一题或最终总结；`evaluation` 可附带 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态还可附带 `reviewSuggestions` |
 | POST | `/api/background-knowledge` | `{ "pdfId": string?, "paperSkeleton": object?, "paperStructure": object?, "paper_topic": any?, "user_knowledge_level": any? }` | 背景补课图谱，Java 转发到 Python `/api/background-knowledge`，响应可附带 `queryPlan`、`confidence`、`sourceCoverage`、`learning_path_sections` |
 
 - **说明**：  
@@ -135,8 +144,8 @@
 | POST translate page → 转发 | POST `/api/translate-page` | 请求体 `{ pdfId?, pageIndex, pageText, paperSkeleton?, pageLayout? }`，Python 返回页级译文、译文块和渲染模式 |
 | POST critical reading → 转发 | POST `/api/deep-analysis` | Java 传 `{ pdf_id }`，Python 基于当前论文全文 chunks 生成结构化批判阅读结果；Java 保持 `{ status, pdfId, analysis }` 包裹，不改对外契约 |
 | POST socratic questions → 转发 | POST `/api/socratic-questions` | 请求体 `{ paper_content, reading_progress }`，Python 返回 `{ status, questions }` |
-| POST socratic start → 转发 | POST `/api/socratic-session/start` | 请求体 `{ pdfId?, paperSkeleton?, readingProgress }`，Python 返回开场引导和第 1 题 |
-| POST socratic answer → 转发 | POST `/api/socratic-session/answer` | 请求体包含当前题目、用户回答和历史轮次，Python 返回评估、下一题或最终总结 |
+| POST socratic start → 转发 | POST `/api/socratic-session/start` | 请求体 `{ pdfId?, paperSkeleton?, readingProgress }`，Python 返回开场引导和第 1 题；有 `pdfId` 时优先基于当前论文证据组织首题 |
+| POST socratic answer → 转发 | POST `/api/socratic-session/answer` | 请求体包含当前题目、用户回答和历史轮次，Python 返回评估、下一题或最终总结；`evaluation` 可新增 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态可新增 `reviewSuggestions` |
 | POST background knowledge → 转发 | POST `/api/background-knowledge` | 请求体兼容 `pdfId`、论文结构和用户知识水平，Python 返回前置知识图谱、四段式学习路径、统一 `rag_sources` 以及可选 `queryPlan`、`confidence`、`sourceCoverage` |
 
 ### 2.4 Python 已实现的其他接口（内部或后续扩展）

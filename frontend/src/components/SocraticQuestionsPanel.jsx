@@ -13,6 +13,7 @@ const emptySession = {
   currentQuestion: '',
   turns: [],
   finalSummary: '',
+  reviewSuggestions: [],
   isComplete: false,
 };
 
@@ -20,6 +21,40 @@ const masteryToneMap = {
   需加强: 'border-amber-400/25 bg-amber-500/10 text-amber-500',
   一般: 'border-sky-400/25 bg-sky-500/10 text-sky-400',
   较好: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-400',
+};
+
+const evidenceToneMap = {
+  CORRECT: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-400',
+  AMBIGUOUS: 'border-amber-400/25 bg-amber-500/10 text-amber-500',
+  INCORRECT: 'border-rose-400/25 bg-rose-500/10 text-rose-400',
+};
+
+const evidenceVerdictLabelMap = {
+  CORRECT: '证据充足',
+  AMBIGUOUS: '部分相关',
+  INCORRECT: '证据不足',
+};
+
+const formatEvidenceQuality = (quality) => {
+  if (!quality || typeof quality !== 'object') {
+    return null;
+  }
+
+  const verdict = `${quality.verdict ?? ''}`.trim().toUpperCase();
+  const reason = `${quality.reason ?? ''}`.trim();
+  const confidence = Number(quality.confidence);
+
+  if (!verdict && !reason && !Number.isFinite(confidence)) {
+    return null;
+  }
+
+  return {
+    verdict,
+    verdictLabel: evidenceVerdictLabelMap[verdict] || '证据判断',
+    toneClass: evidenceToneMap[verdict] || 'theme-card-soft',
+    reason,
+    confidence: Number.isFinite(confidence) ? Math.round(confidence * 100) : null,
+  };
 };
 
 const CurrentQuestionCard = ({ index, question, isLoading, onSubmit }) => {
@@ -107,43 +142,69 @@ const SocraticQuestionsPanel = ({
     }
   };
 
-  const renderCompletedCard = (turn) => (
-    <div key={`turn-${turn.index}`} className="theme-card rounded-xl px-4 py-4">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="theme-text-primary text-sm font-semibold">问题 {turn.index}：</div>
-        <span
-          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-            masteryToneMap[turn.masteryLevel] || 'theme-card-soft'
-          }`}
-        >
-          掌握度：{turn.masteryLevel || '一般'}
-        </span>
-      </div>
+  const renderCompletedCard = (turn) => {
+    const evidenceQuality = formatEvidenceQuality(turn.evidenceQuality);
 
-      <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">{turn.question}</MarkdownContent>
-
-      <div className="theme-card-soft mt-4 rounded-xl px-4 py-3">
-        <div className="theme-text-secondary mb-2 text-xs font-semibold tracking-wide">你的回答</div>
-        <div className="theme-text-secondary whitespace-pre-wrap text-sm leading-7">{turn.answer}</div>
-      </div>
-
-      <div className="mt-4 space-y-3">
-        <div className="theme-markdown-panel rounded-xl border border-pixiu/10 px-4 py-3">
-          <div className="mb-1 text-xs font-semibold tracking-wide text-pixiu">AI 简评</div>
-          <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
-            {turn.feedback || '这一轮已完成。'}
-          </MarkdownContent>
+    return (
+      <div key={`turn-${turn.index}`} className="theme-card rounded-xl px-4 py-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="theme-text-primary text-sm font-semibold">问题 {turn.index}：</div>
+          <span
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+              masteryToneMap[turn.masteryLevel] || 'theme-card-soft'
+            }`}
+          >
+            掌握度：{turn.masteryLevel || '一般'}
+          </span>
         </div>
 
-        <div className="theme-card-soft rounded-xl px-4 py-3">
-          <div className="theme-text-secondary mb-1 text-xs font-semibold tracking-wide">下一步提示</div>
-          <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
-            {turn.hint || '继续结合论文原文梳理关键逻辑。'}
-          </MarkdownContent>
+        <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">{turn.question}</MarkdownContent>
+
+        <div className="theme-card-soft mt-4 rounded-xl px-4 py-3">
+          <div className="theme-text-secondary mb-2 text-xs font-semibold tracking-wide">你的回答</div>
+          <div className="theme-text-secondary whitespace-pre-wrap text-sm leading-7">{turn.answer}</div>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          <div className="theme-markdown-panel rounded-xl border border-pixiu/10 px-4 py-3">
+            <div className="mb-1 text-xs font-semibold tracking-wide text-pixiu">AI 简评</div>
+            <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
+              {turn.feedback || '这一轮已完成。'}
+            </MarkdownContent>
+          </div>
+
+          <div className="theme-card-soft rounded-xl px-4 py-3">
+            <div className="theme-text-secondary mb-1 text-xs font-semibold tracking-wide">下一步提示</div>
+            <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
+              {turn.hint || '继续结合论文原文梳理关键逻辑。'}
+            </MarkdownContent>
+          </div>
+
+          {evidenceQuality && (
+            <div className="theme-card-soft rounded-xl px-4 py-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="theme-text-secondary text-xs font-semibold tracking-wide">证据判断</div>
+                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${evidenceQuality.toneClass}`}>
+                  {evidenceQuality.verdictLabel}
+                  {evidenceQuality.confidence !== null && ` · ${evidenceQuality.confidence}%`}
+                </span>
+              </div>
+              <div className="theme-text-secondary text-sm leading-7">
+                {evidenceQuality.reason || '当前轮次未提供额外证据说明。'}
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(turn.missingAspects) && turn.missingAspects.length > 0 && (
+            <div className="theme-card-soft rounded-xl px-4 py-3">
+              <div className="theme-text-secondary mb-1 text-xs font-semibold tracking-wide">仍需补强</div>
+              <div className="theme-text-secondary text-sm leading-7">{turn.missingAspects.join('、')}</div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderCurrentQuestionCard = (index) => (
     <CurrentQuestionCard
@@ -255,9 +316,24 @@ const SocraticQuestionsPanel = ({
         <div className="theme-card rounded-2xl p-5">
           <div className="theme-text-primary mb-3 text-sm font-bold">总结</div>
           {sessionData.isComplete ? (
-            <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
-              {sessionData.finalSummary || '本轮引导学习已完成。'}
-            </MarkdownContent>
+            <div className="space-y-4">
+              <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
+                {sessionData.finalSummary || '本轮引导学习已完成。'}
+              </MarkdownContent>
+
+              {Array.isArray(sessionData.reviewSuggestions) && sessionData.reviewSuggestions.length > 0 && (
+                <div className="theme-card-soft rounded-xl px-4 py-3">
+                  <div className="theme-text-secondary mb-2 text-xs font-semibold tracking-wide">建议回读</div>
+                  <div className="space-y-2">
+                    {sessionData.reviewSuggestions.map((item, index) => (
+                      <div key={`review-${index}`} className="theme-text-secondary text-sm leading-7">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="theme-text-secondary text-sm">完成 5 个问题后，AI 会在这里给出整体掌握情况总结。</div>
           )}

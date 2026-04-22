@@ -22,6 +22,9 @@ class SocraticTurn(BaseModel):
     masteryLevel: Optional[str] = None
     feedback: Optional[str] = None
     hint: Optional[str] = None
+    coveredAspects: Optional[List[str]] = None
+    missingAspects: Optional[List[str]] = None
+    evidenceQuality: Optional[Dict[str, Any]] = None
 
 
 class SocraticSessionStartRequest(BaseModel):

@@ -25,13 +25,17 @@ import {
   normalizeTranslationPage,
   normalizeTranslationState,
 } from './utils/translationState.js';
+import {
+  SOCRATIC_TOTAL_QUESTIONS,
+  createEmptySocraticSession,
+  normalizeSocraticSession,
+} from './utils/socraticSessionModel.js';
 
 const WELCOME_MESSAGE = {
   role: 'ai',
   content: '您好！我是您的 AI 学术助手。上传论文后，您可以直接划选正文句子进行解释、批判阅读，并保留对话历史。',
 };
 
-const SOCRATIC_TOTAL_QUESTIONS = 5;
 const DEFAULT_ACTIVE_TAB = 'chat';
 const THEME_STORAGE_KEY = 'pixiu-theme';
 const DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL = '一般';
@@ -99,60 +103,6 @@ const resolveStoredPdfRecord = (storedValue) => {
   }
 
   return null;
-};
-
-const createEmptySocraticSession = (pdfId = null, overrides = {}) => ({
-  pdfId,
-  started: false,
-  readingProgress: '',
-  intro: '',
-  totalQuestions: SOCRATIC_TOTAL_QUESTIONS,
-  currentIndex: 1,
-  currentQuestion: '',
-  turns: [],
-  finalSummary: '',
-  isComplete: false,
-  updatedAt: null,
-  ...overrides,
-});
-
-const normalizeSocraticSession = (storedValue, pdfId = null) => {
-  if (!storedValue) {
-    return createEmptySocraticSession(pdfId);
-  }
-
-  const turns = Array.isArray(storedValue.turns)
-    ? storedValue.turns
-        .map((turn, index) => ({
-          index: Number(turn?.index) || index + 1,
-          question: turn?.question || '',
-          answer: turn?.answer || '',
-          masteryLevel: turn?.masteryLevel || '一般',
-          feedback: turn?.feedback || '',
-          hint: turn?.hint || '',
-        }))
-        .filter((turn) => turn.question && turn.answer)
-    : [];
-
-  const totalQuestions = Number(storedValue.totalQuestions) || SOCRATIC_TOTAL_QUESTIONS;
-  const isComplete = Boolean(storedValue.isComplete);
-  const inferredCurrentIndex = Math.min(turns.length + 1, totalQuestions);
-  const currentIndex = isComplete
-    ? totalQuestions
-    : Math.max(1, Math.min(Number(storedValue.currentIndex) || inferredCurrentIndex, totalQuestions));
-
-  return createEmptySocraticSession(pdfId ?? storedValue.pdfId ?? null, {
-    started: Boolean(storedValue.started || turns.length > 0 || storedValue.currentQuestion || isComplete),
-    readingProgress: storedValue.readingProgress || '',
-    intro: storedValue.intro || '',
-    totalQuestions,
-    currentIndex,
-    currentQuestion: isComplete ? '' : storedValue.currentQuestion || '',
-    turns,
-    finalSummary: storedValue.finalSummary || '',
-    isComplete,
-    updatedAt: storedValue.updatedAt || null,
-  });
 };
 
 export default function App() {
@@ -799,6 +749,7 @@ export default function App() {
             currentQuestion: response?.currentQuestion || '',
             turns: [],
             finalSummary: '',
+            reviewSuggestions: [],
             isComplete: false,
           },
           pdfId,
@@ -845,6 +796,9 @@ export default function App() {
         masteryLevel: response?.evaluation?.masteryLevel || '一般',
         feedback: response?.evaluation?.feedback || '',
         hint: response?.evaluation?.hint || '',
+        coveredAspects: response?.evaluation?.coveredAspects || [],
+        missingAspects: response?.evaluation?.missingAspects || [],
+        evidenceQuality: response?.evaluation?.evidenceQuality || {},
       };
 
       setSocraticSession(
@@ -857,6 +811,7 @@ export default function App() {
               : response?.nextIndex || currentSession.currentIndex + 1,
             currentQuestion: response?.isComplete ? '' : response?.nextQuestion || '',
             finalSummary: response?.isComplete ? response?.finalSummary || '' : '',
+            reviewSuggestions: response?.isComplete ? response?.reviewSuggestions || [] : currentSession.reviewSuggestions,
             isComplete: Boolean(response?.isComplete),
             started: true,
           },

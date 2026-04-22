@@ -136,6 +136,67 @@ class ApiRoutesTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["paper_topic"], "Graph RAG")
 
+    def test_socratic_start_route_returns_service_payload(self):
+        with patch(
+            "routes.api.chat_service.start_socratic_session",
+            return_value={
+                "status": "success",
+                "intro": "我们先从论文问题切入。",
+                "totalQuestions": 5,
+                "currentIndex": 1,
+                "currentQuestion": "这篇论文想解决什么问题？",
+            },
+        ) as mocked:
+            response = self.client.post(
+                "/api/socratic-session/start",
+                json={"pdfId": "paper-1", "paperSkeleton": {"abstract": "summary"}, "readingProgress": "已读摘要"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["currentQuestion"], "这篇论文想解决什么问题？")
+        mocked.assert_called_once()
+
+    def test_socratic_answer_route_returns_extended_evaluation_payload(self):
+        with patch(
+            "routes.api.chat_service.answer_socratic_question",
+            return_value={
+                "status": "success",
+                "evaluation": {
+                    "masteryLevel": "一般",
+                    "feedback": "反馈",
+                    "hint": "提示",
+                    "coveredAspects": ["核心方法"],
+                    "missingAspects": ["关键创新"],
+                    "evidenceQuality": {
+                        "verdict": "AMBIGUOUS",
+                        "confidence": 0.63,
+                        "reason": "证据只部分覆盖。",
+                    },
+                },
+                "finalSummary": "总结",
+                "reviewSuggestions": ["建议回读“Methods”部分，重点对照关键创新。"],
+                "isComplete": True,
+            },
+        ) as mocked:
+            response = self.client.post(
+                "/api/socratic-session/answer",
+                json={
+                    "pdfId": "paper-1",
+                    "paperSkeleton": {"methods": "summary"},
+                    "readingProgress": "已读方法",
+                    "currentIndex": 5,
+                    "currentQuestion": "这篇论文有什么局限？",
+                    "userAnswer": "还有一些局限。",
+                    "turns": [],
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["evaluation"]["coveredAspects"], ["核心方法"])
+        self.assertEqual(response.json()["evaluation"]["evidenceQuality"]["verdict"], "AMBIGUOUS")
+        self.assertEqual(response.json()["reviewSuggestions"], ["建议回读“Methods”部分，重点对照关键创新。"])
+        mocked.assert_called_once()
+
     def test_analyze_pdf_route_uses_service(self):
         with patch(
             "routes.api.analysis_service.analyze_pdf",

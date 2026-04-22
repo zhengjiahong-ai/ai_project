@@ -2,8 +2,8 @@ import re
 import unittest
 from unittest.mock import patch
 
-from schemas.requests import ChatRequest
-from services.chat_service import chat
+from schemas.requests import ChatRequest, SocraticSessionAnswerRequest, SocraticSessionStartRequest
+from services.chat_service import answer_socratic_question, chat, start_socratic_session
 
 
 class FakeRag:
@@ -228,6 +228,155 @@ class ChatServiceTests(unittest.TestCase):
         mocked_hybrid.assert_not_called()
         final_prompt = mocked_get_llm.return_value._call.call_args[0][0]
         self.assertIn("论文目标是提升检索稳定性", final_prompt)
+
+    def test_start_socratic_session_uses_current_paper_evidence_for_first_question(self):
+        fake_rag = FakeRag(results=[{
+            "text": "论文主要想解决检索稳定性问题，并强调这个问题对整体回答质量的重要性。",
+            "metadata": {"id": "paper-1", "chunk_index": 1},
+            "similarity": 0.92,
+        }])
+
+        with (
+            patch("services.chat_service.get_rag", return_value=fake_rag),
+            patch("services.chat_service.get_llm") as mocked_get_llm,
+        ):
+            mocked_get_llm.return_value._call.return_value = (
+                '{"intro":"我们先从论文要解决的问题切入。","currentQuestion":"这篇论文具体想解决什么问题，它为什么重要？"}'
+            )
+
+            response = start_socratic_session(
+                SocraticSessionStartRequest(
+                    pdfId="paper-1",
+                    paperSkeleton={"abstract": "论文关注检索稳定性。"},
+                    readingProgress="我刚读完摘要。",
+                )
+            )
+
+        self.assertEqual(response["status"], "success")
+        self.assertEqual(response["currentIndex"], 1)
+        self.assertEqual(response["currentQuestion"], "这篇论文具体想解决什么问题，它为什么重要？")
+        self.assertEqual(fake_rag.retrieve_calls[0]["filter_metadata"], {"id": "paper-1"})
+        prompt = mocked_get_llm.return_value._call.call_args[0][0]
+        self.assertIn("研究问题与价值", prompt)
+        self.assertIn("论文主要想解决检索稳定性问题", prompt)
+        self.assertNotIn("相关文献线索", prompt)
+
+    def test_answer_socratic_question_returns_evidence_quality_and_follow_up_focus(self):
+        fake_rag = FakeRag(results=[{
+            "text": "作者的核心方法是双阶段检索框架，关键创新在于引入重排序模块，并强调它与已有基线的差异。",
+            "metadata": {"id": "paper-1", "chunk_index": 2},
+            "similarity": 0.9,
+        }])
+
+        with (
+            patch("services.chat_service.get_rag", return_value=fake_rag),
+            patch("services.chat_service.get_llm") as mocked_get_llm,
+        ):
+            mocked_get_llm.return_value._call.side_effect = RuntimeError("LLM unavailable")
+
+            response = answer_socratic_question(
+                SocraticSessionAnswerRequest(
+                    pdfId="paper-1",
+                    paperSkeleton={"methods": "作者提出双阶段检索和重排序模块。"},
+                    readingProgress="我正在阅读方法部分。",
+                    currentIndex=2,
+                    currentQuestion="作者提出的方法或模型核心思路是什么？它和已有做法相比，最关键的变化在哪里？",
+                    userAnswer="作者提出了一个新的检索方法。",
+                    turns=[
+                        {
+                            "index": 1,
+                            "question": "第一题",
+                            "answer": "回答 1",
+                            "masteryLevel": "一般",
+                            "feedback": "反馈 1",
+                            "hint": "提示 1",
+                        }
+                    ],
+                )
+            )
+
+        self.assertEqual(response["status"], "success")
+        self.assertEqual(response["isComplete"], False)
+        self.assertEqual(response["nextIndex"], 3)
+        self.assertIn("这篇论文的方法是如何一步步发挥作用的", response["nextQuestion"])
+        self.assertIn("关键创新", response["nextQuestion"])
+        self.assertEqual(response["evaluation"]["evidenceQuality"]["verdict"], "CORRECT")
+        self.assertIn("核心方法", response["evaluation"]["coveredAspects"])
+        self.assertIn("关键创新", response["evaluation"]["missingAspects"])
+        self.assertIn("与已有方法差异", response["evaluation"]["missingAspects"])
+
+    def test_answer_socratic_question_final_summary_returns_review_suggestions(self):
+        fake_rag = FakeRag(results=[])
+
+        with (
+            patch("services.chat_service.get_rag", return_value=fake_rag),
+            patch("services.chat_service.get_llm") as mocked_get_llm,
+        ):
+            mocked_get_llm.return_value._call.side_effect = RuntimeError("LLM unavailable")
+
+            response = answer_socratic_question(
+                SocraticSessionAnswerRequest(
+                    pdfId="paper-1",
+                    paperSkeleton={
+                        "abstract": "摘要",
+                        "methods": "方法",
+                        "results": "结果",
+                        "discussion": "讨论",
+                    },
+                    readingProgress="我已经读完全文。",
+                    currentIndex=5,
+                    currentQuestion="如果你来继续这项研究，这篇论文还有哪些局限、风险或可以改进的地方？",
+                    userAnswer="我觉得还有一些局限，但没有完全想清楚。",
+                    turns=[
+                        {
+                            "index": 1,
+                            "question": "第一题",
+                            "answer": "回答 1",
+                            "masteryLevel": "一般",
+                            "feedback": "反馈 1",
+                            "hint": "提示 1",
+                            "missingAspects": ["研究价值"],
+                            "evidenceQuality": {"verdict": "CORRECT", "confidence": 0.74, "reason": "证据足够。"},
+                        },
+                        {
+                            "index": 2,
+                            "question": "第二题",
+                            "answer": "回答 2",
+                            "masteryLevel": "需加强",
+                            "feedback": "反馈 2",
+                            "hint": "提示 2",
+                            "missingAspects": ["关键创新"],
+                            "evidenceQuality": {"verdict": "AMBIGUOUS", "confidence": 0.46, "reason": "证据不完整。"},
+                        },
+                        {
+                            "index": 3,
+                            "question": "第三题",
+                            "answer": "回答 3",
+                            "masteryLevel": "一般",
+                            "feedback": "反馈 3",
+                            "hint": "提示 3",
+                        },
+                        {
+                            "index": 4,
+                            "question": "第四题",
+                            "answer": "回答 4",
+                            "masteryLevel": "需加强",
+                            "feedback": "反馈 4",
+                            "hint": "提示 4",
+                            "missingAspects": ["评价指标"],
+                            "evidenceQuality": {"verdict": "INCORRECT", "confidence": 0.18, "reason": "没有检索到证据。"},
+                        },
+                    ],
+                )
+            )
+
+        self.assertEqual(response["status"], "success")
+        self.assertEqual(response["isComplete"], True)
+        self.assertEqual(response["evaluation"]["evidenceQuality"]["verdict"], "INCORRECT")
+        self.assertLessEqual(len(response["reviewSuggestions"]), 3)
+        self.assertTrue(all(item.startswith("建议回读") for item in response["reviewSuggestions"]))
+        self.assertIn("证据不足", response["finalSummary"])
+        self.assertIn("优先按以下方向回读", response["finalSummary"])
 
 
 if __name__ == "__main__":

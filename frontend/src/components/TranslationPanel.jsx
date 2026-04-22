@@ -3,6 +3,7 @@ import { Image, Languages, Loader2, RefreshCw, ScrollText } from 'lucide-react';
 
 import MarkdownContent from './MarkdownContent';
 import { createTranslationPanelViewModel, sortFigureSnippetsForDisplay } from './translationPanelModel.js';
+import { buildFidelityTranslationLayout } from '../utils/pdfTranslationLayout.js';
 
 const ROLE_CLASS_NAMES = {
   title: 'text-center',
@@ -472,7 +473,6 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
   }`;
   const viewModel = useMemo(() => createTranslationPanelViewModel(pageData), [pageData]);
   const {
-    baseFidelityLayout,
     readableLayout,
     canRenderFidelity,
     canRenderStructuredFallback,
