@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node ./scripts/clean-dist.mjs && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "node src/utils/pdfTranslationLayout.test.js && node src/utils/translationState.test.js && node src/utils/pageTranslationRequest.test.js && node src/utils/socraticSessionModel.test.js && node src/services/api.test.js && node src/components/translationPanelModel.test.js && node src/components/MarkdownContent.test.js && node src/components/criticalAnalysisData.test.js && node src/components/BackgroundKnowledgePanel.test.js && node src/components/deepResearchPanelModel.test.js"
