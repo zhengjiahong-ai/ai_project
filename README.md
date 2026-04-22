@@ -174,6 +174,14 @@ docker-compose --profile neo4j up --build
 
 ---
 
+## MCP 适配预留
+
+- 当前仓库没有对外 MCP server 或 MCP client 能力，也未引入 MCP SDK；现阶段只有 Python AI 服务内部的非公开 `tool_registry` 作为统一能力边界。
+- `docs/MCP_ADAPTER_PLAN.md` 记录了未来可映射的 MCP Tools、Resources、Prompts、安全边界和三阶段迁移路线；该文档是迁移设计，不代表当前已经上线对外 MCP 接口。
+- 未来如果需要实现 MCP adapter，优先位置应在 Python 服务内部或其旁路，继续复用现有 `tool_registry`、`safety_service`、`trace_service` 和 deep research 的预算约束，而不是直接改写前端、Java 或现有 `/api` 契约。
+
+---
+
 ## 本地基线检查
 
 模块 0 基线审计使用以下命令确认当前项目状态：
@@ -207,6 +215,7 @@ cd ../backend-java
 
 - [前端排错指南](frontend/TROUBLESHOOTING.md)
 - [开发约束与接口约定](docs/CONSTRAINTS.md)（技术栈、接口契约、新增接口规范）
+- [MCP 适配可行性文档](docs/MCP_ADAPTER_PLAN.md)（未来 Tools / Resources / Prompts 映射与迁移路径）
 
 ---
 

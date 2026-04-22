@@ -21,6 +21,7 @@
 16. **新增 Python 内部工具注册层**：AI 服务新增非公开 `tool_registry`，统一注册 `retrieve_current_paper`、`retrieve_library`、`read_paper_skeleton`、`judge_evidence`、`generate_background_graph`、`run_critical_analysis` 与 `translate_page` 七类既有能力，为后续 MCP 适配预留稳定边界。
 17. **调整深度研究优先经由工具层调用**：deep research 现通过内部工具注册层调度当前论文检索、文献库检索、论文骨架读取与证据 judge，继续保持“当前论文优先、必要时补充文献库、最多 1 次自动重试”的原有行为，不改变 `/api/research-tasks` 对外契约。
 18. **补齐内部工具注册测试覆盖**：新增 `test_tool_registry.py`，覆盖工具注册、工具列举、成功调用、未知工具错误，以及背景补课、批判阅读、逐页翻译等已注册能力的轻量转发测试；同步扩展 deep research 测试以确认关键路径已切到注册层。
+19. **新增 MCP 适配可行性文档**：新增 `docs/MCP_ADAPTER_PLAN.md`，基于现有 `tool_registry`、deep research、安全与 trace 能力整理未来 MCP Tools / Resources / Prompts 的映射建议、非目标和三阶段迁移路线；同时同步 README 与开发约束文档，明确当前阶段仍不引入 MCP 运行时、外部接口或 SDK 依赖。
 
 ### 2026-04-21
 1. **聊天升级为轻量 Agentic RAG**：`/api/chat` 改为显式执行“意图识别 -> 查询计划 -> 检索 -> 证据 judge -> 最多一次重试 -> 回答”的轻量流程，同时保持现有请求体兼容。

@@ -101,6 +101,14 @@
 - `generate_background_graph`、`run_critical_analysis` 与 `translate_page` 当前只做能力登记与未来复用预留；模块 11 不要求把背景补课、批判阅读或逐页翻译主链路整体改写为经由注册层执行。
 - 模块 11 禁止引入 MCP SDK、插件市场机制、外部工具调用、外部 Web 搜索或新的权限提升链路；工具注册层只允许包裹现有 Python 服务边界内已经存在的能力。
 
+## 2026-04-22 MCP 适配预留补充
+
+- 模块 12 只允许新增或更新 `docs/MCP_ADAPTER_PLAN.md`、`README.md`、`CHANGELOG.md`、`docs/CONSTRAINTS.md` 四份文档，禁止引入 MCP SDK、MCP server/client 运行时代码、新 HTTP 接口、外部客户端接入或任何业务逻辑改动。
+- 当前仓库没有对外 MCP server 或 MCP client 能力；`tool_registry` 仍只是 Python AI 服务内部抽象。未来任何 MCP adapter 都必须从该注册层出发，不得绕过它直接暴露底层 RAG、LLM、Neo4j、trace store、文件系统或环境变量。
+- 如后续实现 MCP adapter，优先位置应在 Python 服务内部或其旁路；React 前端 -> Java `/api` -> Python `/api` 的现有三层对外链路默认保持不变，除非后续模块单独设计并更新文档。
+- 未来 MCP 映射必须继续继承现有安全与预算边界：论文正文、`paperSkeleton`、`paperStructure`、页内上下文和 `rag_sources` 一律视为不可信输入；检索 scope 只允许 `current_paper`、`library`；deep research 子问题固定 `3-5` 个，自动重试最多 `1` 次。
+- 未来 MCP resources 与 trace 摘要只能暴露脱敏后的逻辑数据，不得暴露完整论文全文、API Key、系统提示词、未脱敏 trace、原始日志或任意文件访问能力。
+
 ---
 
 ## 一、技术栈要求
