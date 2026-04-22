@@ -147,6 +147,7 @@ docker-compose --profile neo4j up --build
 ## 深度研究任务 API
 
 - Java 对外提供 `POST /api/research-tasks`、`GET /api/research-tasks/{taskId}` 与 `POST /api/research-tasks/{taskId}/cancel`，Python 内部提供同名 `/api/research-tasks` 路由。
+- Python AI 服务内部现已引入非公开 `tool_registry` 工具注册层，deep research 会优先通过该层调度当前论文检索、文献库检索、论文骨架读取与证据 judge；该层仅作为内部抽象，不新增外部 HTTP API。
 - 创建任务请求体固定为 `{ question, pdfId, paperSkeleton? }`；当前模块严格围绕当前论文工作，因此 `pdfId` 必填，`paperSkeleton` 只用于增强规划上下文。
 - 三个成功响应统一返回 `{ status, task }`，其中 `task` 包含 `taskId`、可选 `traceId`、任务 `status`、`stage`、`progress`、`plan`、结构化 `findings`、`report` 与 `error`。
 - `findings` 当前固定为结构化摘要项：`{ subQuestion, summary, verdict, missingAspects, sourceIds }`；`verdict` 复用 `CORRECT | AMBIGUOUS | INCORRECT`，`sourceIds` 只引用本任务中实际使用的证据片段。

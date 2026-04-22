@@ -93,6 +93,14 @@
 - deep research 仍固定生成 `3-5` 个子问题、最多 `1` 次自动重试，并继续保持确定性 Markdown 报告拼装；不得在模块 10 中扩展为外部 Web 搜索、多智能体、插件调用或新的 LLM 报告生成链路。
 - Python 安全层对进入模型的上下文统一采用近似 `8000` tokens 的预算裁剪；被裁剪或命中的安全摘要只允许进入 trace / log，不得新增公开 API 字段或要求前端立即适配。
 
+## 2026-04-22 内部工具注册层补充
+
+- Python AI 服务内部现已新增非公开 `tool_registry`；该层仅限服务内部复用与后续 MCP 适配预留，不新增任何对外 HTTP 接口。
+- 当前固定注册的内部工具名为 `retrieve_current_paper`、`retrieve_library`、`read_paper_skeleton`、`judge_evidence`、`generate_background_graph`、`run_critical_analysis`、`translate_page`；模块 11 不得随意改名或拆成新的外部接口。
+- deep research 必须优先通过内部工具注册层调用当前论文检索、文献库检索、论文骨架读取和证据 judge，不再在 `research_task_service.py` 内直接散落调用这些底层能力。
+- `generate_background_graph`、`run_critical_analysis` 与 `translate_page` 当前只做能力登记与未来复用预留；模块 11 不要求把背景补课、批判阅读或逐页翻译主链路整体改写为经由注册层执行。
+- 模块 11 禁止引入 MCP SDK、插件市场机制、外部工具调用、外部 Web 搜索或新的权限提升链路；工具注册层只允许包裹现有 Python 服务边界内已经存在的能力。
+
 ---
 
 ## 一、技术栈要求

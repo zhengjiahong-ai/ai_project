@@ -18,6 +18,9 @@
 13. **新增共享提示注入防护层**：Python AI 服务新增 `safety_service`，把论文正文、`paperSkeleton`、`paperStructure`、页内上下文与 RAG 片段统一视为不可信资料，在进入 LLM 前做轻量注入检测、去指令化清洗、`UNTRUSTED PAPER/RAG CONTENT` 包装和上下文预算裁剪。
 14. **增强 query/chat/background/critical/research 的权限边界**：query rewrite 与 chat planner 改为在固定 system 护栏下读取安全包装后的上下文；聊天、术语解释、背景补课、批判阅读与 deep research 规划都不会响应论文中的越权指令、密钥索取、system prompt 泄露、命令执行、联网搜索或工具/MCP 调用要求。
 15. **收紧深度研究规划与安全测试**：deep research 继续保持确定性报告生成，同时显式收口 `3-5` 个子问题、最多 `1` 次自动重试和 `current_paper / library` 检索白名单；新增 `test_safety_service.py` 并扩展 chat/explain/background/analysis/research task 回归测试，覆盖恶意论文片段不会改变助手行为。
+16. **新增 Python 内部工具注册层**：AI 服务新增非公开 `tool_registry`，统一注册 `retrieve_current_paper`、`retrieve_library`、`read_paper_skeleton`、`judge_evidence`、`generate_background_graph`、`run_critical_analysis` 与 `translate_page` 七类既有能力，为后续 MCP 适配预留稳定边界。
+17. **调整深度研究优先经由工具层调用**：deep research 现通过内部工具注册层调度当前论文检索、文献库检索、论文骨架读取与证据 judge，继续保持“当前论文优先、必要时补充文献库、最多 1 次自动重试”的原有行为，不改变 `/api/research-tasks` 对外契约。
+18. **补齐内部工具注册测试覆盖**：新增 `test_tool_registry.py`，覆盖工具注册、工具列举、成功调用、未知工具错误，以及背景补课、批判阅读、逐页翻译等已注册能力的轻量转发测试；同步扩展 deep research 测试以确认关键路径已切到注册层。
 
 ### 2026-04-21
 1. **聊天升级为轻量 Agentic RAG**：`/api/chat` 改为显式执行“意图识别 -> 查询计划 -> 检索 -> 证据 judge -> 最多一次重试 -> 回答”的轻量流程，同时保持现有请求体兼容。
