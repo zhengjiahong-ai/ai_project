@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.ai.assistant.backend_java.service.AiService;
@@ -98,5 +100,67 @@ class AcademicControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pdfId").value("paper-1"))
                 .andExpect(jsonPath("$.background_knowledge[0]").value("RAG"));
+    }
+
+    @Test
+    void createResearchTaskReturnsNestedTaskSnapshot() throws Exception {
+        when(aiService.createResearchTask(eq(Map.of(
+                "question", "研究问题",
+                "pdfId", "paper-1",
+                "paperSkeleton", Map.of("abstract", "summary"))))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "task", Map.of(
+                                "taskId", "task-1",
+                                "status", "pending",
+                                "stage", "planning",
+                                "progress", 0.0,
+                                "question", "研究问题",
+                                "pdfId", "paper-1",
+                                "plan", List.of(),
+                                "findings", List.of(),
+                                "report", "",
+                                "error", ""))));
+
+        mockMvc.perform(post("/api/research-tasks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"question":"研究问题","pdfId":"paper-1","paperSkeleton":{"abstract":"summary"}}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.task.taskId").value("task-1"))
+                .andExpect(jsonPath("$.task.status").value("pending"));
+    }
+
+    @Test
+    void getResearchTaskPropagatesNotFoundStatus() throws Exception {
+        when(aiService.getResearchTask("task-missing")).thenReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "status", "error",
+                "message", "Research task not found.")));
+
+        mockMvc.perform(get("/api/research-tasks/task-missing"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Research task not found."));
+    }
+
+    @Test
+    void cancelResearchTaskReturnsCancelledSnapshot() throws Exception {
+        when(aiService.cancelResearchTask("task-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "task", Map.of(
+                        "taskId", "task-1",
+                        "status", "cancelled",
+                        "stage", "done",
+                        "progress", 0.4,
+                        "question", "研究问题",
+                        "pdfId", "paper-1",
+                        "plan", List.of("Q1"),
+                        "findings", List.of(),
+                        "report", "",
+                        "error", ""))));
+
+        mockMvc.perform(post("/api/research-tasks/task-1/cancel").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.task.status").value("cancelled"))
+                .andExpect(jsonPath("$.task.taskId").value("task-1"));
     }
 }

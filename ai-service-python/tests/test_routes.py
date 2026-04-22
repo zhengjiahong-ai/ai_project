@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from routes.api import router
+from services.research_task_service import ResearchTaskNotFoundError
 
 
 class ApiRoutesTests(unittest.TestCase):
@@ -22,6 +23,70 @@ class ApiRoutesTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["message"], "ok")
+        mocked.assert_called_once()
+
+    def test_create_research_task_route_returns_initial_snapshot(self):
+        with patch(
+            "routes.api.research_task_service.create_research_task",
+            return_value={
+                "status": "success",
+                "task": {
+                    "taskId": "task-1",
+                    "status": "pending",
+                    "stage": "planning",
+                    "progress": 0.0,
+                    "question": "研究问题",
+                    "pdfId": "paper-1",
+                    "plan": [],
+                    "findings": [],
+                    "report": "",
+                    "error": "",
+                },
+            },
+        ) as mocked:
+            response = self.client.post(
+                "/api/research-tasks",
+                json={"question": "研究问题", "pdfId": "paper-1", "paperSkeleton": {"abstract": "summary"}},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["task"]["taskId"], "task-1")
+        mocked.assert_called_once()
+
+    def test_get_research_task_route_returns_404_for_missing_task(self):
+        with patch(
+            "routes.api.research_task_service.get_research_task",
+            side_effect=ResearchTaskNotFoundError("Research task not found."),
+        ):
+            response = self.client.get("/api/research-tasks/task-missing")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()["status"], "error")
+        self.assertEqual(response.json()["message"], "Research task not found.")
+
+    def test_cancel_research_task_route_returns_task_payload(self):
+        with patch(
+            "routes.api.research_task_service.cancel_research_task",
+            return_value={
+                "status": "success",
+                "task": {
+                    "taskId": "task-1",
+                    "status": "cancelled",
+                    "stage": "done",
+                    "progress": 0.4,
+                    "question": "研究问题",
+                    "pdfId": "paper-1",
+                    "plan": ["Q1"],
+                    "findings": [],
+                    "report": "",
+                    "error": "",
+                },
+            },
+        ) as mocked:
+            response = self.client.post("/api/research-tasks/task-1/cancel")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["task"]["status"], "cancelled")
         mocked.assert_called_once()
 
     def test_translate_page_route_returns_service_payload(self):

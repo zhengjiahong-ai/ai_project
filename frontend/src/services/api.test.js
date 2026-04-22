@@ -32,6 +32,49 @@ const run = async () => {
   await historyService.getChatHistory('session-1');
   assert.equal(historyUrl, '/chat/history/session-1');
 
+  let createResearchPayload = null;
+  let createResearchUrl = '';
+  const createResearchService = createApiService({
+    post: async (url, body) => {
+      createResearchUrl = url;
+      createResearchPayload = body;
+      return { status: 'success' };
+    },
+    get: async () => ({}),
+  });
+
+  await createResearchService.createResearchTask('研究问题', 'paper-1', { abstract: 'summary' });
+  assert.equal(createResearchUrl, '/research-tasks');
+  assert.deepEqual(createResearchPayload, {
+    question: '研究问题',
+    pdfId: 'paper-1',
+    paperSkeleton: { abstract: 'summary' },
+  });
+
+  let getResearchUrl = '';
+  const getResearchService = createApiService({
+    get: async (url) => {
+      getResearchUrl = url;
+      return { status: 'success' };
+    },
+    post: async () => ({}),
+  });
+
+  await getResearchService.getResearchTask('task-1');
+  assert.equal(getResearchUrl, '/research-tasks/task-1');
+
+  let cancelResearchUrl = '';
+  const cancelResearchService = createApiService({
+    post: async (url) => {
+      cancelResearchUrl = url;
+      return { status: 'success' };
+    },
+    get: async () => ({}),
+  });
+
+  await cancelResearchService.cancelResearchTask('task-1');
+  assert.equal(cancelResearchUrl, '/research-tasks/task-1/cancel');
+
   let criticalReadingUrl = '';
   const criticalReadingService = createApiService({
     post: async (url) => {

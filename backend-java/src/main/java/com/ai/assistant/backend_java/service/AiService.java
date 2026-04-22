@@ -7,19 +7,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ai.assistant.backend_java.model.ChatMessage;
 import com.ai.assistant.backend_java.model.Paper;
 import com.ai.assistant.backend_java.repository.ChatMessageRepository;
@@ -27,6 +33,7 @@ import com.ai.assistant.backend_java.repository.PaperRepository;
 
 @Service
 public class AiService {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Autowired
     private RestTemplate restTemplate;
@@ -190,6 +197,18 @@ public class AiService {
         return restTemplate.postForObject(PYTHON_SERVICE_URL + "/background-knowledge", request, Map.class);
     }
 
+    public ResponseEntity<Map<String, Object>> createResearchTask(Map<String, Object> request) {
+        return forwardResearchTask(HttpMethod.POST, "/research-tasks", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> getResearchTask(String taskId) {
+        return forwardResearchTask(HttpMethod.GET, "/research-tasks/" + taskId, null);
+    }
+
+    public ResponseEntity<Map<String, Object>> cancelResearchTask(String taskId) {
+        return forwardResearchTask(HttpMethod.POST, "/research-tasks/" + taskId + "/cancel", null);
+    }
+
     private List<Map<String, String>> buildHistoryPayload(String pdfId) {
         List<ChatMessage> history = chatMessageRepository.findByPdfIdOrderByTimestampAsc(pdfId);
         List<Map<String, String>> historyList = new ArrayList<>();
@@ -211,5 +230,52 @@ public class AiService {
 
     private String normalizeRoleForApi(String role) {
         return "ai".equals(role) ? "assistant" : role;
+    }
+
+    private ResponseEntity<Map<String, Object>> forwardResearchTask(
+            HttpMethod method,
+            String path,
+            Map<String, Object> payload) {
+        String url = PYTHON_SERVICE_URL + path;
+        HttpEntity<?> entity = payload == null ? HttpEntity.EMPTY : new HttpEntity<>(payload);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(url, method, entity, Map.class);
+            return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
+        } catch (HttpStatusCodeException error) {
+            return ResponseEntity.status(error.getStatusCode()).body(parseResearchTaskErrorBody(error));
+        }
+    }
+
+    private Map<String, Object> normalizeResearchTaskBody(Map<?, ?> body) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        if (body != null) {
+            for (Map.Entry<?, ?> entry : body.entrySet()) {
+                response.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+        if (!response.containsKey("status")) {
+            response.put("status", "error");
+            response.put("message", "Python service returned no response.");
+        }
+        return response;
+    }
+
+    private Map<String, Object> parseResearchTaskErrorBody(HttpStatusCodeException error) {
+        String rawBody = error.getResponseBodyAsString(StandardCharsets.UTF_8);
+        if (rawBody != null && !rawBody.isBlank()) {
+            try {
+                return OBJECT_MAPPER.readValue(rawBody, new TypeReference<>() {
+                });
+            } catch (IOException ignored) {
+                // Fall through to the generic error payload below.
+            }
+        }
+
+        Map<String, Object> fallback = new LinkedHashMap<>();
+        fallback.put("status", "error");
+        fallback.put("message",
+                (rawBody != null && !rawBody.isBlank()) ? rawBody : "Python service request failed.");
+        return fallback;
     }
 }

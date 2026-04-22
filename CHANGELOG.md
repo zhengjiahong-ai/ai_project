@@ -6,6 +6,9 @@
 1. **增强苏格拉底引导学习证据质量**：`/api/socratic-session/start` 与 `/api/socratic-session/answer` 继续保持固定 5 题流程，但每一题的生成与回答评估现在都会优先参考当前论文证据，不再默认扩展到文献库检索。
 2. **补齐引导学习结构化评估字段**：Socratic 回答评估新增 `coveredAspects`、`missingAspects` 与 `evidenceQuality`，用于区分“用户理解薄弱”和“当前论文证据不足/部分相关”两类情况。
 3. **新增最终回读建议与旧 session 兼容**：引导学习完成后可返回 `reviewSuggestions`，总结中会给出建议回读章节、概念或证据点；前端 IndexedDB 会话模型同步兼容新字段，并继续兼容旧缓存。
+4. **新增深度研究任务 API 雏形**：打通 Java `/api/research-tasks` 与 Python `/api/research-tasks` 创建、查询、取消三条链路，先提供可控的后端任务 API，不要求前端完整面板同时上线。
+5. **补齐深度研究任务状态机与结构化 findings**：Python 侧新增内存任务状态机，任务固定执行“brief -> 3-5 个子问题 -> 当前论文优先检索 -> 证据 judge -> 最多一次重试 -> 中文 Markdown 报告”，响应统一返回嵌套 `task` 快照与结构化 `findings`。
+6. **增强深度研究链路测试与文档约束**：前端 `api.js` 新增 research task 调用方法，Python 与 Java 同步补基础测试，并在 README 与约束文档中明确任务状态、取消语义、内存存储限制和当前论文优先的检索边界。
 
 ### 2026-04-21
 1. **聊天升级为轻量 Agentic RAG**：`/api/chat` 改为显式执行“意图识别 -> 查询计划 -> 检索 -> 证据 judge -> 最多一次重试 -> 回答”的轻量流程，同时保持现有请求体兼容。

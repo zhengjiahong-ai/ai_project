@@ -3,6 +3,7 @@ package com.ai.assistant.backend_java.controller;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -71,5 +72,20 @@ public class AcademicController {
     @PostMapping("/background-knowledge")
     public Map<String, Object> backgroundKnowledge(@RequestBody Map<String, Object> request) {
         return aiService.backgroundKnowledge(request);
+    }
+
+    @PostMapping("/research-tasks")
+    public ResponseEntity<Map<String, Object>> createResearchTask(@RequestBody Map<String, Object> request) {
+        return aiService.createResearchTask(request);
+    }
+
+    @GetMapping("/research-tasks/{taskId}")
+    public ResponseEntity<Map<String, Object>> getResearchTask(@PathVariable String taskId) {
+        return aiService.getResearchTask(taskId);
+    }
+
+    @PostMapping("/research-tasks/{taskId}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelResearchTask(@PathVariable String taskId) {
+        return aiService.cancelResearchTask(taskId);
     }
 }

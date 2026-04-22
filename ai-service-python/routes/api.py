@@ -8,12 +8,13 @@ from schemas.requests import (
     ChatRequest,
     DeepAnalysisRequest,
     PageTranslationRequest,
+    ResearchTaskCreateRequest,
     SocraticSessionAnswerRequest,
     SocraticSessionStartRequest,
     SocraticQuestionRequest,
     TermExplainRequest,
 )
-from services import analysis_service, chat_service, rag_service
+from services import analysis_service, chat_service, rag_service, research_task_service
 
 
 router = APIRouter(prefix="/api")
@@ -71,6 +72,34 @@ async def explain_term(request: TermExplainRequest):
 async def chat(request: ChatRequest):
     try:
         return JSONResponse(chat_service.chat(request))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/research-tasks")
+async def create_research_task(request: ResearchTaskCreateRequest):
+    try:
+        return JSONResponse(research_task_service.create_research_task(request))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/research-tasks/{task_id}")
+async def get_research_task(task_id: str):
+    try:
+        return JSONResponse(research_task_service.get_research_task(task_id))
+    except research_task_service.ResearchTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/research-tasks/{task_id}/cancel")
+async def cancel_research_task(task_id: str):
+    try:
+        return JSONResponse(research_task_service.cancel_research_task(task_id))
+    except research_task_service.ResearchTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 

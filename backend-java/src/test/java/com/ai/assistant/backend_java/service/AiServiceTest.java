@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +22,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.ai.assistant.backend_java.model.ChatMessage;
@@ -231,5 +238,89 @@ class AiServiceTest {
 
         assertEquals("success", response.get("status"));
         assertEquals("paper-1", response.get("pdfId"));
+    }
+
+    @Test
+    void createResearchTaskForwardsRequestToPythonService() {
+        Map<String, Object> request = new HashMap<>();
+        request.put("question", "研究问题");
+        request.put("pdfId", "paper-1");
+        request.put("paperSkeleton", Map.of("abstract", "summary"));
+
+        when(restTemplate.exchange(
+                eq("http://python/api/research-tasks"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "task", Map.of(
+                                "taskId", "task-1",
+                                "status", "pending",
+                                "stage", "planning",
+                                "progress", 0.0,
+                                "question", "研究问题",
+                                "pdfId", "paper-1",
+                                "plan", List.of(),
+                                "findings", List.of(),
+                                "report", "",
+                                "error", ""))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.createResearchTask(request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
+    void getResearchTaskForwardsGetRequestToPythonService() {
+        when(restTemplate.exchange(
+                eq("http://python/api/research-tasks/task-1"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "task", Map.of(
+                                "taskId", "task-1",
+                                "status", "running",
+                                "stage", "retrieving",
+                                "progress", 0.4,
+                                "question", "研究问题",
+                                "pdfId", "paper-1",
+                                "plan", List.of("Q1"),
+                                "findings", List.of(),
+                                "report", "",
+                                "error", ""))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getResearchTask("task-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> task = (Map<String, Object>) response.getBody().get("task");
+        assertEquals("running", task.get("status"));
+    }
+
+    @Test
+    void cancelResearchTaskPropagatesPythonNotFoundStatusAndMessage() {
+        HttpClientErrorException error = HttpClientErrorException.create(
+                HttpStatus.NOT_FOUND,
+                "Not Found",
+                HttpHeaders.EMPTY,
+                "{\"status\":\"error\",\"message\":\"Research task not found.\"}".getBytes(StandardCharsets.UTF_8),
+                StandardCharsets.UTF_8);
+
+        when(restTemplate.exchange(
+                eq("http://python/api/research-tasks/task-missing/cancel"),
+                eq(HttpMethod.POST),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenThrow(error);
+
+        ResponseEntity<Map<String, Object>> response = aiService.cancelResearchTask("task-missing");
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("error", response.getBody().get("status"));
+        assertEquals("Research task not found.", response.getBody().get("message"));
     }
 }

@@ -56,6 +56,18 @@ export const createApiService = (client) => ({
 
   getChatHistory: async (sessionId) => client.get(`/chat/history/${encodeURIComponent(sessionId)}`),
 
+  createResearchTask: async (question, pdfId, paperSkeleton = null) =>
+    client.post('/research-tasks', {
+      question,
+      pdfId,
+      paperSkeleton,
+    }),
+
+  getResearchTask: async (taskId) => client.get(`/research-tasks/${encodeURIComponent(taskId)}`),
+
+  cancelResearchTask: async (taskId) =>
+    client.post(`/research-tasks/${encodeURIComponent(taskId)}/cancel`),
+
   explainText: async (text, pdfId, pageNumber, context = '') =>
     client.post('/explain', {
       text,

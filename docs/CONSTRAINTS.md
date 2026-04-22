@@ -54,6 +54,18 @@
 - `/api/socratic-session/answer` 的 `evaluation` 可兼容新增 `coveredAspects`、`missingAspects`、`evidenceQuality`；完成态响应可兼容新增 `reviewSuggestions`，所有新增字段都必须保持兼容式扩展。
 - 当当前论文证据不足或只部分相关时，Socratic 的 `feedback`、`hint` 和 `finalSummary` 必须明确说明“证据不足/证据部分相关”，不得把证据缺口错误表述成论文已有结论或用户答错。
 
+## 2026-04-22 深度研究任务 API 补充
+
+- 前端新增 research task 请求时，必须继续集中落在 `frontend/src/services/api.js`，当前固定提供 `createResearchTask`、`getResearchTask`、`cancelResearchTask` 三个方法，不得在组件内直接拼接 URL。
+- Java 对外新增 `POST /api/research-tasks`、`GET /api/research-tasks/{taskId}` 与 `POST /api/research-tasks/{taskId}/cancel`，路径继续保持 `/api` 前缀。
+- `POST /api/research-tasks` 请求体固定为 `{ question, pdfId, paperSkeleton? }`；当前模块严格围绕当前论文工作，因此 `pdfId` 为必填，`paperSkeleton` 只允许作为规划上下文增强，不得替代当前论文证据。
+- research task 三个成功响应统一固定为 `{ status: "success", task: TaskSnapshot }`；禁止把任务运行态直接塞回顶层 `status`，避免与项目现有成功/失败语义冲突。
+- `task.status` 只允许 `pending`、`running`、`succeeded`、`failed`、`cancelled`；`task.stage` 只允许 `planning`、`retrieving`、`judging`、`synthesizing`、`done`；`task.progress` 固定为 `0.0-1.0` 的数字。
+- `task.plan` 固定为 3-5 个中文子问题；`task.findings[*]` 固定为 `{ subQuestion, summary, verdict, missingAspects, sourceIds }`，其中 `verdict` 只允许 `CORRECT`、`AMBIGUOUS`、`INCORRECT`，`sourceIds` 只能引用当前任务里实际使用的证据片段标识。
+- Python 深度研究任务必须继续遵守“当前论文优先、内部文献库补充、最多 1 次自动重试”的检索边界；禁止引入外部 Web 搜索、多模型协作或 LangGraph。
+- 当前模块的任务状态仅允许存 Python 进程内存；服务重启后任务可丢失，这一限制必须在 README 与后续 UI 中明确，不得伪装成可恢复的持久任务。
+- `POST /api/research-tasks/{taskId}/cancel` 必须保持幂等；任务已结束时返回当前快照，任务不存在时返回 `404` 与 `{ status: "error", message }`。
+
 ---
 
 ## 一、技术栈要求
@@ -129,6 +141,9 @@
 | POST | `/api/socratic-session/start` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string }` | 启动 5 轮苏格拉底式引导会话，并在有 `pdfId` 时优先基于当前论文证据生成第 1 题 |
 | POST | `/api/socratic-session/answer` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string, "currentIndex": number, "currentQuestion": string, "userAnswer": string, "turns": array? }` | 提交当前回答，返回掌握度评估、提示与下一题或最终总结；`evaluation` 可附带 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态还可附带 `reviewSuggestions` |
 | POST | `/api/background-knowledge` | `{ "pdfId": string?, "paperSkeleton": object?, "paperStructure": object?, "paper_topic": any?, "user_knowledge_level": any? }` | 背景补课图谱，Java 转发到 Python `/api/background-knowledge`，响应可附带 `queryPlan`、`confidence`、`sourceCoverage`、`learning_path_sections` |
+| POST | `/api/research-tasks` | `{ "question": string, "pdfId": string, "paperSkeleton": object? }` | 创建深度研究任务；Java 转发到 Python `/api/research-tasks`，成功响应固定为 `{ status, task }`，其中 `task` 包含任务状态、阶段、进度、`plan`、结构化 `findings`、`report` 与 `error` |
+| GET | `/api/research-tasks/:taskId` | - | 查询深度研究任务状态；成功返回 `{ status, task }`，任务不存在返回 `404` 与 `{ status, message }` |
+| POST | `/api/research-tasks/:taskId/cancel` | - | 取消深度研究任务；取消接口保持幂等，成功返回当前任务快照，任务不存在返回 `404` |
 
 - **说明**：  
   - Java `AcademicController` 中 `explainTerm` 接收 `Map<String, Object>`，会将 `text`/`term` 适配为 Python 所需的 `term`，并透传 `pdfId`、`pageNumber`、`context`。
@@ -147,6 +162,9 @@
 | POST socratic start → 转发 | POST `/api/socratic-session/start` | 请求体 `{ pdfId?, paperSkeleton?, readingProgress }`，Python 返回开场引导和第 1 题；有 `pdfId` 时优先基于当前论文证据组织首题 |
 | POST socratic answer → 转发 | POST `/api/socratic-session/answer` | 请求体包含当前题目、用户回答和历史轮次，Python 返回评估、下一题或最终总结；`evaluation` 可新增 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态可新增 `reviewSuggestions` |
 | POST background knowledge → 转发 | POST `/api/background-knowledge` | 请求体兼容 `pdfId`、论文结构和用户知识水平，Python 返回前置知识图谱、四段式学习路径、统一 `rag_sources` 以及可选 `queryPlan`、`confidence`、`sourceCoverage` |
+| POST create research task → 转发 | POST `/api/research-tasks` | 请求体固定 `{ question, pdfId, paperSkeleton? }`，Python 返回 `{ status, task }`；`task` 固定包含 `taskId`、任务 `status`、`stage`、`progress`、`question`、`pdfId`、`plan`、`findings`、`report`、`error` |
+| GET research task → 转发 | GET `/api/research-tasks/{taskId}` | Python 返回 `{ status, task }`，任务不存在时返回 `404` 与 `{ status: "error", message }` |
+| POST cancel research task → 转发 | POST `/api/research-tasks/{taskId}/cancel` | Python 返回 `{ status, task }`；取消采用 best-effort 协作式语义，已结束任务返回当前快照，任务不存在返回 `404` |
 
 ### 2.4 Python 已实现的其他接口（内部或后续扩展）
 

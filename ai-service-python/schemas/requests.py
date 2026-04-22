@@ -69,3 +69,9 @@ class PageTranslationRequest(BaseModel):
 class DeepAnalysisRequest(BaseModel):
     paper_content: Optional[str] = None
     pdf_id: Optional[str] = None
+
+
+class ResearchTaskCreateRequest(BaseModel):
+    question: str
+    pdfId: str
+    paperSkeleton: Optional[Dict[str, Any]] = None
