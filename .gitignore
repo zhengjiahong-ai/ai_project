@@ -24,3 +24,7 @@ ai-service-python/models/* # 建议模型手动下载，不进 Git
 ai-service-python/core/chroma_literature_db/
 *.sqlite3
 *.bin
+
+# Local-only test assets and local Python test workspace
+/test/
+/ai-service-python/tests/
