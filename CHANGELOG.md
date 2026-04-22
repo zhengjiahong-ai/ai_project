@@ -15,6 +15,9 @@
 10. **新增统一轻量 trace 机制**：Python AI 服务补齐 `trace_service`，为聊天、划词解释、批判阅读、背景补课与深度研究任务统一记录阶段、耗时、检索次数、LLM 调用次数和错误摘要，并继续保持前端与 Java 请求链路不变。
 11. **增强长任务异常/取消可观测性**：deep research 任务创建时会绑定稳定 `traceId`，成功、失败、取消三种终态都会保留对应 trace；聊天、批判阅读与背景补课成功响应也会兼容返回可选 `traceId`，便于后续排障。
 12. **补齐 trace 脱敏边界与测试覆盖**：trace 只保留截断后的问题摘要、query 摘要、证据条数和阶段信息，不记录 API Key、完整 prompt、完整论文全文或完整用户全文；同步新增 trace 单测并扩展 chat/explain/analysis/background/research task 回归测试。
+13. **新增共享提示注入防护层**：Python AI 服务新增 `safety_service`，把论文正文、`paperSkeleton`、`paperStructure`、页内上下文与 RAG 片段统一视为不可信资料，在进入 LLM 前做轻量注入检测、去指令化清洗、`UNTRUSTED PAPER/RAG CONTENT` 包装和上下文预算裁剪。
+14. **增强 query/chat/background/critical/research 的权限边界**：query rewrite 与 chat planner 改为在固定 system 护栏下读取安全包装后的上下文；聊天、术语解释、背景补课、批判阅读与 deep research 规划都不会响应论文中的越权指令、密钥索取、system prompt 泄露、命令执行、联网搜索或工具/MCP 调用要求。
+15. **收紧深度研究规划与安全测试**：deep research 继续保持确定性报告生成，同时显式收口 `3-5` 个子问题、最多 `1` 次自动重试和 `current_paper / library` 检索白名单；新增 `test_safety_service.py` 并扩展 chat/explain/background/analysis/research task 回归测试，覆盖恶意论文片段不会改变助手行为。
 
 ### 2026-04-21
 1. **聊天升级为轻量 Agentic RAG**：`/api/chat` 改为显式执行“意图识别 -> 查询计划 -> 检索 -> 证据 judge -> 最多一次重试 -> 回答”的轻量流程，同时保持现有请求体兼容。

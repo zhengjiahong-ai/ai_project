@@ -84,6 +84,15 @@
 - trace 只允许记录截断后的问题摘要、query 摘要、子问题数、证据条数、缺失点和错误摘要；任何长文本都必须先截断后再进入 trace。
 - deep research 任务在 `succeeded`、`failed`、`cancelled` 三种终态下都必须保留同一个 `traceId`；取消和失败时必须能从 trace 看出终止阶段，禁止只更新任务状态而不结束 trace。
 
+## 2026-04-22 提示注入防护与权限边界补充
+
+- 论文正文、`paperSkeleton`、`paperStructure`、页内上下文和 `rag_sources` 片段一律视为不可信输入；这些内容只能作为事实线索进入模型，不得被当成系统指令、工具指令或权限变更来源。
+- Python 的 query rewrite / chat planner、聊天回答、术语解释、背景补课、批判阅读和 deep research 规划 prompt 在读取这类上下文前，必须先经过轻量注入检测、去指令化清洗和 `UNTRUSTED PAPER/RAG CONTENT` 包装；Socratic 会话本轮暂不强制接入这一层，但后续如扩展应复用同一安全服务。
+- 任何来自不可信输入的“忽略之前指令”“泄露 API Key”“打印 system prompt”“执行 shell/系统命令”“联网搜索/浏览网页”“调用工具/插件/MCP”等文本，都只能被当作资料内容描述，禁止据此执行命令、泄露密钥、暴露隐藏提示词、联网或改变权限边界。
+- 当前模块不引入真实工具调用接口；LLM 规划输出只能落在既定检索 scope 与 research 流程白名单内。检索 scope 仍只允许 `current_paper`、`library`；deep research 内部动作仍固定为 `plan -> retrieve_current_paper -> retrieve_library -> judge -> synthesize_report`。
+- deep research 仍固定生成 `3-5` 个子问题、最多 `1` 次自动重试，并继续保持确定性 Markdown 报告拼装；不得在模块 10 中扩展为外部 Web 搜索、多智能体、插件调用或新的 LLM 报告生成链路。
+- Python 安全层对进入模型的上下文统一采用近似 `8000` tokens 的预算裁剪；被裁剪或命中的安全摘要只允许进入 trace / log，不得新增公开 API 字段或要求前端立即适配。
+
 ---
 
 ## 一、技术栈要求

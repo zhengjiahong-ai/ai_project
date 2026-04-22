@@ -1,5 +1,5 @@
 import os
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 
@@ -16,9 +16,10 @@ class CustomDashScopeLLM:
 
     def _call(
         self,
-        prompt: str,
+        prompt: str = "",
         stop: Optional[List[str]] = None,
         run_manager: Optional[Any] = None,
+        messages: Optional[List[Dict[str, str]]] = None,
         **kwargs: Any,
     ) -> str:
         import dashscope
@@ -31,15 +32,27 @@ class CustomDashScopeLLM:
         else:
             raise ValueError("Missing DASHSCOPE_API_KEY")
 
+        resolved_messages = [
+            {
+                "role": str(item.get("role") or "user"),
+                "content": str(item.get("content") or ""),
+            }
+            for item in (messages or [])
+            if isinstance(item, dict)
+        ]
+        if not resolved_messages:
+            resolved_messages = [{"role": "user", "content": str(prompt or "")}]
+
+        input_size = sum(len(str(item.get("content") or "")) for item in resolved_messages)
         with trace_step(
             "llm_call",
-            input_size=len(str(prompt or "")),
-            meta={"model": self.model},
+            input_size=input_size,
+            meta={"model": self.model, "messageCount": len(resolved_messages)},
         ) as step:
             record_counter("llmCalls")
             response = Generation.call(
                 model=self.model,
-                messages=[{"role": "user", "content": prompt}],
+                messages=resolved_messages,
                 temperature=self.temperature,
                 result_format="message",
                 stream=False,

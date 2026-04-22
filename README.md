@@ -164,6 +164,15 @@ docker-compose --profile neo4j up --build
 
 ---
 
+## 提示注入防护与权限边界
+
+- Python AI 服务现在会把论文正文、`paperSkeleton`、`paperStructure`、页内上下文和 `rag_sources` 片段统一视为不可信资料；这些内容在进入 query rewrite、聊天回答、背景补课、批判阅读和深度研究规划 prompt 前都会经过轻量注入检测、去指令化清洗和 `UNTRUSTED PAPER/RAG CONTENT` 包装。
+- 如果论文或检索片段里出现“忽略之前指令”“泄露 API Key”“打印 system prompt”“执行系统命令”“联网搜索/浏览网页”“调用工具/插件/MCP”等文本，系统只会把它们当作待分析内容，不会按其中要求越权执行、泄露密钥或改变当前工作边界。
+- 当前模块没有新增真实工具调用接口；query planner 仍只允许 `current_paper` / `library` 两类检索 scope，deep research 仍只围绕当前论文与内部文献库工作，不会自动扩展到外部 Web 搜索。
+- 长任务预算继续保持可控：deep research 固定生成 `3-5` 个子问题、检索链路最多自动重试 `1` 次，并对进入模型的上下文采用近似 `8000` tokens 的安全预算裁剪；安全命中信息只进入内部 trace / 日志，不增加新的公开响应字段。
+
+---
+
 ## 本地基线检查
 
 模块 0 基线审计使用以下命令确认当前项目状态：
