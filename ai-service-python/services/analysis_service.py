@@ -16,6 +16,7 @@ from services.evidence_service import compact_evidence_for_response, format_evid
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE
 from services.query_service import build_retrieval_queries
 from services.retrieval_judge_service import judge_evidence_quality
+from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
 from services.utils import parse_json_from_llm
 
 
@@ -270,29 +271,36 @@ def _build_inline_documents(paper_content: str) -> List[Dict[str, Any]]:
 
 
 def _load_analysis_source(request: DeepAnalysisRequest) -> tuple[List[Dict[str, Any]], str, str | None, str]:
-    if request.paper_content and request.paper_content.strip():
-        documents = _build_inline_documents(request.paper_content)
-        if not documents:
-            raise ValueError("No usable paper_content was provided for deep analysis.")
-        paper_content = "\n\n".join(item.get("text", "") for item in documents)
-        return documents, "paper_content", None, paper_content
+    with trace_step(
+        "load_analysis_source",
+        meta={"hasInlineContent": bool(request.paper_content), "pdfId": sanitize_text(request.pdf_id, max_chars=80)},
+    ) as step:
+        if request.paper_content and request.paper_content.strip():
+            documents = _build_inline_documents(request.paper_content)
+            if not documents:
+                raise ValueError("No usable paper_content was provided for deep analysis.")
+            paper_content = "\n\n".join(item.get("text", "") for item in documents)
+            step["outputSize"] = len(documents)
+            return documents, "paper_content", None, paper_content
 
-    if request.pdf_id:
-        normalized_id = get_rag().normalize_id(request.pdf_id)
-        raw_documents = get_rag().get_documents_by_metadata({"id": normalized_id}, limit=400)
-        documents = normalize_evidence_items(
-            raw_documents,
-            source_type="current_paper",
-            pdf_id=normalized_id,
-            max_text_chars=1800,
-        )
-        if not documents:
-            raise ValueError(f"No indexed paper content found for pdf_id={normalized_id}")
+        if request.pdf_id:
+            record_counter("retrievalCalls")
+            normalized_id = get_rag().normalize_id(request.pdf_id)
+            raw_documents = get_rag().get_documents_by_metadata({"id": normalized_id}, limit=400)
+            documents = normalize_evidence_items(
+                raw_documents,
+                source_type="current_paper",
+                pdf_id=normalized_id,
+                max_text_chars=1800,
+            )
+            if not documents:
+                raise ValueError(f"No indexed paper content found for pdf_id={normalized_id}")
 
-        paper_content = "\n\n".join(item.get("text", "") for item in documents)
-        return documents, "pdf_id", normalized_id, paper_content
+            paper_content = "\n\n".join(item.get("text", "") for item in documents)
+            step["outputSize"] = len(documents)
+            return documents, "pdf_id", normalized_id, paper_content
 
-    raise ValueError("Either paper_content or pdf_id is required.")
+        raise ValueError("Either paper_content or pdf_id is required.")
 
 
 def resolve_paper_content(request: DeepAnalysisRequest) -> tuple[str, str, str | None]:
@@ -395,34 +403,46 @@ def _retrieve_axis_evidence(
     axis: Dict[str, Any],
     limit: int = ANALYSIS_RETRIEVAL_LIMIT,
 ) -> List[Dict[str, Any]]:
-    terms = _build_axis_terms(query_plan, axis)
-    if not terms:
-        return []
+    with trace_step(
+        f"axis_{axis.get('key')}_retrieve",
+        input_size=len(documents),
+        meta={"label": axis.get("label")},
+    ) as step:
+        record_counter("retrievalCalls")
+        terms = _build_axis_terms(query_plan, axis)
+        if not terms:
+            step["outputSize"] = 0
+            return []
 
-    scored_items = []
-    for item in documents:
-        text = str(item.get("text") or "").strip()
-        if not text:
-            continue
-        score, matched_terms = _score_document(text, terms)
-        if score <= 0:
-            continue
+        scored_items = []
+        for item in documents:
+            text = str(item.get("text") or "").strip()
+            if not text:
+                continue
+            score, matched_terms = _score_document(text, terms)
+            if score <= 0:
+                continue
 
-        coverage = len(matched_terms) / len(terms) if terms else 0.0
-        similarity = min(0.95, 0.42 + coverage * 0.4 + min(score / 12, 0.12))
-        metadata = dict(item.get("metadata") or {})
-        metadata["matched_terms"] = matched_terms[:8]
+            coverage = len(matched_terms) / len(terms) if terms else 0.0
+            similarity = min(0.95, 0.42 + coverage * 0.4 + min(score / 12, 0.12))
+            metadata = dict(item.get("metadata") or {})
+            metadata["matched_terms"] = matched_terms[:8]
 
-        scored_item = {
-            **item,
-            "metadata": metadata,
-            "score": round(score, 3),
-            "similarity": round(max(float(item.get("similarity") or 0), similarity), 3),
-        }
-        scored_items.append(scored_item)
+            scored_item = {
+                **item,
+                "metadata": metadata,
+                "score": round(score, 3),
+                "similarity": round(max(float(item.get("similarity") or 0), similarity), 3),
+            }
+            scored_items.append(scored_item)
 
-    scored_items.sort(key=lambda current: (float(current.get("score") or 0), float(current.get("similarity") or 0)), reverse=True)
-    return _deduplicate_evidence(scored_items, limit=limit)
+        scored_items.sort(
+            key=lambda current: (float(current.get("score") or 0), float(current.get("similarity") or 0)),
+            reverse=True,
+        )
+        deduped = _deduplicate_evidence(scored_items, limit=limit)
+        step["outputSize"] = len(deduped)
+        return deduped
 
 
 def _should_retry_retrieval(judge_result: Dict[str, Any]) -> bool:
@@ -461,13 +481,25 @@ def _analyze_axis(
     analysis_context: str,
 ) -> Dict[str, Any]:
     question = axis["question"]
-    query_plan = build_retrieval_queries(question, context=analysis_context, task_type="critical")
+    with trace_step(
+        f"axis_{axis.get('key')}_query_plan",
+        input_size=len(str(analysis_context or "")),
+        meta={"label": axis.get("label")},
+    ) as step:
+        query_plan = build_retrieval_queries(question, context=analysis_context, task_type="critical")
+        step["outputSize"] = len(query_plan.get("keywords") or [])
     evidence = _retrieve_axis_evidence(documents, query_plan, axis)
-    judge = judge_evidence_quality(
-        question,
-        evidence,
-        keywords=[*(query_plan.get("keywords") or []), *axis.get("seed_terms", [])],
-    )
+    with trace_step(
+        f"axis_{axis.get('key')}_judge",
+        input_size=len(evidence),
+        meta={"label": axis.get("label")},
+    ) as step:
+        judge = judge_evidence_quality(
+            question,
+            evidence,
+            keywords=[*(query_plan.get("keywords") or []), *axis.get("seed_terms", [])],
+        )
+        step["outputSize"] = len(judge.get("missingAspects") or [])
 
     if _should_retry_retrieval(judge):
         retry_query = _build_retry_query(question, query_plan, axis, judge)
@@ -476,14 +508,25 @@ def _analyze_axis(
             "rewritten": retry_query,
             "keywords": [*(query_plan.get("keywords") or []), *(judge.get("missingAspects") or [])],
         }
-        retry_evidence = _retrieve_axis_evidence(documents, retry_plan, axis)
+        with trace_step(
+            f"axis_{axis.get('key')}_retry",
+            input_size=len(str(retry_query or "")),
+            meta={"missingAspects": judge.get("missingAspects") or []},
+        ):
+            retry_evidence = _retrieve_axis_evidence(documents, retry_plan, axis)
         if retry_evidence:
             evidence = _merge_evidence_lists(evidence, retry_evidence, limit=6)
-        judge = judge_evidence_quality(
-            question,
-            evidence,
-            keywords=[*(retry_plan.get("keywords") or []), *axis.get("seed_terms", [])],
-        )
+        with trace_step(
+            f"axis_{axis.get('key')}_judge_retry",
+            input_size=len(evidence),
+            meta={"label": axis.get("label")},
+        ) as step:
+            judge = judge_evidence_quality(
+                question,
+                evidence,
+                keywords=[*(retry_plan.get("keywords") or []), *axis.get("seed_terms", [])],
+            )
+            step["outputSize"] = len(judge.get("missingAspects") or [])
         query_plan = {
             **retry_plan,
             "source": query_plan.get("source"),
@@ -708,12 +751,14 @@ JSON 格式：
 各分析轴证据：
 {chr(10).join(_format_axis_prompt_block(item) for item in axis_results)}
 """
-    raw = get_llm()._call(prompt)
-    try:
-        return _normalize_report_payload(parse_json_from_llm(raw), axis_results)
-    except Exception as error:
-        print(f"structured deep analysis fell back to heuristic report: {error}")
-        return _normalize_report_payload({}, axis_results)
+    with trace_step("generate_structured_critical_report", input_size=len(prompt)) as step:
+        raw = get_llm()._call(prompt)
+        step["outputSize"] = len(str(raw or ""))
+        try:
+            return _normalize_report_payload(parse_json_from_llm(raw), axis_results)
+        except Exception as error:
+            print(f"structured deep analysis fell back to heuristic report: {error}")
+            return _normalize_report_payload({}, axis_results)
 
 
 def _collect_response_sources(axis_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -721,25 +766,52 @@ def _collect_response_sources(axis_results: List[Dict[str, Any]]) -> List[Dict[s
 
 
 def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
-    documents, resolved_from, normalized_id, paper_content = _load_analysis_source(request)
-    analysis_context = _build_analysis_context(documents)
-    axis_results = [
-        _analyze_axis(axis_config, documents, analysis_context or paper_content[:2400])
-        for axis_config in ANALYSIS_AXIS_CONFIGS
-    ]
-    report = _generate_structured_critical_report(axis_results, analysis_context or paper_content[:2400], resolved_from)
-    response_sources = _collect_response_sources(axis_results)
+    trace_id = start_trace(
+        "critical",
+        request_meta={
+            "pdfId": sanitize_text(request.pdf_id, max_chars=80),
+            "hasInlineContent": bool(request.paper_content),
+        },
+    )
+    try:
+        documents, resolved_from, normalized_id, paper_content = _load_analysis_source(request)
+        analysis_context = _build_analysis_context(documents)
+        axis_results = [
+            _analyze_axis(axis_config, documents, analysis_context or paper_content[:2400])
+            for axis_config in ANALYSIS_AXIS_CONFIGS
+        ]
+        report = _generate_structured_critical_report(axis_results, analysis_context or paper_content[:2400], resolved_from)
+        response_sources = _collect_response_sources(axis_results)
 
-    return {
-        "status": "success",
-        "claimed_contributions": report["claimed_contributions"],
-        "evidence_based_contributions": report["evidence_based_contributions"],
-        "inferred_real_contributions": report["inferred_real_contributions"],
-        "weaknesses": report["weaknesses"],
-        "overclaim_risks": report["overclaim_risks"],
-        "missing_evidence": report["missing_evidence"],
-        "critical_analysis": report["critical_analysis"],
-        "rag_sources": compact_evidence_for_response(response_sources, max_items=ANALYSIS_RESPONSE_SOURCE_LIMIT, max_text_chars=700),
-        "resolved_from": resolved_from,
-        "pdf_id": normalized_id,
-    }
+        response = {
+            "status": "success",
+            "claimed_contributions": report["claimed_contributions"],
+            "evidence_based_contributions": report["evidence_based_contributions"],
+            "inferred_real_contributions": report["inferred_real_contributions"],
+            "weaknesses": report["weaknesses"],
+            "overclaim_risks": report["overclaim_risks"],
+            "missing_evidence": report["missing_evidence"],
+            "critical_analysis": report["critical_analysis"],
+            "rag_sources": compact_evidence_for_response(
+                response_sources,
+                max_items=ANALYSIS_RESPONSE_SOURCE_LIMIT,
+                max_text_chars=700,
+            ),
+            "resolved_from": resolved_from,
+            "pdf_id": normalized_id,
+            "traceId": trace_id,
+        }
+        record_metric("axisCount", len(axis_results))
+        record_metric("responseSources", len(response_sources))
+        finalize_trace(
+            "success",
+            response_meta={
+                "resolvedFrom": resolved_from,
+                "axisCount": len(axis_results),
+                "responseSources": len(response_sources),
+            },
+        )
+        return response
+    except Exception as error:
+        finalize_trace("error", error=error)
+        raise

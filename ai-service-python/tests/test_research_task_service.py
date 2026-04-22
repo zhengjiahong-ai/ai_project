@@ -11,6 +11,7 @@ from services.research_task_service import (
     get_research_task,
     run_research_task_now,
 )
+from services.trace_service import clear_traces, get_trace_snapshot
 
 
 class FakeRag:
@@ -39,10 +40,12 @@ class FakeRag:
 
 class ResearchTaskServiceTests(unittest.TestCase):
     def setUp(self):
+        clear_traces()
         clear_research_tasks()
 
     def tearDown(self):
         clear_research_tasks()
+        clear_traces()
 
     def test_create_research_task_returns_deterministic_initial_snapshot(self):
         response = create_research_task(
@@ -57,6 +60,7 @@ class ResearchTaskServiceTests(unittest.TestCase):
         self.assertEqual(task["progress"], 0.0)
         self.assertEqual(task["question"], "研究这个方法")
         self.assertEqual(task["pdfId"], "paper-1")
+        self.assertTrue(task["traceId"])
         self.assertEqual(task["plan"], [])
         self.assertEqual(task["findings"], [])
         self.assertEqual(task["report"], "")
@@ -118,12 +122,16 @@ class ResearchTaskServiceTests(unittest.TestCase):
         self.assertEqual(task["status"], "succeeded")
         self.assertEqual(task["stage"], "done")
         self.assertEqual(task["progress"], 1.0)
+        self.assertTrue(task["traceId"])
         self.assertEqual(len(task["plan"]), 3)
         self.assertEqual(len(task["findings"]), 3)
         self.assertIn("## 研究 brief", task["report"])
         self.assertTrue(any(call["filter_metadata"] == {"id": "paper-1"} for call in fake_rag.retrieve_calls))
         self.assertGreaterEqual(mocked_hybrid.call_count, 1)
         self.assertTrue(any(item["sourceIds"] for item in task["findings"]))
+        trace = get_trace_snapshot(task["traceId"])
+        self.assertEqual(trace["status"], "success")
+        self.assertEqual(trace["responseMeta"]["findingCount"], 3)
 
     def test_research_task_retries_only_once_with_missing_aspects(self):
         fake_rag = FakeRag(
@@ -212,6 +220,8 @@ class ResearchTaskServiceTests(unittest.TestCase):
         self.assertEqual(task["status"], "cancelled")
         self.assertEqual(task["stage"], "done")
         self.assertEqual(task["report"], "")
+        trace = get_trace_snapshot(task["traceId"])
+        self.assertEqual(trace["status"], "cancelled")
 
     def test_research_task_fails_when_current_paper_is_not_indexed(self):
         fake_rag = FakeRag(documents=[], retrieve_handler=lambda query, top_k=3, filter_metadata=None: [])
@@ -228,6 +238,8 @@ class ResearchTaskServiceTests(unittest.TestCase):
         self.assertEqual(task["status"], "failed")
         self.assertEqual(task["stage"], "done")
         self.assertIn("indexed", task["error"])
+        trace = get_trace_snapshot(task["traceId"])
+        self.assertEqual(trace["status"], "error")
 
     def test_unknown_task_raises_not_found(self):
         with self.assertRaises(ResearchTaskNotFoundError):

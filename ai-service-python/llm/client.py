@@ -3,6 +3,7 @@ from typing import Any, List, Optional
 
 from dotenv import load_dotenv
 
+from services.trace_service import record_counter, trace_step
 
 load_dotenv()
 
@@ -30,18 +31,26 @@ class CustomDashScopeLLM:
         else:
             raise ValueError("Missing DASHSCOPE_API_KEY")
 
-        response = Generation.call(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=self.temperature,
-            result_format="message",
-            stream=False,
-        )
+        with trace_step(
+            "llm_call",
+            input_size=len(str(prompt or "")),
+            meta={"model": self.model},
+        ) as step:
+            record_counter("llmCalls")
+            response = Generation.call(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=self.temperature,
+                result_format="message",
+                stream=False,
+            )
 
-        if response.status_code != 200:
-            raise RuntimeError(f"DashScope request failed: {response.code} - {response.message}")
+            if response.status_code != 200:
+                raise RuntimeError(f"DashScope request failed: {response.code} - {response.message}")
 
-        return response.output.choices[0].message.content
+            content = response.output.choices[0].message.content
+            step["outputSize"] = len(str(content or ""))
+            return content
 
 
 _llm: Optional[CustomDashScopeLLM] = None

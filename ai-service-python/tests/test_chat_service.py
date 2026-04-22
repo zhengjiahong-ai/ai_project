@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from schemas.requests import ChatRequest, SocraticSessionAnswerRequest, SocraticSessionStartRequest
 from services.chat_service import answer_socratic_question, chat, start_socratic_session
+from services.trace_service import clear_traces, get_trace_snapshot, record_counter, trace_step
 
 
 class FakeRag:
@@ -24,6 +25,19 @@ class FakeRag:
         if callable(self.results):
             return self.results(query, top_k=top_k, filter_metadata=filter_metadata)
         return self.results
+
+
+class TraceAwareLLM:
+    def __init__(self, response):
+        self.response = response
+        self.prompts = []
+
+    def _call(self, prompt):
+        self.prompts.append(prompt)
+        with trace_step("llm_call", input_size=len(str(prompt or "")), meta={"model": "test-llm"}) as step:
+            record_counter("llmCalls")
+            step["outputSize"] = len(str(self.response or ""))
+            return self.response
 
 
 def _mock_chat_plan(
@@ -52,6 +66,12 @@ def _mock_chat_plan(
 
 
 class ChatServiceTests(unittest.TestCase):
+    def setUp(self):
+        clear_traces()
+
+    def tearDown(self):
+        clear_traces()
+
     def test_chat_uses_current_pdf_rag_with_pdf_id(self):
         fake_rag = FakeRag(results=[{
             "text": "Current paper evidence about the method.",
@@ -82,6 +102,7 @@ class ChatServiceTests(unittest.TestCase):
         self.assertEqual(response["retrievalJudge"]["verdict"], "CORRECT")
         self.assertEqual(response["rag_sources"][0]["sourceType"], "current_paper")
         self.assertEqual(response["rag_sources"][0]["chunkIndex"], 2)
+        self.assertTrue(response["traceId"])
         self.assertEqual(fake_rag.retrieve_calls[0]["query"], "rewritten academic query")
         self.assertEqual(fake_rag.retrieve_calls[0]["filter_metadata"], {"id": "paper-1"})
         self.assertEqual(fake_rag.retrieve_calls[0]["top_k"], 12)
@@ -182,6 +203,33 @@ class ChatServiceTests(unittest.TestCase):
         self.assertEqual(mocked_hybrid.call_count, 1)
         final_prompt = mocked_get_llm.return_value._call.call_args[0][0]
         self.assertIn("当前论文或资料库证据不足", final_prompt)
+
+    def test_chat_trace_includes_counters_and_steps(self):
+        fake_rag = FakeRag(results=[{
+            "text": "Current paper evidence about the method.",
+            "metadata": {"id": "paper-1", "chunk_index": 2},
+            "similarity": 0.9,
+        }])
+        query_plan = _mock_chat_plan()
+        fake_llm = TraceAwareLLM("回答")
+
+        with (
+            patch("services.chat_service.get_rag", return_value=fake_rag),
+            patch("services.chat_service.build_chat_query_plan", return_value=query_plan),
+            patch("services.chat_service.retrieve_hybrid_results", return_value={"vector": [], "bm25": []}),
+            patch("services.chat_service.get_llm", return_value=fake_llm),
+        ):
+            response = chat(ChatRequest(message="这篇论文的方法是什么？", pdfId="paper-1", history=[], paperSkeleton={}))
+
+        trace = get_trace_snapshot(response["traceId"])
+        step_names = [item["name"] for item in trace["steps"]]
+        self.assertEqual(trace["status"], "success")
+        self.assertGreaterEqual(trace["counters"]["llmCalls"], 1)
+        self.assertGreaterEqual(trace["counters"]["retrievalCalls"], 1)
+        self.assertIn("build_chat_query_plan", step_names)
+        self.assertIn("retrieve_current_paper", step_names)
+        self.assertIn("generate_chat_answer", step_names)
+        self.assertIn("llm_call", step_names)
 
     def test_chat_uses_recent_history_in_planner_context_without_forcing_retrieval(self):
         captured = {}

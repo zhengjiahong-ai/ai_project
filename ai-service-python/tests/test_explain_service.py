@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from schemas.requests import TermExplainRequest
 from services.chat_service import explain_term
+from services.trace_service import clear_traces, get_trace_snapshot
 
 
 class FakeRag:
@@ -28,6 +29,12 @@ class FakeRag:
 
 
 class ExplainTermServiceTests(unittest.TestCase):
+    def setUp(self):
+        clear_traces()
+
+    def tearDown(self):
+        clear_traces()
+
     def test_explain_term_uses_current_pdf_rag_when_pdf_id_is_present(self):
         fake_rag = FakeRag(results=[{"text": "Current paper context about contrastive loss.", "metadata": {"id": "paper-1"}}])
 
@@ -61,10 +68,14 @@ class ExplainTermServiceTests(unittest.TestCase):
         self.assertEqual(response["rag_sources"][0]["sourceType"], "current_paper")
         self.assertEqual(response["queryPlan"]["rewritten"], "contrastive loss query")
         self.assertEqual(response["retrievalJudge"]["verdict"], "CORRECT")
+        self.assertTrue(response["traceId"])
         self.assertEqual(fake_rag.retrieve_calls[0]["filter_metadata"], {"id": "paper-1"})
         self.assertEqual(fake_rag.retrieve_calls[0]["query"], "contrastive loss query")
         self.assertEqual(fake_rag.retrieve_calls[0]["top_k"], 5)
         mocked_hybrid.assert_not_called()
+        trace = get_trace_snapshot(response["traceId"])
+        self.assertEqual(trace["status"], "success")
+        self.assertGreaterEqual(trace["counters"]["retrievalCalls"], 1)
 
     def test_explain_term_falls_back_to_literature_rag_when_pdf_rag_fails(self):
         fake_rag = FakeRag(error=RuntimeError("rag unavailable"))

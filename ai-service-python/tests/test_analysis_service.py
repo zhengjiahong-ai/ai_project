@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from schemas.requests import DeepAnalysisRequest
 from services.analysis_service import deep_analysis
+from services.trace_service import clear_traces, get_trace_snapshot
 
 
 def _build_query_plan(question, context=None, task_type="critical"):
@@ -72,6 +73,12 @@ class FakeRag:
 
 
 class AnalysisServiceTests(unittest.TestCase):
+    def setUp(self):
+        clear_traces()
+
+    def tearDown(self):
+        clear_traces()
+
     def test_deep_analysis_uses_current_paper_chunks_for_pdf_id(self):
         fake_rag = FakeRag(documents=[
             {
@@ -113,9 +120,13 @@ class AnalysisServiceTests(unittest.TestCase):
         self.assertEqual(response["resolved_from"], "pdf_id")
         self.assertEqual(response["pdf_id"], "paper-1")
         self.assertEqual(response["inferred_real_contributions"], response["evidence_based_contributions"])
+        self.assertTrue(response["traceId"])
         self.assertEqual(fake_rag.metadata_calls, [{"metadata": {"id": "paper-1"}, "limit": 400}])
         self.assertTrue(response["rag_sources"])
         self.assertTrue(all(item["sourceType"] == "current_paper" for item in response["rag_sources"]))
+        trace = get_trace_snapshot(response["traceId"])
+        self.assertEqual(trace["status"], "success")
+        self.assertGreaterEqual(trace["counters"]["retrievalCalls"], 1)
 
     def test_deep_analysis_supports_inline_paper_content_without_rag_lookup(self):
         paper_content = "\n".join([

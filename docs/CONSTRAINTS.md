@@ -74,6 +74,16 @@
 - 前端面板必须兼容 `task.plan`、`task.findings`、`task.report`、`task.error` 为空或缺失；展示层只能做兼容式默认值填充，不得把缺失字段改写成新的接口要求。
 - 前端自动轮询只允许针对当前论文的当前 `taskId` 查询状态，任务进入 `succeeded`、`failed`、`cancelled` 后必须停止轮询；轮询异常时允许提示 `pollError`，但不得覆盖成伪造的终态快照。
 
+## 2026-04-22 任务 trace 与成本观测补充
+
+- Python AI 服务现在为聊天、划词解释、批判阅读、背景补课和深度研究任务统一生成轻量 trace；trace 只允许保存在 Python 进程内存与服务日志中，当前模块禁止引入数据库持久化或外部观测平台。
+- `/api/chat`、`/api/explain-term`、`/api/background-knowledge`、`/api/deep-analysis` 成功响应都可兼容新增顶层 `traceId`；Java 透传时不得丢弃该字段，前端可忽略该字段但不得依赖它才能工作。
+- research task 成功响应中的 `task` 可兼容新增 `traceId`；字段位置固定为 `task.traceId`，不得把 trace 信息拆到顶层，避免破坏现有 `{ status, task }` 包装。
+- trace 顶层至少包含 `traceId`、`taskType`、`status`、`startedAt`、`finishedAt`、`durationMs`、`counters`、`steps`；其中 `counters` 至少保留 `llmCalls`、`retrievalCalls`。
+- `steps[*]` 必须至少包含 `name`、`durationMs`、`status`、`inputSize`、`outputSize`、`error`；允许附带少量截断后的 `meta`，但不得写入完整 prompt、完整论文正文、完整用户全文、请求 headers 或 API Key。
+- trace 只允许记录截断后的问题摘要、query 摘要、子问题数、证据条数、缺失点和错误摘要；任何长文本都必须先截断后再进入 trace。
+- deep research 任务在 `succeeded`、`failed`、`cancelled` 三种终态下都必须保留同一个 `traceId`；取消和失败时必须能从 trace 看出终止阶段，禁止只更新任务状态而不结束 trace。
+
 ---
 
 ## 一、技术栈要求
@@ -140,16 +150,16 @@
 | 方法 | 路径 | 请求体/参数 | 说明 |
 |------|------|-------------|------|
 | POST | `/api/upload` | `multipart/form-data`, 字段名 `file` | PDF 上传，Java 转发到 Python `/api/analyze-pdf` |
-| POST | `/api/explain` | `{ "text": string, "pdfId": any, "pageNumber": number, "context": string }` 或 `{ "term": string, "context": string }` | 术语/划词解释，Java 转发到 Python `/api/explain-term`；带 `pdfId` 时优先基于当前论文 RAG，响应可附带 `queryPlan` 与 `retrievalJudge` |
-| POST | `/api/chat` | `{ "message": string, "pdfId": any, "history": array?, "paperSkeleton": object? }` | 对话，Java 持久化当前论文会话并转发到 Python `/api/chat`；Python 使用轻量 Agentic RAG 流程（意图识别、查询计划、当前论文优先检索、证据质量判断、最多一次重试）返回回答、统一 `rag_sources` 与可选 `queryPlan`、`retrievalJudge` |
+| POST | `/api/explain` | `{ "text": string, "pdfId": any, "pageNumber": number, "context": string }` 或 `{ "term": string, "context": string }` | 术语/划词解释，Java 转发到 Python `/api/explain-term`；带 `pdfId` 时优先基于当前论文 RAG，响应可附带 `queryPlan`、`retrievalJudge` 与兼容式 `traceId` |
+| POST | `/api/chat` | `{ "message": string, "pdfId": any, "history": array?, "paperSkeleton": object? }` | 对话，Java 持久化当前论文会话并转发到 Python `/api/chat`；Python 使用轻量 Agentic RAG 流程（意图识别、查询计划、当前论文优先检索、证据质量判断、最多一次重试）返回回答、统一 `rag_sources` 与可选 `queryPlan`、`retrievalJudge`、`traceId` |
 | GET | `/api/chat/history/:sessionId` | - | 读取 Java H2 中按 `pdfId/sessionId` 保存的聊天历史，前端用于恢复远端会话 |
 | POST | `/api/translate-page` | `{ "pdfId": string?, "pageIndex": number, "pageText": string, "paperSkeleton": object?, "pageLayout": object? }` | 逐页翻译，Java 转发到 Python `/api/translate-page`，支持版面块与译文缓存 |
-| POST | `/api/critical-reading/:pdfId` | - | 批判性阅读，Java 转发到 Python `/api/deep-analysis`；Java 继续返回 `{ status, pdfId, analysis }` 包裹结构，其中 `analysis` 为基于当前论文全文 chunks 的结构化批判阅读结果 |
+| POST | `/api/critical-reading/:pdfId` | - | 批判性阅读，Java 转发到 Python `/api/deep-analysis`；Java 继续返回 `{ status, pdfId, analysis }` 包裹结构，其中 `analysis` 为基于当前论文全文 chunks 的结构化批判阅读结果，并可兼容附带 `analysis.traceId` |
 | POST | `/api/socratic-questions` | `{ "paper_content": string, "reading_progress": string }` | 引导式学习（苏格拉底式提问），Java 转发到 Python `/api/socratic-questions` |
 | POST | `/api/socratic-session/start` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string }` | 启动 5 轮苏格拉底式引导会话，并在有 `pdfId` 时优先基于当前论文证据生成第 1 题 |
 | POST | `/api/socratic-session/answer` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string, "currentIndex": number, "currentQuestion": string, "userAnswer": string, "turns": array? }` | 提交当前回答，返回掌握度评估、提示与下一题或最终总结；`evaluation` 可附带 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态还可附带 `reviewSuggestions` |
-| POST | `/api/background-knowledge` | `{ "pdfId": string?, "paperSkeleton": object?, "paperStructure": object?, "paper_topic": any?, "user_knowledge_level": any? }` | 背景补课图谱，Java 转发到 Python `/api/background-knowledge`，响应可附带 `queryPlan`、`confidence`、`sourceCoverage`、`learning_path_sections` |
-| POST | `/api/research-tasks` | `{ "question": string, "pdfId": string, "paperSkeleton": object? }` | 创建深度研究任务；Java 转发到 Python `/api/research-tasks`，成功响应固定为 `{ status, task }`，其中 `task` 包含任务状态、阶段、进度、`plan`、结构化 `findings`、`report` 与 `error` |
+| POST | `/api/background-knowledge` | `{ "pdfId": string?, "paperSkeleton": object?, "paperStructure": object?, "paper_topic": any?, "user_knowledge_level": any? }` | 背景补课图谱，Java 转发到 Python `/api/background-knowledge`，响应可附带 `queryPlan`、`confidence`、`sourceCoverage`、`learning_path_sections` 与兼容式 `traceId` |
+| POST | `/api/research-tasks` | `{ "question": string, "pdfId": string, "paperSkeleton": object? }` | 创建深度研究任务；Java 转发到 Python `/api/research-tasks`，成功响应固定为 `{ status, task }`，其中 `task` 包含任务状态、阶段、进度、可选 `traceId`、`plan`、结构化 `findings`、`report` 与 `error` |
 | GET | `/api/research-tasks/:taskId` | - | 查询深度研究任务状态；成功返回 `{ status, task }`，任务不存在返回 `404` 与 `{ status, message }` |
 | POST | `/api/research-tasks/:taskId/cancel` | - | 取消深度研究任务；取消接口保持幂等，成功返回当前任务快照，任务不存在返回 `404` |
 
@@ -162,15 +172,15 @@
 | Java 调用 | Python 路径 | 说明 |
 |-----------|-------------|------|
 | POST upload → 转发 | POST `/api/analyze-pdf` | 请求体为 multipart，Python 返回 `{ status, paper_skeleton, paper_structure, translationLayoutIndex, pdfId, ragIndexed }` |
-| POST explain → 转发 | POST `/api/explain-term` | 请求体 `{ term, context, pdfId?, pageNumber? }`，Python 返回 `{ status, term, explanation, rag_sources, queryPlan?, retrievalJudge? }` |
-| POST chat → 转发 | POST `/api/chat` | 请求体 `{ message, pdfId?, history?, paperSkeleton? }`，Python 返回 `{ status, message, rag_sources, queryPlan?, retrievalJudge? }`，其中 `queryPlan` 兼容旧字段并可新增 `intent`、`needsRetrieval`、`queries`、`answerStyle`，且检索时优先使用当前论文证据 |
+| POST explain → 转发 | POST `/api/explain-term` | 请求体 `{ term, context, pdfId?, pageNumber? }`，Python 返回 `{ status, term, explanation, rag_sources, queryPlan?, retrievalJudge?, traceId? }` |
+| POST chat → 转发 | POST `/api/chat` | 请求体 `{ message, pdfId?, history?, paperSkeleton? }`，Python 返回 `{ status, message, rag_sources, queryPlan?, retrievalJudge?, traceId? }`，其中 `queryPlan` 兼容旧字段并可新增 `intent`、`needsRetrieval`、`queries`、`answerStyle`，且检索时优先使用当前论文证据 |
 | POST translate page → 转发 | POST `/api/translate-page` | 请求体 `{ pdfId?, pageIndex, pageText, paperSkeleton?, pageLayout? }`，Python 返回页级译文、译文块和渲染模式 |
-| POST critical reading → 转发 | POST `/api/deep-analysis` | Java 传 `{ pdf_id }`，Python 基于当前论文全文 chunks 生成结构化批判阅读结果；Java 保持 `{ status, pdfId, analysis }` 包裹，不改对外契约 |
+| POST critical reading → 转发 | POST `/api/deep-analysis` | Java 传 `{ pdf_id }`，Python 基于当前论文全文 chunks 生成结构化批判阅读结果并可兼容返回 `traceId`；Java 保持 `{ status, pdfId, analysis }` 包裹，不改对外契约 |
 | POST socratic questions → 转发 | POST `/api/socratic-questions` | 请求体 `{ paper_content, reading_progress }`，Python 返回 `{ status, questions }` |
 | POST socratic start → 转发 | POST `/api/socratic-session/start` | 请求体 `{ pdfId?, paperSkeleton?, readingProgress }`，Python 返回开场引导和第 1 题；有 `pdfId` 时优先基于当前论文证据组织首题 |
 | POST socratic answer → 转发 | POST `/api/socratic-session/answer` | 请求体包含当前题目、用户回答和历史轮次，Python 返回评估、下一题或最终总结；`evaluation` 可新增 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态可新增 `reviewSuggestions` |
-| POST background knowledge → 转发 | POST `/api/background-knowledge` | 请求体兼容 `pdfId`、论文结构和用户知识水平，Python 返回前置知识图谱、四段式学习路径、统一 `rag_sources` 以及可选 `queryPlan`、`confidence`、`sourceCoverage` |
-| POST create research task → 转发 | POST `/api/research-tasks` | 请求体固定 `{ question, pdfId, paperSkeleton? }`，Python 返回 `{ status, task }`；`task` 固定包含 `taskId`、任务 `status`、`stage`、`progress`、`question`、`pdfId`、`plan`、`findings`、`report`、`error` |
+| POST background knowledge → 转发 | POST `/api/background-knowledge` | 请求体兼容 `pdfId`、论文结构和用户知识水平，Python 返回前置知识图谱、四段式学习路径、统一 `rag_sources` 以及可选 `queryPlan`、`confidence`、`sourceCoverage`、`traceId` |
+| POST create research task → 转发 | POST `/api/research-tasks` | 请求体固定 `{ question, pdfId, paperSkeleton? }`，Python 返回 `{ status, task }`；`task` 固定包含 `taskId`、可选 `traceId`、任务 `status`、`stage`、`progress`、`question`、`pdfId`、`plan`、`findings`、`report`、`error` |
 | GET research task → 转发 | GET `/api/research-tasks/{taskId}` | Python 返回 `{ status, task }`，任务不存在时返回 `404` 与 `{ status: "error", message }` |
 | POST cancel research task → 转发 | POST `/api/research-tasks/{taskId}/cancel` | Python 返回 `{ status, task }`；取消采用 best-effort 协作式语义，已结束任务返回当前快照，任务不存在返回 `404` |
 
@@ -182,7 +192,7 @@
 |------|-------------|--------|------|
 | POST | `/api/rag/add-literature` | `multipart/form-data`, 字段名 `file`，可选 metadata | 向 Python 文献库追加索引，当前前端未直接使用 |
 | POST | `/api/rag/retrieve` | query/top_k/filter_metadata | 直接检索 Python RAG，当前前端未直接使用 |
-| POST | `/api/deep-analysis` | `{ "paper_content": string? }` 或 `{ "pdf_id": string? }` | 深度/批判分析能力；兼容临时 `paper_content` 与当前论文 `pdf_id` 两种路径，成功响应除旧字段外还可包含 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence`、`rag_sources` |
+| POST | `/api/deep-analysis` | `{ "paper_content": string? }` 或 `{ "pdf_id": string? }` | 深度/批判分析能力；兼容临时 `paper_content` 与当前论文 `pdf_id` 两种路径，成功响应除旧字段外还可包含 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence`、`rag_sources`、`traceId` |
 
 ---
 

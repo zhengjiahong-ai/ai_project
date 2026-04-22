@@ -114,11 +114,11 @@ docker-compose up --build
 
 - **PDF 上传与篇章解构**：上传 PDF → GROBID 解析 → AI 生成 abstract/introduction/methods/results/discussion/conclusion 摘要。
 - **对话与划词解释**：聊天面板发送消息；在 PDF 中划词可触发解释（对接 `/api/explain`，携带当前页上下文，经过轻量学术查询重写后优先基于当前论文 RAG 检索）。其中 `/api/chat` 已升级为轻量 Agentic RAG 流程：先做意图识别和查询计划，再优先检索当前论文、必要时补充文献库，并在回答前进行证据质量判断与最多一次重试；响应继续返回结构统一的 `rag_sources`，并可附带 `queryPlan` 与 `retrievalJudge`。
-- **批判性阅读**：前端调用 Java `/api/critical-reading/{pdfId}`，Java 转发 Python `/api/deep-analysis`，基于当前论文全文 chunks 做贡献、方法、实验与局限的证据化批判阅读；响应在兼容旧字段的同时，还可附带 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence` 与 `rag_sources`，前端面板会在原有布局上紧凑展示这些补充信息。
+- **批判性阅读**：前端调用 Java `/api/critical-reading/{pdfId}`，Java 转发 Python `/api/deep-analysis`，基于当前论文全文 chunks 做贡献、方法、实验与局限的证据化批判阅读；响应在兼容旧字段的同时，还可附带 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence`、`rag_sources` 与可选 `traceId`，前端面板会在原有布局上紧凑展示这些补充信息。
 - **学术笔记**：支持在阅读时添加笔记并持久化到 IndexedDB。
 - **全景翻译**：支持按当前 PDF 页提取文本并进行逐页全文翻译，译文显示在右侧专用面板中；翻页后自动跟随当前页更新，并对已翻译页面进行缓存，避免重复请求。
 - **引导式学习**：保持固定 5 题的苏格拉底式学习流程，基于论文内容、阅读进度和论文骨架生成问题；每轮提问与回答评估会优先参考当前论文 RAG 证据，返回掌握度评估、证据判断和待补强要点，并在最终总结中给出建议回读章节、概念或证据点，帮助用户用问答方式推进理解。
-- **深度研究**：新增独立“深度研究”页签，用户可围绕当前论文输入研究问题、启动任务、轮询查看阶段与进度、取消任务，并在同一面板中查看结构化 `findings` 与最终 Markdown 报告；任务状态当前只保留在浏览器会话内存中，刷新页面后不保证恢复。
+- **深度研究**：新增独立“深度研究”页签，用户可围绕当前论文输入研究问题、启动任务、轮询查看阶段与进度、取消任务，并在同一面板中查看结构化 `findings` 与最终 Markdown 报告；任务状态当前只保留在浏览器会话内存中，刷新页面后不保证恢复，后端任务快照会兼容附带可选 `traceId` 以便排障。
 
 ---
 
@@ -148,11 +148,19 @@ docker-compose --profile neo4j up --build
 
 - Java 对外提供 `POST /api/research-tasks`、`GET /api/research-tasks/{taskId}` 与 `POST /api/research-tasks/{taskId}/cancel`，Python 内部提供同名 `/api/research-tasks` 路由。
 - 创建任务请求体固定为 `{ question, pdfId, paperSkeleton? }`；当前模块严格围绕当前论文工作，因此 `pdfId` 必填，`paperSkeleton` 只用于增强规划上下文。
-- 三个成功响应统一返回 `{ status, task }`，其中 `task` 包含 `taskId`、任务 `status`、`stage`、`progress`、`plan`、结构化 `findings`、`report` 与 `error`。
+- 三个成功响应统一返回 `{ status, task }`，其中 `task` 包含 `taskId`、可选 `traceId`、任务 `status`、`stage`、`progress`、`plan`、结构化 `findings`、`report` 与 `error`。
 - `findings` 当前固定为结构化摘要项：`{ subQuestion, summary, verdict, missingAspects, sourceIds }`；`verdict` 复用 `CORRECT | AMBIGUOUS | INCORRECT`，`sourceIds` 只引用本任务中实际使用的证据片段。
 - 任务状态目前先存 Python 进程内存，适合作为模块 8 的最小版本；服务重启后任务不会恢复，完整任务面板与持久化增强留给后续模块。
 - 前端现在已接入最小任务面板：通过 `frontend/src/services/api.js` 中的 `createResearchTask`、`getResearchTask`、`cancelResearchTask` 三个方法完成创建、轮询刷新与取消，不在组件内部直接拼接 URL。
 - 右侧“深度研究”面板会展示任务 `status`、`stage`、`progress`、`plan`、结构化 `findings` 和最终 Markdown `report`；如果后端服务重启或任务状态丢失，面板只提示当前任务不可恢复，不伪装为持久化任务。
+
+---
+
+## Trace 与成本观测
+
+- Python AI 服务现在会为聊天、划词解释、批判阅读、背景补课和深度研究任务生成轻量 trace，并在相关成功响应中兼容返回可选 `traceId`。
+- trace 当前只保存在 Python 进程内存与服务日志中，用于排查长任务阶段、耗时、检索次数与 LLM 调用次数；服务重启后不会保留。
+- trace 会记录截断后的问题摘要、query 摘要、证据条数、阶段状态和错误摘要，但不会记录 API Key、完整 prompt、完整用户全文或完整论文全文。
 
 ---
 

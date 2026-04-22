@@ -7,6 +7,7 @@ from rag.store import get_rag, retrieve_hybrid_results
 from schemas.requests import BackgroundKnowledgeRequest
 from services.evidence_service import compact_evidence_for_response, normalize_evidence_items
 from services.query_service import build_retrieval_queries
+from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
 from services.utils import parse_json_from_llm
 
 
@@ -109,53 +110,80 @@ RELATION_TYPE_MAP = {
 
 
 def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, Any]:
-    user_level = _normalize_user_level(request.user_knowledge_level)
-    normalized_pdf_id = _normalize_pdf_id(request.pdfId)
-    paper_context, current_paper_sources = _load_current_paper_context(request, normalized_pdf_id)
-    paper_topic = _resolve_topic(request, paper_context)
-    query_plan = build_retrieval_queries(paper_topic, context=paper_context, task_type="background")
-    retrieved_sources = _retrieve_related_sources(query_plan, normalized_pdf_id)
-
-    response_sources = retrieved_sources or current_paper_sources
-    response_source_type = "library" if retrieved_sources else "current_paper" if current_paper_sources else "unknown"
-    response_rag_sources = compact_evidence_for_response(
-        normalize_evidence_items(
-            response_sources,
-            source_type=response_source_type,
-            pdf_id=normalized_pdf_id if response_source_type == "current_paper" else None,
-            limit=5,
-        )
+    trace_id = start_trace(
+        "background",
+        request_meta={
+            "pdfId": sanitize_text(request.pdfId, max_chars=80),
+            "userLevel": sanitize_text(request.user_knowledge_level, max_chars=40),
+            "paperTopic": sanitize_text(request.paper_topic, max_chars=120),
+        },
     )
-
     try:
-        llm_payload = _generate_graph_payload(
-            paper_topic=paper_topic,
-            user_level=user_level,
-            paper_context=paper_context,
-            rag_sources=response_rag_sources,
-            request=request,
-        )
-        payload = _normalize_payload(
-            llm_payload,
-            paper_topic=paper_topic,
-            user_level=user_level,
-            pdf_id=normalized_pdf_id,
-            rag_sources=response_rag_sources,
-        )
-    except Exception as error:
-        print(f"background knowledge graph generation fell back to linear plan: {error}")
-        payload = _fallback_payload(
-            paper_topic=paper_topic,
-            user_level=user_level,
-            pdf_id=normalized_pdf_id,
-            rag_sources=response_rag_sources,
-            error=error,
+        user_level = _normalize_user_level(request.user_knowledge_level)
+        normalized_pdf_id = _normalize_pdf_id(request.pdfId)
+        paper_context, current_paper_sources = _load_current_paper_context(request, normalized_pdf_id)
+        paper_topic = _resolve_topic(request, paper_context)
+        with trace_step("build_background_query_plan", input_size=len(paper_context) + len(paper_topic)) as step:
+            query_plan = build_retrieval_queries(paper_topic, context=paper_context, task_type="background")
+            step["outputSize"] = len(query_plan.get("keywords") or [])
+        retrieved_sources = _retrieve_related_sources(query_plan, normalized_pdf_id)
+
+        response_sources = retrieved_sources or current_paper_sources
+        response_source_type = "library" if retrieved_sources else "current_paper" if current_paper_sources else "unknown"
+        response_rag_sources = compact_evidence_for_response(
+            normalize_evidence_items(
+                response_sources,
+                source_type=response_source_type,
+                pdf_id=normalized_pdf_id if response_source_type == "current_paper" else None,
+                limit=5,
+            )
         )
 
-    payload["rag_sources"] = response_rag_sources
-    payload["queryPlan"] = query_plan
-    payload["neo4j"] = _persist_optional_neo4j(payload)
-    return payload
+        try:
+            llm_payload = _generate_graph_payload(
+                paper_topic=paper_topic,
+                user_level=user_level,
+                paper_context=paper_context,
+                rag_sources=response_rag_sources,
+                request=request,
+            )
+            with trace_step("normalize_background_payload", input_size=len(response_rag_sources)) as step:
+                payload = _normalize_payload(
+                    llm_payload,
+                    paper_topic=paper_topic,
+                    user_level=user_level,
+                    pdf_id=normalized_pdf_id,
+                    rag_sources=response_rag_sources,
+                )
+                step["outputSize"] = len((payload.get("graph") or {}).get("nodes") or [])
+        except Exception as error:
+            print(f"background knowledge graph generation fell back to linear plan: {error}")
+            payload = _fallback_payload(
+                paper_topic=paper_topic,
+                user_level=user_level,
+                pdf_id=normalized_pdf_id,
+                rag_sources=response_rag_sources,
+                error=error,
+            )
+
+        payload["rag_sources"] = response_rag_sources
+        payload["queryPlan"] = query_plan
+        payload["neo4j"] = _persist_optional_neo4j(payload)
+        payload["traceId"] = trace_id
+        record_metric("ragSourceCount", len(response_rag_sources))
+        record_metric("graphNodeCount", len((payload.get("graph") or {}).get("nodes") or []))
+        finalize_trace(
+            "success",
+            response_meta={
+                "paperTopic": sanitize_text(paper_topic, max_chars=120),
+                "ragSourceCount": len(response_rag_sources),
+                "graphNodeCount": len((payload.get("graph") or {}).get("nodes") or []),
+            },
+        )
+        return payload
+    except Exception as error:
+        finalize_trace("error", error=error)
+        raise
 
 
 def _normalize_pdf_id(pdf_id: Optional[str]) -> Optional[str]:
@@ -169,26 +197,30 @@ def _normalize_pdf_id(pdf_id: Optional[str]) -> Optional[str]:
 
 
 def _load_current_paper_context(request: BackgroundKnowledgeRequest, normalized_pdf_id: Optional[str]) -> Tuple[str, List[dict]]:
-    parts: List[str] = []
-    sources: List[dict] = []
+    with trace_step("load_background_context", meta={"pdfId": sanitize_text(normalized_pdf_id, max_chars=80)}) as step:
+        parts: List[str] = []
+        sources: List[dict] = []
 
-    if isinstance(request.paperStructure, dict) and request.paperStructure:
-        parts.append(f"Paper structure:\n{_stringify_mapping(request.paperStructure)}")
+        if isinstance(request.paperStructure, dict) and request.paperStructure:
+            parts.append(f"Paper structure:\n{_stringify_mapping(request.paperStructure)}")
 
-    if isinstance(request.paperSkeleton, dict) and request.paperSkeleton:
-        parts.append(f"Paper section summaries:\n{_stringify_mapping(request.paperSkeleton)}")
+        if isinstance(request.paperSkeleton, dict) and request.paperSkeleton:
+            parts.append(f"Paper section summaries:\n{_stringify_mapping(request.paperSkeleton)}")
 
-    if normalized_pdf_id:
-        try:
-            documents = get_rag().get_documents_by_metadata({"id": normalized_pdf_id}, limit=40)
-            sources = documents[:5]
-            document_text = "\n\n".join(item.get("text", "") for item in documents if item.get("text"))
-            if document_text.strip():
-                parts.append(f"Current indexed paper excerpts:\n{document_text[:9000]}")
-        except Exception as error:
-            print(f"background knowledge current-paper retrieval skipped: {error}")
+        if normalized_pdf_id:
+            try:
+                record_counter("retrievalCalls")
+                documents = get_rag().get_documents_by_metadata({"id": normalized_pdf_id}, limit=40)
+                sources = documents[:5]
+                document_text = "\n\n".join(item.get("text", "") for item in documents if item.get("text"))
+                if document_text.strip():
+                    parts.append(f"Current indexed paper excerpts:\n{document_text[:9000]}")
+            except Exception as error:
+                print(f"background knowledge current-paper retrieval skipped: {error}")
 
-    return "\n\n".join(part for part in parts if part.strip())[:12000], sources
+        context = "\n\n".join(part for part in parts if part.strip())[:12000]
+        step["outputSize"] = len(context)
+        return context, sources
 
 
 def _resolve_topic(request: BackgroundKnowledgeRequest, paper_context: str) -> str:
@@ -219,7 +251,10 @@ def _resolve_topic(request: BackgroundKnowledgeRequest, paper_context: str) -> s
 def _retrieve_related_sources(query_plan: Dict[str, Any], normalized_pdf_id: Optional[str]) -> List[dict]:
     query = query_plan.get("rewritten") or query_plan.get("original") or "prerequisite concepts background knowledge"
     try:
-        sources = _normalize_hybrid_sources(retrieve_hybrid_results(query, top_k=5))
+        with trace_step("retrieve_background_library", input_size=len(str(query or ""))) as step:
+            record_counter("retrievalCalls")
+            sources = _normalize_hybrid_sources(retrieve_hybrid_results(query, top_k=5))
+            step["outputSize"] = len(sources)
         if sources:
             return sources
     except Exception as error:
@@ -227,7 +262,15 @@ def _retrieve_related_sources(query_plan: Dict[str, Any], normalized_pdf_id: Opt
 
     if normalized_pdf_id:
         try:
-            return get_rag().retrieve(query, top_k=5, filter_metadata={"id": normalized_pdf_id})
+            with trace_step(
+                "retrieve_background_current_paper",
+                input_size=len(str(query or "")),
+                meta={"pdfId": sanitize_text(normalized_pdf_id, max_chars=80)},
+            ) as step:
+                record_counter("retrievalCalls")
+                results = get_rag().retrieve(query, top_k=5, filter_metadata={"id": normalized_pdf_id})
+                step["outputSize"] = len(results or [])
+                return results
         except Exception as error:
             print(f"background knowledge filtered retrieval skipped: {error}")
 
@@ -330,14 +373,20 @@ RAG snippets:
 {source_context}
 """
 
-    raw = get_llm()._call(prompt)
-    try:
-        return parse_json_from_llm(raw)
-    except Exception:
-        items = _parse_line_items(raw)
-        if items:
-            return {"background_knowledge": items}
-        raise
+    with trace_step(
+        "generate_background_graph",
+        input_size=len(prompt),
+        meta={"userLevel": user_level, "ragSourceCount": len(rag_sources)},
+    ) as step:
+        raw = get_llm()._call(prompt)
+        step["outputSize"] = len(str(raw or ""))
+        try:
+            return parse_json_from_llm(raw)
+        except Exception:
+            items = _parse_line_items(raw)
+            if items:
+                return {"background_knowledge": items}
+            raise
 
 
 def _normalize_payload(
@@ -764,27 +813,32 @@ def _compute_overall_confidence(graph: Dict[str, list], source_coverage: Dict[st
 
 
 def _persist_optional_neo4j(payload: Dict[str, Any]) -> Dict[str, Any]:
-    uri = os.environ.get("NEO4J_URI")
-    user = os.environ.get("NEO4J_USER")
-    password = os.environ.get("NEO4J_PASSWORD")
-    if not uri or not user or not password:
-        return {
-            "enabled": False,
-            "status": "skipped",
-            "message": "NEO4J_URI, NEO4J_USER, or NEO4J_PASSWORD is not configured.",
-        }
+    with trace_step("persist_background_neo4j") as step:
+        uri = os.environ.get("NEO4J_URI")
+        user = os.environ.get("NEO4J_USER")
+        password = os.environ.get("NEO4J_PASSWORD")
+        if not uri or not user or not password:
+            result = {
+                "enabled": False,
+                "status": "skipped",
+                "message": "NEO4J_URI, NEO4J_USER, or NEO4J_PASSWORD is not configured.",
+            }
+            step["outputSize"] = 0
+            return result
 
-    try:
-        from neo4j import GraphDatabase
+        try:
+            from neo4j import GraphDatabase
 
-        driver = GraphDatabase.driver(uri, auth=(user, password))
-        graph = payload.get("graph", {})
-        with driver.session() as session:
-            session.execute_write(_write_graph_tx, payload, graph)
-        driver.close()
-        return {"enabled": True, "status": "success", "message": "Knowledge graph persisted to Neo4j."}
-    except Exception as error:
-        return {"enabled": True, "status": "error", "message": str(error)[:300]}
+            driver = GraphDatabase.driver(uri, auth=(user, password))
+            graph = payload.get("graph", {})
+            with driver.session() as session:
+                session.execute_write(_write_graph_tx, payload, graph)
+            driver.close()
+            step["outputSize"] = len((graph or {}).get("nodes") or [])
+            return {"enabled": True, "status": "success", "message": "Knowledge graph persisted to Neo4j."}
+        except Exception as error:
+            step["outputSize"] = 0
+            return {"enabled": True, "status": "error", "message": str(error)[:300]}
 
 
 def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None:

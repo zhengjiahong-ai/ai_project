@@ -11,6 +11,15 @@ from schemas.requests import ResearchTaskCreateRequest
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.query_service import build_retrieval_queries
 from services.retrieval_judge_service import judge_evidence_quality
+from services.trace_service import (
+    finalize_trace,
+    record_counter,
+    record_metric,
+    sanitize_text,
+    start_trace,
+    trace_step,
+    use_trace,
+)
 from services.utils import parse_json_from_llm
 
 
@@ -44,8 +53,18 @@ def create_research_task(
         raise ValueError("pdfId cannot be empty.")
 
     task_id = str(uuid.uuid4())
+    trace_id = start_trace(
+        "deep_research",
+        request_meta={
+            "question": sanitize_text(question, max_chars=120),
+            "pdfId": sanitize_text(pdf_id, max_chars=80),
+        },
+        activate=False,
+        initial_status="pending",
+    )
     task = {
         "taskId": task_id,
+        "traceId": trace_id,
         "status": "pending",
         "stage": PLANNING_STAGE,
         "progress": 0.0,
@@ -89,7 +108,16 @@ def cancel_research_task(task_id: str) -> Dict[str, Any]:
             "stage": DONE_STAGE,
         }
         _TASKS[task_id] = cancelled
-        return {"status": "success", "task": copy.deepcopy(cancelled)}
+
+    with use_trace(str(cancelled.get("traceId") or "")):
+        finalize_trace(
+            "cancelled",
+            response_meta={
+                "taskId": task_id,
+                "stage": DONE_STAGE,
+            },
+        )
+    return {"status": "success", "task": copy.deepcopy(cancelled)}
 
 
 def clear_research_tasks() -> None:
@@ -102,12 +130,13 @@ def clear_research_tasks() -> None:
 def run_research_task_now(task_id: str) -> Dict[str, Any]:
     task = _copy_task_snapshot(task_id)
     context = _copy_task_context(task_id)
-    _run_research_task(
-        task_id,
-        question=str(task.get("question") or ""),
-        pdf_id=str(task.get("pdfId") or ""),
-        paper_skeleton=context.get("paperSkeleton") or {},
-    )
+    with use_trace(str(task.get("traceId") or "")):
+        _run_research_task(
+            task_id,
+            question=str(task.get("question") or ""),
+            pdf_id=str(task.get("pdfId") or ""),
+            paper_skeleton=context.get("paperSkeleton") or {},
+        )
     return _copy_task_snapshot(task_id)
 
 
@@ -118,14 +147,22 @@ def _run_research_task(task_id: str, question: str, pdf_id: str, paper_skeleton:
     _update_task_snapshot(task_id, status="running", stage=PLANNING_STAGE, progress=0.0)
 
     try:
-        documents, normalized_pdf_id = _load_current_paper_documents(pdf_id)
+        record_metric("taskId", task_id)
+        with trace_step("research_load_current_paper", meta={"pdfId": sanitize_text(pdf_id, max_chars=80)}):
+            documents, normalized_pdf_id = _load_current_paper_documents(pdf_id)
         if not documents:
             _fail_task(task_id, "Current paper has not been indexed yet.")
+            finalize_trace(
+                "error",
+                error="Current paper has not been indexed yet.",
+                response_meta={"taskId": task_id, "stage": DONE_STAGE},
+            )
             return
         if _is_cancelled(task_id):
             return
 
         brief, sub_questions = _build_research_plan(question, paper_skeleton, documents)
+        record_metric("subQuestionCount", len(sub_questions))
         _update_task_snapshot(task_id, stage=PLANNING_STAGE, progress=0.2, plan=sub_questions)
         if _is_cancelled(task_id):
             return
@@ -139,13 +176,19 @@ def _run_research_task(task_id: str, question: str, pdf_id: str, paper_skeleton:
             base_progress = round(0.2 + (index / total) * 0.6, 2)
             _update_task_snapshot(task_id, stage=RETRIEVING_STAGE, progress=base_progress)
 
-            finding = _research_sub_question(
-                sub_question=sub_question,
-                question=question,
-                pdf_id=normalized_pdf_id,
-                paper_skeleton=paper_skeleton,
-                documents=documents,
-            )
+            with trace_step(
+                f"research_sub_question_{index + 1}",
+                input_size=len(str(sub_question or "")),
+                meta={"subQuestion": sanitize_text(sub_question, max_chars=120)},
+            ) as step:
+                finding = _research_sub_question(
+                    sub_question=sub_question,
+                    question=question,
+                    pdf_id=normalized_pdf_id,
+                    paper_skeleton=paper_skeleton,
+                    documents=documents,
+                )
+                step["outputSize"] = len(finding.get("sourceIds") or [])
             if _is_cancelled(task_id):
                 return
 
@@ -162,7 +205,9 @@ def _run_research_task(task_id: str, question: str, pdf_id: str, paper_skeleton:
             return
 
         _update_task_snapshot(task_id, stage=SYNTHESIZING_STAGE, progress=0.9, findings=copy.deepcopy(findings))
-        report = _build_research_report(question, brief, sub_questions, findings)
+        with trace_step("research_report_synthesis", input_size=len(findings)) as step:
+            report = _build_research_report(question, brief, sub_questions, findings)
+            step["outputSize"] = len(str(report or ""))
         if _is_cancelled(task_id):
             return
 
@@ -175,8 +220,17 @@ def _run_research_task(task_id: str, question: str, pdf_id: str, paper_skeleton:
             report=report,
             error="",
         )
+        finalize_trace(
+            "success",
+            response_meta={
+                "taskId": task_id,
+                "findingCount": len(findings),
+                "stage": DONE_STAGE,
+            },
+        )
     except Exception as error:
         _fail_task(task_id, str(error))
+        finalize_trace("error", error=error, response_meta={"taskId": task_id, "stage": DONE_STAGE})
 
 
 def _research_sub_question(
@@ -187,14 +241,22 @@ def _research_sub_question(
     documents: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
     research_context = _build_planning_context(question, paper_skeleton, documents)
-    query_plan = build_retrieval_queries(sub_question, context=research_context, task_type="research")
+    with trace_step(
+        "research_query_plan",
+        input_size=len(str(research_context or "")),
+        meta={"subQuestion": sanitize_text(sub_question, max_chars=120)},
+    ) as step:
+        query_plan = build_retrieval_queries(sub_question, context=research_context, task_type="research")
+        step["outputSize"] = len(query_plan.get("keywords") or [])
 
     current_evidence = _retrieve_current_paper_evidence(
         query_plan.get("rewritten") or query_plan.get("original") or sub_question,
         pdf_id=pdf_id,
     )
     combined_evidence = _merge_evidence_lists(current_evidence)
-    judge = judge_evidence_quality(sub_question, combined_evidence, keywords=query_plan.get("keywords") or [])
+    with trace_step("research_judge_current", input_size=len(combined_evidence)) as step:
+        judge = judge_evidence_quality(sub_question, combined_evidence, keywords=query_plan.get("keywords") or [])
+        step["outputSize"] = len(judge.get("missingAspects") or [])
 
     library_evidence: List[Dict[str, Any]] = []
     if _should_try_library(judge):
@@ -203,18 +265,27 @@ def _research_sub_question(
             exclude_pdf_id=pdf_id,
         )
         combined_evidence = _merge_evidence_lists(current_evidence, library_evidence)
-        judge = judge_evidence_quality(sub_question, combined_evidence, keywords=query_plan.get("keywords") or [])
+        with trace_step("research_judge_library", input_size=len(combined_evidence)) as step:
+            judge = judge_evidence_quality(sub_question, combined_evidence, keywords=query_plan.get("keywords") or [])
+            step["outputSize"] = len(judge.get("missingAspects") or [])
 
     if _should_retry(judge):
         retry_query = _build_retry_query(sub_question, query_plan, judge)
-        retry_current = _retrieve_current_paper_evidence(retry_query, pdf_id=pdf_id)
-        retry_library = _retrieve_library_evidence(retry_query, exclude_pdf_id=pdf_id)
+        with trace_step(
+            "research_retry_retrieval",
+            input_size=len(str(retry_query or "")),
+            meta={"missingAspects": judge.get("missingAspects") or []},
+        ):
+            retry_current = _retrieve_current_paper_evidence(retry_query, pdf_id=pdf_id)
+            retry_library = _retrieve_library_evidence(retry_query, exclude_pdf_id=pdf_id)
         combined_evidence = _merge_evidence_lists(current_evidence, library_evidence, retry_current, retry_library)
-        judge = judge_evidence_quality(
-            sub_question,
-            combined_evidence,
-            keywords=[*(query_plan.get("keywords") or []), *(judge.get("missingAspects") or [])],
-        )
+        with trace_step("research_judge_retry", input_size=len(combined_evidence)) as step:
+            judge = judge_evidence_quality(
+                sub_question,
+                combined_evidence,
+                keywords=[*(query_plan.get("keywords") or []), *(judge.get("missingAspects") or [])],
+            )
+            step["outputSize"] = len(judge.get("missingAspects") or [])
 
     summary = _build_finding_summary(sub_question, combined_evidence, judge)
     return {
@@ -227,6 +298,7 @@ def _research_sub_question(
 
 
 def _load_current_paper_documents(pdf_id: str) -> Tuple[List[Dict[str, Any]], str]:
+    record_counter("retrievalCalls")
     normalized_id = get_rag().normalize_id(pdf_id)
     documents = get_rag().get_documents_by_metadata({"id": normalized_id}, limit=120)
     normalized = normalize_evidence_items(
@@ -271,49 +343,63 @@ Current paper evidence:
 {format_evidence_context(documents, title="当前论文线索", max_items=4, max_text_chars=260)}
 """
 
-    try:
-        payload = parse_json_from_llm(get_llm()._call(prompt))
-        brief = _clean_text(payload.get("brief")) or fallback_brief
-        sub_questions = _normalize_sub_questions(payload.get("subQuestions"), fallback_sub_questions)
-        return brief, sub_questions
-    except Exception as error:
-        print(f"research task planner fell back to heuristic plan: {error}")
-        return fallback_brief, fallback_sub_questions
+    with trace_step("research_build_plan", input_size=len(prompt)) as step:
+        try:
+            payload = parse_json_from_llm(get_llm()._call(prompt))
+            brief = _clean_text(payload.get("brief")) or fallback_brief
+            sub_questions = _normalize_sub_questions(payload.get("subQuestions"), fallback_sub_questions)
+            step["outputSize"] = len(sub_questions)
+            return brief, sub_questions
+        except Exception as error:
+            print(f"research task planner fell back to heuristic plan: {error}")
+            step["outputSize"] = len(fallback_sub_questions)
+            return fallback_brief, fallback_sub_questions
 
 
 def _retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, limit: int = 5) -> List[Dict[str, Any]]:
-    results = get_rag().retrieve(query, top_k=top_k, filter_metadata={"id": pdf_id})
-    normalized = normalize_evidence_items(
-        results,
-        source_type="current_paper",
-        pdf_id=pdf_id,
-        limit=limit,
-        max_text_chars=700,
-    )
-    return _ensure_stable_source_ids(normalized, fallback_prefix=pdf_id or "current-paper")
+    with trace_step(
+        "research_retrieve_current_paper",
+        input_size=len(str(query or "")),
+        meta={"pdfId": sanitize_text(pdf_id, max_chars=80)},
+    ) as step:
+        record_counter("retrievalCalls")
+        results = get_rag().retrieve(query, top_k=top_k, filter_metadata={"id": pdf_id})
+        normalized = normalize_evidence_items(
+            results,
+            source_type="current_paper",
+            pdf_id=pdf_id,
+            limit=limit,
+            max_text_chars=700,
+        )
+        stabilized = _ensure_stable_source_ids(normalized, fallback_prefix=pdf_id or "current-paper")
+        step["outputSize"] = len(stabilized)
+        return stabilized
 
 
 def _retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, top_k: int = 5, limit: int = 4) -> List[Dict[str, Any]]:
-    hybrid_results = retrieve_hybrid_results(query, top_k=top_k)
-    vector = hybrid_results.get("vector", []) if isinstance(hybrid_results, dict) else []
-    bm25 = hybrid_results.get("bm25", []) if isinstance(hybrid_results, dict) else []
-    normalized = normalize_evidence_items([*vector, *bm25], source_type="library", limit=limit * 2, max_text_chars=700)
+    with trace_step("research_retrieve_library", input_size=len(str(query or ""))) as step:
+        record_counter("retrievalCalls")
+        hybrid_results = retrieve_hybrid_results(query, top_k=top_k)
+        vector = hybrid_results.get("vector", []) if isinstance(hybrid_results, dict) else []
+        bm25 = hybrid_results.get("bm25", []) if isinstance(hybrid_results, dict) else []
+        normalized = normalize_evidence_items([*vector, *bm25], source_type="library", limit=limit * 2, max_text_chars=700)
 
-    filtered: List[Dict[str, Any]] = []
-    seen = set()
-    normalized_exclude = get_rag().normalize_id(exclude_pdf_id) if exclude_pdf_id else None
-    for item in _ensure_stable_source_ids(normalized, fallback_prefix="library"):
-        item_pdf_id = get_rag().normalize_id(item.get("pdfId")) if item.get("pdfId") else None
-        if normalized_exclude and item_pdf_id == normalized_exclude:
-            continue
-        key = (str(item.get("sourceId") or ""), str(item.get("text") or "")[:120])
-        if key in seen:
-            continue
-        seen.add(key)
-        filtered.append(item)
-        if len(filtered) >= limit:
-            break
-    return filtered
+        filtered: List[Dict[str, Any]] = []
+        seen = set()
+        normalized_exclude = get_rag().normalize_id(exclude_pdf_id) if exclude_pdf_id else None
+        for item in _ensure_stable_source_ids(normalized, fallback_prefix="library"):
+            item_pdf_id = get_rag().normalize_id(item.get("pdfId")) if item.get("pdfId") else None
+            if normalized_exclude and item_pdf_id == normalized_exclude:
+                continue
+            key = (str(item.get("sourceId") or ""), str(item.get("text") or "")[:120])
+            if key in seen:
+                continue
+            seen.add(key)
+            filtered.append(item)
+            if len(filtered) >= limit:
+                break
+        step["outputSize"] = len(filtered)
+        return filtered
 
 
 def _merge_evidence_lists(*groups: List[Dict[str, Any]], limit: int = 8) -> List[Dict[str, Any]]:

@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from schemas.requests import BackgroundKnowledgeRequest
 from services.background_knowledge_service import get_background_knowledge
+from services.trace_service import clear_traces, get_trace_snapshot
 
 
 class FakeRag:
@@ -25,6 +26,7 @@ class FakeRag:
 
 class BackgroundKnowledgeServiceTests(unittest.TestCase):
     def setUp(self):
+        clear_traces()
         self.neo4j_env = {
             "NEO4J_URI": "",
             "NEO4J_USER": "",
@@ -37,6 +39,9 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
             "taskType": "background",
             "source": "llm",
         }
+
+    def tearDown(self):
+        clear_traces()
 
     def test_legacy_topic_payload_returns_sections_and_normalized_level(self):
         with (
@@ -57,10 +62,14 @@ class BackgroundKnowledgeServiceTests(unittest.TestCase):
         self.assertEqual(response["user_knowledge_level"], "一般")
         self.assertEqual(response["background_knowledge"][0], "RAG")
         self.assertEqual(response["queryPlan"]["rewritten"], "AcademicRAG prerequisites")
+        self.assertTrue(response["traceId"])
         self.assertEqual(len(response["learning_path_sections"]), 4)
         self.assertTrue(any(section["items"] for section in response["learning_path_sections"]))
         self.assertEqual(response["sourceCoverage"]["totalConcepts"], len(response["graph"]["nodes"]) - 1)
         self.assertEqual(response["neo4j"]["status"], "skipped")
+        trace = get_trace_snapshot(response["traceId"])
+        self.assertEqual(trace["status"], "success")
+        self.assertIn("build_background_query_plan", [item["name"] for item in trace["steps"]])
 
     def test_pdf_payload_dedupes_nodes_backfills_sources_and_reports_coverage(self):
         llm_json = """

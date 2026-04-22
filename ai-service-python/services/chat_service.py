@@ -22,6 +22,14 @@ from services.evidence_service import (
 from services.page_translation_service import translate_page as translate_page_v2
 from services.query_service import build_chat_query_plan, build_retrieval_queries
 from services.retrieval_judge_service import judge_evidence_quality
+from services.trace_service import (
+    finalize_trace,
+    record_counter,
+    record_metric,
+    sanitize_text,
+    start_trace,
+    trace_step,
+)
 
 
 SOCRATIC_TOTAL_QUESTIONS = 5
@@ -184,15 +192,23 @@ def _retrieve_current_paper_evidence(
         return []
 
     try:
-        rag = get_rag()
-        clean_pdf_id = rag.normalize_id(pdf_id)
-        raw_results = rag.retrieve(retrieval_query, top_k=current_top_k, filter_metadata={"id": clean_pdf_id})
-        return normalize_evidence_items(
-            raw_results,
-            source_type="current_paper",
-            pdf_id=clean_pdf_id,
-            limit=current_limit,
-        )
+        with trace_step(
+            "retrieve_current_paper",
+            input_size=len(str(retrieval_query or "")),
+            meta={"pdfId": sanitize_text(pdf_id, max_chars=80)},
+        ) as step:
+            record_counter("retrievalCalls")
+            rag = get_rag()
+            clean_pdf_id = rag.normalize_id(pdf_id)
+            raw_results = rag.retrieve(retrieval_query, top_k=current_top_k, filter_metadata={"id": clean_pdf_id})
+            normalized = normalize_evidence_items(
+                raw_results,
+                source_type="current_paper",
+                pdf_id=clean_pdf_id,
+                limit=current_limit,
+            )
+            step["outputSize"] = len(normalized)
+            return normalized
     except Exception as error:
         print(f"PDF RAG retrieval failed: {error}")
         return []
@@ -203,8 +219,12 @@ def _retrieve_library_evidence(
     library_top_k: int = 3,
     library_limit: int = 3,
 ) -> List[Dict[str, Any]]:
-    raw_results = retrieve_hybrid_results(retrieval_query, top_k=library_top_k)
-    return _normalize_hybrid_evidence(raw_results, limit=library_limit)
+    with trace_step("retrieve_library", input_size=len(str(retrieval_query or ""))) as step:
+        record_counter("retrievalCalls")
+        raw_results = retrieve_hybrid_results(retrieval_query, top_k=library_top_k)
+        normalized = _normalize_hybrid_evidence(raw_results, limit=library_limit)
+        step["outputSize"] = len(normalized)
+        return normalized
 
 
 def _retrieve_evidence_for_query(
@@ -279,29 +299,46 @@ def _judge_and_retry_evidence(
         current_limit=current_limit,
         library_limit=library_limit,
     )
-    judge_result = judge_evidence_quality(
-        question,
-        evidence,
-        keywords=query_plan.get("keywords") or [],
-    )
+    with trace_step(
+        "judge_evidence",
+        input_size=len(evidence),
+        meta={"scope": scope or "none"},
+    ) as step:
+        judge_result = judge_evidence_quality(
+            question,
+            evidence,
+            keywords=query_plan.get("keywords") or [],
+        )
+        step["outputSize"] = len(judge_result.get("missingAspects") or [])
 
     if not _should_retry_retrieval(judge_result):
         return evidence, scope, judge_result
 
     retry_query = _build_retry_query(question, query_plan, judge_result)
-    retry_evidence, retry_scope = _retrieve_evidence_for_query(
-        retry_query,
-        pdf_id=pdf_id,
-        current_top_k=current_top_k,
-        library_top_k=library_top_k,
-        current_limit=current_limit,
-        library_limit=library_limit,
-    )
-    retry_judge = judge_evidence_quality(
-        question,
-        retry_evidence,
-        keywords=[*(query_plan.get("keywords") or []), *(judge_result.get("missingAspects") or [])],
-    )
+    with trace_step(
+        "retry_retrieval",
+        input_size=len(str(retry_query or "")),
+        meta={"missingAspects": judge_result.get("missingAspects") or []},
+    ):
+        retry_evidence, retry_scope = _retrieve_evidence_for_query(
+            retry_query,
+            pdf_id=pdf_id,
+            current_top_k=current_top_k,
+            library_top_k=library_top_k,
+            current_limit=current_limit,
+            library_limit=library_limit,
+        )
+    with trace_step(
+        "judge_retry_evidence",
+        input_size=len(retry_evidence),
+        meta={"scope": retry_scope or "none"},
+    ) as step:
+        retry_judge = judge_evidence_quality(
+            question,
+            retry_evidence,
+            keywords=[*(query_plan.get("keywords") or []), *(judge_result.get("missingAspects") or [])],
+        )
+        step["outputSize"] = len(retry_judge.get("missingAspects") or [])
 
     if retry_evidence:
         return retry_evidence, retry_scope, retry_judge
@@ -446,17 +483,28 @@ def _run_chat_agentic_retrieval(
         library_evidence.extend(primary_evidence)
 
     combined_evidence = _merge_chat_evidence(current_evidence, library_evidence)
-    judge_result = judge_evidence_quality(question, combined_evidence, keywords=_build_chat_keywords(query_plan))
+    with trace_step(
+        "judge_chat_evidence",
+        input_size=len(combined_evidence),
+        meta={"scope": primary_scope or "none"},
+    ) as step:
+        judge_result = judge_evidence_quality(question, combined_evidence, keywords=_build_chat_keywords(query_plan))
+        step["outputSize"] = len(judge_result.get("missingAspects") or [])
 
     if len(planned_queries) > 1 and _should_run_follow_up_query(planned_queries[1], judge_result):
-        follow_up_evidence, follow_up_scope = _execute_chat_query_step(
-            planned_queries[1],
-            pdf_id=pdf_id,
-            current_top_k=current_top_k,
-            library_top_k=library_top_k,
-            current_limit=current_limit,
-            library_limit=library_limit,
-        )
+        with trace_step(
+            "chat_follow_up_query",
+            input_size=len(str(planned_queries[1].get("query") or "")),
+            meta={"scope": planned_queries[1].get("scope")},
+        ):
+            follow_up_evidence, follow_up_scope = _execute_chat_query_step(
+                planned_queries[1],
+                pdf_id=pdf_id,
+                current_top_k=current_top_k,
+                library_top_k=library_top_k,
+                current_limit=current_limit,
+                library_limit=library_limit,
+            )
         if follow_up_scope:
             attempted_scopes.append(follow_up_scope)
         if follow_up_scope == "current_paper":
@@ -464,19 +512,30 @@ def _run_chat_agentic_retrieval(
         elif follow_up_scope == "library":
             library_evidence.extend(follow_up_evidence)
         combined_evidence = _merge_chat_evidence(current_evidence, library_evidence)
-        judge_result = judge_evidence_quality(question, combined_evidence, keywords=_build_chat_keywords(query_plan))
+        with trace_step(
+            "judge_chat_follow_up",
+            input_size=len(combined_evidence),
+            meta={"scope": follow_up_scope or "none"},
+        ) as step:
+            judge_result = judge_evidence_quality(question, combined_evidence, keywords=_build_chat_keywords(query_plan))
+            step["outputSize"] = len(judge_result.get("missingAspects") or [])
 
     if _should_retry_retrieval(judge_result):
         retry_query = _build_retry_query(question, query_plan, judge_result)
         retry_scope = _select_retry_scope(attempted_scopes, pdf_id, current_evidence, library_evidence)
-        retry_evidence, resolved_retry_scope = _execute_chat_query_step(
-            {"query": retry_query, "scope": retry_scope},
-            pdf_id=pdf_id,
-            current_top_k=current_top_k,
-            library_top_k=library_top_k,
-            current_limit=current_limit,
-            library_limit=library_limit,
-        )
+        with trace_step(
+            "chat_retry_query",
+            input_size=len(str(retry_query or "")),
+            meta={"scope": retry_scope, "missingAspects": judge_result.get("missingAspects") or []},
+        ):
+            retry_evidence, resolved_retry_scope = _execute_chat_query_step(
+                {"query": retry_query, "scope": retry_scope},
+                pdf_id=pdf_id,
+                current_top_k=current_top_k,
+                library_top_k=library_top_k,
+                current_limit=current_limit,
+                library_limit=library_limit,
+            )
         if resolved_retry_scope:
             attempted_scopes.append(resolved_retry_scope)
         if resolved_retry_scope == "current_paper":
@@ -484,11 +543,17 @@ def _run_chat_agentic_retrieval(
         elif resolved_retry_scope == "library":
             library_evidence.extend(retry_evidence)
         combined_evidence = _merge_chat_evidence(current_evidence, library_evidence)
-        judge_result = judge_evidence_quality(
-            question,
-            combined_evidence,
-            keywords=_build_chat_keywords(query_plan, judge_result.get("missingAspects") or []),
-        )
+        with trace_step(
+            "judge_chat_retry",
+            input_size=len(combined_evidence),
+            meta={"scope": resolved_retry_scope or "none"},
+        ) as step:
+            judge_result = judge_evidence_quality(
+                question,
+                combined_evidence,
+                keywords=_build_chat_keywords(query_plan, judge_result.get("missingAspects") or []),
+            )
+            step["outputSize"] = len(judge_result.get("missingAspects") or [])
 
     return combined_evidence, _resolve_chat_scope(current_evidence, library_evidence), judge_result
 
@@ -1239,32 +1304,44 @@ Reading progress:
 
 
 def explain_term(request: TermExplainRequest) -> Dict[str, Any]:
-    page_context = request.context or ""
-    rag_query = f"Explain the selected academic text '{request.term}' with the following context: {page_context[:200]}"
-    query_plan = build_retrieval_queries(rag_query, context=page_context, task_type="explain")
-    retrieval_query = query_plan.get("rewritten") or query_plan.get("original") or rag_query
-
-    rag_results, rag_scope, retrieval_judge = _judge_and_retry_evidence(
-        rag_query,
-        retrieval_query,
-        query_plan,
-        pdf_id=request.pdfId,
-        current_top_k=5,
-        library_top_k=3,
-        current_limit=5,
-        library_limit=3,
+    trace_id = start_trace(
+        "chat",
+        request_meta={
+            "mode": "explain",
+            "term": sanitize_text(request.term, max_chars=80),
+            "pdfId": sanitize_text(request.pdfId, max_chars=80),
+            "pageNumber": request.pageNumber,
+        },
     )
+    try:
+        page_context = request.context or ""
+        rag_query = f"Explain the selected academic text '{request.term}' with the following context: {page_context[:200]}"
+        with trace_step("build_explain_query_plan", input_size=len(rag_query)) as step:
+            query_plan = build_retrieval_queries(rag_query, context=page_context, task_type="explain")
+            retrieval_query = query_plan.get("rewritten") or query_plan.get("original") or rag_query
+            step["outputSize"] = len(query_plan.get("keywords") or [])
 
-    rag_context = ""
-    if rag_results:
-        context_title = _evidence_context_title(
-            rag_scope,
-            current_title="Current paper RAG context",
-            library_title="Additional literature context",
+        rag_results, rag_scope, retrieval_judge = _judge_and_retry_evidence(
+            rag_query,
+            retrieval_query,
+            query_plan,
+            pdf_id=request.pdfId,
+            current_top_k=5,
+            library_top_k=3,
+            current_limit=5,
+            library_limit=3,
         )
-        rag_context = format_evidence_context(rag_results, title=context_title, max_items=5, max_text_chars=600)
 
-    prompt = f"""
+        rag_context = ""
+        if rag_results:
+            context_title = _evidence_context_title(
+                rag_scope,
+                current_title="Current paper RAG context",
+                library_title="Additional literature context",
+            )
+            rag_context = format_evidence_context(rag_results, title=context_title, max_items=5, max_text_chars=600)
+
+        prompt = f"""
 You are an academic research assistant.
 Explain the selected term, formula, or passage "{request.term}" in Chinese using the provided context.
 {MATH_MARKDOWN_GUIDELINE}
@@ -1277,16 +1354,33 @@ Current page context{f" (page {request.pageNumber})" if request.pageNumber else 
 
 Keep the answer within 5 sentences.
 """
-    explanation = get_llm()._call(prompt)
+        with trace_step("generate_explain_answer", input_size=len(prompt)) as step:
+            explanation = get_llm()._call(prompt)
+            step["outputSize"] = len(str(explanation or ""))
 
-    return {
-        "status": "success",
-        "term": request.term,
-        "explanation": explanation,
-        "rag_sources": compact_evidence_for_response(rag_results, max_items=5, max_text_chars=700),
-        "queryPlan": query_plan,
-        "retrievalJudge": retrieval_judge,
-    }
+        response = {
+            "status": "success",
+            "term": request.term,
+            "explanation": explanation,
+            "rag_sources": compact_evidence_for_response(rag_results, max_items=5, max_text_chars=700),
+            "queryPlan": query_plan,
+            "retrievalJudge": retrieval_judge,
+            "traceId": trace_id,
+        }
+        record_metric("evidenceItems", len(rag_results))
+        finalize_trace(
+            "success",
+            response_meta={
+                "mode": "explain",
+                "scope": rag_scope or "none",
+                "verdict": retrieval_judge.get("verdict"),
+                "evidenceItems": len(rag_results),
+            },
+        )
+        return response
+    except Exception as error:
+        finalize_trace("error", error=error)
+        raise
 
 
 def chat(request: ChatRequest) -> Dict[str, Any]:
@@ -1294,58 +1388,70 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
     if not message.strip():
         raise ValueError("Message cannot be empty.")
 
-    history = request.history or []
-    paper_skeleton = request.paperSkeleton or {}
-    planner_context = _build_chat_query_context(history, paper_skeleton)
-    query_plan = build_chat_query_plan(
-        message,
-        context=planner_context,
-        task_type="chat",
-        has_pdf=bool(request.pdfId),
+    trace_id = start_trace(
+        "chat",
+        request_meta={
+            "mode": "chat",
+            "message": sanitize_text(message, max_chars=120),
+            "pdfId": sanitize_text(request.pdfId, max_chars=80),
+            "historyItems": len(request.history or []),
+        },
     )
+    try:
+        history = request.history or []
+        paper_skeleton = request.paperSkeleton or {}
+        planner_context = _build_chat_query_context(history, paper_skeleton)
+        with trace_step("build_chat_query_plan", input_size=len(planner_context) + len(message)) as step:
+            query_plan = build_chat_query_plan(
+                message,
+                context=planner_context,
+                task_type="chat",
+                has_pdf=bool(request.pdfId),
+            )
+            step["outputSize"] = len(query_plan.get("queries") or [])
 
-    rag_results, rag_scope, retrieval_judge = _run_chat_agentic_retrieval(
-        message,
-        query_plan,
-        pdf_id=request.pdfId,
-        current_top_k=12,
-        library_top_k=5,
-        current_limit=12,
-        library_limit=5,
-    )
-
-    context = ""
-    if rag_results:
-        max_items = 12 if rag_scope == "current_paper" else 8
-        context = format_evidence_context(
-            rag_results,
-            title=_evidence_context_title(
-                rag_scope,
-                current_title="Paper evidence",
-                library_title="Library evidence",
-                mixed_title="Paper and library evidence",
-            ),
-            max_items=max_items,
-            max_text_chars=900,
+        rag_results, rag_scope, retrieval_judge = _run_chat_agentic_retrieval(
+            message,
+            query_plan,
+            pdf_id=request.pdfId,
+            current_top_k=12,
+            library_top_k=5,
+            current_limit=12,
+            library_limit=5,
         )
 
-    history_str = ""
-    for item in history[-5:]:
-        role = item.get("role", "")
-        role_name = "用户" if role == "user" else "助手"
-        history_str += f"{role_name}: {item.get('content', '')}\n"
+        context = ""
+        if rag_results:
+            max_items = 12 if rag_scope == "current_paper" else 8
+            context = format_evidence_context(
+                rag_results,
+                title=_evidence_context_title(
+                    rag_scope,
+                    current_title="Paper evidence",
+                    library_title="Library evidence",
+                    mixed_title="Paper and library evidence",
+                ),
+                max_items=max_items,
+                max_text_chars=900,
+            )
 
-    skeleton_str = ""
-    if paper_skeleton:
-        skeleton_str = "\nPaper summary:\n"
-        for section, summary in paper_skeleton.items():
-            skeleton_str += f"- {section}: {summary}\n"
+        history_str = ""
+        for item in history[-5:]:
+            role = item.get("role", "")
+            role_name = "用户" if role == "user" else "助手"
+            history_str += f"{role_name}: {item.get('content', '')}\n"
 
-    plan_summary = _format_query_plan_summary(query_plan)
-    intent = str(query_plan.get("intent") or "自由问答")
-    answer_style = str(query_plan.get("answerStyle") or "concise")
+        skeleton_str = ""
+        if paper_skeleton:
+            skeleton_str = "\nPaper summary:\n"
+            for section, summary in paper_skeleton.items():
+                skeleton_str += f"- {section}: {summary}\n"
 
-    prompt = f"""你是一位学术论文阅读助手。
+        plan_summary = _format_query_plan_summary(query_plan)
+        intent = str(query_plan.get("intent") or "自由问答")
+        answer_style = str(query_plan.get("answerStyle") or "concise")
+
+        prompt = f"""你是一位学术论文阅读助手。
 请结合论文摘要结构、检索计划、相关证据片段和对话历史，用中文回答用户问题。
 当前意图：{intent}
 {_chat_intent_instruction(intent)}
@@ -1363,15 +1469,33 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
 {history_str}
 用户：{message}
 助手："""
+        with trace_step("generate_chat_answer", input_size=len(prompt)) as step:
+            reply = get_llm()._call(prompt)
+            step["outputSize"] = len(str(reply or ""))
 
-    reply = get_llm()._call(prompt)
-    return {
-        "status": "success",
-        "message": reply or "",
-        "rag_sources": compact_evidence_for_response(rag_results, max_items=12, max_text_chars=700),
-        "queryPlan": query_plan,
-        "retrievalJudge": retrieval_judge,
-    }
+        response = {
+            "status": "success",
+            "message": reply or "",
+            "rag_sources": compact_evidence_for_response(rag_results, max_items=12, max_text_chars=700),
+            "queryPlan": query_plan,
+            "retrievalJudge": retrieval_judge,
+            "traceId": trace_id,
+        }
+        record_metric("evidenceItems", len(rag_results))
+        finalize_trace(
+            "success",
+            response_meta={
+                "mode": "chat",
+                "scope": rag_scope or "none",
+                "intent": intent,
+                "verdict": retrieval_judge.get("verdict"),
+                "evidenceItems": len(rag_results),
+            },
+        )
+        return response
+    except Exception as error:
+        finalize_trace("error", error=error)
+        raise
 
 
 def translate_page(request: PageTranslationRequest) -> Dict[str, Any]:
