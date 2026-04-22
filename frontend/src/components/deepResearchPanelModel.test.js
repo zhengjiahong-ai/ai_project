@@ -1,0 +1,125 @@
+import assert from 'node:assert/strict';
+
+import {
+  buildResearchContextHint,
+  clampResearchProgress,
+  createDeepResearchSnapshot,
+  createEmptyDeepResearchState,
+  getResearchStageMeta,
+  getResearchStatusMeta,
+  getResearchVerdictMeta,
+  normalizeResearchTask,
+} from './deepResearchPanelModel.js';
+
+
+const run = async () => {
+  const emptyState = createEmptyDeepResearchState();
+  assert.deepEqual(emptyState, {
+    questionDraft: '',
+    task: null,
+    errorMessage: '',
+    isCreating: false,
+    isCancelling: false,
+    pollError: '',
+  });
+
+  assert.equal(clampResearchProgress(-1), 0);
+  assert.equal(clampResearchProgress(0.45), 0.45);
+  assert.equal(clampResearchProgress(3), 1);
+  assert.equal(clampResearchProgress('bad'), 0);
+
+  assert.equal(getResearchStatusMeta('running').label, '进行中');
+  assert.equal(getResearchStageMeta('synthesizing').label, '综合');
+  assert.equal(getResearchVerdictMeta('CORRECT').label, '证据充足');
+  assert.equal(getResearchVerdictMeta('unknown').label, '证据不足');
+
+  assert.equal(buildResearchContextHint({ research_problem: '验证 RAG 是否提升论文问答质量' }), '验证 RAG 是否提升论文问答质量');
+  assert.equal(buildResearchContextHint({ core_hypothesis: '当前论文假设图检索可以减少幻觉' }), '当前论文假设图检索可以减少幻觉');
+  assert.equal(buildResearchContextHint({}), '');
+
+  const normalizedRunningTask = normalizeResearchTask({
+    taskId: 'task-1',
+    status: 'running',
+    stage: 'retrieving',
+    progress: 1.8,
+    question: '研究问题',
+    pdfId: 'paper-1',
+    plan: ['子问题一', '', '子问题二'],
+    findings: [
+      {
+        subQuestion: '实验支撑是否充分？',
+        summary: '当前论文已有部分结果，但 ablation 不完整。',
+        verdict: 'AMBIGUOUS',
+        missingAspects: ['ablation', '', 'baseline'],
+        sourceIds: ['paper-1-chunk-2', '', 'lib-1-chunk-3'],
+      },
+      {
+        summary: '',
+        verdict: 'unexpected',
+      },
+    ],
+    report: null,
+    error: null,
+  });
+
+  assert.equal(normalizedRunningTask.progress, 1);
+  assert.deepEqual(normalizedRunningTask.plan, ['子问题一', '子问题二']);
+  assert.equal(normalizedRunningTask.findings[0].verdict, 'AMBIGUOUS');
+  assert.deepEqual(normalizedRunningTask.findings[0].missingAspects, ['ablation', 'baseline']);
+  assert.deepEqual(normalizedRunningTask.findings[0].sourceIds, ['paper-1-chunk-2', 'lib-1-chunk-3']);
+  assert.equal(normalizedRunningTask.findings[1].subQuestion, '子问题 2');
+  assert.equal(normalizedRunningTask.findings[1].summary, '暂无结论摘要。');
+  assert.equal(normalizedRunningTask.findings[1].verdict, 'INCORRECT');
+  assert.equal(normalizedRunningTask.report, '');
+
+  const snapshot = createDeepResearchSnapshot({
+    pdfFileName: 'paper.pdf',
+    paperStructure: { research_problem: '判断这篇论文的实验结论边界' },
+    questionDraft: '请对实验设计做深度研究',
+    pollError: '任务状态已丢失',
+    task: {
+      taskId: 'task-2',
+      status: 'cancelled',
+      stage: 'done',
+      progress: 0.76,
+      findings: [
+        {
+          subQuestion: '子问题 A',
+          summary: '结论',
+          verdict: 'CORRECT',
+          sourceIds: ['source-1', 'source-2'],
+          missingAspects: [],
+        },
+        {
+          subQuestion: '子问题 B',
+          summary: '仍缺证据',
+          verdict: 'INCORRECT',
+          sourceIds: [],
+          missingAspects: ['更完整指标'],
+        },
+      ],
+      report: '## 报告',
+      error: '',
+    },
+  });
+
+  assert.equal(snapshot.fileLabel, 'paper.pdf');
+  assert.equal(snapshot.paperHint, '判断这篇论文的实验结论边界');
+  assert.equal(snapshot.questionDraft, '请对实验设计做深度研究');
+  assert.equal(snapshot.statusLabel, '已取消');
+  assert.equal(snapshot.stageLabel, '完成');
+  assert.equal(snapshot.progressPercent, 76);
+  assert.deepEqual(snapshot.verdictLabels, ['证据充足', '证据不足']);
+  assert.deepEqual(snapshot.sourceIdCounts, [2, 0]);
+  assert.deepEqual(snapshot.missingAspectCounts, [0, 1]);
+  assert.equal(snapshot.hasReport, true);
+  assert.equal(snapshot.errorText, '任务状态已丢失');
+
+  console.log('deep research panel model smoke tests passed');
+};
+
+
+run().catch((error) => {
+  console.error(error);
+  globalThis.process.exit(1);
+});

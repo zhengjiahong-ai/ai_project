@@ -6,6 +6,7 @@ import { Group, Panel, Separator } from 'react-resizable-panels';
 import BackgroundKnowledgePanel from './components/BackgroundKnowledgePanel.jsx';
 import ChatPanel from './components/ChatPanel';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel';
+import DeepResearchPanel from './components/DeepResearchPanel.jsx';
 import LibrarySidebar from './components/LibrarySidebar';
 import Navbar from './components/Navbar';
 import PaperAnalysis from './components/PaperAnalysis';
@@ -30,6 +31,11 @@ import {
   createEmptySocraticSession,
   normalizeSocraticSession,
 } from './utils/socraticSessionModel.js';
+import {
+  TERMINAL_RESEARCH_STATUSES,
+  createEmptyDeepResearchState,
+  normalizeResearchTask,
+} from './components/deepResearchPanelModel.js';
 
 const WELCOME_MESSAGE = {
   role: 'ai',
@@ -39,6 +45,7 @@ const WELCOME_MESSAGE = {
 const DEFAULT_ACTIVE_TAB = 'chat';
 const THEME_STORAGE_KEY = 'pixiu-theme';
 const DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL = '一般';
+const RESEARCH_POLL_INTERVAL_MS = 1500;
 const STRUCTURED_TRANSLATION_TIMEOUT_MS = 15000;
 
 const normalizeBackgroundKnowledgeLevel = (value) => {
@@ -134,6 +141,7 @@ export default function App() {
   const [loadingPapers, setLoadingPapers] = useState({});
   const [pdfHighlights, setPdfHighlights] = useState([]);
   const [translationState, setTranslationState] = useState(createEmptyTranslationState());
+  const [deepResearchStateByPdf, setDeepResearchStateByPdf] = useState({});
   const [papersList, setPapersList] = useState([]);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
@@ -143,6 +151,7 @@ export default function App() {
   const latestTranslationTokensRef = useRef({});
   const translationStateRef = useRef(createEmptyTranslationState());
   const papersListRef = useRef([]);
+  const currentPdfIdRef = useRef(null);
   const currentPageTextRef = useRef({
     pageIndex: 0,
     pageText: '',
@@ -155,6 +164,10 @@ export default function App() {
   useEffect(() => {
     papersListRef.current = papersList;
   }, [papersList]);
+
+  useEffect(() => {
+    currentPdfIdRef.current = pdfId;
+  }, [pdfId]);
 
   useEffect(() => {
     translationStateRef.current = translationState;
@@ -193,6 +206,25 @@ export default function App() {
 
     translationStateRef.current = nextStateOrUpdater;
     setTranslationState(nextStateOrUpdater);
+  }, []);
+
+  const setDeepResearchStateForPdf = useCallback((targetPdfId, nextStateOrUpdater) => {
+    if (!targetPdfId) {
+      return;
+    }
+
+    setDeepResearchStateByPdf((previousState) => {
+      const previousResearchState = previousState[targetPdfId] || createEmptyDeepResearchState();
+      const nextResearchState =
+        typeof nextStateOrUpdater === 'function'
+          ? nextStateOrUpdater(previousResearchState)
+          : nextStateOrUpdater;
+
+      return {
+        ...previousState,
+        [targetPdfId]: nextResearchState,
+      };
+    });
   }, []);
 
   const fetchRemoteHistory = useCallback(async (sessionId, fallbackMessages = []) => {
@@ -404,6 +436,14 @@ export default function App() {
       ]);
 
       setPapersList((prev) => prev.filter((paper) => paper.id !== targetPdfId));
+      setDeepResearchStateByPdf((prev) => {
+        if (!Object.prototype.hasOwnProperty.call(prev, targetPdfId)) {
+          return prev;
+        }
+        const nextState = { ...prev };
+        delete nextState[targetPdfId];
+        return nextState;
+      });
 
       if (pdfId === targetPdfId) {
         setPdfId(null);
@@ -589,6 +629,256 @@ export default function App() {
       setIsBackgroundKnowledgeLoading(false);
     }
   }, [backgroundKnowledgeLevel, deconstructData, pdfId]);
+
+  const handleDeepResearchQuestionChange = useCallback((nextQuestionDraft) => {
+    if (!pdfId) {
+      return;
+    }
+
+    setDeepResearchStateForPdf(pdfId, (prev) => ({
+      ...prev,
+      questionDraft: nextQuestionDraft,
+      errorMessage: '',
+    }));
+  }, [pdfId, setDeepResearchStateForPdf]);
+
+  const handleStartResearchTask = useCallback(async () => {
+    if (!pdfId) {
+      return;
+    }
+
+    const currentState = deepResearchStateByPdf[pdfId] || createEmptyDeepResearchState();
+    const question = `${currentState.questionDraft || ''}`.trim();
+    if (!question) {
+      setDeepResearchStateForPdf(pdfId, (prev) => ({
+        ...prev,
+        errorMessage: '请输入研究问题后再启动深度研究任务。',
+      }));
+      return;
+    }
+
+    setDeepResearchStateForPdf(pdfId, (prev) => ({
+      ...prev,
+      isCreating: true,
+      isCancelling: false,
+      errorMessage: '',
+      pollError: '',
+    }));
+
+    try {
+      const response = await apiService.createResearchTask(
+        question,
+        pdfId,
+        deconstructData?.paper_skeleton || null,
+      );
+      const nextTask = normalizeResearchTask(response?.task);
+      if (response?.status !== 'success' || !nextTask) {
+        throw new Error(response?.message || '深度研究任务创建失败');
+      }
+
+      setDeepResearchStateForPdf(pdfId, (prev) => ({
+        ...prev,
+        questionDraft: question,
+        task: nextTask,
+        errorMessage: '',
+        pollError: '',
+        isCreating: false,
+        isCancelling: false,
+      }));
+
+      if (currentPdfIdRef.current === pdfId) {
+        setActiveTab('deep-research');
+      }
+    } catch (error) {
+      console.error('Failed to create deep research task.', error);
+      setDeepResearchStateForPdf(pdfId, (prev) => ({
+        ...prev,
+        isCreating: false,
+        errorMessage: error?.response?.data?.message || error?.message || '深度研究任务创建失败，请稍后重试。',
+      }));
+    }
+  }, [deepResearchStateByPdf, deconstructData, pdfId, setDeepResearchStateForPdf]);
+
+  const handleRefreshResearchTask = useCallback(async () => {
+    if (!pdfId) {
+      return;
+    }
+
+    const currentTaskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
+    if (!currentTaskId) {
+      return;
+    }
+
+    setDeepResearchStateForPdf(pdfId, (prev) => ({
+      ...prev,
+      errorMessage: '',
+      pollError: '',
+    }));
+
+    try {
+      const response = await apiService.getResearchTask(currentTaskId);
+      const nextTask = normalizeResearchTask(response?.task);
+      if (response?.status !== 'success' || !nextTask) {
+        throw new Error(response?.message || '深度研究任务状态刷新失败');
+      }
+
+      setDeepResearchStateForPdf(pdfId, (prev) => {
+        if ((prev.task?.taskId || '') !== currentTaskId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          task: nextTask,
+          errorMessage: '',
+          pollError: '',
+          isCreating: false,
+          isCancelling: false,
+        };
+      });
+    } catch (error) {
+      console.error('Failed to refresh deep research task.', error);
+      setDeepResearchStateForPdf(pdfId, (prev) => {
+        if ((prev.task?.taskId || '') !== currentTaskId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          pollError: error?.response?.data?.message || error?.message || '深度研究任务状态刷新失败。',
+        };
+      });
+    }
+  }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
+
+  const handleCancelResearchTask = useCallback(async () => {
+    if (!pdfId) {
+      return;
+    }
+
+    const currentTaskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
+    if (!currentTaskId) {
+      return;
+    }
+
+    setDeepResearchStateForPdf(pdfId, (prev) => ({
+      ...prev,
+      isCancelling: true,
+      errorMessage: '',
+      pollError: '',
+    }));
+
+    try {
+      const response = await apiService.cancelResearchTask(currentTaskId);
+      const nextTask = normalizeResearchTask(response?.task);
+      if (response?.status !== 'success' || !nextTask) {
+        throw new Error(response?.message || '深度研究任务取消失败');
+      }
+
+      setDeepResearchStateForPdf(pdfId, (prev) => {
+        if ((prev.task?.taskId || '') !== currentTaskId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          task: nextTask,
+          errorMessage: '',
+          pollError: '',
+          isCreating: false,
+          isCancelling: false,
+        };
+      });
+    } catch (error) {
+      console.error('Failed to cancel deep research task.', error);
+      setDeepResearchStateForPdf(pdfId, (prev) => {
+        if ((prev.task?.taskId || '') !== currentTaskId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          isCancelling: false,
+          errorMessage: error?.response?.data?.message || error?.message || '深度研究任务取消失败。',
+        };
+      });
+    }
+  }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
+
+  const currentDeepResearchState = pdfId
+    ? deepResearchStateByPdf[pdfId] || createEmptyDeepResearchState()
+    : createEmptyDeepResearchState();
+  const currentResearchTaskId = currentDeepResearchState.task?.taskId || '';
+  const currentResearchTaskStatus = currentDeepResearchState.task?.status || '';
+  const currentResearchPollError = currentDeepResearchState.pollError || '';
+
+  useEffect(() => {
+    if (
+      !pdfId ||
+      !currentResearchTaskId ||
+      TERMINAL_RESEARCH_STATUSES.includes(currentResearchTaskStatus) ||
+      currentResearchPollError
+    ) {
+      return undefined;
+    }
+
+    let isCancelled = false;
+    const targetPdfId = pdfId;
+    const timerId = setTimeout(async () => {
+      try {
+        const response = await apiService.getResearchTask(currentResearchTaskId);
+        const nextTask = normalizeResearchTask(response?.task);
+        if (isCancelled) {
+          return;
+        }
+        if (response?.status !== 'success' || !nextTask) {
+          throw new Error(response?.message || '深度研究任务状态刷新失败');
+        }
+
+        setDeepResearchStateForPdf(targetPdfId, (prev) => {
+          if ((prev.task?.taskId || '') !== currentResearchTaskId) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            task: nextTask,
+            pollError: '',
+            isCreating: false,
+            isCancelling: false,
+          };
+        });
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setDeepResearchStateForPdf(targetPdfId, (prev) => {
+          if ((prev.task?.taskId || '') !== currentResearchTaskId) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            pollError: error?.response?.data?.message || error?.message || '深度研究任务状态刷新失败。',
+            isCreating: false,
+            isCancelling: false,
+          };
+        });
+      }
+    }, RESEARCH_POLL_INTERVAL_MS);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timerId);
+    };
+  }, [
+    currentResearchPollError,
+    currentResearchTaskId,
+    currentResearchTaskStatus,
+    pdfId,
+    setDeepResearchStateForPdf,
+  ]);
 
   const handleSendMessage = useCallback((message) => {
     if (!pdfId || loadingPapers[pdfId]) return;
@@ -1228,6 +1518,23 @@ export default function App() {
                     onGenerate={handleGenerateBackgroundKnowledge}
                     knowledgeLevel={backgroundKnowledgeLevel}
                     onKnowledgeLevelChange={setBackgroundKnowledgeLevel}
+                  />
+                )}
+
+                {activeTab === 'deep-research' && (
+                  <DeepResearchPanel
+                    pdfFileName={pdfFileName}
+                    paperStructure={deconstructData?.paper_structure || null}
+                    questionDraft={currentDeepResearchState.questionDraft}
+                    task={currentDeepResearchState.task}
+                    errorMessage={currentDeepResearchState.errorMessage}
+                    pollError={currentDeepResearchState.pollError}
+                    isCreating={currentDeepResearchState.isCreating}
+                    isCancelling={currentDeepResearchState.isCancelling}
+                    onQuestionChange={handleDeepResearchQuestionChange}
+                    onStart={handleStartResearchTask}
+                    onRefresh={handleRefreshResearchTask}
+                    onCancel={handleCancelResearchTask}
                   />
                 )}
 

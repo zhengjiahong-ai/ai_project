@@ -66,6 +66,14 @@
 - 当前模块的任务状态仅允许存 Python 进程内存；服务重启后任务可丢失，这一限制必须在 README 与后续 UI 中明确，不得伪装成可恢复的持久任务。
 - `POST /api/research-tasks/{taskId}/cancel` 必须保持幂等；任务已结束时返回当前快照，任务不存在时返回 `404` 与 `{ status: "error", message }`。
 
+## 2026-04-22 深度研究前端面板补充
+
+- 前端“深度研究”页签只能通过 `frontend/src/services/api.js` 中的 `createResearchTask`、`getResearchTask`、`cancelResearchTask` 三个方法访问 research task 接口，禁止在组件中直接拼接 `/api/research-tasks` URL。
+- 深度研究前端状态必须按 `pdfId` 隔离，单个当前论文 UI 同时只跟踪一个活动 research task；切换论文不得复用上一个论文的 `questionDraft`、`task`、`pollError` 或取消状态。
+- 当前模块不做 IndexedDB 或 localStorage 持久化 research task 快照；刷新页面后允许回到空态，后端服务重启或任务状态丢失时只能提示不可恢复，不得伪装成持久任务恢复成功。
+- 前端面板必须兼容 `task.plan`、`task.findings`、`task.report`、`task.error` 为空或缺失；展示层只能做兼容式默认值填充，不得把缺失字段改写成新的接口要求。
+- 前端自动轮询只允许针对当前论文的当前 `taskId` 查询状态，任务进入 `succeeded`、`failed`、`cancelled` 后必须停止轮询；轮询异常时允许提示 `pollError`，但不得覆盖成伪造的终态快照。
+
 ---
 
 ## 一、技术栈要求

@@ -118,7 +118,7 @@ docker-compose up --build
 - **学术笔记**：支持在阅读时添加笔记并持久化到 IndexedDB。
 - **全景翻译**：支持按当前 PDF 页提取文本并进行逐页全文翻译，译文显示在右侧专用面板中；翻页后自动跟随当前页更新，并对已翻译页面进行缓存，避免重复请求。
 - **引导式学习**：保持固定 5 题的苏格拉底式学习流程，基于论文内容、阅读进度和论文骨架生成问题；每轮提问与回答评估会优先参考当前论文 RAG 证据，返回掌握度评估、证据判断和待补强要点，并在最终总结中给出建议回读章节、概念或证据点，帮助用户用问答方式推进理解。
-- **深度研究任务 API**：后端新增深度研究任务创建、查询、取消三条接口，围绕当前论文以“研究 brief -> 3-5 个子问题 -> 当前论文优先检索 -> judge -> 中文 Markdown 报告”的最小状态机执行；当前前端先只在 `frontend/src/services/api.js` 提供调用方法，不要求完整任务面板同时上线。
+- **深度研究**：新增独立“深度研究”页签，用户可围绕当前论文输入研究问题、启动任务、轮询查看阶段与进度、取消任务，并在同一面板中查看结构化 `findings` 与最终 Markdown 报告；任务状态当前只保留在浏览器会话内存中，刷新页面后不保证恢复。
 
 ---
 
@@ -151,7 +151,8 @@ docker-compose --profile neo4j up --build
 - 三个成功响应统一返回 `{ status, task }`，其中 `task` 包含 `taskId`、任务 `status`、`stage`、`progress`、`plan`、结构化 `findings`、`report` 与 `error`。
 - `findings` 当前固定为结构化摘要项：`{ subQuestion, summary, verdict, missingAspects, sourceIds }`；`verdict` 复用 `CORRECT | AMBIGUOUS | INCORRECT`，`sourceIds` 只引用本任务中实际使用的证据片段。
 - 任务状态目前先存 Python 进程内存，适合作为模块 8 的最小版本；服务重启后任务不会恢复，完整任务面板与持久化增强留给后续模块。
-- 前端 `frontend/src/services/api.js` 已补 `createResearchTask`、`getResearchTask`、`cancelResearchTask` 三个方法，便于后续模块 8B 直接接入轮询与取消 UI。
+- 前端现在已接入最小任务面板：通过 `frontend/src/services/api.js` 中的 `createResearchTask`、`getResearchTask`、`cancelResearchTask` 三个方法完成创建、轮询刷新与取消，不在组件内部直接拼接 URL。
+- 右侧“深度研究”面板会展示任务 `status`、`stage`、`progress`、`plan`、结构化 `findings` 和最终 Markdown `report`；如果后端服务重启或任务状态丢失，面板只提示当前任务不可恢复，不伪装为持久化任务。
 
 ---
 

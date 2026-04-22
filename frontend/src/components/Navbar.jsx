@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Moon,
   Network,
+  Search,
   Sparkles,
   Sun,
   Upload,
@@ -18,6 +19,7 @@ const navItems = [
   { id: 'analysis', label: '批判性分析', icon: BarChart3 },
   { id: 'socratic', label: '引导式学习', icon: Sparkles },
   { id: 'background', label: '背景补课', icon: Network },
+  { id: 'deep-research', label: '深度研究', icon: Search },
   { id: 'deconstruct', label: '篇章解构', icon: LayoutDashboard },
   { id: 'notes', label: '学术笔记', icon: Bookmark },
 ];
