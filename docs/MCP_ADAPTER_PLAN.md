@@ -4,7 +4,7 @@
 
 ## 目标与结论
 
-当前 `ai_project` 已经完成模块 11 的内部工具注册层，Python AI 服务内存在稳定的 `tool_registry`，并且 deep research 已优先通过该层调度当前论文检索、文献库检索、论文骨架读取与证据 judge。基于这一现状，项目已经具备“未来做 MCP adapter”的最低工程基础，但**当前阶段不应直接引入 MCP 运行时**。
+当前 `ai_project` 已经完成内部工具注册层，Python AI 服务内存在稳定的 `tool_registry`，并且 deep research 已优先通过该层调度当前论文检索、文献库检索、论文骨架读取与证据 judge。基于这一现状，项目已经具备“未来做 MCP adapter”的最低工程基础，但**当前阶段不应直接引入 MCP 运行时**。
 
 原因如下：
 
