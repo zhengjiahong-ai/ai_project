@@ -7,7 +7,6 @@ import {
   buildTranslationRequestPageLayout,
   doesBboxIntersect,
   isBlockInExcludedZone,
-  normalizeFigureSnippets,
 } from './pdfTranslationLayout.js';
 
 const run = () => {
@@ -282,16 +281,6 @@ const run = () => {
   assert.ok(landscapeFidelityLayout.positionedItems[0].left < landscapeFidelityLayout.positionedItems[1].left);
   assert.ok(landscapePageLayout.blocks[0].readingOrder < landscapePageLayout.blocks[1].readingOrder);
 
-  const figureSnippets = normalizeFigureSnippets([
-    {
-      id: 'figure-1',
-      type: 'figure',
-      bbox: { left: 0.54, top: 0.34, width: 0.28, height: 0.16 },
-      image: 'data:image/png;base64,figure',
-    },
-  ]);
-  assert.equal(figureSnippets.length, 1);
-
   const readableLayout = buildReadableTranslationLayout(
     pageLayout,
     [
@@ -299,19 +288,10 @@ const run = () => {
       { id: pageLayout.blocks[1].id, translatedText: '这是第一段。' },
       { id: pageLayout.blocks[2].id, translatedText: '这是第二段。' },
     ],
-    figureSnippets,
   );
   assert.equal(readableLayout.sections.length >= 1, true);
   assert.equal(readableLayout.sections[0].items[0].role, 'title');
-  assert.equal(readableLayout.summary.totalFigures, 1);
-  assert.equal(
-    readableLayout.sections.some((section) =>
-      section.type === 'columns'
-        ? [...section.left, ...section.right].some((item) => item.kind === 'figure')
-        : section.items.some((item) => item.kind === 'figure'),
-    ),
-    true,
-  );
+  assert.equal(readableLayout.summary.totalBlocks, 3);
 
   const readableTwoColumnLayout = buildReadableTranslationLayout(
     rawColumnOrderPageLayout,
@@ -331,7 +311,6 @@ const run = () => {
       { id: pageLayout.blocks[1].id, translatedText: '这是第一段。' },
       { id: pageLayout.blocks[2].id, translatedText: '这是第二段。' },
     ],
-    figureSnippets,
   );
   assert.ok(fidelityLayout);
   assert.equal(fidelityLayout.positionedItems[0].left, pageLayout.blocks[0].bbox.left);
@@ -340,10 +319,6 @@ const run = () => {
     Number((pageLayout.blocks[0].bbox.top * (viewport.height / viewport.width)).toFixed(6)),
   );
   assert.equal(fidelityLayout.positionedItems[0].style.textAlign, 'center');
-  assert.equal(
-    fidelityLayout.positionedItems.some((item) => item.kind === 'figure' && item.left === figureSnippets[0].bbox.left),
-    true,
-  );
 
   const twoColumnLayout = {
     viewport,
@@ -404,7 +379,7 @@ const run = () => {
     id: block.id,
     translatedText: `Translated ${block.id}`,
   }));
-  const overflowLayout = buildFidelityTranslationLayout(twoColumnLayout, twoColumnTranslations, [], {
+  const overflowLayout = buildFidelityTranslationLayout(twoColumnLayout, twoColumnTranslations, {
     'block-2': 0.48,
   });
   assert.ok(overflowLayout);
@@ -445,25 +420,21 @@ const run = () => {
     id: block.id,
     translatedText: `Translated ${block.id}`,
   }));
-  const baselineGrowthLayout = buildFidelityTranslationLayout(pageGrowthLayout, pageGrowthTranslations, []);
-  const expandedGrowthLayout = buildFidelityTranslationLayout(pageGrowthLayout, pageGrowthTranslations, [], {
+  const baselineGrowthLayout = buildFidelityTranslationLayout(pageGrowthLayout, pageGrowthTranslations);
+  const expandedGrowthLayout = buildFidelityTranslationLayout(pageGrowthLayout, pageGrowthTranslations, {
     'growth-1': 1.2,
   });
   assert.ok(expandedGrowthLayout.pageHeight > baselineGrowthLayout.pageHeight);
 
-  const figureOnlyLayout = buildFidelityTranslationLayout(
+  const emptyTextLayout = buildFidelityTranslationLayout(
     {
       viewport,
       blocks: [],
     },
-    [],
-    figureSnippets,
   );
-  assert.ok(figureOnlyLayout);
-  assert.equal(figureOnlyLayout.positionedItems.length, 1);
-  assert.equal(figureOnlyLayout.positionedItems[0].kind, 'figure');
+  assert.equal(emptyTextLayout, null);
 
-  assert.equal(buildFidelityTranslationLayout({ blocks: [] }, twoColumnTranslations, figureSnippets), null);
+  assert.equal(buildFidelityTranslationLayout({ blocks: [] }, twoColumnTranslations), null);
 
   const excludedZones = [
     {

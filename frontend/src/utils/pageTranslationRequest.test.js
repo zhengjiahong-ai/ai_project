@@ -92,21 +92,24 @@ const run = () => {
   assert.equal(
     shouldPreferPlainPageTranslation({
       excludedZones: [],
-      figureSnippets: [{ id: 'figure-1', image: 'data:image/png;base64,abc' }],
     }),
-    true,
+    false,
   );
   assert.equal(
     shouldPreferPlainPageTranslation({
       excludedZones: [{ type: 'figure', bbox: { left: 0.1, top: 0.1, width: 0.3, height: 0.3 } }],
-      figureSnippets: [],
     }),
     true,
   );
   assert.equal(
     shouldPreferPlainPageTranslation({
-      excludedZones: [],
-      figureSnippets: [],
+      excludedZones: [{ type: 'table', bbox: { left: 0.1, top: 0.1, width: 0.3, height: 0.3 } }],
+    }),
+    true,
+  );
+  assert.equal(
+    shouldPreferPlainPageTranslation({
+      excludedZones: [{ type: 'formula', bbox: { left: 0.1, top: 0.1, width: 0.3, height: 0.3 } }],
     }),
     false,
   );
@@ -121,8 +124,6 @@ const run = () => {
     pageIndex: 0,
     sourceText: 'Body paragraph',
     pageLayout: samplePageLayout,
-    backgroundImage: '',
-    figureSnippets: [{ id: 'figure-1', image: 'data:image/png;base64,abc' }],
     excludedZones: [],
     force: false,
     expectsStructuredResponse: false,
@@ -140,8 +141,6 @@ const run = () => {
     pageIndex: 0,
     sourceText: 'Body paragraph',
     pageLayout: samplePageLayout,
-    backgroundImage: '',
-    figureSnippets: [],
     excludedZones: [],
     force: false,
     expectsStructuredResponse: false,

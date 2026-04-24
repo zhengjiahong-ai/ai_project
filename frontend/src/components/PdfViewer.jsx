@@ -10,7 +10,7 @@ import '@react-pdf-viewer/highlight/lib/styles/index.css';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url';
 import { apiService } from '../services/api';
 import { buildExplainSelectionPayload } from '../utils/pdfFormulaSelection';
-import { buildPageLayout, normalizeExcludedZones } from '../utils/pdfTranslationLayout.js';
+import { buildPageLayout } from '../utils/pdfTranslationLayout.js';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 
@@ -23,78 +23,6 @@ const trimExplainContext = (text = '') => {
     return trimmed;
   }
   return `${trimmed.slice(0, EXPLAIN_CONTEXT_MAX_CHARS).trimEnd()}\n\n[当前页上下文过长，已截断]`;
-};
-
-const buildPageSnapshot = async (page, maxRenderWidth = 1200) => {
-  const baseViewport = page.getViewport({ scale: 1 });
-  const safeWidth = Math.max(baseViewport.width || 1, 1);
-  const scale = Math.min(2, Math.max(1, maxRenderWidth / safeWidth));
-  const renderViewport = page.getViewport({ scale });
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d', { alpha: false });
-
-  canvas.width = Math.ceil(renderViewport.width);
-  canvas.height = Math.ceil(renderViewport.height);
-
-  if (!context) {
-    throw new Error('Canvas 2D context is unavailable.');
-  }
-
-  await page.render({ canvasContext: context, viewport: renderViewport }).promise;
-  return canvas.toDataURL('image/png');
-};
-
-const loadImage = (src) =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = src;
-  });
-
-const buildFigureSnippets = async (backgroundImage, excludedZones = []) => {
-  const normalizedZones = normalizeExcludedZones(excludedZones);
-  if (!backgroundImage || normalizedZones.length === 0) {
-    return [];
-  }
-
-  const image = await loadImage(backgroundImage);
-
-  return normalizedZones.reduce((snippets, zone, index) => {
-    const left = Math.max(0, Math.floor(zone.bbox.left * image.width));
-    const top = Math.max(0, Math.floor(zone.bbox.top * image.height));
-    const width = Math.max(1, Math.ceil(zone.bbox.width * image.width));
-    const height = Math.max(1, Math.ceil(zone.bbox.height * image.height));
-    const paddingX = Math.max(6, Math.round(width * 0.015));
-    const paddingY = Math.max(6, Math.round(height * 0.02));
-    const sourceX = Math.max(0, left - paddingX);
-    const sourceY = Math.max(0, top - paddingY);
-    const sourceWidth = Math.min(image.width - sourceX, width + paddingX * 2);
-    const sourceHeight = Math.min(image.height - sourceY, height + paddingY * 2);
-
-    if (sourceWidth <= 0 || sourceHeight <= 0) {
-      return snippets;
-    }
-
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (!context) {
-      return snippets;
-    }
-
-    canvas.width = sourceWidth;
-    canvas.height = sourceHeight;
-    context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
-
-    snippets.push({
-      id: `figure-${index + 1}`,
-      type: zone.type || 'figure',
-      bbox: zone.bbox,
-      image: canvas.toDataURL('image/png'),
-    });
-
-    return snippets;
-  }, []);
 };
 
 export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }) => {
@@ -234,7 +162,6 @@ const PdfViewer = ({
   onPageChange,
   onPageTextExtracted,
   theme = 'light',
-  translationLayoutIndex = {},
 }) => {
   const [highlights, setHighlights] = useState([]);
   const [activeHighlightId, setActiveHighlightId] = useState(null);
@@ -284,16 +211,6 @@ const PdfViewer = ({
         const textContent = await page.getTextContent();
         const viewport = page.getViewport({ scale: 1 });
         const { pageText, pageLayout } = buildPageLayout(textContent, viewport);
-        const excludedZones = translationLayoutIndex?.[pageIndex]?.excludedZones || [];
-        let backgroundImage = '';
-        let figureSnippets = [];
-
-        try {
-          backgroundImage = await buildPageSnapshot(page);
-          figureSnippets = await buildFigureSnippets(backgroundImage, excludedZones);
-        } catch (snapshotError) {
-          console.warn(`Failed to render page snapshot for page ${pageIndex + 1}.`, snapshotError);
-        }
 
         if (requestedPdfId !== latestPdfIdRef.current) {
           return;
@@ -303,8 +220,6 @@ const PdfViewer = ({
           pageIndex,
           pageText,
           pageLayout,
-          backgroundImage,
-          figureSnippets,
         });
       } catch (error) {
         console.warn(`Failed to extract text for page ${pageIndex + 1}.`, error);
@@ -316,12 +231,10 @@ const PdfViewer = ({
           pageIndex,
           pageText: '',
           pageLayout: null,
-          backgroundImage: '',
-          figureSnippets: [],
         });
       }
     },
-    [onPageTextExtracted, translationLayoutIndex],
+    [onPageTextExtracted],
   );
 
   const handleDocumentLoad = useCallback(

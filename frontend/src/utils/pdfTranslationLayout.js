@@ -508,18 +508,6 @@ export const normalizeExcludedZones = (zones = []) =>
         .filter((zone) => zone.bbox.width > 0 && zone.bbox.height > 0)
     : [];
 
-export const normalizeFigureSnippets = (figureSnippets = []) =>
-  Array.isArray(figureSnippets)
-    ? figureSnippets
-        .map((snippet, index) => ({
-          id: String(snippet?.id || `figure-${index + 1}`),
-          type: String(snippet?.type || 'figure'),
-          bbox: normalizeRelativeBbox(snippet?.bbox || {}),
-          image: typeof snippet?.image === 'string' ? snippet.image : '',
-        }))
-        .filter((snippet) => snippet.image && snippet.bbox.width > 0 && snippet.bbox.height > 0)
-    : [];
-
 export const doesBboxIntersect = (leftBox, rightBox) => {
   if (!leftBox || !rightBox) {
     return false;
@@ -536,7 +524,7 @@ export const doesBboxIntersect = (leftBox, rightBox) => {
 export const isBlockInExcludedZone = (block, excludedZones = []) =>
   normalizeExcludedZones(excludedZones).some((zone) => doesBboxIntersect(block?.bbox, zone.bbox));
 
-export const buildReadableTranslationLayout = (pageLayout, translatedBlocks = [], figureSnippets = []) => {
+export const buildReadableTranslationLayout = (pageLayout, translatedBlocks = []) => {
   const translatedBlockMap = new Map(
     (Array.isArray(translatedBlocks) ? translatedBlocks : [])
       .map((block) => ({
@@ -555,8 +543,7 @@ export const buildReadableTranslationLayout = (pageLayout, translatedBlocks = []
     }))
     .filter((block) => block.translatedText);
 
-  const normalizedFigures = normalizeFigureSnippets(figureSnippets);
-  if (translatedLayoutBlocks.length === 0 && normalizedFigures.length === 0) {
+  if (translatedLayoutBlocks.length === 0) {
     return null;
   }
 
@@ -565,35 +552,23 @@ export const buildReadableTranslationLayout = (pageLayout, translatedBlocks = []
     12,
   );
   const viewport = pageLayout?.viewport ? normalizeViewport(pageLayout.viewport) : normalizeViewport({ width: 1, height: 1 });
-  const textColumnDetection = detectColumnLayout(translatedLayoutBlocks, viewport);
-  const figureColumnDetection = detectColumnLayout(normalizedFigures, viewport);
-  const columnDetection = textColumnDetection.enabled ? textColumnDetection : figureColumnDetection;
+  const columnDetection = detectColumnLayout(translatedLayoutBlocks, viewport);
   const bodyStartTop = columnDetection.bodyStartTop;
 
   const contentItems = [
     ...translatedLayoutBlocks.map((block) => createReadableBlock(block, medianFontSize, bodyStartTop)),
-    ...normalizedFigures.map((figure, index) => ({
-      ...figure,
-      kind: 'figure',
-      readingOrder: Number.MAX_SAFE_INTEGER / 4 + index,
-    })),
   ].sort((left, right) => {
     const leftOrder = Number.isFinite(Number(left?.readingOrder)) ? Number(left.readingOrder) : Number.MAX_SAFE_INTEGER;
     const rightOrder = Number.isFinite(Number(right?.readingOrder))
       ? Number(right.readingOrder)
       : Number.MAX_SAFE_INTEGER;
-    const bothTextBlocks = left?.kind !== 'figure' && right?.kind !== 'figure';
-    if (bothTextBlocks && leftOrder !== rightOrder) {
+    if (leftOrder !== rightOrder) {
       return leftOrder - rightOrder;
     }
 
     const topDiff = (left?.bbox?.top || 0) - (right?.bbox?.top || 0);
     if (Math.abs(topDiff) > 0.004) {
       return topDiff;
-    }
-
-    if (leftOrder !== rightOrder) {
-      return leftOrder - rightOrder;
     }
 
     return (left?.bbox?.left || 0) - (right?.bbox?.left || 0);
@@ -651,7 +626,6 @@ export const buildReadableTranslationLayout = (pageLayout, translatedBlocks = []
     sections,
     summary: {
       totalBlocks: translatedLayoutBlocks.length,
-      totalFigures: normalizedFigures.length,
       bodyStartTop: columnDetection.enabled ? roundRatio(bodyStartTop) : null,
     },
   };
@@ -760,7 +734,6 @@ const getSafeVerticalGapUnits = (item, viewport = {}) => {
 export const buildFidelityTranslationLayout = (
   pageLayout,
   translatedBlocks = [],
-  figureSnippets = [],
   measuredHeightUnits = {},
 ) => {
   const rawViewportWidth = Number(pageLayout?.viewport?.width || 0);
@@ -811,28 +784,14 @@ export const buildFidelityTranslationLayout = (
     })
     .filter(Boolean);
 
-  const figureItems = normalizeFigureSnippets(figureSnippets).map((figure, index) => {
-    const lane = resolveLayoutLane(figure.bbox);
-    return {
-      ...figure,
-      kind: 'figure',
-      readingOrder: Number.MAX_SAFE_INTEGER / 4 + index,
-      lane,
-      frame: applyColumnFrame(toPageWidthUnits(figure.bbox, pageAspectRatio), lane, columnLayout),
-    };
-  });
-
-  const sourceItems = sortPositionedItems([...textItems, ...figureItems]);
+  const sourceItems = sortPositionedItems(textItems);
   if (sourceItems.length === 0) {
     return null;
   }
 
   const positionedItems = sourceItems.reduce((accumulator, item) => {
     const baseHeight = Math.max(toFiniteNumber(item?.frame?.height, 0), 0.018);
-    const resolvedHeight =
-      item.kind === 'text'
-        ? Math.max(baseHeight, toFiniteNumber(normalizedMeasuredHeights[item.id], 0))
-        : baseHeight;
+    const resolvedHeight = Math.max(baseHeight, toFiniteNumber(normalizedMeasuredHeights[item.id], 0));
 
     const gap = getSafeVerticalGapUnits(item, viewport);
     const nextTop = accumulator.reduce((resolvedTop, previousItem) => {
@@ -876,7 +835,6 @@ export const buildFidelityTranslationLayout = (
     positionedItems,
     summary: {
       totalBlocks: textItems.length,
-      totalFigures: figureItems.length,
       overflowItems: positionedItems.filter((item) => item.height > item.baseHeight + 0.001).length,
     },
   };

@@ -156,8 +156,6 @@ export default function App() {
     pageIndex: 0,
     pageText: '',
     pageLayout: null,
-    backgroundImage: '',
-    figureSnippets: [],
   });
   const lastNonTranslationTabRef = useRef(DEFAULT_ACTIVE_TAB);
 
@@ -294,7 +292,7 @@ export default function App() {
     setSocraticSession(normalizeSocraticSession(savedSocraticSession, targetPdfId));
     commitTranslationState(normalizeTranslationState(savedTranslationState, targetPdfId));
     setIsTranslated(false);
-    currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
+    currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
     setActiveTab((currentTab) =>
       currentTab === 'translation' ? lastNonTranslationTabRef.current || DEFAULT_ACTIVE_TAB : currentTab,
     );
@@ -348,7 +346,7 @@ export default function App() {
       setSocraticSession(createEmptySocraticSession(response.pdfId));
       commitTranslationState(createEmptyTranslationState(response.pdfId));
       setIsTranslated(false);
-      currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
+      currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
       setActiveTab('deconstruct');
       setPapersList((prev) => [newEntry, ...prev.filter((paper) => paper.id !== response.pdfId)]);
       localStorage.setItem('lastPdfId', response.pdfId);
@@ -366,7 +364,7 @@ export default function App() {
       setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
       commitTranslationState(createEmptyTranslationState());
       setIsTranslated(false);
-      currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
+      currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
       window.alert(error?.response?.data?.message || error?.message || '上传失败，请确认后端服务已启动。');
     } finally {
       setIsAiReady(true);
@@ -459,7 +457,7 @@ export default function App() {
         setSocraticSession(createEmptySocraticSession());
         commitTranslationState(createEmptyTranslationState());
         setIsTranslated(false);
-        currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null, backgroundImage: '', figureSnippets: [] };
+        currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
         setActiveTab(DEFAULT_ACTIVE_TAB);
         localStorage.removeItem('lastPdfId');
       }
@@ -1142,8 +1140,6 @@ export default function App() {
     pageIndex,
     pageText,
     pageLayout = null,
-    backgroundImage = '',
-    figureSnippets = [],
     force = false,
   }) => {
     if (!pdfId) return;
@@ -1151,7 +1147,6 @@ export default function App() {
     const excludedZones = deconstructData?.translationLayoutIndex?.[pageIndex]?.excludedZones || [];
     const shouldPreferPlainTranslation = shouldPreferPlainPageTranslation({
       excludedZones,
-      figureSnippets,
     });
     const {
       sourceText,
@@ -1171,8 +1166,6 @@ export default function App() {
       pageIndex,
       sourceText,
       pageLayout,
-      backgroundImage,
-      figureSnippets,
       excludedZones,
       force,
       expectsStructuredResponse,
@@ -1260,8 +1253,6 @@ export default function App() {
               translatedBlocks,
               renderMode,
               pageLayout: pageLayout || prev.pages?.[pageIndex]?.pageLayout || null,
-              backgroundImage: backgroundImage || prev.pages?.[pageIndex]?.backgroundImage || '',
-              figureSnippets: figureSnippets.length > 0 ? figureSnippets : prev.pages?.[pageIndex]?.figureSnippets || [],
               excludedZones,
               translatedText: translatedText || '暂无译文',
               status: 'success',
@@ -1293,8 +1284,6 @@ export default function App() {
               translatedBlocks: [],
               renderMode: 'plain',
               pageLayout: pageLayout || prev.pages?.[pageIndex]?.pageLayout || null,
-              backgroundImage: backgroundImage || prev.pages?.[pageIndex]?.backgroundImage || '',
-              figureSnippets: figureSnippets.length > 0 ? figureSnippets : prev.pages?.[pageIndex]?.figureSnippets || [],
               excludedZones,
               translatedText: '',
               status: 'error',
@@ -1314,8 +1303,6 @@ export default function App() {
       pageIndex,
       pageText: '',
       pageLayout: null,
-      backgroundImage: '',
-      figureSnippets: [],
     };
     commitTranslationState((prev) => {
       const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
@@ -1327,11 +1314,9 @@ export default function App() {
     pageIndex,
     pageText,
     pageLayout = null,
-    backgroundImage = '',
-    figureSnippets = [],
   }) => {
     const excludedZones = deconstructData?.translationLayoutIndex?.[pageIndex]?.excludedZones || [];
-    currentPageTextRef.current = { pageIndex, pageText, pageLayout, backgroundImage, figureSnippets };
+    currentPageTextRef.current = { pageIndex, pageText, pageLayout };
     commitTranslationState((prev) => {
       const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
       const existingPage = normalizeTranslationPage(baseState.pages?.[pageIndex] || {});
@@ -1345,8 +1330,6 @@ export default function App() {
             ...existingPage,
             sourceText: pageText || existingPage.sourceText,
             pageLayout: pageLayout || existingPage.pageLayout || null,
-            backgroundImage: backgroundImage || existingPage.backgroundImage || '',
-            figureSnippets: figureSnippets.length > 0 ? figureSnippets : existingPage.figureSnippets || [],
             excludedZones: excludedZones.length > 0 ? excludedZones : existingPage.excludedZones || [],
           }),
         },
@@ -1354,7 +1337,7 @@ export default function App() {
     });
 
     if (isTranslated) {
-      requestPageTranslation({ pageIndex, pageText, pageLayout, backgroundImage, figureSnippets });
+      requestPageTranslation({ pageIndex, pageText, pageLayout });
     }
   }, [commitTranslationState, deconstructData, isTranslated, pdfId, requestPageTranslation]);
 
@@ -1392,8 +1375,6 @@ export default function App() {
             pageIndex: currentPage,
             pageText: translationState.pages?.[currentPage]?.sourceText || '',
             pageLayout: translationState.pages?.[currentPage]?.pageLayout || null,
-            backgroundImage: translationState.pages?.[currentPage]?.backgroundImage || '',
-            figureSnippets: translationState.pages?.[currentPage]?.figureSnippets || [],
           };
 
     requestPageTranslation({ ...pagePayload, force: true });

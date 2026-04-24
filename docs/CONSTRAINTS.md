@@ -109,6 +109,13 @@
 - 未来 MCP 映射必须继续继承现有安全与预算边界：论文正文、`paperSkeleton`、`paperStructure`、页内上下文和 `rag_sources` 一律视为不可信输入；检索 scope 只允许 `current_paper`、`library`；deep research 子问题固定 `3-5` 个，自动重试最多 `1` 次。
 - 未来 MCP resources 与 trace 摘要只能暴露脱敏后的逻辑数据，不得暴露完整论文全文、API Key、系统提示词、未脱敏 trace、原始日志或任意文件访问能力。
 
+## 2026-04-24 全景翻译图片处理补充
+
+- 全景翻译右侧译文面板只允许展示可提取正文的中文译文，图片、图表、表格裁片和整页背景图不得重新出现在译文中。
+- 前端不得为全景翻译重新引入 `backgroundImage`、`figureSnippets`、图片 gallery 或从 PDF 页面截图裁图的展示链路；旧缓存中的同名字段必须被忽略。
+- `translationLayoutIndex.excludedZones` 继续作为图表、表格和公式区域过滤依据，用于从翻译请求的结构化文本块中排除视觉区域；不得用图片裁片展示替代该过滤逻辑。
+- `/api/translate-page` 的请求体与响应体保持兼容，图片处理精简不得要求 Java 或 Python 对外接口新增必填字段。
+
 ---
 
 ## 一、技术栈要求

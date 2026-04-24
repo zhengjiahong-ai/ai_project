@@ -74,7 +74,8 @@ const run = () => {
   });
   assert.equal(overlayPage.renderMode, 'overlay');
   assert.equal(canRenderOverlay(overlayPage), true);
-  assert.equal(overlayPage.figureSnippets.length, 1);
+  assert.equal(Object.hasOwn(overlayPage, 'figureSnippets'), false);
+  assert.equal(Object.hasOwn(overlayPage, 'backgroundImage'), false);
   assert.equal(overlayPage.pageLayout.orientation, 'portrait');
   assert.equal(overlayPage.pageLayout.columnMode, 'single-column');
 
@@ -97,6 +98,7 @@ const run = () => {
 
   const figureOnlyPage = normalizeTranslationPage({
     renderMode: 'plain',
+    backgroundImage: 'data:image/png;base64,page',
     figureSnippets: [
       {
         id: 'figure-1',
@@ -106,8 +108,10 @@ const run = () => {
       },
     ],
   });
-  assert.equal(figureOnlyPage.renderMode, 'overlay');
-  assert.equal(canRenderOverlay(figureOnlyPage), true);
+  assert.equal(figureOnlyPage.renderMode, 'plain');
+  assert.equal(canRenderOverlay(figureOnlyPage), false);
+  assert.equal(Object.hasOwn(figureOnlyPage, 'figureSnippets'), false);
+  assert.equal(Object.hasOwn(figureOnlyPage, 'backgroundImage'), false);
 
   const downgradedPage = normalizeTranslationPage({
     renderMode: 'overlay',

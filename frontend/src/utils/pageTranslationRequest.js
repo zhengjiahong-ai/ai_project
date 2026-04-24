@@ -5,9 +5,8 @@ const VISUAL_ZONE_TYPES = new Set(['figure', 'table']);
 
 const normalizeZoneType = (zone) => String(zone?.type || '').trim().toLowerCase();
 
-export const shouldPreferPlainPageTranslation = ({ excludedZones = [], figureSnippets = [] } = {}) =>
-  (Array.isArray(figureSnippets) && figureSnippets.length > 0) ||
-  (Array.isArray(excludedZones) && excludedZones.some((zone) => VISUAL_ZONE_TYPES.has(normalizeZoneType(zone))));
+export const shouldPreferPlainPageTranslation = ({ excludedZones = [] } = {}) =>
+  Array.isArray(excludedZones) && excludedZones.some((zone) => VISUAL_ZONE_TYPES.has(normalizeZoneType(zone)));
 
 export const preparePageTranslationRequest = ({
   pageText = '',
@@ -42,8 +41,6 @@ export const planPageTranslationState = ({
   pageIndex,
   sourceText = '',
   pageLayout = null,
-  backgroundImage = '',
-  figureSnippets = [],
   excludedZones = [],
   force = false,
   expectsStructuredResponse = false,
@@ -70,8 +67,6 @@ export const planPageTranslationState = ({
         translatedBlocks: [],
         renderMode: 'plain',
         pageLayout,
-        backgroundImage,
-        figureSnippets,
         excludedZones,
         status: 'empty',
         error: '当前页未提取到可翻译文本，可能是扫描页或图片页。',
@@ -109,8 +104,6 @@ export const planPageTranslationState = ({
       translatedBlocks: existingPage.sourceText === sourceText && !force ? existingPage.translatedBlocks || [] : [],
       renderMode: existingPage.renderMode || 'plain',
       pageLayout: pageLayout || existingPage.pageLayout || null,
-      backgroundImage: backgroundImage || existingPage.backgroundImage || '',
-      figureSnippets: figureSnippets.length > 0 ? figureSnippets : existingPage.figureSnippets || [],
       excludedZones: excludedZones.length > 0 ? excludedZones : existingPage.excludedZones || [],
       status: 'loading',
       error: '',

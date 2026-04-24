@@ -1,6 +1,5 @@
 import {
   normalizeExcludedZones,
-  normalizeFigureSnippets,
   normalizeRelativeBbox,
   normalizeViewport,
 } from './pdfTranslationLayout.js';
@@ -67,21 +66,17 @@ export const canRenderOverlay = (pageData = null) => {
       Array.isArray(pageData?.translatedBlocks) &&
       pageData.translatedBlocks.length > 0,
   );
-  const hasFigures = Array.isArray(pageData?.figureSnippets) && pageData.figureSnippets.length > 0;
-  return hasStructuredText || hasFigures;
+  return hasStructuredText;
 };
 
 export const normalizeTranslationPage = (pageValue = {}) => {
   const pageLayout = normalizePageLayout(pageValue?.pageLayout);
   const translatedBlocks = normalizeTranslatedBlocks(pageValue?.translatedBlocks);
-  const figureSnippets = normalizeFigureSnippets(pageValue?.figureSnippets);
   const normalizedPage = {
     sourceText: String(pageValue?.sourceText || ''),
     translatedText: String(pageValue?.translatedText || ''),
     translatedBlocks,
-    figureSnippets,
     renderMode: pageValue?.renderMode === 'overlay' ? 'overlay' : 'plain',
-    backgroundImage: typeof pageValue?.backgroundImage === 'string' ? pageValue.backgroundImage : '',
     pageLayout,
     excludedZones: normalizeExcludedZones(pageValue?.excludedZones),
     status: pageValue?.status || (pageValue?.translatedText ? 'success' : 'idle'),
@@ -96,7 +91,7 @@ export const normalizeTranslationPage = (pageValue = {}) => {
   if (
     normalizedPage.renderMode === 'plain' &&
     canRenderOverlay(normalizedPage) &&
-    (translatedBlocks.length > 0 || figureSnippets.length > 0)
+    translatedBlocks.length > 0
   ) {
     normalizedPage.renderMode = 'overlay';
   }

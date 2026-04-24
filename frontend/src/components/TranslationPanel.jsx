@@ -1,8 +1,8 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Image, Languages, Loader2, RefreshCw, ScrollText } from 'lucide-react';
+import { Languages, Loader2, RefreshCw, ScrollText } from 'lucide-react';
 
 import MarkdownContent from './MarkdownContent';
-import { createTranslationPanelViewModel, sortFigureSnippetsForDisplay } from './translationPanelModel.js';
+import { createTranslationPanelViewModel } from './translationPanelModel.js';
 import { buildFidelityTranslationLayout } from '../utils/pdfTranslationLayout.js';
 
 const ROLE_CLASS_NAMES = {
@@ -10,14 +10,6 @@ const ROLE_CLASS_NAMES = {
   meta: 'text-center theme-text-secondary',
   heading: 'theme-text-primary',
   body: 'theme-text-secondary',
-};
-
-const FIGURE_TYPE_LABELS = {
-  figure: '图表 / 插图',
-  table: '表格',
-  formula: '公式',
-  head: '页眉区域',
-  excluded: '保留区域',
 };
 
 const resolveRoleStyle = (block) => {
@@ -75,31 +67,6 @@ const resolvePaperTextStyle = (item, stageWidth, viewportWidth) => {
   };
 };
 
-const resolveFigureAlignment = (figure) => {
-  const bbox = figure?.bbox || {};
-  const center = bbox.left + bbox.width / 2;
-
-  if (center < 0.36) {
-    return 'mr-auto';
-  }
-
-  if (center > 0.64) {
-    return 'ml-auto';
-  }
-
-  return 'mx-auto';
-};
-
-const resolveFigureWidth = (figure, isColumn) => {
-  if (isColumn) {
-    return '100%';
-  }
-
-  const bboxWidth = Number(figure?.bbox?.width || 0.8);
-  const percentage = Math.max(42, Math.min(96, bboxWidth * 100 + 6));
-  return `${percentage}%`;
-};
-
 const splitPlainTranslationParagraphs = (translatedText) =>
   String(translatedText || '')
     .split(/\n{2,}/)
@@ -131,52 +98,7 @@ const TranslationStructuredBlock = ({ block }) => (
   </article>
 );
 
-const TranslationFigureSnippet = ({ figure, isColumn = false }) => {
-  const label = FIGURE_TYPE_LABELS[figure?.type] || FIGURE_TYPE_LABELS.figure;
-  const viewportWidth = Math.max(Number(figure?.viewport?.width || 0), 1);
-  const viewportHeight = Math.max(Number(figure?.viewport?.height || 0), 1);
-  const bboxWidth = Math.max(Number(figure?.bbox?.width || 0), 0.01);
-  const bboxHeight = Math.max(Number(figure?.bbox?.height || 0), 0.01);
-  const cropAspectRatio = Math.max(0.2, (bboxWidth * viewportWidth) / Math.max(bboxHeight * viewportHeight, 1));
-  const usesViewportCrop = figure?.cropMode === 'viewport';
-
-  return (
-    <figure
-      className={`theme-card-soft overflow-hidden rounded-2xl shadow-sm ${resolveFigureAlignment(figure)}`}
-      style={{ width: resolveFigureWidth(figure, isColumn) }}
-    >
-      <div className="theme-panel theme-border flex items-center gap-2 border-b px-4 py-2 text-xs font-semibold theme-text-secondary">
-        <Image size={14} className="text-pixiu" />
-        <span>{label}</span>
-      </div>
-      <div className="theme-panel-muted p-3">
-        {usesViewportCrop ? (
-          <div className="relative overflow-hidden rounded-xl bg-white" style={{ aspectRatio: `${cropAspectRatio}` }}>
-            <img
-              src={figure?.image}
-              alt={label}
-              className="absolute max-w-none select-none"
-              loading="lazy"
-              style={{
-                width: `${100 / bboxWidth}%`,
-                left: `-${(Number(figure?.bbox?.left || 0) / bboxWidth) * 100}%`,
-                top: `-${(Number(figure?.bbox?.top || 0) / bboxHeight) * 100}%`,
-              }}
-            />
-          </div>
-        ) : (
-          <img src={figure?.image} alt={label} className="w-full rounded-xl bg-white object-contain" loading="lazy" />
-        )}
-      </div>
-    </figure>
-  );
-};
-
-const renderStructuredItem = (item, isColumn = false) => {
-  if (item?.kind === 'figure') {
-    return <TranslationFigureSnippet key={item.id} figure={item} isColumn={isColumn} />;
-  }
-
+const renderStructuredItem = (item) => {
   return <TranslationStructuredBlock key={item.id} block={item} />;
 };
 
@@ -198,15 +120,15 @@ const TranslationStructuredStage = ({ readableLayout }) => {
                 const singleColumnItems = hasLeft ? section.left : section.right;
                 return (
                   <div key={`section-${index}`} className="space-y-5">
-                    {singleColumnItems.map((item) => renderStructuredItem(item, true))}
+                    {singleColumnItems.map((item) => renderStructuredItem(item))}
                   </div>
                 );
               }
 
               return (
                 <div key={`section-${index}`} className="grid gap-8 lg:grid-cols-2">
-                  <div className="space-y-5">{section.left.map((item) => renderStructuredItem(item, true))}</div>
-                  <div className="space-y-5">{section.right.map((item) => renderStructuredItem(item, true))}</div>
+                  <div className="space-y-5">{section.left.map((item) => renderStructuredItem(item))}</div>
+                  <div className="space-y-5">{section.right.map((item) => renderStructuredItem(item))}</div>
                 </div>
               );
             }
@@ -218,24 +140,6 @@ const TranslationStructuredStage = ({ readableLayout }) => {
             );
           })}
         </div>
-      </div>
-    </div>
-  );
-};
-
-const TranslationFigureGalleryStage = ({ figureSnippets = [] }) => {
-  const sortedFigures = useMemo(() => sortFigureSnippetsForDisplay(figureSnippets), [figureSnippets]);
-
-  if (sortedFigures.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="theme-card-soft rounded-2xl p-4">
-      <div className="grid gap-5 md:grid-cols-2">
-        {sortedFigures.map((figure) => (
-          <TranslationFigureSnippet key={figure.id} figure={figure} />
-        ))}
       </div>
     </div>
   );
@@ -298,36 +202,15 @@ const TranslationFidelityTextBlock = ({ item, stageWidth, viewportWidth, registe
   </article>
 );
 
-const TranslationFidelityFigure = ({ item, stageWidth }) => {
-  const label = FIGURE_TYPE_LABELS[item?.type] || FIGURE_TYPE_LABELS.figure;
-
-  return (
-    <figure
-      className="theme-panel theme-border absolute overflow-hidden rounded-xl border shadow-sm"
-      style={{
-        left: `${item.left * stageWidth}px`,
-        top: `${item.top * stageWidth}px`,
-        width: `${item.width * stageWidth}px`,
-        height: `${item.height * stageWidth}px`,
-      }}
-    >
-      <img src={item?.image} alt={label} className="h-full w-full bg-white object-contain" loading="lazy" />
-      <figcaption className="absolute left-2 top-2 rounded-md bg-slate-900/70 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
-        {label}
-      </figcaption>
-    </figure>
-  );
-};
-
-const TranslationFidelityStage = ({ pageLayout, translatedBlocks, figureSnippets, resetKey }) => {
+const TranslationFidelityStage = ({ pageLayout, translatedBlocks, resetKey }) => {
   const stageRef = useRef(null);
   const textRefs = useRef({});
   const [stageWidth, setStageWidth] = useState(0);
   const [measuredHeightUnits, setMeasuredHeightUnits] = useState({});
 
   const fidelityLayout = useMemo(
-    () => buildFidelityTranslationLayout(pageLayout, translatedBlocks, figureSnippets, measuredHeightUnits),
-    [figureSnippets, measuredHeightUnits, pageLayout, translatedBlocks],
+    () => buildFidelityTranslationLayout(pageLayout, translatedBlocks, measuredHeightUnits),
+    [measuredHeightUnits, pageLayout, translatedBlocks],
   );
 
   useEffect(() => {
@@ -445,17 +328,13 @@ const TranslationFidelityStage = ({ pageLayout, translatedBlocks, figureSnippets
         >
           {stageWidth > 0 &&
             fidelityLayout.positionedItems.map((item) =>
-              item.kind === 'figure' ? (
-                <TranslationFidelityFigure key={item.id} item={item} stageWidth={stageWidth} />
-              ) : (
-                <TranslationFidelityTextBlock
-                  key={item.id}
-                  item={item}
-                  stageWidth={stageWidth}
-                  viewportWidth={fidelityLayout.viewport.width}
-                  registerRef={registerTextRef}
-                />
-              ),
+              <TranslationFidelityTextBlock
+                key={item.id}
+                item={item}
+                stageWidth={stageWidth}
+                viewportWidth={fidelityLayout.viewport.width}
+                registerRef={registerTextRef}
+              />,
             )}
         </div>
       </div>
@@ -468,17 +347,13 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
   const status = pageData?.status || 'idle';
   const translatedText = pageData?.translatedText || '';
   const errorMessage = pageData?.error || '';
-  const fidelityResetKey = `${currentPage}:${pageData?.updatedAt || 0}:${pageData?.translatedBlocks?.length || 0}:${
-    pageData?.figureSnippets?.length || 0
-  }`;
+  const fidelityResetKey = `${currentPage}:${pageData?.updatedAt || 0}:${pageData?.translatedBlocks?.length || 0}`;
   const viewModel = useMemo(() => createTranslationPanelViewModel(pageData), [pageData]);
   const {
     readableLayout,
     canRenderFidelity,
     canRenderStructuredFallback,
     canRenderPlainColumnFallback,
-    displayFigureSnippets,
-    shouldRenderFigureGallery,
     shouldShowPlainTranslation,
   } = viewModel;
 
@@ -509,7 +384,7 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
             <Loader2 size={18} className="animate-spin text-pixiu" />
             <div>
               <p className="theme-text-primary text-sm font-semibold">正在生成当前页译文...</p>
-              <p className="theme-text-secondary text-xs">系统会优先保留标题、双栏正文和图表位置，并在内容较长时自动扩展页面高度。</p>
+              <p className="theme-text-secondary text-xs">系统会优先保留标题和双栏正文结构，图片区域不会进入译文。</p>
             </div>
           </div>
         )}
@@ -535,7 +410,7 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
             </div>
             <p className="theme-text-primary text-sm font-semibold">打开全景翻译后，这里会展示当前页的译文。</p>
             <p className="theme-text-secondary mt-2 max-w-xs text-xs leading-relaxed">
-              新版会尽量保持原论文的标题区、双栏结构与图表位置；如果结构数据不足，会自动回退到连续译文显示。
+              新版会尽量保持原论文的标题区与双栏结构；图片、图表和表格区域不会显示在译文中。
             </p>
           </div>
         )}
@@ -544,14 +419,11 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
           <TranslationFidelityStage
             pageLayout={pageData?.pageLayout}
             translatedBlocks={pageData?.translatedBlocks}
-            figureSnippets={pageData?.figureSnippets}
             resetKey={fidelityResetKey}
           />
         )}
 
         {canRenderStructuredFallback && <TranslationStructuredStage readableLayout={readableLayout} />}
-
-        {shouldRenderFigureGallery && <TranslationFigureGalleryStage figureSnippets={displayFigureSnippets} />}
 
         {canRenderPlainColumnFallback && (
           <TranslationPlainColumnFallbackStage pageLayout={pageData?.pageLayout} translatedText={translatedText} />

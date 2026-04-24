@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { buildDisplayFigureSnippets, createTranslationPanelViewModel } from './translationPanelModel.js';
+import { createTranslationPanelViewModel } from './translationPanelModel.js';
 
 const singleColumnLayout = {
   viewport: { width: 600, height: 800 },
@@ -17,75 +17,56 @@ const singleColumnLayout = {
   ],
 };
 
-const figureSnippet = {
-  id: 'figure-1',
-  type: 'figure',
-  bbox: { left: 0.5, top: 0.34, width: 0.3, height: 0.22 },
-  image: 'data:image/png;base64,figure',
-};
-
 const run = () => {
-  const plainWithFigures = createTranslationPanelViewModel({
+  const plainTranslation = createTranslationPanelViewModel({
     status: 'success',
-    renderMode: 'overlay',
+    renderMode: 'plain',
     translatedText: '这是图题的译文。',
     translatedBlocks: [],
-    figureSnippets: [figureSnippet],
     pageLayout: singleColumnLayout,
   });
-  assert.equal(plainWithFigures.canRenderFidelity, false);
-  assert.equal(plainWithFigures.canRenderStructuredFallback, false);
-  assert.equal(plainWithFigures.shouldRenderFigureGallery, true);
-  assert.equal(plainWithFigures.shouldShowPlainTranslation, true);
+  assert.equal(plainTranslation.canRenderFidelity, false);
+  assert.equal(plainTranslation.canRenderStructuredFallback, false);
+  assert.equal(plainTranslation.shouldShowPlainTranslation, true);
 
-  const figureOnlyEmpty = createTranslationPanelViewModel({
+  const imageOnlyLegacyPage = createTranslationPanelViewModel({
     status: 'empty',
     renderMode: 'overlay',
     translatedText: '',
     translatedBlocks: [],
-    figureSnippets: [figureSnippet],
+    figureSnippets: [
+      {
+        id: 'figure-1',
+        type: 'figure',
+        bbox: { left: 0.5, top: 0.34, width: 0.3, height: 0.22 },
+        image: 'data:image/png;base64,figure',
+      },
+    ],
     pageLayout: singleColumnLayout,
   });
-  assert.equal(figureOnlyEmpty.canRenderFidelity, false);
-  assert.equal(figureOnlyEmpty.canRenderStructuredFallback, false);
-  assert.equal(figureOnlyEmpty.shouldRenderFigureGallery, true);
-  assert.equal(figureOnlyEmpty.shouldShowPlainTranslation, false);
+  assert.equal(imageOnlyLegacyPage.canRenderFidelity, false);
+  assert.equal(imageOnlyLegacyPage.canRenderStructuredFallback, false);
+  assert.equal(imageOnlyLegacyPage.shouldShowPlainTranslation, false);
 
   const structuredOverlay = createTranslationPanelViewModel({
     status: 'success',
     renderMode: 'overlay',
     translatedText: '这是正文译文。',
     translatedBlocks: [{ id: 'block-1', translatedText: '这是正文译文。' }],
-    figureSnippets: [figureSnippet],
     pageLayout: singleColumnLayout,
   });
   assert.equal(structuredOverlay.canRenderFidelity, true);
-  assert.equal(structuredOverlay.shouldRenderFigureGallery, false);
 
-  const derivedDisplayFigures = buildDisplayFigureSnippets({
-    status: 'success',
-    translatedText: '这是正文译文。',
-    translatedBlocks: [],
-    figureSnippets: [],
-    backgroundImage: 'data:image/png;base64,page',
-    excludedZones: [{ type: 'figure', bbox: { left: 0.5, top: 0.34, width: 0.3, height: 0.22 } }],
-    pageLayout: singleColumnLayout,
-  });
-  assert.equal(derivedDisplayFigures.length, 1);
-  assert.equal(derivedDisplayFigures[0].cropMode, 'viewport');
-
-  const plainWithDerivedFigures = createTranslationPanelViewModel({
+  const plainWithExcludedZones = createTranslationPanelViewModel({
     status: 'success',
     renderMode: 'plain',
     translatedText: '这是图文混排页面的译文。',
     translatedBlocks: [],
-    figureSnippets: [],
     backgroundImage: 'data:image/png;base64,page',
     excludedZones: [{ type: 'figure', bbox: { left: 0.5, top: 0.34, width: 0.3, height: 0.22 } }],
     pageLayout: singleColumnLayout,
   });
-  assert.equal(plainWithDerivedFigures.displayFigureSnippets.length, 1);
-  assert.equal(plainWithDerivedFigures.shouldRenderFigureGallery, true);
+  assert.equal(plainWithExcludedZones.shouldShowPlainTranslation, true);
 
   console.log('frontend translation panel model tests passed');
 };
