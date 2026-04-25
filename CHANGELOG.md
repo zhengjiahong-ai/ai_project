@@ -99,3 +99,59 @@
 2. **智能解构功能**：实现 PDF 自动提取摘要、方法、结果等核心章节，并自动生成篇章总结。
 3. **开发环境体验**：开启 Python 后端热重载，代码改动后实时生效，无需重新构建容器。
 4. **基础交互构建**：支持 Markdown 格式渲染、对话删除、PDF 划词实时解释等基础学术分析功能。
+
+### 2026-03-30
+1. **新增苏格拉底引导学习前后端链路**：前端新增 `SocraticQuestionsPanel`，从篇章解构 `paper_skeleton` 生成阅读进度驱动的问题；Java 增加 `/api/socratic-questions` 转发到 Python `/api/socratic-questions`，支持问题生成后直接回灌到聊天面板追问。
+2. **增强 Python 服务健壮性与降级策略**：`HybridRetriever` 改为可选依赖（缺失 `rank-bm25` 时不阻塞服务启动），新增 `retrieve_hybrid_for_vector` 与向量检索回退路径，避免 RAG 初始化失败导致 `/api/chat`、引导学习等接口不可用。
+3. **修复大模型 JSON 解析脆弱点**：新增 `parse_json_from_llm` 统一处理 fenced code、前后噪声与外层 JSON 截取；`paper_skeleton` 与 `paper_structure` 分开兜底，避免结构抽取失败污染篇章总结结果。
+
+### 2026-03-25
+1. **重构早期 RAG 核心模块**：集中调整 `document_parser`、`smart_chunker`、`paper_structure_parser`、`hybrid_retriever`、`rag_vector_db` 与 `citation_gragh`，为后续“结构解析 + 混合检索 + 引用关系”链路打基础。
+2. **补齐向量库本地资产**：同步 Chroma 持久化目录，保证本地检索实验可直接复现。
+
+### 2026-03-14
+1. **打通真实聊天接口**：Python 新增 `/api/chat`（`ChatRequest`）并返回 `{ status, message }`；前端 `handleSendMessage` 从 mock 改为真实 `apiService.sendMessage` 调用并补齐错误回显。
+2. **补齐术语解释参数映射**：Java `AiService.explainTerm` 增加请求转换，把前端 `{ text, pdfId, pageNumber, context }` 归一为 Python 期望的 `{ term, context }`，确保解释链路参数语义一致。
+
+### 2026-03-13
+1. **修复联调稳定性问题**：围绕 Python `main.py` 多轮修复，并调整 Java `WebConfig`，改善本地跨端联调可用性。
+2. **补充镜像与依赖源调整**：更新 Docker 与依赖配置，降低环境差异导致的构建失败概率。
+
+### 2026-03-10
+1. **新增开发约束体系**：补齐 `.cursor/rules` 与 `docs/CONSTRAINTS.md`，明确 API 契约、模块职责和协作边界，作为后续接口打通与重构的基线。
+
+### 2026-02-27
+1. **接入可落地 RAG 向量检索能力**：新增 `core/rag_vector_db.py`，引入 Chroma 本地向量库存储与检索，形成文献入库与召回的基础能力。
+2. **扩展 RAG 接口与测试**：Python 补齐 `/api/rag/add-literature`、`/api/rag/retrieve` 相关逻辑并新增 `tests/test_rag.py`，验证入库、检索与基础统计流程。
+
+### 2026-02-01
+1. **打通 Java 网关到 Python AI 服务**：新增 `AcademicController` 与 `AiService`，建立 `/api/upload`、`/api/explain`、`/api/chat` 转发链路，前端开始通过 Java 统一访问 AI 能力。
+2. **升级 PDF 解构为真实解析流程**：Python `/api/analyze-pdf` 改为 GROBID + TEI 解析，使用 `BeautifulSoup` 提取章节并按关键词归类，采用单次批量 Prompt 生成 `paper_skeleton`，并加入 JSON 解析失败兜底与临时目录清理。
+3. **新增篇章解构独立展示面板**：前端增加 `PaperAnalysis` 页面与 `deconstructStore` 持久化，上传论文后自动触发解构并切换到报告视图。
+4. **预留全景翻译交互入口**：`PdfToolbar` 新增“全景翻译”开关，`PdfViewer` 增加 `TranslationOverlay` 视觉层与状态透传，为后续真实翻译链路预留 UI/状态框架。
+5. **预留论文关系图展示位**：`CriticalAnalysisPanel` 引入 `react-force-graph-2d` 并新增论文关系网络卡片，当前以模拟网络数据展示，保留后端数据接入注释与接口预留点。
+
+### 2026-01-31
+1. **实现前端会话级持久化恢复**：引入 `idb`，新增 `pdfStore`、`historyStore`、`analysisStore`、`notesStore`，并以 `isRestored` 防止初始化阶段空数据反写覆盖。
+2. **新增学术笔记沉淀链路**：划词解释弹窗增加“存为笔记”，保存选区、页码与 AI 解释到 `notesStore`，右侧新增“学术笔记”页签统一查看。
+3. **补齐批判分析持久化与模型迁移**：批判分析结果纳入本地存储恢复流程；Python 模型调用切换到阿里云百炼（`dashscope`）并同步调整依赖与环境变量约束。
+4. **修复容器与依赖冲突问题**：持续修正 Dockerfile、requirements 与编排配置，提升服务启动稳定性。
+
+### 2026-01-30
+1. **搭建 AI 核心能力雏形**：Python `main.py` 初步落地篇章解构、术语解释、背景补课、苏格拉底提问与深度分析接口，并引入自定义 `CustomDashScopeLLM` 适配 LangChain。
+2. **上线批判阅读独立面板**：前端新增 `CriticalAnalysisPanel`，支持“结论摘要 + 多维度指标图表”展示，右侧面板支持在聊天与分析模式间切换。
+3. **升级划词解释为窗内追问 + 聊天同步**：`PdfViewer` 引入解释弹窗 `ExplanationPopup`，支持局部追问、窗内历史与消息同步到右侧 ChatPanel，形成“局部阅读 + 全局对话”联动。
+4. **补齐运行时环境配置**：集中修复版本冲突、锁定关键依赖并加入镜像源与 API Key 要求，降低首次部署门槛。
+
+### 2026-01-29
+1. **首版接入 PDF 划词解释交互**：`highlightPlugin` + “AI 解释”浮层按钮接入 `PdfViewer`，选区内容可直接传递到聊天流。
+2. **统一 AI 回复 Markdown 渲染**：`ChatPanel` 引入 `react-markdown`，替换纯文本展示，支持标题、强调、列表等基础学术表达格式。
+
+### 2026-01-28
+1. **完成前端工程化基建**：初始化 Vite + React + Tailwind 前端工程，搭建 `Navbar`、`PdfViewer`、`ChatPanel`、`PdfToolbar` 基础布局与模块分层。
+2. **预留后端通信抽象层**：新增 `services/api.js` 与 `usePdfFile` 等基础能力，先保证 UI 与交互骨架可运行，再逐步替换为真实后端调用。
+
+### 2026-01-27
+1. **完成项目结构重组与多语言容器化起步**：重整仓库目录并初始化 Python、Java 服务与 `docker-compose` 编排，形成多服务协同基础。
+2. **搭建 Java + Python 双引擎雏形**：建立 Spring Boot 后端骨架、Python 服务入口及各自 Dockerfile，为后续 API 聚合与 AI 能力接入铺路。
+3. **补齐前端容器编排入口**：新增前端 Dockerfile 并更新总编排文件，三端（前端/Java/Python）协同开发环境初步可用。
