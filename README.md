@@ -8,7 +8,7 @@
 
 - **前端**：React 单页应用，提供 PDF 预览、划词解释、聊天与多 Tab 分析面板。
 - **后端网关**：Spring Boot 统一对外 API，转发请求到 Python AI 服务。
-- **AI 服务**：FastAPI + GROBID 解析 PDF，通义千问（DashScope）结合 RAG 做摘要、解释、翻译与分析。
+- **AI 服务**：FastAPI + GROBID 解析 PDF，DeepSeek V4 结合 RAG 做摘要、解释、翻译与分析。
 - **部署**：Docker Compose 一键启动前端、Java、Python、GROBID 四类服务。
 
 ---
@@ -26,7 +26,7 @@
 | 后端网关   | Spring Boot              | 3.4.x, Java 21 |
 | AI 服务    | FastAPI, Uvicorn         | Python 3.x |
 | PDF 解析   | GROBID                   | 0.7.2 (Docker) |
-| 大模型     | 通义千问 (DashScope)     | qwen-max  |
+| 大模型     | DeepSeek V4              | deepseek-v4-pro / deepseek-v4-flash |
 | 编排       | Docker Compose           | -         |
 
 ---
@@ -45,11 +45,11 @@
 ├── backend-java/             # Spring Boot 网关
 │   └── src/main/java/.../controller/AcademicController.java
 │   └── src/main/java/.../service/AiService.java
-├── ai-service-python/        # FastAPI + GROBID + DashScope
+├── ai-service-python/        # FastAPI + GROBID + DeepSeek
 │   ├── main.py               # /api/analyze-pdf, /api/explain-term 等
 │   └── requirements.txt
 ├── docker-compose.yml        # frontend, backend, ai-service, grobid
-├── .env                      # DASHSCOPE_API_KEY（根目录，供 ai-service 使用）
+├── .env                      # DEEPSEEK_API_KEY（根目录，供 ai-service 使用）
 └── docs/
     └── CONSTRAINTS.md        # 技术栈与接口约束（开发必读）
 ```
@@ -76,7 +76,7 @@
 ### 本地开发
 
 1. **配置环境变量**
-   - 项目根目录 `.env` 中配置 `DASHSCOPE_API_KEY`（通义千问 API Key）。
+   - 项目根目录 `.env` 中配置 `DEEPSEEK_API_KEY`（DeepSeek API Key）。
    - 前端 `frontend/.env` 中可选配置 `VITE_API_BASE_URL`（默认 `http://localhost:8080/api`）。
 
 2. **启动 Python AI 服务**（需先启动 GROBID，或使用 Docker 一起启动）
@@ -99,7 +99,7 @@
 ### Docker 一键启动
 
 ```bash
-# 确保根目录 .env 中有 DASHSCOPE_API_KEY
+# 确保根目录 .env 中有 DEEPSEEK_API_KEY
 docker-compose up --build
 ```
 
@@ -219,6 +219,11 @@ cd ../backend-java
 
 ---
 
-## 许可证
+## .env配置
 
-请根据项目实际情况补充许可证信息。
+DEEPSEEK_API_KEY=填入DeepSeek api
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-v4-pro
+DEEPSEEK_TRANSLATION_MODEL=deepseek-v4-flash
+DEEPSEEK_THINKING_TYPE=enabled
+DEEPSEEK_REASONING_EFFORT=high
