@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export const resolveApiBaseUrl = (
   env = globalThis.__VITE_ENV__ ?? (typeof import.meta !== 'undefined' ? import.meta.env : undefined),
-) => env?.VITE_API_BASE_URL || 'http://localhost:8080/api';
+) => env?.VITE_API_BASE_URL || 'http://localhost:8081/api';
 
 export const createApiClient = (baseURL = resolveApiBaseUrl(), axiosInstance = axios) => {
   const client = axiosInstance.create({

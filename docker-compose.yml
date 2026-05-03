@@ -9,7 +9,7 @@ services:
       - ./frontend:/app         # 核心：将本地代码映射进容器，实现热更新
       - /app/node_modules       # 防止本地 node_modules 覆盖容器内的
     environment:
-      - VITE_API_BASE_URL=http://localhost:8080/api # 指向 Java 后端
+      - VITE_API_BASE_URL=http://localhost:8081/api # 指向 Java 后端
     depends_on:
       - backend
 
@@ -18,7 +18,7 @@ services:
     build: ./backend-java
     container_name: backend_java
     ports:
-      - "8080:8080"
+      - "8081:8080"
     volumes:
       - java_data:/app/data # 🔥 修复：挂载 H2 数据库目录防止数据丢失
     # 如果 Java 需要调用 Python，确保它知道 ai-service 这个主机名
@@ -43,12 +43,16 @@ services:
     env_file:
       - .env  # 加载根目录的 .env 文件
     environment:
-      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-v4-pro}
+      - DEEPSEEK_TRANSLATION_MODEL=${DEEPSEEK_TRANSLATION_MODEL:-deepseek-v4-flash}
+      - DEEPSEEK_THINKING_TYPE=${DEEPSEEK_THINKING_TYPE:-enabled}
+      - DEEPSEEK_REASONING_EFFORT=${DEEPSEEK_REASONING_EFFORT:-high}
       - PYTHON_SERVICE_URL=http://ai-service:8000/api
       - NEO4J_URI=${NEO4J_URI:-}
       - NEO4J_USER=${NEO4J_USER:-}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-}
-      #- OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - grobid
 

@@ -154,7 +154,7 @@
 | Python | 3.10+ | 建议 3.10 或 3.11 |
 | 框架 | FastAPI | 异步端点使用 `async def` |
 | 路由前缀 | `/api` | 所有对外接口挂在 `/api` 下，与 Java 的 `PYTHON_URL` 拼接一致 |
-| 大模型 | DashScope (通义千问) | API Key 从环境变量 `DASHSCOPE_API_KEY` 读取，勿写死在代码中 |
+| 大模型 | DeepSeek V4 | API Key 从环境变量 `DEEPSEEK_API_KEY` 读取，勿写死在代码中 |
 | GROBID | 固定主机名 | Docker 内为 `http://grobid:8070`，本地调试可改为 `http://localhost:8070` |
 
 - **依赖**：版本范围以 `requirements.txt` 为准，新增依赖需写明版本区间并注明用途。
@@ -251,7 +251,7 @@
 - **前端**：页面级组件与业务组件放在 `src/components/`；通用逻辑放 `src/hooks/`；API 封装仅保留在 `src/services/api.js`。  
 - **Java**：Controller 仅做参数校验与转发，业务逻辑放在 Service 层；配置类放在 `config` 包下。  
 - **Python**：路由与请求模型在 `main.py` 中；若逻辑增多，可拆出 `services/`、`models/` 等模块，但需保证 `main.py` 仍为单入口。  
-- **环境变量**：根目录 `.env` 仅放 DASHSCOPE 等与 AI/密钥相关变量；前端 `.env` 仅放 `VITE_API_BASE_URL` 等前端所需变量；禁止提交真实 API Key 到版本库。
+- **环境变量**：根目录 `.env` 仅放 DeepSeek 等与 AI/密钥相关变量；前端 `.env` 仅放 `VITE_API_BASE_URL` 等前端所需变量；禁止提交真实 API Key 到版本库。
 
 ---
 
