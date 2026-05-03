@@ -1,0 +1,1 @@
+$(function(){cAppCXCYNoticeBulletin4Index_Detail.init()}),function(n){var t,i;window.cAppCXCYNoticeBulletin4Index_Detail=(i=function(){n('button[type="button"][data-command="c-preview"]').cpreview()},(t={}).init=function(){i()},t)}(jQuery);
