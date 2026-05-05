@@ -134,7 +134,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
                 <i className="h-2 w-2 rounded-full bg-slate-400" /> 参考文献
               </span>
               <span className="flex items-center gap-1">
-                <i className="h-2 w-2 rounded-full bg-indigo-500" /> 引用本文
+                <i className="h-2 w-2 rounded-full bg-pixiu" /> 引用本文
               </span>
             </div>
           </div>

@@ -161,6 +161,8 @@ const PdfViewer = ({
   onHighlightsChange,
   onPageChange,
   onPageTextExtracted,
+  targetPageIndex = null,
+  targetPageJumpToken = 0,
   theme = 'light',
 }) => {
   const [highlights, setHighlights] = useState([]);
@@ -172,6 +174,8 @@ const PdfViewer = ({
   const isFirstRender = useRef(true);
   const latestPdfIdRef = useRef(pdfId);
   const pageTextByIndexRef = useRef({});
+  const initialViewerPage = Number.isFinite(targetPageIndex) ? Math.max(0, targetPageIndex) : 0;
+  const viewerKey = `${pdfId || 'empty'}-${initialViewerPage}-${targetPageJumpToken}`;
 
   useEffect(() => {
     latestPdfIdRef.current = pdfId;
@@ -240,16 +244,28 @@ const PdfViewer = ({
   const handleDocumentLoad = useCallback(
     ({ doc }) => {
       pdfDocRef.current = doc;
-      onPageChange?.(currentPageRef.current);
-      extractPageText(currentPageRef.current, doc);
+      const maxPageIndex = Math.max((doc?.numPages || 1) - 1, 0);
+      const initialPageIndex = Number.isFinite(targetPageIndex)
+        ? Math.max(0, Math.min(targetPageIndex, maxPageIndex))
+        : currentPageRef.current;
+      currentPageRef.current = initialPageIndex;
+      onPageChange?.({
+        pageIndex: initialPageIndex,
+        totalPages: doc?.numPages || 0,
+      });
+      extractPageText(initialPageIndex, doc);
     },
-    [extractPageText, onPageChange],
+    [extractPageText, onPageChange, targetPageIndex],
   );
 
   const handleViewerPageChange = useCallback(
     (event) => {
       currentPageRef.current = event.currentPage;
-      onPageChange?.(event.currentPage);
+      const doc = event.doc || pdfDocRef.current;
+      onPageChange?.({
+        pageIndex: event.currentPage,
+        totalPages: doc?.numPages || 0,
+      });
       extractPageText(event.currentPage, event.doc || pdfDocRef.current);
     },
     [extractPageText, onPageChange],
@@ -436,7 +452,9 @@ const PdfViewer = ({
       {fileUrl ? (
         <Worker workerUrl={workerUrl}>
           <Viewer
+            key={viewerKey}
             fileUrl={fileUrl}
+            initialPage={initialViewerPage}
             plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
             theme={theme}
             onDocumentLoad={handleDocumentLoad}

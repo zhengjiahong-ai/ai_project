@@ -1,6 +1,21 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { openDB } from 'idb';
-import { Trash2 } from 'lucide-react';
+import {
+  BarChart3,
+  BookOpen,
+  Bookmark,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Info,
+  LayoutDashboard,
+  MessageSquare,
+  Network,
+  Search,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 
 import BackgroundKnowledgePanel from './components/BackgroundKnowledgePanel.jsx';
@@ -36,11 +51,26 @@ import {
   createEmptyDeepResearchState,
   normalizeResearchTask,
 } from './components/deepResearchPanelModel.js';
+import appVersionRaw from '../../VERSION?raw';
+
+const APP_VERSION = appVersionRaw.trim() || '0.0.0';
+const DEFAULT_MODEL_NAME = 'DeepSeek V4';
 
 const WELCOME_MESSAGE = {
   role: 'ai',
   content: '您好！我是您的 AI 学术助手。上传论文后，您可以直接划选正文句子进行解释、批判阅读，并保留对话历史。',
 };
+
+const workspaceTabs = [
+  { id: 'chat', label: '问答', icon: MessageSquare },
+  { id: 'deconstruct', label: '篇章解构', icon: LayoutDashboard },
+  { id: 'analysis', label: '批判阅读', icon: BarChart3 },
+  { id: 'translation', label: '逐页翻译', icon: BookOpen },
+  { id: 'background', label: '背景补课', icon: Network },
+  { id: 'socratic', label: '引导学习', icon: Sparkles },
+  { id: 'deep-research', label: '深度研究', icon: Search },
+  { id: 'notes', label: '笔记', icon: Bookmark },
+];
 
 const DEFAULT_ACTIVE_TAB = 'chat';
 const THEME_STORAGE_KEY = 'pixiu-theme';
@@ -57,6 +87,361 @@ const normalizeBackgroundKnowledgeLevel = (value) => {
     return '进阶';
   }
   return '一般';
+};
+
+const sectionDisplayNames = {
+  abstract: '摘要',
+  introduction: '1 Introduction',
+  methods: '3 Methodology',
+  results: '4 Experiments',
+  discussion: '5 Discussion',
+  conclusion: '6 Conclusion',
+};
+
+const outlineSourceLabels = {
+  pdf: 'PDF结构',
+  aiStructure: 'AI解析',
+  aiSkeleton: 'AI目录',
+  pending: '待解析',
+};
+
+const coerceFiniteNumber = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+
+const getOutlineLevel = (label) => {
+  const text = `${label || ''}`.trim();
+  const numberMatch = text.match(/^\s*(?:section\s+)?(\d+(?:\.\d+)*)(?:[.)])?\s*/i);
+
+  if (!numberMatch) {
+    return 1;
+  }
+
+  return Math.min(4, Math.max(1, numberMatch[1].split('.').filter(Boolean).length));
+};
+
+const getOutlinePageLabel = (page, pageIndex) => {
+  if (Number.isFinite(page) && page > 0) {
+    return `p.${page}`;
+  }
+
+  if (Number.isFinite(pageIndex)) {
+    return `p.${pageIndex + 1}`;
+  }
+
+  return '';
+};
+
+const normalizeOutlinePage = (section) => {
+  const pageIndex = coerceFiniteNumber(section?.pageIndex);
+  const page = coerceFiniteNumber(section?.page);
+  const resolvedPageIndex = Number.isFinite(pageIndex)
+    ? pageIndex
+    : Number.isFinite(page)
+      ? Math.max(0, page - 1)
+      : null;
+  const resolvedPage = Number.isFinite(page)
+    ? page
+    : Number.isFinite(resolvedPageIndex)
+      ? resolvedPageIndex + 1
+      : null;
+
+  return {
+    page: resolvedPage,
+    pageIndex: resolvedPageIndex,
+    pageLabel: getOutlinePageLabel(resolvedPage, resolvedPageIndex),
+  };
+};
+
+const flattenOutlineHierarchy = (rawItems) => {
+  const validItems = rawItems.filter((item) => `${item.label || ''}`.trim());
+
+  if (validItems.length === 0) {
+    return [];
+  }
+
+  const minLevel = Math.min(...validItems.map((item) => item.level || getOutlineLevel(item.label)));
+  const stack = [];
+  const seenIds = new Map();
+  const idAliases = new Map();
+
+  const normalizedItems = validItems.map((item, index) => {
+    const baseLevel = item.level || getOutlineLevel(item.label);
+    const level = Math.min(4, Math.max(1, baseLevel - minLevel + 1));
+    const baseId = `${item.id || `outline-${index + 1}`}`.trim() || `outline-${index + 1}`;
+    const duplicateCount = seenIds.get(baseId) || 0;
+    const id = duplicateCount ? `${baseId}-${duplicateCount + 1}` : baseId;
+    seenIds.set(baseId, duplicateCount + 1);
+    idAliases.set(baseId, id);
+
+    return {
+      ...item,
+      id,
+      level,
+      sourceParentId: item.parentId ? `${item.parentId}` : null,
+    };
+  });
+
+  const itemById = new Map(normalizedItems.map((item) => [item.id, item]));
+
+  const itemsWithParents = normalizedItems.map((item) => {
+    const explicitParentId = idAliases.get(item.sourceParentId) || item.sourceParentId;
+    let parent = explicitParentId && itemById.has(explicitParentId) ? itemById.get(explicitParentId) : null;
+
+    if (!parent) {
+      while (stack.length > 0 && stack[stack.length - 1].level >= item.level) {
+        stack.pop();
+      }
+      parent = stack[stack.length - 1] || null;
+    }
+
+    const nextItem = {
+      ...item,
+      parentId: parent?.id || null,
+    };
+
+    stack.push(nextItem);
+    return nextItem;
+  });
+
+  const resolvedItemsById = new Map(itemsWithParents.map((item) => [item.id, item]));
+  const resolveAncestorIds = (item, visitedIds = new Set()) => {
+    if (!item.parentId || visitedIds.has(item.parentId)) {
+      return [];
+    }
+
+    const parent = resolvedItemsById.get(item.parentId);
+    if (!parent) {
+      return [];
+    }
+
+    visitedIds.add(item.parentId);
+    return [...resolveAncestorIds(parent, visitedIds), parent.id];
+  };
+
+  const childCountByParent = itemsWithParents.reduce((countMap, item) => {
+    if (item.parentId) {
+      countMap.set(item.parentId, (countMap.get(item.parentId) || 0) + 1);
+    }
+    return countMap;
+  }, new Map());
+
+  return itemsWithParents.map((item) => ({
+    ...item,
+    ancestorIds: resolveAncestorIds(item),
+    hasChildren: childCountByParent.has(item.id),
+    childCount: childCountByParent.get(item.id) || 0,
+  }));
+};
+
+const buildPaperOutlineModel = (deconstructData) => {
+  const structure = deconstructData?.paper_structure;
+  const skeleton = deconstructData?.paper_skeleton;
+
+  if (Array.isArray(structure?.sections) && structure.sections.length > 0) {
+    const items = structure.sections.map((section, index) => {
+      const label = `${section.title || section.name || section.section || `Section ${index + 1}`}`.trim();
+      const pageMeta = normalizeOutlinePage(section);
+      const explicitLevel = coerceFiniteNumber(section.level ?? section.nestedLevel);
+      const headingNumber = `${section.headingNumber || section.number || ''}`.trim();
+
+      return {
+        id: section.id || section.key || `section-${index + 1}`,
+        label,
+        level: Number.isFinite(explicitLevel)
+          ? explicitLevel
+          : getOutlineLevel(headingNumber || label),
+        parentId: section.parentId || null,
+        headingNumber,
+        meta: pageMeta.pageLabel || section.type || `${index + 1}`,
+        preview: section.preview || section.summary || '',
+        source: 'pdf',
+        ...pageMeta,
+      };
+    });
+
+    return {
+      source: 'pdf',
+      sourceLabel: outlineSourceLabels.pdf,
+      items: flattenOutlineHierarchy(items),
+    };
+  }
+
+  if (structure && typeof structure === 'object' && !Array.isArray(structure)) {
+    const structureItems = [
+      ['research_problem', '研究问题'],
+      ['core_hypothesis', '核心假设'],
+      ['method_framework', '方法框架'],
+      ['claimed_contributions', '主要贡献'],
+      ['experimental_logic', '实验逻辑'],
+      ['limitations', '局限性'],
+    ]
+      .filter(([key]) => {
+        const value = structure[key];
+        return Array.isArray(value) ? value.length > 0 : Boolean(`${value || ''}`.trim());
+      })
+      .map(([key, label], index) => ({
+        id: key,
+        label,
+        level: 1,
+        meta: `${index + 1}`,
+        preview: Array.isArray(structure[key]) ? structure[key].join(' ') : structure[key],
+        source: 'aiStructure',
+        page: null,
+        pageIndex: null,
+        pageLabel: '',
+      }));
+
+    if (structureItems.length > 0) {
+      return {
+        source: 'aiStructure',
+        sourceLabel: outlineSourceLabels.aiStructure,
+        items: flattenOutlineHierarchy(structureItems),
+      };
+    }
+  }
+
+  if (skeleton && typeof skeleton === 'object') {
+    const items = Object.keys(sectionDisplayNames)
+      .filter((key) => {
+        const value = skeleton[key];
+        return typeof value === 'string' && value.trim() && !value.includes('请提供具体内容');
+      })
+      .map((key, index) => ({
+        id: key,
+        label: sectionDisplayNames[key] || key,
+        level: getOutlineLevel(sectionDisplayNames[key] || key),
+        meta: `${index + 1}`,
+        preview: skeleton[key],
+        source: 'aiSkeleton',
+        page: null,
+        pageIndex: null,
+        pageLabel: '',
+      }));
+
+    return {
+      source: 'aiSkeleton',
+      sourceLabel: outlineSourceLabels.aiSkeleton,
+      items: flattenOutlineHierarchy(items),
+    };
+  }
+
+  return {
+    source: 'pending',
+    sourceLabel: outlineSourceLabels.pending,
+    items: [],
+  };
+};
+
+const getVisibleOutlineItems = (items, collapsedIds, query) => {
+  const normalizedQuery = `${query || ''}`.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return items.filter((item) => !item.ancestorIds.some((ancestorId) => collapsedIds[ancestorId]));
+  }
+
+  const visibleIds = new Set();
+  items.forEach((item) => {
+    const searchableText = [
+      item.label,
+      item.meta,
+      item.pageLabel,
+      item.preview,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    if (searchableText.includes(normalizedQuery)) {
+      visibleIds.add(item.id);
+      item.ancestorIds.forEach((ancestorId) => visibleIds.add(ancestorId));
+    }
+  });
+
+  return items.filter((item) => visibleIds.has(item.id));
+};
+
+const resolveCurrentOutlineItem = (items, currentPageIndex) => {
+  if (!Number.isFinite(currentPageIndex)) {
+    return null;
+  }
+
+  return items.reduce((currentItem, item) => {
+    if (!Number.isFinite(item.pageIndex) || item.pageIndex > currentPageIndex) {
+      return currentItem;
+    }
+
+    if (!currentItem || item.pageIndex >= currentItem.pageIndex) {
+      return item;
+    }
+
+    return currentItem;
+  }, null);
+};
+
+const renderHighlightedText = (text, query) => {
+  const rawText = `${text || ''}`;
+  const normalizedQuery = `${query || ''}`.trim();
+
+  if (!normalizedQuery) {
+    return rawText;
+  }
+
+  const lowerText = rawText.toLowerCase();
+  const lowerQuery = normalizedQuery.toLowerCase();
+  const parts = [];
+  let cursor = 0;
+  let matchIndex = lowerText.indexOf(lowerQuery, cursor);
+
+  while (matchIndex >= 0) {
+    if (matchIndex > cursor) {
+      parts.push(rawText.slice(cursor, matchIndex));
+    }
+
+    const matchedText = rawText.slice(matchIndex, matchIndex + normalizedQuery.length);
+    parts.push(
+      <mark key={`${matchIndex}-${matchedText}`} className="outline-search-mark">
+        {matchedText}
+      </mark>,
+    );
+    cursor = matchIndex + normalizedQuery.length;
+    matchIndex = lowerText.indexOf(lowerQuery, cursor);
+  }
+
+  if (cursor < rawText.length) {
+    parts.push(rawText.slice(cursor));
+  }
+
+  return parts;
+};
+
+const calculateReadingProgress = ({ pageIndex = 0, totalPages = 0 } = {}) =>
+  totalPages ? Math.min(100, Math.round(((pageIndex + 1) / totalPages) * 100)) : 0;
+
+const normalizeAuthors = (authors) => {
+  if (Array.isArray(authors)) {
+    return authors.filter(Boolean).join(', ');
+  }
+
+  return `${authors || ''}`.trim();
+};
+
+const formatUploadErrorMessage = (error) => {
+  const responseMessage = error?.response?.data?.message || error?.response?.data?.detail;
+  if (responseMessage) {
+    return responseMessage;
+  }
+
+  if (error?.message === 'Network Error' || error?.code === 'ERR_NETWORK') {
+    return '无法连接后端服务。请确认 Docker Desktop 已启动，并且 Java 网关 http://localhost:8081/api 正在运行。';
+  }
+
+  return error?.message || '上传失败，请确认后端服务已启动。';
 };
 
 const initDB = async () =>
@@ -144,6 +529,16 @@ export default function App() {
   const [deepResearchStateByPdf, setDeepResearchStateByPdf] = useState({});
   const [papersList, setPapersList] = useState([]);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [outlineQuery, setOutlineQuery] = useState('');
+  const [collapsedOutlineIds, setCollapsedOutlineIds] = useState({});
+  const [pdfPageState, setPdfPageState] = useState({
+    pageIndex: 0,
+    totalPages: 0,
+  });
+  const [targetPageIndex, setTargetPageIndex] = useState(null);
+  const [targetPageJumpToken, setTargetPageJumpToken] = useState(0);
 
   const abortControllers = useRef({});
   const translationRequestsRef = useRef({});
@@ -152,6 +547,7 @@ export default function App() {
   const translationStateRef = useRef(createEmptyTranslationState());
   const papersListRef = useRef([]);
   const currentPdfIdRef = useRef(null);
+  const workspaceTabsRef = useRef(null);
   const currentPageTextRef = useRef({
     pageIndex: 0,
     pageText: '',
@@ -166,6 +562,20 @@ export default function App() {
   useEffect(() => {
     currentPdfIdRef.current = pdfId;
   }, [pdfId]);
+
+  useEffect(() => {
+    setOutlineQuery('');
+    setCollapsedOutlineIds({});
+  }, [pdfId]);
+
+  useEffect(() => {
+    const activeTabButton = workspaceTabsRef.current?.querySelector('[data-active-tab="true"]');
+    activeTabButton?.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+      behavior: 'smooth',
+    });
+  }, [activeTab]);
 
   useEffect(() => {
     translationStateRef.current = translationState;
@@ -272,6 +682,12 @@ export default function App() {
 
     const currentEntries = Array.isArray(entryList) ? entryList : papersListRef.current;
     const libraryEntry = currentEntries.find((paper) => paper.id === targetPdfId);
+    const savedPageIndex = Number.isFinite(libraryEntry?.currentPage)
+      ? Math.max(0, libraryEntry.currentPage - 1)
+      : 0;
+    const savedTotalPages = Number.isFinite(libraryEntry?.totalPages)
+      ? Math.max(0, libraryEntry.totalPages)
+      : 0;
     const fallbackMessages =
       savedMessages && savedMessages.length > 0
         ? savedMessages
@@ -293,6 +709,11 @@ export default function App() {
     commitTranslationState(normalizeTranslationState(savedTranslationState, targetPdfId));
     setIsTranslated(false);
     currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
+    setPdfPageState({ pageIndex: savedPageIndex, totalPages: savedTotalPages });
+    setTargetPageIndex(savedPageIndex > 0 ? savedPageIndex : null);
+    if (savedPageIndex > 0) {
+      setTargetPageJumpToken((token) => token + 1);
+    }
     setActiveTab((currentTab) =>
       currentTab === 'translation' ? lastNonTranslationTabRef.current || DEFAULT_ACTIVE_TAB : currentTab,
     );
@@ -318,8 +739,16 @@ export default function App() {
       const readyMessages = createReadyMessage(file.name);
       const newEntry = {
         id: response.pdfId,
+        title: response.title || file.name,
         filename: file.name,
+        authors: normalizeAuthors(response.authors),
+        parseStatus: response.ragIndexed === false ? '索引异常' : '已解析',
+        sectionCount: response.paper_structure?.sections?.length || 0,
+        readingProgress: 0,
+        currentPage: 0,
+        totalPages: 0,
         timestamp: Date.now(),
+        updatedAt: Date.now(),
       };
 
       const db = await initDB();
@@ -347,6 +776,8 @@ export default function App() {
       commitTranslationState(createEmptyTranslationState(response.pdfId));
       setIsTranslated(false);
       currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
+      setPdfPageState({ pageIndex: 0, totalPages: 0 });
+      setTargetPageIndex(null);
       setActiveTab('deconstruct');
       setPapersList((prev) => [newEntry, ...prev.filter((paper) => paper.id !== response.pdfId)]);
       localStorage.setItem('lastPdfId', response.pdfId);
@@ -365,7 +796,12 @@ export default function App() {
       commitTranslationState(createEmptyTranslationState());
       setIsTranslated(false);
       currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
-      window.alert(error?.response?.data?.message || error?.message || '上传失败，请确认后端服务已启动。');
+      setPdfPageState({ pageIndex: 0, totalPages: 0 });
+      setTargetPageIndex(null);
+      const uploadErrorMessage = formatUploadErrorMessage(error);
+      window.setTimeout(() => {
+        window.alert(uploadErrorMessage);
+      }, 0);
     } finally {
       setIsAiReady(true);
       setIsDeconstructing(false);
@@ -415,6 +851,47 @@ export default function App() {
     }
   }, [restorePaperState]);
 
+  const handleWorkspaceTabsWheel = useCallback((event) => {
+    const tabsElement = event.currentTarget;
+    const maxScrollLeft = tabsElement.scrollWidth - tabsElement.clientWidth;
+
+    if (maxScrollLeft <= 0) {
+      return;
+    }
+
+    const delta =
+      Math.abs(event.deltaX) > Math.abs(event.deltaY)
+        ? event.deltaX
+        : event.deltaY;
+
+    if (!delta) {
+      return;
+    }
+
+    const nextScrollLeft = Math.max(0, Math.min(maxScrollLeft, tabsElement.scrollLeft + delta));
+    if (nextScrollLeft === tabsElement.scrollLeft) {
+      return;
+    }
+
+    event.preventDefault();
+    tabsElement.scrollLeft = nextScrollLeft;
+  }, []);
+
+  const handleToggleOutlineCollapse = useCallback((outlineId) => {
+    setCollapsedOutlineIds((current) => ({
+      ...current,
+      [outlineId]: !current[outlineId],
+    }));
+  }, []);
+
+  const handleSelectOutlineItem = useCallback((item) => {
+    setActiveTab('deconstruct');
+    if (Number.isFinite(item.pageIndex)) {
+      setTargetPageIndex(item.pageIndex);
+      setTargetPageJumpToken((token) => token + 1);
+    }
+  }, []);
+
   const handleDeletePaper = useCallback(async (targetPdfId) => {
     if (!window.confirm('确定移除这篇论文及其所有关联聊天、笔记和引导学习记录吗？')) return;
 
@@ -458,6 +935,8 @@ export default function App() {
         commitTranslationState(createEmptyTranslationState());
         setIsTranslated(false);
         currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
+        setPdfPageState({ pageIndex: 0, totalPages: 0 });
+        setTargetPageIndex(null);
         setActiveTab(DEFAULT_ACTIVE_TAB);
         localStorage.removeItem('lastPdfId');
       }
@@ -555,6 +1034,61 @@ export default function App() {
 
     saveTranslationState();
   }, [isRestored, pdfId, translationState]);
+
+  useEffect(() => {
+    if (!isRestored || !pdfId) return;
+
+    const nextProgress = calculateReadingProgress(pdfPageState);
+    const nextCurrentPage = pdfPageState.totalPages ? pdfPageState.pageIndex + 1 : 0;
+    const nextTotalPages = pdfPageState.totalPages || 0;
+    const updatedAt = Date.now();
+
+    setPapersList((prev) => {
+      let didUpdate = false;
+      const nextList = prev.map((paper) => {
+        if (paper.id !== pdfId) return paper;
+
+        if (
+          paper.readingProgress === nextProgress &&
+          paper.currentPage === nextCurrentPage &&
+          paper.totalPages === nextTotalPages
+        ) {
+          return paper;
+        }
+
+        didUpdate = true;
+        return {
+          ...paper,
+          readingProgress: nextProgress,
+          currentPage: nextCurrentPage,
+          totalPages: nextTotalPages,
+          updatedAt,
+        };
+      });
+
+      return didUpdate ? nextList : prev;
+    });
+
+    const saveLibraryProgress = async () => {
+      try {
+        const db = await initDB();
+        const paper = await db.get('libraryStore', pdfId);
+        if (!paper) return;
+
+        await db.put('libraryStore', {
+          ...paper,
+          readingProgress: nextProgress,
+          currentPage: nextCurrentPage,
+          totalPages: nextTotalPages,
+          updatedAt,
+        });
+      } catch (error) {
+        console.error('Failed to persist library reading progress.', error);
+      }
+    };
+
+    saveLibraryProgress();
+  }, [isRestored, pdfId, pdfPageState]);
 
   const handleStartAnalysis = useCallback(async () => {
     if (!pdfId) {
@@ -1298,7 +1832,22 @@ export default function App() {
     }
   }, [commitTranslationState, deconstructData, pdfId]);
 
-  const handlePdfPageChange = useCallback((pageIndex) => {
+  const handlePdfPageChange = useCallback((pageChange) => {
+    const pageIndex =
+      typeof pageChange === 'number'
+        ? pageChange
+        : Number.isFinite(pageChange?.pageIndex)
+          ? pageChange.pageIndex
+          : 0;
+    const totalPages =
+      typeof pageChange === 'object' && Number.isFinite(pageChange?.totalPages)
+        ? pageChange.totalPages
+        : pdfPageState.totalPages;
+
+    setPdfPageState({
+      pageIndex,
+      totalPages,
+    });
     currentPageTextRef.current = {
       pageIndex,
       pageText: '',
@@ -1308,7 +1857,7 @@ export default function App() {
       const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
       return baseState.currentPage === pageIndex ? baseState : { ...baseState, currentPage: pageIndex };
     });
-  }, [commitTranslationState, pdfId]);
+  }, [commitTranslationState, pdfId, pdfPageState.totalPages]);
 
   const handlePageTextExtracted = useCallback(({
     pageIndex,
@@ -1399,6 +1948,17 @@ export default function App() {
   }, [handleStartAnalysis, pdfId]);
 
   const currentTranslationPage = translationState.pages?.[translationState.currentPage] || null;
+  const activeTabMeta = workspaceTabs.find((tab) => tab.id === activeTab) || workspaceTabs[0];
+  const ActiveTabIcon = activeTabMeta.icon;
+  const currentPaperStatus = pdfFile ? (isDeconstructing ? '解析中' : '已载入') : '待上传';
+  const currentResearchProgress = Math.round((currentDeepResearchState.task?.progress || 0) * 100);
+  const paperOutlineModel = buildPaperOutlineModel(deconstructData);
+  const paperOutlineItems = paperOutlineModel.items;
+  const currentOutlineItem = resolveCurrentOutlineItem(paperOutlineItems, pdfPageState.pageIndex);
+  const visibleOutlineItems = getVisibleOutlineItems(paperOutlineItems, collapsedOutlineIds, outlineQuery);
+  const readingProgress = calculateReadingProgress(pdfPageState);
+  const modelName =
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_MODEL_NAME) || DEFAULT_MODEL_NAME;
 
   return (
     <>
@@ -1407,67 +1967,395 @@ export default function App() {
         onClose={() => setIsLibraryOpen(false)}
         papers={papersList}
         currentPdfId={pdfId}
+        currentReadingProgress={readingProgress}
+        currentPage={pdfFile ? pdfPageState.pageIndex + 1 : 0}
+        currentTotalPages={pdfPageState.totalPages || 0}
         onSelectPaper={handleSelectPaper}
         onDeletePaper={handleDeletePaper}
       />
 
+      {isAboutOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-sm">
+          <div className="theme-panel theme-border w-full max-w-md rounded-lg border shadow-2xl">
+            <div className="theme-border flex items-center justify-between border-b px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-pixiu text-white">
+                  <Info size={18} />
+                </div>
+                <div>
+                  <h2 className="theme-text-primary text-base font-bold">关于 Pixiu</h2>
+                  <p className="theme-text-muted text-xs">学术论文 AI 阅读与批判分析工作台</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAboutOpen(false)}
+                className="theme-icon-button rounded-md px-2 py-1 text-sm"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="space-y-3 p-5 text-sm">
+              <div className="theme-card-soft flex items-center justify-between rounded-md p-3">
+                <span className="theme-text-secondary">版本号</span>
+                <span className="theme-text-primary font-semibold">v{APP_VERSION}</span>
+              </div>
+              <div className="theme-card-soft flex items-center justify-between rounded-md p-3">
+                <span className="theme-text-secondary">当前模型</span>
+                <span className="theme-text-primary font-semibold">{modelName}</span>
+              </div>
+              <div className="theme-card-soft flex items-center justify-between rounded-md p-3">
+                <span className="theme-text-secondary">前端框架</span>
+                <span className="theme-text-primary font-semibold">React 19 + Vite</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="theme-app-shell flex h-screen flex-col font-sans">
         <Navbar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
           isReady={isAiReady}
           theme={theme}
           onFileUpload={handlePdfUpload}
           onToggleTheme={handleToggleTheme}
           onToggleLibrary={() => setIsLibraryOpen(true)}
+          currentFileName={pdfFileName}
+          onOpenAbout={() => setIsAboutOpen(true)}
         />
 
-        <main className="flex-1 overflow-hidden">
-          <Group orientation="horizontal">
-            <Panel defaultSize={65} minSize={30}>
-              <div className="pdf-stage relative flex h-full flex-col p-4">
-                {pdfFileName && (
-                  <div className="pdf-file-chip mb-2 flex items-center justify-between truncate rounded px-3 py-1 text-sm font-medium">
-                    <span>📄 {pdfFileName}</span>
-                    {isTranslated && <span className="text-xs text-pixiu">当前页译文已开启</span>}
+        <main className="workspace-main flex min-h-0 flex-1 overflow-hidden">
+          <aside
+            className={`workspace-sidebar theme-panel theme-border hidden shrink-0 flex-col border-r transition-[width] duration-200 xl:flex ${
+              isSidebarCollapsed ? 'w-14' : 'w-64'
+            }`}
+          >
+            <div className="theme-border border-b p-3">
+              <div className="flex items-center justify-between gap-2">
+                {!isSidebarCollapsed && (
+                  <div className="min-w-0">
+                    <h2 className="theme-text-primary text-sm font-bold">论文导航</h2>
+                    <span className="theme-text-muted text-[10px]">
+                      第 {pdfFile ? pdfPageState.pageIndex + 1 : 0} / {pdfPageState.totalPages || 0} 页
+                    </span>
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed((value) => !value)}
+                  className="theme-button-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                  title={isSidebarCollapsed ? '展开左侧栏' : '收起左侧栏'}
+                >
+                  {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                </button>
+              </div>
+              {!isSidebarCollapsed && (
+                <>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
+                      {currentPaperStatus}
+                    </span>
+                    <span className="theme-text-muted text-[10px]">阅读进度 {readingProgress}%</span>
+                  </div>
+                  <div className="theme-input mt-3 flex items-center gap-2 rounded-md px-3 py-2 text-xs">
+                    <Search size={14} className="theme-text-muted" />
+                    <span className="theme-text-muted">搜索目录 / 笔记 / 论文</span>
+                  </div>
+                </>
+              )}
+            </div>
 
-                <div className="pdf-viewer-shell flex-1 overflow-hidden rounded">
-                  <PdfViewer
-                    fileUrl={pdfFile}
-                    pdfId={pdfId}
-                    theme={theme}
-                    translationLayoutIndex={deconstructData?.translationLayoutIndex || {}}
-                    onSelection={handleExplain}
-                    onSaveNote={handleAddNote}
-                    initialHighlights={pdfHighlights}
-                    onHighlightsChange={handleHighlightsChange}
-                    onPageChange={handlePdfPageChange}
-                    onPageTextExtracted={handlePageTextExtracted}
-                  />
+            <div className={`flex-1 overflow-y-auto ${isSidebarCollapsed ? 'p-2' : 'p-4'}`}>
+              {isSidebarCollapsed ? (
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    type="button"
+                    className="theme-button-secondary flex h-9 w-9 items-center justify-center rounded-md"
+                    title="当前论文"
+                  >
+                    <FileText size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="theme-button-secondary flex h-9 w-9 items-center justify-center rounded-md"
+                    title="篇章目录"
+                  >
+                    <LayoutDashboard size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsLibraryOpen(true)}
+                    className="theme-button-secondary flex h-9 w-9 items-center justify-center rounded-md"
+                    title="论文库"
+                  >
+                    <BookOpen size={16} />
+                  </button>
+                </div>
+              ) : (
+                <>
+              <section className="mb-5">
+                <div className="theme-text-muted mb-2 flex items-center justify-between text-xs font-bold">
+                  <span>当前论文</span>
+                  <span>{notes.length} 条笔记</span>
+                </div>
+                <div className="theme-card-soft rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <FileText size={16} className="mt-0.5 shrink-0 text-pixiu" />
+                    <div className="min-w-0">
+                      <p className="theme-text-primary line-clamp-2 text-sm font-semibold">
+                        {pdfFileName || '尚未上传论文'}
+                      </p>
+                      <p className="theme-text-muted mt-1 text-xs">
+                        {pdfFile ? '可在中间阅读器中划词解释、翻译和批判阅读' : '请先上传 PDF 开始工作'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200/70">
+                    <div
+                      className="h-full rounded-full bg-pixiu"
+                      style={{ width: `${readingProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="mb-5">
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="theme-text-muted text-xs font-bold">篇章目录</div>
+                    {currentOutlineItem && (
+                      <div className="theme-text-muted mt-0.5 truncate text-[10px]">
+                        当前：{currentOutlineItem.label}
+                      </div>
+                    )}
+                  </div>
+                  <span className={`outline-source-badge outline-source-badge-${paperOutlineModel.source}`}>
+                    {paperOutlineModel.sourceLabel}
+                  </span>
                 </div>
 
-                {pdfFile && (
-                  <PdfToolbar
-                    onDynamicExplain={handleDynamicExplain}
-                    onCriticalReading={handleCriticalReading}
-                    onSocraticLearning={() => {
-                      setActiveTab('socratic');
-                    }}
-                    isTranslated={isTranslated}
-                    onToggleTranslation={handleToggleTranslation}
+                <label className="theme-input mb-2 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs">
+                  <Search size={13} className="theme-text-muted shrink-0" />
+                  <input
+                    value={outlineQuery}
+                    onChange={(event) => setOutlineQuery(event.target.value)}
+                    className="theme-text-primary min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400"
+                    placeholder="搜索标题、页码或摘要"
+                    aria-label="搜索篇章目录"
                   />
-                )}
-              </div>
-            </Panel>
+                </label>
 
-            <Separator className="group relative w-1.5 transition-all hover:bg-pixiu/10">
-              <div className="app-separator-line absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 transition-colors group-hover:bg-pixiu/40" />
-            </Separator>
+                <div className="outline-tree text-xs">
+                  {visibleOutlineItems.map((item) => {
+                    const isCollapsed = Boolean(collapsedOutlineIds[item.id]);
+                    const isCurrent = currentOutlineItem?.id === item.id;
+                    const isCurrentPath = currentOutlineItem?.ancestorIds?.includes(item.id);
 
-            <Panel defaultSize={35}>
-              <div className="panel-shell flex h-full flex-col">
+                    return (
+                      <div
+                        key={item.id}
+                        className="outline-tree-row"
+                        style={{ paddingLeft: `${(item.level - 1) * 12}px` }}
+                      >
+                        {item.hasChildren ? (
+                          <button
+                            type="button"
+                            className="outline-collapse-toggle"
+                            onClick={() => handleToggleOutlineCollapse(item.id)}
+                            aria-label={isCollapsed ? '展开子章节' : '收起子章节'}
+                            aria-expanded={!isCollapsed || Boolean(outlineQuery)}
+                          >
+                            {isCollapsed && !outlineQuery ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                          </button>
+                        ) : (
+                          <span className="outline-collapse-spacer" />
+                        )}
+
+                        <button
+                          type="button"
+                          className={`outline-tree-item ${
+                            isCurrent ? 'outline-tree-item-current' : ''
+                          } ${isCurrentPath ? 'outline-tree-item-path' : ''}`}
+                          onClick={() => handleSelectOutlineItem(item)}
+                          title={item.preview ? `${item.label}\n${item.preview}` : item.label}
+                          aria-current={isCurrent ? 'true' : undefined}
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            {renderHighlightedText(item.label, outlineQuery)}
+                          </span>
+                          <span className="outline-page-label">
+                            {item.pageLabel || item.meta}
+                          </span>
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {paperOutlineItems.length > 0 && visibleOutlineItems.length === 0 && (
+                    <div className="theme-empty-state rounded-md px-3 py-2 text-center text-xs">
+                      没有匹配的篇章
+                    </div>
+                  )}
+
+                  {paperOutlineItems.length === 0 && (
+                    <div className="theme-empty-state rounded-md px-3 py-3 text-center text-xs">
+                      <p>
+                        {isDeconstructing
+                          ? '正在解析论文结构...'
+                          : deconstructData
+                            ? '未能识别可导航的论文结构'
+                            : '上传论文后显示真实论文结构'}
+                      </p>
+                      {!isDeconstructing && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('deconstruct')}
+                          className="mt-2 text-[11px] font-semibold text-pixiu"
+                        >
+                          篇章解构
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section>
+                <div className="theme-text-muted mb-2 flex items-center justify-between text-xs font-bold">
+                  <span>最近论文</span>
+                  <button type="button" onClick={() => setIsLibraryOpen(true)} className="text-pixiu">
+                    全部
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {papersList.slice(0, 4).map((paper) => (
+                    <button
+                      key={paper.id}
+                      type="button"
+                      onClick={() => handleSelectPaper(paper.id)}
+                      className={`theme-border w-full rounded-lg border p-2 text-left transition hover:border-pixiu/40 ${
+                        paper.id === pdfId ? 'bg-pixiu/10' : 'theme-panel'
+                      }`}
+                    >
+                      <span className="theme-text-primary line-clamp-2 text-xs font-semibold">{paper.filename}</span>
+                      <span className="theme-text-muted mt-1 block text-[10px]">
+                        {new Date(paper.timestamp).toLocaleDateString()}
+                      </span>
+                    </button>
+                  ))}
+                  {papersList.length === 0 && (
+                    <div className="theme-empty-state rounded-lg p-3 text-center text-xs">论文库暂无内容</div>
+                  )}
+                </div>
+              </section>
+                </>
+              )}
+            </div>
+          </aside>
+
+          <section className="min-w-0 flex-1 overflow-hidden">
+            <Group orientation="horizontal">
+              <Panel defaultSize={62} minSize={36}>
+                <div className="pdf-stage relative flex h-full flex-col p-3">
+                  <div className="workspace-pdf-header theme-panel theme-border mb-2 flex h-10 shrink-0 items-center justify-between rounded-md border px-3 text-sm">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <FileText size={16} className="text-pixiu" />
+                      <span className="theme-text-primary truncate font-medium">
+                        {pdfFileName || '上传论文后在此阅读 PDF'}
+                      </span>
+                    </div>
+                    <div className="theme-text-muted hidden items-center gap-3 text-xs md:flex">
+                      <span>
+                        第 {pdfFile ? pdfPageState.pageIndex + 1 : 0} / {pdfPageState.totalPages || 0} 页
+                      </span>
+                      <span>阅读 {readingProgress}%</span>
+                      <span>划词解释</span>
+                      {isTranslated && <span className="text-pixiu">译文已开启</span>}
+                    </div>
+                  </div>
+
+                  <div className="pdf-viewer-shell flex-1 overflow-hidden rounded-md">
+                    <PdfViewer
+                      fileUrl={pdfFile}
+                      pdfId={pdfId}
+                      theme={theme}
+                      translationLayoutIndex={deconstructData?.translationLayoutIndex || {}}
+                      onSelection={handleExplain}
+                      onSaveNote={handleAddNote}
+                      initialHighlights={pdfHighlights}
+                      onHighlightsChange={handleHighlightsChange}
+                      onPageChange={handlePdfPageChange}
+                      onPageTextExtracted={handlePageTextExtracted}
+                      targetPageIndex={targetPageIndex}
+                      targetPageJumpToken={targetPageJumpToken}
+                    />
+                  </div>
+
+                  {pdfFile && (
+                    <PdfToolbar
+                      onDynamicExplain={handleDynamicExplain}
+                      onCriticalReading={handleCriticalReading}
+                      onSocraticLearning={() => {
+                        setActiveTab('socratic');
+                      }}
+                      isTranslated={isTranslated}
+                      onToggleTranslation={handleToggleTranslation}
+                    />
+                  )}
+                </div>
+              </Panel>
+
+              <Separator className="group relative w-1.5 transition-all hover:bg-pixiu/10">
+                <div className="app-separator-line absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 transition-colors group-hover:bg-pixiu/40" />
+              </Separator>
+
+              <Panel defaultSize={38} minSize={28}>
+                <div className="panel-shell flex h-full flex-col">
+                  <div className="theme-panel theme-border flex shrink-0 flex-col border-b">
+                    <div className="flex items-center justify-between gap-3 px-4 py-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <ActiveTabIcon size={16} className="text-pixiu" />
+                        <div className="min-w-0">
+                          <h2 className="theme-text-primary text-sm font-bold">{activeTabMeta.label}</h2>
+                          <p className="theme-text-muted truncate text-[10px]">
+                            当前功能沿用原有实现，仅调整外层工作台排版
+                          </p>
+                        </div>
+                      </div>
+                      {currentDeepResearchState.task && (
+                        <span className="rounded-full bg-pixiu/10 px-2 py-0.5 text-[10px] font-bold text-pixiu">
+                          研究 {currentResearchProgress}%
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      ref={workspaceTabsRef}
+                      className="workspace-tabs flex gap-1 overflow-x-auto px-2 pb-2"
+                      onWheel={handleWorkspaceTabsWheel}
+                      title="鼠标悬停后滚轮可横向切换功能标签"
+                    >
+                      {workspaceTabs.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = activeTab === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            data-active-tab={isActive ? 'true' : undefined}
+                            onClick={() => setActiveTab(item.id)}
+                            className={`workspace-tab-button flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+                              isActive ? 'workspace-tab-button-active' : ''
+                            }`}
+                          >
+                            <Icon size={14} />
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-hidden">
                 {activeTab === 'chat' && (
                   <ChatPanel
                     messages={messages}
@@ -1576,9 +2464,11 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                  </div>
               </div>
-            </Panel>
-          </Group>
+              </Panel>
+            </Group>
+          </section>
         </main>
       </div>
     </>

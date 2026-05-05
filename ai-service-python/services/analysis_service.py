@@ -94,6 +94,59 @@ def _extract_title(parsed_sections: list[dict], fallback_name: str) -> str:
     return fallback_name
 
 
+def _extract_authors(parsed_sections: list[dict]) -> list[str]:
+    if not parsed_sections or parsed_sections[0].get("section") != "Front Matter (Metadata)":
+        return []
+
+    for line in parsed_sections[0].get("content", "").splitlines():
+        if line.startswith("Authors:"):
+            authors = line.replace("Authors:", "", 1).strip()
+            return [author.strip() for author in authors.split(",") if author.strip()]
+
+    return []
+
+
+def _build_section_outline(parsed_sections: list[dict]) -> list[dict]:
+    outline: list[dict] = []
+    seen: set[str] = set()
+
+    for section in parsed_sections or []:
+        title = str(section.get("section") or "").strip()
+        if not title or title.lower() == "unknown" or title == "Front Matter (Metadata)":
+            continue
+
+        normalized = " ".join(title.lower().split())
+        normalized_key = "|".join(
+            [
+                normalized,
+                str(section.get("pageIndex") if section.get("pageIndex") is not None else ""),
+                str(section.get("parentId") or ""),
+            ]
+        )
+        if normalized_key in seen:
+            continue
+        seen.add(normalized_key)
+
+        content = str(section.get("content") or "").strip()
+        outline.append(
+            {
+                "id": section.get("id") or f"section-{len(outline) + 1}",
+                "title": title,
+                "type": "section",
+                "order": len(outline) + 1,
+                "preview": content[:180],
+                "pageIndex": section.get("pageIndex"),
+                "page": section.get("page"),
+                "level": section.get("level") or 1,
+                "nestedLevel": section.get("nestedLevel") or section.get("level") or 1,
+                "parentId": section.get("parentId"),
+                "headingNumber": section.get("headingNumber"),
+            }
+        )
+
+    return outline
+
+
 async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
     input_dir = tempfile.mkdtemp()
     output_dir = tempfile.mkdtemp()
@@ -118,6 +171,7 @@ async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
         tei_file = os.path.join(output_dir, xml_files[0])
         parsed_sections = parse_tei_xml(tei_file)
         translation_layout_index = extract_translation_layout_index(tei_file)
+        section_outline = _build_section_outline(parsed_sections)
 
         sections_for_summary = {
             "abstract": "",
@@ -188,11 +242,13 @@ Paper context:
 """
                 structure_raw = get_llm()._call(structure_prompt)
                 paper_structure = parse_json_from_llm(structure_raw)
+                paper_structure["sections"] = section_outline
             except Exception as error:
                 print(f"paper_structure generation failed: {error}")
                 paper_structure = {
                     "error": "structure_parse_failed",
                     "raw": str(error)[:500],
+                    "sections": section_outline,
                 }
         else:
             section_summaries = {
@@ -202,10 +258,12 @@ Paper context:
             paper_structure = {
                 "error": "no_content",
                 "raw": "No usable text was extracted from the paper.",
+                "sections": section_outline,
             }
 
         clean_pdf_id = get_rag().normalize_id(file.filename)
         title = _extract_title(parsed_sections, file.filename)
+        authors = _extract_authors(parsed_sections)
         rag_indexed = True
         rag_message = None
         try:
@@ -226,6 +284,8 @@ Paper context:
             "paper_structure": paper_structure,
             "translationLayoutIndex": translation_layout_index,
             "pdfId": clean_pdf_id,
+            "title": title,
+            "authors": authors,
             "ragIndexed": rag_indexed,
         }
         if rag_message:

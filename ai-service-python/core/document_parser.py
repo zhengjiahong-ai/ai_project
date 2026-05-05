@@ -180,6 +180,36 @@ def extract_translation_layout_index(tei_path: str) -> Dict[int, Dict[str, Any]]
     return dict(layout_index)
 
 
+def _normalize_heading_number(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+
+    match = re.match(r"^([A-Za-z]?\d+(?:[.\-]\d+)*|[IVXLC]+(?:[.\-][IVXLC]+)*)", text, re.IGNORECASE)
+    return match.group(1).replace("-", ".") if match else ""
+
+
+def _infer_heading_number(title: str, head) -> str:
+    explicit_number = _normalize_heading_number(
+        (head.get("n") if head else None)
+        or (head.get("xml:id") if head else None)
+        or (head.get("id") if head else None)
+    )
+    if explicit_number:
+        return explicit_number
+
+    return _normalize_heading_number(title)
+
+
+def _infer_section_level(heading_number: str, nested_level: int) -> int:
+    if heading_number:
+        numeric_parts = [part for part in re.split(r"[.]+", heading_number) if part]
+        if numeric_parts:
+            return max(1, min(len(numeric_parts), 6))
+
+    return max(1, min(nested_level, 6))
+
+
 def parse_tei_xml(tei_path):
     with open(tei_path, "r", encoding="utf-8") as handle:
         soup = BeautifulSoup(handle, "xml")
@@ -226,9 +256,20 @@ def parse_tei_xml(tei_path):
             }
         )
 
-    for div in soup.find_all("div"):
-        head = div.find("head")
+    body = soup.find("body") or soup
+    body_divs = body.find_all("div")
+    div_ids = {id(div): f"section-{index + 1}" for index, div in enumerate(body_divs)}
+
+    for div in body_divs:
+        head = div.find("head", recursive=False) or div.find("head")
         title = head.get_text(strip=True) if head else "unknown"
+        coords = _collect_element_coords(div)
+        first_page_index = min((coord["pageIndex"] for coord in coords), default=None)
+        ancestor_divs = [parent for parent in div.find_parents("div") if id(parent) in div_ids]
+        nested_level = len(ancestor_divs) + 1
+        heading_number = _infer_heading_number(title, head)
+        parent_div = ancestor_divs[0] if ancestor_divs else None
+        parent_id = div_ids.get(id(parent_div)) if parent_div else None
 
         paragraphs = [paragraph.get_text(strip=True) for paragraph in div.find_all("p")]
         for formula in div.find_all("formula"):
@@ -243,11 +284,20 @@ def parse_tei_xml(tei_path):
 
         content = "\n".join(item for item in paragraphs if item.strip())
         if content.strip():
-            sections.append(
-                {
-                    "section": title,
-                    "content": content,
-                }
-            )
+            section_payload = {
+                "id": div_ids[id(div)],
+                "section": title,
+                "content": content,
+                "level": _infer_section_level(heading_number, nested_level),
+                "nestedLevel": nested_level,
+            }
+            if parent_id:
+                section_payload["parentId"] = parent_id
+            if heading_number:
+                section_payload["headingNumber"] = heading_number
+            if first_page_index is not None:
+                section_payload["pageIndex"] = first_page_index
+                section_payload["page"] = first_page_index + 1
+            sections.append(section_payload)
 
     return sections

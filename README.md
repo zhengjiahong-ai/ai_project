@@ -1,229 +1,325 @@
-# 学术论文 AI 助手（Pixiu Academic Assistant）
+# Pixiu Academic Assistant
 
-基于 AI 的学术论文阅读与批判性分析平台，支持 PDF 上传、篇章解构、术语解释、对话式问答与批判性阅读报告。
+Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它以 PDF 论文为中心，提供论文库管理、真实篇章结构导航、划词解释、对话问答、逐页翻译、背景补课、批判阅读、引导学习、深度研究和本地笔记等能力。
+
+当前版本：`0.1.0`
+
+版本号来源：根目录 [VERSION](VERSION)
 
 ---
 
-## 项目概述
+## 项目状态
 
-- **前端**：React 单页应用，提供 PDF 预览、划词解释、聊天与多 Tab 分析面板。
-- **后端网关**：Spring Boot 统一对外 API，转发请求到 Python AI 服务。
-- **AI 服务**：FastAPI + GROBID 解析 PDF，DeepSeek V4 结合 RAG 做摘要、解释、翻译与分析。
-- **部署**：Docker Compose 一键启动前端、Java、Python、GROBID 四类服务。
+当前前端已经从单一展示页重构为三栏式论文工作台：
+
+- 顶部工具栏：论文库、服务状态、上传论文、主题切换、关于弹窗。
+- 左侧常驻栏：当前论文、阅读进度、可折叠篇章目录、最近论文入口。
+- 中间阅读区：PDF 阅读器、页码状态、划词解释与高亮。
+- 右侧功能区：问答、篇章解构、批判阅读、逐页翻译、背景补课、引导学习、深度研究、笔记。
+- 论文库弹窗：以大表格方式集中管理已上传论文。
+
+后端当前支持通过 GROBID 解析真实论文结构，并在新解析结果中返回 `level`、`parentId`、`headingNumber`、`pageIndex` 等字段。前端篇章目录会优先使用这些字段生成多级树，并支持页码跳转、当前章节高亮、搜索过滤和折叠展开。
+
+> 已经在旧版本解析过的论文，其浏览器 IndexedDB 缓存里可能没有 `level/parentId`。这类旧数据仍可能显示为一级目录；重新上传或重新解析后，才会得到新的多级结构字段。
 
 ---
 
 ## 技术栈
 
-| 层级       | 技术                     | 版本/说明 |
-|------------|--------------------------|-----------|
-| 前端       | React                    | 19.x      |
-| 前端构建   | Vite                     | 7.x       |
-| 前端样式   | Tailwind CSS             | 3.x       |
-| 前端 PDF   | @react-pdf-viewer, pdfjs-dist | 3.x       |
-| 前端请求   | Axios                    | 1.x       |
-| 前端存储   | IndexedDB (idb)          | 本地持久化 |
-| 后端网关   | Spring Boot              | 3.4.x, Java 21 |
-| AI 服务    | FastAPI, Uvicorn         | Python 3.x |
-| PDF 解析   | GROBID                   | 0.7.2 (Docker) |
-| 大模型     | DeepSeek V4              | deepseek-v4-pro / deepseek-v4-flash |
-| 编排       | Docker Compose           | -         |
+| 层级 | 技术 | 说明 |
+| --- | --- | --- |
+| 前端 | React 19, Vite 7, Tailwind CSS | 学术阅读工作台、PDF 阅读器、右侧 AI 功能面板 |
+| PDF 阅读 | `@react-pdf-viewer`, `pdfjs-dist` | PDF 渲染、页码监听、划词高亮、目录跳页 |
+| 本地存储 | IndexedDB (`idb`) | PDF、聊天、笔记、解析结果、翻译状态、论文库 |
+| Java 网关 | Spring Boot | 对外统一 `/api`，转发到 Python AI 服务 |
+| AI 服务 | FastAPI, Uvicorn | PDF 解析、RAG、LLM 调用、翻译、研究任务 |
+| PDF 解析 | GROBID 0.7.2 | TEI XML 解析、章节结构、页码与版面信息 |
+| LLM | DeepSeek V4 | 默认 `deepseek-v4-pro` / `deepseek-v4-flash` |
+| 编排 | Docker Compose | 前端、Java、Python、GROBID、可选 Neo4j |
+
+---
+
+## 服务端口
+
+| 服务 | 容器名 | 本机地址 | 说明 |
+| --- | --- | --- | --- |
+| 前端 | `paper_frontend` | `http://localhost:5173` | Vite dev server |
+| Java 网关 | `backend_java` | `http://localhost:8081/api` | 浏览器默认访问的后端入口 |
+| Python AI | `ai_service_python` | `http://localhost:8000/api` | Java 内部转发目标 |
+| GROBID | `grobid_service` | `http://localhost:8070` | PDF 结构解析 |
+| Neo4j | `pixiu_neo4j` | `http://localhost:7474` | 可选知识图谱持久化 |
+
+Java 容器内部仍监听 `8080`，`docker-compose.yml` 将本机 `8081` 映射到容器 `8080`。前端 API 默认应指向：
+
+```text
+http://localhost:8081/api
+```
 
 ---
 
 ## 项目结构
 
-```
+```text
 .
-├── frontend/                 # React 前端
-│   ├── src/
-│   │   ├── components/       # PdfViewer, ChatPanel, Navbar, PaperAnalysis, CriticalAnalysisPanel 等
-│   │   ├── services/         # api.js 封装后端请求
-│   │   └── App.jsx
-│   ├── .env                  # VITE_API_BASE_URL 指向 Java 后端
-│   └── package.json
-├── backend-java/             # Spring Boot 网关
-│   └── src/main/java/.../controller/AcademicController.java
-│   └── src/main/java/.../service/AiService.java
-├── ai-service-python/        # FastAPI + GROBID + DeepSeek
-│   ├── main.py               # /api/analyze-pdf, /api/explain-term 等
-│   └── requirements.txt
-├── docker-compose.yml        # frontend, backend, ai-service, grobid
-├── .env                      # DEEPSEEK_API_KEY（根目录，供 ai-service 使用）
-└── docs/
-    └── CONSTRAINTS.md        # 技术栈与接口约束（开发必读）
+├─ frontend/                 # React + Vite 前端
+│  ├─ src/
+│  │  ├─ components/         # PdfViewer、ChatPanel、LibrarySidebar、各功能面板
+│  │  ├─ services/api.js     # 前端 API 封装
+│  │  ├─ utils/              # 翻译、页面布局、会话模型等工具
+│  │  └─ App.jsx             # 工作台主布局与状态编排
+│  └─ package.json
+├─ backend-java/             # Spring Boot API 网关
+├─ ai-service-python/        # FastAPI + GROBID + DeepSeek + RAG
+│  ├─ core/document_parser.py
+│  ├─ services/analysis_service.py
+│  ├─ llm/client.py
+│  └─ main.py
+├─ docs/                     # 设计约束与补充文档
+├─ docker-compose.yml
+├─ VERSION                   # 共享版本号
+├─ CHANGELOG.md
+└─ README.md
 ```
 
 ---
 
-## 请求链路
+## 环境变量
 
-1. **浏览器** → `VITE_API_BASE_URL`（默认 `http://localhost:8080/api`）→ **Java 后端**
-2. **Java** → `PYTHON_URL`（Docker 下为 `http://ai-service:8000/api`）→ **Python AI 服务**
-3. **Python** 解析 PDF 时 → `http://grobid:8070` → **GROBID 容器**
+根目录 `.env` 用于 Docker Compose 和 Python AI 服务。不要提交真实密钥。
 
----
-
-## 快速开始
-
-### 环境要求
-
-- Node.js 18+
-- JDK 21
-- Python 3.10+
-- Docker & Docker Compose（若使用容器化运行）
-
-### 本地开发
-
-1. **配置环境变量**
-   - 项目根目录 `.env` 中配置 `DEEPSEEK_API_KEY`（DeepSeek API Key）。
-   - 前端 `frontend/.env` 中可选配置 `VITE_API_BASE_URL`（默认 `http://localhost:8080/api`）。
-
-2. **启动 Python AI 服务**（需先启动 GROBID，或使用 Docker 一起启动）
-   ```bash
-   cd ai-service-python && pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000
-   ```
-
-3. **启动 Java 后端**
-   ```bash
-   cd backend-java && ./mvnw spring-boot:run
-   ```
-
-4. **启动前端**
-   ```bash
-   cd frontend && npm install && npm run dev
-   ```
-
-5. 浏览器访问 `http://localhost:5173`。
-
-### Docker 一键启动
-
-```bash
-# 确保根目录 .env 中有 DEEPSEEK_API_KEY
-docker-compose up --build
-```
-
-- 前端：http://localhost:5173  
-- Java API：http://localhost:8080  
-- Python AI：http://localhost:8000  
-- GROBID：http://localhost:8070  
-
----
-
-## 主要功能
-
-- **PDF 上传与篇章解构**：上传 PDF → GROBID 解析 → AI 生成 abstract/introduction/methods/results/discussion/conclusion 摘要。
-- **对话与划词解释**：聊天面板发送消息；在 PDF 中划词可触发解释（对接 `/api/explain`，携带当前页上下文，经过轻量学术查询重写后优先基于当前论文 RAG 检索）。其中 `/api/chat` 已升级为轻量 Agentic RAG 流程：先做意图识别和查询计划，再优先检索当前论文、必要时补充文献库，并在回答前进行证据质量判断与最多一次重试；响应继续返回结构统一的 `rag_sources`，并可附带 `queryPlan` 与 `retrievalJudge`。
-- **批判性阅读**：前端调用 Java `/api/critical-reading/{pdfId}`，Java 转发 Python `/api/deep-analysis`，基于当前论文全文 chunks 做贡献、方法、实验与局限的证据化批判阅读；响应在兼容旧字段的同时，还可附带 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence`、`rag_sources` 与可选 `traceId`，前端面板会在原有布局上紧凑展示这些补充信息。
-- **学术笔记**：支持在阅读时添加笔记并持久化到 IndexedDB。
-- **全景翻译**：支持按当前 PDF 页提取可翻译文本并进行逐页全文翻译，译文显示在右侧专用面板中；图片、图表和表格区域不会显示在译文中，翻页后自动跟随当前页更新，并对已翻译页面进行缓存，避免重复请求。
-- **引导式学习**：保持固定 5 题的苏格拉底式学习流程，基于论文内容、阅读进度和论文骨架生成问题；每轮提问与回答评估会优先参考当前论文 RAG 证据，返回掌握度评估、证据判断和待补强要点，并在最终总结中给出建议回读章节、概念或证据点，帮助用户用问答方式推进理解。
-- **深度研究**：新增独立“深度研究”页签，用户可围绕当前论文输入研究问题、启动任务、轮询查看阶段与进度、取消任务，并在同一面板中查看结构化 `findings` 与最终 Markdown 报告；任务状态当前只保留在浏览器会话内存中，刷新页面后不保证恢复，后端任务快照会兼容附带可选 `traceId` 以便排障。
-
----
-
-## 背景补课 / 前置知识图谱
-
-- 独立“背景补课”页签会手动调用 Java `/api/background-knowledge`，Java 再转发到 Python `/api/background-knowledge`。
-- 面板支持按 `入门`、`一般`、`进阶` 三档知识水平生成补课结果；切换论文后会恢复该论文最近一次背景补课结果中的知识水平。
-- Python 结合当前论文 `pdfId`、篇章结构、改写后的检索查询、Chroma RAG 片段和 LLM 返回前置概念图谱、学习路径、补课清单和结构统一的 RAG 依据片段。
-- 图谱生成阶段会对概念节点做轻量去重并稳定 `node id`，优先把概念组织为“基础概念 -> 方法前置 -> 实验理解 -> 批判视角”四段式学习路径；旧 `learning_path` 仍保留以兼容旧缓存和旧前端结构。
-- 每个概念节点会尽量绑定本次响应中的 `rag_sources`，响应可额外返回 `confidence` 与 `sourceCoverage`，用于衡量当前图谱的证据覆盖程度和整体可靠性。
-- Neo4j 是可选持久化增强；未配置时接口仍返回 JSON 图谱，不影响默认开发和 Docker 启动。
-
-可选启用 Neo4j：
-
-```bash
-NEO4J_URI=bolt://neo4j:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=pixiu_neo4j_password
-NEO4J_AUTH=neo4j/pixiu_neo4j_password
-
-docker-compose --profile neo4j up --build
-```
-
----
-
-## 深度研究任务 API
-
-- Java 对外提供 `POST /api/research-tasks`、`GET /api/research-tasks/{taskId}` 与 `POST /api/research-tasks/{taskId}/cancel`，Python 内部提供同名 `/api/research-tasks` 路由。
-- Python AI 服务内部现已引入非公开 `tool_registry` 工具注册层，deep research 会优先通过该层调度当前论文检索、文献库检索、论文骨架读取与证据 judge；该层仅作为内部抽象，不新增外部 HTTP API。
-- 创建任务请求体固定为 `{ question, pdfId, paperSkeleton? }`；当前模块严格围绕当前论文工作，因此 `pdfId` 必填，`paperSkeleton` 只用于增强规划上下文。
-- 三个成功响应统一返回 `{ status, task }`，其中 `task` 包含 `taskId`、可选 `traceId`、任务 `status`、`stage`、`progress`、`plan`、结构化 `findings`、`report` 与 `error`。
-- `findings` 当前固定为结构化摘要项：`{ subQuestion, summary, verdict, missingAspects, sourceIds }`；`verdict` 复用 `CORRECT | AMBIGUOUS | INCORRECT`，`sourceIds` 只引用本任务中实际使用的证据片段。
-- 任务状态目前先存 Python 进程内存，适合作为模块 8 的最小版本；服务重启后任务不会恢复，完整任务面板与持久化增强留给后续模块。
-- 前端现在已接入最小任务面板：通过 `frontend/src/services/api.js` 中的 `createResearchTask`、`getResearchTask`、`cancelResearchTask` 三个方法完成创建、轮询刷新与取消，不在组件内部直接拼接 URL。
-- 右侧“深度研究”面板会展示任务 `status`、`stage`、`progress`、`plan`、结构化 `findings` 和最终 Markdown `report`；如果后端服务重启或任务状态丢失，面板只提示当前任务不可恢复，不伪装为持久化任务。
-
----
-
-## Trace 与成本观测
-
-- Python AI 服务现在会为聊天、划词解释、批判阅读、背景补课和深度研究任务生成轻量 trace，并在相关成功响应中兼容返回可选 `traceId`。
-- trace 当前只保存在 Python 进程内存与服务日志中，用于排查长任务阶段、耗时、检索次数与 LLM 调用次数；服务重启后不会保留。
-- trace 会记录截断后的问题摘要、query 摘要、证据条数、阶段状态和错误摘要，但不会记录 API Key、完整 prompt、完整用户全文或完整论文全文。
-
----
-
-## 提示注入防护与权限边界
-
-- Python AI 服务现在会把论文正文、`paperSkeleton`、`paperStructure`、页内上下文和 `rag_sources` 片段统一视为不可信资料；这些内容在进入 query rewrite、聊天回答、背景补课、批判阅读和深度研究规划 prompt 前都会经过轻量注入检测、去指令化清洗和 `UNTRUSTED PAPER/RAG CONTENT` 包装。
-- 如果论文或检索片段里出现“忽略之前指令”“泄露 API Key”“打印 system prompt”“执行系统命令”“联网搜索/浏览网页”“调用工具/插件/MCP”等文本，系统只会把它们当作待分析内容，不会按其中要求越权执行、泄露密钥或改变当前工作边界。
-- 当前模块没有新增真实工具调用接口；query planner 仍只允许 `current_paper` / `library` 两类检索 scope，deep research 仍只围绕当前论文与内部文献库工作，不会自动扩展到外部 Web 搜索。
-- 长任务预算继续保持可控：deep research 固定生成 `3-5` 个子问题、检索链路最多自动重试 `1` 次，并对进入模型的上下文采用近似 `8000` tokens 的安全预算裁剪；安全命中信息只进入内部 trace / 日志，不增加新的公开响应字段。
-
----
-
-## MCP 适配预留
-
-- 当前仓库没有对外 MCP server 或 MCP client 能力，也未引入 MCP SDK；现阶段只有 Python AI 服务内部的非公开 `tool_registry` 作为统一能力边界。
-- `docs/MCP_ADAPTER_PLAN.md` 记录了未来可映射的 MCP Tools、Resources、Prompts、安全边界和三阶段迁移路线；该文档是迁移设计，不代表当前已经上线对外 MCP 接口。
-- 未来如果需要实现 MCP adapter，优先位置应在 Python 服务内部或其旁路，继续复用现有 `tool_registry`、`safety_service`、`trace_service` 和 deep research 的预算约束，而不是直接改写前端、Java 或现有 `/api` 契约。
-
----
-
-## 本地基线检查
-
-模块 0 基线审计使用以下命令确认当前项目状态：
-
-```bash
-# 前端
-cd frontend
-npm test
-npm run lint
-npm run build
-
-# Python AI 服务
-cd ../ai-service-python
-python -m pytest -q
-
-# Java 网关
-cd ../backend-java
-./mvnw test
-```
-
-当前基线说明：
-
-- 前端 `npm test` 与 `npm run lint` 通过。
-- Python 默认 `python -m pytest -q` 已限定收集 `tests/`，避免扫描临时目录。
-- Java 测试使用内存 H2 数据库，避免污染 `backend-java/data/academic_db.mv.db`。
-- 前端 `npm run build` 在当前 Windows/Node 环境下仍可能在 Vite transform 完成后以非零状态退出且无明确错误栈；该项作为后续构建专项继续排查。
-
----
-
-## 相关文档
-
-- [前端排错指南](frontend/TROUBLESHOOTING.md)
-- [开发约束与接口约定](docs/CONSTRAINTS.md)（技术栈、接口契约、新增接口规范）
-- [MCP 适配可行性文档](docs/MCP_ADAPTER_PLAN.md)（未来 Tools / Resources / Prompts 映射与迁移路径）
-
----
-
-## .env配置
-
-DEEPSEEK_API_KEY=填入DeepSeek api
+```env
+DEEPSEEK_API_KEY=填入你的 DeepSeek API Key
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-v4-pro
 DEEPSEEK_TRANSLATION_MODEL=deepseek-v4-flash
 DEEPSEEK_THINKING_TYPE=enabled
 DEEPSEEK_REASONING_EFFORT=high
+
+# 可选：Neo4j 持久化
+NEO4J_URI=
+NEO4J_USER=
+NEO4J_PASSWORD=
+NEO4J_AUTH=neo4j/pixiu_neo4j_password
+```
+
+前端可选环境变量：
+
+```env
+VITE_API_BASE_URL=http://localhost:8081/api
+VITE_MODEL_NAME=DeepSeek V4
+```
+
+如果没有设置 `VITE_MODEL_NAME`，前端关于弹窗默认显示 `DeepSeek V4`。
+
+---
+
+## 快速启动
+
+推荐使用 Docker Compose：
+
+```bash
+docker compose up --build
+```
+
+如果只需要重新启动已经存在的服务：
+
+```bash
+docker compose up -d frontend backend ai-service grobid
+```
+
+常用检查命令：
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+
+访问：
+
+```text
+http://localhost:5173
+```
+
+---
+
+## 本地开发
+
+前端：
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Java 网关：
+
+```bash
+cd backend-java
+./mvnw spring-boot:run
+```
+
+Python AI 服务：
+
+```bash
+cd ai-service-python
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+GROBID 建议继续使用 Docker：
+
+```bash
+docker compose up -d grobid
+```
+
+注意：当前 Dockerfile 中的 Python AI 服务默认没有开启 `uvicorn --reload`。如果修改了 `ai-service-python` 的后端代码，需要重启容器：
+
+```bash
+docker restart ai_service_python
+```
+
+---
+
+## 主要功能
+
+### 论文库
+
+- 上传 PDF 后自动解析并入库。
+- 表格弹窗展示论文标题、作者、解析状态、章节数、阅读进度、页码、更新时间。
+- 支持切换论文、删除论文，并隔离每篇论文的聊天、笔记、翻译、解析和学习记录。
+
+### 篇章目录
+
+- 优先读取后端返回的真实论文结构。
+- 支持 `level`、`parentId`、`headingNumber` 和 `pageIndex`。
+- 支持多级树、折叠展开、搜索过滤、当前页高亮和页码跳转。
+- 支持来源标记：`PDF结构`、`AI解析`、`AI目录`、`待解析`。
+- 旧缓存论文缺少层级字段时，会降级为标题编号推断。
+
+### PDF 阅读与划词解释
+
+- 中间区域展示 PDF。
+- 支持划词后触发 AI 解释。
+- 解释结果可同步到右侧问答流。
+- 支持高亮与笔记持久化。
+
+### 问答
+
+- 基于当前论文上下文和 RAG 证据回答问题。
+- 支持历史对话恢复。
+- 返回结构化 `rag_sources`、可选 `queryPlan` 和 `retrievalJudge`。
+
+### 篇章解构
+
+- 上传论文后触发 GROBID + LLM 解析。
+- 生成 `paper_skeleton` 与 `paper_structure`。
+- `paper_structure.sections` 会尽量保留真实章节层级、页码和预览片段。
+
+### 批判阅读
+
+- 通过 Java `/api/critical-reading/{pdfId}` 转发到 Python `/api/deep-analysis`。
+- 围绕贡献、方法、实验、局限进行证据化分析。
+- 支持展示薄弱点、过度主张风险、缺失证据和引用片段。
+
+### 逐页翻译
+
+- 按当前 PDF 页提取文本。
+- 缓存已翻译页面。
+- 过滤图、表、公式等不适合作为正文翻译的区域。
+- 支持结构化翻译超时后回退到纯文本翻译。
+
+### 背景补课
+
+- 根据当前论文主题生成前置概念、学习路径、补课清单和知识图谱。
+- 支持 `入门`、`一般`、`进阶` 三种知识水平。
+- Neo4j 是可选增强；未配置时仍返回 JSON 图谱。
+
+### 引导学习
+
+- 固定 5 题苏格拉底式学习流程。
+- 每题优先参考当前论文证据。
+- 支持回答评估、掌握度、缺失点、最终回读建议。
+
+### 深度研究
+
+- 支持创建、轮询、取消研究任务。
+- 任务围绕当前论文和用户研究问题展开。
+- 返回阶段、进度、计划、结构化 `findings` 和 Markdown 报告。
+- 当前任务状态保存在 Python 进程内存和浏览器会话内存中，服务重启后不保证恢复。
+
+---
+
+## API 链路
+
+浏览器只直接访问 Java 网关：
+
+```text
+Browser -> http://localhost:8081/api -> backend-java -> http://ai-service:8000/api -> ai-service-python
+```
+
+PDF 解析链路：
+
+```text
+ai-service-python -> http://grobid:8070 -> GROBID TEI XML -> document_parser -> paper_structure.sections
+```
+
+---
+
+## 运行边界
+
+- 浏览器侧论文数据、聊天记录、笔记、翻译状态和阅读进度主要保存在 IndexedDB 中；清理浏览器站点数据会影响这些本地记录。
+- 已上传且已解析过的旧论文可能仍使用旧缓存结构；如果目录没有多级层级，优先重新上传或重新解析论文。
+- Deep research 任务状态当前保存在 Python 进程内存和浏览器会话内存中；后端重启或页面刷新后不保证恢复。
+- Python AI 服务会为聊天、划词解释、批判阅读、背景补课和深度研究生成轻量 trace；trace 用于排障阶段、耗时、检索次数和 LLM 调用次数，不记录 API Key、完整 prompt、完整论文全文或完整用户全文。
+- 论文正文、`paperSkeleton`、`paperStructure`、页内上下文和 RAG 片段都被视为不可信资料；其中出现的越权指令、密钥索取、system prompt 泄露、联网搜索或工具调用要求只会被当作待分析文本，不会被执行。
+- 当前仓库没有对外 MCP server 或 MCP client，也没有引入 MCP SDK；后续适配路线见 [docs/MCP_ADAPTER_PLAN.md](docs/MCP_ADAPTER_PLAN.md)。
+
+---
+
+## 验证命令
+
+前端：
+
+```bash
+cd frontend
+npm.cmd run lint
+npm.cmd test
+npm.cmd run build
+```
+
+Python AI 服务容器内语法检查：
+
+```bash
+docker exec ai_service_python python -m py_compile /app/core/document_parser.py /app/services/analysis_service.py
+```
+
+Docker 服务状态：
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+
+已知构建警告：
+
+- `react-resizable-panels` 的 `"use client"` 指令在 Vite 打包时会被忽略。
+- `pdfjs-dist` 会提示 `eval` 风险。
+- 主包体积可能超过 Vite 默认 chunk warning 阈值。
+
+这些是当前已知非阻塞警告。
+
+---
+
+## 版本与变更记录
+
+- 共享版本号：根目录 [VERSION](VERSION)
+- 变更记录：[CHANGELOG.md](CHANGELOG.md)
+- 从 `2026-05-05 19:09 v0.1.0` 开始，CHANGELOG 统一采用 `时间 + 版本号` 的标题格式。
+
+---
+
+## 相关文档
+
+- [启动服务.md](启动服务.md)
+- [docs/CONSTRAINTS.md](docs/CONSTRAINTS.md)
+- [docs/MCP_ADAPTER_PLAN.md](docs/MCP_ADAPTER_PLAN.md)
+- [frontend/TROUBLESHOOTING.md](frontend/TROUBLESHOOTING.md)
