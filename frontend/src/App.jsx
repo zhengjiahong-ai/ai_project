@@ -100,6 +100,11 @@ const sectionDisplayNames = {
 
 const outlineSourceLabels = {
   pdf: 'PDF结构',
+  tei: 'PDF结构',
+  layout: '版面补全',
+  'pdf-layout': 'PDF行补全',
+  'tei+layout': 'PDF+版面',
+  inferred: '推断结构',
   aiStructure: 'AI解析',
   aiSkeleton: 'AI目录',
   pending: '待解析',
@@ -245,14 +250,22 @@ const buildPaperOutlineModel = (deconstructData) => {
 
   if (Array.isArray(structure?.sections) && structure.sections.length > 0) {
     const items = structure.sections.map((section, index) => {
-      const label = `${section.title || section.name || section.section || `Section ${index + 1}`}`.trim();
+      const label = `${
+        section.displayTitle
+        || section.title
+        || section.name
+        || section.section
+        || `Section ${index + 1}`
+      }`.trim();
       const pageMeta = normalizeOutlinePage(section);
       const explicitLevel = coerceFiniteNumber(section.level ?? section.nestedLevel);
       const headingNumber = `${section.headingNumber || section.number || ''}`.trim();
+      const itemSource = section.source || 'pdf';
 
       return {
         id: section.id || section.key || `section-${index + 1}`,
         label,
+        rawTitle: section.rawTitle || label,
         level: Number.isFinite(explicitLevel)
           ? explicitLevel
           : getOutlineLevel(headingNumber || label),
@@ -260,7 +273,11 @@ const buildPaperOutlineModel = (deconstructData) => {
         headingNumber,
         meta: pageMeta.pageLabel || section.type || `${index + 1}`,
         preview: section.preview || section.summary || '',
-        source: 'pdf',
+        source: itemSource,
+        sourceLabel: outlineSourceLabels[itemSource] || outlineSourceLabels.pdf,
+        confidence: coerceFiniteNumber(section.confidence),
+        bbox: section.bbox || null,
+        anchorY: coerceFiniteNumber(section.anchorY),
         ...pageMeta,
       };
     });
@@ -349,6 +366,8 @@ const getVisibleOutlineItems = (items, collapsedIds, query) => {
   items.forEach((item) => {
     const searchableText = [
       item.label,
+      item.rawTitle,
+      item.headingNumber,
       item.meta,
       item.pageLabel,
       item.preview,
@@ -2177,7 +2196,12 @@ export default function App() {
                             isCurrent ? 'outline-tree-item-current' : ''
                           } ${isCurrentPath ? 'outline-tree-item-path' : ''}`}
                           onClick={() => handleSelectOutlineItem(item)}
-                          title={item.preview ? `${item.label}\n${item.preview}` : item.label}
+                          title={[
+                            item.label,
+                            item.sourceLabel ? `来源：${item.sourceLabel}` : '',
+                            Number.isFinite(item.confidence) ? `置信度：${Math.round(item.confidence * 100)}%` : '',
+                            item.preview,
+                          ].filter(Boolean).join('\n')}
                           aria-current={isCurrent ? 'true' : undefined}
                         >
                           <span className="min-w-0 flex-1 truncate">
@@ -2408,7 +2432,12 @@ export default function App() {
                 )}
 
                 {activeTab === 'deconstruct' && (
-                  <PaperAnalysis data={deconstructData} isLoading={isDeconstructing} />
+                  <PaperAnalysis
+                    data={deconstructData}
+                    isLoading={isDeconstructing}
+                    outlineItems={paperOutlineItems}
+                    onSelectOutlineItem={handleSelectOutlineItem}
+                  />
                 )}
 
                 {activeTab === 'analysis' && (

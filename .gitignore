@@ -27,5 +27,7 @@ ai-service-python/core/chroma_literature_db/
 
 # Local-only test assets and local Python test workspace
 /test/
-/ai-service-python/tests/
+/docs/test/
+/ai-service-python/tests/*
+!/ai-service-python/tests/test_outline_extractor.py
 node_modules/

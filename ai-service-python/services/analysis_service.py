@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from fastapi import UploadFile
 
 from core.document_parser import extract_translation_layout_index, parse_tei_xml
+from core.outline_extractor import OUTLINE_VERSION, build_document_outline
 from llm.client import get_llm
 from rag.store import get_rag, preload_rag
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
@@ -171,7 +172,13 @@ async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
         tei_file = os.path.join(output_dir, xml_files[0])
         parsed_sections = parse_tei_xml(tei_file)
         translation_layout_index = extract_translation_layout_index(tei_file)
-        section_outline = _build_section_outline(parsed_sections)
+        outline_version = OUTLINE_VERSION
+        try:
+            section_outline = build_document_outline(tei_file, file_path)
+        except Exception as error:
+            print(f"outline extraction failed, falling back to parsed sections: {error}")
+            outline_version = "legacy-fallback"
+            section_outline = _build_section_outline(parsed_sections)
 
         sections_for_summary = {
             "abstract": "",
@@ -242,12 +249,14 @@ Paper context:
 """
                 structure_raw = get_llm()._call(structure_prompt)
                 paper_structure = parse_json_from_llm(structure_raw)
+                paper_structure["outlineVersion"] = outline_version
                 paper_structure["sections"] = section_outline
             except Exception as error:
                 print(f"paper_structure generation failed: {error}")
                 paper_structure = {
                     "error": "structure_parse_failed",
                     "raw": str(error)[:500],
+                    "outlineVersion": outline_version,
                     "sections": section_outline,
                 }
         else:
@@ -258,6 +267,7 @@ Paper context:
             paper_structure = {
                 "error": "no_content",
                 "raw": "No usable text was extracted from the paper.",
+                "outlineVersion": outline_version,
                 "sections": section_outline,
             }
 

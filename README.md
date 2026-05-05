@@ -2,7 +2,7 @@
 
 Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它以 PDF 论文为中心，提供论文库管理、真实篇章结构导航、划词解释、对话问答、逐页翻译、背景补课、批判阅读、引导学习、深度研究和本地笔记等能力。
 
-当前版本：`0.1.0`
+当前版本：`0.1.4`
 
 版本号来源：根目录 [VERSION](VERSION)
 
@@ -18,7 +18,7 @@ Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它
 - 右侧功能区：问答、篇章解构、批判阅读、逐页翻译、背景补课、引导学习、深度研究、笔记。
 - 论文库弹窗：以大表格方式集中管理已上传论文。
 
-后端当前支持通过 GROBID 解析真实论文结构，并在新解析结果中返回 `level`、`parentId`、`headingNumber`、`pageIndex` 等字段。前端篇章目录会优先使用这些字段生成多级树，并支持页码跳转、当前章节高亮、搜索过滤和折叠展开。
+后端当前支持通过 GROBID 解析真实论文结构，并通过目录抽取层融合 TEI 章节标题、段落级版面标题候选和 PDF 行级标题候选，在新解析结果中返回 `displayTitle`、`rawTitle`、`level`、`parentId`、`headingNumber`、`pageIndex`、`bbox`、`anchorY`、`source` 和 `confidence` 等字段。前端篇章目录会优先使用这些字段生成多级树，并支持页码跳转、当前章节高亮、搜索过滤和折叠展开。
 
 > 已经在旧版本解析过的论文，其浏览器 IndexedDB 缓存里可能没有 `level/parentId`。这类旧数据仍可能显示为一级目录；重新上传或重新解析后，才会得到新的多级结构字段。
 
@@ -121,6 +121,12 @@ VITE_MODEL_NAME=DeepSeek V4
 docker compose up --build
 ```
 
+如果 Docker Hub 拉取基础镜像失败，且本地已经存在项目镜像，可以先跳过构建恢复后端服务：
+
+```bash
+docker compose up -d --no-build grobid ai-service backend
+```
+
 如果只需要重新启动已经存在的服务：
 
 ```bash
@@ -191,9 +197,9 @@ docker restart ai_service_python
 ### 篇章目录
 
 - 优先读取后端返回的真实论文结构。
-- 支持 `level`、`parentId`、`headingNumber` 和 `pageIndex`。
+- 支持 `displayTitle`、`rawTitle`、`level`、`parentId`、`headingNumber`、`pageIndex`、`bbox` 和 `anchorY`。
 - 支持多级树、折叠展开、搜索过滤、当前页高亮和页码跳转。
-- 支持来源标记：`PDF结构`、`AI解析`、`AI目录`、`待解析`。
+- 支持来源标记：`PDF结构`、`版面补全`、`PDF行补全`、`PDF+版面`、`AI解析`、`AI目录`、`待解析`。
 - 旧缓存论文缺少层级字段时，会降级为标题编号推断。
 
 ### PDF 阅读与划词解释
@@ -213,7 +219,8 @@ docker restart ai_service_python
 
 - 上传论文后触发 GROBID + LLM 解析。
 - 生成 `paper_skeleton` 与 `paper_structure`。
-- `paper_structure.sections` 会尽量保留真实章节层级、页码和预览片段。
+- `paper_structure.sections` 会尽量保留真实章节层级、数字序号、页码、页内锚点、来源和预览片段；结构版本 `1.4` 会额外从 PDF 行级坐标中补回同页连续小标题，按双栏阅读顺序重排 IEEE 风格小节，并过滤编号贡献句、公式碎片、纯数字标题和页脚等异常候选。
+- 篇章解构面板会优先展示真实篇章结构树，并保留 `paper_skeleton` 作为宏观总结。
 
 ### 批判阅读
 
@@ -268,7 +275,7 @@ ai-service-python -> http://grobid:8070 -> GROBID TEI XML -> document_parser -> 
 ## 运行边界
 
 - 浏览器侧论文数据、聊天记录、笔记、翻译状态和阅读进度主要保存在 IndexedDB 中；清理浏览器站点数据会影响这些本地记录。
-- 已上传且已解析过的旧论文可能仍使用旧缓存结构；如果目录没有多级层级，优先重新上传或重新解析论文。
+- 已上传且已解析过的旧论文可能仍使用旧缓存结构；如果目录没有多级层级、缺少数字序号或没有 `outlineVersion`，优先重新上传或重新解析论文。
 - Deep research 任务状态当前保存在 Python 进程内存和浏览器会话内存中；后端重启或页面刷新后不保证恢复。
 - Python AI 服务会为聊天、划词解释、批判阅读、背景补课和深度研究生成轻量 trace；trace 用于排障阶段、耗时、检索次数和 LLM 调用次数，不记录 API Key、完整 prompt、完整论文全文或完整用户全文。
 - 论文正文、`paperSkeleton`、`paperStructure`、页内上下文和 RAG 片段都被视为不可信资料；其中出现的越权指令、密钥索取、system prompt 泄露、联网搜索或工具调用要求只会被当作待分析文本，不会被执行。
@@ -290,7 +297,8 @@ npm.cmd run build
 Python AI 服务容器内语法检查：
 
 ```bash
-docker exec ai_service_python python -m py_compile /app/core/document_parser.py /app/services/analysis_service.py
+docker exec ai_service_python python -m py_compile /app/core/document_parser.py /app/core/outline_extractor.py /app/services/analysis_service.py
+docker exec ai_service_python python -m unittest tests.test_outline_extractor -v
 ```
 
 Docker 服务状态：
