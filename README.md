@@ -4,7 +4,7 @@ Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它
 
 当前版本：`0.1.6`
 
-版本号来源：根目录 [VERSION](VERSION)
+版本号来源：前端目录 [frontend/VERSION](frontend/VERSION)
 
 ---
 
@@ -67,6 +67,7 @@ http://localhost:8081/api
 │  │  ├─ services/api.js     # 前端 API 封装
 │  │  ├─ utils/              # 翻译、页面布局、会话模型等工具
 │  │  └─ App.jsx             # 工作台主布局与状态编排
+│  ├─ VERSION                   # 前端显示版本号
 │  └─ package.json
 ├─ backend-java/             # Spring Boot API 网关
 ├─ ai-service-python/        # FastAPI + GROBID + DeepSeek + RAG
@@ -76,7 +77,6 @@ http://localhost:8081/api
 │  └─ main.py
 ├─ docs/                     # 设计约束与补充文档
 ├─ docker-compose.yml
-├─ VERSION                   # 共享版本号
 ├─ CHANGELOG.md
 └─ README.md
 ```
@@ -321,7 +321,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 ## 版本与变更记录
 
-- 共享版本号：根目录 [VERSION](VERSION)
+- 前端显示版本号：[frontend/VERSION](frontend/VERSION)
 - 变更记录：[CHANGELOG.md](CHANGELOG.md)
 - 从 `2026-05-05 19:09 v0.1.0` 开始，CHANGELOG 统一采用 `时间 + 版本号` 的标题格式。
 

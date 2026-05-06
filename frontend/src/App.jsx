@@ -51,7 +51,7 @@ import {
   createEmptyDeepResearchState,
   normalizeResearchTask,
 } from './components/deepResearchPanelModel.js';
-import appVersionRaw from '../../VERSION?raw';
+import appVersionRaw from '../VERSION?raw';
 
 const APP_VERSION = appVersionRaw.trim() || '0.0.0';
 const DEFAULT_MODEL_NAME = 'DeepSeek V4';
