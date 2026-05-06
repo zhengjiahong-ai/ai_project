@@ -29,9 +29,9 @@ const run = () => {
       },
     ],
   });
-  assert.equal(plainFallbackRequest.shouldMarkEmpty, false);
+  assert.equal(plainFallbackRequest.shouldMarkEmpty, true);
   assert.equal(plainFallbackRequest.requestMode, 'plain');
-  assert.equal(plainFallbackRequest.translationSourceText, 'Figure 1. Overview of the pipeline.');
+  assert.equal(plainFallbackRequest.translationSourceText, '');
   assert.equal(plainFallbackRequest.requestPageLayout.blocks.length, 0);
   assert.equal(plainFallbackRequest.requestPayloadPageLayout, null);
 
@@ -99,13 +99,13 @@ const run = () => {
     shouldPreferPlainPageTranslation({
       excludedZones: [{ type: 'figure', bbox: { left: 0.1, top: 0.1, width: 0.3, height: 0.3 } }],
     }),
-    true,
+    false,
   );
   assert.equal(
     shouldPreferPlainPageTranslation({
       excludedZones: [{ type: 'table', bbox: { left: 0.1, top: 0.1, width: 0.3, height: 0.3 } }],
     }),
-    true,
+    false,
   );
   assert.equal(
     shouldPreferPlainPageTranslation({

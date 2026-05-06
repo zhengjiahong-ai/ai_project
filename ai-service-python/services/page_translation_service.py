@@ -6,11 +6,12 @@ from typing import Any, Dict, List
 from llm.client import get_translation_llm
 from schemas.requests import PageTranslationRequest
 
-STRUCTURED_MAX_BLOCKS_PER_BATCH = 24
-STRUCTURED_MAX_CHARS_PER_BATCH = 1800
-STRUCTURED_BATCH_TIMEOUT_SECONDS = 30
-PLAIN_TRANSLATION_TIMEOUT_SECONDS = 40
-STRUCTURED_SINGLE_BLOCK_TIMEOUT_SECONDS = 10
+STRUCTURED_MAX_BLOCKS_PER_BATCH = 8
+STRUCTURED_MAX_CHARS_PER_BATCH = 1000
+STRUCTURED_BATCH_TIMEOUT_SECONDS = 60
+STRUCTURED_BATCH_WORKERS = 3
+PLAIN_TRANSLATION_TIMEOUT_SECONDS = 90
+STRUCTURED_SINGLE_BLOCK_TIMEOUT_SECONDS = 20
 STRUCTURED_INDIVIDUAL_RETRY_LIMIT = 4
 STRUCTURED_INDIVIDUAL_RETRY_WORKERS = 4
 
@@ -22,7 +23,7 @@ def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any] | None) -> str:
     return "\n".join(f"- {section}: {summary}" for section, summary in paper_skeleton.items())
 
 
-def _trim_page_text(page_text: str, max_chars: int = 4500) -> str:
+def _trim_page_text(page_text: str, max_chars: int = 12000) -> str:
     text = (page_text or "").strip()
     if len(text) <= max_chars:
         return text
@@ -277,11 +278,18 @@ def _translate_blocks(
         return []
 
     translated_blocks: List[Dict[str, str]] = []
-    for batch in _chunk_layout_blocks(blocks):
-        try:
-            translated_blocks.extend(_translate_block_batch(page_index, skeleton_text, batch))
-        except Exception as error:
-            print(f"Structured translation batch failed, continuing with remaining batches: {error}")
+    batches = _chunk_layout_blocks(blocks)
+    max_workers = min(STRUCTURED_BATCH_WORKERS, len(batches))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(_translate_block_batch, page_index, skeleton_text, batch)
+            for batch in batches
+        ]
+        for future in futures:
+            try:
+                translated_blocks.extend(future.result())
+            except Exception as error:
+                print(f"Structured translation batch failed, continuing with remaining batches: {error}")
 
     minimum_expected = max(1, len(blocks) // 2)
     translated_by_id = {block["id"]: block for block in translated_blocks}

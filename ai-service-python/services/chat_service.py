@@ -778,7 +778,7 @@ def _build_socratic_evidence_bundle(
     }
 
 
-def _trim_page_text(page_text: str, max_chars: int = 4500) -> str:
+def _trim_page_text(page_text: str, max_chars: int = 12000) -> str:
     text = (page_text or "").strip()
     if len(text) <= max_chars:
         return text

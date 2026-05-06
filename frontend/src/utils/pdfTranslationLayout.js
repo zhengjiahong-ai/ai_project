@@ -7,6 +7,196 @@ const toFiniteNumber = (value, fallback = 0) => {
 
 const roundRatio = (value) => Number(clamp(value).toFixed(6));
 
+const CONTROL_TEXT_PATTERN = /[\u0000-\u001f\u007f\ufffd]/;
+const TRANSLATION_FOOTER_PATTERN =
+  /(?:authorized licensed use|downloaded on .* ieee xplore|restrictions apply|\$\d+(?:\.\d+)?|\u00a9\s*\d{4})/i;
+const TRANSLATION_EQUATION_NUMBER_PATTERN = /^(?:\(?\d+[a-z]?\)?|\(\s*[A-Za-z]?\d+[a-z]?\s*\))$/i;
+const TRANSLATION_MATH_SYMBOL_PATTERN =
+  /[\u2200-\u22ff\u0391-\u03a9\u03b1-\u03c9\u03d1-\u03d6\u00b1\u00d7\u00f7\u00b2\u00b3\u2070-\u209f]/g;
+const TRANSLATION_MATH_OPERATOR_PATTERN = /[=<>+\-*\/^_{}\[\](),;:|]/g;
+const TRANSLATION_MATH_KEYWORD_PATTERN =
+  /\b(?:argmax|argmin|diag|rank|sinrs?|snr|s\.t\.|subject\s+to|max|min|cn|tr)\b/gi;
+const COMPACT_FORMULA_PATTERN =
+  /(?:[A-Za-z]\w*\s*(?:[=<>+\-*\/^]|\bin\b)|(?:[=<>+\-*\/^]\s*[A-Za-z]\w*)|[A-Za-z]\([^)]*\)|\|\|[^|]+\|\|)/i;
+
+const countMatches = (text, pattern) => (String(text || '').match(pattern) || []).length;
+
+const countTranslationMathSignals = (text) =>
+  countMatches(text, TRANSLATION_MATH_SYMBOL_PATTERN) +
+  countMatches(text, TRANSLATION_MATH_OPERATOR_PATTERN) +
+  countMatches(text, TRANSLATION_MATH_KEYWORD_PATTERN);
+
+const countReadableWords = (text) =>
+  countMatches(String(text || ''), /[A-Za-z]{3,}|[\u4e00-\u9fff]{2,}/g);
+
+const normalizeBlockSourceText = (text) => String(text || '').replace(/\s+/g, ' ').trim();
+
+const isFooterText = (text) => TRANSLATION_FOOTER_PATTERN.test(normalizeBlockSourceText(text));
+
+const isLikelyFigureLabelBlock = (text, block = {}) => {
+  const value = normalizeBlockSourceText(text);
+  if (!value) {
+    return false;
+  }
+
+  const bbox = block?.bbox || {};
+  const fontSize = Number(block?.style?.fontSize || 12);
+  const isUpperLeftDiagramRegion =
+    fontSize <= 8 &&
+    (bbox.top || 0) >= 0.08 &&
+    (bbox.top || 0) <= 0.3 &&
+    (bbox.left || 0) < 0.5 &&
+    (bbox.width || 0) <= 0.34;
+
+  return isUpperLeftDiagramRegion && (value.length <= 90 || /^fig(?:ure)?\./i.test(value));
+};
+
+const isLikelyAlgorithmTableBlock = (text, block = {}) => {
+  const value = normalizeBlockSourceText(text);
+  if (!value) {
+    return false;
+  }
+
+  const bbox = block?.bbox || {};
+  const isUpperRightTableArea =
+    (bbox.left || 0) >= 0.48 &&
+    (bbox.top || 0) <= 0.36 &&
+    (bbox.width || 0) <= 0.46;
+  if (!isUpperRightTableArea) {
+    return false;
+  }
+
+  return /(?:^Algorithm\s+\d+\b|\bInputs?\s*:|\bOutputs?\s*:|^\d+\s*:|\brepeat\b|\buntil\b|\breturn\b|\bUpdate\b|\bCalculate\b|\bInitialize\b|\biteration\b|\bfeasible region\b|\bmaximum number of iterations\b)/i.test(
+    value,
+  );
+};
+
+const stripFormulaResidueFromLine = (line) =>
+  String(line || '')
+    .replace(/^[\u221a√]\s*/, '')
+    .replace(/^\d+\s*\[\d+\]\.\s*(?=[A-Z])/i, '')
+    .replace(/\s+(?:[\u0391-\u03a9\u03b1-\u03c9A-Za-z][\w\u0391-\u03a9\u03b1-\u03c9]*)?\s*=\s*$/, '')
+    .trim();
+
+const isLikelyFormulaTextForTranslation = (text, block = {}) => {
+  const value = normalizeBlockSourceText(text);
+  if (!value) {
+    return false;
+  }
+
+  if (TRANSLATION_EQUATION_NUMBER_PATTERN.test(value) || CONTROL_TEXT_PATTERN.test(value)) {
+    return true;
+  }
+
+  const readableWords = countReadableWords(value);
+  const mathSignals = countTranslationMathSignals(value);
+  const hasCompactFormulaShape = COMPACT_FORMULA_PATTERN.test(value);
+  const hasOptimizationLine = /^(?:\(?P\d+\)?\s*:|s\.t\.|subject\s+to|max|min)\b/i.test(value);
+  const isWhereOnly = /^where$/i.test(value);
+  const startsWithWhere = /^where\b/i.test(value);
+  const hasDefinitionVerb = /\b(?:denotes?|represents?|is|are)\b/i.test(value);
+  const bbox = block?.bbox || {};
+  const fontSize = Number(block?.style?.fontSize || 12);
+  const isShort = value.length <= 90;
+  const isVeryShortOrphan =
+    value.length <= 24 &&
+    countReadableWords(value) <= 2 &&
+    (bbox.width || 0) <= 0.16 &&
+    !/[.!?]$/.test(value);
+  const isBareMathIdentifier =
+    value.length <= 18 &&
+    !/\s/.test(value) &&
+    /[A-Za-z]/.test(value) &&
+    /(?:[a-z][A-Z]|[A-Z][a-z][A-Z]|[A-Za-z]\d|\d[A-Za-z])/.test(value);
+  const isTinyStandaloneMath =
+    fontSize <= 9.5 &&
+    (bbox.width || 0) <= 0.24 &&
+    value.length <= 48 &&
+    readableWords <= 3 &&
+    mathSignals >= 1;
+
+  if (hasOptimizationLine) {
+    return true;
+  }
+
+  if (isWhereOnly) {
+    return true;
+  }
+
+  if (/^[A-Za-z]$/.test(value) || value === '.' || /^[A-Za-z]\s*\|\s*\d+\s*[A-Za-z]+$/i.test(value)) {
+    return true;
+  }
+
+  if (isBareMathIdentifier) {
+    return true;
+  }
+
+  if (isVeryShortOrphan && (bbox.top || 0) <= 0.16) {
+    return true;
+  }
+
+  if (/^(?:represents?|denotes?)\b/i.test(value) && (bbox.left || 0) > 0.16 && (bbox.width || 0) <= 0.34) {
+    return true;
+  }
+
+  if (/^[a-z]{2,}(?:tion|sion|ment|ing)?\.$/i.test(value) && value.length <= 24 && (bbox.width || 0) <= 0.16) {
+    return true;
+  }
+
+  if ((startsWithWhere || hasDefinitionVerb) && readableWords >= 2 && ((bbox.width || 0) > 0.2 || value.length > 24)) {
+    return false;
+  }
+
+  if (/^SINRs?$/i.test(value)) {
+    return true;
+  }
+
+  if (isShort && readableWords <= 3 && mathSignals >= 3) {
+    return true;
+  }
+
+  if (isShort && readableWords <= 2 && mathSignals >= 1) {
+    return true;
+  }
+
+  if (isShort && readableWords <= 4 && mathSignals >= 2 && hasCompactFormulaShape) {
+    return true;
+  }
+
+  if (value.length <= 180 && readableWords <= 4 && mathSignals >= 4 && hasCompactFormulaShape) {
+    return true;
+  }
+
+  if (isTinyStandaloneMath && hasCompactFormulaShape) {
+    return true;
+  }
+
+  return false;
+};
+
+const isLikelyNonTranslatableSourceBlock = (block = {}) => {
+  const text = String(block?.text || '').trim();
+  if (!text) {
+    return true;
+  }
+
+  return (
+    isFooterText(text) ||
+    isLikelyFigureLabelBlock(text, block) ||
+    isLikelyAlgorithmTableBlock(text, block) ||
+    isLikelyFormulaTextForTranslation(text, block)
+  );
+};
+
+const stripNonTranslatableLines = (text, block = {}) =>
+  String(text || '')
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .map((line) => stripFormulaResidueFromLine(line))
+    .filter((line) => line && !isFooterText(line) && !isLikelyFormulaTextForTranslation(line, block))
+    .join('\n')
+    .trim();
+
 const inferFontSize = (item) => {
   const transform = item?.transform || [];
   const scaleX = Math.abs(toFiniteNumber(transform[0], 0));
@@ -277,7 +467,11 @@ const detectTwoColumnCandidates = (items = []) => {
   const leftTop = leftCandidates.length > 0 ? Math.min(...leftCandidates.map((item) => item.bbox.top)) : 1;
   const rightTop = rightCandidates.length > 0 ? Math.min(...rightCandidates.map((item) => item.bbox.top)) : 1;
   const startsInSameBodyBand = Math.abs(leftTop - rightTop) <= 0.14;
-  const enabled = leftCandidates.length >= 1 && rightCandidates.length >= 1 && startsInSameBodyBand;
+  const hasStrongTwoColumnEvidence = leftCandidates.length >= 3 && rightCandidates.length >= 3;
+  const enabled =
+    leftCandidates.length >= 1 &&
+    rightCandidates.length >= 1 &&
+    (startsInSameBodyBand || hasStrongTwoColumnEvidence);
 
   return {
     candidates,
@@ -373,7 +567,7 @@ const buildColumnFirstReadingOrder = (blocks = [], viewport = {}) => {
   }
 
   const orderedBlocks = [...headerBlocks];
-  let currentBandTop = bodyStartTop;
+  let currentBandTop = 0;
   const consumedBlocks = new Set();
 
   const appendBandBlocks = (bandStart, bandEnd = Number.POSITIVE_INFINITY) => {
@@ -471,14 +665,10 @@ const resolveItemPlacement = (item, columnDetection, bodyStartTop) => {
   const bbox = item?.bbox || {};
   const spansMiddle = bbox.left < 0.46 && bbox.left + bbox.width > 0.54;
   const center = bbox.left + bbox.width / 2;
-  const canUseColumns =
-    columnDetection.enabled && bbox.top >= bodyStartTop && bbox.width <= 0.58;
+  const isTrueFullWidth = spansMiddle && Math.abs(center - 0.5) <= 0.12 && bbox.width >= 0.34;
+  const canUseColumns = columnDetection.enabled && bbox.width <= 0.58 && !isTrueFullWidth;
 
   if (!canUseColumns) {
-    return 'full';
-  }
-
-  if (spansMiddle && Math.abs(center - 0.5) <= 0.12 && bbox.width >= 0.34) {
     return 'full';
   }
 
@@ -876,8 +1066,16 @@ export const buildPageLayout = (textContent, viewport) => {
   const lineBlocks = shouldUseRawColumnOrder
     ? rawLineBlocks
     : buildLineBlocksFromOrderedItems(sortedItems, normalizedViewport);
-  const lineColumnLayout = shouldUseRawColumnOrder ? rawColumnLayout : detectColumnLayout(lineBlocks, normalizedViewport);
-  const orderedLineBlocks = buildColumnFirstReadingOrder(lineBlocks, normalizedViewport);
+  const rawLineColumnLayout = shouldUseRawColumnOrder
+    ? rawColumnLayout
+    : detectColumnLayout(lineBlocks, normalizedViewport);
+  const rawOrderedLineBlocks = buildColumnFirstReadingOrder(lineBlocks, normalizedViewport);
+  const rawBlocks = mergeOrderedLineBlocks(rawOrderedLineBlocks, rawLineColumnLayout, normalizedViewport);
+  const rawPageText = rawBlocks.map((block) => block.text).join('\n\n').trim();
+  const filteredLineBlocks = lineBlocks.filter((block) => !isLikelyNonTranslatableSourceBlock(block));
+  const layoutLineBlocks = filteredLineBlocks.length > 0 ? filteredLineBlocks : lineBlocks;
+  const lineColumnLayout = shouldUseRawColumnOrder ? rawColumnLayout : detectColumnLayout(layoutLineBlocks, normalizedViewport);
+  const orderedLineBlocks = buildColumnFirstReadingOrder(layoutLineBlocks, normalizedViewport);
   const blocks = mergeOrderedLineBlocks(orderedLineBlocks, lineColumnLayout, normalizedViewport);
 
   const finalizedBlocks = blocks.map((block, index) => ({
@@ -892,7 +1090,7 @@ export const buildPageLayout = (textContent, viewport) => {
   }));
 
   return {
-    pageText: finalizedBlocks.map((block) => block.text).join('\n\n').trim(),
+    pageText: rawPageText,
     pageLayout: {
       viewport: normalizedViewport,
       orientation: lineColumnLayout.orientation,
@@ -906,18 +1104,30 @@ export const buildTranslationRequestPageLayout = (pageLayout, excludedZones = []
   const viewport = normalizeViewport(pageLayout?.viewport || {});
   const blocks = Array.isArray(pageLayout?.blocks)
     ? pageLayout.blocks
-        .map((block) => ({
-          id: String(block?.id || '').trim(),
-          text: String(block?.text || '').trim(),
-          bbox: normalizeRelativeBbox(block?.bbox || {}),
-          style: {
-            fontSize: toFiniteNumber(block?.style?.fontSize, 12),
-            fontWeight: block?.style?.fontWeight === 'bold' ? 'bold' : 'normal',
-            italic: Boolean(block?.style?.italic),
-            textAlign: String(block?.style?.textAlign || 'left'),
-          },
-        }))
-        .filter((block) => block.id && block.text && !isBlockInExcludedZone(block, excludedZones))
+        .map((block) => {
+          const normalizedBlock = {
+            id: String(block?.id || '').trim(),
+            text: String(block?.text || '').trim(),
+            bbox: normalizeRelativeBbox(block?.bbox || {}),
+            style: {
+              fontSize: toFiniteNumber(block?.style?.fontSize, 12),
+              fontWeight: block?.style?.fontWeight === 'bold' ? 'bold' : 'normal',
+              italic: Boolean(block?.style?.italic),
+              textAlign: String(block?.style?.textAlign || 'left'),
+            },
+          };
+          return {
+            ...normalizedBlock,
+            text: stripNonTranslatableLines(normalizedBlock.text, normalizedBlock),
+          };
+        })
+        .filter(
+          (block) =>
+            block.id &&
+            block.text &&
+            !isLikelyNonTranslatableSourceBlock(block) &&
+            !isBlockInExcludedZone(block, excludedZones),
+        )
     : [];
 
   return {

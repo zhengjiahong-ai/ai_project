@@ -101,6 +101,66 @@ const run = () => {
   assert.ok(twoColumnPageText.indexOf('Left line 2') < twoColumnPageText.indexOf('Right line 1'));
   assert.ok(twoColumnPageLayout.blocks[1].readingOrder < twoColumnPageLayout.blocks[2].readingOrder);
 
+  const unevenColumnStartTextContent = {
+    items: [
+      {
+        str: 'B. Radar Model',
+        transform: [12, 0, 0, 12, 340, 708],
+        width: 150,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Right column body 1',
+        transform: [12, 0, 0, 12, 340, 650],
+        width: 180,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Right column body 2',
+        transform: [12, 0, 0, 12, 340, 635],
+        width: 180,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Right column body 3',
+        transform: [12, 0, 0, 12, 340, 620],
+        width: 180,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Left continuation 1',
+        transform: [12, 0, 0, 12, 60, 560],
+        width: 210,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Left continuation 2',
+        transform: [12, 0, 0, 12, 60, 545],
+        width: 210,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Left continuation 3',
+        transform: [12, 0, 0, 12, 60, 530],
+        width: 210,
+        height: 12,
+        fontName: 'Times-Roman',
+      },
+    ],
+  };
+  const { pageText: unevenColumnStartPageText, pageLayout: unevenColumnStartPageLayout } = buildPageLayout(
+    unevenColumnStartTextContent,
+    viewport,
+  );
+  assert.equal(unevenColumnStartPageLayout.columnMode, 'two-column');
+  assert.ok(unevenColumnStartPageText.indexOf('Left continuation 1') < unevenColumnStartPageText.indexOf('B. Radar Model'));
+
   const twoColumnFidelityLayout = buildFidelityTranslationLayout(
     twoColumnPageLayout,
     twoColumnPageLayout.blocks.map((block) => ({ id: block.id, translatedText: `Translated ${block.text}` })),
@@ -451,6 +511,128 @@ const run = () => {
   assert.equal(requestLayout.excludedZonesVersion, 2);
   assert.ok(requestLayout.blocks.length < pageLayout.blocks.length);
   assert.ok(requestLayout.blocks.every((block) => !isBlockInExcludedZone(block, excludedZones)));
+
+  const noisyTranslationLayout = buildTranslationRequestPageLayout({
+    viewport,
+    blocks: [
+      {
+        id: 'body',
+        text: 'The ISAC BS senses a target.\nyk = gkHΦGx + gkHΦz0 + nk, k = 1, ... , K, (2)\nThe received echo is represented below.',
+        bbox: { left: 0.08, top: 0.2, width: 0.4, height: 0.1 },
+        style: { fontSize: 10, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'figure-label',
+        text: 'Active RIS',
+        bbox: { left: 0.2, top: 0.16, width: 0.08, height: 0.02 },
+        style: { fontSize: 5, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'formula',
+        text: 'SINRc,k ≥ γth,k, ∀k',
+        bbox: { left: 0.58, top: 0.66, width: 0.25, height: 0.02 },
+        style: { fontSize: 9, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'footer',
+        text: 'Authorized licensed use limited to: Nanjing University. Downloaded on April 28,2026 from IEEE Xplore. Restrictions apply.',
+        bbox: { left: 0.1, top: 0.96, width: 0.8, height: 0.02 },
+        style: { fontSize: 7, fontWeight: 'normal', italic: false },
+      },
+    ],
+  });
+  assert.deepEqual(
+    noisyTranslationLayout.blocks.map((block) => block.id),
+    ['body'],
+  );
+  assert.match(noisyTranslationLayout.blocks[0].text, /The ISAC BS senses a target/);
+  assert.match(noisyTranslationLayout.blocks[0].text, /received echo/);
+
+  const formulaCleanLayout = buildTranslationRequestPageLayout({
+    viewport,
+    blocks: [
+      {
+        id: 'definition',
+        text: 'where sk CN(0,1) denotes the communication symbol\nfksk + frsr,\nThe received echo is represented below.',
+        bbox: { left: 0.08, top: 0.2, width: 0.4, height: 0.1 },
+        style: { fontSize: 10, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'constraint',
+        text: 'PhiGfk2 + PhiGfr2 <= PARIS',
+        bbox: { left: 0.58, top: 0.66, width: 0.25, height: 0.02 },
+        style: { fontSize: 9, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'sinr-label',
+        text: 'SINRs',
+        bbox: { left: 0.6, top: 0.54, width: 0.08, height: 0.02 },
+        style: { fontSize: 8.5, fontWeight: 'normal', italic: false },
+      },
+    ],
+  });
+  assert.deepEqual(
+    formulaCleanLayout.blocks.map((block) => block.id),
+    ['definition'],
+  );
+  assert.match(formulaCleanLayout.blocks[0].text, /where sk CN/);
+  assert.match(formulaCleanLayout.blocks[0].text, /received echo/);
+  assert.doesNotMatch(formulaCleanLayout.blocks[0].text, /fksk/);
+  assert.doesNotMatch(noisyTranslationLayout.blocks[0].text, /gkHΦGx/);
+
+  const algorithmAndResidueLayout = buildTranslationRequestPageLayout({
+    viewport,
+    blocks: [
+      {
+        id: 'selected-body',
+        text: 'In this section, simulation results verify the effectiveness of the algorithm.',
+        bbox: { left: 0.08, top: 0.72, width: 0.41, height: 0.08 },
+        style: { fontSize: 10, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'algorithm-heading',
+        text: 'Algorithm 1 Proposed AO Algorithm to Solve Problem (P0). Inputs: G, gk, PBS.',
+        bbox: { left: 0.51, top: 0.1, width: 0.41, height: 0.03 },
+        style: { fontSize: 9, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'algorithm-line',
+        text: '1: Initialize w, fk, ∀k, fr and Φ in a feasible region.',
+        bbox: { left: 0.52, top: 0.16, width: 0.35, height: 0.02 },
+        style: { fontSize: 9, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'math-fragment',
+        text: 'fkHGH',
+        bbox: { left: 0.23, top: 0.36, width: 0.05, height: 0.02 },
+        style: { fontSize: 8, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'unit-fragment',
+        text: 'f | 1GHz',
+        bbox: { left: 0.8, top: 0.4, width: 0.05, height: 0.02 },
+        style: { fontSize: 9, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'sqrt-residue',
+        text: '√The complex amplitude coefficient is modeled as η =',
+        bbox: { left: 0.51, top: 0.44, width: 0.41, height: 0.02 },
+        style: { fontSize: 10, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'leading-residue',
+        text: '2 [5]. The target of interest is at a distance of 30m.',
+        bbox: { left: 0.69, top: 0.46, width: 0.23, height: 0.02 },
+        style: { fontSize: 8, fontWeight: 'normal', italic: false },
+      },
+    ],
+  });
+  assert.deepEqual(
+    algorithmAndResidueLayout.blocks.map((block) => block.id),
+    ['selected-body', 'sqrt-residue', 'leading-residue'],
+  );
+  assert.equal(algorithmAndResidueLayout.blocks[1].text, 'The complex amplitude coefficient is modeled as');
+  assert.equal(algorithmAndResidueLayout.blocks[2].text, 'The target of interest is at a distance of 30m.');
 
   assert.equal(
     doesBboxIntersect(

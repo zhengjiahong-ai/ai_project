@@ -1,12 +1,7 @@
 import { buildTranslationRequestPageLayout } from './pdfTranslationLayout.js';
 import { createEmptyTranslationState, normalizeTranslationPage } from './translationState.js';
 
-const VISUAL_ZONE_TYPES = new Set(['figure', 'table']);
-
-const normalizeZoneType = (zone) => String(zone?.type || '').trim().toLowerCase();
-
-export const shouldPreferPlainPageTranslation = ({ excludedZones = [] } = {}) =>
-  Array.isArray(excludedZones) && excludedZones.some((zone) => VISUAL_ZONE_TYPES.has(normalizeZoneType(zone)));
+export const shouldPreferPlainPageTranslation = () => false;
 
 export const preparePageTranslationRequest = ({
   pageText = '',
@@ -19,10 +14,11 @@ export const preparePageTranslationRequest = ({
     ? buildTranslationRequestPageLayout(pageLayout, excludedZones, pageLayout?.excludedZonesVersion || 1)
     : null;
   const hasStructuredBlocks = Boolean(requestPageLayout?.blocks?.length);
-  const shouldUseStructuredRequest = hasStructuredBlocks && !preferPlain;
-  const translationSourceText = shouldUseStructuredRequest
+  const filteredSourceText = hasStructuredBlocks
     ? requestPageLayout.blocks.map((block) => block.text).join('\n\n').trim()
-    : sourceText;
+    : '';
+  const shouldUseStructuredRequest = hasStructuredBlocks && !preferPlain;
+  const translationSourceText = hasStructuredBlocks ? filteredSourceText : pageLayout ? '' : sourceText;
 
   return {
     sourceText,
@@ -31,7 +27,7 @@ export const preparePageTranslationRequest = ({
     hasStructuredBlocks,
     requestMode: shouldUseStructuredRequest ? 'structured' : 'plain',
     translationSourceText,
-    shouldMarkEmpty: !sourceText,
+    shouldMarkEmpty: !sourceText || !translationSourceText,
   };
 };
 

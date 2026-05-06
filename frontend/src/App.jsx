@@ -76,7 +76,7 @@ const DEFAULT_ACTIVE_TAB = 'chat';
 const THEME_STORAGE_KEY = 'pixiu-theme';
 const DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL = '一般';
 const RESEARCH_POLL_INTERVAL_MS = 1500;
-const STRUCTURED_TRANSLATION_TIMEOUT_MS = 15000;
+const STRUCTURED_TRANSLATION_TIMEOUT_MS = 90000;
 
 const normalizeBackgroundKnowledgeLevel = (value) => {
   const text = `${value ?? ''}`.trim().toLowerCase();
@@ -1838,7 +1838,7 @@ export default function App() {
           if (!isCurrentRequest()) {
             return;
           }
-          response = await runTranslateRequest(sourceText, null);
+          response = await runTranslateRequest(translationSourceText, null);
         }
       } else {
         response = await runTranslateRequest(translationSourceText, requestPayloadPageLayout);
@@ -2405,9 +2405,6 @@ export default function App() {
                         <ActiveTabIcon size={16} className="text-pixiu" />
                         <div className="min-w-0">
                           <h2 className="theme-text-primary text-sm font-bold">{activeTabMeta.label}</h2>
-                          <p className="theme-text-muted truncate text-[10px]">
-                            当前功能沿用原有实现，仅调整外层工作台排版
-                          </p>
                         </div>
                       </div>
                       {currentDeepResearchState.task && (
