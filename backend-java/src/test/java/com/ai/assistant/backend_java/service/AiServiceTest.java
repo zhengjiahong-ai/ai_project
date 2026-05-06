@@ -196,6 +196,26 @@ class AiServiceTest {
     }
 
     @Test
+    void criticalReadingWrapsPythonIndexErrorResponse() {
+        String errorBody = """
+                {"status":"error","errorCode":"paper_not_indexed","message":"当前论文尚未完成全文索引，请重新上传或重新解析后再试。"}
+                """;
+        when(restTemplate.postForObject(eq("http://python/api/deep-analysis"), any(Map.class), eq(Map.class)))
+                .thenThrow(new HttpClientErrorException(
+                        HttpStatus.CONFLICT,
+                        "Conflict",
+                        errorBody.getBytes(StandardCharsets.UTF_8),
+                        StandardCharsets.UTF_8));
+
+        Map<String, Object> response = aiService.criticalReading("paper-1");
+
+        assertEquals("error", response.get("status"));
+        assertEquals("paper_not_indexed", response.get("errorCode"));
+        assertEquals("paper-1", response.get("pdfId"));
+        assertEquals("当前论文尚未完成全文索引，请重新上传或重新解析后再试。", response.get("message"));
+    }
+
+    @Test
     void translatePageForwardsRequestToPythonService() {
         Map<String, Object> request = new HashMap<>();
         request.put("pdfId", "paper-1");

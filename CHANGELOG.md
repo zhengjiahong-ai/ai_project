@@ -3,6 +3,15 @@
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
 
+### 2026-05-06 12:19 v0.1.5
+
+1. **修复批判阅读 500 报错**：当当前论文缺少 RAG 全文索引时，Python 不再抛出普通 500，而是返回 `paper_not_indexed` / `rag_index_unavailable` 等结构化错误，Java 网关同步透传错误码与提示信息。
+2. **修复 RAG 空索引误判成功**：PDF 解析完成但 RAG 入库为 `0 chunks` 时，现在会返回 `ragIndexed: false`、`ragChunkCount` 和 `ragErrorCode`，避免前端误认为论文可用于批判阅读。
+3. **修复 RAG 初始化失败后的持久空状态**：RAG 初始化失败后不再永久缓存空实现，后续请求会重新尝试初始化，减少服务重启后索引一直为空的问题。
+4. **修复 Chroma 持久化路径错位**：将 Chroma 数据库路径接入 `CHROMA_DB_PATH=/app/chroma_data`，使 Docker volume 中的 `chroma_data` 真正承载向量索引，降低重启后索引丢失概率。
+5. **优化前端索引异常提示**：批判阅读失败时前端会展示明确中文原因，并把论文库状态更新为“索引异常”，不再只弹出泛化的 `Request failed with status code 500`。
+
+
 ### 2026-05-05 23:13 v0.1.4
 
 1. **创建分级章节结构**：新增 Python 目录抽取层 `core/outline_extractor.py`，融合 GROBID TEI 标题、段落级候选和 PDF 行级候选，统一返回 `displayTitle`、`rawTitle`、`headingNumber`、`level`、`parentId`、`pageIndex`、`bbox`、`anchorY`、`source` 与 `confidence`。

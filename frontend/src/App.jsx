@@ -463,6 +463,41 @@ const formatUploadErrorMessage = (error) => {
   return error?.message || '上传失败，请确认后端服务已启动。';
 };
 
+const getCriticalReadingErrorBody = (error) => {
+  const responseBody = error?.response?.data;
+  if (responseBody && typeof responseBody === 'object') {
+    return responseBody;
+  }
+  const payload = error?.payload;
+  if (payload && typeof payload === 'object') {
+    return payload;
+  }
+  return {};
+};
+
+const getCriticalReadingErrorCode = (error) => {
+  const body = getCriticalReadingErrorBody(error);
+  const analysis = body?.analysis && typeof body.analysis === 'object' ? body.analysis : {};
+  return error?.code || body?.errorCode || analysis?.errorCode || null;
+};
+
+const formatCriticalReadingErrorMessage = (error) => {
+  const body = getCriticalReadingErrorBody(error);
+  const analysis = body?.analysis && typeof body.analysis === 'object' ? body.analysis : {};
+  const errorCode = getCriticalReadingErrorCode(error);
+  const message = body?.message || analysis?.message || error?.message;
+
+  if (errorCode === 'paper_not_indexed' || errorCode === 'rag_index_unavailable') {
+    return message || '当前论文尚未完成全文索引，请重新上传或重新解析后再试。';
+  }
+
+  if (error?.message === 'Network Error' || error?.code === 'ERR_NETWORK') {
+    return '无法连接后端服务。请确认 Docker Desktop 已启动，并且 Java 网关 http://localhost:8081/api 正在运行。';
+  }
+
+  return message || '批判性阅读失败，请稍后重试。';
+};
+
 const initDB = async () =>
   openDB('PixiuAcademicDB_v6', 5, {
     upgrade(db) {
@@ -762,6 +797,10 @@ export default function App() {
         filename: file.name,
         authors: normalizeAuthors(response.authors),
         parseStatus: response.ragIndexed === false ? '索引异常' : '已解析',
+        ragIndexed: response.ragIndexed !== false,
+        ragChunkCount: response.ragChunkCount || 0,
+        ragErrorCode: response.ragErrorCode || null,
+        indexMessage: response.message || null,
         sectionCount: response.paper_structure?.sections?.length || 0,
         readingProgress: 0,
         currentPage: 0,
@@ -1121,9 +1160,12 @@ export default function App() {
     try {
       const response = await apiService.criticalReading(pdfId);
       const payload = response?.analysis ?? response;
-      const isSuccess = response?.status === 'success' || payload?.status === 'success' || Boolean(payload);
+      const isSuccess = response?.status === 'success' || payload?.status === 'success';
       if (!isSuccess) {
-        throw new Error(response?.message || payload?.message || '批判性阅读失败');
+        const analysisError = new Error(response?.message || payload?.message || '批判性阅读失败');
+        analysisError.code = response?.errorCode || payload?.errorCode || null;
+        analysisError.payload = response || payload || null;
+        throw analysisError;
       }
 
       setAnalysisData(payload);
@@ -1131,7 +1173,29 @@ export default function App() {
       await db.put('analysisStore', payload, pdfId);
     } catch (error) {
       console.error('Failed to run critical reading.', error);
-      window.alert(error?.response?.data?.message || error?.message || '批判性阅读失败，请稍后重试。');
+      const errorCode = getCriticalReadingErrorCode(error);
+      const errorMessage = formatCriticalReadingErrorMessage(error);
+      if (errorCode === 'paper_not_indexed' || errorCode === 'rag_index_unavailable') {
+        try {
+          const db = await initDB();
+          const paper = await db.get('libraryStore', pdfId);
+          if (paper) {
+            const updatedPaper = {
+              ...paper,
+              parseStatus: '索引异常',
+              ragIndexed: false,
+              ragErrorCode: errorCode,
+              indexMessage: errorMessage,
+              updatedAt: Date.now(),
+            };
+            await db.put('libraryStore', updatedPaper);
+            setPapersList((prev) => prev.map((item) => (item.id === pdfId ? updatedPaper : item)));
+          }
+        } catch (storeError) {
+          console.error('Failed to mark paper index status.', storeError);
+        }
+      }
+      window.alert(errorMessage);
     } finally {
       setIsAnalyzing(false);
     }

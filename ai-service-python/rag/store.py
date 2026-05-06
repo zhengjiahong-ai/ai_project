@@ -7,14 +7,14 @@ except ModuleNotFoundError:
 
 
 class DummyRAG:
+    is_available = False
+
+    def __init__(self, initialization_error: Exception | None = None):
+        self.initialization_error = initialization_error
+
     @staticmethod
     def normalize_id(id_str: Any) -> str:
-        import re
-
-        if not id_str:
-            return "unknown"
-
-        return re.sub(r"[^a-zA-Z0-9.\-_]", "_", str(id_str)).lower()
+        return normalize_id(id_str)
 
     def retrieve(self, query: str, top_k: int = 3, filter_metadata: Optional[dict] = None) -> list:
         return []
@@ -34,19 +34,41 @@ class DummyRAG:
 
 _rag = None
 _hybrid = None
+_rag_initialization_error = None
+
+
+def normalize_id(id_str: Any) -> str:
+    import re
+
+    if not id_str:
+        return "unknown"
+
+    return re.sub(r"[^a-zA-Z0-9.\-_]", "_", str(id_str)).lower()
+
+
+def is_rag_available(rag: Any | None = None) -> bool:
+    target = rag if rag is not None else _rag
+    return target is not None and not isinstance(target, DummyRAG)
+
+
+def get_rag_initialization_error() -> Exception | None:
+    return _rag_initialization_error
 
 
 def get_rag():
-    global _rag
+    global _rag, _hybrid, _rag_initialization_error
 
     if _rag is None:
         try:
             from core.rag_vector_db import LiteratureRAG
 
             _rag = LiteratureRAG()
+            _hybrid = None
+            _rag_initialization_error = None
         except Exception as error:
             print(f"RAG initialization failed: {error}")
-            _rag = DummyRAG()
+            _rag_initialization_error = error
+            return DummyRAG(error)
 
     return _rag
 
@@ -58,7 +80,11 @@ def get_hybrid():
         if HybridRetriever is None:
             raise RuntimeError("HybridRetriever is unavailable because rank-bm25 is not installed.")
 
-        _hybrid = HybridRetriever(get_rag())
+        rag = get_rag()
+        if isinstance(rag, DummyRAG):
+            raise RuntimeError(f"RAG backend is unavailable: {rag.initialization_error}")
+
+        _hybrid = HybridRetriever(rag)
 
     return _hybrid
 
@@ -103,4 +129,6 @@ def retrieve_hybrid_results(query: str, top_k: int = 3) -> Dict[str, List[Dict[s
 
 
 def preload_rag() -> None:
-    get_rag()
+    rag = get_rag()
+    if isinstance(rag, DummyRAG):
+        raise RuntimeError(f"RAG backend is unavailable: {rag.initialization_error}")

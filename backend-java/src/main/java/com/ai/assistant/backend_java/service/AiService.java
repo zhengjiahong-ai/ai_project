@@ -161,11 +161,18 @@ public class AiService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("pdf_id", pdfId);
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> pythonResponse = restTemplate.postForObject(
-                PYTHON_SERVICE_URL + "/deep-analysis",
-                payload,
-                Map.class);
+        Map<String, Object> pythonResponse;
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.postForObject(
+                    PYTHON_SERVICE_URL + "/deep-analysis",
+                    payload,
+                    Map.class);
+            pythonResponse = response;
+        } catch (HttpStatusCodeException error) {
+            pythonResponse = parsePythonErrorBody(error);
+            pythonResponse.putIfAbsent("httpStatus", error.getStatusCode().value());
+        }
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("status", pythonResponse != null ? pythonResponse.getOrDefault("status", "error") : "error");
@@ -176,6 +183,9 @@ public class AiService {
             response.put("message", "Python service returned no response.");
         } else if (pythonResponse.containsKey("message")) {
             response.put("message", pythonResponse.get("message"));
+        }
+        if (pythonResponse != null && pythonResponse.containsKey("errorCode")) {
+            response.put("errorCode", pythonResponse.get("errorCode"));
         }
 
         return response;
@@ -243,7 +253,7 @@ public class AiService {
             ResponseEntity<Map> response = restTemplate.exchange(url, method, entity, Map.class);
             return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
         } catch (HttpStatusCodeException error) {
-            return ResponseEntity.status(error.getStatusCode()).body(parseResearchTaskErrorBody(error));
+            return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));
         }
     }
 
@@ -261,7 +271,7 @@ public class AiService {
         return response;
     }
 
-    private Map<String, Object> parseResearchTaskErrorBody(HttpStatusCodeException error) {
+    private Map<String, Object> parsePythonErrorBody(HttpStatusCodeException error) {
         String rawBody = error.getResponseBodyAsString(StandardCharsets.UTF_8);
         if (rawBody != null && !rawBody.isBlank()) {
             try {

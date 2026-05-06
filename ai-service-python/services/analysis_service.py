@@ -10,7 +10,7 @@ from fastapi import UploadFile
 from core.document_parser import extract_translation_layout_index, parse_tei_xml
 from core.outline_extractor import OUTLINE_VERSION, build_document_outline
 from llm.client import get_llm
-from rag.store import get_rag, preload_rag
+from rag.store import get_rag, is_rag_available, normalize_id, preload_rag
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
 from services.background_knowledge_service import get_background_knowledge as build_background_knowledge
 from services.evidence_service import compact_evidence_for_response, format_evidence_context, normalize_evidence_items
@@ -32,6 +32,11 @@ ANALYSIS_CHUNK_SIZE = 1200
 ANALYSIS_CHUNK_OVERLAP = 200
 ANALYSIS_RETRIEVAL_LIMIT = 4
 ANALYSIS_RESPONSE_SOURCE_LIMIT = 10
+PAPER_NOT_INDEXED_ERROR_CODE = "paper_not_indexed"
+RAG_INDEX_UNAVAILABLE_ERROR_CODE = "rag_index_unavailable"
+PAPER_NOT_INDEXED_MESSAGE = "当前论文尚未完成全文索引，请重新上传或重新解析后再试。"
+RAG_INDEX_EMPTY_MESSAGE = "论文已解析，但没有可入库的正文片段，批判阅读暂不可用。请重新上传，或确认 PDF 是可提取文字的版本。"
+RAG_INDEX_UNAVAILABLE_MESSAGE = "论文已解析，但全文索引服务暂不可用，批判阅读暂不可用。请稍后重新解析或重启 AI 服务后再试。"
 ANALYSIS_AXIS_CONFIGS = (
     {
         "key": "contributions",
@@ -58,6 +63,32 @@ ANALYSIS_AXIS_CONFIGS = (
         "seed_terms": ["局限", "不足", "风险", "失败", "future work", "limitation", "weakness", "risk"],
     },
 )
+
+
+class PaperNotIndexedError(RuntimeError):
+    def __init__(
+        self,
+        pdf_id: str | None = None,
+        message: str = PAPER_NOT_INDEXED_MESSAGE,
+        error_code: str = PAPER_NOT_INDEXED_ERROR_CODE,
+    ):
+        super().__init__(message)
+        self.pdf_id = pdf_id
+        self.message = message
+        self.error_code = error_code
+        self.trace_id: str | None = None
+
+    def to_response(self) -> Dict[str, Any]:
+        response: Dict[str, Any] = {
+            "status": "error",
+            "errorCode": self.error_code,
+            "message": self.message,
+        }
+        if self.pdf_id:
+            response["pdfId"] = self.pdf_id
+        if self.trace_id:
+            response["traceId"] = self.trace_id
+        return response
 
 
 def get_grobid_client():
@@ -271,22 +302,39 @@ Paper context:
                 "sections": section_outline,
             }
 
-        clean_pdf_id = get_rag().normalize_id(file.filename)
+        clean_pdf_id = normalize_id(file.filename)
         title = _extract_title(parsed_sections, file.filename)
         authors = _extract_authors(parsed_sections)
         rag_indexed = True
         rag_message = None
+        rag_error_code = None
+        rag_chunk_count = 0
         try:
-            count = get_rag().add_sections_to_db(
+            rag = get_rag()
+            if not is_rag_available(rag):
+                raise RuntimeError("RAG backend is unavailable.")
+
+            rag_chunk_count = rag.add_sections_to_db(
                 parsed_sections,
                 file_path,
                 {"id": clean_pdf_id, "title": title},
             )
-            print(f"Indexed paper {title} ({clean_pdf_id}) into RAG with {count} chunks.")
+            print(f"Indexed paper {title} ({clean_pdf_id}) into RAG with {rag_chunk_count} chunks.")
+            if rag_chunk_count <= 0:
+                rag_indexed = False
+                rag_error_code = PAPER_NOT_INDEXED_ERROR_CODE
+                rag_message = RAG_INDEX_EMPTY_MESSAGE
+            else:
+                indexed_documents = rag.get_documents_by_metadata({"id": clean_pdf_id}, limit=1)
+                if not indexed_documents:
+                    rag_indexed = False
+                    rag_error_code = PAPER_NOT_INDEXED_ERROR_CODE
+                    rag_message = "论文正文索引写入后校验未命中，批判阅读暂不可用。请重新上传或重新解析后再试。"
         except Exception as error:
             print(f"RAG indexing failed: {error}")
             rag_indexed = False
-            rag_message = f"Paper parsed successfully, but RAG indexing failed: {error}"
+            rag_error_code = RAG_INDEX_UNAVAILABLE_ERROR_CODE
+            rag_message = f"{RAG_INDEX_UNAVAILABLE_MESSAGE}（{error}）"
 
         response = {
             "status": "success",
@@ -297,9 +345,12 @@ Paper context:
             "title": title,
             "authors": authors,
             "ragIndexed": rag_indexed,
+            "ragChunkCount": rag_chunk_count,
         }
         if rag_message:
             response["message"] = rag_message
+        if rag_error_code:
+            response["ragErrorCode"] = rag_error_code
         return response
     finally:
         if os.path.exists(input_dir):
@@ -361,8 +412,15 @@ def _load_analysis_source(request: DeepAnalysisRequest) -> tuple[List[Dict[str, 
 
         if request.pdf_id:
             record_counter("retrievalCalls")
-            normalized_id = get_rag().normalize_id(request.pdf_id)
-            raw_documents = get_rag().get_documents_by_metadata({"id": normalized_id}, limit=400)
+            normalized_id = normalize_id(request.pdf_id)
+            rag = get_rag()
+            if not is_rag_available(rag):
+                raise PaperNotIndexedError(
+                    normalized_id,
+                    RAG_INDEX_UNAVAILABLE_MESSAGE,
+                    RAG_INDEX_UNAVAILABLE_ERROR_CODE,
+                )
+            raw_documents = rag.get_documents_by_metadata({"id": normalized_id}, limit=400)
             documents = normalize_evidence_items(
                 raw_documents,
                 source_type="current_paper",
@@ -370,7 +428,7 @@ def _load_analysis_source(request: DeepAnalysisRequest) -> tuple[List[Dict[str, 
                 max_text_chars=1800,
             )
             if not documents:
-                raise ValueError(f"No indexed paper content found for pdf_id={normalized_id}")
+                raise PaperNotIndexedError(normalized_id)
 
             paper_content = "\n\n".join(item.get("text", "") for item in documents)
             step["outputSize"] = len(documents)
@@ -906,6 +964,10 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
             },
         )
         return response
+    except PaperNotIndexedError as error:
+        error.trace_id = trace_id
+        finalize_trace("error", error=error)
+        raise
     except Exception as error:
         finalize_trace("error", error=error)
         raise

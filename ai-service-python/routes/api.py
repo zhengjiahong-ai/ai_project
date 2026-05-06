@@ -133,5 +133,9 @@ async def deep_analysis(request: Annotated[DeepAnalysisRequest | str, Body(...)]
     try:
         payload = request if isinstance(request, DeepAnalysisRequest) else DeepAnalysisRequest(paper_content=request)
         return JSONResponse(analysis_service.deep_analysis(payload))
+    except analysis_service.PaperNotIndexedError as error:
+        return JSONResponse(error.to_response(), status_code=409)
+    except ValueError as error:
+        return JSONResponse({"status": "error", "errorCode": "bad_request", "message": str(error)}, status_code=400)
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)

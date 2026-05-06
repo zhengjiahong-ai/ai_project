@@ -50,6 +50,7 @@ services:
       - DEEPSEEK_THINKING_TYPE=${DEEPSEEK_THINKING_TYPE:-enabled}
       - DEEPSEEK_REASONING_EFFORT=${DEEPSEEK_REASONING_EFFORT:-high}
       - PYTHON_SERVICE_URL=http://ai-service:8000/api
+      - CHROMA_DB_PATH=/app/chroma_data
       - NEO4J_URI=${NEO4J_URI:-}
       - NEO4J_USER=${NEO4J_USER:-}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-}

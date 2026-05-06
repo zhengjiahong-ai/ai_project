@@ -11,14 +11,15 @@ from sentence_transformers import SentenceTransformer
 from grobid_client.grobid_client import GrobidClient
 
 from core.document_parser import parse_tei_xml
+from rag.store import normalize_id
 from core.smart_chunker import chunk_sections
 
 
 EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 
-CHROMA_DB_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "chroma_literature_db"
+CHROMA_DB_PATH = os.environ.get(
+    "CHROMA_DB_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_literature_db"),
 )
 
 
@@ -26,11 +27,7 @@ class LiteratureRAG:
     @staticmethod
     def normalize_id(id_str):
         """ 归一化 ID，去除特殊字符，防止编码不一致导致的检索失败 """
-        if not id_str: return "unknown"
-        # 只保留字母、数字、下划线、点、横杠
-        import re
-        clean_id = re.sub(r'[^a-zA-Z0-9.\-_]', '_', str(id_str))
-        return clean_id.lower()
+        return normalize_id(id_str)
 
     def __init__(self):
 
