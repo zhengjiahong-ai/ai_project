@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-05-20 17:02 v0.1.6-demo.1
+
+1. **新增全链路演示检查清单**：新增 `docs/DEMO_CHECKLIST.md`，固定使用仓库内 `Active RIS-Assisted Integrated Sensing and Communication Systems Joint Receive-Transmit Beamforming and Reflection Design.pdf` 作为演示 PDF，覆盖上传解析、问答、划词解释、逐页翻译、批判阅读、背景补课、苏格拉底学习和深度研究的可复现步骤。
+2. **补齐演示启动与排障基线**：文档集中记录 Docker Compose 启动命令、服务就绪标准、日志检查命令、备用截图建议。
+3. **记录当前真实联调结果**：当前环境通过 no-build recreate 恢复到 `backend_java=8081->8080` 的当前端口映射，固定 PDF 上传解析成功并完成问答、划词解释、逐页翻译、批判阅读、背景补课、苏格拉底学习和 deep research API smoke；同时记录 `docker compose up -d --build` 超时这一演示前风险。
+
 ### 2026-05-06 18:45 v0.1.6
 
 1. **修复逐页翻译图文混排页漏译与噪声问题**：逐页翻译请求新增正文块清洗层，过滤图内标签、算法伪代码、页脚、公式编号、裸公式变量和 `d`、`f 1GHz` 等 PDF 文本层残片，避免非正文内容挤占翻译批次并扰乱版面。
