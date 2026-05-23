@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { openDB } from 'idb';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BarChart3,
   BookOpen,
@@ -14,11 +13,11 @@ import {
   Network,
   Search,
   Sparkles,
-  Trash2,
 } from 'lucide-react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 
 import BackgroundKnowledgePanel from './components/BackgroundKnowledgePanel.jsx';
+import BottomWorkbench from './components/BottomWorkbench.jsx';
 import ChatPanel from './components/ChatPanel';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel';
 import DeepResearchPanel from './components/DeepResearchPanel.jsx';
@@ -29,7 +28,25 @@ import PdfToolbar from './components/PdfToolbar';
 import PdfViewer from './components/PdfViewer';
 import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 import TranslationPanel from './components/TranslationPanel';
-import MarkdownContent from './components/MarkdownContent';
+import { useAbortableChat } from './hooks/useAbortableChat.js';
+import { usePaperArtifacts } from './hooks/usePaperArtifacts.js';
+import { usePaperSession } from './hooks/usePaperSession.js';
+import { useReadingWorkspace } from './hooks/useReadingWorkspace.js';
+import { useTaskActivity } from './hooks/useTaskActivity.js';
+import { useThemePreference } from './hooks/useThemePreference.js';
+import { deletePaperScopedRecords, initDB } from './services/localDb.js';
+import {
+  clearStoredLastPdfId,
+  persistLibraryReadingProgress,
+  persistMessages,
+  persistNotes,
+  persistWorkbenchCards,
+  persistSocraticSession,
+  persistStoredActiveTab,
+  persistStoredLastPdfId,
+  persistTranslationState,
+  persistUploadedPaperSession,
+} from './services/workspaceSession.js';
 import { apiService } from './services/api';
 import {
   planPageTranslationState,
@@ -58,7 +75,7 @@ const DEFAULT_MODEL_NAME = 'DeepSeek V4';
 
 const WELCOME_MESSAGE = {
   role: 'ai',
-  content: '您好！我是您的 AI 学术助手。上传论文后，您可以直接划选正文句子进行解释、批判阅读，并保留对话历史。',
+  content: '您好，我是您的 AI 学术助手。上传论文后，您可以直接选中文本进行提问、批判性阅读，并保留对话记录。',
 };
 
 const workspaceTabs = [
@@ -72,7 +89,31 @@ const workspaceTabs = [
   { id: 'notes', label: '笔记', icon: Bookmark },
 ];
 
+const workspaceTabSections = [
+  {
+    id: 'reading',
+    label: '阅读助手',
+    description: '围绕当前页面的即时理解与辅助阅读。',
+    tabIds: ['chat', 'deconstruct', 'translation'],
+  },
+  {
+    id: 'analysis',
+    label: '分析研究',
+    description: '偏重批判、补课、引导学习与研究推进。',
+    tabIds: ['analysis', 'background', 'socratic', 'deep-research'],
+  },
+  {
+    id: 'assets',
+    label: '资产沉淀',
+    description: '查看当前论文的长期沉淀与工作台入口。',
+    tabIds: ['notes'],
+  },
+];
+
 const DEFAULT_ACTIVE_TAB = 'chat';
+const WORKBENCH_EXPANDED_SIZE = 32;
+const WORKBENCH_COLLAPSED_SIZE = 18;
+const WORKBENCH_COLLAPSE_THRESHOLD = 22;
 const THEME_STORAGE_KEY = 'pixiu-theme';
 const DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL = '一般';
 const RESEARCH_POLL_INTERVAL_MS = 1500;
@@ -88,6 +129,9 @@ const normalizeBackgroundKnowledgeLevel = (value) => {
   }
   return '一般';
 };
+
+const getWorkspaceSectionId = (tabId) =>
+  workspaceTabSections.find((section) => section.tabIds.includes(tabId))?.id || workspaceTabSections[0].id;
 
 const sectionDisplayNames = {
   abstract: '摘要',
@@ -498,103 +542,73 @@ const formatCriticalReadingErrorMessage = (error) => {
   return message || '批判性阅读失败，请稍后重试。';
 };
 
-const initDB = async () =>
-  openDB('PixiuAcademicDB_v6', 5, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('pdfStore')) db.createObjectStore('pdfStore');
-      if (!db.objectStoreNames.contains('historyStore')) db.createObjectStore('historyStore');
-      if (!db.objectStoreNames.contains('analysisStore')) db.createObjectStore('analysisStore');
-      if (!db.objectStoreNames.contains('notesStore')) db.createObjectStore('notesStore');
-      if (!db.objectStoreNames.contains('deconstructStore')) db.createObjectStore('deconstructStore');
-      if (!db.objectStoreNames.contains('libraryStore')) db.createObjectStore('libraryStore', { keyPath: 'id' });
-      if (!db.objectStoreNames.contains('highlightStore')) db.createObjectStore('highlightStore');
-      if (!db.objectStoreNames.contains('sessionStore')) db.createObjectStore('sessionStore');
-      if (!db.objectStoreNames.contains('translationStore')) db.createObjectStore('translationStore');
-      if (!db.objectStoreNames.contains('backgroundKnowledgeStore')) db.createObjectStore('backgroundKnowledgeStore');
-    },
-  });
-
-const normalizeHistoryMessages = (messages = []) =>
-  messages.map((message, index) => ({
-    id: message.id ?? `${message.timestamp ?? 'local'}-${index}`,
-    role: message.role === 'assistant' ? 'ai' : message.role,
-    content: message.content,
-    timestamp: message.timestamp ?? null,
-  }));
-
-const createReadyMessage = (filename) => [
-  {
-    role: 'ai',
-    content: `已成功加载论文：${filename}。我现在可以为您分析这篇文章了。`,
-  },
-];
-
-const resolveStoredPdfRecord = (storedValue) => {
-  if (!storedValue) {
-    return null;
-  }
-
-  if (storedValue instanceof Blob) {
-    return {
-      blob: storedValue,
-      name: storedValue.name ?? null,
-    };
-  }
-
-  if (storedValue.blob instanceof Blob) {
-    return {
-      blob: storedValue.blob,
-      name: storedValue.name ?? storedValue.blob.name ?? null,
-    };
-  }
-
-  return null;
-};
-
 export default function App() {
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') {
-      return 'light';
-    }
-
-    return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
-  });
+  const { theme, toggleTheme: handleToggleTheme } = useThemePreference(THEME_STORAGE_KEY);
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
   const [pdfId, setPdfId] = useState(null);
-  const [isAiReady, setIsAiReady] = useState(true);
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [activeTab, setActiveTab] = useState('chat');
+  const [activeWorkspaceSectionId, setActiveWorkspaceSectionId] = useState(() => getWorkspaceSectionId(DEFAULT_ACTIVE_TAB));
   const [analysisData, setAnalysisData] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [backgroundKnowledgeData, setBackgroundKnowledgeData] = useState(null);
   const [backgroundKnowledgeLevel, setBackgroundKnowledgeLevel] = useState(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
-  const [isBackgroundKnowledgeLoading, setIsBackgroundKnowledgeLoading] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
-  const [notes, setNotes] = useState([]);
   const [isTranslated, setIsTranslated] = useState(false);
-  const [isDeconstructing, setIsDeconstructing] = useState(false);
   const [deconstructData, setDeconstructData] = useState(null);
   const [socraticSession, setSocraticSession] = useState(createEmptySocraticSession());
-  const [isSocraticLoading, setIsSocraticLoading] = useState(false);
-  const [loadingPapers, setLoadingPapers] = useState({});
-  const [pdfHighlights, setPdfHighlights] = useState([]);
   const [translationState, setTranslationState] = useState(createEmptyTranslationState());
   const [deepResearchStateByPdf, setDeepResearchStateByPdf] = useState({});
   const [papersList, setPapersList] = useState([]);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [outlineQuery, setOutlineQuery] = useState('');
-  const [collapsedOutlineIds, setCollapsedOutlineIds] = useState({});
-  const [pdfPageState, setPdfPageState] = useState({
-    pageIndex: 0,
-    totalPages: 0,
+  const [isWorkbenchCollapsed, setIsWorkbenchCollapsed] = useState(false);
+  const [focusedSourceRequest, setFocusedSourceRequest] = useState({
+    anchorId: null,
+    token: 0,
   });
-  const [targetPageIndex, setTargetPageIndex] = useState(null);
-  const [targetPageJumpToken, setTargetPageJumpToken] = useState(0);
+  const {
+    notes,
+    setNotes,
+    addNote,
+    pdfHighlights,
+    setPdfHighlights,
+    workbenchCards,
+    setWorkbenchCards,
+    captureArtifact,
+    removeArtifact,
+    toggleArtifactPinned,
+    updateArtifact,
+    resetArtifacts,
+  } = usePaperArtifacts();
+  const {
+    outlineQuery,
+    setOutlineQuery,
+    collapsedOutlineIds,
+    pdfPageState,
+    setPdfPageState,
+    targetPageIndex,
+    setTargetPageIndex,
+    targetPageJumpToken,
+    resetOutlineState,
+    resetPageNavigation,
+    jumpToPage,
+    toggleOutlineCollapse,
+  } = useReadingWorkspace();
+  const { taskActivity, setTaskActive } = useTaskActivity();
+  const {
+    startChatRequest,
+    finishChatRequest,
+    abortChatRequest,
+    isChatLoading,
+  } = useAbortableChat();
+  const isAiReady = taskActivity.aiReady;
+  const isDeconstructing = taskActivity.deconstructing;
+  const isAnalyzing = taskActivity.analyzing;
+  const isBackgroundKnowledgeLoading = taskActivity.backgroundKnowledgeLoading;
+  const isSocraticLoading = taskActivity.socraticLoading;
 
-  const abortControllers = useRef({});
   const translationRequestsRef = useRef({});
   const translationRequestSequenceRef = useRef(0);
   const latestTranslationTokensRef = useRef({});
@@ -602,6 +616,7 @@ export default function App() {
   const papersListRef = useRef([]);
   const currentPdfIdRef = useRef(null);
   const workspaceTabsRef = useRef(null);
+  const workbenchPanelRef = useRef(null);
   const currentPageTextRef = useRef({
     pageIndex: 0,
     pageText: '',
@@ -618,9 +633,12 @@ export default function App() {
   }, [pdfId]);
 
   useEffect(() => {
-    setOutlineQuery('');
-    setCollapsedOutlineIds({});
-  }, [pdfId]);
+    setActiveWorkspaceSectionId(getWorkspaceSectionId(activeTab));
+  }, [activeTab]);
+
+  useEffect(() => {
+    resetOutlineState();
+  }, [pdfId, resetOutlineState]);
 
   useEffect(() => {
     const activeTabButton = workspaceTabsRef.current?.querySelector('[data-active-tab="true"]');
@@ -642,19 +660,10 @@ export default function App() {
   }, [pdfId]);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme]);
-
-  useEffect(() => {
     if (activeTab !== 'translation') {
       lastNonTranslationTabRef.current = activeTab;
     }
   }, [activeTab]);
-
-  const handleToggleTheme = useCallback(() => {
-    setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'));
-  }, []);
 
   const commitTranslationState = useCallback((nextStateOrUpdater) => {
     if (typeof nextStateOrUpdater === 'function') {
@@ -689,100 +698,50 @@ export default function App() {
     });
   }, []);
 
-  const fetchRemoteHistory = useCallback(async (sessionId, fallbackMessages = []) => {
-    try {
-      const response = await apiService.getChatHistory(sessionId);
-      const remoteMessages = normalizeHistoryMessages(response?.messages || []);
-      if (remoteMessages.length > 0) {
-        const db = await initDB();
-        await db.put('historyStore', remoteMessages, sessionId);
-        return remoteMessages;
-      }
-    } catch (error) {
-      console.warn('Failed to load remote chat history, using local cache instead.', error);
-    }
-
-    return fallbackMessages.length > 0 ? fallbackMessages : [WELCOME_MESSAGE];
-  }, []);
-
-  const restorePaperState = useCallback(async (targetPdfId, entryList = null) => {
-    const db = await initDB();
-    const [
-      savedPdf,
-      savedMessages,
-      savedAnalysis,
-      savedDeconstruct,
-      savedNotes,
-      savedHighlights,
-      savedSocraticSession,
-      savedTranslationState,
-      savedBackgroundKnowledge,
-    ] = await Promise.all([
-      db.get('pdfStore', targetPdfId),
-      db.get('historyStore', targetPdfId),
-      db.get('analysisStore', targetPdfId),
-      db.get('deconstructStore', targetPdfId),
-      db.get('notesStore', targetPdfId),
-      db.get('highlightStore', targetPdfId),
-      db.get('sessionStore', targetPdfId),
-      db.get('translationStore', targetPdfId),
-      db.get('backgroundKnowledgeStore', targetPdfId),
-    ]);
-
-    const resolvedPdf = resolveStoredPdfRecord(savedPdf);
-    if (!resolvedPdf) {
-      return false;
-    }
-
-    const currentEntries = Array.isArray(entryList) ? entryList : papersListRef.current;
-    const libraryEntry = currentEntries.find((paper) => paper.id === targetPdfId);
-    const savedPageIndex = Number.isFinite(libraryEntry?.currentPage)
-      ? Math.max(0, libraryEntry.currentPage - 1)
-      : 0;
-    const savedTotalPages = Number.isFinite(libraryEntry?.totalPages)
-      ? Math.max(0, libraryEntry.totalPages)
-      : 0;
-    const fallbackMessages =
-      savedMessages && savedMessages.length > 0
-        ? savedMessages
-        : createReadyMessage(libraryEntry?.filename ?? resolvedPdf.name ?? '当前论文');
-
-    const nextMessages = await fetchRemoteHistory(targetPdfId, fallbackMessages);
-
-    setPdfId(targetPdfId);
-    setPdfFile(URL.createObjectURL(resolvedPdf.blob));
-    setPdfFileName(libraryEntry?.filename ?? resolvedPdf.name ?? null);
-    setDeconstructData(savedDeconstruct || null);
-    setNotes(savedNotes || []);
-    setAnalysisData(savedAnalysis || null);
-    setBackgroundKnowledgeData(savedBackgroundKnowledge || null);
-    setBackgroundKnowledgeLevel(normalizeBackgroundKnowledgeLevel(savedBackgroundKnowledge?.user_knowledge_level));
-    setMessages(nextMessages);
-    setPdfHighlights(savedHighlights || []);
-    setSocraticSession(normalizeSocraticSession(savedSocraticSession, targetPdfId));
-    commitTranslationState(normalizeTranslationState(savedTranslationState, targetPdfId));
-    setIsTranslated(false);
-    currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
-    setPdfPageState({ pageIndex: savedPageIndex, totalPages: savedTotalPages });
-    setTargetPageIndex(savedPageIndex > 0 ? savedPageIndex : null);
-    if (savedPageIndex > 0) {
-      setTargetPageJumpToken((token) => token + 1);
-    }
-    setActiveTab((currentTab) =>
-      currentTab === 'translation' ? lastNonTranslationTabRef.current || DEFAULT_ACTIVE_TAB : currentTab,
-    );
-    localStorage.setItem('lastPdfId', targetPdfId);
-
-    return true;
-  }, [commitTranslationState, fetchRemoteHistory]);
+  const {
+    restoreLocalSession,
+    restoreSelectedPaper,
+    createReadyMessages,
+  } = usePaperSession({
+    apiService,
+    welcomeMessage: WELCOME_MESSAGE,
+    defaultActiveTab: DEFAULT_ACTIVE_TAB,
+    normalizeBackgroundKnowledgeLevel,
+    normalizeSocraticSession,
+    normalizeTranslationState,
+    setPdfId,
+    setPdfFile,
+    setPdfFileName,
+    setDeconstructData,
+    setNotes,
+    setAnalysisData,
+    setBackgroundKnowledgeData,
+    setBackgroundKnowledgeLevel,
+    setMessages,
+    setPdfHighlights,
+    setWorkbenchCards,
+    setSocraticSession,
+    commitTranslationState,
+    setIsTranslated,
+    currentPageTextRef,
+    setPdfPageState,
+    jumpToPage,
+    setTargetPageIndex,
+    setActiveTab,
+    lastNonTranslationTabRef,
+    setPapersList,
+    setIsRestored,
+    setTaskActive,
+    papersListRef,
+  });
 
   const handlePdfUpload = useCallback(async (file) => {
     if (!file) return;
 
     setPdfFileName(file.name);
     setPdfFile(URL.createObjectURL(file));
-    setIsAiReady(false);
-    setIsDeconstructing(true);
+    setTaskActive('aiReady', false);
+    setTaskActive('deconstructing', true);
 
     try {
       const response = await apiService.uploadPdf(file);
@@ -790,7 +749,7 @@ export default function App() {
         throw new Error(response?.message || '论文上传失败');
       }
 
-      const readyMessages = createReadyMessage(file.name);
+      const readyMessages = createReadyMessages(file.name);
       const newEntry = {
         id: response.pdfId,
         title: response.title || file.name,
@@ -810,35 +769,30 @@ export default function App() {
       };
 
       const db = await initDB();
-      await Promise.all([
-        db.put('pdfStore', file, response.pdfId),
-        db.put('deconstructStore', response, response.pdfId),
-        db.put('analysisStore', null, response.pdfId),
-        db.put('historyStore', readyMessages, response.pdfId),
-        db.put('highlightStore', [], response.pdfId),
-        db.put('libraryStore', newEntry),
-        db.delete('sessionStore', response.pdfId),
-        db.delete('translationStore', response.pdfId),
-        db.delete('backgroundKnowledgeStore', response.pdfId),
-      ]);
+      await persistUploadedPaperSession({
+        db,
+        file,
+        pdfId: response.pdfId,
+        response,
+        readyMessages,
+        libraryEntry: newEntry,
+      });
 
       setPdfId(response.pdfId);
       setDeconstructData(response);
       setAnalysisData(null);
       setBackgroundKnowledgeData(null);
       setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
-      setNotes([]);
+      resetArtifacts();
       setMessages(readyMessages);
-      setPdfHighlights([]);
       setSocraticSession(createEmptySocraticSession(response.pdfId));
       commitTranslationState(createEmptyTranslationState(response.pdfId));
       setIsTranslated(false);
       currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
-      setPdfPageState({ pageIndex: 0, totalPages: 0 });
-      setTargetPageIndex(null);
+      resetPageNavigation();
       setActiveTab('deconstruct');
       setPapersList((prev) => [newEntry, ...prev.filter((paper) => paper.id !== response.pdfId)]);
-      localStorage.setItem('lastPdfId', response.pdfId);
+      persistStoredLastPdfId(response.pdfId);
 
       if (response?.ragIndexed === false && response?.message) {
         window.alert(response.message);
@@ -854,60 +808,25 @@ export default function App() {
       commitTranslationState(createEmptyTranslationState());
       setIsTranslated(false);
       currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
-      setPdfPageState({ pageIndex: 0, totalPages: 0 });
-      setTargetPageIndex(null);
+      resetArtifacts();
+      resetPageNavigation();
       const uploadErrorMessage = formatUploadErrorMessage(error);
       window.setTimeout(() => {
         window.alert(uploadErrorMessage);
       }, 0);
     } finally {
-      setIsAiReady(true);
-      setIsDeconstructing(false);
+      setTaskActive('aiReady', true);
+      setTaskActive('deconstructing', false);
     }
-  }, [commitTranslationState]);
+  }, [commitTranslationState, createReadyMessages, resetArtifacts, resetPageNavigation, setTaskActive]);
+
+
 
   useEffect(() => {
-    const restoreSession = async () => {
-      try {
-        const savedTab = localStorage.getItem('activeTab');
-        if (savedTab && savedTab !== 'translation') {
-          setActiveTab(savedTab);
-        }
+    restoreLocalSession();
+  }, [restoreLocalSession]);
 
-        const db = await initDB();
-        const list = await db.getAll('libraryStore');
-        const sortedList = [...list].sort((left, right) => right.timestamp - left.timestamp);
-        setPapersList(sortedList);
-
-        const savedPdfId = localStorage.getItem('lastPdfId');
-        if (savedPdfId) {
-          const restored = await restorePaperState(savedPdfId, sortedList);
-          if (!restored && sortedList.length > 0) {
-            await restorePaperState(sortedList[0].id, sortedList);
-          }
-        } else if (sortedList.length > 0) {
-          await restorePaperState(sortedList[0].id, sortedList);
-        }
-      } catch (error) {
-        console.error('Failed to restore local session.', error);
-      } finally {
-        setIsRestored(true);
-      }
-    };
-
-    restoreSession();
-  }, [restorePaperState]);
-
-  const handleSelectPaper = useCallback(async (targetPdfId) => {
-    setIsAiReady(false);
-    try {
-      await restorePaperState(targetPdfId);
-    } catch (error) {
-      console.error('Failed to load selected paper.', error);
-    } finally {
-      setIsAiReady(true);
-    }
-  }, [restorePaperState]);
+  const handleSelectPaper = restoreSelectedPaper;
 
   const handleWorkspaceTabsWheel = useCallback((event) => {
     const tabsElement = event.currentTarget;
@@ -935,20 +854,23 @@ export default function App() {
     tabsElement.scrollLeft = nextScrollLeft;
   }, []);
 
-  const handleToggleOutlineCollapse = useCallback((outlineId) => {
-    setCollapsedOutlineIds((current) => ({
-      ...current,
-      [outlineId]: !current[outlineId],
-    }));
-  }, []);
+  const handleToggleWorkbenchCollapsed = useCallback(() => {
+    if (isWorkbenchCollapsed) {
+      workbenchPanelRef.current?.resize(WORKBENCH_EXPANDED_SIZE);
+      setIsWorkbenchCollapsed(false);
+      return;
+    }
+
+    workbenchPanelRef.current?.resize(WORKBENCH_COLLAPSED_SIZE);
+    setIsWorkbenchCollapsed(true);
+  }, [isWorkbenchCollapsed]);
 
   const handleSelectOutlineItem = useCallback((item) => {
     setActiveTab('deconstruct');
     if (Number.isFinite(item.pageIndex)) {
-      setTargetPageIndex(item.pageIndex);
-      setTargetPageJumpToken((token) => token + 1);
+      jumpToPage(item.pageIndex);
     }
-  }, []);
+  }, [jumpToPage]);
 
   const handleDeletePaper = useCallback(async (targetPdfId) => {
     if (!window.confirm('确定移除这篇论文及其所有关联聊天、笔记和引导学习记录吗？')) return;
@@ -956,16 +878,8 @@ export default function App() {
     try {
       const db = await initDB();
       await Promise.all([
-        db.delete('pdfStore', targetPdfId),
-        db.delete('historyStore', targetPdfId),
-        db.delete('analysisStore', targetPdfId),
-        db.delete('notesStore', targetPdfId),
-        db.delete('deconstructStore', targetPdfId),
+        deletePaperScopedRecords(db, targetPdfId),
         db.delete('libraryStore', targetPdfId),
-        db.delete('highlightStore', targetPdfId),
-        db.delete('sessionStore', targetPdfId),
-        db.delete('translationStore', targetPdfId),
-        db.delete('backgroundKnowledgeStore', targetPdfId),
       ]);
 
       setPapersList((prev) => prev.filter((paper) => paper.id !== targetPdfId));
@@ -983,25 +897,23 @@ export default function App() {
         setPdfFile(null);
         setPdfFileName(null);
         setMessages([WELCOME_MESSAGE]);
-        setNotes([]);
+        resetArtifacts();
         setDeconstructData(null);
         setAnalysisData(null);
         setBackgroundKnowledgeData(null);
         setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
-        setPdfHighlights([]);
         setSocraticSession(createEmptySocraticSession());
         commitTranslationState(createEmptyTranslationState());
         setIsTranslated(false);
         currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
-        setPdfPageState({ pageIndex: 0, totalPages: 0 });
-        setTargetPageIndex(null);
+        resetPageNavigation();
         setActiveTab(DEFAULT_ACTIVE_TAB);
-        localStorage.removeItem('lastPdfId');
+        clearStoredLastPdfId();
       }
     } catch (error) {
       console.error('Failed to delete paper.', error);
     }
-  }, [commitTranslationState, pdfId]);
+  }, [commitTranslationState, pdfId, resetArtifacts, resetPageNavigation]);
 
   useEffect(() => {
     if (!isRestored || !pdfId) return;
@@ -1009,13 +921,10 @@ export default function App() {
     const saveMessages = async () => {
       try {
         const db = await initDB();
-        if (messages && messages.length > 0) {
-          await db.put('historyStore', messages, pdfId);
-          localStorage.setItem(
-            'activeTab',
-            activeTab === 'translation' ? lastNonTranslationTabRef.current || DEFAULT_ACTIVE_TAB : activeTab,
-          );
-        }
+        await persistMessages(db, pdfId, messages);
+        persistStoredActiveTab(
+          activeTab === 'translation' ? lastNonTranslationTabRef.current || DEFAULT_ACTIVE_TAB : activeTab,
+        );
       } catch (error) {
         console.error('Failed to persist messages.', error);
       }
@@ -1030,7 +939,7 @@ export default function App() {
     const saveNotes = async () => {
       try {
         const db = await initDB();
-        await db.put('notesStore', notes, pdfId);
+        await persistNotes(db, pdfId, notes);
       } catch (error) {
         console.error('Failed to persist notes.', error);
       }
@@ -1040,29 +949,27 @@ export default function App() {
   }, [isRestored, notes, pdfId]);
 
   useEffect(() => {
+    if (!isRestored || !pdfId) return;
+
+    const saveWorkbenchCards = async () => {
+      try {
+        const db = await initDB();
+        await persistWorkbenchCards(db, pdfId, workbenchCards);
+      } catch (error) {
+        console.error('Failed to persist workbench cards.', error);
+      }
+    };
+
+    saveWorkbenchCards();
+  }, [isRestored, pdfId, workbenchCards]);
+
+  useEffect(() => {
     if (!isRestored || !pdfId || socraticSession?.pdfId !== pdfId) return;
 
     const saveSocraticSession = async () => {
       try {
         const db = await initDB();
-        const shouldPersist =
-          socraticSession.started ||
-          socraticSession.isComplete ||
-          Boolean((socraticSession.readingProgress || '').trim());
-
-        if (!shouldPersist) {
-          await db.delete('sessionStore', pdfId);
-          return;
-        }
-
-        await db.put(
-          'sessionStore',
-          {
-            ...socraticSession,
-            updatedAt: Date.now(),
-          },
-          pdfId,
-        );
+        await persistSocraticSession(db, pdfId, socraticSession);
       } catch (error) {
         console.error('Failed to persist Socratic session.', error);
       }
@@ -1077,14 +984,7 @@ export default function App() {
     const saveTranslationState = async () => {
       try {
         const db = await initDB();
-        await db.put(
-          'translationStore',
-          {
-            ...translationState,
-            updatedAt: Date.now(),
-          },
-          pdfId,
-        );
+        await persistTranslationState(db, pdfId, translationState);
       } catch (error) {
         console.error('Failed to persist translation state.', error);
       }
@@ -1130,11 +1030,7 @@ export default function App() {
     const saveLibraryProgress = async () => {
       try {
         const db = await initDB();
-        const paper = await db.get('libraryStore', pdfId);
-        if (!paper) return;
-
-        await db.put('libraryStore', {
-          ...paper,
+        await persistLibraryReadingProgress(db, pdfId, {
           readingProgress: nextProgress,
           currentPage: nextCurrentPage,
           totalPages: nextTotalPages,
@@ -1155,7 +1051,7 @@ export default function App() {
     }
 
     setActiveTab('analysis');
-    setIsAnalyzing(true);
+    setTaskActive('analyzing', true);
 
     try {
       const response = await apiService.criticalReading(pdfId);
@@ -1197,9 +1093,9 @@ export default function App() {
       }
       window.alert(errorMessage);
     } finally {
-      setIsAnalyzing(false);
+      setTaskActive('analyzing', false);
     }
-  }, [pdfId]);
+  }, [pdfId, setTaskActive]);
 
   const handleGenerateBackgroundKnowledge = useCallback(async (selectedLevel = backgroundKnowledgeLevel) => {
     if (!pdfId) {
@@ -1208,7 +1104,7 @@ export default function App() {
     }
 
     setActiveTab('background');
-    setIsBackgroundKnowledgeLoading(true);
+    setTaskActive('backgroundKnowledgeLoading', true);
 
     try {
       const requestedKnowledgeLevel = normalizeBackgroundKnowledgeLevel(selectedLevel);
@@ -1230,7 +1126,7 @@ export default function App() {
       });
 
       if (!response || response.status !== 'success') {
-        throw new Error(response?.message || '背景补课图谱生成失败');
+        throw new Error(response?.message || '背景知识图谱生成失败');
       }
 
       setBackgroundKnowledgeData(response);
@@ -1239,11 +1135,11 @@ export default function App() {
       await db.put('backgroundKnowledgeStore', response, pdfId);
     } catch (error) {
       console.error('Failed to generate background knowledge graph.', error);
-      window.alert(error?.response?.data?.message || error?.message || '背景补课图谱生成失败，请稍后重试。');
+      window.alert(error?.response?.data?.message || error?.message || '背景知识图谱生成失败，请稍后重试。');
     } finally {
-      setIsBackgroundKnowledgeLoading(false);
+      setTaskActive('backgroundKnowledgeLoading', false);
     }
-  }, [backgroundKnowledgeLevel, deconstructData, pdfId]);
+  }, [backgroundKnowledgeLevel, deconstructData, pdfId, setTaskActive]);
 
   const handleDeepResearchQuestionChange = useCallback((nextQuestionDraft) => {
     if (!pdfId) {
@@ -1496,14 +1392,13 @@ export default function App() {
   ]);
 
   const handleSendMessage = useCallback((message) => {
-    if (!pdfId || loadingPapers[pdfId]) return;
+    if (!pdfId || isChatLoading(pdfId)) return;
 
     setActiveTab('chat');
     setMessages((prev) => [...prev, { role: 'user', content: message }]);
 
-    const controller = new AbortController();
-    abortControllers.current[pdfId] = controller;
-    setLoadingPapers((prev) => ({ ...prev, [pdfId]: true }));
+    const controller = startChatRequest(pdfId);
+    if (!controller) return;
 
     const history = messages.slice(-6).map((item) => ({
       role: item.role === 'ai' ? 'assistant' : item.role,
@@ -1528,20 +1423,15 @@ export default function App() {
         ]);
       })
       .finally(() => {
-        setLoadingPapers((prev) => ({ ...prev, [pdfId]: false }));
-        delete abortControllers.current[pdfId];
+        finishChatRequest(pdfId);
       });
-  }, [deconstructData, loadingPapers, messages, pdfId]);
+  }, [deconstructData, finishChatRequest, isChatLoading, messages, pdfId, startChatRequest]);
 
   const handleAbortChat = useCallback((targetPdfId) => {
-    const controller = abortControllers.current[targetPdfId];
-    if (!controller) return;
-
-    controller.abort();
-    setLoadingPapers((prev) => ({ ...prev, [targetPdfId]: false }));
+    const wasAborted = abortChatRequest(targetPdfId);
+    if (!wasAborted) return;
     setMessages((prev) => [...prev, { role: 'ai', isSystem: true, content: '本次回答已由用户取消。' }]);
-    delete abortControllers.current[targetPdfId];
-  }, []);
+  }, [abortChatRequest]);
 
   const handleDeleteChatMessage = useCallback((index) => {
     setMessages((prev) => {
@@ -1560,26 +1450,41 @@ export default function App() {
     });
   }, []);
 
-  const handleExplain = useCallback((content, role = 'user', isSyncOnly = false) => {
-    setActiveTab('chat');
+  const handleExplain = useCallback((content, role = 'user', isSyncOnly = false, sourceMeta = null) => {
     if (role === 'user' && !isSyncOnly) {
       handleSendMessage(`请解释以下内容：${content}`);
       return;
     }
 
-    setMessages((prev) => [...prev, { role, content, id: Date.now() }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role,
+        content,
+        id: Date.now(),
+        sourceAnchorId: sourceMeta?.sourceAnchorId || null,
+        sourcePageIndex: sourceMeta?.sourcePageIndex ?? null,
+        sourceText: sourceMeta?.sourceText || '',
+        sourceActionId: sourceMeta?.sourceActionId || null,
+        sourceActionLabel: sourceMeta?.sourceActionLabel || '',
+      },
+    ]);
   }, [handleSendMessage]);
 
-  const handleAddNote = useCallback((noteData) => {
-    setNotes((prev) => [
-      {
-        id: Date.now(),
-        ...noteData,
-        time: new Date().toLocaleTimeString(),
-      },
-      ...prev,
-    ]);
-  }, []);
+  const handleJumpToSource = useCallback((message) => {
+    if (!message?.sourceAnchorId) {
+      return;
+    }
+
+    if (Number.isFinite(message.sourcePageIndex)) {
+      jumpToPage(message.sourcePageIndex);
+    }
+
+    setFocusedSourceRequest({
+      anchorId: message.sourceAnchorId,
+      token: Date.now(),
+    });
+  }, [jumpToPage]);
 
   const handleSaveChatToNote = useCallback((index) => {
     const message = messages[index];
@@ -1598,14 +1503,107 @@ export default function App() {
       question = previousMessage?.role === 'user' ? previousMessage.content : '提问内容定位失败';
     }
 
-    handleAddNote({
+    const sourceMessage =
+      message.sourceAnchorId
+        ? message
+        : message.role === 'user'
+          ? messages[index + 1]
+          : messages[index - 1];
+
+    addNote({
       text: question,
       aiInterpretation: answer,
       pageNumber: -1,
+      sourceAnchorId: sourceMessage?.sourceAnchorId || null,
+      sourcePageIndex: sourceMessage?.sourcePageIndex ?? null,
+      sourceActionId: sourceMessage?.sourceActionId || null,
+      sourceActionLabel: sourceMessage?.sourceActionLabel || '',
     });
 
-    window.alert('已将该对话内容收藏至“学术笔记”！');
-  }, [handleAddNote, messages]);
+    window.alert('已将该对话内容收藏至“学术笔记”中。');
+  }, [addNote, messages]);
+
+  const handleCaptureChatArtifact = useCallback((index) => {
+    const message = messages[index];
+    if (!message) {
+      return;
+    }
+
+    let question = '';
+    let answer = '';
+
+    if (message.role === 'user') {
+      question = message.content;
+      const nextMessage = messages[index + 1];
+      answer = nextMessage?.role === 'ai' ? nextMessage.content : message.content;
+    } else {
+      answer = message.content;
+      const previousMessage = messages[index - 1];
+      question = previousMessage?.role === 'user' ? previousMessage.content : '未关联到上一条提问';
+    }
+
+    const sourceMessage =
+      message.sourceAnchorId
+        ? message
+        : message.role === 'user'
+          ? messages[index + 1]
+          : messages[index - 1];
+
+    captureArtifact({
+      kind: 'chat-answer',
+      title: question.length > 36 ? `${question.slice(0, 36)}...` : question,
+      summary: answer,
+      content: `### 提问\n${question}\n\n### 回答\n${answer}`,
+      sourceMessageId: `${message.id ?? index}`,
+      pageIndex: sourceMessage?.sourcePageIndex ?? null,
+      sourceAnchorId: sourceMessage?.sourceAnchorId || null,
+      sourceActionId: sourceMessage?.sourceActionId || null,
+      sourceActionLabel: sourceMessage?.sourceActionLabel || '',
+      tags: ['chat', 'qa'],
+    });
+  }, [captureArtifact, messages]);
+
+  const handleCaptureWorkbenchArtifact = useCallback((artifactInput) => {
+    captureArtifact(artifactInput);
+  }, [captureArtifact]);
+
+  const handleDeleteNote = useCallback((noteId) => {
+    setNotes((prev) => prev.filter((item) => item.id !== noteId));
+  }, [setNotes]);
+
+  const handleCaptureNoteToWorkbench = useCallback((note) => {
+    if (!note) {
+      return;
+    }
+
+    captureArtifact({
+      kind: 'margin-note',
+      title: (note.text || '边注卡片').slice(0, 36),
+      summary: note.aiInterpretation || note.text || '暂无摘要',
+      content: `### 原文片段\n${note.text || '暂无原文'}\n\n### 边注解释\n${note.aiInterpretation || '暂无解释'}`,
+      pageIndex: note.sourcePageIndex ?? note.pageNumber ?? null,
+      sourceAnchorId: note.sourceAnchorId || null,
+      sourceActionId: note.sourceActionId || null,
+      sourceActionLabel: note.sourceActionLabel || '',
+      tags: ['note', 'margin'],
+    });
+  }, [captureArtifact]);
+
+  const handleSaveArtifactAsNote = useCallback((artifact) => {
+    if (!artifact) {
+      return;
+    }
+
+    addNote({
+      text: artifact.title || artifact.summary || '工作台卡片',
+      aiInterpretation: artifact.userNote || artifact.summary || artifact.content || '暂无解释',
+      pageNumber: Number.isFinite(artifact.pageIndex) ? artifact.pageIndex : -1,
+      sourceAnchorId: artifact.sourceAnchorId || null,
+      sourcePageIndex: artifact.pageIndex ?? null,
+      sourceActionId: artifact.sourceActionId || null,
+      sourceActionLabel: artifact.sourceActionLabel || '',
+    });
+  }, [addNote]);
 
   const handleReadingProgressChange = useCallback((readingProgress) => {
     setSocraticSession((prev) =>
@@ -1628,7 +1626,7 @@ export default function App() {
       throw new Error('请先上传并选择一篇论文。');
     }
 
-    setIsSocraticLoading(true);
+    setTaskActive('socraticLoading', true);
     try {
       const normalizedProgress =
         readingProgress?.trim() || '已阅读摘要与引言，正在继续梳理论文的方法设计、实验结果与关键结论。';
@@ -1661,9 +1659,9 @@ export default function App() {
         ),
       );
     } finally {
-      setIsSocraticLoading(false);
+      setTaskActive('socraticLoading', false);
     }
-  }, [deconstructData, pdfId]);
+  }, [deconstructData, pdfId, setTaskActive]);
 
   const handleSubmitSocraticAnswer = useCallback(async (userAnswer) => {
     if (!deconstructData?.paper_skeleton) {
@@ -1678,7 +1676,7 @@ export default function App() {
       throw new Error('请先开始引导学习。');
     }
 
-    setIsSocraticLoading(true);
+    setTaskActive('socraticLoading', true);
     try {
       const response = await apiService.answerSocraticSession(
         pdfId,
@@ -1724,9 +1722,9 @@ export default function App() {
         ),
       );
     } finally {
-      setIsSocraticLoading(false);
+      setTaskActive('socraticLoading', false);
     }
-  }, [deconstructData, pdfId, socraticSession]);
+  }, [deconstructData, pdfId, setTaskActive, socraticSession]);
 
   const handleRestartSocratic = useCallback(async () => {
     if (!pdfId) return;
@@ -1743,12 +1741,11 @@ export default function App() {
   }, [pdfId]);
 
   const handleDynamicExplain = useCallback(() => {
-    setActiveTab('chat');
     setMessages((prev) => [
       ...prev,
       {
         role: 'ai',
-        content: '功能提示：在左侧 PDF 视窗中直接划选任何不理解的句子或段落，点击弹出的“AI 解释”按钮，我将结合整篇论文上下文为您深入解析。',
+        content: '功能提示：在左侧 PDF 视窗中直接划选任何不理解的句子或段落，使用就地上下文菜单发起解释、翻译、拆解或批判阅读。',
       },
     ]);
   }, []);
@@ -1940,7 +1937,7 @@ export default function App() {
       const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
       return baseState.currentPage === pageIndex ? baseState : { ...baseState, currentPage: pageIndex };
     });
-  }, [commitTranslationState, pdfId, pdfPageState.totalPages]);
+  }, [commitTranslationState, pdfId, pdfPageState.totalPages, setPdfPageState]);
 
   const handlePageTextExtracted = useCallback(({
     pageIndex,
@@ -2019,20 +2016,14 @@ export default function App() {
         db.put('highlightStore', nextHighlights, pdfId);
       }
     });
-  }, [pdfId]);
-
-  const handleCriticalReading = useCallback(() => {
-    if (!pdfId) {
-      window.alert('请先上传 PDF 文件。');
-      return;
-    }
-
-    handleStartAnalysis();
-  }, [handleStartAnalysis, pdfId]);
+  }, [pdfId, setPdfHighlights]);
 
   const currentTranslationPage = translationState.pages?.[translationState.currentPage] || null;
   const activeTabMeta = workspaceTabs.find((tab) => tab.id === activeTab) || workspaceTabs[0];
   const ActiveTabIcon = activeTabMeta.icon;
+  const activeWorkspaceSection =
+    workspaceTabSections.find((section) => section.id === activeWorkspaceSectionId) || workspaceTabSections[0];
+  const visibleWorkspaceTabs = workspaceTabs.filter((tab) => activeWorkspaceSection.tabIds.includes(tab.id));
   const currentPaperStatus = pdfFile ? (isDeconstructing ? '解析中' : '已载入') : '待上传';
   const currentResearchProgress = Math.round((currentDeepResearchState.task?.progress || 0) * 100);
   const paperOutlineModel = buildPaperOutlineModel(deconstructData);
@@ -2244,7 +2235,7 @@ export default function App() {
                           <button
                             type="button"
                             className="outline-collapse-toggle"
-                            onClick={() => handleToggleOutlineCollapse(item.id)}
+                            onClick={() => toggleOutlineCollapse(item.id)}
                             aria-label={isCollapsed ? '展开子章节' : '收起子章节'}
                             aria-expanded={!isCollapsed || Boolean(outlineQuery)}
                           >
@@ -2342,9 +2333,14 @@ export default function App() {
           </aside>
 
           <section className="min-w-0 flex-1 overflow-hidden">
-            <Group orientation="horizontal">
-              <Panel defaultSize={62} minSize={36}>
-                <div className="pdf-stage relative flex h-full flex-col p-3">
+            <Group orientation="vertical">
+              <Panel
+                defaultSize={76}
+                minSize={42}
+              >
+                <Group orientation="horizontal">
+                  <Panel defaultSize={62} minSize={36}>
+                    <div className="pdf-stage relative flex h-full flex-col p-3">
                   <div className="workspace-pdf-header theme-panel theme-border mb-2 flex h-10 shrink-0 items-center justify-between rounded-md border px-3 text-sm">
                     <div className="flex min-w-0 items-center gap-2">
                       <FileText size={16} className="text-pixiu" />
@@ -2366,196 +2362,248 @@ export default function App() {
                     <PdfViewer
                       fileUrl={pdfFile}
                       pdfId={pdfId}
+                      paperSkeleton={deconstructData?.paper_skeleton || null}
                       theme={theme}
                       translationLayoutIndex={deconstructData?.translationLayoutIndex || {}}
                       onSelection={handleExplain}
-                      onSaveNote={handleAddNote}
+                      onSaveNote={addNote}
                       initialHighlights={pdfHighlights}
                       onHighlightsChange={handleHighlightsChange}
                       onPageChange={handlePdfPageChange}
                       onPageTextExtracted={handlePageTextExtracted}
                       targetPageIndex={targetPageIndex}
                       targetPageJumpToken={targetPageJumpToken}
+                      focusedSourceAnchorId={focusedSourceRequest.anchorId}
+                      focusedSourceAnchorToken={focusedSourceRequest.token}
                     />
                   </div>
 
                   {pdfFile && (
                     <PdfToolbar
                       onDynamicExplain={handleDynamicExplain}
-                      onCriticalReading={handleCriticalReading}
-                      onSocraticLearning={() => {
-                        setActiveTab('socratic');
-                      }}
                       isTranslated={isTranslated}
                       onToggleTranslation={handleToggleTranslation}
                     />
                   )}
-                </div>
-              </Panel>
+                    </div>
+                  </Panel>
 
-              <Separator className="group relative w-1.5 transition-all hover:bg-pixiu/10">
-                <div className="app-separator-line absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 transition-colors group-hover:bg-pixiu/40" />
-              </Separator>
+                  <Separator className="group relative w-1.5 transition-all hover:bg-pixiu/10">
+                    <div className="app-separator-line absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 transition-colors group-hover:bg-pixiu/40" />
+                  </Separator>
 
-              <Panel defaultSize={38} minSize={28}>
-                <div className="panel-shell flex h-full flex-col">
-                  <div className="theme-panel theme-border flex shrink-0 flex-col border-b">
-                    <div className="flex items-center justify-between gap-3 px-4 py-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <ActiveTabIcon size={16} className="text-pixiu" />
-                        <div className="min-w-0">
-                          <h2 className="theme-text-primary text-sm font-bold">{activeTabMeta.label}</h2>
+                  <Panel defaultSize={38} minSize={28}>
+                    <div className="panel-shell flex h-full flex-col">
+                      <div className="theme-panel theme-border flex shrink-0 flex-col border-b">
+                        <div className="flex items-center justify-between gap-3 px-4 py-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <ActiveTabIcon size={16} className="text-pixiu" />
+                            <div className="min-w-0">
+                              <h2 className="theme-text-primary text-sm font-bold">{activeTabMeta.label}</h2>
+                              <div className="theme-text-muted text-[11px]">{activeWorkspaceSection.label}</div>
+                            </div>
+                          </div>
+                          {currentDeepResearchState.task && (
+                            <span className="rounded-full bg-pixiu/10 px-2 py-0.5 text-[10px] font-bold text-pixiu">
+                              研究 {currentResearchProgress}%
+                            </span>
+                          )}
+                        </div>
+                        <div className="workspace-section-tabs flex flex-wrap gap-2 px-3 pb-2">
+                          {workspaceTabSections.map((section) => {
+                            const isActiveSection = section.id === activeWorkspaceSection.id;
+                            return (
+                              <button
+                                key={section.id}
+                                type="button"
+                                onClick={() => {
+                                  setActiveWorkspaceSectionId(section.id);
+                                  if (!section.tabIds.includes(activeTab)) {
+                                    setActiveTab(section.tabIds[0]);
+                                  }
+                                }}
+                                className={`workspace-section-tab ${
+                                  isActiveSection ? 'workspace-section-tab-active' : ''
+                                }`}
+                                title={section.description}
+                              >
+                                {section.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div
+                          ref={workspaceTabsRef}
+                          className="workspace-tabs flex gap-1 overflow-x-auto px-2 pb-2"
+                          onWheel={handleWorkspaceTabsWheel}
+                          title="鼠标悬停后滚轮可横向切换功能标签"
+                        >
+                          {visibleWorkspaceTabs.map((item) => {
+                            const Icon = item.icon;
+                            const isActive = activeTab === item.id;
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                data-active-tab={isActive ? 'true' : undefined}
+                                onClick={() => setActiveTab(item.id)}
+                                className={`workspace-tab-button flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+                                  isActive ? 'workspace-tab-button-active' : ''
+                                }`}
+                              >
+                                <Icon size={14} />
+                                {item.label}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
-                      {currentDeepResearchState.task && (
-                        <span className="rounded-full bg-pixiu/10 px-2 py-0.5 text-[10px] font-bold text-pixiu">
-                          研究 {currentResearchProgress}%
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      ref={workspaceTabsRef}
-                      className="workspace-tabs flex gap-1 overflow-x-auto px-2 pb-2"
-                      onWheel={handleWorkspaceTabsWheel}
-                      title="鼠标悬停后滚轮可横向切换功能标签"
-                    >
-                      {workspaceTabs.map((item) => {
-                        const Icon = item.icon;
-                        const isActive = activeTab === item.id;
-                        return (
+
+                      <div className="min-h-0 flex-1 overflow-hidden">
+                    {activeTab === 'chat' && (
+                      <ChatPanel
+                        messages={messages}
+                        onSendMessage={handleSendMessage}
+                        onDeleteMessage={handleDeleteChatMessage}
+                        onSaveToNote={handleSaveChatToNote}
+                        onCaptureArtifact={handleCaptureChatArtifact}
+                        onJumpToSource={handleJumpToSource}
+                        onAbortChat={() => handleAbortChat(pdfId)}
+                        isLoading={isChatLoading(pdfId)}
+                      />
+                    )}
+
+                    {activeTab === 'socratic' && (
+                      <SocraticQuestionsPanel
+                        hasPaperContext={!!deconstructData?.paper_skeleton}
+                        isLoading={isSocraticLoading}
+                        session={socraticSession}
+                        onReadingProgressChange={handleReadingProgressChange}
+                        onStart={handleStartSocratic}
+                        onSubmitAnswer={handleSubmitSocraticAnswer}
+                        onRestart={handleRestartSocratic}
+                      />
+                    )}
+
+                    {activeTab === 'background' && (
+                      <BackgroundKnowledgePanel
+                        data={backgroundKnowledgeData}
+                        isLoading={isBackgroundKnowledgeLoading}
+                        hasPaperContext={!!deconstructData?.paper_skeleton}
+                        onGenerate={handleGenerateBackgroundKnowledge}
+                        knowledgeLevel={backgroundKnowledgeLevel}
+                        onKnowledgeLevelChange={setBackgroundKnowledgeLevel}
+                        onCaptureArtifact={handleCaptureWorkbenchArtifact}
+                      />
+                    )}
+
+                    {activeTab === 'deep-research' && (
+                      <DeepResearchPanel
+                        pdfFileName={pdfFileName}
+                        paperStructure={deconstructData?.paper_structure || null}
+                        questionDraft={currentDeepResearchState.questionDraft}
+                        task={currentDeepResearchState.task}
+                        errorMessage={currentDeepResearchState.errorMessage}
+                        pollError={currentDeepResearchState.pollError}
+                        isCreating={currentDeepResearchState.isCreating}
+                        isCancelling={currentDeepResearchState.isCancelling}
+                        onQuestionChange={handleDeepResearchQuestionChange}
+                        onStart={handleStartResearchTask}
+                        onRefresh={handleRefreshResearchTask}
+                        onCancel={handleCancelResearchTask}
+                        onCaptureArtifact={handleCaptureWorkbenchArtifact}
+                      />
+                    )}
+
+                    {activeTab === 'deconstruct' && (
+                      <PaperAnalysis
+                        data={deconstructData}
+                        isLoading={isDeconstructing}
+                        outlineItems={paperOutlineItems}
+                        onSelectOutlineItem={handleSelectOutlineItem}
+                      />
+                    )}
+
+                    {activeTab === 'analysis' && (
+                      <CriticalAnalysisPanel
+                        data={analysisData}
+                        onAnalyze={handleStartAnalysis}
+                        isLoading={isAnalyzing}
+                        onCaptureArtifact={handleCaptureWorkbenchArtifact}
+                      />
+                    )}
+
+                    {activeTab === 'translation' && (
+                      <TranslationPanel
+                        pdfFileName={pdfFileName}
+                        currentPage={translationState.currentPage}
+                        pageData={currentTranslationPage}
+                        onRetry={handleRetryTranslation}
+                      />
+                    )}
+
+                    {activeTab === 'notes' && (
+                      <div className="theme-panel-muted flex h-full flex-col items-center justify-center p-8 text-center">
+                        <div className="theme-panel theme-border w-full max-w-2xl rounded-3xl border p-8 shadow-sm">
+                          <div className="theme-text-primary text-lg font-bold">资产总览入口</div>
+                          <div className="theme-text-secondary mt-3 text-sm leading-7">
+                            P3 已经把长期资产主阵地移动到底部工作台。
+                            这里保留为概览入口，方便你查看当前论文已经沉淀的卡片与边注规模。
+                          </div>
+                          <div className="mt-6 grid gap-3 text-left md:grid-cols-2">
+                            <div className="theme-card-soft rounded-2xl p-4">
+                              <div className="theme-text-primary text-sm font-semibold">Workbench Cards</div>
+                              <div className="theme-text-secondary mt-1 text-sm">{workbenchCards.length} 张</div>
+                            </div>
+                            <div className="theme-card-soft rounded-2xl p-4">
+                              <div className="theme-text-primary text-sm font-semibold">Margin Notes</div>
+                              <div className="theme-text-secondary mt-1 text-sm">{notes.length} 条</div>
+                            </div>
+                          </div>
                           <button
-                            key={item.id}
                             type="button"
-                            data-active-tab={isActive ? 'true' : undefined}
-                            onClick={() => setActiveTab(item.id)}
-                            className={`workspace-tab-button flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
-                              isActive ? 'workspace-tab-button-active' : ''
-                            }`}
+                            onClick={() => setIsWorkbenchCollapsed(false)}
+                            className="mt-6 rounded-full bg-pixiu px-4 py-2 text-sm font-semibold text-white"
                           >
-                            <Icon size={14} />
-                            {item.label}
+                            展开底部工作台
                           </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="min-h-0 flex-1 overflow-hidden">
-                {activeTab === 'chat' && (
-                  <ChatPanel
-                    messages={messages}
-                    onSendMessage={handleSendMessage}
-                    onDeleteMessage={handleDeleteChatMessage}
-                    onSaveToNote={handleSaveChatToNote}
-                    onAbortChat={() => handleAbortChat(pdfId)}
-                    isLoading={!!loadingPapers[pdfId]}
-                  />
-                )}
-
-                {activeTab === 'socratic' && (
-                  <SocraticQuestionsPanel
-                    hasPaperContext={!!deconstructData?.paper_skeleton}
-                    isLoading={isSocraticLoading}
-                    session={socraticSession}
-                    onReadingProgressChange={handleReadingProgressChange}
-                    onStart={handleStartSocratic}
-                    onSubmitAnswer={handleSubmitSocraticAnswer}
-                    onRestart={handleRestartSocratic}
-                  />
-                )}
-
-                {activeTab === 'background' && (
-                  <BackgroundKnowledgePanel
-                    data={backgroundKnowledgeData}
-                    isLoading={isBackgroundKnowledgeLoading}
-                    hasPaperContext={!!deconstructData?.paper_skeleton}
-                    onGenerate={handleGenerateBackgroundKnowledge}
-                    knowledgeLevel={backgroundKnowledgeLevel}
-                    onKnowledgeLevelChange={setBackgroundKnowledgeLevel}
-                  />
-                )}
-
-                {activeTab === 'deep-research' && (
-                  <DeepResearchPanel
-                    pdfFileName={pdfFileName}
-                    paperStructure={deconstructData?.paper_structure || null}
-                    questionDraft={currentDeepResearchState.questionDraft}
-                    task={currentDeepResearchState.task}
-                    errorMessage={currentDeepResearchState.errorMessage}
-                    pollError={currentDeepResearchState.pollError}
-                    isCreating={currentDeepResearchState.isCreating}
-                    isCancelling={currentDeepResearchState.isCancelling}
-                    onQuestionChange={handleDeepResearchQuestionChange}
-                    onStart={handleStartResearchTask}
-                    onRefresh={handleRefreshResearchTask}
-                    onCancel={handleCancelResearchTask}
-                  />
-                )}
-
-                {activeTab === 'deconstruct' && (
-                  <PaperAnalysis
-                    data={deconstructData}
-                    isLoading={isDeconstructing}
-                    outlineItems={paperOutlineItems}
-                    onSelectOutlineItem={handleSelectOutlineItem}
-                  />
-                )}
-
-                {activeTab === 'analysis' && (
-                  <CriticalAnalysisPanel
-                    data={analysisData}
-                    onAnalyze={handleStartAnalysis}
-                    isLoading={isAnalyzing}
-                  />
-                )}
-
-                {activeTab === 'translation' && (
-                  <TranslationPanel
-                    pdfFileName={pdfFileName}
-                    currentPage={translationState.currentPage}
-                    pageData={currentTranslationPage}
-                    onRetry={handleRetryTranslation}
-                  />
-                )}
-
-                {activeTab === 'notes' && (
-                  <div className="theme-panel-muted flex flex-1 flex-col overflow-hidden">
-                    <div className="theme-panel theme-border border-b p-4 font-bold text-pixiu">📝 学术笔记精华</div>
-                    <div className="flex-1 space-y-4 overflow-y-auto p-4">
-                      {notes.map((note) => (
-                        <div
-                          key={note.id}
-                          className="theme-card group relative rounded-xl p-4"
-                        >
-                          <button
-                            onClick={() => {
-                              if (window.confirm('确定删除这条学术笔记吗？')) {
-                                setNotes((prev) => prev.filter((item) => item.id !== note.id));
-                              }
-                            }}
-                            className="theme-danger-button absolute right-2 top-2 rounded-md p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
-                            title="删除此笔记"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-
-                          <div className="mb-2 flex justify-between text-[10px] font-bold text-pixiu">
-                            <span>PAGE {note.pageNumber + 1}</span>
-                            <span>{note.time}</span>
-                          </div>
-                          <p className="theme-note-quote mb-3 pl-3 text-sm italic">
-                            "{note.text}"
-                          </p>
-                          <div className="theme-markdown-panel rounded-lg p-3">
-                            <MarkdownContent>{note.aiInterpretation}</MarkdownContent>
-                          </div>
                         </div>
-                      ))}
+                      </div>
+                    )}
                     </div>
-                  </div>
-                )}
-                  </div>
-              </div>
+                    </div>
+                  </Panel>
+                </Group>
+              </Panel>
+
+              <Separator className="group relative h-2 transition-all hover:bg-pixiu/10">
+                <div className="app-separator-line absolute left-0 right-0 top-1/2 h-[2px] -translate-y-1/2 transition-colors group-hover:bg-pixiu/40" />
+              </Separator>
+
+              <Panel
+                panelRef={workbenchPanelRef}
+                defaultSize={WORKBENCH_EXPANDED_SIZE}
+                minSize={WORKBENCH_COLLAPSED_SIZE}
+                onResize={(size) => {
+                  const shouldCollapse = size <= WORKBENCH_COLLAPSE_THRESHOLD;
+                  setIsWorkbenchCollapsed((prev) => (prev === shouldCollapse ? prev : shouldCollapse));
+                }}
+              >
+                <BottomWorkbench
+                  pdfFileName={pdfFileName}
+                  cards={workbenchCards}
+                  notes={notes}
+                  isCollapsed={isWorkbenchCollapsed}
+                  onToggleCollapsed={handleToggleWorkbenchCollapsed}
+                  onJumpToArtifactSource={handleJumpToSource}
+                  onJumpToNoteSource={handleJumpToSource}
+                  onRemoveArtifact={removeArtifact}
+                  onToggleArtifactPinned={toggleArtifactPinned}
+                  onUpdateArtifact={updateArtifact}
+                  onCaptureNote={handleCaptureNoteToWorkbench}
+                  onSaveArtifactAsNote={handleSaveArtifactAsNote}
+                  onDeleteNote={handleDeleteNote}
+                />
               </Panel>
             </Group>
           </section>

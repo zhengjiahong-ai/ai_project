@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { CheckCircle2, FileText, LayoutDashboard, Loader2, MousePointer2 } from 'lucide-react';
-import MarkdownContent from './MarkdownContent';
+import InsightCard from './InsightCard.jsx';
 
 const outlineSourceLabels = {
   tei: 'PDF结构',
@@ -50,6 +50,28 @@ const PaperAnalysis = ({
   const layoutRecoveredCount = outlineItems.filter((item) => item.source === 'layout').length;
   const pdfLineRecoveredCount = outlineItems.filter((item) => item.source === 'pdf-layout').length;
   const mergedSourceCount = outlineItems.filter((item) => item.source === 'tei+layout').length;
+  const overviewSummary = useMemo(() => {
+    const availableSections = Object.entries(sectionLabels)
+      .map(([key, label]) => ({
+        key,
+        label,
+        content: data.paper_skeleton?.[key],
+      }))
+      .filter((section) => section.content && !section.content.includes('请提供具体内容'));
+
+    if (availableSections.length === 0) {
+      return null;
+    }
+
+    return {
+      summary: `${availableSections.length} 个核心章节已经完成结构化解构，可先浏览整体轮廓，再按章节展开细读。`,
+      keyPoints: [
+        outlineItems.length > 0 ? `已识别 ${outlineItems.length} 个可导航章节` : '尚未生成可导航目录',
+        outlineVersion ? `当前目录规则版本：${outlineVersion}` : '当前使用默认目录识别',
+        availableSections.slice(0, 3).map((section) => section.label).join('、'),
+      ],
+    };
+  }, [data.paper_skeleton, outlineItems.length, outlineVersion]);
 
   return (
     <div className="theme-panel-muted flex h-full flex-col overflow-hidden">
@@ -71,6 +93,15 @@ const PaperAnalysis = ({
       </div>
 
       <div className="flex-1 space-y-6 overflow-y-auto p-6">
+        {overviewSummary && (
+          <InsightCard
+            title="结构总览"
+            icon={<LayoutDashboard size={16} className="text-pixiu" />}
+            summary={overviewSummary.summary}
+            keyPoints={overviewSummary.keyPoints}
+          />
+        )}
+
         {outlineItems.length > 0 && (
           <section className="theme-card rounded-2xl p-5 transition hover:shadow-md">
             <div className="mb-4 flex items-start justify-between gap-4">
@@ -127,15 +158,14 @@ const PaperAnalysis = ({
           if (!content || content.includes('请提供具体内容')) return null;
 
           return (
-            <div key={key} className="theme-card rounded-2xl p-5 transition hover:shadow-md">
-              <h3 className="theme-text-muted mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
-                <CheckCircle2 size={14} className="text-pixiu" /> {label}
-              </h3>
-              <div className="theme-markdown-panel rounded-xl border-l-4 border-pixiu p-4 text-sm leading-relaxed">
-                <div className="mb-3 h-2 rounded-full bg-pixiu" />
-                <MarkdownContent>{content}</MarkdownContent>
-              </div>
-            </div>
+            <InsightCard
+              key={key}
+              title={label}
+              icon={<CheckCircle2 size={14} className="text-pixiu" />}
+              content={content}
+              detailsTitle="展开章节解构"
+              defaultExpanded={key === 'abstract'}
+            />
           );
         })}
 

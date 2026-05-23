@@ -2,6 +2,14 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-05-23 v0.1.6-refactor
+
+1. **完成前端分阶段重构收口**：继续将原先集中在 `App.jsx` 的主题偏好、阅读工作区、论文会话、工件数据、任务活动与可中断聊天状态下沉到 `hooks/` 与 `services/`，补齐 `localDb`、`workspaceSession` 等持久化与会话封装，并顺手清理历史 UTF-8 乱码文本，降低主组件耦合度并改善代码可维护性。
+2. **统一右侧结果卡片与阅读现场交互**：新增 `InsightCard` 与 `insightCardModel`，将 `ChatPanel`、`DeepResearchPanel`、`CriticalAnalysisPanel`、`BackgroundKnowledgePanel` 与 `PaperAnalysis` 的结果展示收束为“摘要 -> 要点 -> 详情”的分层卡片结构；同时把 PDF 划词后的单一“AI 解释”入口升级为支持 `解释`、`翻译`、`拆解`、`批判`、`记边注` 的行内上下文工具条，并补齐来源锚点与回答回跳基础，让用户尽量在阅读现场完成轻交互。
+3. **完成底部工作台体系与本地资产链路**：新增全局底部 `BottomWorkbench`，将长期沉淀内容从原 `notes` 视图迁移到底部工作台；建立 `artifactModel`，扩展 `usePaperArtifacts`、`usePaperSession`、`workspaceSession` 与 `localDb`，为 `workbenchCards` 提供 IndexedDB 的创建、恢复、更新、置顶、删除和会话同步能力，并打通 AI 结果卡片与边注之间的双向流转。
+4. **完善工作台整理与整体信息层级**：支持工作台卡片按泳道分组（如待整理、证据池、论点区、写作草稿），允许原位编辑标题、摘要、标签和本地批注，保留来源锚点与页码等回跳信息；同时将右侧功能区重构为“阅读助手 / 分析研究 / 资产沉淀”两级导航，移除 PDF 中央悬浮工具栏中的“批判阅读”和“引导式学习”按钮，让主舞台更聚焦。
+5. **收口底部工作台抽屉交互与验证说明**：将底部工作台的收起/展开调整为更稳定的头部抽屉式交互，收起时保留完整标题区与按钮、展开时默认占据约三分之一高度，解决抖动、回弹、反向放大和入口难找的问题；新增 `insightCardModel.test.js` 与 `artifactModel.test.js`，相关 smoke test 已通过，但完整 `npm.cmd run build` 仍受仓库现有 `rehype-katex` 依赖缺失问题阻塞，该问题并非本轮 refactor 引入。
+
 ### 2026-05-20 17:02 v0.1.6-demo.1
 
 1. **新增全链路演示检查清单**：新增 `docs/DEMO_CHECKLIST.md`，固定使用仓库内 `Active RIS-Assisted Integrated Sensing and Communication Systems Joint Receive-Transmit Beamforming and Reflection Design.pdf` 作为演示 PDF，覆盖上传解析、问答、划词解释、逐页翻译、批判阅读、背景补课、苏格拉底学习和深度研究的可复现步骤。

@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
   FileSearch,
   Loader2,
   RefreshCw,
@@ -8,6 +10,7 @@ import {
   Square,
 } from 'lucide-react';
 
+import InsightCard from './InsightCard.jsx';
 import MarkdownContent from './MarkdownContent';
 import {
   TERMINAL_RESEARCH_STATUSES,
@@ -51,8 +54,11 @@ const DeepResearchPanel = ({
   onStart,
   onRefresh,
   onCancel,
+  onCaptureArtifact,
 }) => {
   const normalizedTask = normalizeResearchTask(task);
+  const [isPlanExpanded, setIsPlanExpanded] = useState(false);
+  const [isReportExpanded, setIsReportExpanded] = useState(false);
   const statusMeta = getResearchStatusMeta(normalizedTask?.status);
   const stageMeta = getResearchStageMeta(normalizedTask?.stage);
   const paperHint = buildResearchContextHint(paperStructure);
@@ -64,6 +70,23 @@ const DeepResearchPanel = ({
   const canStart = hasPaper && !isCreating && !isCancelling && !isRunningTask && Boolean(questionDraft.trim());
   const canRefresh = hasActiveTask && !isCreating && !isCancelling;
   const canCancel = isRunningTask && !isCreating && !isCancelling;
+  const latestFinding = normalizedTask?.findings?.[normalizedTask.findings.length - 1] || null;
+  const taskSnapshot = useMemo(() => {
+    if (!hasActiveTask) {
+      return null;
+    }
+
+    const snapshotPoints = [
+      `当前阶段：${stageMeta.label}`,
+      `任务进度：${progressPercent}%`,
+      normalizedTask?.findings?.length ? `已产出 ${normalizedTask.findings.length} 条 findings` : '正在等待 findings 输出',
+    ];
+
+    return {
+      summary: latestFinding?.summary || `${normalizedTask.question || '当前研究问题'} 正在推进中。`,
+      keyPoints: snapshotPoints,
+    };
+  }, [hasActiveTask, latestFinding?.summary, normalizedTask?.findings?.length, normalizedTask?.question, progressPercent, stageMeta.label]);
 
   return (
     <div className="theme-panel-muted flex h-full flex-col overflow-hidden">
@@ -181,17 +204,68 @@ const DeepResearchPanel = ({
               </div>
             </div>
 
+            {taskSnapshot && (
+              <InsightCard
+                title="当前结论快照"
+                summary={taskSnapshot.summary}
+                keyPoints={taskSnapshot.keyPoints}
+                detailsTitle="展开任务详情"
+                content={[
+                  normalizedTask.question ? `### 研究问题\n${normalizedTask.question}` : '',
+                  latestFinding ? `### 最近一条 finding\n${latestFinding.summary}` : '',
+                ].filter(Boolean).join('\n\n')}
+                footer={onCaptureArtifact ? (
+                  <button
+                    type="button"
+                    onClick={() => onCaptureArtifact({
+                      kind: 'research-snapshot',
+                      title: '深度研究快照',
+                      summary: taskSnapshot.summary,
+                      content: [
+                        normalizedTask.question ? `### 研究问题\n${normalizedTask.question}` : '',
+                        latestFinding ? `### 最近一条 finding\n${latestFinding.summary}` : '',
+                      ].filter(Boolean).join('\n\n'),
+                      tags: ['research', 'snapshot'],
+                    })}
+                    className="source-link-chip"
+                  >
+                    加入工作台
+                  </button>
+                ) : null}
+              />
+            )}
+
             <div className="theme-card rounded-2xl p-5">
-              <div className="theme-text-primary mb-3 text-sm font-bold">研究计划</div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="theme-text-primary text-sm font-bold">研究计划</div>
+                <button
+                  type="button"
+                  onClick={() => setIsPlanExpanded((current) => !current)}
+                  className="theme-button-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
+                >
+                  {isPlanExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {isPlanExpanded ? '收起计划' : '展开计划'}
+                </button>
+              </div>
               {normalizedTask.plan.length > 0 ? (
-                <div className="space-y-3">
-                  {normalizedTask.plan.map((item, index) => (
-                    <div key={`${normalizedTask.taskId}-plan-${index}`} className="theme-card-soft rounded-xl px-4 py-3">
-                      <div className="theme-text-primary text-sm font-semibold">子问题 {index + 1}</div>
-                      <div className="theme-text-secondary mt-1 text-sm leading-7">{item}</div>
-                    </div>
-                  ))}
-                </div>
+                isPlanExpanded ? (
+                  <div className="space-y-3">
+                    {normalizedTask.plan.map((item, index) => (
+                      <div key={`${normalizedTask.taskId}-plan-${index}`} className="theme-card-soft rounded-xl px-4 py-3">
+                        <div className="theme-text-primary text-sm font-semibold">子问题 {index + 1}</div>
+                        <div className="theme-text-secondary mt-1 text-sm leading-7">{item}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {normalizedTask.plan.slice(0, 2).map((item, index) => (
+                      <div key={`${normalizedTask.taskId}-plan-preview-${index}`} className="theme-card-soft rounded-xl px-4 py-3 text-sm leading-7 theme-text-secondary">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="theme-text-secondary text-sm">任务正在规划研究路径，子问题生成后会显示在这里。</div>
               )}
@@ -204,35 +278,45 @@ const DeepResearchPanel = ({
                   {normalizedTask.findings.map((finding) => {
                     const verdictMeta = getResearchVerdictMeta(finding.verdict);
                     return (
-                      <div key={`${normalizedTask.taskId}-${finding.id}`} className="theme-card-soft rounded-xl px-4 py-4">
-                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                          <div className="theme-text-primary text-sm font-semibold">{finding.subQuestion}</div>
+                      <InsightCard
+                        key={`${normalizedTask.taskId}-${finding.id}`}
+                        title={finding.subQuestion}
+                        summary={finding.summary}
+                        keyPoints={[
+                          finding.sourceIds.length > 0 ? `证据来源：${finding.sourceIds.join('、')}` : '暂未绑定来源片段',
+                          finding.missingAspects.length > 0 ? `仍缺证据：${finding.missingAspects.join('、')}` : '当前没有额外缺口提示',
+                        ]}
+                        meta={(
                           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${verdictMeta.toneClass}`}>
                             {verdictMeta.label}
                           </span>
-                        </div>
-
-                        <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
-                          {finding.summary}
-                        </MarkdownContent>
-
-                        {finding.sourceIds.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {finding.sourceIds.map((sourceId) => (
-                              <span key={`${finding.id}-${sourceId}`} className="rounded-full bg-pixiu/10 px-3 py-1 text-[11px] font-semibold text-pixiu">
-                                {sourceId}
-                              </span>
-                            ))}
-                          </div>
                         )}
-
-                        {finding.missingAspects.length > 0 && (
-                          <div className="mt-3 text-sm">
-                            <div className="theme-text-secondary mb-1 text-xs font-semibold tracking-wide">仍缺少的证据点</div>
-                            <div className="theme-text-secondary leading-7">{finding.missingAspects.join('、')}</div>
-                          </div>
-                        )}
-                      </div>
+                        content={[
+                          `### 结论摘要\n${finding.summary}`,
+                          finding.sourceIds.length > 0 ? `### 证据来源\n- ${finding.sourceIds.join('\n- ')}` : '',
+                          finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
+                        ].filter(Boolean).join('\n\n')}
+                        detailsTitle="展开 finding 详情"
+                        footer={onCaptureArtifact ? (
+                          <button
+                            type="button"
+                            onClick={() => onCaptureArtifact({
+                              kind: 'research-finding',
+                              title: finding.subQuestion,
+                              summary: finding.summary,
+                              content: [
+                                `### 结论摘要\n${finding.summary}`,
+                                finding.sourceIds.length > 0 ? `### 证据来源\n- ${finding.sourceIds.join('\n- ')}` : '',
+                                finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
+                              ].filter(Boolean).join('\n\n'),
+                              tags: ['research', finding.verdict.toLowerCase()],
+                            })}
+                            className="source-link-chip"
+                          >
+                            加入工作台
+                          </button>
+                        ) : null}
+                      />
                     );
                   })}
                 </div>
@@ -244,13 +328,34 @@ const DeepResearchPanel = ({
             </div>
 
             <div className="theme-card rounded-2xl p-5">
-              <div className="theme-text-primary mb-3 text-sm font-bold">研究报告</div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="theme-text-primary text-sm font-bold">研究报告</div>
+                {normalizedTask.report && (
+                  <button
+                    type="button"
+                    onClick={() => setIsReportExpanded((current) => !current)}
+                    className="theme-button-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
+                  >
+                    {isReportExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {isReportExpanded ? '收起报告' : '展开报告'}
+                  </button>
+                )}
+              </div>
               {normalizedTask.report ? (
-                <div className="theme-markdown-panel rounded-xl p-4">
-                  <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
-                    {normalizedTask.report}
-                  </MarkdownContent>
-                </div>
+                isReportExpanded ? (
+                  <div className="theme-markdown-panel rounded-xl p-4">
+                    <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
+                      {normalizedTask.report}
+                    </MarkdownContent>
+                  </div>
+                ) : (
+                  <InsightCard
+                    summary={normalizedTask.report}
+                    content={normalizedTask.report}
+                    detailsTitle="展开完整报告"
+                    className="border-none p-0 shadow-none"
+                  />
+                )
               ) : (
                 <div className="theme-text-secondary text-sm">
                   {isRunningTask ? 'Markdown 报告将在综合阶段生成。' : '当前任务尚未生成最终报告。'}

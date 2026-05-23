@@ -11,7 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { AlertCircle, BarChart3, CheckCircle2, FileText, LayoutDashboard, Loader2 } from 'lucide-react';
-import MarkdownContent from './MarkdownContent';
+import InsightCard from './InsightCard.jsx';
 import {
   buildMetricCards,
   buildSummary,
@@ -36,7 +36,7 @@ const fallbackNetworkData = {
   ],
 };
 
-const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
+const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact }) => {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(320);
 
@@ -52,6 +52,14 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
   const detailSections = useMemo(() => getDetailSections(data), [data]);
   const structuredSections = useMemo(() => getStructuredSections(data), [data]);
   const evidencePreview = useMemo(() => getEvidencePreview(data), [data]);
+  const overviewPoints = useMemo(
+    () => [
+      metrics.length > 0 ? `已生成 ${metrics.length} 个批判维度评分` : '等待多维评分生成',
+      structuredSections.length > 0 ? `已识别 ${structuredSections.length} 类主要风险与证据缺口` : '暂未提取结构化风险点',
+      evidencePreview.length > 0 ? `当前展示 ${evidencePreview.length} 条证据片段` : '暂未提取证据片段',
+    ],
+    [evidencePreview.length, metrics.length, structuredSections.length],
+  );
 
   if (!data && !isLoading) {
     return (
@@ -105,6 +113,30 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
       </div>
 
       <div className="flex-1 space-y-6 overflow-y-auto p-6">
+        <InsightCard
+          title="批判阅读总览"
+          icon={<CheckCircle2 size={14} className="text-pixiu" />}
+          summary={summary}
+          keyPoints={overviewPoints}
+          detailsTitle="展开完整总览"
+          content={summary}
+          footer={onCaptureArtifact ? (
+            <button
+              type="button"
+              onClick={() => onCaptureArtifact({
+                kind: 'critical-summary',
+                title: '批判阅读总览',
+                summary,
+                content: summary,
+                tags: ['analysis', 'summary'],
+              })}
+              className="source-link-chip"
+            >
+              加入工作台
+            </button>
+          ) : null}
+        />
+
         <div ref={containerRef} className="theme-card overflow-hidden rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="theme-text-muted flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
@@ -140,23 +172,30 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
           </div>
         </div>
 
-        <div className="theme-card rounded-2xl p-5">
-          <h3 className="theme-text-muted mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
-            <CheckCircle2 size={14} className="text-emerald-400" />
-            核心结论总结
-          </h3>
-          <div className="theme-markdown-panel rounded-xl border-l-4 border-pixiu p-4 text-sm leading-relaxed">
-            <MarkdownContent className="prose prose-sm max-w-none">{summary}</MarkdownContent>
-          </div>
-        </div>
-
         {detailSections.length > 0 && (
           <div className="grid gap-4">
             {detailSections.map((section) => (
-              <div key={section.key} className="theme-card rounded-2xl p-5">
-                <h3 className="theme-text-primary mb-3 text-sm font-bold">{section.title}</h3>
-                <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none">{section.content}</MarkdownContent>
-              </div>
+              <InsightCard
+                key={section.key}
+                title={section.title}
+                content={section.content}
+                detailsTitle="展开详细分析"
+                footer={onCaptureArtifact ? (
+                  <button
+                    type="button"
+                    onClick={() => onCaptureArtifact({
+                      kind: `critical-${section.key}`,
+                      title: section.title,
+                      summary: section.content,
+                      content: section.content,
+                      tags: ['analysis', section.key],
+                    })}
+                    className="source-link-chip"
+                  >
+                    加入工作台
+                  </button>
+                ) : null}
+              />
             ))}
           </div>
         )}
@@ -186,16 +225,32 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading }) => {
             </h3>
             <div className="space-y-3">
               {evidencePreview.map((item) => (
-                <div key={item.id} className="theme-card-soft rounded-xl p-3">
-                  <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-                    <span className="rounded-full bg-pixiu/10 px-2 py-1 text-pixiu">{item.sourceLabel}</span>
-                    <span className="theme-text-muted">{item.sourceId}</span>
-                    {item.chunkIndex !== null && (
-                      <span className="theme-text-muted">chunk #{item.chunkIndex + 1}</span>
-                    )}
-                  </div>
-                  <p className="theme-text-secondary text-sm leading-relaxed">{item.text}</p>
-                </div>
+                <InsightCard
+                  key={item.id}
+                  title={item.sourceLabel}
+                  summary={item.text}
+                  keyPoints={[
+                    `来源 ID：${item.sourceId}`,
+                    item.chunkIndex !== null ? `片段序号：chunk #${item.chunkIndex + 1}` : '未标注 chunk 序号',
+                  ]}
+                  content={item.text}
+                  detailsTitle="展开证据片段"
+                  footer={onCaptureArtifact ? (
+                    <button
+                      type="button"
+                      onClick={() => onCaptureArtifact({
+                        kind: 'evidence',
+                        title: `${item.sourceLabel} 证据片段`,
+                        summary: item.text,
+                        content: item.text,
+                        tags: ['evidence', item.sourceType],
+                      })}
+                      className="source-link-chip"
+                    >
+                      加入工作台
+                    </button>
+                  ) : null}
+                />
               ))}
             </div>
           </div>

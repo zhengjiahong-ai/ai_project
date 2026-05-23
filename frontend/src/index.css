@@ -246,6 +246,56 @@ body {
   color: var(--accent-strong);
 }
 
+.inline-context-menu {
+  padding: 0.4rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--panel-overlay);
+  box-shadow: var(--shadow-elevated);
+  backdrop-filter: blur(12px);
+}
+
+.inline-context-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.inline-context-button:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  transform: translateY(-1px);
+}
+
+.source-link-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--panel-muted);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.source-link-chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
 .workspace-main {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 250, 252, 0.82)),
@@ -387,6 +437,28 @@ body {
   scrollbar-width: thin;
 }
 
+.workspace-section-tab {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--panel-muted);
+  color: var(--text-secondary);
+  padding: 0.35rem 0.8rem;
+  font-size: 11px;
+  font-weight: 700;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.workspace-section-tab:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.workspace-section-tab-active {
+  border-color: rgba(77, 0, 153, 0.22);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
 .workspace-tab-button {
   border: 1px solid transparent;
   color: var(--text-secondary);
@@ -404,6 +476,64 @@ body {
   color: var(--accent-strong);
 }
 
+.bottom-workbench {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 251, 0.98)),
+    var(--panel-bg);
+}
+
+.bottom-workbench-header {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.workbench-filter-chip,
+.workbench-kind-chip,
+.workbench-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.workbench-filter-chip {
+  background: var(--panel-bg);
+  color: var(--text-secondary);
+  padding: 0.5rem 0.8rem;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.workbench-filter-chip:hover,
+.workbench-filter-chip-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.workbench-kind-chip {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  padding: 0.3rem 0.55rem;
+}
+
+.workbench-tag-chip {
+  background: var(--panel-muted);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.5rem;
+}
+
+.workbench-card-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.workbench-artifact-card {
+  min-height: 220px;
+}
+
 .pdf-stage {
   background: #eef2f7;
 }
@@ -416,6 +546,12 @@ html[data-theme='dark'] .workspace-main {
 
 html[data-theme='dark'] .pdf-stage {
   background: #0f172a;
+}
+
+html[data-theme='dark'] .bottom-workbench {
+  background:
+    linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(24, 34, 51, 0.99)),
+    var(--panel-bg);
 }
 
 .pdf-file-chip {

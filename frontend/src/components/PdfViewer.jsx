@@ -2,7 +2,16 @@
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import { highlightPlugin } from '@react-pdf-viewer/highlight';
-import { Send, Sparkles, Trash2, X } from 'lucide-react';
+import {
+  Bookmark,
+  FileText,
+  Languages,
+  Send,
+  ShieldAlert,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
@@ -16,6 +25,13 @@ import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 
 const workerUrl = pdfWorkerUrl;
 const EXPLAIN_CONTEXT_MAX_CHARS = 4500;
+const INLINE_ACTIONS = [
+  { id: 'explain', label: '解释', icon: Sparkles },
+  { id: 'translate', label: '翻译', icon: Languages },
+  { id: 'deconstruct', label: '拆解', icon: FileText },
+  { id: 'critique', label: '批判', icon: ShieldAlert },
+  { id: 'note', label: '记边注', icon: Bookmark },
+];
 
 const trimExplainContext = (text = '') => {
   const trimmed = String(text || '').trim();
@@ -24,6 +40,102 @@ const trimExplainContext = (text = '') => {
   }
   return `${trimmed.slice(0, EXPLAIN_CONTEXT_MAX_CHARS).trimEnd()}\n\n[当前页上下文过长，已截断]`;
 };
+
+const createSourceMeta = (highlight) => ({
+  sourceAnchorId: highlight.sourceAnchorId,
+  sourcePageIndex: highlight.position.pageIndex,
+  sourceText: highlight.text,
+  sourceActionId: highlight.actionId,
+  sourceActionLabel: highlight.actionLabel,
+});
+
+const buildInlineActionPayload = (actionId, selectedText, context) => {
+  const explainPayload = buildExplainSelectionPayload(selectedText);
+  if (actionId === 'explain') {
+    return {
+      actionLabel: 'AI 解释',
+      displayMessage: explainPayload.displayMessage,
+      requestKind: 'explain',
+      requestText: explainPayload.explainText,
+    };
+  }
+
+  if (actionId === 'translate') {
+    return {
+      actionLabel: '片段翻译',
+      displayMessage: `请翻译以下论文片段：${selectedText}`,
+      requestKind: 'chat',
+      requestText: [
+        '请将以下论文片段翻译成中文，并保留公式、符号和术语的准确性。',
+        '',
+        '【论文片段】',
+        selectedText,
+        '',
+        '【当前页上下文】',
+        context || '无',
+      ].join('\n'),
+    };
+  }
+
+  if (actionId === 'deconstruct') {
+    return {
+      actionLabel: '片段拆解',
+      displayMessage: `请拆解以下论文片段：${selectedText}`,
+      requestKind: 'chat',
+      requestText: [
+        '请分层拆解以下论文片段，说明关键术语、论证结构、隐含假设，以及它在全文中的作用。',
+        '',
+        '【论文片段】',
+        selectedText,
+        '',
+        '【当前页上下文】',
+        context || '无',
+      ].join('\n'),
+    };
+  }
+
+  return {
+    actionLabel: actionId === 'note' ? '边注' : '批判阅读',
+    displayMessage: `请批判性分析以下论文片段：${selectedText}`,
+    requestKind: 'chat',
+    requestText: [
+      '请批判性审视以下论文片段，指出其核心假设、证据强弱、可能漏洞与替代解释。',
+      '',
+      '【论文片段】',
+      selectedText,
+      '',
+      '【当前页上下文】',
+      context || '无',
+    ].join('\n'),
+  };
+};
+
+const InlineContextMenu = ({ selectionRegion, onAction }) => (
+  <div
+    className="inline-context-menu absolute z-50 flex items-center gap-1.5"
+    style={{
+      top: `${selectionRegion.top + selectionRegion.height}%`,
+      left: `${selectionRegion.left}%`,
+      transform: 'translateY(10px)',
+    }}
+  >
+    {INLINE_ACTIONS.map((action) => {
+      const Icon = action.icon;
+      return (
+        <button
+          key={action.id}
+          type="button"
+          onClick={() => onAction(action.id)}
+          className="inline-context-button"
+          title={action.label}
+        >
+          <Icon size={14} />
+          <span>{action.label}</span>
+        </button>
+      );
+    })}
+  </div>
+);
 
 export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }) => {
   const [query, setQuery] = useState('');
@@ -58,6 +170,10 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
         text: highlight.text,
         aiInterpretation: interpretationMarkdown,
         pageNumber: highlight.position.pageIndex,
+        sourceAnchorId: highlight.sourceAnchorId,
+        sourcePageIndex: highlight.position.pageIndex,
+        sourceActionId: highlight.actionId,
+        sourceActionLabel: highlight.actionLabel,
       });
       alert('包含追问记录的完整笔记已收藏到“学术笔记”栏目。');
       onClose();
@@ -75,9 +191,12 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
       }}
     >
       <div className="theme-popup-header flex shrink-0 items-center justify-between rounded-t-xl border-b p-3">
-        <span className="flex items-center gap-1.5 text-xs font-bold text-pixiu">
-          <Sparkles size={14} /> AI 解释
-        </span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex items-center gap-1.5 text-xs font-bold text-pixiu">
+            <Sparkles size={14} /> {highlight.actionLabel || 'AI 解释'}
+          </span>
+          <span className="source-link-chip shrink-0">p.{highlight.position.pageIndex + 1}</span>
+        </div>
         <div className="flex items-center gap-2">
           {onSaveNote && (
             <button
@@ -157,12 +276,15 @@ const PdfViewer = ({
   onSelection,
   onSaveNote,
   pdfId,
+  paperSkeleton = null,
   initialHighlights,
   onHighlightsChange,
   onPageChange,
   onPageTextExtracted,
   targetPageIndex = null,
   targetPageJumpToken = 0,
+  focusedSourceAnchorId = null,
+  focusedSourceAnchorToken = 0,
   theme = 'light',
 }) => {
   const [highlights, setHighlights] = useState([]);
@@ -201,6 +323,17 @@ const PdfViewer = ({
       onHighlightsChange(highlights);
     }
   }, [highlights, onHighlightsChange]);
+
+  useEffect(() => {
+    if (!focusedSourceAnchorId) {
+      return;
+    }
+
+    const targetHighlight = highlights.find((highlight) => highlight.sourceAnchorId === focusedSourceAnchorId);
+    if (targetHighlight) {
+      setActiveHighlightId(targetHighlight.id);
+    }
+  }, [focusedSourceAnchorId, focusedSourceAnchorToken, highlights]);
 
   const extractPageText = useCallback(
     async (pageIndex, doc = pdfDocRef.current) => {
@@ -271,9 +404,15 @@ const PdfViewer = ({
     [extractPageText, onPageChange],
   );
 
-  const handleInitialAsk = async (id, explainText, pageIndex, context) => {
+  const syncSelectionMessage = useCallback((content, role, highlight) => {
+    onSelection?.(content, role, true, createSourceMeta(highlight));
+  }, [onSelection]);
+
+  const handleInitialAsk = useCallback(async (id, requestPayload, pageIndex, context) => {
     try {
-      const normalizedResponse = await apiService.explainText(explainText, pdfId, pageIndex + 1, context);
+      const normalizedResponse = requestPayload.requestKind === 'explain'
+        ? await apiService.explainText(requestPayload.requestText, pdfId, pageIndex + 1, context)
+        : await apiService.sendMessage(requestPayload.requestText, pdfId, [], paperSkeleton);
       const normalizedContent =
         normalizedResponse?.data?.explanation ??
         normalizedResponse?.explanation ??
@@ -282,19 +421,23 @@ const PdfViewer = ({
         normalizedResponse?.reply ??
         normalizedResponse?.message ??
         'No response.';
+      let nextHighlight = null;
       setHighlights((prev) =>
-        prev.map((highlight) =>
-          highlight.id === id
-            ? {
-                ...highlight,
-                chatHistory: [...highlight.chatHistory, { role: 'ai', content: normalizedContent }],
-                isLoading: false,
-              }
-            : highlight,
-        ),
+        prev.map((highlight) => {
+          if (highlight.id !== id) {
+            return highlight;
+          }
+
+          nextHighlight = {
+            ...highlight,
+            chatHistory: [...highlight.chatHistory, { role: 'ai', content: normalizedContent }],
+            isLoading: false,
+          };
+          return nextHighlight;
+        }),
       );
-      if (onSelection) {
-        onSelection(normalizedContent, 'ai', true);
+      if (nextHighlight) {
+        syncSelectionMessage(normalizedContent, 'ai', nextHighlight);
       }
       return;
 
@@ -311,7 +454,7 @@ const PdfViewer = ({
         ),
       );
     }
-  };
+  }, [paperSkeleton, pdfId, syncSelectionMessage]);
 
   const handleSubAsk = async (id, query) => {
     const highlight = highlights.find((item) => item.id === id);
@@ -322,15 +465,15 @@ const PdfViewer = ({
       prev.map((item) => (item.id === id ? { ...item, chatHistory: newHistory, isLoading: true } : item)),
     );
 
-    if (onSelection) onSelection(query, 'user', true);
+    onSelection?.(query, 'user', true, createSourceMeta(highlight));
 
     try {
       const backendHistory = newHistory.slice(0, -1).map((message) => ({
         role: message.role === 'ai' ? 'assistant' : 'user',
         content: message.content,
       }));
-      const response = await apiService.sendMessage(query, pdfId, backendHistory);
-      const aiResponse = response?.data?.reply ?? response?.reply ?? response?.message ?? '鏆傛棤鍥炲';
+      const response = await apiService.sendMessage(query, pdfId, backendHistory, paperSkeleton);
+      const aiResponse = response?.data?.reply ?? response?.reply ?? response?.message ?? '暂无回复';
 
       setHighlights((prev) =>
         prev.map((item) =>
@@ -344,14 +487,14 @@ const PdfViewer = ({
         ),
       );
 
-      if (onSelection) onSelection(aiResponse, 'ai', true);
+      onSelection?.(aiResponse, 'ai', true, createSourceMeta(highlight));
     } catch {
       setHighlights((prev) =>
         prev.map((item) =>
           item.id === id
             ? {
                 ...item,
-                chatHistory: [...item.chatHistory, { role: 'ai', content: 'Sorry, the follow-up request failed.' }],
+                chatHistory: [...item.chatHistory, { role: 'ai', content: '抱歉，追问失败，请稍后重试。' }],
                 isLoading: false,
               }
             : item,
@@ -360,53 +503,66 @@ const PdfViewer = ({
     }
   };
 
+  const handleSelectionAction = useCallback((actionId, props) => {
+    const selectedText = props.selectedText;
+    const pageIndex = props.highlightAreas?.[0]?.pageIndex ?? props.selectionRegion?.pageIndex ?? currentPageRef.current;
+    const selectionPosition = { ...props.selectionRegion, pageIndex };
+    const context = trimExplainContext(pageTextByIndexRef.current[pageIndex] || '');
+    const sourceAnchorId = `selection-${Date.now()}`;
+    const requestPayload = buildInlineActionPayload(actionId, selectedText, context);
+    const id = Date.now();
+    const nextHighlight = {
+      id,
+      sourceAnchorId,
+      text: selectedText,
+      highlightAreas: props.highlightAreas,
+      position: selectionPosition,
+      actionId,
+      actionLabel: requestPayload.actionLabel,
+      chatHistory: [{ role: 'user', content: requestPayload.displayMessage }],
+      isLoading: actionId !== 'note',
+    };
+
+    if (actionId === 'note') {
+      onSaveNote?.({
+        text: selectedText,
+        aiInterpretation: '已保存为边注，可继续补充自己的观察与问题。',
+        pageNumber: pageIndex,
+        sourceAnchorId,
+        sourcePageIndex: pageIndex,
+        sourceActionId: actionId,
+        sourceActionLabel: requestPayload.actionLabel,
+      });
+
+      setHighlights((prev) => [
+        ...prev,
+        {
+          ...nextHighlight,
+          chatHistory: [
+            { role: 'ai', content: '已保存为边注笔记。你可以稍后在笔记区查看，也可以继续围绕这一段追问。' },
+          ],
+        },
+      ]);
+      setActiveHighlightId(id);
+      props.cancel();
+      return;
+    }
+
+    setHighlights((prev) => [...prev, nextHighlight]);
+    setActiveHighlightId(id);
+    props.cancel();
+    syncSelectionMessage(requestPayload.displayMessage, 'user', nextHighlight);
+    handleInitialAsk(id, requestPayload, pageIndex, context);
+  }, [handleInitialAsk, onSaveNote, syncSelectionMessage]);
+
   const highlightPluginInstance = highlightPlugin({
-    renderHighlightTarget: (props) => (
-      <div
-        className="absolute z-50 flex"
-        style={{
-          top: `${props.selectionRegion.top + props.selectionRegion.height}%`,
-          left: `${props.selectionRegion.left}%`,
-          transform: 'translateY(10px)',
-        }}
-      >
-        {!activeHighlightId && (
-          <button
-            onClick={() => {
-              const selectedText = props.selectedText;
-              const selectionPayload = buildExplainSelectionPayload(selectedText);
-              const pageIndex = props.highlightAreas?.[0]?.pageIndex ?? props.selectionRegion?.pageIndex ?? currentPageRef.current;
-              const selectionPosition = { ...props.selectionRegion, pageIndex };
-              const context = trimExplainContext(pageTextByIndexRef.current[pageIndex] || '');
-              const id = Date.now();
-
-              setHighlights((prev) => [
-                ...prev,
-                {
-                  id,
-                  text: selectedText,
-                  highlightAreas: props.highlightAreas,
-                  position: selectionPosition,
-                  chatHistory: [{ role: 'user', content: selectionPayload.displayMessage }],
-                  isLoading: true,
-                },
-              ]);
-
-              setActiveHighlightId(id);
-              props.cancel();
-              if (onSelection) onSelection(selectionPayload.displayMessage, 'user', true);
-              handleInitialAsk(id, selectionPayload.explainText, pageIndex, context);
-              return;
-
-            }}
-            className="flex items-center gap-1 rounded-full bg-pixiu p-2 text-white shadow-lg transition-transform hover:scale-110"
-          >
-            <Sparkles size={18} />
-            <span className="pr-1 text-xs font-bold">AI 解释</span>
-          </button>
-        )}
-      </div>
-    ),
+    renderHighlightTarget: (props) =>
+      !activeHighlightId ? (
+        <InlineContextMenu
+          selectionRegion={props.selectionRegion}
+          onAction={(actionId) => handleSelectionAction(actionId, props)}
+        />
+      ) : null,
     renderHighlights: (props) => (
       <div>
         {highlights.map((highlightEntity) => (

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph from 'react-force-graph-2d';
 import { BookOpenCheck, Database, Loader2, Network, RefreshCw, Route, ShieldCheck } from 'lucide-react';
-import MarkdownContent from './MarkdownContent';
+import InsightCard from './InsightCard.jsx';
 import {
   KNOWLEDGE_LEVEL_OPTIONS,
   createGenerateHandler,
@@ -43,6 +43,7 @@ const BackgroundKnowledgePanel = ({
   knowledgeLevel = '一般',
   onKnowledgeLevelChange,
   GraphComponent = ForceGraph,
+  onCaptureArtifact,
 }) => {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(320);
@@ -63,6 +64,21 @@ const BackgroundKnowledgePanel = ({
   const coverageText = formatPercent(sourceCoverage?.ratio);
   const uncoveredNodeLabels = useMemo(() => getUncoveredNodeLabels(data), [data]);
   const handleGenerate = createGenerateHandler(onGenerate, selectedKnowledgeLevel);
+  const overviewSummary = useMemo(() => {
+    if (!data) {
+      return '先生成背景补课图谱，帮助我们在阅读前补齐必要概念。';
+    }
+
+    return `这张图谱会优先说明为了理解“${data?.paper_topic || '当前论文'}”，你还需要补哪些概念、方法和批判视角。`;
+  }, [data]);
+  const overviewPoints = useMemo(
+    () => [
+      graphData.nodes.length > 0 ? `图谱包含 ${graphData.nodes.length} 个节点` : '等待图谱节点生成',
+      learningSections.length > 0 ? `学习路径已分成 ${learningSections.length} 个阶段` : '暂未生成学习路径',
+      backgroundItems.length > 0 ? `推荐补课主题 ${backgroundItems.length} 项` : '暂未生成补课清单',
+    ],
+    [backgroundItems.length, graphData.nodes.length, learningSections.length],
+  );
 
   if (!data && !isLoading) {
     return (
@@ -124,6 +140,28 @@ const BackgroundKnowledgePanel = ({
       </div>
 
       <div className="flex-1 space-y-6 overflow-y-auto p-6">
+        <InsightCard
+          title="为什么先补这些背景"
+          icon={<BookOpenCheck size={16} className="text-pixiu" />}
+          summary={overviewSummary}
+          keyPoints={overviewPoints}
+          footer={onCaptureArtifact ? (
+            <button
+              type="button"
+              onClick={() => onCaptureArtifact({
+                kind: 'background-overview',
+                title: '背景补课总览',
+                summary: overviewSummary,
+                content: [overviewSummary, ...overviewPoints.map((item) => `- ${item}`)].join('\n\n'),
+                tags: ['background', selectedKnowledgeLevel],
+              })}
+              className="source-link-chip"
+            >
+              加入工作台
+            </button>
+          ) : null}
+        />
+
         <div ref={containerRef} className="theme-card overflow-hidden rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
@@ -151,33 +189,23 @@ const BackgroundKnowledgePanel = ({
         {(confidenceText || sourceCoverage) && (
           <div className="grid gap-4 md:grid-cols-2">
             {confidenceText && (
-              <div className="theme-card rounded-2xl p-5">
-                <h3 className="theme-text-primary mb-2 flex items-center gap-2 text-sm font-bold">
-                  <ShieldCheck size={16} className="text-pixiu" />
-                  图谱置信度
-                </h3>
-                <div className="theme-text-primary text-2xl font-bold">{confidenceText}</div>
-                <div className="theme-text-secondary mt-1 text-xs">综合考虑节点解释完整度和证据覆盖比例。</div>
-              </div>
+              <InsightCard
+                title="图谱置信度"
+                icon={<ShieldCheck size={16} className="text-pixiu" />}
+                summary={confidenceText}
+                keyPoints={['综合考虑节点解释完整度和证据覆盖比例。']}
+              />
             )}
 
             {sourceCoverage && (
-              <div className="theme-card rounded-2xl p-5">
-                <h3 className="theme-text-primary mb-2 text-sm font-bold">依据覆盖率</h3>
-                <div className="theme-text-primary text-2xl font-bold">{coverageText || `${sourceCoverage.conceptsWithSources}/${sourceCoverage.totalConcepts}`}</div>
-                <div className="theme-text-secondary mt-1 text-xs">
-                  {sourceCoverage.conceptsWithSources}/{sourceCoverage.totalConcepts} 个概念节点已绑定依据片段。
-                </div>
-                {uncoveredNodeLabels.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {uncoveredNodeLabels.map((label) => (
-                      <span key={label} className="rounded-full bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-600">
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <InsightCard
+                title="依据覆盖率"
+                summary={coverageText || `${sourceCoverage.conceptsWithSources}/${sourceCoverage.totalConcepts}`}
+                keyPoints={[
+                  `${sourceCoverage.conceptsWithSources}/${sourceCoverage.totalConcepts} 个概念节点已绑定依据片段。`,
+                  ...(uncoveredNodeLabels.length > 0 ? [`待补证据：${uncoveredNodeLabels.join('、')}`] : []),
+                ]}
+              />
             )}
           </div>
         )}
@@ -194,23 +222,14 @@ const BackgroundKnowledgePanel = ({
                   <div className="theme-text-primary text-sm font-semibold">{section.title}</div>
                   <div className="space-y-3">
                     {section.items.map((step, index) => (
-                      <div key={`${section.key}-${step.title}-${index}`} className="theme-card-soft rounded-xl px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="theme-text-primary text-sm font-semibold">
-                            {step.step || index + 1}. {step.title}
-                          </div>
-                          {step.stageLabel && (
-                            <span className="rounded-full bg-pixiu/10 px-2 py-0.5 text-[11px] font-semibold text-pixiu">
-                              {step.stageLabel}
-                            </span>
-                          )}
-                        </div>
-                        {step.goal && (
-                          <MarkdownContent className="theme-text-secondary prose prose-sm mt-2 max-w-none text-sm">
-                            {step.goal}
-                          </MarkdownContent>
-                        )}
-                      </div>
+                      <InsightCard
+                        key={`${section.key}-${step.title}-${index}`}
+                        title={`${step.step || index + 1}. ${step.title}`}
+                        summary={step.goal || `${step.title} 是当前阶段的重要补课节点。`}
+                        keyPoints={step.stageLabel ? [step.stageLabel] : []}
+                        content={step.goal || ''}
+                        detailsTitle="展开学习说明"
+                      />
                     ))}
                   </div>
                 </div>
@@ -237,12 +256,28 @@ const BackgroundKnowledgePanel = ({
             <h3 className="theme-text-primary mb-3 text-sm font-bold">RAG 依据片段</h3>
             <div className="space-y-3">
               {ragSources.map((source) => (
-                <div key={source.id} className="theme-markdown-panel rounded-xl px-4 py-3 text-sm">
-                  <div className="mb-2 text-xs font-semibold text-pixiu">{source.id}</div>
-                  <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none">
-                    {source.text || '暂无片段内容'}
-                  </MarkdownContent>
-                </div>
+                <InsightCard
+                  key={source.id}
+                  title={source.id}
+                  summary={source.text || '暂无片段内容'}
+                  content={source.text || ''}
+                  detailsTitle="展开依据片段"
+                  footer={onCaptureArtifact ? (
+                    <button
+                      type="button"
+                      onClick={() => onCaptureArtifact({
+                        kind: 'background-evidence',
+                        title: `背景依据 ${source.id}`,
+                        summary: source.text || '暂无片段内容',
+                        content: source.text || '',
+                        tags: ['background', 'evidence'],
+                      })}
+                      className="source-link-chip"
+                    >
+                      加入工作台
+                    </button>
+                  ) : null}
+                />
               ))}
             </div>
           </div>
