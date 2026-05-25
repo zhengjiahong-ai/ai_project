@@ -30,4 +30,5 @@ ai-service-python/core/chroma_literature_db/
 /docs/test/
 /ai-service-python/tests/*
 !/ai-service-python/tests/test_outline_extractor.py
+!/ai-service-python/tests/test_page_translation_service.py
 node_modules/

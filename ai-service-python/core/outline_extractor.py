@@ -410,7 +410,7 @@ def _build_pdf_heading_candidates(lines: list[PdfTextLine], order_offset: int) -
             )
         )
 
-    return candidates
+    return sorted(candidates, key=_candidate_sort_key)
 
 
 def _recover_split_pdf_numbered_heading_candidates(

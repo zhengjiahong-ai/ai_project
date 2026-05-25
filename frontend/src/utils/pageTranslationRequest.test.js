@@ -89,6 +89,62 @@ const run = () => {
   assert.equal(structuredRequest.translationSourceText, 'Body paragraph');
   assert.equal(structuredRequest.requestPayloadPageLayout.blocks.length, 1);
 
+  const mixedNoiseRequest = preparePageTranslationRequest({
+    pageText: [
+      'The current page keeps this body paragraph.',
+      'Algorithm 1 Proposed AO Algorithm to Solve Problem (P0). Inputs: G, gk, PBS.',
+      'SINRc,k ≥ γth,k, ∀k',
+    ].join('\n'),
+    pageLayout: {
+      viewport: { width: 600, height: 800 },
+      blocks: [
+        {
+          id: 'body',
+          text: 'The current page keeps this body paragraph.',
+          bbox: { left: 0.08, top: 0.18, width: 0.4, height: 0.08 },
+          style: { fontSize: 12, fontWeight: 'normal', italic: false },
+        },
+        {
+          id: 'algorithm',
+          text: 'Algorithm 1 Proposed AO Algorithm to Solve Problem (P0). Inputs: G, gk, PBS.',
+          bbox: { left: 0.52, top: 0.12, width: 0.4, height: 0.04 },
+          style: { fontSize: 9, fontWeight: 'normal', italic: false },
+        },
+        {
+          id: 'formula',
+          text: 'SINRc,k ≥ γth,k, ∀k',
+          bbox: { left: 0.55, top: 0.64, width: 0.28, height: 0.02 },
+          style: { fontSize: 9, fontWeight: 'normal', italic: false },
+        },
+      ],
+    },
+  });
+  assert.equal(mixedNoiseRequest.shouldMarkEmpty, false);
+  assert.equal(mixedNoiseRequest.requestMode, 'structured');
+  assert.equal(mixedNoiseRequest.translationSourceText, 'The current page keeps this body paragraph.');
+  assert.deepEqual(
+    mixedNoiseRequest.requestPayloadPageLayout.blocks.map((block) => block.id),
+    ['body'],
+  );
+
+  const noiseOnlyRequest = preparePageTranslationRequest({
+    pageText: 'Algorithm 1 Proposed AO Algorithm to Solve Problem (P0). Inputs: G, gk, PBS.',
+    pageLayout: {
+      viewport: { width: 600, height: 800 },
+      blocks: [
+        {
+          id: 'algorithm',
+          text: 'Algorithm 1 Proposed AO Algorithm to Solve Problem (P0). Inputs: G, gk, PBS.',
+          bbox: { left: 0.52, top: 0.12, width: 0.4, height: 0.04 },
+          style: { fontSize: 9, fontWeight: 'normal', italic: false },
+        },
+      ],
+    },
+  });
+  assert.equal(noiseOnlyRequest.shouldMarkEmpty, true);
+  assert.equal(noiseOnlyRequest.requestMode, 'plain');
+  assert.equal(noiseOnlyRequest.translationSourceText, '');
+
   assert.equal(
     shouldPreferPlainPageTranslation({
       excludedZones: [],

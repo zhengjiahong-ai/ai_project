@@ -435,6 +435,184 @@ class OutlineExtractorTests(unittest.TestCase):
         self.assertNotIn("4 We conduct extensive experiments to evaluate our method across multiple environments.", titles)
         self.assertIn("4 MAZ ERO ALGORITHM", titles)
 
+    def test_pdf_line_candidates_keep_complex_two_column_subheading_order(self):
+        lines = [
+            PdfTextLine(
+                text="II. SYSTEM MODEL",
+                page_index=1,
+                x=303,
+                y=86,
+                width=160,
+                height=14,
+                font_size=11,
+                bold_ratio=1.0,
+                page_width=612,
+                page_height=792,
+                order=1,
+            ),
+            PdfTextLine(
+                text="B. Radar Model",
+                page_index=1,
+                x=303,
+                y=118,
+                width=130,
+                height=12,
+                font_size=10,
+                bold_ratio=1.0,
+                page_width=612,
+                page_height=792,
+                order=2,
+            ),
+            PdfTextLine(
+                text="The radar echo is processed by the receiver.",
+                page_index=1,
+                x=303,
+                y=138,
+                width=220,
+                height=10,
+                font_size=9,
+                bold_ratio=0.0,
+                page_width=612,
+                page_height=792,
+                order=3,
+            ),
+            PdfTextLine(
+                text="A. Communication Model",
+                page_index=1,
+                x=47,
+                y=488,
+                width=165,
+                height=12,
+                font_size=10,
+                bold_ratio=1.0,
+                page_width=612,
+                page_height=792,
+                order=4,
+            ),
+            PdfTextLine(
+                text="The communication channel is modeled here.",
+                page_index=1,
+                x=47,
+                y=508,
+                width=220,
+                height=10,
+                font_size=9,
+                bold_ratio=0.0,
+                page_width=612,
+                page_height=792,
+                order=5,
+            ),
+            PdfTextLine(
+                text="III. PROPOSED SOLUTIONS",
+                page_index=1,
+                x=303,
+                y=656,
+                width=180,
+                height=14,
+                font_size=11,
+                bold_ratio=1.0,
+                page_width=612,
+                page_height=792,
+                order=6,
+            ),
+        ]
+
+        candidates = _build_pdf_heading_candidates(lines, 0)
+        titles = [candidate.display_title for candidate in candidates]
+
+        self.assertIn("II. SYSTEM MODEL", titles)
+        self.assertIn("A. Communication Model", titles)
+        self.assertIn("B. Radar Model", titles)
+        self.assertIn("III. PROPOSED SOLUTIONS", titles)
+        self.assertLess(titles.index("A. Communication Model"), titles.index("B. Radar Model"))
+
+    def test_pdf_line_candidates_ignore_complex_layout_noise_and_body_sentences(self):
+        lines = [
+            PdfTextLine(
+                text="Algorithm 1 Proposed AO Algorithm to Solve Problem (P0). Inputs: G, gk, PBS.",
+                page_index=2,
+                x=303,
+                y=92,
+                width=220,
+                height=10,
+                font_size=8,
+                bold_ratio=0.0,
+                page_width=612,
+                page_height=792,
+                order=1,
+            ),
+            PdfTextLine(
+                text="1: Initialize w, fk, fr and Phi in a feasible region.",
+                page_index=2,
+                x=303,
+                y=112,
+                width=220,
+                height=10,
+                font_size=8,
+                bold_ratio=0.0,
+                page_width=612,
+                page_height=792,
+                order=2,
+            ),
+            PdfTextLine(
+                text="SINRc,k >= gamma th,k, for all k",
+                page_index=2,
+                x=330,
+                y=340,
+                width=150,
+                height=10,
+                font_size=8,
+                bold_ratio=0.0,
+                page_width=612,
+                page_height=792,
+                order=3,
+            ),
+            PdfTextLine(
+                text="f | 1GHz",
+                page_index=2,
+                x=500,
+                y=420,
+                width=40,
+                height=10,
+                font_size=8,
+                bold_ratio=0.0,
+                page_width=612,
+                page_height=792,
+                order=4,
+            ),
+            PdfTextLine(
+                text="The retained body paragraph explains why the algorithm converges.",
+                page_index=2,
+                x=47,
+                y=520,
+                width=260,
+                height=10,
+                font_size=9,
+                bold_ratio=0.0,
+                page_width=612,
+                page_height=792,
+                order=5,
+            ),
+            PdfTextLine(
+                text="IV. NUMERICAL RESULTS",
+                page_index=2,
+                x=47,
+                y=580,
+                width=180,
+                height=13,
+                font_size=11,
+                bold_ratio=1.0,
+                page_width=612,
+                page_height=792,
+                order=6,
+            ),
+        ]
+
+        candidates = _build_pdf_heading_candidates(lines, 0)
+        titles = [candidate.display_title for candidate in candidates]
+
+        self.assertEqual(titles, ["IV. NUMERICAL RESULTS"])
+
 
 if __name__ == "__main__":
     unittest.main()

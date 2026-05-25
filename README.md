@@ -303,6 +303,17 @@ docker exec ai_service_python python -m py_compile /app/core/document_parser.py 
 docker exec ai_service_python python -m unittest tests.test_outline_extractor -v
 ```
 
+复杂 PDF 解析与逐页翻译回归：
+
+```bash
+cd frontend
+node src/utils/pdfTranslationLayout.test.js
+node src/utils/pageTranslationRequest.test.js
+
+cd ../ai-service-python
+python -m pytest tests/test_outline_extractor.py tests/test_page_translation_service.py -q
+```
+
 Docker 服务状态：
 
 ```bash

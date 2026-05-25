@@ -634,6 +634,136 @@ const run = () => {
   assert.equal(algorithmAndResidueLayout.blocks[1].text, 'The complex amplitude coefficient is modeled as');
   assert.equal(algorithmAndResidueLayout.blocks[2].text, 'The target of interest is at a distance of 30m.');
 
+  const complexTwoColumnTextContent = {
+    items: [
+      {
+        str: 'III. Proposed Method',
+        transform: [13, 0, 0, 13, 62, 704],
+        width: 170,
+        height: 13,
+        fontName: 'Times-Bold',
+      },
+      {
+        str: 'The left column introduces the beamforming design.',
+        transform: [10, 0, 0, 10, 62, 676],
+        width: 220,
+        height: 10,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'It preserves the source paragraph for translation.',
+        transform: [10, 0, 0, 10, 62, 661],
+        width: 215,
+        height: 10,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'A. Communication Model',
+        transform: [11, 0, 0, 11, 62, 624],
+        width: 155,
+        height: 11,
+        fontName: 'Times-Bold',
+      },
+      {
+        str: 'The model defines the communication channel.',
+        transform: [10, 0, 0, 10, 62, 604],
+        width: 205,
+        height: 10,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'B. Radar Model',
+        transform: [11, 0, 0, 11, 336, 704],
+        width: 120,
+        height: 11,
+        fontName: 'Times-Bold',
+      },
+      {
+        str: 'The radar echo is processed after the communication model.',
+        transform: [10, 0, 0, 10, 336, 676],
+        width: 232,
+        height: 10,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'Algorithm 1 Proposed AO Algorithm to Solve Problem (P0). Inputs: G, gk, PBS.',
+        transform: [8, 0, 0, 8, 336, 628],
+        width: 220,
+        height: 8,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: '1: Initialize w, fk, fr and Phi.',
+        transform: [8, 0, 0, 8, 336, 614],
+        width: 145,
+        height: 8,
+        fontName: 'Times-Roman',
+      },
+      {
+        str: 'SINRc,k ≥ γth,k, ∀k',
+        transform: [8, 0, 0, 8, 426, 420],
+        width: 112,
+        height: 8,
+        fontName: 'Times-Roman',
+      },
+    ],
+  };
+  const { pageText: complexTwoColumnPageText, pageLayout: complexTwoColumnPageLayout } = buildPageLayout(
+    complexTwoColumnTextContent,
+    viewport,
+  );
+  assert.equal(complexTwoColumnPageLayout.columnMode, 'two-column');
+  assert.ok(complexTwoColumnPageText.indexOf('A. Communication Model') < complexTwoColumnPageText.indexOf('B. Radar Model'));
+  assert.equal(complexTwoColumnPageLayout.blocks.some((block) => /Algorithm 1/.test(block.text)), false);
+  assert.equal(complexTwoColumnPageLayout.blocks.some((block) => /SINRc/.test(block.text)), false);
+  assert.ok(complexTwoColumnPageLayout.blocks.some((block) => /left column introduces/.test(block.text)));
+  assert.ok(complexTwoColumnPageLayout.blocks.some((block) => /radar echo is processed/.test(block.text)));
+
+  const figureFormulaAndBodyLayout = buildTranslationRequestPageLayout(
+    {
+      viewport,
+      blocks: [
+        {
+          id: 'body-before-figure',
+          text: 'The proposed protocol remains stable in the mixed figure page.',
+          bbox: { left: 0.08, top: 0.18, width: 0.4, height: 0.06 },
+          style: { fontSize: 10, fontWeight: 'normal', italic: false },
+        },
+        {
+          id: 'figure-caption',
+          text: 'RIS controller',
+          bbox: { left: 0.18, top: 0.14, width: 0.12, height: 0.02 },
+          style: { fontSize: 6.5, fontWeight: 'normal', italic: false },
+        },
+        {
+          id: 'equation-line',
+          text: 'yk = gkHΦGx + gkHΦz0 + nk, k = 1, ... , K, (2)',
+          bbox: { left: 0.54, top: 0.54, width: 0.32, height: 0.02 },
+          style: { fontSize: 9, fontWeight: 'normal', italic: false },
+        },
+        {
+          id: 'body-after-figure',
+          text: 'The retained paragraph explains why the algorithm converges.',
+          bbox: { left: 0.08, top: 0.66, width: 0.4, height: 0.06 },
+          style: { fontSize: 10, fontWeight: 'normal', italic: false },
+        },
+      ],
+    },
+    [
+      {
+        type: 'figure',
+        bbox: { left: 0.12, top: 0.1, width: 0.25, height: 0.22 },
+      },
+    ],
+    4,
+  );
+  assert.deepEqual(
+    figureFormulaAndBodyLayout.blocks.map((block) => block.id),
+    ['body-after-figure'],
+  );
+  assert.equal(figureFormulaAndBodyLayout.excludedZonesVersion, 4);
+  assert.match(figureFormulaAndBodyLayout.blocks[0].text, /retained paragraph/);
+
   assert.equal(
     doesBboxIntersect(
       { left: 0.1, top: 0.1, width: 0.2, height: 0.2 },
