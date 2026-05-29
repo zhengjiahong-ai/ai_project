@@ -1,11 +1,52 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bookmark, ChevronRight, Link2, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { Bookmark, ChevronDown, ChevronRight, ChevronUp, FileText, Link2, Plus, Sparkles, Trash2, X } from 'lucide-react';
 
 import InsightCard from './InsightCard.jsx';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
+import { normalizeSentenceReferences } from './evidenceCitationModel.js';
 
 const quickTags = ['# 总结核心贡献', '# 评估实验可靠性', '# 批判性分析'];
+
+const EvidenceReferences = ({ references = [] }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!references.length) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={() => setIsExpanded((current) => !current)}
+        className="source-link-chip inline-flex items-center gap-1"
+      >
+        <FileText size={12} />
+        <span>引用 {references.length} 条</span>
+        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </button>
+
+      {isExpanded && (
+        <div className="space-y-2">
+          {references.map((reference) => (
+            <div key={reference.id} className="theme-card-soft rounded-xl p-3 text-xs leading-5 theme-text-secondary">
+              <div className="theme-text-primary mb-1 font-semibold">{reference.sentence}</div>
+              <div className="space-y-1">
+                {reference.sources.map((source) => (
+                  <div key={source.sourceId}>
+                    <span className="font-semibold">[{source.sourceId}]</span>
+                    <span> {source.preview}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ChatPanel = ({
   messages = [],
@@ -135,14 +176,11 @@ const ChatPanel = ({
               </div>
             ) : (
               <div className="max-w-[90%] flex-1">
-                <InsightCard
-                  title={message.isSystem ? '系统状态' : 'Pixiu'}
-                  icon={!message.isSystem ? <Sparkles size={14} className="text-pixiu" /> : null}
-                  content={message.content}
-                  detailsTitle="展开完整回答"
-                  defaultExpanded={Boolean(message.isSystem)}
-                  className="rounded-bl-none"
-                  footer={message.sourceAnchorId ? (
+                {(() => {
+                  const references = normalizeSentenceReferences(message.sentenceSourceMap, message.rag_sources, {
+                    target: 'message',
+                  });
+                  const sourceFooter = message.sourceAnchorId ? (
                     <button
                       type="button"
                       onClick={() => onJumpToSource?.(message)}
@@ -153,8 +191,27 @@ const ChatPanel = ({
                         来源 {Number.isFinite(message.sourcePageIndex) ? `p.${message.sourcePageIndex + 1}` : '原文片段'}
                       </span>
                     </button>
-                  ) : null}
+                  ) : null;
+                  const citationFooter = references.length > 0 ? <EvidenceReferences references={references} /> : null;
+                  const footer = citationFooter || sourceFooter ? (
+                    <div className="space-y-2">
+                      {citationFooter}
+                      {sourceFooter}
+                    </div>
+                  ) : null;
+
+                  return (
+                <InsightCard
+                  title={message.isSystem ? '系统状态' : 'Pixiu'}
+                  icon={!message.isSystem ? <Sparkles size={14} className="text-pixiu" /> : null}
+                  content={message.content}
+                  detailsTitle="展开完整回答"
+                  defaultExpanded={Boolean(message.isSystem)}
+                  className="rounded-bl-none"
+                  footer={footer}
                 />
+                  );
+                })()}
               </div>
             )}
 

@@ -5,6 +5,7 @@ import {
   getDetailSections,
   getEvidencePreview,
   getEvidenceBasedContributions,
+  getSentenceSourceReferences,
   getStructuredSections,
 } from './criticalAnalysisData.js';
 
@@ -24,6 +25,14 @@ const structuredPayload = {
     { sourceId: 'chunk-1', sourceType: 'current_paper', text: '当前论文片段 1', chunkIndex: 0 },
     { sourceId: 'chunk-2', sourceType: 'library', text: '文献库片段 2', chunkIndex: 3 },
     { sourceId: 'chunk-3', sourceType: 'current_paper', text: '  ' },
+  ],
+  sentenceSourceMap: [
+    {
+      id: 'ref-1',
+      target: 'critical_analysis',
+      sentence: '实验规模有限，但主线论证仍较清楚。',
+      sourceIds: ['chunk-1', 'missing'],
+    },
   ],
 };
 
@@ -55,6 +64,11 @@ const run = async () => {
   assert.equal(evidencePreview[0].sourceLabel, '当前论文');
   assert.equal(evidencePreview[1].sourceLabel, '文献库');
   assert.equal(evidencePreview[0].chunkIndex, 0);
+
+  const references = getSentenceSourceReferences(structuredPayload);
+  assert.equal(references.length, 1);
+  assert.equal(references[0].sourceIds[0], 'chunk-1');
+  assert.equal(references[0].sources[0].preview, '当前论文片段 1');
 
   console.log('critical analysis data helper smoke tests passed');
 };

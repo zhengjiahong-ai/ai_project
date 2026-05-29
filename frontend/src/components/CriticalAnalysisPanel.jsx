@@ -17,6 +17,7 @@ import {
   buildSummary,
   getDetailSections,
   getEvidencePreview,
+  getSentenceSourceReferences,
   getStructuredSections,
 } from './criticalAnalysisData.js';
 
@@ -52,6 +53,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact }
   const detailSections = useMemo(() => getDetailSections(data), [data]);
   const structuredSections = useMemo(() => getStructuredSections(data), [data]);
   const evidencePreview = useMemo(() => getEvidencePreview(data), [data]);
+  const sentenceReferences = useMemo(() => getSentenceSourceReferences(data), [data]);
   const overviewPoints = useMemo(
     () => [
       metrics.length > 0 ? `已生成 ${metrics.length} 个批判维度评分` : '等待多维评分生成',
@@ -250,6 +252,33 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact }
                       加入工作台
                     </button>
                   ) : null}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {sentenceReferences.length > 0 && (
+          <div className="theme-card rounded-2xl p-5">
+            <h3 className="theme-text-muted mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+              <FileText size={14} className="text-pixiu" />
+              结论引用
+            </h3>
+            <div className="space-y-3">
+              {sentenceReferences.map((reference) => (
+                <InsightCard
+                  key={reference.id}
+                  title={`引用来源：${reference.sourceIds.join('、')}`}
+                  summary={reference.sentence}
+                  keyPoints={reference.sources.map((source) => `[${source.sourceId}] ${source.preview}`)}
+                  content={[
+                    `### 结论`,
+                    reference.sentence,
+                    '',
+                    `### 证据片段`,
+                    ...reference.sources.map((source) => `- [${source.sourceId}] ${source.text}`),
+                  ].join('\n')}
+                  detailsTitle="展开引用证据"
                 />
               ))}
             </div>

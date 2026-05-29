@@ -15,6 +15,7 @@ from schemas.requests import (
 )
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE as SHARED_MATH_MARKDOWN_GUIDELINE
 from services.evidence_service import (
+    build_sentence_source_map,
     compact_evidence_for_response,
     format_evidence_context,
     normalize_evidence_items,
@@ -1513,10 +1514,12 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
             )
             step["outputSize"] = len(str(reply or ""))
 
+        rag_sources = compact_evidence_for_response(rag_results, max_items=12, max_text_chars=700)
         response = {
             "status": "success",
             "message": reply or "",
-            "rag_sources": compact_evidence_for_response(rag_results, max_items=12, max_text_chars=700),
+            "rag_sources": rag_sources,
+            "sentenceSourceMap": build_sentence_source_map(reply or "", rag_sources, target="message"),
             "queryPlan": query_plan,
             "retrievalJudge": retrieval_judge,
             "traceId": trace_id,

@@ -1,3 +1,5 @@
+import { normalizeSentenceReferences } from './evidenceCitationModel.js';
+
 const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
 
 const normalizeList = (value) => {
@@ -135,3 +137,6 @@ export const getEvidencePreview = (data, maxItems = 5) => {
     .filter(Boolean)
     .slice(0, maxItems);
 };
+
+export const getSentenceSourceReferences = (data, maxItems = 6) =>
+  normalizeSentenceReferences(data?.sentenceSourceMap, data?.rag_sources, { maxItems });

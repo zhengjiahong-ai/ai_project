@@ -13,7 +13,12 @@ from llm.client import get_llm
 from rag.store import get_rag, is_rag_available, normalize_id, preload_rag
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
 from services.background_knowledge_service import get_background_knowledge as build_background_knowledge
-from services.evidence_service import compact_evidence_for_response, format_evidence_context, normalize_evidence_items
+from services.evidence_service import (
+    build_field_sentence_source_map,
+    compact_evidence_for_response,
+    format_evidence_context,
+    normalize_evidence_items,
+)
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE
 from services.query_service import build_retrieval_queries
 from services.retrieval_judge_service import judge_evidence_quality
@@ -930,6 +935,11 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
         ]
         report = _generate_structured_critical_report(axis_results, analysis_context or paper_content[:2400], resolved_from)
         response_sources = _collect_response_sources(axis_results)
+        rag_sources = compact_evidence_for_response(
+            response_sources,
+            max_items=ANALYSIS_RESPONSE_SOURCE_LIMIT,
+            max_text_chars=700,
+        )
 
         response = {
             "status": "success",
@@ -940,10 +950,17 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
             "overclaim_risks": report["overclaim_risks"],
             "missing_evidence": report["missing_evidence"],
             "critical_analysis": report["critical_analysis"],
-            "rag_sources": compact_evidence_for_response(
-                response_sources,
-                max_items=ANALYSIS_RESPONSE_SOURCE_LIMIT,
-                max_text_chars=700,
+            "rag_sources": rag_sources,
+            "sentenceSourceMap": build_field_sentence_source_map(
+                {
+                    "claimed_contributions": report["claimed_contributions"],
+                    "evidence_based_contributions": report["evidence_based_contributions"],
+                    "weaknesses": report["weaknesses"],
+                    "overclaim_risks": report["overclaim_risks"],
+                    "missing_evidence": report["missing_evidence"],
+                    "critical_analysis": report["critical_analysis"],
+                },
+                rag_sources,
             ),
             "resolved_from": resolved_from,
             "pdf_id": normalized_id,

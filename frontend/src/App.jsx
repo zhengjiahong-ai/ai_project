@@ -1409,7 +1409,14 @@ export default function App() {
       .sendMessage(message, pdfId, history, deconstructData?.paper_skeleton || null, controller.signal)
       .then((response) => {
         const content = response?.reply ?? response?.message ?? response?.data?.reply ?? '暂无回复';
-        setMessages((prev) => [...prev, { role: 'ai', content }]);
+        const sentenceSourceMap = response?.sentenceSourceMap ?? response?.data?.sentenceSourceMap ?? [];
+        const ragSources = response?.rag_sources ?? response?.data?.rag_sources ?? [];
+        setMessages((prev) => [...prev, {
+          role: 'ai',
+          content,
+          sentenceSourceMap,
+          rag_sources: ragSources,
+        }]);
       })
       .catch((error) => {
         if (error.name === 'CanceledError' || error.message === 'canceled') {

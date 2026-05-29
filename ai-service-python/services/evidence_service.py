@@ -1,7 +1,9 @@
+import re
 from typing import Any, Dict, Iterable, List, Optional
 
 
 VALID_SOURCE_TYPES = {"current_paper", "library", "unknown"}
+MIN_CITATION_SCORE = 0.12
 
 
 def normalize_evidence_items(
@@ -93,6 +95,90 @@ def compact_evidence_for_response(
     return compacted
 
 
+def build_sentence_source_map(
+    content: Any,
+    sources: Any,
+    target: str = "message",
+    max_sentences: int = 8,
+    max_sources_per_sentence: int = 2,
+) -> List[Dict[str, Any]]:
+    evidence_items = normalize_evidence_items(sources, max_text_chars=1200)
+    source_terms = []
+    valid_source_ids = set()
+    for item in evidence_items:
+        source_id = str(item.get("sourceId") or "").strip()
+        if not source_id:
+            continue
+        terms = _extract_citation_terms(item.get("text") or "")
+        if not terms:
+            continue
+        valid_source_ids.add(source_id)
+        source_terms.append((source_id, terms))
+
+    if not source_terms:
+        return []
+
+    references = []
+    for sentence in _split_reference_sentences(content):
+        sentence_terms = _extract_citation_terms(sentence)
+        if not sentence_terms:
+            continue
+
+        scored_sources = []
+        for source_id, terms in source_terms:
+            overlap = sentence_terms.intersection(terms)
+            if not overlap:
+                continue
+            score = len(overlap) / max(len(sentence_terms), 1)
+            if score >= MIN_CITATION_SCORE:
+                scored_sources.append((source_id, score))
+
+        if not scored_sources:
+            continue
+
+        scored_sources.sort(key=lambda item: item[1], reverse=True)
+        source_ids = [
+            source_id
+            for source_id, _score in scored_sources[:max_sources_per_sentence]
+            if source_id in valid_source_ids
+        ]
+        if not source_ids:
+            continue
+
+        references.append({
+            "id": f"ref-{len(references) + 1}",
+            "target": str(target or "message"),
+            "sentence": sentence,
+            "sourceIds": source_ids,
+            "confidence": round(scored_sources[0][1], 2),
+        })
+        if len(references) >= max_sentences:
+            break
+
+    return references
+
+
+def build_field_sentence_source_map(
+    fields: Dict[str, Any],
+    sources: Any,
+    max_sentences_per_field: int = 3,
+) -> List[Dict[str, Any]]:
+    references = []
+    for target, value in fields.items():
+        field_references = build_sentence_source_map(
+            value,
+            sources,
+            target=target,
+            max_sentences=max_sentences_per_field,
+        )
+        for item in field_references:
+            references.append({
+                **item,
+                "id": f"ref-{len(references) + 1}",
+            })
+    return references
+
+
 def _iter_items(items: Any) -> Iterable[Any]:
     if items is None:
         return []
@@ -101,6 +187,61 @@ def _iter_items(items: Any) -> Iterable[Any]:
     if isinstance(items, tuple):
         return list(items)
     return [items]
+
+
+def _split_reference_sentences(content: Any) -> List[str]:
+    if isinstance(content, list):
+        raw_text = "\n".join(str(item) for item in content)
+    else:
+        raw_text = str(content or "")
+
+    candidates = []
+    for line in raw_text.splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        text = re.sub(r"^[-*•\d\s.、)）]+", "", text).strip()
+        if not text:
+            continue
+        marked_text = re.sub(r"([。！？!?；;])", r"\1\n", text)
+        candidates.extend(marked_text.splitlines())
+
+    if not candidates:
+        marked_text = re.sub(r"([。！？!?；;])", r"\1\n", raw_text)
+        candidates = marked_text.splitlines()
+
+    normalized = []
+    seen = set()
+    for candidate in candidates:
+        text = " ".join(str(candidate or "").strip().split())
+        if len(text) < 8:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(text[:220])
+    return normalized
+
+
+def _extract_citation_terms(text: Any) -> set[str]:
+    value = str(text or "").lower()
+    terms = set()
+
+    for token in re.findall(r"[a-z0-9][a-z0-9._-]{1,31}", value):
+        if len(token) >= 3:
+            terms.add(token)
+
+    for segment in re.findall(r"[\u4e00-\u9fff]{2,}", value):
+        if len(segment) <= 6:
+            terms.add(segment)
+        for size in (2, 3, 4):
+            if len(segment) < size:
+                continue
+            for index in range(0, len(segment) - size + 1):
+                terms.add(segment[index:index + size])
+
+    return terms
 
 
 def _extract_text(item: Dict[str, Any]) -> str:
