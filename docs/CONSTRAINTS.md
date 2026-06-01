@@ -199,6 +199,7 @@
 | POST | `/api/socratic-session/answer` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string, "currentIndex": number, "currentQuestion": string, "userAnswer": string, "turns": array? }` | 提交当前回答，返回掌握度评估、提示与下一题或最终总结；`evaluation` 可附带 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态还可附带 `reviewSuggestions` |
 | POST | `/api/background-knowledge` | `{ "pdfId": string?, "paperSkeleton": object?, "paperStructure": object?, "paper_topic": any?, "user_knowledge_level": any? }` | 背景补课图谱，Java 转发到 Python `/api/background-knowledge`，响应可附带 `queryPlan`、`confidence`、`sourceCoverage`、`learning_path_sections` 与兼容式 `traceId` |
 | POST | `/api/research-tasks` | `{ "question": string, "pdfId": string, "paperSkeleton": object? }` | 创建深度研究任务；Java 转发到 Python `/api/research-tasks`，成功响应固定为 `{ status, task }`，其中 `task` 包含任务状态、阶段、进度、可选 `traceId`、`plan`、结构化 `findings`、`report` 与 `error` |
+| GET | `/api/research-tasks/latest?pdfId=:pdfId` | - | 查询当前论文最近一个深度研究任务快照；成功返回 `{ status, task }`，没有快照返回 `404` |
 | GET | `/api/research-tasks/:taskId` | - | 查询深度研究任务状态；成功返回 `{ status, task }`，任务不存在返回 `404` 与 `{ status, message }` |
 | POST | `/api/research-tasks/:taskId/cancel` | - | 取消深度研究任务；取消接口保持幂等，成功返回当前任务快照，任务不存在返回 `404` |
 
@@ -219,9 +220,16 @@
 | POST socratic start → 转发 | POST `/api/socratic-session/start` | 请求体 `{ pdfId?, paperSkeleton?, readingProgress }`，Python 返回开场引导和第 1 题；有 `pdfId` 时优先基于当前论文证据组织首题 |
 | POST socratic answer → 转发 | POST `/api/socratic-session/answer` | 请求体包含当前题目、用户回答和历史轮次，Python 返回评估、下一题或最终总结；`evaluation` 可新增 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态可新增 `reviewSuggestions` |
 | POST background knowledge → 转发 | POST `/api/background-knowledge` | 请求体兼容 `pdfId`、论文结构和用户知识水平，Python 返回前置知识图谱、四段式学习路径、统一 `rag_sources` 以及可选 `queryPlan`、`confidence`、`sourceCoverage`、`traceId` |
-| POST create research task → 转发 | POST `/api/research-tasks` | 请求体固定 `{ question, pdfId, paperSkeleton? }`，Python 返回 `{ status, task }`；`task` 固定包含 `taskId`、可选 `traceId`、任务 `status`、`stage`、`progress`、`question`、`pdfId`、`plan`、`findings`、`report`、`error` |
+| POST create research task → 转发 | POST `/api/research-tasks` | 请求体固定 `{ question, pdfId, paperSkeleton? }`，Python 返回 `{ status, task }`；`task` 固定包含 `taskId`、可选 `traceId`、任务 `status`、`stage`、`progress`、`question`、`pdfId`、`plan`、`findings`、`report`、`error`、`createdAt`、`updatedAt` |
+| GET latest research task → 转发 | GET `/api/research-tasks/latest?pdfId={pdfId}` | Python 返回当前论文最近任务 `{ status, task }`；任务不存在返回 `404`。用于前端刷新后按当前论文恢复最近快照 |
 | GET research task → 转发 | GET `/api/research-tasks/{taskId}` | Python 返回 `{ status, task }`，任务不存在时返回 `404` 与 `{ status: "error", message }` |
 | POST cancel research task → 转发 | POST `/api/research-tasks/{taskId}/cancel` | Python 返回 `{ status, task }`；取消采用 best-effort 协作式语义，已结束任务返回当前快照，任务不存在返回 `404` |
+
+- **深度研究任务持久化**：
+  - Python 使用标准库 `sqlite3` 保存任务快照，不新增运行依赖。
+  - 默认数据库路径为 `ai-service-python/data/research_tasks.sqlite3`，可通过 `RESEARCH_TASK_DB_PATH` 覆盖；Docker Compose 使用 `/app/data/research_tasks.sqlite3` 并挂载 `research_task_data` volume。
+  - 持久化字段包括 `taskId`、`traceId`、`status`、`stage`、`progress`、`question`、`pdfId`、`plan`、`findings`、`report`、`error`、`createdAt`、`updatedAt`。
+  - 服务重启后仅恢复任务快照，不恢复后台线程；重启前仍为 `pending` 或 `running` 的任务会恢复为 `failed` / `done`，并在 `error` 中提示用户重新发起任务。
 
 ### 2.4 Python 已实现的其他接口（内部或后续扩展）
 

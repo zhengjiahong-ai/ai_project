@@ -79,6 +79,11 @@ public class AcademicController {
         return aiService.createResearchTask(request);
     }
 
+    @GetMapping("/research-tasks/latest")
+    public ResponseEntity<Map<String, Object>> getLatestResearchTask(@RequestParam String pdfId) {
+        return aiService.getLatestResearchTask(pdfId);
+    }
+
     @GetMapping("/research-tasks/{taskId}")
     public ResponseEntity<Map<String, Object>> getResearchTask(@PathVariable String taskId) {
         return aiService.getResearchTask(taskId);

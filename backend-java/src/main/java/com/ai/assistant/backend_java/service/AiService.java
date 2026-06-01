@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -213,6 +214,11 @@ public class AiService {
 
     public ResponseEntity<Map<String, Object>> getResearchTask(String taskId) {
         return forwardResearchTask(HttpMethod.GET, "/research-tasks/" + taskId, null);
+    }
+
+    public ResponseEntity<Map<String, Object>> getLatestResearchTask(String pdfId) {
+        String encodedPdfId = URLEncoder.encode(String.valueOf(pdfId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardResearchTask(HttpMethod.GET, "/research-tasks/latest?pdfId=" + encodedPdfId, null);
     }
 
     public ResponseEntity<Map<String, Object>> cancelResearchTask(String taskId) {

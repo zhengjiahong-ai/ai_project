@@ -112,7 +112,7 @@ const DeepResearchPanel = ({
             </div>
           </div>
           <div className="theme-text-muted mt-3 text-xs">
-            当前任务状态只保留在本次浏览器会话内存中。刷新页面或后端服务重启后，运行中的任务不保证可恢复。
+            已结束任务会保存为服务端快照，刷新页面后可按当前论文恢复；服务重启前仍在运行的任务会标记为失败并提示重新发起。
           </div>
         </div>
 

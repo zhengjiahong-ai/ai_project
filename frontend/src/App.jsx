@@ -67,6 +67,7 @@ import {
   TERMINAL_RESEARCH_STATUSES,
   createEmptyDeepResearchState,
   normalizeResearchTask,
+  shouldRestoreLatestResearchTask,
 } from './components/deepResearchPanelModel.js';
 import appVersionRaw from '../VERSION?raw';
 
@@ -615,6 +616,7 @@ export default function App() {
   const translationStateRef = useRef(createEmptyTranslationState());
   const papersListRef = useRef([]);
   const currentPdfIdRef = useRef(null);
+  const restoredResearchPdfIdsRef = useRef(new Set());
   const workspaceTabsRef = useRef(null);
   const workbenchPanelRef = useRef(null);
   const currentPageTextRef = useRef({
@@ -1314,6 +1316,69 @@ export default function App() {
         };
       });
     }
+  }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
+
+  useEffect(() => {
+    if (!pdfId) {
+      return undefined;
+    }
+
+    const currentState = deepResearchStateByPdf[pdfId] || createEmptyDeepResearchState();
+    if (
+      restoredResearchPdfIdsRef.current.has(pdfId) ||
+      !shouldRestoreLatestResearchTask(pdfId, currentState)
+    ) {
+      return undefined;
+    }
+
+    let isCancelled = false;
+    const targetPdfId = pdfId;
+    restoredResearchPdfIdsRef.current.add(targetPdfId);
+
+    const restoreLatestTask = async () => {
+      try {
+        const response = await apiService.getLatestResearchTask(targetPdfId);
+        const restoredTask = normalizeResearchTask(response?.task);
+        if (isCancelled || response?.status !== 'success' || !restoredTask) {
+          return;
+        }
+
+        setDeepResearchStateForPdf(targetPdfId, (prev) => {
+          if (prev.task?.taskId) {
+            return prev;
+          }
+          return {
+            ...prev,
+            task: restoredTask,
+            questionDraft: restoredTask.question || prev.questionDraft || '',
+            errorMessage: '',
+            pollError: '',
+            isCreating: false,
+            isCancelling: false,
+          };
+        });
+      } catch (error) {
+        if (isCancelled || error?.response?.status === 404) {
+          return;
+        }
+
+        setDeepResearchStateForPdf(targetPdfId, (prev) => {
+          if (prev.task?.taskId) {
+            return prev;
+          }
+          return {
+            ...prev,
+            pollError: error?.response?.data?.message || error?.message || '深度研究历史任务恢复失败。',
+          };
+        });
+      }
+    };
+
+    restoreLatestTask();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
 
   const currentDeepResearchState = pdfId

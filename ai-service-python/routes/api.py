@@ -84,6 +84,16 @@ async def create_research_task(request: ResearchTaskCreateRequest):
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
 
+@router.get("/research-tasks/latest")
+async def get_latest_research_task(pdfId: str):
+    try:
+        return JSONResponse(research_task_service.get_latest_research_task(pdfId))
+    except research_task_service.ResearchTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
 @router.get("/research-tasks/{task_id}")
 async def get_research_task(task_id: str):
     try:

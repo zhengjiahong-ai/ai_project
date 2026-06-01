@@ -322,6 +322,58 @@ class AiServiceTest {
     }
 
     @Test
+    void getLatestResearchTaskForwardsGetRequestWithEncodedPdfId() {
+        when(restTemplate.exchange(
+                eq("http://python/api/research-tasks/latest?pdfId=paper%201"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "task", Map.of(
+                                "taskId", "task-latest",
+                                "status", "succeeded",
+                                "stage", "done",
+                                "progress", 1.0,
+                                "question", "最近任务",
+                                "pdfId", "paper 1",
+                                "plan", List.of("Q1"),
+                                "findings", List.of(),
+                                "report", "report",
+                                "error", ""))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getLatestResearchTask("paper 1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> task = (Map<String, Object>) response.getBody().get("task");
+        assertEquals("task-latest", task.get("taskId"));
+    }
+
+    @Test
+    void getLatestResearchTaskPropagatesPythonNotFoundStatusAndMessage() {
+        HttpClientErrorException error = HttpClientErrorException.create(
+                HttpStatus.NOT_FOUND,
+                "Not Found",
+                HttpHeaders.EMPTY,
+                "{\"status\":\"error\",\"message\":\"Research task not found.\"}".getBytes(StandardCharsets.UTF_8),
+                StandardCharsets.UTF_8);
+
+        when(restTemplate.exchange(
+                eq("http://python/api/research-tasks/latest?pdfId=missing-paper"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenThrow(error);
+
+        ResponseEntity<Map<String, Object>> response = aiService.getLatestResearchTask("missing-paper");
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("error", response.getBody().get("status"));
+        assertEquals("Research task not found.", response.getBody().get("message"));
+    }
+
+    @Test
     void cancelResearchTaskPropagatesPythonNotFoundStatusAndMessage() {
         HttpClientErrorException error = HttpClientErrorException.create(
                 HttpStatus.NOT_FOUND,

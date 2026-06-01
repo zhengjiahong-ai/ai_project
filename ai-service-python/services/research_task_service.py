@@ -1,8 +1,14 @@
 import copy
+import json
+import os
 import re
+import sqlite3
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from llm.client import get_llm
@@ -42,6 +48,8 @@ _TASK_CONTEXTS: Dict[str, Dict[str, Any]] = {}
 _TASK_CANCELLATIONS: set[str] = set()
 _TASK_LOCK = threading.RLock()
 _TASK_EXECUTOR = ThreadPoolExecutor(max_workers=2)
+_STORAGE_LOADED = False
+INTERRUPTED_RESTART_ERROR = "服务已重启，运行中的深度研究任务无法继续执行，请重新发起任务。"
 
 
 class ResearchTaskNotFoundError(Exception):
@@ -52,6 +60,7 @@ def create_research_task(
     request: ResearchTaskCreateRequest,
     start_async: bool = True,
 ) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     question = " ".join(str(request.question or "").strip().split())
     pdf_id = " ".join(str(request.pdfId or "").strip().split())
     if not question:
@@ -69,6 +78,7 @@ def create_research_task(
         activate=False,
         initial_status="pending",
     )
+    created_at = _utc_now()
     task = {
         "taskId": task_id,
         "traceId": trace_id,
@@ -81,6 +91,8 @@ def create_research_task(
         "findings": [],
         "report": "",
         "error": "",
+        "createdAt": created_at,
+        "updatedAt": created_at,
     }
 
     with _TASK_LOCK:
@@ -89,6 +101,7 @@ def create_research_task(
             "paperSkeleton": copy.deepcopy(request.paperSkeleton or {}),
         }
         _TASK_CANCELLATIONS.discard(task_id)
+        _persist_task_snapshot_locked(_TASKS[task_id])
 
     if start_async:
         _TASK_EXECUTOR.submit(run_research_task_now, task_id)
@@ -97,10 +110,37 @@ def create_research_task(
 
 
 def get_research_task(task_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     return {"status": "success", "task": _copy_task_snapshot(task_id)}
 
 
+def get_latest_research_task(pdf_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
+    normalized_pdf_id = _clean_text(pdf_id)
+    if not normalized_pdf_id:
+        raise ResearchTaskNotFoundError("Research task not found.")
+
+    with _TASK_LOCK:
+        candidates = [
+            task for task in _TASKS.values()
+            if str(task.get("pdfId") or "") == normalized_pdf_id
+        ]
+        if not candidates:
+            raise ResearchTaskNotFoundError("Research task not found.")
+
+        latest = max(
+            candidates,
+            key=lambda task: (
+                str(task.get("updatedAt") or ""),
+                str(task.get("createdAt") or ""),
+                str(task.get("taskId") or ""),
+            ),
+        )
+        return {"status": "success", "task": copy.deepcopy(latest)}
+
+
 def cancel_research_task(task_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     with _TASK_LOCK:
         task = _TASKS.get(task_id)
         if task is None:
@@ -113,8 +153,10 @@ def cancel_research_task(task_id: str) -> Dict[str, Any]:
             **task,
             "status": "cancelled",
             "stage": DONE_STAGE,
+            "updatedAt": _utc_now(),
         }
         _TASKS[task_id] = cancelled
+        _persist_task_snapshot_locked(cancelled)
 
     with use_trace(str(cancelled.get("traceId") or "")):
         finalize_trace(
@@ -127,14 +169,29 @@ def cancel_research_task(task_id: str) -> Dict[str, Any]:
     return {"status": "success", "task": copy.deepcopy(cancelled)}
 
 
-def clear_research_tasks() -> None:
+def clear_research_tasks(clear_storage: bool = True) -> None:
     with _TASK_LOCK:
         _TASKS.clear()
         _TASK_CONTEXTS.clear()
         _TASK_CANCELLATIONS.clear()
+        global _STORAGE_LOADED
+        _STORAGE_LOADED = False
+        if clear_storage:
+            _delete_persisted_tasks_locked()
+
+
+def reload_research_tasks_from_storage() -> None:
+    with _TASK_LOCK:
+        _TASKS.clear()
+        _TASK_CONTEXTS.clear()
+        _TASK_CANCELLATIONS.clear()
+        global _STORAGE_LOADED
+        _STORAGE_LOADED = False
+    _ensure_storage_loaded()
 
 
 def run_research_task_now(task_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     task = _copy_task_snapshot(task_id)
     context = _copy_task_context(task_id)
     with use_trace(str(task.get("traceId") or "")):
@@ -707,6 +764,7 @@ def _slugify(value: Any) -> str:
 
 
 def _copy_task_snapshot(task_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     with _TASK_LOCK:
         task = _TASKS.get(task_id)
         if task is None:
@@ -715,6 +773,7 @@ def _copy_task_snapshot(task_id: str) -> Dict[str, Any]:
 
 
 def _copy_task_context(task_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     with _TASK_LOCK:
         return copy.deepcopy(_TASK_CONTEXTS.get(task_id) or {})
 
@@ -730,8 +789,10 @@ def _update_task_snapshot(task_id: str, **updates: Any) -> Dict[str, Any]:
         updated = {
             **task,
             **copy.deepcopy(updates),
+            "updatedAt": _utc_now(),
         }
         _TASKS[task_id] = updated
+        _persist_task_snapshot_locked(updated)
         return copy.deepcopy(updated)
 
 
@@ -745,6 +806,182 @@ def _fail_task(task_id: str, error_message: str) -> None:
 
 
 def _is_cancelled(task_id: str) -> bool:
+    _ensure_storage_loaded()
     with _TASK_LOCK:
         task = _TASKS.get(task_id)
         return task_id in _TASK_CANCELLATIONS or str((task or {}).get("status") or "") == "cancelled"
+
+
+def _ensure_storage_loaded() -> None:
+    global _STORAGE_LOADED
+    with _TASK_LOCK:
+        if _STORAGE_LOADED:
+            return
+        _initialize_storage_locked()
+        for task in _load_persisted_tasks_locked():
+            restored = _restore_task_after_restart(task)
+            _TASKS[str(restored.get("taskId") or "")] = restored
+            if restored is not task:
+                _persist_task_snapshot_locked(restored)
+        _STORAGE_LOADED = True
+
+
+def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
+    status = str(task.get("status") or "")
+    if status in TERMINAL_STATUSES:
+        return task
+    restored = {
+        **task,
+        "status": "failed",
+        "stage": DONE_STAGE,
+        "error": INTERRUPTED_RESTART_ERROR,
+        "updatedAt": _utc_now(),
+    }
+    return restored
+
+
+def _initialize_storage_locked() -> None:
+    db_path = _research_task_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with closing(sqlite3.connect(db_path)) as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS research_tasks (
+                taskId TEXT PRIMARY KEY,
+                traceId TEXT,
+                status TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                progress REAL NOT NULL,
+                question TEXT NOT NULL,
+                pdfId TEXT NOT NULL,
+                plan TEXT NOT NULL,
+                findings TEXT NOT NULL,
+                report TEXT NOT NULL,
+                error TEXT NOT NULL,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_research_tasks_pdf_updated ON research_tasks (pdfId, updatedAt)")
+        connection.commit()
+
+
+def _load_persisted_tasks_locked() -> List[Dict[str, Any]]:
+    db_path = _research_task_db_path()
+    if not db_path.exists():
+        return []
+    with closing(sqlite3.connect(db_path)) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute("SELECT * FROM research_tasks ORDER BY createdAt ASC").fetchall()
+    return [_task_from_storage_row(row) for row in rows]
+
+
+def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
+    _initialize_storage_locked()
+    snapshot = _normalize_task_for_storage(task)
+    with closing(sqlite3.connect(_research_task_db_path())) as connection:
+        connection.execute(
+            """
+            INSERT INTO research_tasks (
+                taskId, traceId, status, stage, progress, question, pdfId,
+                plan, findings, report, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(taskId) DO UPDATE SET
+                traceId=excluded.traceId,
+                status=excluded.status,
+                stage=excluded.stage,
+                progress=excluded.progress,
+                question=excluded.question,
+                pdfId=excluded.pdfId,
+                plan=excluded.plan,
+                findings=excluded.findings,
+                report=excluded.report,
+                error=excluded.error,
+                createdAt=excluded.createdAt,
+                updatedAt=excluded.updatedAt
+            """,
+            (
+                snapshot["taskId"],
+                snapshot["traceId"],
+                snapshot["status"],
+                snapshot["stage"],
+                snapshot["progress"],
+                snapshot["question"],
+                snapshot["pdfId"],
+                json.dumps(snapshot["plan"], ensure_ascii=False),
+                json.dumps(snapshot["findings"], ensure_ascii=False),
+                snapshot["report"],
+                snapshot["error"],
+                snapshot["createdAt"],
+                snapshot["updatedAt"],
+            ),
+        )
+        connection.commit()
+
+
+def _delete_persisted_tasks_locked() -> None:
+    _initialize_storage_locked()
+    with closing(sqlite3.connect(_research_task_db_path())) as connection:
+        connection.execute("DELETE FROM research_tasks")
+        connection.commit()
+
+
+def _task_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
+    created_at = str(row["createdAt"] or _utc_now())
+    updated_at = str(row["updatedAt"] or created_at)
+    return {
+        "taskId": str(row["taskId"] or ""),
+        "traceId": str(row["traceId"] or ""),
+        "status": str(row["status"] or "failed"),
+        "stage": str(row["stage"] or DONE_STAGE),
+        "progress": float(row["progress"] or 0.0),
+        "question": str(row["question"] or ""),
+        "pdfId": str(row["pdfId"] or ""),
+        "plan": _safe_json_list(row["plan"]),
+        "findings": _safe_json_list(row["findings"]),
+        "report": str(row["report"] or ""),
+        "error": str(row["error"] or ""),
+        "createdAt": created_at,
+        "updatedAt": updated_at,
+    }
+
+
+def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
+    now = _utc_now()
+    created_at = str(task.get("createdAt") or now)
+    updated_at = str(task.get("updatedAt") or created_at)
+    return {
+        "taskId": str(task.get("taskId") or ""),
+        "traceId": str(task.get("traceId") or ""),
+        "status": str(task.get("status") or "pending"),
+        "stage": str(task.get("stage") or PLANNING_STAGE),
+        "progress": float(task.get("progress") or 0.0),
+        "question": str(task.get("question") or ""),
+        "pdfId": str(task.get("pdfId") or ""),
+        "plan": list(task.get("plan") or []),
+        "findings": list(task.get("findings") or []),
+        "report": str(task.get("report") or ""),
+        "error": str(task.get("error") or ""),
+        "createdAt": created_at,
+        "updatedAt": updated_at,
+    }
+
+
+def _safe_json_list(value: Any) -> List[Any]:
+    try:
+        parsed = json.loads(str(value or "[]"))
+    except json.JSONDecodeError:
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def _research_task_db_path() -> Path:
+    configured = os.environ.get("RESEARCH_TASK_DB_PATH")
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[1] / "data" / "research_tasks.sqlite3"
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

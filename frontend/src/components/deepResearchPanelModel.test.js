@@ -9,6 +9,7 @@ import {
   getResearchStatusMeta,
   getResearchVerdictMeta,
   normalizeResearchTask,
+  shouldRestoreLatestResearchTask,
 } from './deepResearchPanelModel.js';
 
 
@@ -39,6 +40,7 @@ const run = async () => {
 
   const normalizedRunningTask = normalizeResearchTask({
     taskId: 'task-1',
+    traceId: 'trace-1',
     status: 'running',
     stage: 'retrieving',
     progress: 1.8,
@@ -60,8 +62,11 @@ const run = async () => {
     ],
     report: null,
     error: null,
+    createdAt: '2026-06-01T10:00:00Z',
+    updatedAt: '2026-06-01T10:02:00Z',
   });
 
+  assert.equal(normalizedRunningTask.traceId, 'trace-1');
   assert.equal(normalizedRunningTask.progress, 1);
   assert.deepEqual(normalizedRunningTask.plan, ['子问题一', '子问题二']);
   assert.equal(normalizedRunningTask.findings[0].verdict, 'AMBIGUOUS');
@@ -71,6 +76,8 @@ const run = async () => {
   assert.equal(normalizedRunningTask.findings[1].summary, '暂无结论摘要。');
   assert.equal(normalizedRunningTask.findings[1].verdict, 'INCORRECT');
   assert.equal(normalizedRunningTask.report, '');
+  assert.equal(normalizedRunningTask.createdAt, '2026-06-01T10:00:00Z');
+  assert.equal(normalizedRunningTask.updatedAt, '2026-06-01T10:02:00Z');
 
   const snapshot = createDeepResearchSnapshot({
     pdfFileName: 'paper.pdf',
@@ -114,6 +121,11 @@ const run = async () => {
   assert.deepEqual(snapshot.missingAspectCounts, [0, 1]);
   assert.equal(snapshot.hasReport, true);
   assert.equal(snapshot.errorText, '任务状态已丢失');
+
+  assert.equal(shouldRestoreLatestResearchTask('paper-1', createEmptyDeepResearchState()), true);
+  assert.equal(shouldRestoreLatestResearchTask('', createEmptyDeepResearchState()), false);
+  assert.equal(shouldRestoreLatestResearchTask('paper-1', { task: { taskId: 'task-1' } }), false);
+  assert.equal(shouldRestoreLatestResearchTask('paper-1', { task: null, isCreating: true }), false);
 
   console.log('deep research panel model smoke tests passed');
 };

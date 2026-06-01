@@ -17,6 +17,7 @@ Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它
 - 中间阅读区：PDF 阅读器、页码状态、划词解释与高亮。
 - 右侧功能区：问答、篇章解构、批判阅读、逐页翻译、背景补课、引导学习、深度研究、笔记。
 - 论文库弹窗：以大表格方式集中管理已上传论文。
+- 深度研究任务会在 Python AI 服务中保存 SQLite 快照；页面刷新后可按当前论文恢复最近任务，服务重启前未结束的任务会恢复为失败状态并提示重新发起。
 
 后端当前支持通过 GROBID 解析真实论文结构，并通过目录抽取层融合 TEI 章节标题、段落级版面标题候选和 PDF 行级标题候选，在新解析结果中返回 `displayTitle`、`rawTitle`、`level`、`parentId`、`headingNumber`、`pageIndex`、`bbox`、`anchorY`、`source` 和 `confidence` 等字段。前端篇章目录会优先使用这些字段生成多级树，并支持页码跳转、当前章节高亮、搜索过滤和折叠展开。
 
@@ -100,6 +101,9 @@ NEO4J_URI=
 NEO4J_USER=
 NEO4J_PASSWORD=
 NEO4J_AUTH=neo4j/pixiu_neo4j_password
+
+# 可选：深度研究任务快照数据库路径
+RESEARCH_TASK_DB_PATH=ai-service-python/data/research_tasks.sqlite3
 ```
 
 前端可选环境变量：
@@ -171,6 +175,8 @@ cd ai-service-python
 pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
+
+本地直接运行 Python 服务时，深度研究任务快照默认写入 `ai-service-python/data/research_tasks.sqlite3`。Docker Compose 会将 `RESEARCH_TASK_DB_PATH` 设置为 `/app/data/research_tasks.sqlite3`，并通过 `research_task_data` volume 保留快照。
 
 GROBID 建议继续使用 Docker：
 

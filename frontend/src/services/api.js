@@ -65,6 +65,9 @@ export const createApiService = (client) => ({
 
   getResearchTask: async (taskId) => client.get(`/research-tasks/${encodeURIComponent(taskId)}`),
 
+  getLatestResearchTask: async (pdfId) =>
+    client.get(`/research-tasks/latest?pdfId=${encodeURIComponent(pdfId)}`),
+
   cancelResearchTask: async (taskId) =>
     client.post(`/research-tasks/${encodeURIComponent(taskId)}/cancel`),
 

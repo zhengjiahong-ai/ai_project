@@ -63,6 +63,9 @@ const run = async () => {
   await getResearchService.getResearchTask('task-1');
   assert.equal(getResearchUrl, '/research-tasks/task-1');
 
+  await getResearchService.getLatestResearchTask('paper 1');
+  assert.equal(getResearchUrl, '/research-tasks/latest?pdfId=paper%201');
+
   let cancelResearchUrl = '';
   const cancelResearchService = createApiService({
     post: async (url) => {

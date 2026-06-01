@@ -132,6 +132,7 @@ export const normalizeResearchTask = (task) => {
 
   return {
     taskId: normalizeText(task.taskId),
+    traceId: normalizeText(task.traceId),
     status: normalizedStatus,
     stage: normalizedStage,
     progress: clampResearchProgress(task.progress),
@@ -151,7 +152,17 @@ export const normalizeResearchTask = (task) => {
     }),
     report: typeof task.report === 'string' ? task.report : '',
     error: normalizeText(task.error),
+    createdAt: normalizeText(task.createdAt),
+    updatedAt: normalizeText(task.updatedAt),
   };
+};
+
+export const shouldRestoreLatestResearchTask = (pdfId, state) => {
+  if (!normalizeText(pdfId)) {
+    return false;
+  }
+  const currentState = state || createEmptyDeepResearchState();
+  return !currentState.task?.taskId && !currentState.isCreating && !currentState.isCancelling;
 };
 
 export const createDeepResearchSnapshot = ({

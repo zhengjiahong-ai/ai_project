@@ -143,6 +143,28 @@ class AcademicControllerTest {
     }
 
     @Test
+    void getLatestResearchTaskReturnsSnapshotForPdf() throws Exception {
+        when(aiService.getLatestResearchTask("paper-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "task", Map.of(
+                        "taskId", "task-latest",
+                        "status", "succeeded",
+                        "stage", "done",
+                        "progress", 1.0,
+                        "question", "最近任务",
+                        "pdfId", "paper-1",
+                        "plan", List.of("Q1"),
+                        "findings", List.of(),
+                        "report", "report",
+                        "error", ""))));
+
+        mockMvc.perform(get("/api/research-tasks/latest").param("pdfId", "paper-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.task.taskId").value("task-latest"))
+                .andExpect(jsonPath("$.task.status").value("succeeded"));
+    }
+
+    @Test
     void cancelResearchTaskReturnsCancelledSnapshot() throws Exception {
         when(aiService.cancelResearchTask("task-1")).thenReturn(ResponseEntity.ok(Map.of(
                 "status", "success",

@@ -2,6 +2,14 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-01 v0.1.6-research-persistence.1
+
+1. **新增深度研究任务持久化**：Python AI 服务使用标准库 SQLite 保存任务快照，覆盖任务 ID、trace ID、状态、阶段、进度、问题、论文 ID、计划、findings、报告、错误和创建/更新时间。
+2. **支持按论文恢复最近任务**：新增兼容式 `GET /api/research-tasks/latest?pdfId=...`，Java 网关转发到 Python，前端刷新后可按当前论文恢复最近一个深度研究快照。
+3. **明确服务重启语义**：已结束任务可从快照恢复；服务重启前仍在运行或等待的任务恢复为 `failed`，并提示用户重新发起，避免误判任务仍在后台执行。
+4. **补齐持久化验证**：新增 Python SQLite 快照、重启恢复和 latest 查询测试，新增 Java 转发/Controller 测试，新增前端 API 与任务模型兼容测试。
+5. **更新运行与接口文档**：Docker Compose 增加 `research_task_data` volume 和 `RESEARCH_TASK_DB_PATH`，README 与 `docs/CONSTRAINTS.md` 同步记录持久化路径、字段和接口契约。
+
 ### 2026-05-29 v0.1.6-citations.1
 
 1. **增强聊天证据引用展示**：`/api/chat` 响应新增兼容式 `sentenceSourceMap`，按回答关键句绑定同次 `rag_sources` 中的 `sourceId`，前端聊天卡片可展开查看引用片段。
