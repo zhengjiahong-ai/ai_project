@@ -18,6 +18,7 @@ export const normalizeKnowledgeLevel = (value) => {
 export const normalizeGraph = (data) => {
   const nodes = Array.isArray(data?.graph?.nodes) ? data.graph.nodes : [];
   const links = Array.isArray(data?.graph?.links) ? data.graph.links : [];
+  const edges = Array.isArray(data?.graph?.edges) ? data.graph.edges : [];
 
   return {
     nodes: nodes.map((node, index) => {
@@ -40,11 +41,23 @@ export const normalizeGraph = (data) => {
         color: node.type === 'paper' ? '#4D0099' : stageMeta.color,
       };
     }),
-    links: links.map((link) => ({
+    links: (links.length > 0 ? links : edges.map((edge) => ({
+      source: edge.source,
+      target: edge.target,
+      relation: edge.type || 'prerequisite',
+      label: edge.type === 'prerequisite' ? '前置' : edge.type || 'related',
+    }))).map((link) => ({
       source: link.source,
       target: link.target,
       relation: link.relation || 'related',
       label: link.label || link.relation || 'related',
+    })),
+    edges: edges.map((edge) => ({
+      source: edge.source,
+      target: edge.target,
+      type: edge.type || 'prerequisite',
+      sourceIds: Array.isArray(edge.sourceIds) ? edge.sourceIds : [],
+      confidenceReason: edge.confidenceReason || '',
     })),
   };
 };
@@ -52,13 +65,13 @@ export const normalizeGraph = (data) => {
 export const resolveLearningPathSections = (data) => {
   const sections = Array.isArray(data?.learning_path_sections) ? data.learning_path_sections : [];
   if (sections.length > 0) {
-    return sections
+    return sortSectionsByPrerequisites(data, sections
       .map((section) => ({
         key: section.key || 'custom',
         title: section.title || '学习路径',
         items: Array.isArray(section.items) ? section.items : [],
       }))
-      .filter((section) => section.items.length > 0);
+      .filter((section) => section.items.length > 0));
   }
 
   const learningPath = Array.isArray(data?.learning_path) ? data.learning_path : [];
@@ -66,7 +79,7 @@ export const resolveLearningPathSections = (data) => {
     return [];
   }
 
-  return [{
+  return sortSectionsByPrerequisites(data, [{
     key: 'legacy',
     title: '学习路径',
     items: learningPath.map((step, index) => ({
@@ -78,7 +91,133 @@ export const resolveLearningPathSections = (data) => {
       stageLabel: step.stageLabel || '学习路径',
       step: step.step || index + 1,
     })),
-  }];
+  }]);
+};
+
+const getConceptIds = (item) => (Array.isArray(item?.conceptIds) ? item.conceptIds : [])
+  .map((conceptId) => `${conceptId}`.trim())
+  .filter(Boolean);
+
+const buildNodeLabelMap = (data) => new Map(
+  (Array.isArray(data?.graph?.nodes) ? data.graph.nodes : [])
+    .filter((node) => node?.id)
+    .map((node) => [node.id, node.label || node.name || node.id]),
+);
+
+const getPrerequisiteEdges = (data, itemByConcept) => {
+  const graphEdges = Array.isArray(data?.graph?.edges) ? data.graph.edges : [];
+  const graphLinks = Array.isArray(data?.graph?.links) ? data.graph.links : [];
+  const candidates = graphEdges.length > 0
+    ? graphEdges
+    : graphLinks.map((link) => ({ ...link, type: link.relation }));
+
+  const validEdges = [];
+  const seen = new Set();
+  candidates.forEach((edge) => {
+    const source = `${edge?.source ?? ''}`.trim();
+    const target = `${edge?.target ?? ''}`.trim();
+    const type = `${edge?.type ?? edge?.relation ?? ''}`.trim();
+    const key = `${source}->${target}`;
+    if (type !== 'prerequisite' || !source || !target || source === target || seen.has(key)) {
+      return;
+    }
+    if (!itemByConcept.has(source) || !itemByConcept.has(target)) {
+      return;
+    }
+    seen.add(key);
+    validEdges.push({
+      source,
+      target,
+      sourceIds: Array.isArray(edge.sourceIds) ? edge.sourceIds : [],
+      confidenceReason: edge.confidenceReason || '',
+    });
+  });
+  return validEdges;
+};
+
+const topologicalItemOrder = (items, prerequisiteEdges) => {
+  if (items.length <= 1 || prerequisiteEdges.length === 0) {
+    return items;
+  }
+
+  const itemIndex = new Map(items.map((item, index) => [item, index]));
+  const outgoing = new Map(items.map((item) => [item, []]));
+  const indegree = new Map(items.map((item) => [item, 0]));
+
+  prerequisiteEdges.forEach((edge) => {
+    const sourceItem = edge.sourceItem;
+    const targetItem = edge.targetItem;
+    if (!sourceItem || !targetItem || sourceItem === targetItem) {
+      return;
+    }
+    outgoing.get(sourceItem).push(targetItem);
+    indegree.set(targetItem, (indegree.get(targetItem) || 0) + 1);
+  });
+
+  const ready = items.filter((item) => (indegree.get(item) || 0) === 0);
+  const sorted = [];
+  while (ready.length > 0) {
+    ready.sort((a, b) => itemIndex.get(a) - itemIndex.get(b));
+    const item = ready.shift();
+    sorted.push(item);
+    outgoing.get(item).forEach((nextItem) => {
+      indegree.set(nextItem, (indegree.get(nextItem) || 0) - 1);
+      if (indegree.get(nextItem) === 0) {
+        ready.push(nextItem);
+      }
+    });
+  }
+
+  return sorted.length === items.length ? sorted : items;
+};
+
+const sortSectionsByPrerequisites = (data, sections) => {
+  const allItems = sections.flatMap((section) => section.items);
+  if (allItems.length <= 1) {
+    return sections;
+  }
+
+  const itemByConcept = new Map();
+  allItems.forEach((item) => {
+    getConceptIds(item).forEach((conceptId) => {
+      if (!itemByConcept.has(conceptId)) {
+        itemByConcept.set(conceptId, item);
+      }
+    });
+  });
+
+  const prerequisiteEdges = getPrerequisiteEdges(data, itemByConcept).map((edge) => ({
+    ...edge,
+    sourceItem: itemByConcept.get(edge.source),
+    targetItem: itemByConcept.get(edge.target),
+  }));
+  if (prerequisiteEdges.length === 0) {
+    return sections;
+  }
+
+  const nodeLabels = buildNodeLabelMap(data);
+  const sortedItems = topologicalItemOrder(allItems, prerequisiteEdges);
+  const rank = new Map(sortedItems.map((item, index) => [item, index]));
+  const outgoingByItem = new Map();
+  prerequisiteEdges.forEach((edge) => {
+    const current = outgoingByItem.get(edge.sourceItem) || [];
+    current.push({
+      target: nodeLabels.get(edge.target) || edge.target,
+      sourceIds: edge.sourceIds,
+      confidenceReason: edge.confidenceReason,
+    });
+    outgoingByItem.set(edge.sourceItem, current);
+  });
+
+  return sections.map((section) => ({
+    ...section,
+    items: [...section.items]
+      .sort((a, b) => (rank.get(a) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b) ?? Number.MAX_SAFE_INTEGER))
+      .map((item) => ({
+        ...item,
+        prerequisiteEdges: outgoingByItem.get(item) || [],
+      })),
+  }));
 };
 
 export const createGenerateHandler = (onGenerate, knowledgeLevel) => () =>

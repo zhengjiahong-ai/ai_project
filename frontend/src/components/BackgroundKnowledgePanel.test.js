@@ -146,6 +146,60 @@ const run = async () => {
   assert.deepEqual(structuredSnapshot.uncoveredNodeLabels, ['局限性审视']);
   assert.equal(structuredSnapshot.neo4jMessage, 'Knowledge graph persisted to Neo4j.');
 
+  const dependencyData = {
+    graph: {
+      nodes: [
+        { id: 'current-paper', label: 'AcademicRAG', type: 'paper', stage: 'critical_perspective' },
+        { id: 'rag', label: 'RAG', stage: 'foundation' },
+        { id: 'graph-retrieval', label: '图检索', stage: 'method_prerequisite' },
+        { id: 'critical-view', label: '局限性审视', stage: 'critical_perspective' },
+      ],
+      edges: [
+        { source: 'rag', target: 'graph-retrieval', type: 'prerequisite', sourceIds: ['source-1'] },
+        { source: 'graph-retrieval', target: 'critical-view', type: 'prerequisite', confidenceReason: '先理解图检索，再审视局限。' },
+        { source: 'missing', target: 'critical-view', type: 'prerequisite' },
+      ],
+    },
+    learning_path: [
+      { step: 1, title: '局限性审视', conceptIds: ['critical-view'] },
+      { step: 2, title: '图检索', conceptIds: ['graph-retrieval'] },
+      { step: 3, title: 'RAG', conceptIds: ['rag'] },
+    ],
+  };
+
+  const dependencySections = resolveLearningPathSections(dependencyData);
+  assert.deepEqual(
+    dependencySections.flatMap((section) => section.items.map((item) => item.title)),
+    ['RAG', '图检索', '局限性审视'],
+  );
+  assert.deepEqual(dependencySections[0].items[0].prerequisiteEdges, [
+    { target: '图检索', sourceIds: ['source-1'], confidenceReason: '' },
+  ]);
+  assert.deepEqual(dependencySections[0].items[1].prerequisiteEdges, [
+    { target: '局限性审视', sourceIds: [], confidenceReason: '先理解图检索，再审视局限。' },
+  ]);
+
+  const cyclicData = {
+    graph: {
+      nodes: [
+        { id: 'a', label: 'A', stage: 'foundation' },
+        { id: 'b', label: 'B', stage: 'foundation' },
+      ],
+      edges: [
+        { source: 'a', target: 'b', type: 'prerequisite' },
+        { source: 'b', target: 'a', type: 'prerequisite' },
+      ],
+    },
+    learning_path: [
+      { step: 1, title: 'B', conceptIds: ['b'] },
+      { step: 2, title: 'A', conceptIds: ['a'] },
+    ],
+  };
+  assert.deepEqual(
+    resolveLearningPathSections(cyclicData).flatMap((section) => section.items.map((item) => item.title)),
+    ['B', 'A'],
+  );
+
   console.log('background knowledge panel model smoke tests passed');
 };
 

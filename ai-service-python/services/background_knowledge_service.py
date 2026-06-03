@@ -373,6 +373,15 @@ Return valid JSON only with this exact shape:
         "relation": "prerequisite|supports|explains|extends|related",
         "label": "short relation label"
       }}
+    ],
+    "edges": [
+      {{
+        "source": "prerequisite-node-id",
+        "target": "dependent-node-id",
+        "type": "prerequisite",
+        "sourceIds": ["source-1"],
+        "confidenceReason": "short reason when sourceIds are empty"
+      }}
     ]
   }}
 }}
@@ -384,6 +393,8 @@ Rules:
 - Prefer 6 to 10 concept nodes.
 - sourceIds can only use these ids: {allowed_source_ids if allowed_source_ids else []}.
 - If no snippet supports a concept, use [] instead of inventing citations.
+- graph.edges should include prerequisite edges where source must be learned before target.
+- Each graph.edges item must have type "prerequisite" and should include valid sourceIds or a short confidenceReason.
 
 Paper topic:
 {paper_topic}
@@ -459,6 +470,7 @@ def _normalize_payload(
 def _normalize_graph(graph: Any, paper_topic: str) -> Tuple[Dict[str, list], Dict[str, str]]:
     raw_nodes = graph.get("nodes") if isinstance(graph, dict) else []
     raw_links = graph.get("links") if isinstance(graph, dict) else []
+    raw_edges = graph.get("edges") if isinstance(graph, dict) else []
     nodes_by_id: Dict[str, Dict[str, Any]] = {}
     node_order: List[str] = []
     aliases: Dict[str, str] = {}
@@ -554,7 +566,55 @@ def _normalize_graph(graph: Any, paper_topic: str) -> Tuple[Dict[str, list], Dic
                 "label": "前置",
             })
 
-    return {"nodes": [nodes_by_id[node_id] for node_id in node_order], "links": links}, aliases
+    edges = _normalize_prerequisite_edges(raw_edges, links, aliases, node_ids)
+
+    return {"nodes": [nodes_by_id[node_id] for node_id in node_order], "links": links, "edges": edges}, aliases
+
+
+def _normalize_prerequisite_edges(
+    raw_edges: Any,
+    links: List[dict],
+    aliases: Dict[str, str],
+    node_ids: set,
+) -> List[dict]:
+    edges: List[dict] = []
+    seen_edges = set()
+
+    edge_candidates = raw_edges if isinstance(raw_edges, list) else []
+    link_candidates = [
+        {**link, "type": "prerequisite"}
+        for link in links
+        if isinstance(link, dict) and _normalize_relation(link.get("relation")) == "prerequisite"
+    ]
+
+    for item in [*edge_candidates, *link_candidates]:
+        if not isinstance(item, dict):
+            continue
+
+        edge_type = str(item.get("type") or item.get("relation") or "").strip().lower().replace("-", "_")
+        if edge_type != "prerequisite":
+            continue
+
+        source = _resolve_alias(aliases, item.get("source"))
+        target = _resolve_alias(aliases, item.get("target"))
+        if source not in node_ids or target not in node_ids or source == target:
+            continue
+
+        key = (source, target, "prerequisite")
+        if key in seen_edges:
+            continue
+        seen_edges.add(key)
+
+        confidence_reason = str(item.get("confidenceReason") or item.get("reason") or "").strip()
+        edges.append({
+            "source": source,
+            "target": target,
+            "type": "prerequisite",
+            "sourceIds": _coerce_list_of_strings(item.get("sourceIds")),
+            "confidenceReason": confidence_reason,
+        })
+
+    return edges
 
 
 def _normalize_background(value: Any, graph: Dict[str, list], aliases: Dict[str, str]) -> List[str]:
@@ -778,7 +838,19 @@ def _linear_graph(paper_topic: str, background: List[str]) -> Dict[str, list]:
             "label": "前置",
         })
 
-    return {"nodes": nodes, "links": links}
+    edges = [
+        {
+            "source": link["source"],
+            "target": link["target"],
+            "type": "prerequisite",
+            "sourceIds": [],
+            "confidenceReason": "根据补课清单顺序推断的前置学习关系。",
+        }
+        for link in links
+        if _normalize_relation(link.get("relation")) == "prerequisite"
+    ]
+
+    return {"nodes": nodes, "links": links, "edges": edges}
 
 
 def _attach_graph_metadata(graph: Dict[str, list], rag_sources: List[dict]) -> Dict[str, list]:
@@ -810,7 +882,55 @@ def _attach_graph_metadata(graph: Dict[str, list], rag_sources: List[dict]) -> D
         normalized["confidence"] = _compute_node_confidence(normalized)
         normalized_nodes.append(normalized)
 
-    return {"nodes": normalized_nodes, "links": graph.get("links", [])}
+    normalized_edges = _attach_edge_metadata(graph.get("edges", []), normalized_nodes, valid_source_ids)
+
+    return {"nodes": normalized_nodes, "links": graph.get("links", []), "edges": normalized_edges}
+
+
+def _attach_edge_metadata(edges: Any, nodes: List[dict], valid_source_ids: set) -> List[dict]:
+    node_map = {
+        str(node.get("id")): node
+        for node in nodes
+        if isinstance(node, dict) and node.get("id")
+    }
+    normalized_edges: List[dict] = []
+    seen_edges = set()
+
+    for edge in edges if isinstance(edges, list) else []:
+        if not isinstance(edge, dict):
+            continue
+
+        source = str(edge.get("source") or "").strip()
+        target = str(edge.get("target") or "").strip()
+        if source not in node_map or target not in node_map or source == target:
+            continue
+
+        edge_type = str(edge.get("type") or "").strip().lower().replace("-", "_")
+        if edge_type != "prerequisite":
+            continue
+
+        key = (source, target, "prerequisite")
+        if key in seen_edges:
+            continue
+        seen_edges.add(key)
+
+        confidence_reason = str(edge.get("confidenceReason") or "").strip()
+        source_ids = _normalize_source_ids(edge.get("sourceIds"), valid_source_ids)
+        if not source_ids and not confidence_reason:
+            source_node = node_map.get(source) or {}
+            source_ids = _normalize_source_ids(source_node.get("sourceIds"), valid_source_ids)
+        if not source_ids and not confidence_reason:
+            confidence_reason = "根据概念顺序、阶段和学习路径推断的前置关系。"
+
+        normalized_edges.append({
+            "source": source,
+            "target": target,
+            "type": "prerequisite",
+            "sourceIds": source_ids,
+            "confidenceReason": confidence_reason,
+        })
+
+    return normalized_edges
 
 
 def _build_source_coverage(graph: Dict[str, list]) -> Dict[str, Any]:
@@ -906,20 +1026,44 @@ def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None
             **node,
         )
 
-    for link in graph.get("links", []):
-        relation_type = RELATION_TYPE_MAP.get(_normalize_relation(link.get("relation")), "RELATED_TO")
+    relationship_items = list(graph.get("links", []))
+    relationship_items.extend(
+        {
+            "source": edge.get("source"),
+            "target": edge.get("target"),
+            "relation": edge.get("type"),
+            "label": "前置",
+            "sourceIds": edge.get("sourceIds", []),
+            "confidenceReason": edge.get("confidenceReason", ""),
+        }
+        for edge in graph.get("edges", [])
+        if isinstance(edge, dict)
+    )
+    seen_relationships = set()
+
+    for link in relationship_items:
+        relation = _normalize_relation(link.get("relation"))
+        relation_key = (link.get("source"), link.get("target"), relation)
+        if relation_key in seen_relationships:
+            continue
+        seen_relationships.add(relation_key)
+        relation_type = RELATION_TYPE_MAP.get(relation, "RELATED_TO")
         tx.run(
             f"""
             MATCH (source:Concept {{id: $source}})
             MATCH (target:Concept {{id: $target}})
             MERGE (source)-[r:{relation_type}]->(target)
             SET r.label = $label,
-                r.relation = $relation
+                r.relation = $relation,
+                r.sourceIds = $sourceIds,
+                r.confidenceReason = $confidenceReason
             """,
             source=link.get("source"),
             target=link.get("target"),
             label=link.get("label"),
-            relation=link.get("relation"),
+            relation=relation,
+            sourceIds=_coerce_list_of_strings(link.get("sourceIds")),
+            confidenceReason=str(link.get("confidenceReason") or ""),
         )
 
 

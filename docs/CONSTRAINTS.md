@@ -131,6 +131,15 @@
 - Java `/api/critical-reading/{pdfId}` 继续保持 `{ status, pdfId, analysis }` 包裹结构，`analysis.claims` 作为兼容式新增字段透传。
 - 论点-证据验证只做当前论文内的证据支撑判断，不做外部论文对比、真实新颖性评分训练或自动 novelty 排名。
 
+## 2026-06-03 背景知识图谱前置依赖边补充
+
+- `/api/background-knowledge` 请求体保持不变；Python 成功响应可兼容新增 `graph.edges`，用于表达概念之间的前置学习依赖。
+- `graph.edges[*]` 字段固定为 `{ source, target, type, sourceIds?, confidenceReason? }`；其中 `type` 当前只允许 `prerequisite`，语义为 `source` 是 `target` 的前置知识。
+- `graph.edges[*].source` 与 `target` 必须引用同一响应 `graph.nodes[*].id`，禁止自环、悬空节点和重复边。
+- `graph.edges[*].sourceIds` 必须是同一响应 `rag_sources[*].sourceId` 的子集；无法可靠绑定依据时必须提供简短 `confidenceReason`，不得生成脱离本次响应的伪引用。
+- 前端必须兼容旧响应缺少 `graph.edges` 的情况；存在 `prerequisite` 边时学习路径按前置依赖排序，遇到环形依赖或坏边时降级为原稳定顺序。
+- Neo4j 仍为可选增强；未配置或写入失败不得阻断 `/api/background-knowledge` 成功响应。
+
 ---
 
 ## 一、技术栈要求

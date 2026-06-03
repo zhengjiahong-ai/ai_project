@@ -226,7 +226,15 @@ const BackgroundKnowledgePanel = ({
                         key={`${section.key}-${step.title}-${index}`}
                         title={`${step.step || index + 1}. ${step.title}`}
                         summary={step.goal || `${step.title} 是当前阶段的重要补课节点。`}
-                        keyPoints={step.stageLabel ? [step.stageLabel] : []}
+                        keyPoints={[
+                          ...(step.stageLabel ? [step.stageLabel] : []),
+                          ...(Array.isArray(step.prerequisiteEdges) ? step.prerequisiteEdges.map((edge) => {
+                            const sourceText = edge.sourceIds?.length
+                              ? `依据：${edge.sourceIds.join('、')}`
+                              : edge.confidenceReason || '基于学习路径推断';
+                            return `前置于：${edge.target}（${sourceText}）`;
+                          }) : []),
+                        ]}
                         content={step.goal || ''}
                         detailsTitle="展开学习说明"
                       />
