@@ -123,6 +123,14 @@
 - `sentenceSourceMap[*]` 字段固定为 `{ id, target, sentence, sourceIds, confidence }`；`sourceIds` 必须是同一响应 `rag_sources[*].sourceId` 的子集，禁止生成脱离本次 `rag_sources` 的伪引用。
 - 前端必须兼容旧响应缺少 `sentenceSourceMap` 或引用为空的情况；展示引用时只能展开同次响应里的证据片段，不得临时拼接新的检索请求。
 
+## 2026-06-03 批判阅读论点-证据验证补充
+
+- `/api/deep-analysis` 请求体保持不变；Python 成功响应可兼容新增 `claims`，用于结构化展示作者核心论点或贡献主张及其当前论文证据支撑情况。
+- `claims[*]` 字段固定为 `{ id, claim, supportLevel, evidenceSourceIds, missingEvidence, reason }`；`supportLevel` 只允许 `SUPPORTED`、`PARTIAL`、`UNSUPPORTED`。
+- `claims[*].evidenceSourceIds` 必须是同一响应 `rag_sources[*].sourceId` 的子集；证据不足时返回空数组和非空 `missingEvidence`，禁止生成脱离本次响应的伪引用。
+- Java `/api/critical-reading/{pdfId}` 继续保持 `{ status, pdfId, analysis }` 包裹结构，`analysis.claims` 作为兼容式新增字段透传。
+- 论点-证据验证只做当前论文内的证据支撑判断，不做外部论文对比、真实新颖性评分训练或自动 novelty 排名。
+
 ---
 
 ## 一、技术栈要求
@@ -193,7 +201,7 @@
 | POST | `/api/chat` | `{ "message": string, "pdfId": any, "history": array?, "paperSkeleton": object? }` | 对话，Java 持久化当前论文会话并转发到 Python `/api/chat`；Python 使用轻量 Agentic RAG 流程（意图识别、查询计划、当前论文优先检索、证据质量判断、最多一次重试）返回回答、统一 `rag_sources` 与可选 `queryPlan`、`retrievalJudge`、`traceId`、`sentenceSourceMap` |
 | GET | `/api/chat/history/:sessionId` | - | 读取 Java H2 中按 `pdfId/sessionId` 保存的聊天历史，前端用于恢复远端会话 |
 | POST | `/api/translate-page` | `{ "pdfId": string?, "pageIndex": number, "pageText": string, "paperSkeleton": object?, "pageLayout": object? }` | 逐页翻译，Java 转发到 Python `/api/translate-page`，支持版面块与译文缓存 |
-| POST | `/api/critical-reading/:pdfId` | - | 批判性阅读，Java 转发到 Python `/api/deep-analysis`；Java 继续返回 `{ status, pdfId, analysis }` 包裹结构，其中 `analysis` 为基于当前论文全文 chunks 的结构化批判阅读结果，并可兼容附带 `analysis.traceId` 与 `analysis.sentenceSourceMap` |
+| POST | `/api/critical-reading/:pdfId` | - | 批判性阅读，Java 转发到 Python `/api/deep-analysis`；Java 继续返回 `{ status, pdfId, analysis }` 包裹结构，其中 `analysis` 为基于当前论文全文 chunks 的结构化批判阅读结果，并可兼容附带 `analysis.traceId`、`analysis.sentenceSourceMap` 与 `analysis.claims` |
 | POST | `/api/socratic-questions` | `{ "paper_content": string, "reading_progress": string }` | 引导式学习（苏格拉底式提问），Java 转发到 Python `/api/socratic-questions` |
 | POST | `/api/socratic-session/start` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string }` | 启动 5 轮苏格拉底式引导会话，并在有 `pdfId` 时优先基于当前论文证据生成第 1 题 |
 | POST | `/api/socratic-session/answer` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string, "currentIndex": number, "currentQuestion": string, "userAnswer": string, "turns": array? }` | 提交当前回答，返回掌握度评估、提示与下一题或最终总结；`evaluation` 可附带 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态还可附带 `reviewSuggestions` |
@@ -215,7 +223,7 @@
 | POST explain → 转发 | POST `/api/explain-term` | 请求体 `{ term, context, pdfId?, pageNumber? }`，Python 返回 `{ status, term, explanation, rag_sources, queryPlan?, retrievalJudge?, traceId? }` |
 | POST chat → 转发 | POST `/api/chat` | 请求体 `{ message, pdfId?, history?, paperSkeleton? }`，Python 返回 `{ status, message, rag_sources, queryPlan?, retrievalJudge?, traceId?, sentenceSourceMap? }`，其中 `queryPlan` 兼容旧字段并可新增 `intent`、`needsRetrieval`、`queries`、`answerStyle`，且检索时优先使用当前论文证据 |
 | POST translate page → 转发 | POST `/api/translate-page` | 请求体 `{ pdfId?, pageIndex, pageText, paperSkeleton?, pageLayout? }`，Python 返回页级译文、译文块和渲染模式 |
-| POST critical reading → 转发 | POST `/api/deep-analysis` | Java 传 `{ pdf_id }`，Python 基于当前论文全文 chunks 生成结构化批判阅读结果并可兼容返回 `traceId` 与 `sentenceSourceMap`；Java 保持 `{ status, pdfId, analysis }` 包裹，不改对外契约 |
+| POST critical reading → 转发 | POST `/api/deep-analysis` | Java 传 `{ pdf_id }`，Python 基于当前论文全文 chunks 生成结构化批判阅读结果并可兼容返回 `traceId`、`sentenceSourceMap` 与 `claims`；Java 保持 `{ status, pdfId, analysis }` 包裹，不改对外契约 |
 | POST socratic questions → 转发 | POST `/api/socratic-questions` | 请求体 `{ paper_content, reading_progress }`，Python 返回 `{ status, questions }` |
 | POST socratic start → 转发 | POST `/api/socratic-session/start` | 请求体 `{ pdfId?, paperSkeleton?, readingProgress }`，Python 返回开场引导和第 1 题；有 `pdfId` 时优先基于当前论文证据组织首题 |
 | POST socratic answer → 转发 | POST `/api/socratic-session/answer` | 请求体包含当前题目、用户回答和历史轮次，Python 返回评估、下一题或最终总结；`evaluation` 可新增 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态可新增 `reviewSuggestions` |
@@ -239,7 +247,7 @@
 |------|-------------|--------|------|
 | POST | `/api/rag/add-literature` | `multipart/form-data`, 字段名 `file`，可选 metadata | 向 Python 文献库追加索引，当前前端未直接使用 |
 | POST | `/api/rag/retrieve` | query/top_k/filter_metadata | 直接检索 Python RAG，当前前端未直接使用 |
-| POST | `/api/deep-analysis` | `{ "paper_content": string? }` 或 `{ "pdf_id": string? }` | 深度/批判分析能力；兼容临时 `paper_content` 与当前论文 `pdf_id` 两种路径，成功响应除旧字段外还可包含 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence`、`rag_sources`、`traceId`、`sentenceSourceMap` |
+| POST | `/api/deep-analysis` | `{ "paper_content": string? }` 或 `{ "pdf_id": string? }` | 深度/批判分析能力；兼容临时 `paper_content` 与当前论文 `pdf_id` 两种路径，成功响应除旧字段外还可包含 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence`、`claims`、`rag_sources`、`traceId`、`sentenceSourceMap` |
 
 ---
 

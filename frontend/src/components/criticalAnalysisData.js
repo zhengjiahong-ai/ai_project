@@ -110,6 +110,23 @@ const SOURCE_TYPE_LABELS = {
   unknown: '未知来源',
 };
 
+const SUPPORT_LEVEL_LABELS = {
+  SUPPORTED: '已支撑',
+  PARTIAL: '部分支撑',
+  UNSUPPORTED: '证据不足',
+};
+
+const SUPPORT_LEVEL_STYLES = {
+  SUPPORTED: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600',
+  PARTIAL: 'border-amber-500/30 bg-amber-500/10 text-amber-600',
+  UNSUPPORTED: 'border-rose-500/30 bg-rose-500/10 text-rose-600',
+};
+
+const normalizeSupportLevel = (value) => {
+  const level = normalizeText(value).toUpperCase();
+  return SUPPORT_LEVEL_LABELS[level] ? level : 'PARTIAL';
+};
+
 export const getEvidencePreview = (data, maxItems = 5) => {
   if (!Array.isArray(data?.rag_sources)) {
     return [];
@@ -132,6 +149,63 @@ export const getEvidencePreview = (data, maxItems = 5) => {
         sourceLabel: SOURCE_TYPE_LABELS[sourceType] || SOURCE_TYPE_LABELS.unknown,
         text,
         chunkIndex: Number.isInteger(item?.chunkIndex) ? item.chunkIndex : null,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, maxItems);
+};
+
+export const getClaimSupportRows = (data, maxItems = 6) => {
+  if (!Array.isArray(data?.claims)) {
+    return [];
+  }
+
+  const sourceMap = new Map(
+    (Array.isArray(data?.rag_sources) ? data.rag_sources : [])
+      .map((source, index) => {
+        const sourceId = normalizeText(source?.sourceId) || normalizeText(source?.id) || `source-${index + 1}`;
+        if (!sourceId) {
+          return null;
+        }
+        return [
+          sourceId,
+          {
+            sourceId,
+            preview: truncate(source?.text, 120),
+            text: normalizeText(source?.text),
+            sourceType: normalizeText(source?.sourceType) || 'unknown',
+            chunkIndex: Number.isInteger(source?.chunkIndex) ? source.chunkIndex : null,
+          },
+        ];
+      })
+      .filter(Boolean),
+  );
+
+  return data.claims
+    .map((item, index) => {
+      const claim = normalizeText(item?.claim);
+      if (!claim) {
+        return null;
+      }
+
+      const supportLevel = normalizeSupportLevel(item?.supportLevel);
+      const evidenceSourceIds = Array.isArray(item?.evidenceSourceIds)
+        ? item.evidenceSourceIds.map((sourceId) => normalizeText(sourceId)).filter(Boolean)
+        : [];
+      const sources = evidenceSourceIds
+        .map((sourceId) => sourceMap.get(sourceId))
+        .filter(Boolean);
+
+      return {
+        id: normalizeText(item?.id) || `claim-${index + 1}`,
+        claim,
+        supportLevel,
+        supportLabel: SUPPORT_LEVEL_LABELS[supportLevel],
+        supportClassName: SUPPORT_LEVEL_STYLES[supportLevel],
+        evidenceSourceIds,
+        sources,
+        missingEvidence: normalizeList(item?.missingEvidence),
+        reason: normalizeText(item?.reason) || '暂无理由。',
       };
     })
     .filter(Boolean)

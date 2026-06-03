@@ -70,6 +70,7 @@ class CitationResponseTests(unittest.TestCase):
             ),
             patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
             patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
+            patch.object(analysis_service, "_extract_claims_with_llm", return_value=[]),
         ):
             response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
 
@@ -78,6 +79,192 @@ class CitationResponseTests(unittest.TestCase):
 
         self.assertEqual(response_source_ids, {"analysis-source-1"})
         self.assertEqual(emitted_source_ids, {"analysis-source-1"})
+
+    def test_deep_analysis_claims_only_reference_response_sources(self):
+        axis_result = {
+            "key": "contributions",
+            "label": "贡献与创新",
+            "question": "贡献是什么？",
+            "queryPlan": {},
+            "judge": {"verdict": "CORRECT", "confidence": 0.8},
+            "evidence": [
+                {
+                    "sourceId": "analysis-source-1",
+                    "text": "作者提出新的检索排序方法，并在问答实验中报告准确率提升。",
+                    "sourceType": "current_paper",
+                }
+            ],
+        }
+        report = {
+            "claimed_contributions": "作者提出新的检索排序方法。",
+            "evidence_based_contributions": "问答准确率提升有当前证据支撑。",
+            "inferred_real_contributions": "问答准确率提升有当前证据支撑。",
+            "weaknesses": [],
+            "overclaim_risks": [],
+            "missing_evidence": [],
+            "critical_analysis": "检索排序方法和问答准确率提升都有证据支撑。",
+        }
+
+        with (
+            patch.object(
+                analysis_service,
+                "_load_analysis_source",
+                return_value=(
+                    [axis_result["evidence"][0]],
+                    "paper_content",
+                    None,
+                    "作者提出新的检索排序方法，并在问答实验中报告准确率提升。",
+                ),
+            ),
+            patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
+            patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
+            patch.object(analysis_service, "_extract_claims_with_llm", return_value=[]),
+        ):
+            response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
+
+        self.assertIn("claims", response)
+        self.assertGreaterEqual(len(response["claims"]), 1)
+        response_source_ids = {source["sourceId"] for source in response["rag_sources"]}
+        claim_source_ids = {source_id for claim in response["claims"] for source_id in claim["evidenceSourceIds"]}
+
+        self.assertTrue(claim_source_ids)
+        self.assertLessEqual(claim_source_ids, response_source_ids)
+
+    def test_deep_analysis_claim_without_evidence_is_unsupported(self):
+        axis_result = {
+            "key": "contributions",
+            "label": "贡献与创新",
+            "question": "贡献是什么？",
+            "queryPlan": {},
+            "judge": {"verdict": "INCORRECT", "confidence": 0.2, "missingAspects": ["实验指标"]},
+            "evidence": [],
+        }
+        report = {
+            "claimed_contributions": "作者声称提出通用框架。",
+            "evidence_based_contributions": "当前证据不足。",
+            "inferred_real_contributions": "当前证据不足。",
+            "weaknesses": [],
+            "overclaim_risks": ["缺少实验验证"],
+            "missing_evidence": ["缺少实验指标"],
+            "critical_analysis": "证据不足。",
+        }
+
+        with (
+            patch.object(
+                analysis_service,
+                "_load_analysis_source",
+                return_value=([], "paper_content", None, "作者声称提出通用框架。"),
+            ),
+            patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
+            patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
+        ):
+            response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
+
+        self.assertEqual(response["claims"][0]["supportLevel"], "UNSUPPORTED")
+        self.assertEqual(response["claims"][0]["evidenceSourceIds"], [])
+        self.assertTrue(response["claims"][0]["missingEvidence"])
+
+
+class AnalysisClaimSupportTests(unittest.TestCase):
+    def test_supported_claim_requires_experiment_or_metric_evidence(self):
+        axis_results = [
+            {
+                "key": "contributions",
+                "judge": {"verdict": "CORRECT", "confidence": 0.8},
+                "evidence": [
+                    {
+                        "sourceId": "c1",
+                        "text": "作者提出新的检索排序方法。",
+                        "sourceType": "current_paper",
+                    }
+                ],
+            },
+            {
+                "key": "experiments",
+                "judge": {"verdict": "CORRECT", "confidence": 0.82},
+                "evidence": [
+                    {
+                        "sourceId": "e1",
+                        "text": "实验结果显示，该方法在问答准确率上提升 8.2%，并优于 baseline。",
+                        "sourceType": "current_paper",
+                    }
+                ],
+            },
+        ]
+
+        claims = analysis_service._build_claim_support_items(
+            {"claimed_contributions": "作者提出新的检索排序方法。"},
+            axis_results,
+        )
+
+        self.assertEqual(claims[0]["supportLevel"], "SUPPORTED")
+        self.assertIn("e1", claims[0]["evidenceSourceIds"])
+
+    def test_author_claim_only_is_partial(self):
+        axis_results = [
+            {
+                "key": "contributions",
+                "judge": {"verdict": "CORRECT", "confidence": 0.72},
+                "evidence": [
+                    {
+                        "sourceId": "c1",
+                        "text": "本文贡献是提出新的检索排序方法。",
+                        "sourceType": "current_paper",
+                    }
+                ],
+            }
+        ]
+
+        claims = analysis_service._build_claim_support_items(
+            {"claimed_contributions": "作者提出新的检索排序方法。"},
+            axis_results,
+        )
+
+        self.assertEqual(claims[0]["supportLevel"], "PARTIAL")
+        self.assertIn("缺少", claims[0]["missingEvidence"][0])
+
+    def test_missing_evidence_is_unsupported(self):
+        claims = analysis_service._build_claim_support_items(
+            {"claimed_contributions": "作者提出通用框架。"},
+            [{"key": "contributions", "judge": {"verdict": "INCORRECT"}, "evidence": []}],
+        )
+
+        self.assertEqual(claims[0]["supportLevel"], "UNSUPPORTED")
+        self.assertEqual(claims[0]["evidenceSourceIds"], [])
+        self.assertTrue(claims[0]["missingEvidence"])
+
+    def test_llm_parse_failure_falls_back_to_valid_claims(self):
+        axis_results = [
+            {
+                "key": "contributions",
+                "judge": {"verdict": "CORRECT", "confidence": 0.72},
+                "evidence": [
+                    {
+                        "sourceId": "c1",
+                        "text": "本文贡献是提出新的检索排序方法。",
+                        "sourceType": "current_paper",
+                    }
+                ],
+            }
+        ]
+
+        class FakeLlm:
+            def _call(self, *_args, **_kwargs):
+                return "not json"
+
+        with (
+            patch.object(analysis_service, "get_llm", return_value=FakeLlm()),
+            patch.object(analysis_service, "parse_json_from_llm", side_effect=ValueError("bad json")),
+        ):
+            claims = analysis_service._build_claim_support_items(
+                {"claimed_contributions": "作者提出新的检索排序方法。"},
+                axis_results,
+                use_llm=True,
+            )
+
+        self.assertGreaterEqual(len(claims), 1)
+        self.assertLessEqual(len(claims), 6)
+        self.assertTrue(all(claim["id"].startswith("claim-") for claim in claims))
 
 
 if __name__ == "__main__":

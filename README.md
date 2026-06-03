@@ -232,7 +232,8 @@ docker restart ai_service_python
 
 - 通过 Java `/api/critical-reading/{pdfId}` 转发到 Python `/api/deep-analysis`。
 - 围绕贡献、方法、实验、局限进行证据化分析。
-- 支持展示薄弱点、过度主张风险、缺失证据和引用片段。
+- 支持展示薄弱点、过度主张风险、缺失证据、论点-证据验证和引用片段。
+- 论点-证据验证会提取作者核心主张，并按当前论文证据标记 `SUPPORTED`、`PARTIAL`、`UNSUPPORTED`；该功能不做外部论文对比或真实新颖性评分。
 
 ### 逐页翻译
 

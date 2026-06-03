@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-03 v0.1.6-claim-support.1
+
+1. **新增批判阅读论点-证据验证**：`/api/deep-analysis` 成功响应兼容新增 `claims`，提取作者核心主张并输出 `SUPPORTED`、`PARTIAL`、`UNSUPPORTED` 支撑度。
+2. **收紧证据引用边界**：每条 claim 的 `evidenceSourceIds` 只引用同次响应 `rag_sources` 中的 `sourceId`；证据不足时返回缺失证据说明，不生成伪引用。
+3. **增强前端批判阅读展示**：批判阅读面板新增紧凑的“论点-证据验证”区块，展示主张、支撑度、理由、缺失证据和来源片段。
+4. **补齐回归测试与接口文档**：新增 Python claim 支撑度与响应测试，扩展前端数据适配测试和 Java 透传测试，并同步 README 与 `docs/CONSTRAINTS.md`。
+
 ### 2026-06-01 v0.1.6-research-persistence.1
 
 1. **新增深度研究任务持久化**：Python AI 服务使用标准库 SQLite 保存任务快照，覆盖任务 ID、trace ID、状态、阶段、进度、问题、论文 ID、计划、findings、报告、错误和创建/更新时间。

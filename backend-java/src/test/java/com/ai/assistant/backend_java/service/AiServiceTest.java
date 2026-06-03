@@ -186,13 +186,24 @@ class AiServiceTest {
     @Test
     void criticalReadingWrapsPythonResponse() {
         when(restTemplate.postForObject(eq("http://python/api/deep-analysis"), any(Map.class), eq(Map.class)))
-                .thenReturn(Map.of("status", "success", "critical_analysis", "done"));
+                .thenReturn(Map.of(
+                        "status", "success",
+                        "critical_analysis", "done",
+                        "claims", List.of(Map.of(
+                                "id", "claim-1",
+                                "claim", "作者提出新的检索排序方法。",
+                                "supportLevel", "SUPPORTED"))));
 
         Map<String, Object> response = aiService.criticalReading("paper-1");
 
         assertEquals("success", response.get("status"));
         assertEquals("paper-1", response.get("pdfId"));
-        assertNotNull(response.get("analysis"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> analysis = (Map<String, Object>) response.get("analysis");
+        assertNotNull(analysis);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> claims = (List<Map<String, Object>>) analysis.get("claims");
+        assertEquals("SUPPORTED", claims.get(0).get("supportLevel"));
     }
 
     @Test

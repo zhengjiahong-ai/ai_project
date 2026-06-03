@@ -5,6 +5,7 @@ import {
   getDetailSections,
   getEvidencePreview,
   getEvidenceBasedContributions,
+  getClaimSupportRows,
   getSentenceSourceReferences,
   getStructuredSections,
 } from './criticalAnalysisData.js';
@@ -69,6 +70,36 @@ const run = async () => {
   assert.equal(references.length, 1);
   assert.equal(references[0].sourceIds[0], 'chunk-1');
   assert.equal(references[0].sources[0].preview, '当前论文片段 1');
+
+  assert.deepEqual(getClaimSupportRows(legacyPayload), []);
+
+  const claimRows = getClaimSupportRows({
+    ...structuredPayload,
+    claims: [
+      {
+        id: 'claim-1',
+        claim: '作者提出新的检索排序方法。',
+        supportLevel: 'SUPPORTED',
+        evidenceSourceIds: ['chunk-1', 'missing'],
+        missingEvidence: [],
+        reason: '实验结果提供了直接支撑。',
+      },
+      {
+        id: 'claim-2',
+        claim: '作者提出通用框架。',
+        supportLevel: 'UNKNOWN',
+        evidenceSourceIds: [],
+        missingEvidence: ['缺少跨领域实验'],
+        reason: '证据不足。',
+      },
+    ],
+  });
+  assert.equal(claimRows.length, 2);
+  assert.equal(claimRows[0].supportLevel, 'SUPPORTED');
+  assert.equal(claimRows[0].supportLabel, '已支撑');
+  assert.equal(claimRows[0].sources.length, 1);
+  assert.equal(claimRows[1].supportLevel, 'PARTIAL');
+  assert.equal(claimRows[1].missingEvidence[0], '缺少跨领域实验');
 
   console.log('critical analysis data helper smoke tests passed');
 };

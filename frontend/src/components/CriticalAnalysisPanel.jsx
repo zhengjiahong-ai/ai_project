@@ -15,6 +15,7 @@ import InsightCard from './InsightCard.jsx';
 import {
   buildMetricCards,
   buildSummary,
+  getClaimSupportRows,
   getDetailSections,
   getEvidencePreview,
   getSentenceSourceReferences,
@@ -52,15 +53,17 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact }
   const summary = useMemo(() => buildSummary(data), [data]);
   const detailSections = useMemo(() => getDetailSections(data), [data]);
   const structuredSections = useMemo(() => getStructuredSections(data), [data]);
+  const claimSupportRows = useMemo(() => getClaimSupportRows(data), [data]);
   const evidencePreview = useMemo(() => getEvidencePreview(data), [data]);
   const sentenceReferences = useMemo(() => getSentenceSourceReferences(data), [data]);
   const overviewPoints = useMemo(
     () => [
       metrics.length > 0 ? `已生成 ${metrics.length} 个批判维度评分` : '等待多维评分生成',
       structuredSections.length > 0 ? `已识别 ${structuredSections.length} 类主要风险与证据缺口` : '暂未提取结构化风险点',
+      claimSupportRows.length > 0 ? `已验证 ${claimSupportRows.length} 条作者主张` : '暂未生成论点证据验证',
       evidencePreview.length > 0 ? `当前展示 ${evidencePreview.length} 条证据片段` : '暂未提取证据片段',
     ],
-    [evidencePreview.length, metrics.length, structuredSections.length],
+    [claimSupportRows.length, evidencePreview.length, metrics.length, structuredSections.length],
   );
 
   if (!data && !isLoading) {
@@ -216,6 +219,49 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact }
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {claimSupportRows.length > 0 && (
+          <div className="theme-card rounded-2xl p-5">
+            <h3 className="theme-text-muted mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+              <CheckCircle2 size={14} className="text-pixiu" />
+              论点-证据验证
+            </h3>
+            <div className="space-y-3">
+              {claimSupportRows.map((row) => (
+                <div key={row.id} className="theme-card-soft rounded-xl p-4">
+                  <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                    <p className="theme-text-primary min-w-0 flex-1 text-sm font-semibold leading-relaxed">
+                      {row.claim}
+                    </p>
+                    <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold ${row.supportClassName}`}>
+                      {row.supportLabel}
+                    </span>
+                  </div>
+                  <p className="theme-text-secondary text-xs leading-relaxed">{row.reason}</p>
+                  {row.missingEvidence.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {row.missingEvidence.map((item, index) => (
+                        <span key={`${row.id}-missing-${index}`} className="rounded-full border border-amber-400/20 px-2 py-0.5 text-[10px] text-amber-600">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {row.sources.length > 0 && (
+                    <div className="mt-3 grid gap-2">
+                      {row.sources.map((source) => (
+                        <div key={`${row.id}-${source.sourceId}`} className="rounded-lg border border-slate-500/10 p-2 text-xs theme-text-secondary">
+                          <div className="mb-1 font-semibold theme-text-primary">来源 ID：{source.sourceId}</div>
+                          <div className="leading-relaxed">{source.preview}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

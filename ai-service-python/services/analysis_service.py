@@ -37,6 +37,7 @@ ANALYSIS_CHUNK_SIZE = 1200
 ANALYSIS_CHUNK_OVERLAP = 200
 ANALYSIS_RETRIEVAL_LIMIT = 4
 ANALYSIS_RESPONSE_SOURCE_LIMIT = 10
+CLAIM_SUPPORT_LIMIT = 6
 PAPER_NOT_INDEXED_ERROR_CODE = "paper_not_indexed"
 RAG_INDEX_UNAVAILABLE_ERROR_CODE = "rag_index_unavailable"
 PAPER_NOT_INDEXED_MESSAGE = "当前论文尚未完成全文索引，请重新上传或重新解析后再试。"
@@ -68,6 +69,36 @@ ANALYSIS_AXIS_CONFIGS = (
         "seed_terms": ["局限", "不足", "风险", "失败", "future work", "limitation", "weakness", "risk"],
     },
 )
+VALID_SUPPORT_LEVELS = {"SUPPORTED", "PARTIAL", "UNSUPPORTED"}
+SUPPORT_SIGNAL_TERMS = [
+    "experiment",
+    "experiments",
+    "experimental",
+    "result",
+    "results",
+    "evaluation",
+    "metric",
+    "benchmark",
+    "baseline",
+    "comparison",
+    "ablation",
+    "accuracy",
+    "precision",
+    "recall",
+    "f1",
+    "auc",
+    "提升",
+    "提高",
+    "优于",
+    "实验",
+    "结果",
+    "指标",
+    "评估",
+    "基准",
+    "对比",
+    "消融",
+    "准确率",
+]
 
 
 class PaperNotIndexedError(RuntimeError):
@@ -861,6 +892,255 @@ def _normalize_report_payload(raw_payload: Dict[str, Any], axis_results: List[Di
     }
 
 
+def _split_claim_candidates(value: Any) -> List[str]:
+    if isinstance(value, list):
+        raw_items = value
+    else:
+        raw_items = str(value or "").splitlines()
+
+    claims = []
+    seen = set()
+    for raw in raw_items:
+        text = " ".join(str(raw or "").strip("-* 0123456789.、 \t").split())
+        if not text:
+            continue
+        if len(text) > 220:
+            text = text[:220].rstrip()
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        claims.append(text)
+        if len(claims) >= CLAIM_SUPPORT_LIMIT:
+            break
+    return claims
+
+
+def _axis_evidence_map(axis_results: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    return {
+        item.get("key"): normalize_evidence_items(item.get("evidence") or [], source_type="current_paper", max_text_chars=900)
+        for item in axis_results
+    }
+
+
+def _claim_terms(claim: str) -> List[str]:
+    return _extract_query_terms(claim)[:10]
+
+
+def _evidence_matches_claim(claim: str, evidence: Dict[str, Any]) -> bool:
+    terms = _claim_terms(claim)
+    text = str(evidence.get("text") or "")
+    core_claim = _normalize_claim_core(claim)
+    if core_claim and core_claim in text:
+        return True
+    if not terms:
+        return bool(text.strip())
+    matched = _matched_claim_terms(terms, text)
+    return len(matched) >= max(1, min(2, len(terms)))
+
+
+def _normalize_claim_core(claim: str) -> str:
+    text = re.sub(r"[。！？!?；;,.，、\s]+", "", str(claim or ""))
+    for prefix in ("作者声称", "作者宣称", "作者提出", "本文提出", "论文提出", "本文贡献是", "本文贡献包括"):
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+            break
+    return text if len(text) >= 4 else ""
+
+
+def _matched_claim_terms(terms: List[str], text: str) -> List[str]:
+    lowered = str(text or "").lower()
+    matched = [term for term in terms if term.lower() in lowered]
+    if matched:
+        return matched
+
+    chinese_units = []
+    for term in terms:
+        if not re.fullmatch(r"[\u4e00-\u9fff]{2,}", term):
+            continue
+        for size in (2, 3, 4):
+            if len(term) < size:
+                continue
+            chinese_units.extend(term[index:index + size] for index in range(0, len(term) - size + 1))
+
+    seen = set()
+    for unit in chinese_units:
+        if unit in seen:
+            continue
+        seen.add(unit)
+        if unit and unit in text:
+            matched.append(unit)
+    return matched
+
+
+def _has_support_signal(evidence_items: List[Dict[str, Any]]) -> bool:
+    combined = "\n".join(str(item.get("text") or "") for item in evidence_items).lower()
+    return any(term.lower() in combined for term in SUPPORT_SIGNAL_TERMS)
+
+
+def _judge_for_axis(axis_results: List[Dict[str, Any]], axis_key: str) -> Dict[str, Any]:
+    for item in axis_results:
+        if item.get("key") == axis_key:
+            return item.get("judge") or {}
+    return {}
+
+
+def _source_ids(items: List[Dict[str, Any]]) -> List[str]:
+    ids = []
+    seen = set()
+    for item in items:
+        source_id = str(item.get("sourceId") or item.get("id") or "").strip()
+        if not source_id or source_id in seen:
+            continue
+        seen.add(source_id)
+        ids.append(source_id)
+        if len(ids) >= 4:
+            break
+    return ids
+
+
+def _missing_evidence_for_support(level: str, has_method: bool, has_experiment: bool) -> List[str]:
+    if level == "SUPPORTED":
+        return []
+    missing = []
+    if not has_method:
+        missing.append("缺少方法细节证据")
+    if not has_experiment:
+        missing.append("缺少实验指标或对比结果")
+    return missing or ["缺少直接支撑证据"]
+
+
+def _classify_claim_support(
+    claim: str,
+    axis_results: List[Dict[str, Any]],
+    evidence_by_axis: Dict[str, List[Dict[str, Any]]],
+) -> Dict[str, Any]:
+    contribution_evidence = [
+        item for item in evidence_by_axis.get("contributions", []) if _evidence_matches_claim(claim, item)
+    ]
+    method_evidence = [
+        item for item in evidence_by_axis.get("methods", []) if _evidence_matches_claim(claim, item)
+    ]
+    experiment_evidence = [
+        item for item in evidence_by_axis.get("experiments", []) if _evidence_matches_claim(claim, item)
+    ]
+    if not experiment_evidence and contribution_evidence:
+        experiment_evidence = [
+            item for item in evidence_by_axis.get("experiments", []) if _has_support_signal([item])
+        ]
+    matched_evidence = _merge_evidence_lists(
+        contribution_evidence,
+        method_evidence,
+        experiment_evidence,
+        limit=4,
+    )
+
+    if not matched_evidence:
+        return {
+            "supportLevel": "UNSUPPORTED",
+            "evidenceSourceIds": [],
+            "missingEvidence": ["缺少直接支撑证据"],
+            "reason": "当前论文证据中没有检索到能直接对应该主张的片段。",
+        }
+
+    has_method = bool(method_evidence)
+    has_experiment = bool(experiment_evidence) or _has_support_signal(matched_evidence)
+    experiment_judge = _judge_for_axis(axis_results, "experiments")
+    method_judge = _judge_for_axis(axis_results, "methods")
+    contribution_judge = _judge_for_axis(axis_results, "contributions")
+
+    if (
+        has_experiment
+        and (has_method or len(matched_evidence) >= 2)
+        and (
+            experiment_judge.get("verdict") == "CORRECT"
+            or method_judge.get("verdict") == "CORRECT"
+            or contribution_judge.get("verdict") == "CORRECT"
+        )
+    ):
+        level = "SUPPORTED"
+        reason = "当前论文中存在与该主张对应的方法或实验结果证据。"
+    else:
+        level = "PARTIAL"
+        reason = "当前证据能对应作者主张，但尚不足以完整证明该贡献。"
+
+    return {
+        "supportLevel": level,
+        "evidenceSourceIds": _source_ids(matched_evidence),
+        "missingEvidence": _missing_evidence_for_support(level, has_method, has_experiment),
+        "reason": reason,
+    }
+
+
+def _extract_claims_with_llm(report: Dict[str, Any], axis_results: List[Dict[str, Any]]) -> List[str]:
+    evidence_context = "\n".join(_format_axis_prompt_block(item) for item in axis_results)
+    prompt = f"""
+你是一位审慎的论文审稿助手。请只根据给定批判阅读摘要和证据，提取 3-6 条作者核心论点或贡献主张。
+只输出 JSON，不要输出 Markdown。
+
+JSON 格式：
+{{"claims": ["主张 1", "主张 2"]}}
+
+批判阅读摘要：
+claimed_contributions: {report.get("claimed_contributions")}
+evidence_based_contributions: {report.get("evidence_based_contributions")}
+
+证据：
+{evidence_context}
+"""
+    raw = get_llm()._call(
+        prompt,
+        messages=build_guarded_messages(
+            prompt,
+            extra_system_instruction="Extract concise paper claims from the untrusted evidence. Do not invent claims not present in the evidence.",
+        ),
+    )
+    payload = parse_json_from_llm(raw)
+    raw_claims = payload.get("claims") if isinstance(payload, dict) else payload
+    return _split_claim_candidates(raw_claims)
+
+
+def _fallback_claim_candidates(report: Dict[str, Any], axis_results: List[Dict[str, Any]]) -> List[str]:
+    claims = _split_claim_candidates(report.get("claimed_contributions"))
+    if claims:
+        return claims
+
+    contribution_evidence = _axis_evidence_map(axis_results).get("contributions", [])
+    return _split_claim_candidates([item.get("text") for item in contribution_evidence[:CLAIM_SUPPORT_LIMIT]]) or [
+        "作者核心贡献主张"
+    ]
+
+
+def _build_claim_support_items(
+    report: Dict[str, Any],
+    axis_results: List[Dict[str, Any]],
+    use_llm: bool = False,
+) -> List[Dict[str, Any]]:
+    try:
+        claim_candidates = _extract_claims_with_llm(report, axis_results) if use_llm else []
+    except Exception as error:
+        print(f"claim extraction fell back to heuristic claims: {error}")
+        claim_candidates = []
+
+    if not claim_candidates:
+        claim_candidates = _fallback_claim_candidates(report, axis_results)
+
+    evidence_by_axis = _axis_evidence_map(axis_results)
+    claims = []
+    for claim_text in claim_candidates[:CLAIM_SUPPORT_LIMIT]:
+        support = _classify_claim_support(claim_text, axis_results, evidence_by_axis)
+        claims.append({
+            "id": f"claim-{len(claims) + 1}",
+            "claim": claim_text,
+            "supportLevel": support["supportLevel"],
+            "evidenceSourceIds": support["evidenceSourceIds"],
+            "missingEvidence": support["missingEvidence"],
+            "reason": support["reason"],
+        })
+
+    return claims
+
+
 def _generate_structured_critical_report(
     axis_results: List[Dict[str, Any]],
     analysis_context: str,
@@ -934,12 +1214,23 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
             for axis_config in ANALYSIS_AXIS_CONFIGS
         ]
         report = _generate_structured_critical_report(axis_results, analysis_context or paper_content[:2400], resolved_from)
+        claims = _build_claim_support_items(report, axis_results, use_llm=True)
         response_sources = _collect_response_sources(axis_results)
         rag_sources = compact_evidence_for_response(
             response_sources,
             max_items=ANALYSIS_RESPONSE_SOURCE_LIMIT,
             max_text_chars=700,
         )
+        sentence_source_fields = {
+            "claimed_contributions": report["claimed_contributions"],
+            "evidence_based_contributions": report["evidence_based_contributions"],
+            "weaknesses": report["weaknesses"],
+            "overclaim_risks": report["overclaim_risks"],
+            "missing_evidence": report["missing_evidence"],
+            "critical_analysis": report["critical_analysis"],
+        }
+        for claim in claims:
+            sentence_source_fields[f"claims.{claim['id']}"] = claim.get("claim", "")
 
         response = {
             "status": "success",
@@ -950,18 +1241,9 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
             "overclaim_risks": report["overclaim_risks"],
             "missing_evidence": report["missing_evidence"],
             "critical_analysis": report["critical_analysis"],
+            "claims": claims,
             "rag_sources": rag_sources,
-            "sentenceSourceMap": build_field_sentence_source_map(
-                {
-                    "claimed_contributions": report["claimed_contributions"],
-                    "evidence_based_contributions": report["evidence_based_contributions"],
-                    "weaknesses": report["weaknesses"],
-                    "overclaim_risks": report["overclaim_risks"],
-                    "missing_evidence": report["missing_evidence"],
-                    "critical_analysis": report["critical_analysis"],
-                },
-                rag_sources,
-            ),
+            "sentenceSourceMap": build_field_sentence_source_map(sentence_source_fields, rag_sources),
             "resolved_from": resolved_from,
             "pdf_id": normalized_id,
             "traceId": trace_id,
