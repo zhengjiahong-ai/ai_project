@@ -66,6 +66,7 @@ import {
 import {
   TERMINAL_RESEARCH_STATUSES,
   createEmptyDeepResearchState,
+  normalizeTraceSummary,
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
 } from './components/deepResearchPanelModel.js';
@@ -700,6 +701,55 @@ export default function App() {
     });
   }, []);
 
+  const fetchDeepResearchTrace = useCallback(async (targetPdfId, traceId) => {
+    const normalizedTraceId = `${traceId || ''}`.trim();
+    if (!targetPdfId || !normalizedTraceId) {
+      return null;
+    }
+
+    setDeepResearchStateForPdf(targetPdfId, (prev) => ({
+      ...prev,
+      isTraceLoading: true,
+      traceError: '',
+    }));
+
+    try {
+      const response = await apiService.getTrace(normalizedTraceId);
+      const nextTraceSummary = normalizeTraceSummary(response?.trace);
+      if (response?.status !== 'success' || !nextTraceSummary) {
+        throw new Error(response?.message || 'Trace 查询失败');
+      }
+
+      setDeepResearchStateForPdf(targetPdfId, (prev) => {
+        if ((prev.task?.traceId || '') !== normalizedTraceId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          traceSummary: nextTraceSummary,
+          traceError: '',
+          isTraceLoading: false,
+        };
+      });
+      return nextTraceSummary;
+    } catch (error) {
+      console.error('Failed to fetch deep research trace.', error);
+      setDeepResearchStateForPdf(targetPdfId, (prev) => {
+        if ((prev.task?.traceId || '') !== normalizedTraceId) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          traceError: error?.response?.data?.message || error?.message || 'Trace 查询失败。',
+          isTraceLoading: false,
+        };
+      });
+      return null;
+    }
+  }, [setDeepResearchStateForPdf]);
+
   const {
     restoreLocalSession,
     restoreSelectedPaper,
@@ -1197,7 +1247,12 @@ export default function App() {
         pollError: '',
         isCreating: false,
         isCancelling: false,
+        traceSummary: null,
+        traceError: '',
+        isTraceLoading: false,
       }));
+
+      fetchDeepResearchTrace(pdfId, nextTask.traceId);
 
       if (currentPdfIdRef.current === pdfId) {
         setActiveTab('deep-research');
@@ -1210,7 +1265,7 @@ export default function App() {
         errorMessage: error?.response?.data?.message || error?.message || '深度研究任务创建失败，请稍后重试。',
       }));
     }
-  }, [deepResearchStateByPdf, deconstructData, pdfId, setDeepResearchStateForPdf]);
+  }, [deepResearchStateByPdf, deconstructData, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
 
   const handleRefreshResearchTask = useCallback(async () => {
     if (!pdfId) {
@@ -1249,6 +1304,8 @@ export default function App() {
           isCancelling: false,
         };
       });
+
+      fetchDeepResearchTrace(pdfId, nextTask.traceId);
     } catch (error) {
       console.error('Failed to refresh deep research task.', error);
       setDeepResearchStateForPdf(pdfId, (prev) => {
@@ -1262,7 +1319,7 @@ export default function App() {
         };
       });
     }
-  }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
+  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
 
   const handleCancelResearchTask = useCallback(async () => {
     if (!pdfId) {
@@ -1302,6 +1359,8 @@ export default function App() {
           isCancelling: false,
         };
       });
+
+      fetchDeepResearchTrace(pdfId, nextTask.traceId);
     } catch (error) {
       console.error('Failed to cancel deep research task.', error);
       setDeepResearchStateForPdf(pdfId, (prev) => {
@@ -1316,7 +1375,7 @@ export default function App() {
         };
       });
     }
-  }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
+  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
 
   useEffect(() => {
     if (!pdfId) {
@@ -1357,6 +1416,8 @@ export default function App() {
             isCancelling: false,
           };
         });
+
+        fetchDeepResearchTrace(targetPdfId, restoredTask.traceId);
       } catch (error) {
         if (isCancelled || error?.response?.status === 404) {
           return;
@@ -1379,7 +1440,7 @@ export default function App() {
     return () => {
       isCancelled = true;
     };
-  }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
+  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
 
   const currentDeepResearchState = pdfId
     ? deepResearchStateByPdf[pdfId] || createEmptyDeepResearchState()
@@ -1424,6 +1485,10 @@ export default function App() {
             isCancelling: false,
           };
         });
+
+        if (TERMINAL_RESEARCH_STATUSES.includes(nextTask.status)) {
+          fetchDeepResearchTrace(targetPdfId, nextTask.traceId);
+        }
       } catch (error) {
         if (isCancelled) {
           return;
@@ -1452,6 +1517,7 @@ export default function App() {
     currentResearchPollError,
     currentResearchTaskId,
     currentResearchTaskStatus,
+    fetchDeepResearchTrace,
     pdfId,
     setDeepResearchStateForPdf,
   ]);
@@ -2579,10 +2645,15 @@ export default function App() {
                         pollError={currentDeepResearchState.pollError}
                         isCreating={currentDeepResearchState.isCreating}
                         isCancelling={currentDeepResearchState.isCancelling}
+                        traceSummary={currentDeepResearchState.traceSummary}
+                        traceError={currentDeepResearchState.traceError}
+                        isTraceLoading={currentDeepResearchState.isTraceLoading}
+                        isTracePanelEnabled={Boolean(import.meta.env?.DEV)}
                         onQuestionChange={handleDeepResearchQuestionChange}
                         onStart={handleStartResearchTask}
                         onRefresh={handleRefreshResearchTask}
                         onCancel={handleCancelResearchTask}
+                        onRefreshTrace={() => fetchDeepResearchTrace(pdfId, currentDeepResearchState.task?.traceId)}
                         onCaptureArtifact={handleCaptureWorkbenchArtifact}
                       />
                     )}

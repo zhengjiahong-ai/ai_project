@@ -225,6 +225,11 @@ public class AiService {
         return forwardResearchTask(HttpMethod.POST, "/research-tasks/" + taskId + "/cancel", null);
     }
 
+    public ResponseEntity<Map<String, Object>> getTrace(String traceId) {
+        String encodedTraceId = URLEncoder.encode(String.valueOf(traceId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardReadOnlyTrace(HttpMethod.GET, "/traces/" + encodedTraceId);
+    }
+
     private List<Map<String, String>> buildHistoryPayload(String pdfId) {
         List<ChatMessage> history = chatMessageRepository.findByPdfIdOrderByTimestampAsc(pdfId);
         List<Map<String, String>> historyList = new ArrayList<>();
@@ -257,6 +262,19 @@ public class AiService {
 
         try {
             ResponseEntity<Map> response = restTemplate.exchange(url, method, entity, Map.class);
+            return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
+        } catch (HttpStatusCodeException error) {
+            return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));
+        }
+    }
+
+    private ResponseEntity<Map<String, Object>> forwardReadOnlyTrace(
+            HttpMethod method,
+            String path) {
+        String url = PYTHON_SERVICE_URL + path;
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(url, method, HttpEntity.EMPTY, Map.class);
             return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
         } catch (HttpStatusCodeException error) {
             return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));

@@ -8,6 +8,7 @@ import {
   getResearchStageMeta,
   getResearchStatusMeta,
   getResearchVerdictMeta,
+  normalizeTraceSummary,
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
 } from './deepResearchPanelModel.js';
@@ -22,6 +23,9 @@ const run = async () => {
     isCreating: false,
     isCancelling: false,
     pollError: '',
+    traceSummary: null,
+    traceError: '',
+    isTraceLoading: false,
   });
 
   assert.equal(clampResearchProgress(-1), 0);
@@ -126,6 +130,42 @@ const run = async () => {
   assert.equal(shouldRestoreLatestResearchTask('', createEmptyDeepResearchState()), false);
   assert.equal(shouldRestoreLatestResearchTask('paper-1', { task: { taskId: 'task-1' } }), false);
   assert.equal(shouldRestoreLatestResearchTask('paper-1', { task: null, isCreating: true }), false);
+
+  const normalizedTrace = normalizeTraceSummary({
+    traceId: 'trace-1',
+    taskType: 'deep_research',
+    status: 'success',
+    startedAt: '2026-06-04T00:00:00Z',
+    finishedAt: '2026-06-04T00:00:03Z',
+    durationMs: 3000,
+    requestMeta: { question: '研究问题' },
+    responseMeta: { findingCount: 3 },
+    counters: { llmCalls: 2, retrievalCalls: 4 },
+    steps: Array.from({ length: 20 }, (_, index) => ({
+      name: `step-${index + 1}`,
+      status: index === 3 ? 'error' : 'success',
+      durationMs: index * 10,
+      inputSize: index,
+      outputSize: index + 1,
+      error: index === 3 ? '失败摘要' : '',
+      meta: { subQuestion: `子问题 ${index + 1}` },
+    })),
+    error: '',
+  });
+
+  assert.equal(normalizedTrace.traceId, 'trace-1');
+  assert.equal(normalizedTrace.taskType, 'deep_research');
+  assert.equal(normalizedTrace.durationMs, 3000);
+  assert.deepEqual(normalizedTrace.counters, { llmCalls: 2, retrievalCalls: 4 });
+  assert.equal(normalizedTrace.steps.length, 12);
+  assert.equal(normalizedTrace.steps[3].status, 'error');
+  assert.equal(normalizedTrace.steps[3].error, '失败摘要');
+  assert.equal(normalizedTrace.steps[3].meta.subQuestion, '子问题 4');
+
+  const fallbackTrace = normalizeTraceSummary({ traceId: 123, steps: 'bad', counters: null });
+  assert.equal(fallbackTrace.traceId, '');
+  assert.deepEqual(fallbackTrace.steps, []);
+  assert.deepEqual(fallbackTrace.counters, {});
 
   console.log('deep research panel model smoke tests passed');
 };

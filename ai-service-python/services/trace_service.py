@@ -14,6 +14,32 @@ from typing import Any, Dict, Iterator, Optional
 _TRACE_LOCK = threading.RLock()
 _TRACE_STORE: Dict[str, Dict[str, Any]] = {}
 _CURRENT_TRACE_ID: ContextVar[Optional[str]] = ContextVar("current_trace_id", default=None)
+_PUBLIC_TRACE_STEP_LIMIT = 12
+_PUBLIC_SENSITIVE_KEYS = {
+    "authorization",
+    "cookie",
+    "headers",
+    "api_key",
+    "apikey",
+    "key",
+    "prompt",
+    "systemprompt",
+    "system_prompt",
+    "systemmessage",
+    "system_message",
+    "papertext",
+    "paper_text",
+    "papercontent",
+    "paper_content",
+    "fulltext",
+    "full_text",
+    "documenttext",
+    "document_text",
+}
+
+
+class TraceNotFoundError(Exception):
+    pass
 
 
 def sanitize_text(value: Any, max_chars: int = 240) -> str:
@@ -180,6 +206,29 @@ def get_trace_snapshot(trace_id: str) -> Dict[str, Any]:
         return copy.deepcopy(trace)
 
 
+def get_trace_summary(trace_id: str) -> Dict[str, Any]:
+    try:
+        snapshot = get_trace_snapshot(trace_id)
+    except KeyError as error:
+        raise TraceNotFoundError("Trace not found.") from error
+
+    trace = {
+        "traceId": sanitize_text(snapshot.get("traceId"), max_chars=120),
+        "taskType": sanitize_text(snapshot.get("taskType"), max_chars=80),
+        "status": sanitize_text(snapshot.get("status"), max_chars=40),
+        "startedAt": sanitize_text(snapshot.get("startedAt"), max_chars=40),
+        "finishedAt": sanitize_text(snapshot.get("finishedAt"), max_chars=40),
+        "durationMs": _normalize_size(snapshot.get("durationMs")),
+        "requestMeta": _public_sanitize_meta(snapshot.get("requestMeta") or {}),
+        "responseMeta": _public_sanitize_meta(snapshot.get("responseMeta") or {}),
+        "counters": _public_sanitize_counters(snapshot.get("counters") or {}),
+        "steps": _public_sanitize_steps(snapshot.get("steps") or []),
+    }
+    if snapshot.get("error"):
+        trace["error"] = sanitize_text(snapshot.get("error"), max_chars=240)
+    return {"status": "success", "trace": trace}
+
+
 def clear_traces() -> None:
     with _TRACE_LOCK:
         _TRACE_STORE.clear()
@@ -215,6 +264,74 @@ def _sanitize_meta(value: Any) -> Any:
     if isinstance(value, str):
         return sanitize_text(value)
     return value
+
+
+def _public_sanitize_meta(value: Any) -> Any:
+    if isinstance(value, dict):
+        sanitized = {}
+        for key, item in value.items():
+            key_text = str(key)
+            if _is_sensitive_public_key(key_text):
+                sanitized[key_text] = "[REDACTED]"
+            else:
+                sanitized[key_text] = _public_sanitize_meta(item)
+        return sanitized
+    if isinstance(value, list):
+        return [_public_sanitize_meta(item) for item in value[:12]]
+    if isinstance(value, tuple):
+        return [_public_sanitize_meta(item) for item in list(value)[:12]]
+    if isinstance(value, str):
+        return sanitize_text(value, max_chars=240)
+    if isinstance(value, (int, float, bool)) or value is None:
+        return value
+    return sanitize_text(value, max_chars=120)
+
+
+def _public_sanitize_counters(value: Any) -> Dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    counters = {}
+    for key, item in value.items():
+        key_text = sanitize_text(key, max_chars=80)
+        if not key_text:
+            continue
+        if isinstance(item, (int, float)):
+            counters[key_text] = item
+        else:
+            counters[key_text] = _public_sanitize_meta(item)
+    return counters
+
+
+def _public_sanitize_steps(value: Any) -> list[Dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    steps = []
+    for raw_step in value[:_PUBLIC_TRACE_STEP_LIMIT]:
+        if not isinstance(raw_step, dict):
+            continue
+        step = {
+            "name": sanitize_text(raw_step.get("name"), max_chars=120),
+            "durationMs": _normalize_size(raw_step.get("durationMs")) or 0,
+            "status": sanitize_text(raw_step.get("status"), max_chars=40) or "success",
+            "inputSize": _normalize_size(raw_step.get("inputSize")),
+            "outputSize": _normalize_size(raw_step.get("outputSize")),
+            "error": sanitize_text(raw_step.get("error"), max_chars=240),
+        }
+        if raw_step.get("meta"):
+            step["meta"] = _public_sanitize_meta(raw_step.get("meta"))
+        steps.append(step)
+    return steps
+
+
+def _is_sensitive_public_key(key: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9_]+", "", str(key or "").lower())
+    return (
+        normalized in _PUBLIC_SENSITIVE_KEYS
+        or normalized.endswith("apikey")
+        or normalized.endswith("api_key")
+        or ("paper" in normalized and ("text" in normalized or "content" in normalized or "body" in normalized))
+        or ("full" in normalized and "text" in normalized)
+    )
 
 
 def _normalize_size(value: Any) -> Optional[int]:

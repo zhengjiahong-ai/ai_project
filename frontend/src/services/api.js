@@ -68,6 +68,8 @@ export const createApiService = (client) => ({
   getLatestResearchTask: async (pdfId) =>
     client.get(`/research-tasks/latest?pdfId=${encodeURIComponent(pdfId)}`),
 
+  getTrace: async (traceId) => client.get(`/traces/${encodeURIComponent(traceId)}`),
+
   cancelResearchTask: async (taskId) =>
     client.post(`/research-tasks/${encodeURIComponent(taskId)}/cancel`),
 

@@ -14,7 +14,7 @@ from schemas.requests import (
     SocraticQuestionRequest,
     TermExplainRequest,
 )
-from services import analysis_service, chat_service, rag_service, research_task_service
+from services import analysis_service, chat_service, rag_service, research_task_service, trace_service
 
 
 router = APIRouter(prefix="/api")
@@ -109,6 +109,16 @@ async def cancel_research_task(task_id: str):
     try:
         return JSONResponse(research_task_service.cancel_research_task(task_id))
     except research_task_service.ResearchTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/traces/{trace_id}")
+async def get_trace(trace_id: str):
+    try:
+        return JSONResponse(trace_service.get_trace_summary(trace_id))
+    except trace_service.TraceNotFoundError as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)

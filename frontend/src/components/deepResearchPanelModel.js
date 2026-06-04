@@ -80,6 +80,9 @@ export const createEmptyDeepResearchState = () => ({
   isCreating: false,
   isCancelling: false,
   pollError: '',
+  traceSummary: null,
+  traceError: '',
+  isTraceLoading: false,
 });
 
 export const clampResearchProgress = (value) => {
@@ -154,6 +157,46 @@ export const normalizeResearchTask = (task) => {
     error: normalizeText(task.error),
     createdAt: normalizeText(task.createdAt),
     updatedAt: normalizeText(task.updatedAt),
+  };
+};
+
+const normalizePlainObject = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => normalizeText(key))
+      .map(([key, item]) => [normalizeText(key), item]),
+  );
+};
+
+export const normalizeTraceSummary = (trace) => {
+  if (!trace || typeof trace !== 'object') {
+    return null;
+  }
+
+  const rawSteps = Array.isArray(trace.steps) ? trace.steps : [];
+  return {
+    traceId: normalizeText(trace.traceId),
+    taskType: normalizeText(trace.taskType) || 'unknown',
+    status: normalizeText(trace.status) || 'unknown',
+    startedAt: normalizeText(trace.startedAt),
+    finishedAt: normalizeText(trace.finishedAt),
+    durationMs: Number.isFinite(Number(trace.durationMs)) ? Math.max(0, Number(trace.durationMs)) : null,
+    requestMeta: normalizePlainObject(trace.requestMeta),
+    responseMeta: normalizePlainObject(trace.responseMeta),
+    counters: normalizePlainObject(trace.counters),
+    steps: rawSteps.slice(0, 12).map((step, index) => ({
+      name: normalizeText(step?.name) || `step-${index + 1}`,
+      status: normalizeText(step?.status) || 'unknown',
+      durationMs: Number.isFinite(Number(step?.durationMs)) ? Math.max(0, Number(step.durationMs)) : 0,
+      inputSize: Number.isFinite(Number(step?.inputSize)) ? Math.max(0, Number(step.inputSize)) : null,
+      outputSize: Number.isFinite(Number(step?.outputSize)) ? Math.max(0, Number(step.outputSize)) : null,
+      error: normalizeText(step?.error),
+      meta: normalizePlainObject(step?.meta),
+    })),
+    error: normalizeText(trace.error),
   };
 };
 

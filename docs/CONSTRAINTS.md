@@ -77,6 +77,9 @@
 ## 2026-04-22 任务 trace 与成本观测补充
 
 - Python AI 服务现在为聊天、划词解释、批判阅读、背景补课和深度研究任务统一生成轻量 trace；trace 只允许保存在 Python 进程内存与服务日志中，当前模块禁止引入数据库持久化或外部观测平台。
+- Python 对外新增只读 `GET /api/traces/{traceId}`，Java 对外新增只读 `GET /api/traces/{traceId}` 转发，成功响应固定为 `{ status: "success", trace }`，trace 不存在时返回 `404 { status: "error", message }`。
+- trace 查询接口只能返回脱敏 summary，字段限定为 `traceId`、`taskType`、`status`、`startedAt`、`finishedAt`、`durationMs`、`requestMeta`、`responseMeta`、`counters`、`steps` 和可选 `error`；禁止暴露完整 prompt、完整论文全文、请求 headers、API Key、系统提示词、原始日志或未脱敏 trace。
+- 前端 trace 查询必须继续集中在 `frontend/src/services/api.js` 的 `getTrace(traceId)`；Deep Research 面板只在 `import.meta.env.DEV` 为 true 时展示 trace 排障详情，普通运行界面不得依赖 trace 查询才能工作。
 - `/api/chat`、`/api/explain-term`、`/api/background-knowledge`、`/api/deep-analysis` 成功响应都可兼容新增顶层 `traceId`；Java 透传时不得丢弃该字段，前端可忽略该字段但不得依赖它才能工作。
 - research task 成功响应中的 `task` 可兼容新增 `traceId`；字段位置固定为 `task.traceId`，不得把 trace 信息拆到顶层，避免破坏现有 `{ status, task }` 包装。
 - trace 顶层至少包含 `traceId`、`taskType`、`status`、`startedAt`、`finishedAt`、`durationMs`、`counters`、`steps`；其中 `counters` 至少保留 `llmCalls`、`retrievalCalls`。
@@ -219,6 +222,7 @@
 | GET | `/api/research-tasks/latest?pdfId=:pdfId` | - | 查询当前论文最近一个深度研究任务快照；成功返回 `{ status, task }`，没有快照返回 `404` |
 | GET | `/api/research-tasks/:taskId` | - | 查询深度研究任务状态；成功返回 `{ status, task }`，任务不存在返回 `404` 与 `{ status, message }` |
 | POST | `/api/research-tasks/:taskId/cancel` | - | 取消深度研究任务；取消接口保持幂等，成功返回当前任务快照，任务不存在返回 `404` |
+| GET | `/api/traces/:traceId` | - | 查询脱敏 trace summary；Java 转发到 Python `/api/traces/:traceId`，成功返回 `{ status, trace }`，trace 不存在返回 `404` |
 
 - **说明**：  
   - Java `AcademicController` 中 `explainTerm` 接收 `Map<String, Object>`，会将 `text`/`term` 适配为 Python 所需的 `term`，并透传 `pdfId`、`pageNumber`、`context`。
@@ -241,6 +245,7 @@
 | GET latest research task → 转发 | GET `/api/research-tasks/latest?pdfId={pdfId}` | Python 返回当前论文最近任务 `{ status, task }`；任务不存在返回 `404`。用于前端刷新后按当前论文恢复最近快照 |
 | GET research task → 转发 | GET `/api/research-tasks/{taskId}` | Python 返回 `{ status, task }`，任务不存在时返回 `404` 与 `{ status: "error", message }` |
 | POST cancel research task → 转发 | POST `/api/research-tasks/{taskId}/cancel` | Python 返回 `{ status, task }`；取消采用 best-effort 协作式语义，已结束任务返回当前快照，任务不存在返回 `404` |
+| GET trace summary → 转发 | GET `/api/traces/{traceId}` | Python 返回 `{ status, trace }`；`trace` 仅为脱敏 summary，不包含完整 prompt、完整论文全文、headers、API Key、系统提示词或原始日志 |
 
 - **深度研究任务持久化**：
   - Python 使用标准库 `sqlite3` 保存任务快照，不新增运行依赖。

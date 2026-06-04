@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-04 10:45 v0.1.14
+
+1. **新增 trace 只读查询链路**：Python 新增 `GET /api/traces/{traceId}` 脱敏 summary，Java 同步以 `/api/traces/{traceId}` 转发，trace 不存在时返回兼容式 `404` 错误体。
+2. **收紧 trace 排障暴露边界**：查询结果只返回限定 summary 字段，并过滤 headers、API Key、prompt、系统提示词和论文全文类字段；长列表和步骤信息会裁剪。
+3. **增强深度研究排障面板**：Deep Research 面板始终显示 `traceId`，并仅在 Vite 开发模式下展示可展开的 trace 状态、耗时、计数器、请求/响应摘要和步骤列表。
+4. **补齐三层测试覆盖**：新增 Python trace summary/路由测试、Java 网关转发测试、前端 API 与 trace 归一化测试，并同步 `docs/CONSTRAINTS.md`。
+
 ### 2026-06-03 21:25 v0.1.13
 
 1. **新增背景知识前置依赖边**：`/api/background-knowledge` 成功响应兼容新增 `graph.edges`，使用 `prerequisite` 表达 `source` 是 `target` 的前置知识。

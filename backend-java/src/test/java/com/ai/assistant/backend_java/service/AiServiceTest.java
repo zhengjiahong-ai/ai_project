@@ -406,4 +406,51 @@ class AiServiceTest {
         assertEquals("error", response.getBody().get("status"));
         assertEquals("Research task not found.", response.getBody().get("message"));
     }
+
+    @Test
+    void getTraceForwardsGetRequestToPythonService() {
+        when(restTemplate.exchange(
+                eq("http://python/api/traces/trace-1"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "trace", Map.of(
+                                "traceId", "trace-1",
+                                "taskType", "deep_research",
+                                "status", "success",
+                                "counters", Map.of("llmCalls", 1),
+                                "steps", List.of(Map.of("name", "research_build_plan"))))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getTrace("trace-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> trace = (Map<String, Object>) response.getBody().get("trace");
+        assertEquals("trace-1", trace.get("traceId"));
+    }
+
+    @Test
+    void getTracePropagatesPythonNotFoundStatusAndMessage() {
+        HttpClientErrorException error = HttpClientErrorException.create(
+                HttpStatus.NOT_FOUND,
+                "Not Found",
+                HttpHeaders.EMPTY,
+                "{\"status\":\"error\",\"message\":\"Trace not found.\"}".getBytes(StandardCharsets.UTF_8),
+                StandardCharsets.UTF_8);
+
+        when(restTemplate.exchange(
+                eq("http://python/api/traces/missing-trace"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenThrow(error);
+
+        ResponseEntity<Map<String, Object>> response = aiService.getTrace("missing-trace");
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("error", response.getBody().get("status"));
+        assertEquals("Trace not found.", response.getBody().get("message"));
+    }
 }

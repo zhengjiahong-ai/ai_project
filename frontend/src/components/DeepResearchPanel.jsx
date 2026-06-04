@@ -41,6 +41,15 @@ const ErrorBanner = ({ message, tone = 'danger' }) => {
   );
 };
 
+const formatTraceMeta = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length === 0) {
+    return '无';
+  }
+  return Object.entries(value)
+    .map(([key, item]) => `${key}: ${typeof item === 'object' ? JSON.stringify(item) : item}`)
+    .join(' · ');
+};
+
 const DeepResearchPanel = ({
   pdfFileName = '',
   paperStructure = null,
@@ -48,17 +57,23 @@ const DeepResearchPanel = ({
   task = null,
   errorMessage = '',
   pollError = '',
+  traceSummary = null,
+  traceError = '',
+  isTraceLoading = false,
+  isTracePanelEnabled = false,
   isCreating = false,
   isCancelling = false,
   onQuestionChange,
   onStart,
   onRefresh,
   onCancel,
+  onRefreshTrace,
   onCaptureArtifact,
 }) => {
   const normalizedTask = normalizeResearchTask(task);
   const [isPlanExpanded, setIsPlanExpanded] = useState(false);
   const [isReportExpanded, setIsReportExpanded] = useState(false);
+  const [isTraceExpanded, setIsTraceExpanded] = useState(false);
   const statusMeta = getResearchStatusMeta(normalizedTask?.status);
   const stageMeta = getResearchStageMeta(normalizedTask?.stage);
   const paperHint = buildResearchContextHint(paperStructure);
@@ -200,9 +215,101 @@ const DeepResearchPanel = ({
               </div>
 
               <div className="theme-text-muted mt-3 text-xs">
-                Task ID: {normalizedTask.taskId || '未返回'} | 状态：{statusMeta.label}
+                Task ID: {normalizedTask.taskId || '未返回'} | Trace ID: {normalizedTask.traceId || '未返回'} | 状态：{statusMeta.label}
               </div>
             </div>
+
+            {isTracePanelEnabled && (
+              <div className="theme-card rounded-2xl p-5">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="theme-text-primary text-sm font-bold">Trace 排障</div>
+                    <div className="theme-text-secondary mt-1 text-xs">
+                      {normalizedTask.traceId ? `Trace ID: ${normalizedTask.traceId}` : '当前任务没有返回 traceId'}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={onRefreshTrace}
+                      disabled={!normalizedTask.traceId || isTraceLoading}
+                      className="theme-button-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isTraceLoading ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
+                      刷新 trace
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsTraceExpanded((current) => !current)}
+                      disabled={!traceSummary}
+                      className="theme-button-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isTraceExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      {isTraceExpanded ? '收起详情' : '展开详情'}
+                    </button>
+                  </div>
+                </div>
+
+                {traceError && <ErrorBanner message={traceError} tone="warning" />}
+
+                {traceSummary ? (
+                  <div className="space-y-3">
+                    <div className="grid gap-3 text-xs sm:grid-cols-2">
+                      <div className="theme-card-soft rounded-xl px-4 py-3">
+                        <div className="theme-text-muted">状态</div>
+                        <div className="theme-text-primary mt-1 font-semibold">
+                          {traceSummary.status} · {traceSummary.durationMs ?? 0}ms
+                        </div>
+                      </div>
+                      <div className="theme-card-soft rounded-xl px-4 py-3">
+                        <div className="theme-text-muted">计数器</div>
+                        <div className="theme-text-primary mt-1 font-semibold">{formatTraceMeta(traceSummary.counters)}</div>
+                      </div>
+                    </div>
+
+                    {isTraceExpanded && (
+                      <div className="space-y-3">
+                        <div className="theme-card-soft rounded-xl px-4 py-3 text-xs leading-6">
+                          <div className="theme-text-primary font-semibold">请求摘要</div>
+                          <div className="theme-text-secondary mt-1">{formatTraceMeta(traceSummary.requestMeta)}</div>
+                          <div className="theme-text-primary mt-3 font-semibold">响应摘要</div>
+                          <div className="theme-text-secondary mt-1">{formatTraceMeta(traceSummary.responseMeta)}</div>
+                          {traceSummary.error && (
+                            <>
+                              <div className="theme-text-primary mt-3 font-semibold">错误摘要</div>
+                              <div className="text-rose-400 mt-1">{traceSummary.error}</div>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          {traceSummary.steps.length > 0 ? traceSummary.steps.map((step, index) => (
+                            <div key={`${traceSummary.traceId}-step-${index}`} className="theme-card-soft rounded-xl px-4 py-3 text-xs">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="theme-text-primary font-semibold">{index + 1}. {step.name}</div>
+                                <div className={step.status === 'error' ? 'text-rose-400' : 'text-emerald-400'}>
+                                  {step.status} · {step.durationMs}ms
+                                </div>
+                              </div>
+                              <div className="theme-text-secondary mt-2 leading-6">
+                                input: {step.inputSize ?? 'n/a'} · output: {step.outputSize ?? 'n/a'} · meta: {formatTraceMeta(step.meta)}
+                              </div>
+                              {step.error && <div className="mt-2 text-rose-400">{step.error}</div>}
+                            </div>
+                          )) : (
+                            <div className="theme-text-secondary text-sm">当前 trace 还没有记录步骤。</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="theme-text-secondary text-sm">
+                    {isTraceLoading ? '正在加载 trace summary...' : '尚未加载 trace summary。'}
+                  </div>
+                )}
+              </div>
+            )}
 
             {taskSnapshot && (
               <InsightCard

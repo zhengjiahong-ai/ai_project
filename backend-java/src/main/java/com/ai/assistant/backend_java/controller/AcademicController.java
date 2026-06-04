@@ -93,4 +93,9 @@ public class AcademicController {
     public ResponseEntity<Map<String, Object>> cancelResearchTask(@PathVariable String taskId) {
         return aiService.cancelResearchTask(taskId);
     }
+
+    @GetMapping("/traces/{traceId}")
+    public ResponseEntity<Map<String, Object>> getTrace(@PathVariable String traceId) {
+        return aiService.getTrace(traceId);
+    }
 }

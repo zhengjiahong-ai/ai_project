@@ -185,4 +185,32 @@ class AcademicControllerTest {
                 .andExpect(jsonPath("$.task.status").value("cancelled"))
                 .andExpect(jsonPath("$.task.taskId").value("task-1"));
     }
+
+    @Test
+    void getTraceReturnsForwardedPayload() throws Exception {
+        when(aiService.getTrace("trace-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "trace", Map.of(
+                        "traceId", "trace-1",
+                        "taskType", "deep_research",
+                        "status", "success",
+                        "counters", Map.of("llmCalls", 1),
+                        "steps", List.of(Map.of("name", "research_build_plan"))))));
+
+        mockMvc.perform(get("/api/traces/trace-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trace.traceId").value("trace-1"))
+                .andExpect(jsonPath("$.trace.taskType").value("deep_research"));
+    }
+
+    @Test
+    void getTracePropagatesNotFoundStatus() throws Exception {
+        when(aiService.getTrace("missing-trace")).thenReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "status", "error",
+                "message", "Trace not found.")));
+
+        mockMvc.perform(get("/api/traces/missing-trace"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Trace not found."));
+    }
 }
