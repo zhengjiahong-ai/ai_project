@@ -212,6 +212,10 @@ public class AiService {
         return forwardResearchTask(HttpMethod.POST, "/research-tasks", request);
     }
 
+    public ResponseEntity<Map<String, Object>> previewResearchBrief(Map<String, Object> request) {
+        return forwardResearchTask(HttpMethod.POST, "/research-tasks/brief-preview", request);
+    }
+
     public ResponseEntity<Map<String, Object>> getResearchTask(String taskId) {
         return forwardResearchTask(HttpMethod.GET, "/research-tasks/" + taskId, null);
     }

@@ -8,6 +8,7 @@ from schemas.requests import (
     ChatRequest,
     DeepAnalysisRequest,
     PageTranslationRequest,
+    ResearchTaskBriefPreviewRequest,
     ResearchTaskCreateRequest,
     SocraticSessionAnswerRequest,
     SocraticSessionStartRequest,
@@ -80,6 +81,16 @@ async def chat(request: ChatRequest):
 async def create_research_task(request: ResearchTaskCreateRequest):
     try:
         return JSONResponse(research_task_service.create_research_task(request))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/research-tasks/brief-preview")
+async def preview_research_brief(request: ResearchTaskBriefPreviewRequest):
+    try:
+        return JSONResponse(research_task_service.preview_research_brief(request))
+    except ValueError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=400)
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 

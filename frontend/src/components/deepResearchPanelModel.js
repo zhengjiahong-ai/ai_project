@@ -83,6 +83,10 @@ export const createEmptyDeepResearchState = () => ({
   traceSummary: null,
   traceError: '',
   isTraceLoading: false,
+  briefPreview: null,
+  briefConstraintsDraft: '',
+  isPreviewingBrief: false,
+  briefError: '',
 });
 
 export const clampResearchProgress = (value) => {
@@ -157,6 +161,23 @@ export const normalizeResearchTask = (task) => {
     error: normalizeText(task.error),
     createdAt: normalizeText(task.createdAt),
     updatedAt: normalizeText(task.updatedAt),
+  };
+};
+
+export const normalizeResearchBriefPreview = (preview) => {
+  if (!preview || typeof preview !== 'object') {
+    return null;
+  }
+
+  return {
+    question: normalizeText(preview.question),
+    pdfId: normalizeText(preview.pdfId),
+    brief: normalizeText(preview.brief),
+    assumptions: normalizeTextList(preview.assumptions, 5),
+    clarifyingQuestions: normalizeTextList(preview.clarifyingQuestions, 3),
+    suggestedSubQuestions: normalizeTextList(preview.suggestedSubQuestions, 3),
+    needsClarification: Boolean(preview.needsClarification) && normalizeTextList(preview.clarifyingQuestions, 3).length > 0,
+    source: normalizeText(preview.source) || 'fallback',
   };
 };
 

@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-05 08:50 v0.1.15
+
+1. **新增深度研究 brief preview**：新增 `POST /api/research-tasks/brief-preview` 三层链路，在创建长任务前生成研究范围、默认假设、建议子问题和可选澄清问题。
+2. **支持补充约束后启动研究**：深度研究面板新增两阶段启动体验，用户可先接受默认 brief，也可补充研究边界后再创建任务；旧的直接启动流程继续保留。
+3. **保持任务创建兼容**：`POST /api/research-tasks` 兼容新增可选 `userConstraints` 与 `briefPreview`，旧请求不传新增字段时仍按原流程创建任务。
+4. **补齐测试与文档**：新增 Python brief preview 服务测试、Java 网关转发测试、前端 API 与模型归一化测试，并同步 README 与 `docs/CONSTRAINTS.md`。
+
 ### 2026-06-04 10:45 v0.1.14
 
 1. **新增 trace 只读查询链路**：Python 新增 `GET /api/traces/{traceId}` 脱敏 summary，Java 同步以 `/api/traces/{traceId}` 转发，trace 不存在时返回兼容式 `404` 错误体。

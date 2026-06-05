@@ -56,11 +56,27 @@ export const createApiService = (client) => ({
 
   getChatHistory: async (sessionId) => client.get(`/chat/history/${encodeURIComponent(sessionId)}`),
 
-  createResearchTask: async (question, pdfId, paperSkeleton = null) =>
-    client.post('/research-tasks', {
+  createResearchTask: async (question, pdfId, paperSkeleton = null, userConstraints = '', briefPreview = null) => {
+    const payload = {
       question,
       pdfId,
       paperSkeleton,
+    };
+    if (`${userConstraints || ''}`.trim()) {
+      payload.userConstraints = userConstraints;
+    }
+    if (briefPreview && typeof briefPreview === 'object') {
+      payload.briefPreview = briefPreview;
+    }
+    return client.post('/research-tasks', payload);
+  },
+
+  previewResearchBrief: async (question, pdfId, paperSkeleton = null, userConstraints = '') =>
+    client.post('/research-tasks/brief-preview', {
+      question,
+      pdfId,
+      paperSkeleton,
+      userConstraints,
     }),
 
   getResearchTask: async (taskId) => client.get(`/research-tasks/${encodeURIComponent(taskId)}`),

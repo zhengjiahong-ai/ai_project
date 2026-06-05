@@ -56,7 +56,7 @@
 
 ## 2026-04-22 深度研究任务 API 补充
 
-- 前端新增 research task 请求时，必须继续集中落在 `frontend/src/services/api.js`，当前固定提供 `createResearchTask`、`getResearchTask`、`cancelResearchTask` 三个方法，不得在组件内直接拼接 URL。
+- 前端新增 research task 请求时，必须继续集中落在 `frontend/src/services/api.js`，不得在组件内直接拼接 URL。
 - Java 对外新增 `POST /api/research-tasks`、`GET /api/research-tasks/{taskId}` 与 `POST /api/research-tasks/{taskId}/cancel`，路径继续保持 `/api` 前缀。
 - `POST /api/research-tasks` 请求体固定为 `{ question, pdfId, paperSkeleton? }`；当前模块严格围绕当前论文工作，因此 `pdfId` 为必填，`paperSkeleton` 只允许作为规划上下文增强，不得替代当前论文证据。
 - research task 三个成功响应统一固定为 `{ status: "success", task: TaskSnapshot }`；禁止把任务运行态直接塞回顶层 `status`，避免与项目现有成功/失败语义冲突。
@@ -66,10 +66,22 @@
 - 当前模块的任务状态仅允许存 Python 进程内存；服务重启后任务可丢失，这一限制必须在 README 与后续 UI 中明确，不得伪装成可恢复的持久任务。
 - `POST /api/research-tasks/{taskId}/cancel` 必须保持幂等；任务已结束时返回当前快照，任务不存在时返回 `404` 与 `{ status: "error", message }`。
 
+## 2026-06-05 深度研究 brief 澄清阶段补充
+
+- 前端新增 brief preview 请求必须继续集中落在 `frontend/src/services/api.js` 的 `previewResearchBrief` 方法，组件不得直接拼接 `/api/research-tasks/brief-preview`。
+- Java 对外新增 `POST /api/research-tasks/brief-preview`，路径继续保持 `/api` 前缀，并转发到 Python `POST /api/research-tasks/brief-preview`。
+- brief preview 请求体固定为 `{ question, pdfId, paperSkeleton?, userConstraints? }`；`question` 与 `pdfId` 必填，`userConstraints` 仅作为研究范围补充约束，不改变旧创建任务必填字段。
+- brief preview 成功响应固定为 `{ status: "success", briefPreview }`；`briefPreview` 字段为 `{ question, pdfId, brief, assumptions, clarifyingQuestions, suggestedSubQuestions, needsClarification, source }`。
+- `clarifyingQuestions` 最多 3 条；无法可靠生成或无需澄清时返回空数组，且不得阻塞用户直接启动深度研究。
+- `suggestedSubQuestions` 继续遵守 deep research 子问题边界，保持 3-5 条中文子问题；最终任务 `task.plan` 仍由任务创建后的规划阶段生成。
+- `POST /api/research-tasks` 兼容新增可选 `userConstraints` 与 `briefPreview`；旧调用不传这两个字段时必须保持原直接创建任务流程。
+- brief preview 不写入 SQLite 任务快照；只有用户接受 brief 并创建任务后才产生 `TaskSnapshot`。
+- brief preview 与任务创建仍禁止外部 Web 搜索、多智能体、LangGraph、插件调用或 MCP 调用，只能基于当前论文骨架、当前论文证据和内部文献库边界进行规划。
+
 ## 2026-04-22 深度研究前端面板补充
 
-- 前端“深度研究”页签只能通过 `frontend/src/services/api.js` 中的 `createResearchTask`、`getResearchTask`、`cancelResearchTask` 三个方法访问 research task 接口，禁止在组件中直接拼接 `/api/research-tasks` URL。
-- 深度研究前端状态必须按 `pdfId` 隔离，单个当前论文 UI 同时只跟踪一个活动 research task；切换论文不得复用上一个论文的 `questionDraft`、`task`、`pollError` 或取消状态。
+- 前端“深度研究”页签只能通过 `frontend/src/services/api.js` 中的 `previewResearchBrief`、`createResearchTask`、`getResearchTask`、`getLatestResearchTask`、`cancelResearchTask`、`getTrace` 访问相关接口，禁止在组件中直接拼接 `/api/research-tasks` 或 `/api/traces` URL。
+- 深度研究前端状态必须按 `pdfId` 隔离，单个当前论文 UI 同时只跟踪一个活动 research task；切换论文不得复用上一个论文的 `questionDraft`、`briefPreview`、`briefConstraintsDraft`、`task`、`pollError` 或取消状态。
 - 当前模块不做 IndexedDB 或 localStorage 持久化 research task 快照；刷新页面后允许回到空态，后端服务重启或任务状态丢失时只能提示不可恢复，不得伪装成持久任务恢复成功。
 - 前端面板必须兼容 `task.plan`、`task.findings`、`task.report`、`task.error` 为空或缺失；展示层只能做兼容式默认值填充，不得把缺失字段改写成新的接口要求。
 - 前端自动轮询只允许针对当前论文的当前 `taskId` 查询状态，任务进入 `succeeded`、`failed`、`cancelled` 后必须停止轮询；轮询异常时允许提示 `pollError`，但不得覆盖成伪造的终态快照。
@@ -219,6 +231,7 @@
 | POST | `/api/socratic-session/answer` | `{ "pdfId": string?, "paperSkeleton": object?, "readingProgress": string, "currentIndex": number, "currentQuestion": string, "userAnswer": string, "turns": array? }` | 提交当前回答，返回掌握度评估、提示与下一题或最终总结；`evaluation` 可附带 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态还可附带 `reviewSuggestions` |
 | POST | `/api/background-knowledge` | `{ "pdfId": string?, "paperSkeleton": object?, "paperStructure": object?, "paper_topic": any?, "user_knowledge_level": any? }` | 背景补课图谱，Java 转发到 Python `/api/background-knowledge`，响应可附带 `queryPlan`、`confidence`、`sourceCoverage`、`learning_path_sections` 与兼容式 `traceId` |
 | POST | `/api/research-tasks` | `{ "question": string, "pdfId": string, "paperSkeleton": object? }` | 创建深度研究任务；Java 转发到 Python `/api/research-tasks`，成功响应固定为 `{ status, task }`，其中 `task` 包含任务状态、阶段、进度、可选 `traceId`、`plan`、结构化 `findings`、`report` 与 `error` |
+| POST | `/api/research-tasks/brief-preview` | `{ "question": string, "pdfId": string, "paperSkeleton": object?, "userConstraints": string? }` | 创建深度研究前的 brief preview；Java 转发到 Python `/api/research-tasks/brief-preview`，成功响应固定为 `{ status, briefPreview }` |
 | GET | `/api/research-tasks/latest?pdfId=:pdfId` | - | 查询当前论文最近一个深度研究任务快照；成功返回 `{ status, task }`，没有快照返回 `404` |
 | GET | `/api/research-tasks/:taskId` | - | 查询深度研究任务状态；成功返回 `{ status, task }`，任务不存在返回 `404` 与 `{ status, message }` |
 | POST | `/api/research-tasks/:taskId/cancel` | - | 取消深度研究任务；取消接口保持幂等，成功返回当前任务快照，任务不存在返回 `404` |
@@ -242,6 +255,7 @@
 | POST socratic answer → 转发 | POST `/api/socratic-session/answer` | 请求体包含当前题目、用户回答和历史轮次，Python 返回评估、下一题或最终总结；`evaluation` 可新增 `coveredAspects`、`missingAspects`、`evidenceQuality`，完成态可新增 `reviewSuggestions` |
 | POST background knowledge → 转发 | POST `/api/background-knowledge` | 请求体兼容 `pdfId`、论文结构和用户知识水平，Python 返回前置知识图谱、四段式学习路径、统一 `rag_sources` 以及可选 `queryPlan`、`confidence`、`sourceCoverage`、`traceId` |
 | POST create research task → 转发 | POST `/api/research-tasks` | 请求体固定 `{ question, pdfId, paperSkeleton? }`，Python 返回 `{ status, task }`；`task` 固定包含 `taskId`、可选 `traceId`、任务 `status`、`stage`、`progress`、`question`、`pdfId`、`plan`、`findings`、`report`、`error`、`createdAt`、`updatedAt` |
+| POST preview research brief → 转发 | POST `/api/research-tasks/brief-preview` | 请求体固定 `{ question, pdfId, paperSkeleton?, userConstraints? }`，Python 返回 `{ status, briefPreview }`；`briefPreview` 包含研究范围、默认假设、最多 3 个澄清问题、建议子问题和 `source` |
 | GET latest research task → 转发 | GET `/api/research-tasks/latest?pdfId={pdfId}` | Python 返回当前论文最近任务 `{ status, task }`；任务不存在返回 `404`。用于前端刷新后按当前论文恢复最近快照 |
 | GET research task → 转发 | GET `/api/research-tasks/{taskId}` | Python 返回 `{ status, task }`，任务不存在时返回 `404` 与 `{ status: "error", message }` |
 | POST cancel research task → 转发 | POST `/api/research-tasks/{taskId}/cancel` | Python 返回 `{ status, task }`；取消采用 best-effort 协作式语义，已结束任务返回当前快照，任务不存在返回 `404` |

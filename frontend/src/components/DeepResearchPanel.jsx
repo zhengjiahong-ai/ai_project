@@ -57,14 +57,21 @@ const DeepResearchPanel = ({
   task = null,
   errorMessage = '',
   pollError = '',
+  briefPreview = null,
+  briefConstraintsDraft = '',
+  briefError = '',
   traceSummary = null,
   traceError = '',
   isTraceLoading = false,
   isTracePanelEnabled = false,
   isCreating = false,
   isCancelling = false,
+  isPreviewingBrief = false,
   onQuestionChange,
   onStart,
+  onPreviewBrief,
+  onBriefConstraintsChange,
+  onAcceptBrief,
   onRefresh,
   onCancel,
   onRefreshTrace,
@@ -83,6 +90,8 @@ const DeepResearchPanel = ({
   const isRunningTask = hasActiveTask && !isTerminalTask;
   const hasPaper = Boolean(pdfFileName);
   const canStart = hasPaper && !isCreating && !isCancelling && !isRunningTask && Boolean(questionDraft.trim());
+  const canPreviewBrief = canStart && !isPreviewingBrief;
+  const canAcceptBrief = canStart && Boolean(briefPreview);
   const canRefresh = hasActiveTask && !isCreating && !isCancelling;
   const canCancel = isRunningTask && !isCreating && !isCancelling;
   const latestFinding = normalizedTask?.findings?.[normalizedTask.findings.length - 1] || null;
@@ -144,12 +153,21 @@ const DeepResearchPanel = ({
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
-              onClick={onStart}
+              onClick={onPreviewBrief}
+              disabled={!canPreviewBrief}
+              className="theme-button-secondary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isPreviewingBrief ? <Loader2 className="animate-spin" size={18} /> : <FileSearch size={18} />}
+              生成研究 brief
+            </button>
+
+            <button
+              onClick={() => onStart?.()}
               disabled={!canStart}
               className="flex items-center gap-2 rounded-xl bg-pixiu px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-pixiu-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isCreating ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
-              {hasActiveTask && isTerminalTask ? '重新发起研究' : '开始深度研究'}
+              {hasActiveTask && isTerminalTask ? '直接重新发起' : '直接开始研究'}
             </button>
 
             <button
@@ -178,6 +196,102 @@ const DeepResearchPanel = ({
 
         <ErrorBanner message={errorMessage} tone="danger" />
         <ErrorBanner message={pollError} tone="warning" />
+        <ErrorBanner message={briefError} tone="warning" />
+
+        {briefPreview && (
+          <div className="theme-card rounded-2xl p-5">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="theme-text-primary text-sm font-bold">研究 brief preview</div>
+                <div className="theme-text-secondary mt-1 text-xs">
+                  {briefPreview.needsClarification ? '建议先补充约束后再启动。' : '可直接接受默认 brief 启动任务。'}
+                </div>
+              </div>
+              <span className="theme-card-soft rounded-full px-3 py-1 text-[11px] font-semibold">
+                {briefPreview.source === 'llm' ? 'LLM preview' : 'fallback preview'}
+              </span>
+            </div>
+
+            <div className="theme-card-soft rounded-xl px-4 py-3">
+              <div className="theme-text-primary text-sm font-semibold">研究范围</div>
+              <div className="theme-text-secondary mt-2 text-sm leading-7">
+                {briefPreview.brief || '暂无 brief。'}
+              </div>
+            </div>
+
+            {briefPreview.assumptions.length > 0 && (
+              <div className="mt-4">
+                <div className="theme-text-primary text-xs font-bold">默认假设</div>
+                <div className="mt-2 space-y-2">
+                  {briefPreview.assumptions.map((item, index) => (
+                    <div key={`brief-assumption-${index}`} className="theme-card-soft rounded-xl px-4 py-2 text-sm leading-6 theme-text-secondary">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {briefPreview.clarifyingQuestions.length > 0 && (
+              <div className="mt-4">
+                <div className="theme-text-primary text-xs font-bold">澄清问题</div>
+                <div className="mt-2 space-y-2">
+                  {briefPreview.clarifyingQuestions.map((item, index) => (
+                    <div key={`brief-question-${index}`} className="theme-card-soft rounded-xl px-4 py-2 text-sm leading-6 theme-text-secondary">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {briefPreview.suggestedSubQuestions.length > 0 && (
+              <div className="mt-4">
+                <div className="theme-text-primary text-xs font-bold">建议子问题</div>
+                <div className="mt-2 space-y-2">
+                  {briefPreview.suggestedSubQuestions.map((item, index) => (
+                    <div key={`brief-sub-question-${index}`} className="theme-card-soft rounded-xl px-4 py-2 text-sm leading-6 theme-text-secondary">
+                      {index + 1}. {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4">
+              <div className="theme-text-primary mb-2 text-xs font-bold">补充约束</div>
+              <textarea
+                value={briefConstraintsDraft}
+                onChange={(event) => onBriefConstraintsChange?.(event.target.value)}
+                rows={3}
+                disabled={!hasPaper || isCreating || isCancelling || isRunningTask}
+                className="theme-input w-full rounded-xl p-3 text-sm outline-none transition"
+                placeholder="例如：重点检查消融实验；不要展开相关工作；优先关注过度主张风险。"
+              />
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={onAcceptBrief}
+                disabled={!canAcceptBrief}
+                className="flex items-center gap-2 rounded-xl bg-pixiu px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-pixiu-dark disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCreating ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
+                接受 brief 并启动
+              </button>
+              <button
+                type="button"
+                onClick={onPreviewBrief}
+                disabled={!canPreviewBrief}
+                className="theme-button-secondary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPreviewingBrief ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+                重新生成 brief
+              </button>
+            </div>
+          </div>
+        )}
 
         {!hasActiveTask && (
           <div className="theme-panel flex flex-col items-center justify-center rounded-2xl p-8 text-center">

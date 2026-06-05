@@ -51,6 +51,15 @@ const run = async () => {
     paperSkeleton: { abstract: 'summary' },
   });
 
+  await createResearchService.previewResearchBrief('研究问题', 'paper-1', { abstract: 'summary' }, '重点看实验');
+  assert.equal(createResearchUrl, '/research-tasks/brief-preview');
+  assert.deepEqual(createResearchPayload, {
+    question: '研究问题',
+    pdfId: 'paper-1',
+    paperSkeleton: { abstract: 'summary' },
+    userConstraints: '重点看实验',
+  });
+
   let getResearchUrl = '';
   const getResearchService = createApiService({
     get: async (url) => {

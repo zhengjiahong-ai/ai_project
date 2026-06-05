@@ -132,6 +132,34 @@ class AcademicControllerTest {
     }
 
     @Test
+    void previewResearchBriefReturnsBriefPreview() throws Exception {
+        when(aiService.previewResearchBrief(eq(Map.of(
+                "question", "研究问题",
+                "pdfId", "paper-1",
+                "paperSkeleton", Map.of("abstract", "summary"),
+                "userConstraints", "重点看实验")))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "briefPreview", Map.of(
+                                "question", "研究问题",
+                                "pdfId", "paper-1",
+                                "brief", "聚焦实验设计。",
+                                "assumptions", List.of("优先检查当前论文"),
+                                "clarifyingQuestions", List.of(),
+                                "suggestedSubQuestions", List.of("实验设置是什么？"),
+                                "needsClarification", false,
+                                "source", "llm"))));
+
+        mockMvc.perform(post("/api/research-tasks/brief-preview")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"question":"研究问题","pdfId":"paper-1","paperSkeleton":{"abstract":"summary"},"userConstraints":"重点看实验"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.briefPreview.brief").value("聚焦实验设计。"))
+                .andExpect(jsonPath("$.briefPreview.needsClarification").value(false));
+    }
+
+    @Test
     void getResearchTaskPropagatesNotFoundStatus() throws Exception {
         when(aiService.getResearchTask("task-missing")).thenReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                 "status", "error",

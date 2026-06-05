@@ -259,10 +259,12 @@ docker restart ai_service_python
 
 ### 深度研究
 
+- 支持创建前生成研究 brief preview，先给出研究范围、默认假设、建议子问题和可选澄清问题。
+- 用户可以直接接受默认 brief 启动任务，也可以补充约束后再启动；旧的直接启动流程仍可用。
 - 支持创建、轮询、取消研究任务。
 - 任务围绕当前论文和用户研究问题展开。
 - 返回阶段、进度、计划、结构化 `findings` 和 Markdown 报告。
-- 当前任务状态保存在 Python 进程内存和浏览器会话内存中，服务重启后不保证恢复。
+- 深度研究任务会保存 SQLite 快照；页面刷新后可按当前论文恢复最近任务，服务重启前未结束的任务会恢复为失败状态并提示重新发起。
 
 ---
 
@@ -286,7 +288,7 @@ ai-service-python -> http://grobid:8070 -> GROBID TEI XML -> document_parser -> 
 
 - 浏览器侧论文数据、聊天记录、笔记、翻译状态和阅读进度主要保存在 IndexedDB 中；清理浏览器站点数据会影响这些本地记录。
 - 已上传且已解析过的旧论文可能仍使用旧缓存结构；如果目录没有多级层级、缺少数字序号或没有 `outlineVersion`，优先重新上传或重新解析论文。
-- Deep research 任务状态当前保存在 Python 进程内存和浏览器会话内存中；后端重启或页面刷新后不保证恢复。
+- Deep research 任务快照保存在 Python SQLite 存储中；页面刷新后可按当前论文恢复最近任务，后端重启前仍在运行的任务会恢复为失败状态并提示重新发起。
 - Python AI 服务会为聊天、划词解释、批判阅读、背景补课和深度研究生成轻量 trace；trace 用于排障阶段、耗时、检索次数和 LLM 调用次数，不记录 API Key、完整 prompt、完整论文全文或完整用户全文。
 - 论文正文、`paperSkeleton`、`paperStructure`、页内上下文和 RAG 片段都被视为不可信资料；其中出现的越权指令、密钥索取、system prompt 泄露、联网搜索或工具调用要求只会被当作待分析文本，不会被执行。
 - 当前仓库没有对外 MCP server 或 MCP client，也没有引入 MCP SDK；后续适配路线见 [docs/MCP_ADAPTER_PLAN.md](docs/MCP_ADAPTER_PLAN.md)。

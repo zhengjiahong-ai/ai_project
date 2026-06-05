@@ -66,6 +66,7 @@ import {
 import {
   TERMINAL_RESEARCH_STATUSES,
   createEmptyDeepResearchState,
+  normalizeResearchBriefPreview,
   normalizeTraceSummary,
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
@@ -1202,10 +1203,75 @@ export default function App() {
       ...prev,
       questionDraft: nextQuestionDraft,
       errorMessage: '',
+      briefPreview: null,
+      briefError: '',
     }));
   }, [pdfId, setDeepResearchStateForPdf]);
 
-  const handleStartResearchTask = useCallback(async () => {
+  const handleDeepResearchBriefConstraintsChange = useCallback((nextConstraintsDraft) => {
+    if (!pdfId) {
+      return;
+    }
+
+    setDeepResearchStateForPdf(pdfId, (prev) => ({
+      ...prev,
+      briefConstraintsDraft: nextConstraintsDraft,
+      briefError: '',
+    }));
+  }, [pdfId, setDeepResearchStateForPdf]);
+
+  const handlePreviewResearchBrief = useCallback(async () => {
+    if (!pdfId) {
+      return;
+    }
+
+    const currentState = deepResearchStateByPdf[pdfId] || createEmptyDeepResearchState();
+    const question = `${currentState.questionDraft || ''}`.trim();
+    if (!question) {
+      setDeepResearchStateForPdf(pdfId, (prev) => ({
+        ...prev,
+        briefError: '请输入研究问题后再生成研究 brief。',
+      }));
+      return;
+    }
+
+    setDeepResearchStateForPdf(pdfId, (prev) => ({
+      ...prev,
+      isPreviewingBrief: true,
+      briefError: '',
+      errorMessage: '',
+    }));
+
+    try {
+      const response = await apiService.previewResearchBrief(
+        question,
+        pdfId,
+        deconstructData?.paper_skeleton || null,
+        currentState.briefConstraintsDraft || '',
+      );
+      const nextPreview = normalizeResearchBriefPreview(response?.briefPreview);
+      if (response?.status !== 'success' || !nextPreview) {
+        throw new Error(response?.message || '研究 brief 生成失败');
+      }
+
+      setDeepResearchStateForPdf(pdfId, (prev) => ({
+        ...prev,
+        questionDraft: question,
+        briefPreview: nextPreview,
+        briefError: '',
+        isPreviewingBrief: false,
+      }));
+    } catch (error) {
+      console.error('Failed to preview deep research brief.', error);
+      setDeepResearchStateForPdf(pdfId, (prev) => ({
+        ...prev,
+        isPreviewingBrief: false,
+        briefError: error?.response?.data?.message || error?.message || '研究 brief 生成失败，请稍后重试。',
+      }));
+    }
+  }, [deepResearchStateByPdf, deconstructData, pdfId, setDeepResearchStateForPdf]);
+
+  const handleStartResearchTask = useCallback(async ({ useBriefPreview = false } = {}) => {
     if (!pdfId) {
       return;
     }
@@ -1226,6 +1292,7 @@ export default function App() {
       isCancelling: false,
       errorMessage: '',
       pollError: '',
+      briefError: '',
     }));
 
     try {
@@ -1233,6 +1300,8 @@ export default function App() {
         question,
         pdfId,
         deconstructData?.paper_skeleton || null,
+        useBriefPreview ? currentState.briefConstraintsDraft || '' : '',
+        useBriefPreview ? currentState.briefPreview : null,
       );
       const nextTask = normalizeResearchTask(response?.task);
       if (response?.status !== 'success' || !nextTask) {
@@ -2645,12 +2714,19 @@ export default function App() {
                         pollError={currentDeepResearchState.pollError}
                         isCreating={currentDeepResearchState.isCreating}
                         isCancelling={currentDeepResearchState.isCancelling}
+                        briefPreview={currentDeepResearchState.briefPreview}
+                        briefConstraintsDraft={currentDeepResearchState.briefConstraintsDraft}
+                        isPreviewingBrief={currentDeepResearchState.isPreviewingBrief}
+                        briefError={currentDeepResearchState.briefError}
                         traceSummary={currentDeepResearchState.traceSummary}
                         traceError={currentDeepResearchState.traceError}
                         isTraceLoading={currentDeepResearchState.isTraceLoading}
                         isTracePanelEnabled={Boolean(import.meta.env?.DEV)}
                         onQuestionChange={handleDeepResearchQuestionChange}
                         onStart={handleStartResearchTask}
+                        onPreviewBrief={handlePreviewResearchBrief}
+                        onBriefConstraintsChange={handleDeepResearchBriefConstraintsChange}
+                        onAcceptBrief={() => handleStartResearchTask({ useBriefPreview: true })}
                         onRefresh={handleRefreshResearchTask}
                         onCancel={handleCancelResearchTask}
                         onRefreshTrace={() => fetchDeepResearchTrace(pdfId, currentDeepResearchState.task?.traceId)}

@@ -8,6 +8,7 @@ import {
   getResearchStageMeta,
   getResearchStatusMeta,
   getResearchVerdictMeta,
+  normalizeResearchBriefPreview,
   normalizeTraceSummary,
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
@@ -26,6 +27,10 @@ const run = async () => {
     traceSummary: null,
     traceError: '',
     isTraceLoading: false,
+    briefPreview: null,
+    briefConstraintsDraft: '',
+    isPreviewingBrief: false,
+    briefError: '',
   });
 
   assert.equal(clampResearchProgress(-1), 0);
@@ -166,6 +171,29 @@ const run = async () => {
   assert.equal(fallbackTrace.traceId, '');
   assert.deepEqual(fallbackTrace.steps, []);
   assert.deepEqual(fallbackTrace.counters, {});
+
+  const normalizedPreview = normalizeResearchBriefPreview({
+    question: '研究问题',
+    pdfId: 'paper-1',
+    brief: '聚焦实验设计。',
+    assumptions: ['优先检查当前论文', '', '内部文献库只做补充'],
+    clarifyingQuestions: ['关注实验？', '关注方法？', '关注局限？', '多余问题'],
+    suggestedSubQuestions: ['实验设置是什么？', '指标是否充分？', '局限是什么？', '多余子问题'],
+    needsClarification: true,
+    source: 'llm',
+  });
+  assert.equal(normalizedPreview.brief, '聚焦实验设计。');
+  assert.deepEqual(normalizedPreview.assumptions, ['优先检查当前论文', '内部文献库只做补充']);
+  assert.deepEqual(normalizedPreview.clarifyingQuestions, ['关注实验？', '关注方法？', '关注局限？']);
+  assert.deepEqual(normalizedPreview.suggestedSubQuestions, ['实验设置是什么？', '指标是否充分？', '局限是什么？']);
+  assert.equal(normalizedPreview.needsClarification, true);
+  assert.equal(normalizedPreview.source, 'llm');
+
+  assert.equal(normalizeResearchBriefPreview(null), null);
+  const fallbackPreview = normalizeResearchBriefPreview({ brief: '', clarifyingQuestions: 'bad' });
+  assert.equal(fallbackPreview.brief, '');
+  assert.deepEqual(fallbackPreview.clarifyingQuestions, []);
+  assert.deepEqual(fallbackPreview.suggestedSubQuestions, []);
 
   console.log('deep research panel model smoke tests passed');
 };

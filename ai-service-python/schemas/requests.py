@@ -75,3 +75,12 @@ class ResearchTaskCreateRequest(BaseModel):
     question: str
     pdfId: str
     paperSkeleton: Optional[Dict[str, Any]] = None
+    userConstraints: Optional[str] = ""
+    briefPreview: Optional[Dict[str, Any]] = None
+
+
+class ResearchTaskBriefPreviewRequest(BaseModel):
+    question: str
+    pdfId: str
+    paperSkeleton: Optional[Dict[str, Any]] = None
+    userConstraints: Optional[str] = ""

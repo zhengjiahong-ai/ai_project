@@ -304,6 +304,63 @@ class AiServiceTest {
     }
 
     @Test
+    void previewResearchBriefForwardsRequestToPythonService() {
+        Map<String, Object> request = new HashMap<>();
+        request.put("question", "研究问题");
+        request.put("pdfId", "paper-1");
+        request.put("paperSkeleton", Map.of("abstract", "summary"));
+        request.put("userConstraints", "重点看实验");
+
+        when(restTemplate.exchange(
+                eq("http://python/api/research-tasks/brief-preview"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "briefPreview", Map.of(
+                                "question", "研究问题",
+                                "pdfId", "paper-1",
+                                "brief", "聚焦实验。",
+                                "assumptions", List.of("优先检查当前论文"),
+                                "clarifyingQuestions", List.of(),
+                                "suggestedSubQuestions", List.of("实验设计是什么？"),
+                                "needsClarification", false,
+                                "source", "llm"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.previewResearchBrief(request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("success", response.getBody().get("status"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> preview = (Map<String, Object>) response.getBody().get("briefPreview");
+        assertEquals("聚焦实验。", preview.get("brief"));
+    }
+
+    @Test
+    void previewResearchBriefPropagatesPythonErrorStatusAndMessage() {
+        HttpClientErrorException error = HttpClientErrorException.create(
+                HttpStatus.BAD_REQUEST,
+                "Bad Request",
+                HttpHeaders.EMPTY,
+                "{\"status\":\"error\",\"message\":\"Question cannot be empty.\"}".getBytes(StandardCharsets.UTF_8),
+                StandardCharsets.UTF_8);
+
+        when(restTemplate.exchange(
+                eq("http://python/api/research-tasks/brief-preview"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class))).thenThrow(error);
+
+        ResponseEntity<Map<String, Object>> response = aiService.previewResearchBrief(Map.of("question", ""));
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("error", response.getBody().get("status"));
+        assertEquals("Question cannot be empty.", response.getBody().get("message"));
+    }
+
+    @Test
     void getResearchTaskForwardsGetRequestToPythonService() {
         when(restTemplate.exchange(
                 eq("http://python/api/research-tasks/task-1"),
