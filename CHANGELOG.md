@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-05 20:37 v0.1.16
+
+1. **修复 Python 文献库入库接口**：为真实 `LiteratureRAG` 补齐 `get_db_stats()`，避免 `/api/rag/add-literature` 成功入库后因统计方法缺失返回 500。
+2. **保持 RAG 入库响应兼容**：接口继续返回 `status`、`message`、`chunk_num` 与 `total_chunks`；`DummyRAG` fallback 仍返回 0 chunks，不改变旧语义。
+3. **补齐回归测试与约束文档**：新增 `test_rag_service.py` 覆盖成功入库、RAG 不可用 fallback 和真实统计方法；同步 `docs/CONSTRAINTS.md` 记录 `total_chunks` 语义。
+
 ### 2026-06-05 08:50 v0.1.15
 
 1. **新增深度研究 brief preview**：新增 `POST /api/research-tasks/brief-preview` 三层链路，在创建长任务前生成研究范围、默认假设、建议子问题和可选澄清问题。

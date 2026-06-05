@@ -186,6 +186,9 @@ class LiteratureRAG:
 
         return output
 
+    def get_db_stats(self):
+        return self.collection.count()
+
     def get_documents_by_metadata(self, filter_metadata=None, limit=200):
         if filter_metadata and "id" in filter_metadata:
             filter_metadata["id"] = self.normalize_id(filter_metadata["id"])

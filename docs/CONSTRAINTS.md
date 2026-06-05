@@ -273,7 +273,7 @@
 
 | 方法 | Python 路径 | 请求体 | 说明 |
 |------|-------------|--------|------|
-| POST | `/api/rag/add-literature` | `multipart/form-data`, 字段名 `file`，可选 metadata | 向 Python 文献库追加索引，当前前端未直接使用 |
+| POST | `/api/rag/add-literature` | `multipart/form-data`, 字段名 `file`，可选 metadata | 向 Python 文献库追加索引，当前前端未直接使用；成功响应包含 `chunk_num`（本次新增 chunk 数）与 `total_chunks`（当前向量库总 chunk 数），RAG 不可用时 `DummyRAG` fallback 返回 0 chunks |
 | POST | `/api/rag/retrieve` | query/top_k/filter_metadata | 直接检索 Python RAG，当前前端未直接使用 |
 | POST | `/api/deep-analysis` | `{ "paper_content": string? }` 或 `{ "pdf_id": string? }` | 深度/批判分析能力；兼容临时 `paper_content` 与当前论文 `pdf_id` 两种路径，成功响应除旧字段外还可包含 `evidence_based_contributions`、`weaknesses`、`overclaim_risks`、`missing_evidence`、`claims`、`rag_sources`、`traceId`、`sentenceSourceMap` |
 
