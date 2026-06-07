@@ -63,7 +63,9 @@
 - `task.status` 只允许 `pending`、`running`、`succeeded`、`failed`、`cancelled`；`task.stage` 只允许 `planning`、`retrieving`、`judging`、`synthesizing`、`done`；`task.progress` 固定为 `0.0-1.0` 的数字。
 - `task.plan` 固定为 3-5 个中文子问题；`task.findings[*]` 固定为 `{ subQuestion, summary, verdict, missingAspects, sourceIds }`，其中 `verdict` 只允许 `CORRECT`、`AMBIGUOUS`、`INCORRECT`，`sourceIds` 只能引用当前任务里实际使用的证据片段标识。
 - Python 深度研究任务必须继续遵守“当前论文优先、内部文献库补充、最多 1 次自动重试”的检索边界；禁止引入外部 Web 搜索、多模型协作或 LangGraph。
-- 当前模块的任务状态仅允许存 Python 进程内存；服务重启后任务可丢失，这一限制必须在 README 与后续 UI 中明确，不得伪装成可恢复的持久任务。
+- 历史规则：本模块最初只允许任务状态保存在 Python 进程内存中，服务重启后任务可丢失。
+- 当前有效规则：上述内存限制已被 2026-06-01 SQLite 快照版本覆盖；深度研究任务快照保存到 Python SQLite，前端可通过 `GET /api/research-tasks/latest?pdfId=...` 按当前论文恢复最近任务。
+- 服务重启后只恢复任务快照，不恢复后台线程；重启前仍为 `pending` 或 `running` 的任务会恢复为 `failed` / `done`，并在 `error` 中提示用户重新发起任务。
 - `POST /api/research-tasks/{taskId}/cancel` 必须保持幂等；任务已结束时返回当前快照，任务不存在时返回 `404` 与 `{ status: "error", message }`。
 
 ## 2026-06-05 深度研究 brief 澄清阶段补充
@@ -82,7 +84,8 @@
 
 - 前端“深度研究”页签只能通过 `frontend/src/services/api.js` 中的 `previewResearchBrief`、`createResearchTask`、`getResearchTask`、`getLatestResearchTask`、`cancelResearchTask`、`getTrace` 访问相关接口，禁止在组件中直接拼接 `/api/research-tasks` 或 `/api/traces` URL。
 - 深度研究前端状态必须按 `pdfId` 隔离，单个当前论文 UI 同时只跟踪一个活动 research task；切换论文不得复用上一个论文的 `questionDraft`、`briefPreview`、`briefConstraintsDraft`、`task`、`pollError` 或取消状态。
-- 当前模块不做 IndexedDB 或 localStorage 持久化 research task 快照；刷新页面后允许回到空态，后端服务重启或任务状态丢失时只能提示不可恢复，不得伪装成持久任务恢复成功。
+- 当前模块不在浏览器 IndexedDB 或 localStorage 中持久化 research task 快照；刷新页面后前端应通过 `getLatestResearchTask(pdfId)` 查询后端 SQLite 快照来恢复当前论文最近任务。
+- 如果后端返回 `404` 或任务快照不可用，前端才回到空态或提示无法恢复；不得在浏览器侧伪造持久任务恢复成功。
 - 前端面板必须兼容 `task.plan`、`task.findings`、`task.report`、`task.error` 为空或缺失；展示层只能做兼容式默认值填充，不得把缺失字段改写成新的接口要求。
 - 前端自动轮询只允许针对当前论文的当前 `taskId` 查询状态，任务进入 `succeeded`、`failed`、`cancelled` 后必须停止轮询；轮询异常时允许提示 `pollError`，但不得覆盖成伪造的终态快照。
 

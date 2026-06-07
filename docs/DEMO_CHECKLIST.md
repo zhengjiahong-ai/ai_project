@@ -41,7 +41,23 @@ docker compose logs --tail=80 frontend
 - `grobid_service` 处于 healthy/running 状态。
 - 浏览器可打开 `http://localhost:5173`。
 
-## 3. 当前联调记录
+## 3. 当前基线记录
+
+记录日期：`2026-06-07`
+
+本次 P0-3 只对齐文档、版本号和运行说明，不重新声明 Docker/API 全链路 smoke 已通过。演示前仍应按第 2 节启动服务，并用第 4 节逐项记录真实结果。
+
+| 检查项 | 当前基线 | 记录要求 |
+| --- | --- | --- |
+| 版本号 | `README.md` 与 `frontend/VERSION` 对齐到 `0.1.18`。 | 若继续迭代，版本号应跟随 `CHANGELOG.md` 最新记录。 |
+| 模型供应商 | 当前文档与环境变量以 DeepSeek V4 为准。 | 不再把 DashScope 写作当前默认模型。 |
+| 深度研究持久化 | Python 使用 SQLite 快照，Docker Compose 通过 `research_task_data` volume 保存 `/app/data/research_tasks.sqlite3`。 | 服务重启后只恢复快照，不恢复运行中的后台任务。 |
+| Python reload | Dockerfile 默认不启用 `uvicorn --reload`。 | 修改 Python 代码后需要 `docker restart ai_service_python` 或重建容器。 |
+| Compose 命令 | 推荐 `docker compose up --build` 或 `docker compose up -d frontend backend ai-service grobid`。 | 旧式 `docker-compose` 只作为本地兼容命令，不作为主文档命令。 |
+| 必需环境 | Docker Desktop、可用端口、根目录 `.env`、有效 `DEEPSEEK_API_KEY`。 | 任一条件缺失时标为 `BLOCKED`，不得写成 PASS。 |
+| 测试记录 | 前端 `npm.cmd test` 当前包含 13 个脚本入口；Python 最新历史记录为 `133 passed`。 | 以本次真实运行输出为准；未运行则写 `NOT_RUN`。 |
+
+## 4. 历史联调记录
 
 记录日期：`2026-05-20`
 
@@ -55,7 +71,7 @@ docker compose logs --tail=80 frontend
 | 固定 PDF 上传 | PASS | 上传成功，`pdfId=active_ris-assisted_integrated_sensing_and_communication_systems_joint_receive-transmit_beamforming_and_reflection_design.pdf`，`ragIndexed=true`，`ragChunkCount=32`，章节数 `12`，耗时约 `145s`。 | 无 |
 | 全功能演示链路 | PASS | 通过 Java `http://localhost:8081/api` 完成上传、问答、划词解释、翻译、批判阅读、背景补课、苏格拉底学习和 deep research API smoke。 | 浏览器演示仍建议按第 4 节现场走 UI，并准备第 5 节截图。 |
 
-## 4. 演示步骤与记录表
+## 5. 演示步骤与记录表
 
 每次演示前复制本节表格，填入实际输入、输出摘要、状态和耗时。状态只允许使用 `PASS`、`FAIL`、`BLOCKED`、`NOT_RUN`。
 
@@ -71,7 +87,7 @@ docker compose logs --tail=80 frontend
 | 8. 苏格拉底学习 | 启动引导学习并回答第 1 题。 | 回答示例：`我理解这篇论文主要关注 RIS 辅助的通信与感知联合优化。` | 返回下一题或评估，包含掌握度、缺失点或提示。 | 启动成功，首题为“这篇论文试图解决的核心研究问题是什么”；提交一次回答后接口返回 `status=success`。 | PASS | 启动约 7.4s；回答约 12.5s | 通过 Java `/api/socratic-session/start` 与 `/api/socratic-session/answer` 验证。 |
 | 9. 深度研究 | 创建 deep research 任务并轮询到终态。 | `这篇论文的关键贡献是否有充分实验支撑？` | 返回 `taskId`、可选 `traceId`、阶段、进度、结构化 findings 和报告，或明确失败原因。 | 任务成功，`taskId=fbbbb293-e708-4c7b-bb0c-306a48a24dbf`，`traceId=1798c88b-90ec-4aee-beb9-54bed4d40218`，`status=succeeded`，`stage=done`，`planItems=5`，`findings=5`，有报告。 | PASS | 约 120s | 轮询 15 次到终态。 |
 
-## 5. 备用截图建议
+## 6. 备用截图建议
 
 演示前建议准备以下截图，避免现场网络、Docker 或模型问题影响展示：
 
@@ -86,7 +102,7 @@ docker compose logs --tail=80 frontend
 - 深度研究任务成功终态，包含计划、findings 和报告。
 
 
-## 6. 回归验证命令
+## 7. 回归验证命令
 
 前端：
 
@@ -114,7 +130,7 @@ cd C:\Users\17660\Desktop\codes\ai_project\backend-java
 
 | 命令 | 状态 | 结果摘要 |
 | --- | --- | --- |
-| `npm.cmd test` | PASS | 10 个前端 smoke/模型测试脚本全部通过。 |
+| `npm.cmd test` | PASS | 13 个前端 smoke/模型测试脚本入口全部通过。 |
 | `npm.cmd run build` | PASS_WITH_WARNINGS | Vite build 成功；保留已知警告：`react-resizable-panels` 的 `"use client"`、`pdfjs-dist` eval 风险、chunk 超过 500 kB。 |
-| `python -m pytest tests -q` | PASS | `98 passed in 0.83s`。 |
-| `.\mvnw.cmd test` | PASS_WITH_WARNINGS | `20` 个 Java 测试通过；保留 Mockito 动态 agent 未来兼容性警告。 |
+| `python -m pytest tests -q` | PASS | `133 passed in 7.48s`。 |
+| `.\mvnw.cmd test` | PASS_WITH_WARNINGS | `30` 个 Java 测试通过；保留 Mockito 动态 agent 未来兼容性警告。 |

@@ -37,7 +37,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./ai-service-python:/app      # 🔥 修复：映射代码本身，彻底激活 uvicorn --reload
+      - ./ai-service-python:/app      # 映射本地代码，容器重启后使用当前工作区内容；Dockerfile 默认不启用 uvicorn --reload
       - chroma_data:/app/chroma_data  # 🔥 修复：挂载向量数据库防止重启后 RAG 失忆
       - research_task_data:/app/data  # 持久化深度研究任务快照
       - huggingface_cache:/root/.cache/huggingface # 挂载 HF 缓存防止每次重启重新下载 1.3GB 模型

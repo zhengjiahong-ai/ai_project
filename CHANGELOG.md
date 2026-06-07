@@ -2,6 +2,14 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-07 21:10 v0.1.18
+
+1. **完成版本对齐**：将 `frontend/VERSION` 与 README 当前版本同步到 `0.1.18`，消除版本号仍停留在 `0.1.6`、CHANGELOG 已到 `v0.1.17` 的不一致。
+2. **修正深度研究持久化语义**：在约束文档中保留早期内存任务规则的历史说明，并明确当前有效契约已被 SQLite 快照、`/api/research-tasks/latest?pdfId=...` 恢复和重启前运行任务失败标记覆盖。
+3. **对齐 Docker 与启动说明**：更新 `启动服务.md` 的 `docker compose` 命令、`research_task_data` 快照 volume 说明，并修正 `docker-compose.yml` 中误导性的 `uvicorn --reload` 注释；Python Dockerfile 当前默认不启用 reload。
+4. **刷新演示与测试基线**：`docs/DEMO_CHECKLIST.md` 新增 2026-06-07 当前基线，保留 2026-05-20 API smoke 为历史记录，不把未重新执行的 Docker/API 全链路写成 PASS。
+5. **验证结果**：已通过 `npm.cmd test`（13 个前端 smoke/模型测试入口）、`npm.cmd run build`（通过，保留 Vite 已知警告）、`python -m pytest tests -q`（133 passed）和 `.\mvnw.cmd test`（30 tests passed，保留 Mockito 动态 agent 警告）。未重新执行 Docker Compose 启动或固定 PDF 全链路 API smoke。
+
 ### 2026-06-07 20:30 v0.1.17
 
 1. **修复 HybridRetriever BM25 索引刷新**：新增 `invalidate_hybrid_cache()`，让新增论文 chunks 写入 Chroma 成功后清理旧 `_hybrid` 缓存，下一次混合检索会重建 BM25 文档索引。

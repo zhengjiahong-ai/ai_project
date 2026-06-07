@@ -2,7 +2,7 @@
 
 Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它以 PDF 论文为中心，提供论文库管理、真实篇章结构导航、划词解释、对话问答、逐页翻译、背景补课、批判阅读、引导学习、深度研究和本地笔记等能力。
 
-当前版本：`0.1.6`
+当前版本：`0.1.18`
 
 版本号来源：前端目录 [frontend/VERSION](frontend/VERSION)
 
@@ -306,6 +306,8 @@ npm.cmd test
 npm.cmd run build
 ```
 
+当前 `npm.cmd test` 串行执行 13 个前端 smoke/模型测试入口，覆盖翻译布局、翻译状态、请求归一化、苏格拉底会话、API 封装、Markdown、批判阅读、证据引用、背景补课、深度研究和工作台 artifact 模型等前端纯逻辑路径。
+
 Python AI 服务容器内语法检查：
 
 ```bash
@@ -323,6 +325,14 @@ node src/utils/pageTranslationRequest.test.js
 cd ../ai-service-python
 python -m pytest tests/test_outline_extractor.py tests/test_page_translation_service.py -q
 ```
+
+完整 Python 回归建议在 `ai-service-python` 目录执行：
+
+```bash
+python -m pytest tests -q
+```
+
+最近一次 P0-2 记录的完整 Python 回归结果为 `133 passed`。如果本地依赖、模型缓存或 Docker 环境不可用，不要把未执行命令写成 PASS，应在 `CHANGELOG.md` 或演示检查清单中标为未运行或 BLOCKED。
 
 Docker 服务状态：
 
