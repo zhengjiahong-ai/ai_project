@@ -11,7 +11,7 @@ from sentence_transformers import SentenceTransformer
 from grobid_client.grobid_client import GrobidClient
 
 from core.document_parser import parse_tei_xml
-from rag.store import normalize_id
+from rag.store import invalidate_hybrid_cache, normalize_id
 from core.smart_chunker import chunk_sections
 
 
@@ -143,6 +143,8 @@ class LiteratureRAG:
             embeddings=embeddings,
             metadatas=metadatas
         )
+
+        invalidate_hybrid_cache()
 
         return len(texts)
 

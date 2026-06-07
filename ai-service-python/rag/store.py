@@ -55,6 +55,12 @@ def get_rag_initialization_error() -> Exception | None:
     return _rag_initialization_error
 
 
+def invalidate_hybrid_cache() -> None:
+    global _hybrid
+
+    _hybrid = None
+
+
 def get_rag():
     global _rag, _hybrid, _rag_initialization_error
 

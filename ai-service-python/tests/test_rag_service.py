@@ -1,9 +1,11 @@
+import importlib
 import os
 import sys
 import types
 import unittest
 from unittest.mock import patch
 
+from rag import store
 from rag.store import DummyRAG
 from services import rag_service
 
@@ -41,6 +43,61 @@ class FakeCollection:
 
     def count(self):
         return self._count
+
+
+class FakeAddCollection:
+    def __init__(self):
+        self.added = None
+
+    def add(self, ids, documents, embeddings, metadatas):
+        self.added = {
+            "ids": ids,
+            "documents": documents,
+            "embeddings": embeddings,
+            "metadatas": metadatas,
+        }
+
+
+class FakeEmbeddingResult:
+    def __init__(self, embeddings):
+        self.embeddings = embeddings
+
+    def tolist(self):
+        return self.embeddings
+
+
+class FakeEmbeddingModel:
+    def encode(self, texts, normalize_embeddings=True):
+        return FakeEmbeddingResult([[0.1, 0.2] for _ in texts])
+
+
+class FakeHybridCollection:
+    def __init__(self, documents):
+        self.documents = documents
+
+    def get(self):
+        return {"documents": list(self.documents)}
+
+
+class FakeHybridRAG:
+    def __init__(self, documents):
+        self.collection = FakeHybridCollection(documents)
+
+    def retrieve(self, query, top_k=5):
+        return []
+
+
+class FakeHybridRetriever:
+    def __init__(self, rag):
+        self.rag = rag
+        self.docs = rag.collection.get()["documents"]
+
+    def retrieve(self, query, top_k=5):
+        ranked = [doc for doc in self.docs if query in doc] or list(self.docs)
+        return {
+            "vector": [],
+            "bm25": [{"text": doc, "score": 1.0} for doc in ranked[:top_k]],
+        }
 
 
 class RagServiceTests(unittest.IsolatedAsyncioTestCase):
@@ -96,6 +153,93 @@ class RagServiceTests(unittest.IsolatedAsyncioTestCase):
         rag.collection = FakeCollection(count=11)
 
         self.assertEqual(rag.get_db_stats(), 11)
+
+    def test_literature_rag_add_sections_invalidates_hybrid_cache_after_successful_add(self):
+        fake_chromadb = types.ModuleType("chromadb")
+        fake_chromadb.PersistentClient = object
+        fake_chromadb_config = types.ModuleType("chromadb.config")
+        fake_chromadb_config.Settings = object
+        fake_sentence_transformers = types.ModuleType("sentence_transformers")
+        fake_sentence_transformers.SentenceTransformer = object
+        fake_grobid_client = types.ModuleType("grobid_client")
+        fake_grobid_client_module = types.ModuleType("grobid_client.grobid_client")
+        fake_grobid_client_module.GrobidClient = object
+
+        with patch.dict(
+            sys.modules,
+            {
+                "chromadb": fake_chromadb,
+                "chromadb.config": fake_chromadb_config,
+                "sentence_transformers": fake_sentence_transformers,
+                "grobid_client": fake_grobid_client,
+                "grobid_client.grobid_client": fake_grobid_client_module,
+            },
+        ):
+            rag_vector_db = importlib.import_module("core.rag_vector_db")
+
+        rag = object.__new__(rag_vector_db.LiteratureRAG)
+        rag.embedding_model = FakeEmbeddingModel()
+        rag.collection = FakeAddCollection()
+
+        with patch.object(
+            rag_vector_db,
+            "chunk_sections",
+            return_value=[{"section": "Intro", "text": "fresh indexed chunk"}],
+        ), patch.object(rag_vector_db, "invalidate_hybrid_cache") as invalidate:
+            chunk_count = rag.add_sections_to_db(
+                [{"section": "Intro", "content": "fresh indexed chunk"}],
+                "paper.pdf",
+                {"title": "Cache Paper", "id": "Paper One"},
+            )
+
+        self.assertEqual(chunk_count, 1)
+        self.assertIn("fresh indexed chunk", rag.collection.added["documents"][0])
+        self.assertEqual(rag.collection.added["metadatas"][0]["id"], "paper_one")
+        invalidate.assert_called_once_with()
+
+    def test_hybrid_cache_invalidation_rebuilds_bm25_from_updated_collection(self):
+        original_rag = store._rag
+        original_hybrid = store._hybrid
+        original_hybrid_retriever = store.HybridRetriever
+        try:
+            fake_rag = FakeHybridRAG(["Paper: old\n\nContent:\nlegacy baseline"])
+            store._rag = fake_rag
+            store._hybrid = None
+            store.HybridRetriever = FakeHybridRetriever
+
+            first_hybrid = store.get_hybrid()
+            first_bm25 = first_hybrid.retrieve("legacy", top_k=1)["bm25"]
+            self.assertIn("legacy baseline", first_bm25[0]["text"])
+
+            fake_rag.collection.documents = ["Paper: new\n\nContent:\nfresh chunk marker"]
+            store.invalidate_hybrid_cache()
+
+            second_hybrid = store.get_hybrid()
+            second_bm25 = second_hybrid.retrieve("fresh", top_k=1)["bm25"]
+
+            self.assertIsNot(second_hybrid, first_hybrid)
+            self.assertIn("fresh chunk marker", second_bm25[0]["text"])
+        finally:
+            store._rag = original_rag
+            store._hybrid = original_hybrid
+            store.HybridRetriever = original_hybrid_retriever
+
+    def test_hybrid_cache_invalidation_keeps_rag_instance(self):
+        original_rag = store._rag
+        original_hybrid = store._hybrid
+        try:
+            sentinel_rag = object()
+            sentinel_hybrid = object()
+            store._rag = sentinel_rag
+            store._hybrid = sentinel_hybrid
+
+            store.invalidate_hybrid_cache()
+
+            self.assertIs(store._rag, sentinel_rag)
+            self.assertIsNone(store._hybrid)
+        finally:
+            store._rag = original_rag
+            store._hybrid = original_hybrid
 
 
 if __name__ == "__main__":

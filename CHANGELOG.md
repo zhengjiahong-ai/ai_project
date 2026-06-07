@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-07 20:30 v0.1.17
+
+1. **修复 HybridRetriever BM25 索引刷新**：新增 `invalidate_hybrid_cache()`，让新增论文 chunks 写入 Chroma 成功后清理旧 `_hybrid` 缓存，下一次混合检索会重建 BM25 文档索引。
+2. **保持 RAG 对外契约不变**：不调整 `/api/rag/add-literature`、`/api/rag/retrieve`、Java 网关或前端调用字段；空 chunks 入库仍返回 0 且不触发缓存失效。
+3. **补齐回归测试**：新增测试覆盖 hybrid 缓存失效不影响 `_rag`、失效后重建 retriever 可读取新文档，以及 `LiteratureRAG.add_sections_to_db()` 成功写入后触发失效；已通过 `python -m pytest tests -q`（133 passed）。未覆盖真实 Chroma 并发检索窗口，当前行为为后续请求重建新索引。
+
 ### 2026-06-05 20:37 v0.1.16
 
 1. **修复 Python 文献库入库接口**：为真实 `LiteratureRAG` 补齐 `get_db_stats()`，避免 `/api/rag/add-literature` 成功入库后因统计方法缺失返回 500。
