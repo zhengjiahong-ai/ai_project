@@ -41,6 +41,54 @@ const trimExplainContext = (text = '') => {
   return `${trimmed.slice(0, EXPLAIN_CONTEXT_MAX_CHARS).trimEnd()}\n\n[当前页上下文过长，已截断]`;
 };
 
+const normalizeHighlightRecord = (highlight, index = 0) => {
+  if (!highlight || typeof highlight !== 'object') {
+    return null;
+  }
+
+  const position = highlight.position && typeof highlight.position === 'object' ? highlight.position : {};
+  const pageIndex = Number.isFinite(position.pageIndex)
+    ? position.pageIndex
+    : Number.isFinite(highlight.pageNumber)
+      ? highlight.pageNumber
+      : 0;
+  const sourceAnchorId =
+    highlight.sourceAnchorId
+    || highlight.anchorId
+    || `legacy-highlight-${highlight.id ?? index}`;
+  const text = typeof highlight.text === 'string' ? highlight.text : '';
+  const normalizedHistory = Array.isArray(highlight.chatHistory) && highlight.chatHistory.length > 0
+    ? highlight.chatHistory
+    : text
+      ? [{ role: 'ai', content: '这是历史划线记录。你可以继续围绕这段内容追问。' }]
+      : [{ role: 'ai', content: '这是历史划线记录。' }];
+
+  return {
+    ...highlight,
+    id: highlight.id ?? Date.now() + index,
+    sourceAnchorId,
+    text,
+    position: {
+      ...position,
+      pageIndex,
+      top: Number(position.top) || 0,
+      left: Number(position.left) || 0,
+      width: Number(position.width) || 0,
+      height: Number(position.height) || 0,
+    },
+    highlightAreas: Array.isArray(highlight.highlightAreas) ? highlight.highlightAreas : [],
+    actionId: highlight.actionId || highlight.sourceActionId || 'legacy',
+    actionLabel: highlight.actionLabel || highlight.sourceActionLabel || '历史划线',
+    chatHistory: normalizedHistory,
+    isLoading: Boolean(highlight.isLoading),
+  };
+};
+
+const normalizeHighlightCollection = (highlights = []) =>
+  (Array.isArray(highlights) ? highlights : [])
+    .map((highlight, index) => normalizeHighlightRecord(highlight, index))
+    .filter(Boolean);
+
 const createSourceMeta = (highlight) => ({
   sourceAnchorId: highlight.sourceAnchorId,
   sourcePageIndex: highlight.position.pageIndex,
@@ -139,6 +187,7 @@ const InlineContextMenu = ({ selectionRegion, onAction }) => (
 
 export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSaveNote }) => {
   const [query, setQuery] = useState('');
+  const originalText = highlight.text || '暂无选中文本';
 
   const handleAsk = () => {
     if (!query.trim() || highlight.isLoading) return;
@@ -191,11 +240,16 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
       }}
     >
       <div className="theme-popup-header flex shrink-0 items-center justify-between rounded-t-xl border-b p-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex items-center gap-1.5 text-xs font-bold text-pixiu">
-            <Sparkles size={14} /> {highlight.actionLabel || 'AI 解释'}
-          </span>
-          <span className="source-link-chip shrink-0">p.{highlight.position.pageIndex + 1}</span>
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="flex items-center gap-1.5 text-xs font-bold text-pixiu">
+              <Sparkles size={14} /> {highlight.actionLabel || 'AI 解释'}
+            </span>
+            <span className="source-link-chip shrink-0">p.{highlight.position.pageIndex + 1}</span>
+          </div>
+          <div className="theme-text-secondary line-clamp-2 text-[11px] leading-5">
+            {originalText}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {onSaveNote && (
@@ -223,18 +277,32 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
       </div>
 
       <div className="theme-panel flex-1 overflow-y-auto p-4 text-sm">
-        <div className="prose prose-sm flex flex-col gap-4">
+        <div className="space-y-4">
+          <div className="theme-card-soft rounded-xl p-3">
+            <div className="theme-text-muted mb-2 text-[11px] font-bold uppercase tracking-wide">原文片段</div>
+            <MarkdownContent className="theme-text-primary prose prose-sm max-w-none text-sm">
+              {originalText}
+            </MarkdownContent>
+          </div>
+
+          <div className="theme-card-soft rounded-xl p-3">
+            <div className="theme-text-muted mb-2 text-[11px] font-bold uppercase tracking-wide">当前追问链</div>
           {highlight.chatHistory.map((message, index) => {
             if (index === 0 && message.role === 'user') return null;
             return (
               <div
                 key={index}
-                className={`rounded-xl p-3 ${
+                className={`mb-3 rounded-xl p-3 ${
                   message.role === 'user'
                     ? 'theme-markdown-panel theme-border border'
-                    : 'theme-card-soft'
+                    : 'theme-card'
                 }`}
               >
+                <div className="mb-2 flex items-center gap-2">
+                  <span className={`chat-role-badge ${message.role === 'user' ? 'chat-role-user' : 'chat-role-ai'}`}>
+                    {message.role === 'user' ? '你' : 'Pixiu'}
+                  </span>
+                </div>
                 <MarkdownContent
                   className={getMessageMarkdownClassName(message.role, 'popup')}
                 >
@@ -243,9 +311,11 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
               </div>
             );
           })}
+          </div>
+
           {highlight.isLoading && (
             <div className="theme-text-muted flex items-center gap-2 p-2 text-xs italic">
-              <Sparkles size={12} className="animate-pulse" /> AI 正在处理中...
+              <Sparkles size={12} className="animate-pulse" /> AI 正在先整理一句结论，再补充关键依据...
             </div>
           )}
         </div>
@@ -256,7 +326,7 @@ export const ExplanationPopup = ({ highlight, onClose, onSubAsk, onDelete, onSav
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => event.key === 'Enter' && handleAsk()}
-          placeholder="继续追问..."
+          placeholder="继续追问当前片段..."
           className="theme-input flex-1 rounded-md px-2 py-1.5 text-xs outline-none"
         />
         <button
@@ -305,7 +375,7 @@ const PdfViewer = ({
 
   useEffect(() => {
     setActiveHighlightId(null);
-    setHighlights(initialHighlights || []);
+    setHighlights(normalizeHighlightCollection(initialHighlights));
     pdfDocRef.current = null;
     currentPageRef.current = 0;
     pageTextByIndexRef.current = {};

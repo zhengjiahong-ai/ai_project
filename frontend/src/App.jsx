@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart3,
   BookOpen,
@@ -64,6 +64,10 @@ import {
   normalizeSocraticSession,
 } from './utils/socraticSessionModel.js';
 import {
+  buildStudyProgressSnapshot,
+  calculateReadingProgress,
+} from './utils/studyProgress.js';
+import {
   TERMINAL_RESEARCH_STATUSES,
   createEmptyDeepResearchState,
   normalizeResearchBriefPreview,
@@ -72,6 +76,30 @@ import {
   shouldRestoreLatestResearchTask,
 } from './components/deepResearchPanelModel.js';
 import appVersionRaw from '../VERSION?raw';
+
+const workflowStages = [
+  {
+    id: 'reading',
+    label: '浅读解构',
+    shortLabel: '阶段一',
+    description: '先理清论文框架，再消除局部阅读障碍。',
+    tabIds: ['deconstruct', 'chat', 'translation'],
+  },
+  {
+    id: 'analysis',
+    label: '深度探究',
+    shortLabel: '阶段二',
+    description: '围绕背景、批判与深挖建立完整理解。',
+    tabIds: ['background', 'socratic', 'analysis', 'deep-research'],
+  },
+  {
+    id: 'assets',
+    label: '知识内化',
+    shortLabel: '阶段三',
+    description: '把洞察、证据和笔记整理成长期资产。',
+    tabIds: ['notes'],
+  },
+];
 
 const APP_VERSION = appVersionRaw.trim() || '0.0.0';
 const DEFAULT_MODEL_NAME = 'DeepSeek V4';
@@ -135,6 +163,18 @@ const normalizeBackgroundKnowledgeLevel = (value) => {
 
 const getWorkspaceSectionId = (tabId) =>
   workspaceTabSections.find((section) => section.tabIds.includes(tabId))?.id || workspaceTabSections[0].id;
+
+const getWorkflowStageId = (tabId) =>
+  workflowStages.find((stage) => stage.tabIds.includes(tabId))?.id || workflowStages[0].id;
+
+const clampSnippet = (text, maxLength = 96) => {
+  const normalized = `${text || ''}`.replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
+};
 
 const sectionDisplayNames = {
   abstract: '摘要',
@@ -486,9 +526,6 @@ const renderHighlightedText = (text, query) => {
   return parts;
 };
 
-const calculateReadingProgress = ({ pageIndex = 0, totalPages = 0 } = {}) =>
-  totalPages ? Math.min(100, Math.round(((pageIndex + 1) / totalPages) * 100)) : 0;
-
 const normalizeAuthors = (authors) => {
   if (Array.isArray(authors)) {
     return authors.filter(Boolean).join(', ');
@@ -567,6 +604,7 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isWorkbenchCollapsed, setIsWorkbenchCollapsed] = useState(false);
+  const [isWorkspaceNavExpanded, setIsWorkspaceNavExpanded] = useState(false);
   const [focusedSourceRequest, setFocusedSourceRequest] = useState({
     anchorId: null,
     token: 0,
@@ -803,6 +841,20 @@ export default function App() {
       }
 
       const readyMessages = createReadyMessages(file.name);
+      const initialStudyProgress = buildStudyProgressSnapshot({
+        pdfId: response.pdfId,
+        pdfPageState: { pageIndex: 0, totalPages: 0 },
+        deconstructData: response,
+        analysisData: null,
+        backgroundKnowledgeData: null,
+        socraticSession: createEmptySocraticSession(response.pdfId),
+        translationState: createEmptyTranslationState(response.pdfId),
+        messages: readyMessages,
+        notes: [],
+        pdfHighlights: [],
+        workbenchCards: [],
+        deepResearchState: createEmptyDeepResearchState(),
+      });
       const newEntry = {
         id: response.pdfId,
         title: response.title || file.name,
@@ -814,9 +866,13 @@ export default function App() {
         ragErrorCode: response.ragErrorCode || null,
         indexMessage: response.message || null,
         sectionCount: response.paper_structure?.sections?.length || 0,
-        readingProgress: 0,
-        currentPage: 0,
-        totalPages: 0,
+        readingProgress: initialStudyProgress.readingProgress,
+        currentPage: initialStudyProgress.currentPage,
+        totalPages: initialStudyProgress.totalPages,
+        studyProgress: initialStudyProgress.studyProgress,
+        studyPhase: initialStudyProgress.studyPhase,
+        studySummary: initialStudyProgress.studySummary,
+        progressSignals: initialStudyProgress.progressSignals,
         timestamp: Date.now(),
         updatedAt: Date.now(),
       };
@@ -1046,12 +1102,50 @@ export default function App() {
     saveTranslationState();
   }, [isRestored, pdfId, translationState]);
 
+  const currentStudyProgressSnapshot = useMemo(
+    () =>
+      buildStudyProgressSnapshot({
+        pdfId,
+        pdfPageState,
+        deconstructData,
+        analysisData,
+        backgroundKnowledgeData,
+        socraticSession,
+        translationState,
+        messages,
+        notes,
+        pdfHighlights,
+        workbenchCards,
+        deepResearchState: pdfId ? deepResearchStateByPdf[pdfId] || createEmptyDeepResearchState() : null,
+      }),
+    [
+      analysisData,
+      backgroundKnowledgeData,
+      deepResearchStateByPdf,
+      deconstructData,
+      messages,
+      notes,
+      pdfHighlights,
+      pdfId,
+      pdfPageState,
+      socraticSession,
+      translationState,
+      workbenchCards,
+    ],
+  );
+
   useEffect(() => {
     if (!isRestored || !pdfId) return;
 
-    const nextProgress = calculateReadingProgress(pdfPageState);
-    const nextCurrentPage = pdfPageState.totalPages ? pdfPageState.pageIndex + 1 : 0;
-    const nextTotalPages = pdfPageState.totalPages || 0;
+    const {
+      readingProgress: nextProgress,
+      currentPage: nextCurrentPage,
+      totalPages: nextTotalPages,
+      studyProgress,
+      studyPhase,
+      studySummary,
+      progressSignals,
+    } = currentStudyProgressSnapshot;
     const updatedAt = Date.now();
 
     setPapersList((prev) => {
@@ -1062,7 +1156,11 @@ export default function App() {
         if (
           paper.readingProgress === nextProgress &&
           paper.currentPage === nextCurrentPage &&
-          paper.totalPages === nextTotalPages
+          paper.totalPages === nextTotalPages &&
+          paper.studyProgress === studyProgress &&
+          paper.studyPhase === studyPhase &&
+          paper.studySummary === studySummary &&
+          JSON.stringify(paper.progressSignals || {}) === JSON.stringify(progressSignals || {})
         ) {
           return paper;
         }
@@ -1073,6 +1171,10 @@ export default function App() {
           readingProgress: nextProgress,
           currentPage: nextCurrentPage,
           totalPages: nextTotalPages,
+          studyProgress,
+          studyPhase,
+          studySummary,
+          progressSignals,
           updatedAt,
         };
       });
@@ -1083,10 +1185,28 @@ export default function App() {
     const saveLibraryProgress = async () => {
       try {
         const db = await initDB();
+        const currentPaper = await db.get('libraryStore', pdfId);
+        if (
+          currentPaper &&
+          currentPaper.readingProgress === nextProgress &&
+          currentPaper.currentPage === nextCurrentPage &&
+          currentPaper.totalPages === nextTotalPages &&
+          currentPaper.studyProgress === studyProgress &&
+          currentPaper.studyPhase === studyPhase &&
+          currentPaper.studySummary === studySummary &&
+          JSON.stringify(currentPaper.progressSignals || {}) === JSON.stringify(progressSignals || {})
+        ) {
+          return;
+        }
+
         await persistLibraryReadingProgress(db, pdfId, {
           readingProgress: nextProgress,
           currentPage: nextCurrentPage,
           totalPages: nextTotalPages,
+          studyProgress,
+          studyPhase,
+          studySummary,
+          progressSignals,
           updatedAt,
         });
       } catch (error) {
@@ -1095,7 +1215,7 @@ export default function App() {
     };
 
     saveLibraryProgress();
-  }, [isRestored, pdfId, pdfPageState]);
+  }, [currentStudyProgressSnapshot, isRestored, pdfId]);
 
   const handleStartAnalysis = useCallback(async () => {
     if (!pdfId) {
@@ -2240,6 +2360,127 @@ export default function App() {
   const readingProgress = calculateReadingProgress(pdfPageState);
   const modelName =
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_MODEL_NAME) || DEFAULT_MODEL_NAME;
+  const currentWorkflowStage =
+    workflowStages.find((stage) => stage.id === getWorkflowStageId(activeTab)) || workflowStages[0];
+  const currentWorkflowStageIndex = workflowStages.findIndex((stage) => stage.id === currentWorkflowStage.id);
+  const workflowStepSummary = workflowStages.map((stage, index) => {
+    const isCurrent = stage.id === currentWorkflowStage.id;
+    const isCompleted = index < currentWorkflowStageIndex;
+    return {
+      ...stage,
+      status: isCurrent ? 'current' : isCompleted ? 'completed' : 'upcoming',
+    };
+  });
+  const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user');
+  const latestAiMessage = [...messages].reverse().find((message) => message.role === 'ai' && !message.isSystem);
+  const latestResearchFinding =
+    currentDeepResearchState.task?.findings?.[
+      (currentDeepResearchState.task?.findings?.length || 0) - 1
+    ] || null;
+  const latestArtifact = workbenchCards[workbenchCards.length - 1] || null;
+  const readingContext = {
+    sectionTitle: currentOutlineItem?.label || deconstructData?.paper_structure?.title || pdfFileName || '当前论文',
+    pageLabel: pdfFile ? `第 ${pdfPageState.pageIndex + 1} 页` : '尚未打开 PDF',
+    sourceSnippet: clampSnippet(
+      latestUserMessage?.sourceText ||
+        currentOutlineItem?.preview ||
+        currentTranslationPage?.sourceText ||
+        latestAiMessage?.content ||
+        latestResearchFinding?.summary ||
+        latestArtifact?.summary ||
+        latestArtifact?.title,
+    ),
+    latestQuestion: clampSnippet(latestUserMessage?.content || currentDeepResearchState.questionDraft || ''),
+    latestAnswer: clampSnippet(latestAiMessage?.content || latestResearchFinding?.summary || ''),
+    artifactCount: workbenchCards.length + notes.length,
+  };
+  const nextActionSuggestion = (() => {
+    if (!pdfFile) {
+      return {
+        title: '先上传一篇论文',
+        description: '上传后系统会自动进入篇章解构，并把后续阅读、问答、批判和沉淀串成一条流程。',
+        primary: null,
+        secondary: null,
+      };
+    }
+
+    if (isDeconstructing) {
+      return {
+        title: '正在生成论文骨架',
+        description: '你可以先浏览 PDF 原文，等结构出来后再顺着章节继续读。',
+        primary: { label: '查看篇章解构', tabId: 'deconstruct' },
+        secondary: { label: '先做一句问答', tabId: 'chat' },
+      };
+    }
+
+    switch (activeTab) {
+      case 'deconstruct':
+        return {
+          title: '框架已可见，建议继续推进',
+          description: '先用问答确认核心概念，再切换到批判阅读或翻译做局部补强。',
+          primary: { label: '进入问答', tabId: 'chat' },
+          secondary: { label: '开始批判阅读', tabId: 'analysis' },
+        };
+      case 'chat':
+        return {
+          title: '当前问题已经接近阅读现场',
+          description: latestUserMessage?.content
+            ? '如果问题涉及概念背景，可以先补课；如果涉及论文论证，可以直接转入批判阅读。'
+            : '先问一个最想弄明白的问题，系统会帮你接到原文和下一步动作。',
+          primary: { label: '去补背景', tabId: 'background' },
+          secondary: { label: '直接批判阅读', tabId: 'analysis' },
+        };
+      case 'translation':
+        return {
+          title: '译文适合配合原文一起看',
+          description: '读完这一页后可以回到问答或篇章解构，把片段理解放回整体结构里。',
+          primary: { label: '回到问答', tabId: 'chat' },
+          secondary: { label: '回到篇章解构', tabId: 'deconstruct' },
+        };
+      case 'background':
+        return {
+          title: '背景补齐后就能继续深读',
+          description: '补背景的目的不是停留在概念解释，而是为了更快进入批判阅读和引导学习。',
+          primary: { label: '进入引导学习', tabId: 'socratic' },
+          secondary: { label: '去批判阅读', tabId: 'analysis' },
+        };
+      case 'socratic':
+        return {
+          title: '现在适合把理解变成判断',
+          description: '把刚刚的回答整理成一条可检验的观点，再用批判阅读检查它是否站得住。',
+          primary: { label: '查看批判阅读', tabId: 'analysis' },
+          secondary: { label: '发起深度研究', tabId: 'deep-research' },
+        };
+      case 'analysis':
+        return {
+          title: '批判已经开始，适合进一步深挖',
+          description: '如果某个结论值得怀疑，就把它带到深度研究里追溯证据链与相关工作。',
+          primary: { label: '发起深度研究', tabId: 'deep-research' },
+          secondary: { label: '沉淀为工作台卡片', tabId: 'notes' },
+        };
+      case 'deep-research':
+        return {
+          title: '研究结果适合回流到阅读链路',
+          description: '深度研究完成后，建议把 findings 先沉淀，再回到批判阅读核对结论边界。',
+          primary: { label: '回到批判阅读', tabId: 'analysis' },
+          secondary: { label: '查看资产沉淀', tabId: 'notes' },
+        };
+      case 'notes':
+        return {
+          title: '资产已经可以复用',
+          description: '这里会汇总本次阅读的卡片、边注和研究发现，方便后续写综述或继续追问。',
+          primary: { label: '回到阅读', tabId: 'deconstruct' },
+          secondary: { label: '继续问答', tabId: 'chat' },
+        };
+      default:
+        return {
+          title: '继续沿着阅读主线推进',
+          description: '系统会根据你当前所在的功能，推荐下一步最合适的动作。',
+          primary: { label: '回到篇章解构', tabId: 'deconstruct' },
+          secondary: { label: '查看问答', tabId: 'chat' },
+        };
+    }
+  })();
 
   return (
     <>
@@ -2248,7 +2489,7 @@ export default function App() {
         onClose={() => setIsLibraryOpen(false)}
         papers={papersList}
         currentPdfId={pdfId}
-        currentReadingProgress={readingProgress}
+        currentStudyProgressSnapshot={currentStudyProgressSnapshot}
         currentPage={pdfFile ? pdfPageState.pageIndex + 1 : 0}
         currentTotalPages={pdfPageState.totalPages || 0}
         onSelectPaper={handleSelectPaper}
@@ -2546,7 +2787,7 @@ export default function App() {
                 minSize={42}
               >
                 <Group orientation="horizontal">
-                  <Panel defaultSize={62} minSize={36}>
+                  <Panel defaultSize={58} minSize={34}>
                     <div className="pdf-stage relative flex h-full flex-col p-3">
                   <div className="workspace-pdf-header theme-panel theme-border mb-2 flex h-10 shrink-0 items-center justify-between rounded-md border px-3 text-sm">
                     <div className="flex min-w-0 items-center gap-2">
@@ -2599,70 +2840,193 @@ export default function App() {
                     <div className="app-separator-line absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 transition-colors group-hover:bg-pixiu/40" />
                   </Separator>
 
-                  <Panel defaultSize={38} minSize={28}>
+                  <Panel defaultSize={42} minSize={32}>
                     <div className="panel-shell flex h-full flex-col">
                       <div className="theme-panel theme-border flex shrink-0 flex-col border-b">
-                        <div className="flex items-center justify-between gap-3 px-4 py-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <ActiveTabIcon size={16} className="text-pixiu" />
-                            <div className="min-w-0">
-                              <h2 className="theme-text-primary text-sm font-bold">{activeTabMeta.label}</h2>
-                              <div className="theme-text-muted text-[11px]">{activeWorkspaceSection.label}</div>
+                        <div className="workspace-top-panels">
+                          <div className="workspace-top-panels-collapsed">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <Info size={16} className="text-pixiu" />
+                              <div className="min-w-0">
+                                <h2 className="theme-text-primary truncate text-sm font-bold">辅助导航</h2>
+                                <div className="theme-text-muted truncate text-[11px]">
+                                  {activeTabMeta.label} · {currentWorkflowStage.label}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="workspace-top-panels-status">
+                              {currentDeepResearchState.task ? `研究 ${currentResearchProgress}%` : `${visibleWorkspaceTabs.length} 项功能`}
                             </div>
                           </div>
-                          {currentDeepResearchState.task && (
-                            <span className="rounded-full bg-pixiu/10 px-2 py-0.5 text-[10px] font-bold text-pixiu">
-                              研究 {currentResearchProgress}%
-                            </span>
-                          )}
-                        </div>
-                        <div className="workspace-section-tabs flex flex-wrap gap-2 px-3 pb-2">
-                          {workspaceTabSections.map((section) => {
-                            const isActiveSection = section.id === activeWorkspaceSection.id;
-                            return (
+
+                          <div className="workspace-top-panels-expanded">
+                            <div className="px-3 pb-2">
+                              <div className="workflow-stage-strip flex gap-2 overflow-x-auto">
+                                {workflowStepSummary.map((stage) => {
+                                  const isActiveStage = stage.id === currentWorkflowStage.id;
+                                  return (
+                                    <button
+                                      key={stage.id}
+                                      type="button"
+                                      onClick={() => {
+                                        const targetTabId = stage.tabIds[0];
+                                        setActiveWorkspaceSectionId(getWorkspaceSectionId(targetTabId));
+                                        setActiveTab(targetTabId);
+                                      }}
+                                      className={`workflow-stage-chip ${stage.status} ${
+                                        isActiveStage ? 'workflow-stage-chip-active' : ''
+                                      }`}
+                                      title={stage.description}
+                                    >
+                                      <span className="workflow-stage-chip-label">{stage.shortLabel}</span>
+                                      <span className="workflow-stage-chip-title">{stage.label}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="workspace-top-summary-grid px-3 pb-2">
+                              <div className="workflow-context-card theme-card-soft rounded-xl p-3">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="theme-text-primary text-xs font-semibold">当前研读上下文</div>
+                                  <span className="theme-text-muted text-[10px]">{readingContext.artifactCount} 条已沉淀</span>
+                                </div>
+                                <div className="mt-2 grid gap-1 text-[11px] leading-5 theme-text-secondary">
+                                  <div className="flex gap-2">
+                                    <span className="workflow-context-label">章节</span>
+                                    <span className="truncate">{readingContext.sectionTitle}</span>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <span className="workflow-context-label">位置</span>
+                                    <span>{readingContext.pageLabel}</span>
+                                  </div>
+                                  {readingContext.sourceSnippet && (
+                                    <div className="flex gap-2">
+                                      <span className="workflow-context-label">原文</span>
+                                      <span className="min-w-0 flex-1 truncate">{readingContext.sourceSnippet}</span>
+                                    </div>
+                                  )}
+                                  {readingContext.latestQuestion && (
+                                    <div className="flex gap-2">
+                                      <span className="workflow-context-label">问题</span>
+                                      <span className="min-w-0 flex-1 truncate">{readingContext.latestQuestion}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="workflow-next-card theme-card rounded-xl p-3">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="theme-text-primary text-xs font-semibold">{nextActionSuggestion.title}</div>
+                                    <div className="theme-text-secondary mt-1 text-[11px] leading-5">
+                                      {nextActionSuggestion.description}
+                                    </div>
+                                  </div>
+                                  <div className="workflow-next-badge whitespace-nowrap text-[10px] font-semibold">
+                                    推荐下一步
+                                  </div>
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {nextActionSuggestion.primary && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveWorkspaceSectionId(getWorkspaceSectionId(nextActionSuggestion.primary.tabId));
+                                        setActiveTab(nextActionSuggestion.primary.tabId);
+                                      }}
+                                      className="workflow-next-action workflow-next-action-primary"
+                                    >
+                                      {nextActionSuggestion.primary.label}
+                                    </button>
+                                  )}
+                                  {nextActionSuggestion.secondary && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (nextActionSuggestion.secondary.tabId === 'notes') {
+                                          setIsWorkbenchCollapsed(false);
+                                        }
+                                        setActiveWorkspaceSectionId(getWorkspaceSectionId(nextActionSuggestion.secondary.tabId));
+                                        setActiveTab(nextActionSuggestion.secondary.tabId);
+                                      }}
+                                      className="workflow-next-action"
+                                    >
+                                      {nextActionSuggestion.secondary.label}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="px-3 pb-2">
                               <button
-                                key={section.id}
                                 type="button"
-                                onClick={() => {
-                                  setActiveWorkspaceSectionId(section.id);
-                                  if (!section.tabIds.includes(activeTab)) {
-                                    setActiveTab(section.tabIds[0]);
-                                  }
-                                }}
-                                className={`workspace-section-tab ${
-                                  isActiveSection ? 'workspace-section-tab-active' : ''
-                                }`}
-                                title={section.description}
+                                onClick={() => setIsWorkspaceNavExpanded((current) => !current)}
+                                className={`workspace-nav-toggle ${isWorkspaceNavExpanded ? 'workspace-nav-toggle-active' : ''}`}
+                                title={isWorkspaceNavExpanded ? '收起功能导航' : '展开功能导航'}
                               >
-                                {section.label}
+                                <span>功能导航</span>
+                                <span className="workspace-nav-toggle-meta">
+                                  {visibleWorkspaceTabs.length} 项
+                                </span>
+                                <ChevronDown
+                                  size={14}
+                                  className={`transition-transform ${isWorkspaceNavExpanded ? 'rotate-180' : ''}`}
+                                />
                               </button>
-                            );
-                          })}
-                        </div>
-                        <div
-                          ref={workspaceTabsRef}
-                          className="workspace-tabs flex gap-1 overflow-x-auto px-2 pb-2"
-                          onWheel={handleWorkspaceTabsWheel}
-                          title="鼠标悬停后滚轮可横向切换功能标签"
-                        >
-                          {visibleWorkspaceTabs.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = activeTab === item.id;
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                data-active-tab={isActive ? 'true' : undefined}
-                                onClick={() => setActiveTab(item.id)}
-                                className={`workspace-tab-button flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
-                                  isActive ? 'workspace-tab-button-active' : ''
-                                }`}
-                              >
-                                <Icon size={14} />
-                                {item.label}
-                              </button>
-                            );
-                          })}
+                            </div>
+                            {isWorkspaceNavExpanded && (
+                              <>
+                                <div className="workspace-section-tabs flex flex-wrap gap-2 px-3 pb-2">
+                                  {workspaceTabSections.map((section) => {
+                                    const isActiveSection = section.id === activeWorkspaceSection.id;
+                                    return (
+                                      <button
+                                        key={section.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setActiveWorkspaceSectionId(section.id);
+                                          if (!section.tabIds.includes(activeTab)) {
+                                            setActiveTab(section.tabIds[0]);
+                                          }
+                                        }}
+                                        className={`workspace-section-tab ${
+                                          isActiveSection ? 'workspace-section-tab-active' : ''
+                                        }`}
+                                        title={section.description}
+                                      >
+                                        {section.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <div
+                                  ref={workspaceTabsRef}
+                                  className="workspace-tabs flex gap-1 overflow-x-auto px-2 pb-2"
+                                  onWheel={handleWorkspaceTabsWheel}
+                                  title="鼠标悬停后滚轮可横向切换功能标签"
+                                >
+                                  {visibleWorkspaceTabs.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = activeTab === item.id;
+                                    return (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        data-active-tab={isActive ? 'true' : undefined}
+                                        onClick={() => setActiveTab(item.id)}
+                                        className={`workspace-tab-button flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+                                          isActive ? 'workspace-tab-button-active' : ''
+                                        }`}
+                                      >
+                                        <Icon size={14} />
+                                        {item.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -2677,6 +3041,9 @@ export default function App() {
                         onJumpToSource={handleJumpToSource}
                         onAbortChat={() => handleAbortChat(pdfId)}
                         isLoading={isChatLoading(pdfId)}
+                        contextTitle={readingContext.sectionTitle}
+                        contextSummary={`${readingContext.pageLabel}${readingContext.sourceSnippet ? ` · ${readingContext.sourceSnippet}` : ''}`}
+                        nextActionHint={nextActionSuggestion.primary?.label || nextActionSuggestion.title}
                       />
                     )}
 
@@ -2831,3 +3198,4 @@ export default function App() {
     </>
   );
 }
+

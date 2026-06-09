@@ -1,5 +1,15 @@
-import React, { useMemo } from 'react';
-import { CheckCircle2, FileText, LayoutDashboard, Loader2, MousePointer2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  FileText,
+  LayoutDashboard,
+  Loader2,
+  MessageSquare,
+  MousePointer2,
+  Network,
+} from 'lucide-react';
+
 import InsightCard from './InsightCard.jsx';
 
 const outlineSourceLabels = {
@@ -11,19 +21,87 @@ const outlineSourceLabels = {
   pdf: 'PDF结构',
 };
 
-const LATEST_OUTLINE_VERSION = '1.4';
+const sectionLabels = {
+  abstract: '摘要',
+  introduction: '引言',
+  methods: '方法',
+  results: '结果',
+  discussion: '讨论',
+  conclusion: '结论',
+};
 
-const PaperAnalysis = ({
-  data,
-  isLoading,
-  outlineItems = [],
-  onSelectOutlineItem,
-}) => {
+const readingModes = [
+  {
+    id: 'overview',
+    label: '先看全局',
+    description: '先判断这篇论文值不值得继续深读。',
+  },
+  {
+    id: 'outline',
+    label: '再看目录',
+    description: '顺着目录决定接下来精读哪里。',
+  },
+  {
+    id: 'sections',
+    label: '最后进细节',
+    description: '按章节逐步展开，而不是一次看完所有骨架。',
+  },
+];
+
+const PaperAnalysis = ({ data, isLoading, outlineItems = [], onSelectOutlineItem }) => {
+  const [activeMode, setActiveMode] = useState('overview');
+  const [visibleSectionCount, setVisibleSectionCount] = useState(2);
+
+  const availableSections = useMemo(
+    () =>
+      Object.entries(sectionLabels)
+        .map(([key, label]) => ({
+          key,
+          label,
+          content: data?.paper_skeleton?.[key],
+        }))
+        .filter((section) => section.content && !section.content.includes('请提供具体内容')),
+    [data?.paper_skeleton],
+  );
+
+  const overviewSummary = useMemo(() => {
+    if (availableSections.length === 0) {
+      return null;
+    }
+
+    return {
+      summary: `系统已经整理出 ${availableSections.length} 个核心章节。建议先看摘要与结论，再决定是否深入方法和实验。`,
+      keyPoints: [
+        outlineItems.length > 0 ? `已识别 ${outlineItems.length} 个可导航章节` : '目录仍在补全中',
+        availableSections.slice(0, 3).map((section) => section.label).join(' / '),
+        data?.paper_structure?.outlineVersion ? `目录版本 ${data.paper_structure.outlineVersion}` : '使用默认目录识别策略',
+      ],
+    };
+  }, [availableSections, data?.paper_structure?.outlineVersion, outlineItems.length]);
+
+  const quickActions = [
+    {
+      label: '进入问答',
+      icon: MessageSquare,
+      hint: '先问一个最想弄明白的问题。',
+    },
+    {
+      label: '继续批判阅读',
+      icon: Network,
+      hint: '把结构理解推进到论证判断。',
+    },
+    {
+      label: '跳到原文',
+      icon: ArrowRight,
+      hint: '从目录直接进入 PDF 对应位置。',
+    },
+  ];
+
   if (isLoading) {
     return (
       <div className="theme-empty-state flex h-full flex-col items-center justify-center p-8 font-medium">
         <Loader2 className="mb-4 animate-spin text-pixiu" size={40} />
-        <p className="text-sm font-medium">大模型正在解构论文，请稍候（约 15-30s）...</p>
+        <p className="text-sm font-medium">正在生成论文骨架，先给你一个可浏览的结构，再逐步补齐章节内容。</p>
       </div>
     );
   }
@@ -32,118 +110,139 @@ const PaperAnalysis = ({
     return (
       <div className="theme-empty-state flex h-full flex-col items-center justify-center p-8">
         <FileText size={48} className="mb-4 opacity-20" />
-        <p>请先在导航栏上传 PDF 论文以生成深度解构报告。</p>
+        <p>先上传一篇 PDF，系统会把篇章结构整理成可进入阅读的起点。</p>
       </div>
     );
   }
 
-  const sectionLabels = {
-    abstract: '摘要 (Abstract)',
-    introduction: '引言 (Introduction)',
-    methods: '方法 (Methods)',
-    results: '结果 (Results)',
-    discussion: '讨论 (Discussion)',
-    conclusion: '结论 (Conclusion)',
-  };
-  const outlineVersion = data.paper_structure?.outlineVersion || '';
-  const isLegacyOutline = outlineVersion && outlineVersion !== LATEST_OUTLINE_VERSION;
-  const layoutRecoveredCount = outlineItems.filter((item) => item.source === 'layout').length;
-  const pdfLineRecoveredCount = outlineItems.filter((item) => item.source === 'pdf-layout').length;
-  const mergedSourceCount = outlineItems.filter((item) => item.source === 'tei+layout').length;
-  const overviewSummary = useMemo(() => {
-    const availableSections = Object.entries(sectionLabels)
-      .map(([key, label]) => ({
-        key,
-        label,
-        content: data.paper_skeleton?.[key],
-      }))
-      .filter((section) => section.content && !section.content.includes('请提供具体内容'));
-
-    if (availableSections.length === 0) {
-      return null;
-    }
-
-    return {
-      summary: `${availableSections.length} 个核心章节已经完成结构化解构，可先浏览整体轮廓，再按章节展开细读。`,
-      keyPoints: [
-        outlineItems.length > 0 ? `已识别 ${outlineItems.length} 个可导航章节` : '尚未生成可导航目录',
-        outlineVersion ? `当前目录规则版本：${outlineVersion}` : '当前使用默认目录识别',
-        availableSections.slice(0, 3).map((section) => section.label).join('、'),
-      ],
-    };
-  }, [data.paper_skeleton, outlineItems.length, outlineVersion]);
+  const visibleSections = availableSections.slice(0, visibleSectionCount);
+  const hasMoreSections = visibleSectionCount < availableSections.length;
 
   return (
     <div className="theme-panel-muted flex h-full flex-col overflow-hidden">
-      <div className="theme-panel theme-border sticky top-0 z-10 flex items-center justify-between border-b px-6 py-4">
-        <div className="rounded-2xl border border-pixiu/10 bg-pixiu/5 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pixiu text-white shadow-lg">
-              <LayoutDashboard size={20} />
+      <div className="theme-panel theme-border sticky top-0 z-10 border-b px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <LayoutDashboard size={18} className="text-pixiu" />
+              <h2 className="theme-text-primary text-lg font-bold">篇章解构</h2>
             </div>
-            <div>
-              <h2 className="theme-text-primary text-xl font-bold">篇章逻辑解构</h2>
-              <p className="theme-text-secondary text-xs font-medium">深度拆解论文架构，洞察核心逻辑点</p>
-            </div>
+            <p className="theme-text-secondary mt-1 text-xs">把后端给出的骨架拆成三步：先看结论，再看目录，最后按需展开章节。</p>
           </div>
+          <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-500">
+            已解构
+          </span>
         </div>
-        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
-          AI 已完成
-        </span>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {readingModes.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setActiveMode(mode.id)}
+              className={`workspace-section-tab ${activeMode === mode.id ? 'workspace-section-tab-active' : ''}`}
+              title={mode.description}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto p-6">
+      <div className="flex-1 space-y-5 overflow-y-auto p-5">
         {overviewSummary && (
           <InsightCard
-            title="结构总览"
+            title="这篇论文先看什么"
             icon={<LayoutDashboard size={16} className="text-pixiu" />}
             summary={overviewSummary.summary}
             keyPoints={overviewSummary.keyPoints}
+            detailsTitle="展开总览说明"
+            footer={
+              <div className="flex flex-wrap gap-2">
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <span key={action.label} className="source-link-chip inline-flex items-center gap-1" title={action.hint}>
+                      <Icon size={12} />
+                      {action.label}
+                    </span>
+                  );
+                })}
+              </div>
+            }
           />
         )}
 
-        {outlineItems.length > 0 && (
-          <section className="theme-card rounded-2xl p-5 transition hover:shadow-md">
+        {activeMode === 'overview' && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {availableSections
+              .filter((section) => ['abstract', 'conclusion'].includes(section.key))
+              .map((section) => (
+                <InsightCard
+                  key={section.key}
+                  title={`先读 ${section.label}`}
+                  icon={<CheckCircle2 size={14} className="text-pixiu" />}
+                  content={section.content}
+                  detailsTitle={`展开 ${section.label}`}
+                  defaultExpanded={section.key === 'abstract'}
+                />
+              ))}
+
+            {outlineItems.length > 0 && (
+              <div className="theme-card rounded-2xl p-5">
+                <div className="theme-text-primary mb-2 text-sm font-bold">快速目录入口</div>
+                <div className="theme-text-secondary mb-4 text-xs leading-6">
+                  你不用一次看完整个目录，先从最靠前的几个主章节里挑一个进入原文。
+                </div>
+                <div className="space-y-2">
+                  {outlineItems.slice(0, 5).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onSelectOutlineItem?.(item)}
+                      className="theme-button-secondary flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left"
+                    >
+                      <MousePointer2 size={12} className="shrink-0 text-pixiu" />
+                      <span className="theme-text-primary min-w-0 flex-1 truncate text-sm font-semibold">{item.label}</span>
+                      <span className="theme-text-muted shrink-0 text-xs">{item.pageLabel || item.meta}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeMode === 'outline' && (
+          <section className="theme-card rounded-2xl p-5">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h3 className="theme-text-primary flex items-center gap-2 text-sm font-bold">
                   <LayoutDashboard size={16} className="text-pixiu" />
-                  真实篇章结构
+                  可导航章节
                 </h3>
                 <p className="theme-text-muted mt-1 text-xs">
-                  基于 PDF 结构与版面补全生成，共 {outlineItems.length} 个节点
-                  {outlineVersion ? ` · 结构版本 ${outlineVersion}` : ''}
+                  这里建议你先点一两个最关键章节，而不是把目录从头滚到尾。
                 </p>
-                {isLegacyOutline && (
-                  <p className="mt-1 text-[11px] font-semibold text-amber-600">
-                    当前结构由旧规则生成，重新上传或重新解析后可使用 {LATEST_OUTLINE_VERSION} 目录补全规则。
-                  </p>
-                )}
               </div>
-              {(layoutRecoveredCount > 0 || pdfLineRecoveredCount > 0 || mergedSourceCount > 0) && (
-                <span className="rounded-full bg-pixiu/10 px-2 py-0.5 text-[10px] font-bold text-pixiu">
-                  补全 {layoutRecoveredCount + pdfLineRecoveredCount + mergedSourceCount}
-                </span>
-              )}
+              <span className="rounded-full bg-pixiu/10 px-2 py-0.5 text-[10px] font-bold text-pixiu">
+                {outlineItems.length} 项
+              </span>
             </div>
 
-            <div className="max-h-72 space-y-1 overflow-y-auto pr-1 text-xs">
+            <div className="space-y-2">
               {outlineItems.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => onSelectOutlineItem?.(item)}
-                  className="theme-button-secondary flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition"
-                  style={{ paddingLeft: `${8 + (item.level - 1) * 14}px` }}
+                  className="theme-button-secondary flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition"
+                  style={{ paddingLeft: `${10 + (item.level - 1) * 14}px` }}
                   title={item.preview ? `${item.label}\n${item.preview}` : item.label}
                 >
                   <MousePointer2 size={12} className="shrink-0 text-pixiu" />
-                  <span className="theme-text-primary min-w-0 flex-1 truncate font-semibold">
-                    {item.label}
-                  </span>
-                  <span className="theme-text-muted shrink-0">
-                    {item.pageLabel || item.meta}
-                  </span>
+                  <span className="theme-text-primary min-w-0 flex-1 truncate font-semibold">{item.label}</span>
+                  <span className="theme-text-muted shrink-0 text-xs">{item.pageLabel || item.meta}</span>
                   <span className="shrink-0 rounded-full bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
                     {outlineSourceLabels[item.source] || item.sourceLabel || '结构'}
                   </span>
@@ -153,23 +252,34 @@ const PaperAnalysis = ({
           </section>
         )}
 
-        {Object.entries(sectionLabels).map(([key, label]) => {
-          const content = data.paper_skeleton?.[key];
-          if (!content || content.includes('请提供具体内容')) return null;
+        {activeMode === 'sections' && (
+          <section className="space-y-4">
+            {visibleSections.map((section) => (
+              <InsightCard
+                key={section.key}
+                title={section.label}
+                icon={<CheckCircle2 size={14} className="text-pixiu" />}
+                content={section.content}
+                detailsTitle={`展开 ${section.label}`}
+                defaultExpanded={section.key === 'abstract'}
+              />
+            ))}
 
-          return (
-            <InsightCard
-              key={key}
-              title={label}
-              icon={<CheckCircle2 size={14} className="text-pixiu" />}
-              content={content}
-              detailsTitle="展开章节解构"
-              defaultExpanded={key === 'abstract'}
-            />
-          );
-        })}
+            {hasMoreSections && (
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleSectionCount((count) => Math.min(count + 2, availableSections.length))}
+                  className="workflow-next-action workflow-next-action-primary"
+                >
+                  再展开 2 个章节
+                </button>
+              </div>
+            )}
+          </section>
+        )}
 
-        <p className="theme-text-muted pb-4 text-center text-[10px]">以上内容由 AI 自动生成，请结合原文进行参考。</p>
+        <p className="theme-text-muted pb-4 text-center text-[10px]">以上内容由 AI 自动生成，建议结合原文核对。</p>
       </div>
     </div>
   );

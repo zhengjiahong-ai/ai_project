@@ -10,6 +10,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { getPaperStudyProgress } from '../utils/studyProgress.js';
 
 const statusOptions = ['全部', '已解析', '索引异常'];
 
@@ -42,19 +43,11 @@ const statusStyle = (status) => {
   return 'bg-emerald-500/10 text-emerald-600';
 };
 
-const getProgress = (paper, currentPdfId, currentReadingProgress) => {
-  if (paper.id === currentPdfId) {
-    return currentReadingProgress;
-  }
-
-  return Number.isFinite(paper.readingProgress) ? paper.readingProgress : 0;
-};
-
 const getCurrentPageLabel = (paper, currentPdfId, currentPage, currentTotalPages) => {
   const page = paper.id === currentPdfId ? currentPage : paper.currentPage;
   const total = paper.id === currentPdfId ? currentTotalPages : paper.totalPages;
 
-  if (!page || !total) return '未开始';
+  if (!page || !total) return '尚未定位页码';
   return `${page} / ${total} 页`;
 };
 
@@ -63,7 +56,7 @@ const LibrarySidebar = ({
   onClose,
   papers = [],
   currentPdfId,
-  currentReadingProgress = 0,
+  currentStudyProgressSnapshot = null,
   currentPage = 0,
   currentTotalPages = 0,
   onSelectPaper,
@@ -140,8 +133,10 @@ const LibrarySidebar = ({
           {papers.length === 0 ? (
             <div className="theme-empty-state m-5 flex min-h-64 flex-col items-center justify-center rounded-lg p-8 text-center">
               <FileText size={28} className="mb-3 text-pixiu" />
-              <h3 className="theme-text-primary text-sm font-bold">论文库暂无内容</h3>
-              <p className="theme-text-muted mt-2 max-w-sm text-sm">上传第一篇 PDF 后，这里会记录解析状态、阅读进度和最近阅读位置。</p>
+              <h3 className="theme-text-primary text-sm font-bold">论文库暂时还没有内容</h3>
+              <p className="theme-text-muted mt-2 max-w-sm text-sm">
+                上传第一篇 PDF 后，这里会记录解析状态、研读完成度和最近阅读位置。
+              </p>
             </div>
           ) : filteredPapers.length === 0 ? (
             <div className="theme-empty-state m-5 flex min-h-64 flex-col items-center justify-center rounded-lg p-8 text-center">
@@ -150,12 +145,12 @@ const LibrarySidebar = ({
               <p className="theme-text-muted mt-2 text-sm">调整搜索词或筛选条件后再查看。</p>
             </div>
           ) : (
-            <table className="w-full min-w-[920px] border-separate border-spacing-0 text-left text-sm">
+            <table className="w-full min-w-[1080px] border-separate border-spacing-0 text-left text-sm">
               <thead className="theme-panel-muted sticky top-0 z-10">
                 <tr className="theme-text-muted text-xs">
                   <th className="theme-border border-b px-5 py-3 font-bold">论文</th>
                   <th className="theme-border border-b px-4 py-3 font-bold">作者</th>
-                  <th className="theme-border border-b px-4 py-3 font-bold">阅读进度</th>
+                  <th className="theme-border border-b px-4 py-3 font-bold">研读完成度</th>
                   <th className="theme-border border-b px-4 py-3 font-bold">解析状态</th>
                   <th className="theme-border border-b px-4 py-3 font-bold">上传时间</th>
                   <th className="theme-border border-b px-4 py-3 font-bold">最近阅读</th>
@@ -166,7 +161,10 @@ const LibrarySidebar = ({
                 {filteredPapers.map((paper) => {
                   const isActive = paper.id === currentPdfId;
                   const status = getPaperStatus(paper);
-                  const progress = getProgress(paper, currentPdfId, currentReadingProgress);
+                  const progressModel = getPaperStudyProgress(
+                    paper,
+                    isActive ? currentStudyProgressSnapshot : null,
+                  );
                   const authors = Array.isArray(paper.authors) ? paper.authors.join(', ') : paper.authors;
 
                   return (
@@ -192,14 +190,25 @@ const LibrarySidebar = ({
                       <td className="theme-border max-w-[14rem] border-b px-4 py-4">
                         <span className="theme-text-secondary line-clamp-2 text-xs">{authors || '未识别'}</span>
                       </td>
-                      <td className="theme-border w-44 border-b px-4 py-4">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="theme-text-primary font-semibold">{progress}%</span>
+                      <td className="theme-border w-[22rem] border-b px-4 py-4">
+                        <div className="flex items-center justify-between gap-3 text-xs">
+                          <span className="theme-text-primary font-semibold">{progressModel.studyProgress}%</span>
                           <span className="theme-text-muted">{getCurrentPageLabel(paper, currentPdfId, currentPage, currentTotalPages)}</span>
                         </div>
                         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200/70">
-                          <div className="h-full rounded-full bg-pixiu" style={{ width: `${progress}%` }} />
+                          <div className="h-full rounded-full bg-pixiu" style={{ width: `${progressModel.studyProgress}%` }} />
                         </div>
+                        <div className="mt-2 flex items-center justify-between gap-3 text-[11px]">
+                          <span className="rounded-full bg-pixiu/10 px-2 py-0.5 font-semibold text-pixiu">
+                            {progressModel.studyPhase}
+                          </span>
+                          <span className="theme-text-muted whitespace-nowrap">
+                            浅读 {progressModel.axes.survey} · 探究 {progressModel.axes.analysis} · 沉淀 {progressModel.axes.synthesis}
+                          </span>
+                        </div>
+                        <p className="theme-text-muted mt-2 line-clamp-2 text-[11px] leading-5">
+                          {progressModel.studySummary}
+                        </p>
                       </td>
                       <td className="theme-border border-b px-4 py-4">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold ${statusStyle(status)}`}>

@@ -1,14 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  FileSearch,
-  Loader2,
-  RefreshCw,
-  Search,
-  Square,
-} from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, FileSearch, Loader2, RefreshCw, Search, Square, ArrowRight } from 'lucide-react';
 
 import InsightCard from './InsightCard.jsx';
 import MarkdownContent from './MarkdownContent';
@@ -64,6 +55,7 @@ const DeepResearchPanel = ({
   traceError = '',
   isTraceLoading = false,
   isTracePanelEnabled = false,
+  isLoading = false,
   isCreating = false,
   isCancelling = false,
   isPreviewingBrief = false,
@@ -85,6 +77,7 @@ const DeepResearchPanel = ({
   const stageMeta = getResearchStageMeta(normalizedTask?.stage);
   const paperHint = buildResearchContextHint(paperStructure);
   const progressPercent = Math.round((normalizedTask?.progress || 0) * 100);
+  const panelBusy = isLoading || isCreating || isPreviewingBrief || isCancelling;
   const hasActiveTask = Boolean(normalizedTask?.taskId);
   const isTerminalTask = hasActiveTask && TERMINAL_RESEARCH_STATUSES.includes(normalizedTask.status);
   const isRunningTask = hasActiveTask && !isTerminalTask;
@@ -95,22 +88,64 @@ const DeepResearchPanel = ({
   const canRefresh = hasActiveTask && !isCreating && !isCancelling;
   const canCancel = isRunningTask && !isCreating && !isCancelling;
   const latestFinding = normalizedTask?.findings?.[normalizedTask.findings.length - 1] || null;
+
   const taskSnapshot = useMemo(() => {
     if (!hasActiveTask) {
       return null;
     }
 
-    const snapshotPoints = [
-      `当前阶段：${stageMeta.label}`,
-      `任务进度：${progressPercent}%`,
-      normalizedTask?.findings?.length ? `已产出 ${normalizedTask.findings.length} 条 findings` : '正在等待 findings 输出',
-    ];
-
     return {
       summary: latestFinding?.summary || `${normalizedTask.question || '当前研究问题'} 正在推进中。`,
-      keyPoints: snapshotPoints,
+      keyPoints: [
+        `当前阶段：${stageMeta.label}`,
+        `任务进度：${progressPercent}%`,
+        normalizedTask?.findings?.length ? `已产出 ${normalizedTask.findings.length} 条 findings` : '正在等待 findings 输出',
+      ],
     };
   }, [hasActiveTask, latestFinding?.summary, normalizedTask?.findings?.length, normalizedTask?.question, progressPercent, stageMeta.label]);
+
+  const topActions = [
+    '先给一页 brief，再决定是否启动任务',
+    '可在任务运行中刷新状态或取消',
+    '结果完成后可回到批判阅读核对结论',
+  ];
+
+  if (!hasActiveTask && !panelBusy) {
+    return (
+      <div className="theme-panel-muted flex h-full flex-col items-center justify-center p-8 text-center">
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-pixiu/10">
+          <FileSearch className="text-pixiu" size={40} />
+        </div>
+        <h3 className="theme-text-primary text-xl font-bold">发起深度研究</h3>
+        <p className="theme-text-secondary mb-8 mt-2 max-w-xs text-sm">
+          输入一个足够具体的问题后，系统会自动规划子问题、检索与综合阶段，并逐步输出 findings。
+        </p>
+        <button
+          type="button"
+          onClick={() => onStart?.()}
+          className="flex items-center gap-2 rounded-xl bg-pixiu px-8 py-3 font-semibold text-white shadow-lg transition-all hover:bg-pixiu-dark hover:shadow-pixiu/20 active:scale-95"
+        >
+          <Search size={20} />
+          直接开始研究
+        </button>
+      </div>
+    );
+  }
+
+  if (panelBusy && !hasActiveTask) {
+    return (
+      <div className="theme-panel flex h-full flex-col items-center justify-center p-8 text-center">
+        <div className="relative mb-6">
+          <Loader2 className="animate-spin text-pixiu" size={48} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-2 w-2 animate-ping rounded-full bg-pixiu" />
+          </div>
+        </div>
+        <p className="theme-text-primary text-lg font-medium">正在整理深度研究任务</p>
+        <p className="theme-text-secondary mt-2 text-xs">系统会先规划，再检索，最后综合输出结果。</p>
+      </div>
+    );
+  }
 
   return (
     <div className="theme-panel-muted flex h-full flex-col overflow-hidden">
@@ -128,15 +163,23 @@ const DeepResearchPanel = ({
 
       <div className="flex-1 space-y-6 overflow-y-auto p-6">
         <div className="theme-card rounded-2xl p-5">
-          <div className="theme-text-primary mb-2 text-sm font-bold">当前论文上下文</div>
+          <div className="theme-text-primary mb-2 text-sm font-bold">当前研究上下文</div>
           <div className="theme-card-soft rounded-xl px-4 py-3">
             <div className="theme-text-primary text-sm font-semibold">{pdfFileName || '尚未选择论文'}</div>
             <div className="theme-text-secondary mt-2 text-sm leading-6">
-              {paperHint || '围绕当前论文提出一个较大的研究问题，系统会按规划、检索、判断、综合四个阶段逐步生成 findings 与报告。'}
+              {paperHint || '围绕当前论文提出一个足够清晰的问题，系统会按规划、检索、判断和综合四个阶段逐步生成结果。'}
             </div>
           </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {topActions.map((item) => (
+              <span key={item} className="source-link-chip inline-flex items-center gap-1">
+                <ArrowRight size={12} />
+                {item}
+              </span>
+            ))}
+          </div>
           <div className="theme-text-muted mt-3 text-xs">
-            已结束任务会保存为服务端快照，刷新页面后可按当前论文恢复；服务重启前仍在运行的任务会标记为失败并提示重新发起。
+            已结束任务会保存为服务端快照，刷新页面后可按当前论文恢复。
           </div>
         </div>
 
@@ -153,24 +196,27 @@ const DeepResearchPanel = ({
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
+              type="button"
               onClick={onPreviewBrief}
               disabled={!canPreviewBrief}
               className="theme-button-secondary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isPreviewingBrief ? <Loader2 className="animate-spin" size={18} /> : <FileSearch size={18} />}
-              生成研究 brief
+              生成 brief
             </button>
 
             <button
+              type="button"
               onClick={() => onStart?.()}
               disabled={!canStart}
               className="flex items-center gap-2 rounded-xl bg-pixiu px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-pixiu-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isCreating ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
-              {hasActiveTask && isTerminalTask ? '直接重新发起' : '直接开始研究'}
+              {hasActiveTask && isTerminalTask ? '重新发起研究' : '开始研究'}
             </button>
 
             <button
+              type="button"
               onClick={onRefresh}
               disabled={!canRefresh}
               className="theme-button-secondary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
@@ -180,6 +226,7 @@ const DeepResearchPanel = ({
             </button>
 
             <button
+              type="button"
               onClick={onCancel}
               disabled={!canCancel}
               className="theme-button-secondary flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
@@ -202,9 +249,9 @@ const DeepResearchPanel = ({
           <div className="theme-card rounded-2xl p-5">
             <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="theme-text-primary text-sm font-bold">研究 brief preview</div>
+                <div className="theme-text-primary text-sm font-bold">brief preview</div>
                 <div className="theme-text-secondary mt-1 text-xs">
-                  {briefPreview.needsClarification ? '建议先补充约束后再启动。' : '可直接接受默认 brief 启动任务。'}
+                  {briefPreview.needsClarification ? '建议先补足约束再启动任务。' : '可以直接接受该 brief。'}
                 </div>
               </div>
               <span className="theme-card-soft rounded-full px-3 py-1 text-[11px] font-semibold">
@@ -214,9 +261,7 @@ const DeepResearchPanel = ({
 
             <div className="theme-card-soft rounded-xl px-4 py-3">
               <div className="theme-text-primary text-sm font-semibold">研究范围</div>
-              <div className="theme-text-secondary mt-2 text-sm leading-7">
-                {briefPreview.brief || '暂无 brief。'}
-              </div>
+              <div className="theme-text-secondary mt-2 text-sm leading-7">{briefPreview.brief || '暂无 brief。'}</div>
             </div>
 
             {briefPreview.assumptions.length > 0 && (
@@ -300,7 +345,7 @@ const DeepResearchPanel = ({
             </div>
             <div className="theme-text-primary text-lg font-semibold">等待启动深度研究任务</div>
             <div className="theme-text-secondary mt-2 max-w-sm text-sm leading-7">
-              输入研究问题后，系统会自动创建任务，轮询状态，并逐步展示子问题 findings 与最终 Markdown 报告。
+              输入研究问题后，系统会先规划，再检索，最后综合输出 findings 和 Markdown 报告。
             </div>
           </div>
         )}
@@ -322,14 +367,11 @@ const DeepResearchPanel = ({
               </div>
 
               <div className="theme-card-soft h-3 overflow-hidden rounded-full">
-                <div
-                  className="h-full rounded-full bg-pixiu transition-all duration-300"
-                  style={{ width: `${progressPercent}%` }}
-                />
+                <div className="h-full rounded-full bg-pixiu transition-all duration-300" style={{ width: `${progressPercent}%` }} />
               </div>
 
               <div className="theme-text-muted mt-3 text-xs">
-                Task ID: {normalizedTask.taskId || '未返回'} | Trace ID: {normalizedTask.traceId || '未返回'} | 状态：{statusMeta.label}
+                Task ID: {normalizedTask.taskId || '未知'} | Trace ID: {normalizedTask.traceId || '未知'} | 状态：{statusMeta.label}
               </div>
             </div>
 
@@ -337,7 +379,7 @@ const DeepResearchPanel = ({
               <div className="theme-card rounded-2xl p-5">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="theme-text-primary text-sm font-bold">Trace 排障</div>
+                    <div className="theme-text-primary text-sm font-bold">Trace 调试</div>
                     <div className="theme-text-secondary mt-1 text-xs">
                       {normalizedTask.traceId ? `Trace ID: ${normalizedTask.traceId}` : '当前任务没有返回 traceId'}
                     </div>
@@ -397,20 +439,24 @@ const DeepResearchPanel = ({
                         </div>
 
                         <div className="space-y-2">
-                          {traceSummary.steps.length > 0 ? traceSummary.steps.map((step, index) => (
-                            <div key={`${traceSummary.traceId}-step-${index}`} className="theme-card-soft rounded-xl px-4 py-3 text-xs">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="theme-text-primary font-semibold">{index + 1}. {step.name}</div>
-                                <div className={step.status === 'error' ? 'text-rose-400' : 'text-emerald-400'}>
-                                  {step.status} · {step.durationMs}ms
+                          {traceSummary.steps.length > 0 ? (
+                            traceSummary.steps.map((step, index) => (
+                              <div key={`${traceSummary.traceId}-step-${index}`} className="theme-card-soft rounded-xl px-4 py-3 text-xs">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="theme-text-primary font-semibold">
+                                    {index + 1}. {step.name}
+                                  </div>
+                                  <div className={step.status === 'error' ? 'text-rose-400' : 'text-emerald-400'}>
+                                    {step.status} · {step.durationMs}ms
+                                  </div>
                                 </div>
+                                <div className="theme-text-secondary mt-2 leading-6">
+                                  input: {step.inputSize ?? 'n/a'} · output: {step.outputSize ?? 'n/a'} · meta: {formatTraceMeta(step.meta)}
+                                </div>
+                                {step.error && <div className="mt-2 text-rose-400">{step.error}</div>}
                               </div>
-                              <div className="theme-text-secondary mt-2 leading-6">
-                                input: {step.inputSize ?? 'n/a'} · output: {step.outputSize ?? 'n/a'} · meta: {formatTraceMeta(step.meta)}
-                              </div>
-                              {step.error && <div className="mt-2 text-rose-400">{step.error}</div>}
-                            </div>
-                          )) : (
+                            ))
+                          ) : (
                             <div className="theme-text-secondary text-sm">当前 trace 还没有记录步骤。</div>
                           )}
                         </div>
@@ -438,16 +484,18 @@ const DeepResearchPanel = ({
                 footer={onCaptureArtifact ? (
                   <button
                     type="button"
-                    onClick={() => onCaptureArtifact({
-                      kind: 'research-snapshot',
-                      title: '深度研究快照',
-                      summary: taskSnapshot.summary,
-                      content: [
-                        normalizedTask.question ? `### 研究问题\n${normalizedTask.question}` : '',
-                        latestFinding ? `### 最近一条 finding\n${latestFinding.summary}` : '',
-                      ].filter(Boolean).join('\n\n'),
-                      tags: ['research', 'snapshot'],
-                    })}
+                    onClick={() =>
+                      onCaptureArtifact({
+                        kind: 'research-snapshot',
+                        title: '深度研究快照',
+                        summary: taskSnapshot.summary,
+                        content: [
+                          normalizedTask.question ? `### 研究问题\n${normalizedTask.question}` : '',
+                          latestFinding ? `### 最近一条 finding\n${latestFinding.summary}` : '',
+                        ].filter(Boolean).join('\n\n'),
+                        tags: ['research', 'snapshot'],
+                      })
+                    }
                     className="source-link-chip"
                   >
                     加入工作台
@@ -488,7 +536,7 @@ const DeepResearchPanel = ({
                   </div>
                 )
               ) : (
-                <div className="theme-text-secondary text-sm">任务正在规划研究路径，子问题生成后会显示在这里。</div>
+                <div className="theme-text-secondary text-sm">任务正在规划研究路径，稍后会显示子问题列表。</div>
               )}
             </div>
 
@@ -504,7 +552,7 @@ const DeepResearchPanel = ({
                         title={finding.subQuestion}
                         summary={finding.summary}
                         keyPoints={[
-                          finding.sourceIds.length > 0 ? `证据来源：${finding.sourceIds.join('、')}` : '暂未绑定来源片段',
+                          finding.sourceIds.length > 0 ? `来源：${finding.sourceIds.join('、')}` : '尚未绑定来源片段',
                           finding.missingAspects.length > 0 ? `仍缺证据：${finding.missingAspects.join('、')}` : '当前没有额外缺口提示',
                         ]}
                         meta={(
@@ -521,17 +569,19 @@ const DeepResearchPanel = ({
                         footer={onCaptureArtifact ? (
                           <button
                             type="button"
-                            onClick={() => onCaptureArtifact({
-                              kind: 'research-finding',
-                              title: finding.subQuestion,
-                              summary: finding.summary,
-                              content: [
-                                `### 结论摘要\n${finding.summary}`,
-                                finding.sourceIds.length > 0 ? `### 证据来源\n- ${finding.sourceIds.join('\n- ')}` : '',
-                                finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
-                              ].filter(Boolean).join('\n\n'),
-                              tags: ['research', finding.verdict.toLowerCase()],
-                            })}
+                            onClick={() =>
+                              onCaptureArtifact({
+                                kind: 'research-finding',
+                                title: finding.subQuestion,
+                                summary: finding.summary,
+                                content: [
+                                  `### 结论摘要\n${finding.summary}`,
+                                  finding.sourceIds.length > 0 ? `### 证据来源\n- ${finding.sourceIds.join('\n- ')}` : '',
+                                  finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
+                                ].filter(Boolean).join('\n\n'),
+                                tags: ['research', finding.verdict.toLowerCase()],
+                              })
+                            }
                             className="source-link-chip"
                           >
                             加入工作台
@@ -543,7 +593,7 @@ const DeepResearchPanel = ({
                 </div>
               ) : (
                 <div className="theme-text-secondary text-sm">
-                  {isRunningTask ? '任务正在整理 findings，随着阶段推进这里会逐步出现结构化结论。' : '当前任务还没有返回 findings。'}
+                  {isRunningTask ? '正在整理 findings，稍后会逐步显示结构化结果。' : '当前任务还没有返回 findings。'}
                 </div>
               )}
             </div>
@@ -579,14 +629,12 @@ const DeepResearchPanel = ({
                 )
               ) : (
                 <div className="theme-text-secondary text-sm">
-                  {isRunningTask ? 'Markdown 报告将在综合阶段生成。' : '当前任务尚未生成最终报告。'}
+                  {isRunningTask ? 'Markdown 报告会在综合阶段生成。' : '当前任务尚未生成最终报告。'}
                 </div>
               )}
             </div>
 
-            {normalizedTask.error && (
-              <ErrorBanner message={normalizedTask.error} tone="danger" />
-            )}
+            {normalizedTask.error && <ErrorBanner message={normalizedTask.error} tone="danger" />}
           </>
         )}
       </div>
