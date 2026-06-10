@@ -1,6 +1,17 @@
-import { normalizeSentenceReferences } from './evidenceCitationModel.js';
+import { normalizeSentenceReferences, normalizeSourceLocation } from './evidenceCitationModel.js';
 
 const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const normalizeInteger = (value) => {
+  if (Number.isInteger(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) ? parsed : null;
+  }
+  return null;
+};
 
 const normalizeList = (value) => {
   if (!Array.isArray(value)) {
@@ -148,7 +159,8 @@ export const getEvidencePreview = (data, maxItems = 5) => {
         sourceType,
         sourceLabel: SOURCE_TYPE_LABELS[sourceType] || SOURCE_TYPE_LABELS.unknown,
         text,
-        chunkIndex: Number.isInteger(item?.chunkIndex) ? item.chunkIndex : null,
+        chunkIndex: normalizeInteger(item?.chunkIndex),
+        ...normalizeSourceLocation(item),
       };
     })
     .filter(Boolean)
@@ -174,7 +186,8 @@ export const getClaimSupportRows = (data, maxItems = 6) => {
             preview: truncate(source?.text, 120),
             text: normalizeText(source?.text),
             sourceType: normalizeText(source?.sourceType) || 'unknown',
-            chunkIndex: Number.isInteger(source?.chunkIndex) ? source.chunkIndex : null,
+            chunkIndex: normalizeInteger(source?.chunkIndex),
+            ...normalizeSourceLocation(source),
           },
         ];
       })

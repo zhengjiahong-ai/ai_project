@@ -1799,18 +1799,27 @@ export default function App() {
   }, [handleSendMessage]);
 
   const handleJumpToSource = useCallback((message) => {
-    if (!message?.sourceAnchorId) {
+    const pageIndex = Number.isFinite(message?.sourcePageIndex)
+      ? message.sourcePageIndex
+      : Number.isFinite(message?.pageIndex)
+        ? message.pageIndex
+        : null;
+    const anchorId = message?.sourceAnchorId || message?.sectionId || message?.sourceId || null;
+
+    if (!anchorId && !Number.isFinite(pageIndex)) {
       return;
     }
 
-    if (Number.isFinite(message.sourcePageIndex)) {
-      jumpToPage(message.sourcePageIndex);
+    if (Number.isFinite(pageIndex)) {
+      jumpToPage(pageIndex);
     }
 
-    setFocusedSourceRequest({
-      anchorId: message.sourceAnchorId,
-      token: Date.now(),
-    });
+    if (anchorId) {
+      setFocusedSourceRequest({
+        anchorId,
+        token: Date.now(),
+      });
+    }
   }, [jumpToPage]);
 
   const handleSaveChatToNote = useCallback((index) => {
@@ -3068,6 +3077,7 @@ export default function App() {
                         knowledgeLevel={backgroundKnowledgeLevel}
                         onKnowledgeLevelChange={setBackgroundKnowledgeLevel}
                         onCaptureArtifact={handleCaptureWorkbenchArtifact}
+                        onJumpToSource={handleJumpToSource}
                       />
                     )}
 
@@ -3098,6 +3108,7 @@ export default function App() {
                         onCancel={handleCancelResearchTask}
                         onRefreshTrace={() => fetchDeepResearchTrace(pdfId, currentDeepResearchState.task?.traceId)}
                         onCaptureArtifact={handleCaptureWorkbenchArtifact}
+                        onJumpToSource={handleJumpToSource}
                       />
                     )}
 
@@ -3116,6 +3127,7 @@ export default function App() {
                         onAnalyze={handleStartAnalysis}
                         isLoading={isAnalyzing}
                         onCaptureArtifact={handleCaptureWorkbenchArtifact}
+                        onJumpToSource={handleJumpToSource}
                       />
                     )}
 

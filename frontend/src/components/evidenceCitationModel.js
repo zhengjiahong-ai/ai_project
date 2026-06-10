@@ -1,11 +1,34 @@
 const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
 
+const normalizeInteger = (value) => {
+  if (Number.isInteger(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) ? parsed : null;
+  }
+  return null;
+};
+
 const truncate = (value, maxLength = 180) => {
   const text = normalizeText(value);
   if (!text || text.length <= maxLength) {
     return text;
   }
   return `${text.slice(0, maxLength).trimEnd()}...`;
+};
+
+export const normalizeSourceLocation = (source) => {
+  const pageIndex = normalizeInteger(source?.pageIndex);
+  const sectionId = normalizeText(source?.sectionId);
+  return {
+    pageIndex,
+    sectionId: sectionId || null,
+    pdfId: normalizeText(source?.pdfId) || null,
+    canJumpToSource: Number.isInteger(pageIndex),
+    locationLabel: Number.isInteger(pageIndex) ? `p.${pageIndex + 1}` : '',
+  };
 };
 
 export const buildSourceLookup = (sources) => {
@@ -25,7 +48,8 @@ export const buildSourceLookup = (sources) => {
       text,
       preview: truncate(text),
       sourceType: normalizeText(source?.sourceType) || 'unknown',
-      chunkIndex: Number.isInteger(source?.chunkIndex) ? source.chunkIndex : null,
+      chunkIndex: normalizeInteger(source?.chunkIndex),
+      ...normalizeSourceLocation(source),
     });
   });
   return lookup;

@@ -3,6 +3,8 @@ import unittest
 from services.evidence_service import (
     build_field_sentence_source_map,
     build_sentence_source_map,
+    compact_evidence_for_response,
+    normalize_evidence_items,
 )
 
 
@@ -79,6 +81,88 @@ class EvidenceCitationServiceTests(unittest.TestCase):
 
         self.assertEqual([item["target"] for item in references], ["weaknesses", "critical_analysis"])
         self.assertTrue(all(item["sourceIds"] for item in references))
+
+    def test_normalize_evidence_promotes_location_metadata(self):
+        items = normalize_evidence_items(
+            [
+                {
+                    "text": "Paper: Demo\n\nSection: Method\n\nContent:\nmethod evidence",
+                    "metadata": {
+                        "id": "paper-1",
+                        "chunk_index": "7",
+                        "page_index": "2",
+                        "section_id": "section-3",
+                    },
+                }
+            ],
+            source_type="current_paper",
+        )
+
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["sourceId"], "paper-1-chunk-7")
+        self.assertEqual(items[0]["pdfId"], "paper-1")
+        self.assertEqual(items[0]["chunkIndex"], 7)
+        self.assertEqual(items[0]["pageIndex"], 2)
+        self.assertEqual(items[0]["sectionId"], "section-3")
+
+    def test_normalize_evidence_top_level_location_overrides_metadata(self):
+        items = normalize_evidence_items(
+            [
+                {
+                    "sourceId": "explicit-source",
+                    "text": "Evidence with explicit location.",
+                    "pageIndex": 5,
+                    "sectionId": "section-top",
+                    "chunkIndex": 9,
+                    "metadata": {
+                        "page_index": 1,
+                        "section_id": "section-meta",
+                        "chunk_index": 2,
+                    },
+                }
+            ],
+            source_type="current_paper",
+            pdf_id="paper-2",
+        )
+
+        self.assertEqual(items[0]["sourceId"], "explicit-source")
+        self.assertEqual(items[0]["pdfId"], "paper-2")
+        self.assertEqual(items[0]["chunkIndex"], 9)
+        self.assertEqual(items[0]["pageIndex"], 5)
+        self.assertEqual(items[0]["sectionId"], "section-top")
+
+    def test_normalize_evidence_keeps_legacy_source_without_location(self):
+        items = normalize_evidence_items(
+            [{"id": "legacy-id", "text": "Legacy source text."}],
+            source_type="library",
+        )
+
+        self.assertEqual(items[0]["sourceId"], "legacy-id")
+        self.assertEqual(items[0]["text"], "Legacy source text.")
+        self.assertIsNone(items[0]["pageIndex"])
+        self.assertIsNone(items[0]["sectionId"])
+
+    def test_compact_evidence_preserves_location_fields_and_legacy_id_alias(self):
+        compacted = compact_evidence_for_response(
+            [
+                {
+                    "text": "Evidence text.",
+                    "metadata": {
+                        "id": "paper-3",
+                        "chunk_index": 4,
+                        "pageIndex": 8,
+                        "sectionId": "section-9",
+                    },
+                }
+            ]
+        )
+
+        self.assertEqual(compacted[0]["id"], "paper-3-chunk-4")
+        self.assertEqual(compacted[0]["sourceId"], "paper-3-chunk-4")
+        self.assertEqual(compacted[0]["pdfId"], "paper-3")
+        self.assertEqual(compacted[0]["chunkIndex"], 4)
+        self.assertEqual(compacted[0]["pageIndex"], 8)
+        self.assertEqual(compacted[0]["sectionId"], "section-9")
 
 
 if __name__ == "__main__":

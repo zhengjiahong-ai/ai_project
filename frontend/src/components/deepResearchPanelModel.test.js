@@ -63,6 +63,16 @@ const run = async () => {
         verdict: 'AMBIGUOUS',
         missingAspects: ['ablation', '', 'baseline'],
         sourceIds: ['paper-1-chunk-2', '', 'lib-1-chunk-3'],
+        sources: [
+          {
+            sourceId: 'paper-1-chunk-2',
+            text: '当前论文实验片段。',
+            sourceType: 'current_paper',
+            pageIndex: 4,
+            sectionId: 'section-5',
+            chunkIndex: 2,
+          },
+        ],
       },
       {
         summary: '',
@@ -81,6 +91,10 @@ const run = async () => {
   assert.equal(normalizedRunningTask.findings[0].verdict, 'AMBIGUOUS');
   assert.deepEqual(normalizedRunningTask.findings[0].missingAspects, ['ablation', 'baseline']);
   assert.deepEqual(normalizedRunningTask.findings[0].sourceIds, ['paper-1-chunk-2', 'lib-1-chunk-3']);
+  assert.equal(normalizedRunningTask.findings[0].sources[0].pageIndex, 4);
+  assert.equal(normalizedRunningTask.findings[0].sources[0].sectionId, 'section-5');
+  assert.equal(normalizedRunningTask.findings[0].sources[0].locationLabel, 'p.5');
+  assert.equal(normalizedRunningTask.findings[0].sources[0].canJumpToSource, true);
   assert.equal(normalizedRunningTask.findings[1].subQuestion, '子问题 2');
   assert.equal(normalizedRunningTask.findings[1].summary, '暂无结论摘要。');
   assert.equal(normalizedRunningTask.findings[1].verdict, 'INCORRECT');

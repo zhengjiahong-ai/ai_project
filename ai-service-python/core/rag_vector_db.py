@@ -132,10 +132,19 @@ class LiteratureRAG:
 
         ids = [str(uuid.uuid4()) for _ in texts]
 
-        metadatas = [
-            {**metadata, "chunk_index": i}
-            for i in range(len(texts))
-        ]
+        metadatas = []
+        for i, chunk in enumerate(chunks):
+            chunk_metadata = {**metadata, "chunk_index": i}
+            optional_metadata = {
+                "section_id": chunk.get("sectionId") or chunk.get("section_id"),
+                "section_title": chunk.get("sectionTitle") or chunk.get("section"),
+                "page_index": chunk.get("pageIndex") if chunk.get("pageIndex") is not None else chunk.get("page_index"),
+                "page": chunk.get("page"),
+            }
+            for key, value in optional_metadata.items():
+                if value is not None and value != "":
+                    chunk_metadata[key] = value
+            metadatas.append(chunk_metadata)
 
         self.collection.add(
             ids=ids,

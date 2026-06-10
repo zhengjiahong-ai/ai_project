@@ -2,7 +2,7 @@
 
 Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它以 PDF 论文为中心，提供论文库管理、真实篇章结构导航、划词解释、对话问答、逐页翻译、背景补课、批判阅读、引导学习、深度研究和本地笔记等能力。
 
-当前版本：`0.1.19`
+当前版本：`0.1.21`
 
 版本号来源：前端目录 [frontend/VERSION](frontend/VERSION)
 
@@ -22,6 +22,8 @@ Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它
 后端当前支持通过 GROBID 解析真实论文结构，并通过目录抽取层融合 TEI 章节标题、段落级版面标题候选和 PDF 行级标题候选，在新解析结果中返回 `displayTitle`、`rawTitle`、`level`、`parentId`、`headingNumber`、`pageIndex`、`bbox`、`anchorY`、`source` 和 `confidence` 等字段。前端篇章目录会优先使用这些字段生成多级树，并支持页码跳转、当前章节高亮、搜索过滤和折叠展开。
 
 > 已经在旧版本解析过的论文，其浏览器 IndexedDB 缓存里可能没有 `level/parentId`。这类旧数据仍可能显示为一级目录；重新上传或重新解析后，才会得到新的多级结构字段。
+
+新上传或重新解析后的论文，聊天、批判阅读、背景补课和深度研究返回的来源片段会尽量携带 `pageIndex` 与 `sectionId`。前端在有页码时显示“跳回原文 p.N”，旧索引或缺少页码的来源仍会降级为片段预览。
 
 ---
 
@@ -219,7 +221,7 @@ docker restart ai_service_python
 
 - 基于当前论文上下文和 RAG 证据回答问题。
 - 支持历史对话恢复。
-- 返回结构化 `rag_sources`、可选 `queryPlan` 和 `retrievalJudge`。
+- 返回结构化 `rag_sources`、可选 `queryPlan` 和 `retrievalJudge`；新入库论文的来源片段会尽量包含页码和章节锚点，用于跳回原文。
 
 ### 篇章解构
 
@@ -232,7 +234,7 @@ docker restart ai_service_python
 
 - 通过 Java `/api/critical-reading/{pdfId}` 转发到 Python `/api/deep-analysis`。
 - 围绕贡献、方法、实验、局限进行证据化分析。
-- 支持展示薄弱点、过度主张风险、缺失证据、论点-证据验证和引用片段。
+- 支持展示薄弱点、过度主张风险、缺失证据、论点-证据验证和引用片段；有页码的证据可直接跳回 PDF 原文位置。
 - 论点-证据验证会提取作者核心主张，并按当前论文证据标记 `SUPPORTED`、`PARTIAL`、`UNSUPPORTED`；该功能不做外部论文对比或真实新颖性评分。
 
 ### 逐页翻译

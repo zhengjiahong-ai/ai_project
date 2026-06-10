@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-10 09:40 v0.1.21
+
+1. **完成 Evidence Item 元数据统一**：`smart_chunker` 和 `LiteratureRAG.add_sections_to_db()` 会把新解析论文 section 的 `id/pageIndex/page/section` 传播到 chunk 与 Chroma metadata，`evidence_service` 统一输出 `sourceId/sourceType/text/pageIndex/sectionId/chunkIndex/pdfId/metadata/similarity/score`，并用 `pdfId + chunkIndex` 生成更稳定的 fallback `sourceId`。
+2. **增强跨面板来源跳回原文**：聊天引用、批判阅读证据、背景补课来源和深度研究 findings 会保留页码与章节锚点；前端只有在 evidence item 存在有效 `pageIndex` 时显示“跳回原文 p.N”，旧索引或无页码来源继续降级为片段预览。
+3. **扩展深度研究 finding 来源**：`task.findings[*]` 保留既有 `sourceIds`，并兼容新增 `sources`，用于携带同次检索使用的规范化 evidence items，不改变现有 Java `/api` 路由或必填请求字段。
+4. **同步文档与版本**：更新 `README.md`、`frontend/VERSION`、`docs/CONSTRAINTS.md` 和 `docs/FRONTEND_REFACTOR_PLAN.md`，明确新数据优先、旧 Chroma 索引不强制迁移、页码为 0-based 的接口与展示规则。
+
 ### 2026-06-10 09:30 v0.1.20
 
 1. **完成翻译服务旧代码清理**：删除 `services/chat_service.py` 中 `translate_page()` 直接委派到 `page_translation_service.translate_page()` 后的不可达旧实现，避免同一逐页翻译逻辑在两个服务文件中重复维护。

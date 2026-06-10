@@ -410,6 +410,7 @@ def _research_sub_question(
         "verdict": str(judge.get("verdict") or "INCORRECT"),
         "missingAspects": _normalize_missing_aspects(judge.get("missingAspects")),
         "sourceIds": [str(item.get("sourceId")) for item in combined_evidence if item.get("sourceId")][:6],
+        "sources": combined_evidence[:6],
     }
 
 

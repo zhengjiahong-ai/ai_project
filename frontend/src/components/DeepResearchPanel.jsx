@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, ChevronDown, ChevronUp, FileSearch, Loader2, RefreshCw, Search, Square, ArrowRight } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, FileSearch, Link2, Loader2, RefreshCw, Search, Square, ArrowRight } from 'lucide-react';
 
 import InsightCard from './InsightCard.jsx';
 import MarkdownContent from './MarkdownContent';
@@ -68,6 +68,7 @@ const DeepResearchPanel = ({
   onCancel,
   onRefreshTrace,
   onCaptureArtifact,
+  onJumpToSource,
 }) => {
   const normalizedTask = normalizeResearchTask(task);
   const [isPlanExpanded, setIsPlanExpanded] = useState(false);
@@ -552,7 +553,9 @@ const DeepResearchPanel = ({
                         title={finding.subQuestion}
                         summary={finding.summary}
                         keyPoints={[
-                          finding.sourceIds.length > 0 ? `来源：${finding.sourceIds.join('、')}` : '尚未绑定来源片段',
+                          finding.sources.length > 0
+                            ? `来源：${finding.sources.map((source) => source.locationLabel ? `${source.sourceId} (${source.locationLabel})` : source.sourceId).join('、')}`
+                            : '尚未绑定来源片段',
                           finding.missingAspects.length > 0 ? `仍缺证据：${finding.missingAspects.join('、')}` : '当前没有额外缺口提示',
                         ]}
                         meta={(
@@ -562,30 +565,51 @@ const DeepResearchPanel = ({
                         )}
                         content={[
                           `### 结论摘要\n${finding.summary}`,
-                          finding.sourceIds.length > 0 ? `### 证据来源\n- ${finding.sourceIds.join('\n- ')}` : '',
+                          finding.sources.length > 0
+                            ? `### 证据来源\n${finding.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
+                            : '',
                           finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
                         ].filter(Boolean).join('\n\n')}
                         detailsTitle="展开 finding 详情"
-                        footer={onCaptureArtifact ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onCaptureArtifact({
-                                kind: 'research-finding',
-                                title: finding.subQuestion,
-                                summary: finding.summary,
-                                content: [
-                                  `### 结论摘要\n${finding.summary}`,
-                                  finding.sourceIds.length > 0 ? `### 证据来源\n- ${finding.sourceIds.join('\n- ')}` : '',
-                                  finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
-                                ].filter(Boolean).join('\n\n'),
-                                tags: ['research', finding.verdict.toLowerCase()],
-                              })
-                            }
-                            className="source-link-chip"
-                          >
-                            加入工作台
-                          </button>
+                        footer={onCaptureArtifact || finding.sources.some((source) => source.canJumpToSource) ? (
+                          <div className="flex flex-wrap gap-2">
+                            {onCaptureArtifact && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onCaptureArtifact({
+                                    kind: 'research-finding',
+                                    title: finding.subQuestion,
+                                    summary: finding.summary,
+                                    content: [
+                                      `### 结论摘要\n${finding.summary}`,
+                                      finding.sources.length > 0
+                                        ? `### 证据来源\n${finding.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
+                                        : '',
+                                      finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
+                                    ].filter(Boolean).join('\n\n'),
+                                    tags: ['research', finding.verdict.toLowerCase()],
+                                  })
+                                }
+                                className="source-link-chip"
+                              >
+                                加入工作台
+                              </button>
+                            )}
+                            {finding.sources
+                              .filter((source) => source.canJumpToSource)
+                              .map((source) => (
+                                <button
+                                  key={source.sourceId}
+                                  type="button"
+                                  onClick={() => onJumpToSource?.(source)}
+                                  className="source-link-chip inline-flex items-center gap-1"
+                                >
+                                  <Link2 size={12} />
+                                  跳回原文 {source.locationLabel}
+                                </button>
+                              ))}
+                          </div>
                         ) : null}
                       />
                     );

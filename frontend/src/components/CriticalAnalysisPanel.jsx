@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   FileText,
   LayoutDashboard,
+  Link2,
   Loader2,
 } from 'lucide-react';
 import {
@@ -53,7 +54,7 @@ const readingSteps = [
   { id: 'evidence', label: '最后看证据' },
 ];
 
-const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact }) => {
+const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, onJumpToSource }) => {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(320);
   const [activeStep, setActiveStep] = useState('summary');
@@ -334,9 +335,20 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact }
                       keyPoints={[
                         `来源 ID: ${item.sourceId}`,
                         item.chunkIndex !== null ? `片段序号: chunk #${item.chunkIndex + 1}` : '未标注 chunk 序号',
+                        item.locationLabel ? `原文位置: ${item.locationLabel}` : '未标注页码',
                       ]}
                       content={item.text}
                       detailsTitle="展开证据片段"
+                      footer={item.canJumpToSource ? (
+                        <button
+                          type="button"
+                          onClick={() => onJumpToSource?.(item)}
+                          className="source-link-chip inline-flex items-center gap-1"
+                        >
+                          <Link2 size={12} />
+                          跳回原文 {item.locationLabel}
+                        </button>
+                      ) : null}
                     />
                   ))}
                 </div>
@@ -355,7 +367,9 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact }
                       key={reference.id}
                       title={`引用来源: ${reference.sourceIds.join('、')}`}
                       summary={reference.sentence}
-                      keyPoints={reference.sources.map((source) => `[${source.sourceId}] ${source.preview}`)}
+                      keyPoints={reference.sources.map((source) =>
+                        `[${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview}`
+                      )}
                       content={[
                         `### 结论`,
                         reference.sentence,
@@ -364,6 +378,23 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact }
                         ...reference.sources.map((source) => `- [${source.sourceId}] ${source.text}`),
                       ].join('\n')}
                       detailsTitle="展开引用证据"
+                      footer={reference.sources.some((source) => source.canJumpToSource) ? (
+                        <div className="flex flex-wrap gap-2">
+                          {reference.sources
+                            .filter((source) => source.canJumpToSource)
+                            .map((source) => (
+                              <button
+                                key={source.sourceId}
+                                type="button"
+                                onClick={() => onJumpToSource?.(source)}
+                                className="source-link-chip inline-flex items-center gap-1"
+                              >
+                                <Link2 size={12} />
+                                跳回原文 {source.locationLabel}
+                              </button>
+                            ))}
+                        </div>
+                      ) : null}
                     />
                   ))}
                 </div>

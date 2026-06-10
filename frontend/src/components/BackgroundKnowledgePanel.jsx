@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BookOpenCheck,
   Database,
+  Link2,
   Loader2,
   Network,
   RefreshCw,
@@ -20,6 +21,7 @@ import {
   normalizeKnowledgeLevel,
   resolveLearningPathSections,
 } from './backgroundKnowledgePanelModel.js';
+import { normalizeSourceLocation } from './evidenceCitationModel.js';
 
 const formatPercent = (value) => {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -60,6 +62,7 @@ const BackgroundKnowledgePanel = ({
   onKnowledgeLevelChange,
   GraphComponent = ForceGraph,
   onCaptureArtifact,
+  onJumpToSource,
 }) => {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(320);
@@ -76,7 +79,14 @@ const BackgroundKnowledgePanel = ({
   const graphData = useMemo(() => normalizeGraph(data), [data]);
   const learningSections = useMemo(() => resolveLearningPathSections(data), [data]);
   const backgroundItems = Array.isArray(data?.background_knowledge) ? data.background_knowledge : [];
-  const ragSources = Array.isArray(data?.rag_sources) ? data.rag_sources : [];
+  const ragSources = Array.isArray(data?.rag_sources)
+    ? data.rag_sources.map((source, index) => ({
+      ...source,
+      id: source?.id || source?.sourceId || `source-${index + 1}`,
+      sourceId: source?.sourceId || source?.id || `source-${index + 1}`,
+      ...normalizeSourceLocation(source),
+    }))
+    : [];
   const sourceCoverage = data?.sourceCoverage && typeof data.sourceCoverage === 'object' ? data.sourceCoverage : null;
   const confidenceText = formatPercent(data?.confidence);
   const coverageText = formatPercent(sourceCoverage?.ratio);
@@ -320,22 +330,36 @@ const BackgroundKnowledgePanel = ({
                       summary={source.text || '暂无片段内容'}
                       content={source.text || ''}
                       detailsTitle="展开依据片段"
-                      footer={onCaptureArtifact ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onCaptureArtifact({
-                              kind: 'background-evidence',
-                              title: `背景依据 ${source.id}`,
-                              summary: source.text || '暂无片段内容',
-                              content: source.text || '',
-                              tags: ['background', 'evidence'],
-                            })
-                          }
-                          className="source-link-chip"
-                        >
-                          加入工作台
-                        </button>
+                      footer={onCaptureArtifact || source.canJumpToSource ? (
+                        <div className="flex flex-wrap gap-2">
+                          {onCaptureArtifact && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onCaptureArtifact({
+                                  kind: 'background-evidence',
+                                  title: `背景依据 ${source.id}`,
+                                  summary: source.text || '暂无片段内容',
+                                  content: source.text || '',
+                                  tags: ['background', 'evidence'],
+                                })
+                              }
+                              className="source-link-chip"
+                            >
+                              加入工作台
+                            </button>
+                          )}
+                          {source.canJumpToSource && (
+                          <button
+                            type="button"
+                            onClick={() => onJumpToSource?.(source)}
+                            className="source-link-chip inline-flex items-center gap-1"
+                          >
+                            <Link2 size={12} />
+                            跳回原文 {source.locationLabel}
+                          </button>
+                          )}
+                        </div>
                       ) : null}
                     />
                   ))}

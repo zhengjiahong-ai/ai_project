@@ -1,3 +1,5 @@
+import { normalizeSourceLocation } from './evidenceCitationModel.js';
+
 export const TERMINAL_RESEARCH_STATUSES = ['succeeded', 'failed', 'cancelled'];
 
 const STATUS_META = {
@@ -71,6 +73,53 @@ const normalizeTextList = (items = [], limit = 0) => {
     return normalized;
   }
   return normalized.slice(0, limit);
+};
+
+const normalizeInteger = (value) => {
+  if (Number.isInteger(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const normalizeEvidenceSources = (sources, fallbackSourceIds = []) => {
+  if (Array.isArray(sources) && sources.length > 0) {
+    return sources
+      .map((source, index) => {
+        const sourceId = normalizeText(source?.sourceId) || normalizeText(source?.id) || fallbackSourceIds[index] || `source-${index + 1}`;
+        const text = normalizeText(source?.text);
+        if (!sourceId && !text) {
+          return null;
+        }
+        return {
+          sourceId,
+          text,
+          preview: text.length > 140 ? `${text.slice(0, 140).trimEnd()}...` : text,
+          sourceType: normalizeText(source?.sourceType) || 'unknown',
+          chunkIndex: normalizeInteger(source?.chunkIndex),
+          ...normalizeSourceLocation(source),
+        };
+      })
+      .filter(Boolean)
+      .slice(0, 6);
+  }
+
+  return fallbackSourceIds.map((sourceId) => ({
+    sourceId,
+    text: '',
+    preview: '',
+    sourceType: 'unknown',
+    chunkIndex: null,
+    pageIndex: null,
+    sectionId: null,
+    pdfId: null,
+    canJumpToSource: false,
+    locationLabel: '',
+  }));
 };
 
 export const createEmptyDeepResearchState = () => ({
@@ -148,13 +197,15 @@ export const normalizeResearchTask = (task) => {
     plan: normalizeTextList(task.plan, 5),
     findings: (Array.isArray(task.findings) ? task.findings : []).map((finding, index) => {
       const verdict = normalizeText(finding?.verdict).toUpperCase();
+      const sourceIds = normalizeTextList(finding?.sourceIds, 6);
       return {
         id: normalizeText(finding?.id) || `finding-${index + 1}`,
         subQuestion: normalizeText(finding?.subQuestion) || `子问题 ${index + 1}`,
         summary: normalizeText(finding?.summary) || '暂无结论摘要。',
         verdict: VERDICT_META[verdict] ? verdict : 'INCORRECT',
         missingAspects: normalizeTextList(finding?.missingAspects, 6),
-        sourceIds: normalizeTextList(finding?.sourceIds, 6),
+        sourceIds,
+        sources: normalizeEvidenceSources(finding?.sources, sourceIds),
       };
     }),
     report: typeof task.report === 'string' ? task.report : '',

@@ -21,15 +21,20 @@ def normalize_evidence_items(
         text = _extract_text(raw)
         if not text:
             continue
+        pdf_id_value = _resolve_pdf_id(raw, pdf_id)
+        chunk_index = _resolve_chunk_index(raw)
+        source_id = _resolve_source_id(raw, pdf_id_value, chunk_index, len(normalized) + 1)
 
         evidence = {
-            "sourceId": str(raw.get("sourceId") or raw.get("id") or f"source-{len(normalized) + 1}"),
+            "sourceId": source_id,
             "text": _truncate(text, max_text_chars),
             "metadata": raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {},
             "similarity": _coerce_number(raw.get("similarity")),
             "score": _coerce_number(raw.get("score")),
-            "pdfId": _resolve_pdf_id(raw, pdf_id),
-            "chunkIndex": _resolve_chunk_index(raw),
+            "pdfId": pdf_id_value,
+            "chunkIndex": chunk_index,
+            "pageIndex": _resolve_page_index(raw),
+            "sectionId": _resolve_section_id(raw),
             "sourceType": _normalize_source_type(raw.get("sourceType") or raw.get("source_type") or resolved_source_type),
         }
         normalized.append(evidence)
@@ -89,6 +94,8 @@ def compact_evidence_for_response(
             "score": item.get("score"),
             "pdfId": item.get("pdfId"),
             "chunkIndex": item.get("chunkIndex"),
+            "pageIndex": item.get("pageIndex"),
+            "sectionId": item.get("sectionId"),
             "sourceType": item.get("sourceType") or "unknown",
         })
 
@@ -272,16 +279,42 @@ def _resolve_pdf_id(item: Dict[str, Any], pdf_id: Optional[str]) -> Optional[str
     return None
 
 
+def _resolve_source_id(item: Dict[str, Any], pdf_id: Optional[str], chunk_index: Optional[int], fallback_index: int) -> str:
+    for key in ("sourceId", "source_id", "id"):
+        value = item.get(key)
+        if value:
+            return str(value)
+
+    if pdf_id and chunk_index is not None:
+        return f"{pdf_id}-chunk-{chunk_index}"
+
+    return f"source-{fallback_index}"
+
+
 def _resolve_chunk_index(item: Dict[str, Any]) -> Optional[int]:
     metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
-    value = (
-        metadata.get("chunk_index")
-        if metadata.get("chunk_index") is not None
-        else metadata.get("chunkIndex")
-    )
+    value = item.get("chunkIndex") if item.get("chunkIndex") is not None else item.get("chunk_index")
     if value is None:
-        value = item.get("chunkIndex") if item.get("chunkIndex") is not None else item.get("chunk_index")
+        value = metadata.get("chunk_index") if metadata.get("chunk_index") is not None else metadata.get("chunkIndex")
     return _coerce_int(value)
+
+
+def _resolve_page_index(item: Dict[str, Any]) -> Optional[int]:
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    value = item.get("pageIndex") if item.get("pageIndex") is not None else item.get("page_index")
+    if value is None:
+        value = metadata.get("pageIndex") if metadata.get("pageIndex") is not None else metadata.get("page_index")
+    return _coerce_int(value)
+
+
+def _resolve_section_id(item: Dict[str, Any]) -> Optional[str]:
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    value = item.get("sectionId") or item.get("section_id")
+    if not value:
+        value = metadata.get("sectionId") or metadata.get("section_id")
+    if value is None or value == "":
+        return None
+    return str(value)
 
 
 def _normalize_source_type(value: Any) -> str:

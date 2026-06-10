@@ -15,8 +15,9 @@
 - Python 测试默认通过 `ai-service-python/pytest.ini` 仅收集 `tests/`，避免扫描 GROBID 或临时目录导致权限错误。
 - Java 测试必须使用 `src/test/resources/application.properties` 中的内存 H2 配置，禁止测试写入 `backend-java/data/academic_db.mv.db`。
 - README、CHANGELOG 与本文档必须反映当前已实现接口；聊天历史、批判性阅读、逐页翻译、苏格拉底会话与背景补课均不再标记为“预留”或“Mock”。
-- Python 返回的 `rag_sources` 必须使用统一证据结构，标准字段为 `sourceId`、`text`、`metadata`、`similarity`、`score`、`pdfId`、`chunkIndex`、`sourceType`。
+- Python 返回的 `rag_sources` 必须使用统一证据结构，标准字段为 `sourceId`、`sourceType`、`text`、`pageIndex`、`sectionId`、`chunkIndex`、`pdfId`、`metadata`、`similarity`、`score`。
 - `rag_sources[].id` 仅作为旧背景补课 UI 的兼容别名保留，新代码应优先使用 `sourceId`。
+- `pageIndex` 为 0-based PDF 页码，前端展示时使用 `pageIndex + 1`；`sectionId` 来自 GROBID/TEI 章节 `id`。旧 Chroma 索引、fallback 全文切分或外部文献片段可能没有页码或章节锚点，前端必须降级为片段预览，不得伪造跳转。
 - Python 聊天、划词解释和背景补课可返回可选 `queryPlan`；其中通用字段为 `original`、`rewritten`、`keywords`、`taskType`、`source`，聊天场景还可附带 `intent`、`needsRetrieval`、`queries`、`answerStyle`；前端可忽略该字段。
 - Python 聊天和划词解释可返回可选 `retrievalJudge`，字段为 `verdict`、`confidence`、`reason`、`missingAspects`、`shouldRetry`；前端可忽略该字段。
 
@@ -79,6 +80,13 @@
 - `POST /api/research-tasks` 兼容新增可选 `userConstraints` 与 `briefPreview`；旧调用不传这两个字段时必须保持原直接创建任务流程。
 - brief preview 不写入 SQLite 任务快照；只有用户接受 brief 并创建任务后才产生 `TaskSnapshot`。
 - brief preview 与任务创建仍禁止外部 Web 搜索、多智能体、LangGraph、插件调用或 MCP 调用，只能基于当前论文骨架、当前论文证据和内部文献库边界进行规划。
+
+## 2026-06-10 Evidence Item 页码与章节锚点补充
+
+- 新上传或重新解析入库的当前论文 chunks 必须在 Chroma metadata 中尽量保留 `section_id`、`section_title`、`page_index`、`page` 和 `chunk_index`；旧索引不做强制迁移。
+- `/api/chat`、`/api/explain-term`、`/api/background-knowledge`、`/api/deep-analysis` 和 deep research findings 使用同一 evidence item 结构，允许兼容新增 `pageIndex`、`sectionId`。
+- deep research `task.findings[*]` 在保留 `sourceIds` 的同时，可兼容新增 `sources`，其中每项为同一规范化 evidence item；`sourceIds` 仍必须只引用同一 finding 实际使用的证据片段。
+- 前端只有在 evidence item 存在有效 `pageIndex` 时才显示“跳回原文”；无页码时只展示来源 ID 与片段详情。
 
 ## 2026-04-22 深度研究前端面板补充
 

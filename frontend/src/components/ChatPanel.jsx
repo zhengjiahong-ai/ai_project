@@ -16,7 +16,7 @@ const clampText = (value, maxLength = 72) => {
   return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
 };
 
-const EvidenceReferences = ({ references = [] }) => {
+const EvidenceReferences = ({ references = [], onJumpToSource }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!references.length) {
@@ -42,9 +42,19 @@ const EvidenceReferences = ({ references = [] }) => {
               <div className="theme-text-primary mb-1 font-semibold">{reference.sentence}</div>
               <div className="space-y-1">
                 {reference.sources.map((source) => (
-                  <div key={source.sourceId}>
+                  <div key={source.sourceId} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="font-semibold">[{source.sourceId}]</span>
                     <span> {source.preview}</span>
+                    {source.canJumpToSource && (
+                      <button
+                        type="button"
+                        onClick={() => onJumpToSource?.(source)}
+                        className="source-link-chip inline-flex items-center gap-1"
+                      >
+                        <Link2 size={12} />
+                        <span>跳回原文 {source.locationLabel}</span>
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -210,7 +220,9 @@ const ChatPanel = ({
               </span>
             </button>
           ) : null;
-          const citationFooter = references.length > 0 ? <EvidenceReferences references={references} /> : null;
+          const citationFooter = references.length > 0 ? (
+            <EvidenceReferences references={references} onJumpToSource={onJumpToSource} />
+          ) : null;
           const footer = citationFooter || sourceFooter ? (
             <div className="space-y-2">
               {citationFooter}

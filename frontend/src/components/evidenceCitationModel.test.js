@@ -7,7 +7,15 @@ import {
 
 const run = async () => {
   const sources = [
-    { sourceId: 'source-1', text: '第一段证据详细内容。', sourceType: 'current_paper', chunkIndex: 0 },
+    {
+      sourceId: 'source-1',
+      text: '第一段证据详细内容。',
+      sourceType: 'current_paper',
+      chunkIndex: 0,
+      pageIndex: 2,
+      sectionId: 'section-1',
+      pdfId: 'paper-1',
+    },
     { id: 'legacy-2', text: '第二段证据详细内容。', sourceType: 'library' },
     { sourceId: 'empty', text: '  ' },
   ];
@@ -15,7 +23,13 @@ const run = async () => {
   const lookup = buildSourceLookup(sources);
   assert.equal(lookup.size, 2);
   assert.equal(lookup.get('source-1').chunkIndex, 0);
+  assert.equal(lookup.get('source-1').pageIndex, 2);
+  assert.equal(lookup.get('source-1').sectionId, 'section-1');
+  assert.equal(lookup.get('source-1').pdfId, 'paper-1');
+  assert.equal(lookup.get('source-1').canJumpToSource, true);
   assert.equal(lookup.get('legacy-2').sourceType, 'library');
+  assert.equal(lookup.get('legacy-2').pageIndex, null);
+  assert.equal(lookup.get('legacy-2').canJumpToSource, false);
 
   const references = normalizeSentenceReferences(
     [
@@ -30,6 +44,9 @@ const run = async () => {
   assert.equal(references.length, 1);
   assert.equal(references[0].sourceIds[0], 'source-1');
   assert.equal(references[0].sources[0].preview, '第一段证据详细内容。');
+  assert.equal(references[0].sources[0].pageIndex, 2);
+  assert.equal(references[0].sources[0].sectionId, 'section-1');
+  assert.equal(references[0].sources[0].canJumpToSource, true);
 
   assert.deepEqual(normalizeSentenceReferences(undefined, sources), []);
   assert.deepEqual(normalizeSentenceReferences([{ sentence: '旧响应兼容。', sourceIds: [] }], sources), []);

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from rag import store
 from rag.store import DummyRAG
+from core.smart_chunker import chunk_sections
 from services import rag_service
 
 
@@ -196,6 +197,77 @@ class RagServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("fresh indexed chunk", rag.collection.added["documents"][0])
         self.assertEqual(rag.collection.added["metadatas"][0]["id"], "paper_one")
         invalidate.assert_called_once_with()
+
+    def test_chunk_sections_preserves_section_location_metadata(self):
+        chunks = chunk_sections(
+            [
+                {
+                    "id": "section-2",
+                    "section": "Methods",
+                    "content": "short method text",
+                    "pageIndex": 3,
+                    "page": 4,
+                }
+            ]
+        )
+
+        self.assertEqual(len(chunks), 1)
+        self.assertEqual(chunks[0]["section"], "Methods")
+        self.assertEqual(chunks[0]["sectionId"], "section-2")
+        self.assertEqual(chunks[0]["sectionTitle"], "Methods")
+        self.assertEqual(chunks[0]["pageIndex"], 3)
+        self.assertEqual(chunks[0]["page"], 4)
+
+    def test_literature_rag_add_sections_writes_chunk_location_metadata(self):
+        fake_chromadb = types.ModuleType("chromadb")
+        fake_chromadb.PersistentClient = object
+        fake_chromadb_config = types.ModuleType("chromadb.config")
+        fake_chromadb_config.Settings = object
+        fake_sentence_transformers = types.ModuleType("sentence_transformers")
+        fake_sentence_transformers.SentenceTransformer = object
+        fake_grobid_client = types.ModuleType("grobid_client")
+        fake_grobid_client_module = types.ModuleType("grobid_client.grobid_client")
+        fake_grobid_client_module.GrobidClient = object
+
+        with patch.dict(
+            sys.modules,
+            {
+                "chromadb": fake_chromadb,
+                "chromadb.config": fake_chromadb_config,
+                "sentence_transformers": fake_sentence_transformers,
+                "grobid_client": fake_grobid_client,
+                "grobid_client.grobid_client": fake_grobid_client_module,
+            },
+        ):
+            rag_vector_db = importlib.import_module("core.rag_vector_db")
+
+        rag = object.__new__(rag_vector_db.LiteratureRAG)
+        rag.embedding_model = FakeEmbeddingModel()
+        rag.collection = FakeAddCollection()
+
+        with patch.object(rag_vector_db, "invalidate_hybrid_cache"):
+            chunk_count = rag.add_sections_to_db(
+                [
+                    {
+                        "id": "section-2",
+                        "section": "Methods",
+                        "content": "method evidence",
+                        "pageIndex": 3,
+                        "page": 4,
+                    }
+                ],
+                "paper.pdf",
+                {"title": "Location Paper", "id": "Paper Two"},
+            )
+
+        metadata = rag.collection.added["metadatas"][0]
+        self.assertEqual(chunk_count, 1)
+        self.assertEqual(metadata["id"], "paper_two")
+        self.assertEqual(metadata["chunk_index"], 0)
+        self.assertEqual(metadata["section_id"], "section-2")
+        self.assertEqual(metadata["section_title"], "Methods")
+        self.assertEqual(metadata["page_index"], 3)
+        self.assertEqual(metadata["page"], 4)
 
     def test_hybrid_cache_invalidation_rebuilds_bm25_from_updated_collection(self):
         original_rag = store._rag

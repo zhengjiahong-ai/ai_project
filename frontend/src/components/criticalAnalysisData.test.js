@@ -23,7 +23,7 @@ const structuredPayload = {
   overclaim_risks: ['对泛化能力的表述略强'],
   missing_evidence: ['跨领域验证不足'],
   rag_sources: [
-    { sourceId: 'chunk-1', sourceType: 'current_paper', text: '当前论文片段 1', chunkIndex: 0 },
+    { sourceId: 'chunk-1', sourceType: 'current_paper', text: '当前论文片段 1', chunkIndex: 0, pageIndex: 2, sectionId: 'section-1' },
     { sourceId: 'chunk-2', sourceType: 'library', text: '文献库片段 2', chunkIndex: 3 },
     { sourceId: 'chunk-3', sourceType: 'current_paper', text: '  ' },
   ],
@@ -65,11 +65,17 @@ const run = async () => {
   assert.equal(evidencePreview[0].sourceLabel, '当前论文');
   assert.equal(evidencePreview[1].sourceLabel, '文献库');
   assert.equal(evidencePreview[0].chunkIndex, 0);
+  assert.equal(evidencePreview[0].pageIndex, 2);
+  assert.equal(evidencePreview[0].sectionId, 'section-1');
+  assert.equal(evidencePreview[0].locationLabel, 'p.3');
+  assert.equal(evidencePreview[0].canJumpToSource, true);
+  assert.equal(evidencePreview[1].canJumpToSource, false);
 
   const references = getSentenceSourceReferences(structuredPayload);
   assert.equal(references.length, 1);
   assert.equal(references[0].sourceIds[0], 'chunk-1');
   assert.equal(references[0].sources[0].preview, '当前论文片段 1');
+  assert.equal(references[0].sources[0].pageIndex, 2);
 
   assert.deepEqual(getClaimSupportRows(legacyPayload), []);
 
@@ -98,6 +104,7 @@ const run = async () => {
   assert.equal(claimRows[0].supportLevel, 'SUPPORTED');
   assert.equal(claimRows[0].supportLabel, '已支撑');
   assert.equal(claimRows[0].sources.length, 1);
+  assert.equal(claimRows[0].sources[0].locationLabel, 'p.3');
   assert.equal(claimRows[1].supportLevel, 'PARTIAL');
   assert.equal(claimRows[1].missingEvidence[0], '缺少跨领域实验');
 
