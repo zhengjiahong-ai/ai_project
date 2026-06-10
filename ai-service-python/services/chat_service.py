@@ -1,9 +1,8 @@
 import json
 import re
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Any, Dict, List
 
-from llm.client import get_llm, get_translation_llm
+from llm.client import get_llm
 from rag.store import get_rag, retrieve_hybrid_for_vector, retrieve_hybrid_results
 from schemas.requests import (
     ChatRequest,
@@ -779,32 +778,6 @@ def _build_socratic_evidence_bundle(
     }
 
 
-def _trim_page_text(page_text: str, max_chars: int = 12000) -> str:
-    text = (page_text or "").strip()
-    if len(text) <= max_chars:
-        return text
-    return text[:max_chars].rstrip() + "\n\n[内容过长，已截断后翻译]"
-
-
-def _trim_translation_reference(paper_skeleton: Dict[str, Any] | None, max_chars: int = 1200) -> str:
-    reference = _stringify_paper_skeleton(paper_skeleton)
-    if len(reference) <= max_chars:
-        return reference
-    return reference[:max_chars].rstrip() + "\n..."
-
-
-def _call_translation_with_timeout(prompt: str, timeout_seconds: int = 45) -> str:
-    executor = ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(get_translation_llm()._call, prompt)
-    try:
-        return future.result(timeout=timeout_seconds)
-    except FuturesTimeoutError as error:
-        future.cancel()
-        raise RuntimeError(f"Translation timed out after {timeout_seconds} seconds.") from error
-    finally:
-        executor.shutdown(wait=False, cancel_futures=True)
-
-
 def _extract_json_payload(text: str) -> Dict[str, Any]:
     cleaned = (text or "").strip()
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
@@ -1544,39 +1517,3 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
 
 def translate_page(request: PageTranslationRequest) -> Dict[str, Any]:
     return translate_page_v2(request)
-
-    page_index = max(0, int(request.pageIndex or 0))
-    paper_skeleton = request.paperSkeleton or {}
-    skeleton_text = _trim_translation_reference(paper_skeleton)
-    trimmed_page_text = _trim_page_text(page_text)
-
-    prompt = f"""你是一位严谨的学术论文翻译助手。
-请将下面这一页论文内容翻译成简体中文。
-
-严格要求：
-1. 只翻译原文已有内容，不补写、不总结、不解释。
-2. 保留段落结构、列表层次、公式、缩写、引用编号。
-3. 专有名词如无公认译法，可保留英文并在中文中自然嵌入。
-4. 输出只包含译文正文，不要添加标题、说明、前言或结语。
-5. 追求准确与直接，不要额外润色。
-
-论文结构摘要（仅供术语参考）：
-{skeleton_text}
-
-当前页码（从 1 开始）：
-{page_index + 1}
-
-当前页原文：
-{trimmed_page_text}
-"""
-
-    translated_text = _call_translation_with_timeout(prompt).strip()
-    if not translated_text:
-        raise RuntimeError("Translation model returned empty content.")
-
-    return {
-        "status": "success",
-        "pageIndex": page_index,
-        "sourceText": page_text,
-        "translatedText": translated_text,
-    }

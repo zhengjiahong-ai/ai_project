@@ -2,10 +2,23 @@ import unittest
 from unittest.mock import patch
 
 from schemas.requests import PageTranslationRequest
-from services import page_translation_service
+from services import chat_service, page_translation_service
 
 
 class PageTranslationServiceTests(unittest.TestCase):
+    def test_chat_service_keeps_only_translate_page_delegate(self):
+        legacy_helper_names = [
+            "_trim_page_text",
+            "_trim_translation_reference",
+            "_call_translation_with_timeout",
+        ]
+
+        for helper_name in legacy_helper_names:
+            self.assertFalse(
+                hasattr(chat_service, helper_name),
+                f"{helper_name} should live only in page_translation_service",
+            )
+
     def test_normalize_translated_blocks_discards_unknown_and_preserves_source_order(self):
         source_blocks = [
             {"id": "block-1", "text": "First paragraph."},

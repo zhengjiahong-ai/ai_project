@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-10 09:30 v0.1.20
+
+1. **完成翻译服务旧代码清理**：删除 `services/chat_service.py` 中 `translate_page()` 直接委派到 `page_translation_service.translate_page()` 后的不可达旧实现，避免同一逐页翻译逻辑在两个服务文件中重复维护。
+2. **清理旧翻译 helper 与导入**：移除 `chat_service.py` 中仅服务不可达旧分支的 `_trim_page_text`、`_trim_translation_reference`、`_call_translation_with_timeout`、`ThreadPoolExecutor`、`FuturesTimeoutError` 和 `get_translation_llm` 引用；真实 overlay/plain 翻译逻辑仍由 `page_translation_service.py` 负责。
+3. **保持接口行为不变**：不修改 Python `/api/translate-page` 路由、Java `/api/translate-page` 转发、前端请求字段或逐页翻译响应结构。
+4. **验证结果**：新增结构回归测试锁定 `chat_service` 不再保留旧翻译 helper；已通过 `python -m pytest tests/test_page_translation_service.py tests/test_routes.py -q`（22 passed）和 `.\mvnw.cmd -Dtest=AiServiceTest#translatePageForwardsRequestToPythonService test`（1 test passed，保留 Mockito 动态 agent 警告）。未覆盖真实 LLM 翻译调用和 Docker Compose 全链路。
+
 ### 2026-06-09 23:40 v0.1.19
 
 1. **完成论文阅读工作流前端重构**：将原本偏功能堆叠的界面重新组织为“浅读解构 - 深度探究 - 知识内化”的连续阅读流程，在 `frontend/src/App.jsx` 中补齐阶段导航、当前研读上下文、推荐下一步动作与顶部辅助导航折叠逻辑，强化不同功能之间的串联关系。
