@@ -1,0 +1,632 @@
+# API
+
+## 说明
+
+浏览器只应直接访问 Java 网关：
+
+```text
+http://localhost:8081/api
+```
+
+Java 再将请求转发到 Python：
+
+```text
+http://ai-service:8000/api
+```
+
+本文档分为两部分：
+
+1. 浏览器可直接使用的 Java API
+2. Java 转发到 Python 的内部对应关系
+
+## 通用响应约定
+
+大多数接口返回：
+
+- 成功：`{ "status": "success", ... }`
+- 失败：`{ "status": "error", "message": "..." }`
+
+部分研究任务和 trace 查询接口还会配合 `404`、`409` 等 HTTP 状态码。
+
+## Java 对外 API
+
+### `POST /api/upload`
+
+上传并解析 PDF。
+
+请求：
+
+- `multipart/form-data`
+- 字段：`file`
+
+成功响应示例：
+
+```json
+{
+  "status": "success",
+  "pdfId": "example_pdf",
+  "title": "Example Paper",
+  "authors": ["Author A", "Author B"],
+  "paper_skeleton": {
+    "abstract": "...",
+    "introduction": "...",
+    "methods": "...",
+    "results": "...",
+    "discussion": "...",
+    "conclusion": "..."
+  },
+  "paper_structure": {
+    "research_problem": "...",
+    "core_hypothesis": "...",
+    "method_framework": [],
+    "claimed_contributions": [],
+    "experimental_logic": "...",
+    "limitations": "...",
+    "outlineVersion": "1.4",
+    "sections": []
+  },
+  "translationLayoutIndex": {},
+  "ragIndexed": true,
+  "ragChunkCount": 42
+}
+```
+
+说明：
+
+- `pdfId` 会被规范化，前端后续都应以它作为论文主键
+- 成功后 Java 会在 H2 中记录论文条目
+
+### `POST /api/chat`
+
+论文问答。
+
+请求体：
+
+```json
+{
+  "message": "这篇论文的核心方法是什么？",
+  "pdfId": "example_pdf",
+  "history": [],
+  "paperSkeleton": {}
+}
+```
+
+成功响应示例：
+
+```json
+{
+  "status": "success",
+  "message": "......",
+  "rag_sources": [],
+  "sentenceSourceMap": {},
+  "queryPlan": {
+    "original": "...",
+    "rewritten": "...",
+    "keywords": [],
+    "intent": "解释方法",
+    "needsRetrieval": true,
+    "queries": [],
+    "answerStyle": "concise"
+  },
+  "retrievalJudge": {
+    "verdict": "CORRECT",
+    "confidence": 0.82,
+    "reason": "...",
+    "missingAspects": [],
+    "shouldRetry": false
+  },
+  "traceId": "..."
+}
+```
+
+说明：
+
+- 当带 `pdfId` 时，Java 会先把当前用户消息写入 H2，再从 H2 拼出远端 `history`
+- Python 优先检索当前论文，不足时才补内部文献库
+
+### `GET /api/chat/history/{sessionId}`
+
+获取某篇论文的聊天历史。
+
+成功响应示例：
+
+```json
+{
+  "status": "success",
+  "sessionId": "example_pdf",
+  "messageCount": 2,
+  "messages": [
+    {
+      "id": 1,
+      "role": "user",
+      "content": "......",
+      "timestamp": "2026-06-10T12:00:00"
+    },
+    {
+      "id": 2,
+      "role": "assistant",
+      "content": "......",
+      "timestamp": "2026-06-10T12:00:03"
+    }
+  ]
+}
+```
+
+### `POST /api/explain`
+
+术语或选中文本解释。
+
+请求体：
+
+```json
+{
+  "text": "cross-attention",
+  "pdfId": "example_pdf",
+  "pageNumber": 3,
+  "context": "..."
+}
+```
+
+或：
+
+```json
+{
+  "term": "cross-attention",
+  "context": "..."
+}
+```
+
+成功响应字段：
+
+- `term`
+- `explanation`
+- `rag_sources`
+- `queryPlan`
+- `retrievalJudge`
+- `traceId`
+
+说明：
+
+- Java 会把 `text` 适配成 Python 需要的 `term`
+
+### `POST /api/translate-page`
+
+逐页翻译。
+
+请求体：
+
+```json
+{
+  "pdfId": "example_pdf",
+  "pageIndex": 0,
+  "pageText": "...",
+  "paperSkeleton": {},
+  "pageLayout": {}
+}
+```
+
+成功响应字段依页面结构而定，通常包括：
+
+- `translatedText`
+- `blocks`
+- `pageIndex`
+- 其他页面翻译布局相关字段
+
+### `POST /api/critical-reading/{pdfId}`
+
+对当前论文做批判阅读。
+
+成功响应示例：
+
+```json
+{
+  "status": "success",
+  "pdfId": "example_pdf",
+  "analysis": {
+    "status": "success",
+    "claimed_contributions": "...",
+    "evidence_based_contributions": "...",
+    "inferred_real_contributions": "...",
+    "weaknesses": [],
+    "overclaim_risks": [],
+    "missing_evidence": [],
+    "critical_analysis": "...",
+    "claims": [],
+    "rag_sources": [],
+    "sentenceSourceMap": {},
+    "resolved_from": "pdf_id",
+    "pdf_id": "example_pdf",
+    "traceId": "..."
+  }
+}
+```
+
+失败时常见情况：
+
+- `paper_not_indexed`
+- `rag_index_unavailable`
+
+### `POST /api/background-knowledge`
+
+生成背景补课内容。
+
+请求体：
+
+```json
+{
+  "pdfId": "example_pdf",
+  "paperSkeleton": {},
+  "paperStructure": {},
+  "paper_topic": null,
+  "user_knowledge_level": "一般"
+}
+```
+
+成功响应通常包含：
+
+- `background_knowledge`
+- `graph`
+- `learning_path`
+- `learning_path_sections`
+- `rag_sources`
+- `confidence`
+- `sourceCoverage`
+- `traceId`
+
+说明：
+
+- `user_knowledge_level` 当前前端归一到 `入门`、`一般`、`进阶`
+
+### `POST /api/socratic-questions`
+
+旧式一次性生成问题接口。
+
+请求体：
+
+```json
+{
+  "paper_content": "...",
+  "reading_progress": "..."
+}
+```
+
+成功响应：
+
+```json
+{
+  "status": "success",
+  "questions": [],
+  "rag_sources": []
+}
+```
+
+### `POST /api/socratic-session/start`
+
+启动固定 5 轮引导学习。
+
+请求体：
+
+```json
+{
+  "pdfId": "example_pdf",
+  "paperSkeleton": {},
+  "readingProgress": "我已经读完摘要和引言"
+}
+```
+
+成功响应：
+
+```json
+{
+  "status": "success",
+  "intro": "...",
+  "totalQuestions": 5,
+  "currentIndex": 1,
+  "currentQuestion": "..."
+}
+```
+
+### `POST /api/socratic-session/answer`
+
+提交当前轮回答。
+
+请求体：
+
+```json
+{
+  "pdfId": "example_pdf",
+  "paperSkeleton": {},
+  "readingProgress": "......",
+  "currentIndex": 1,
+  "currentQuestion": "...",
+  "userAnswer": "...",
+  "turns": []
+}
+```
+
+中间轮成功响应：
+
+```json
+{
+  "status": "success",
+  "evaluation": {
+    "masteryLevel": "一般",
+    "feedback": "...",
+    "hint": "...",
+    "coveredAspects": [],
+    "missingAspects": [],
+    "evidenceQuality": {}
+  },
+  "nextQuestion": "...",
+  "nextIndex": 2,
+  "isComplete": false
+}
+```
+
+最后一轮成功响应：
+
+```json
+{
+  "status": "success",
+  "evaluation": {
+    "masteryLevel": "较好",
+    "feedback": "...",
+    "hint": "...",
+    "coveredAspects": [],
+    "missingAspects": [],
+    "evidenceQuality": {}
+  },
+  "finalSummary": "...",
+  "reviewSuggestions": [],
+  "isComplete": true
+}
+```
+
+### `POST /api/research-tasks/brief-preview`
+
+生成深度研究前的 brief 预览。
+
+请求体：
+
+```json
+{
+  "question": "这篇论文的方法相比基线真正改进了什么？",
+  "pdfId": "example_pdf",
+  "paperSkeleton": {},
+  "userConstraints": "只关注方法和实验，不展开背景综述"
+}
+```
+
+成功响应：
+
+```json
+{
+  "status": "success",
+  "briefPreview": {
+    "question": "...",
+    "pdfId": "example_pdf",
+    "brief": "...",
+    "assumptions": [],
+    "clarifyingQuestions": [],
+    "suggestedSubQuestions": [],
+    "needsClarification": false,
+    "source": "..."
+  }
+}
+```
+
+### `POST /api/research-tasks`
+
+创建深度研究任务。
+
+请求体：
+
+```json
+{
+  "question": "这篇论文的方法相比基线真正改进了什么？",
+  "pdfId": "example_pdf",
+  "paperSkeleton": {},
+  "userConstraints": "只关注方法和实验",
+  "briefPreview": {}
+}
+```
+
+成功响应：
+
+```json
+{
+  "status": "success",
+  "task": {
+    "taskId": "...",
+    "traceId": "...",
+    "status": "pending",
+    "stage": "planning",
+    "progress": 0.0,
+    "question": "...",
+    "pdfId": "example_pdf",
+    "plan": [],
+    "findings": [],
+    "report": "",
+    "error": "",
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+}
+```
+
+### `GET /api/research-tasks/latest?pdfId=...`
+
+读取某篇论文最近一次研究任务快照。
+
+成功响应：
+
+```json
+{
+  "status": "success",
+  "task": {}
+}
+```
+
+没有快照时返回 `404`。
+
+### `GET /api/research-tasks/{taskId}`
+
+按 `taskId` 查询任务状态。
+
+成功响应：
+
+```json
+{
+  "status": "success",
+  "task": {}
+}
+```
+
+### `POST /api/research-tasks/{taskId}/cancel`
+
+取消任务。
+
+成功响应：
+
+```json
+{
+  "status": "success",
+  "task": {}
+}
+```
+
+说明：
+
+- 已结束任务会直接返回当前快照
+- 该接口是幂等的
+
+### `GET /api/traces/{traceId}`
+
+获取脱敏 trace 摘要。
+
+成功响应：
+
+```json
+{
+  "status": "success",
+  "trace": {
+    "traceId": "...",
+    "taskType": "chat",
+    "status": "success",
+    "startedAt": "...",
+    "finishedAt": "...",
+    "durationMs": 1234,
+    "requestMeta": {},
+    "responseMeta": {},
+    "counters": {
+      "llmCalls": 1,
+      "retrievalCalls": 2
+    },
+    "steps": []
+  }
+}
+```
+
+说明：
+
+- trace 是脱敏摘要，不应假设能拿到完整 prompt 或全文上下文
+
+## Java 到 Python 的转发关系
+
+| Java API | Python API |
+| --- | --- |
+| `POST /api/upload` | `POST /api/analyze-pdf` |
+| `POST /api/explain` | `POST /api/explain-term` |
+| `POST /api/chat` | `POST /api/chat` |
+| `POST /api/translate-page` | `POST /api/translate-page` |
+| `POST /api/critical-reading/{pdfId}` | `POST /api/deep-analysis` |
+| `POST /api/background-knowledge` | `POST /api/background-knowledge` |
+| `POST /api/socratic-questions` | `POST /api/socratic-questions` |
+| `POST /api/socratic-session/start` | `POST /api/socratic-session/start` |
+| `POST /api/socratic-session/answer` | `POST /api/socratic-session/answer` |
+| `POST /api/research-tasks` | `POST /api/research-tasks` |
+| `POST /api/research-tasks/brief-preview` | `POST /api/research-tasks/brief-preview` |
+| `GET /api/research-tasks/latest` | `GET /api/research-tasks/latest` |
+| `GET /api/research-tasks/{taskId}` | `GET /api/research-tasks/{taskId}` |
+| `POST /api/research-tasks/{taskId}/cancel` | `POST /api/research-tasks/{taskId}/cancel` |
+| `GET /api/traces/{traceId}` | `GET /api/traces/{traceId}` |
+
+## Python 直接暴露但前端当前未直接使用的接口
+
+### `POST /api/rag/add-literature`
+
+上传文献到 Python 内部文献库。
+
+### `POST /api/rag/retrieve`
+
+直接调用 Python RAG 检索。
+
+这两个接口当前没有经过 Java 正式转发给浏览器使用。
+
+## 关键数据结构
+
+### Evidence Item
+
+多个接口中的 `rag_sources`、`sources` 采用相近的证据结构，常见字段包括：
+
+- `sourceId`
+- `id` 兼容字段
+- `sourceType`
+- `text`
+- `pdfId`
+- `pageIndex`
+- `sectionId`
+- `chunkIndex`
+- `metadata`
+- `similarity`
+- `score`
+
+注意：
+
+- `pageIndex` 是 0-based
+- 前端展示页码时通常会做 `pageIndex + 1`
+- 旧缓存或旧索引可能没有页码与章节锚点
+
+### Research Task Snapshot
+
+研究任务快照固定字段：
+
+- `taskId`
+- `traceId`
+- `status`
+- `stage`
+- `progress`
+- `question`
+- `pdfId`
+- `plan`
+- `findings`
+- `report`
+- `error`
+- `createdAt`
+- `updatedAt`
+
+### Retrieval Judge
+
+常见字段：
+
+- `verdict`
+- `confidence`
+- `reason`
+- `missingAspects`
+- `shouldRetry`
+
+## 错误处理建议
+
+- 前端应同时读取 HTTP 状态码和响应体中的 `status/message/errorCode`
+- 对 `paper_not_indexed`、`rag_index_unavailable` 这种业务错误，应给用户“重新上传或重新解析”的引导
+- 对 `404` 的研究任务/trace 查询，不要伪造本地恢复成功
+
+## 调试建议
+
+如果你要联调接口，优先检查：
+
+1. `frontend` 是否指向 `http://localhost:8081/api`
+2. Java `PYTHON_URL` 是否正确
+3. GROBID 是否可用
+4. Python RAG 是否成功初始化
+5. 当前论文是否已经完成索引
