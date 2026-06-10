@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph from 'react-force-graph-2d';
 import {
-  ArrowRight,
   BookOpenCheck,
   Database,
   Link2,
   Loader2,
   Network,
   RefreshCw,
-  Route,
   ShieldCheck,
 } from 'lucide-react';
 
@@ -23,11 +21,27 @@ import {
 } from './backgroundKnowledgePanelModel.js';
 import { normalizeSourceLocation } from './evidenceCitationModel.js';
 
+const EMPTY_LIST = [];
+
 const formatPercent = (value) => {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return null;
   }
   return `${Math.round(value * 100)}%`;
+};
+
+const normalizeText = (value) => `${value ?? ''}`.trim();
+
+const uniqueStrings = (items = []) => {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = normalizeText(item);
+    if (!key || seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 };
 
 const KnowledgeLevelPicker = ({ value, onChange, compact = false }) => (
@@ -78,7 +92,7 @@ const BackgroundKnowledgePanel = ({
   const selectedKnowledgeLevel = normalizeKnowledgeLevel(knowledgeLevel || data?.user_knowledge_level);
   const graphData = useMemo(() => normalizeGraph(data), [data]);
   const learningSections = useMemo(() => resolveLearningPathSections(data), [data]);
-  const backgroundItems = Array.isArray(data?.background_knowledge) ? data.background_knowledge : [];
+  const backgroundItems = Array.isArray(data?.background_knowledge) ? data.background_knowledge : EMPTY_LIST;
   const ragSources = Array.isArray(data?.rag_sources)
     ? data.rag_sources.map((source, index) => ({
       ...source,
@@ -86,19 +100,30 @@ const BackgroundKnowledgePanel = ({
       sourceId: source?.sourceId || source?.id || `source-${index + 1}`,
       ...normalizeSourceLocation(source),
     }))
-    : [];
+    : EMPTY_LIST;
   const sourceCoverage = data?.sourceCoverage && typeof data.sourceCoverage === 'object' ? data.sourceCoverage : null;
   const confidenceText = formatPercent(data?.confidence);
   const coverageText = formatPercent(sourceCoverage?.ratio);
   const uncoveredNodeLabels = useMemo(() => getUncoveredNodeLabels(data), [data]);
   const handleGenerate = createGenerateHandler(onGenerate, selectedKnowledgeLevel);
 
+  const nodeByLabel = useMemo(() => {
+    const map = new Map();
+    graphData.nodes.forEach((node) => {
+      const key = normalizeText(node.label).toLowerCase();
+      if (key && !map.has(key)) {
+        map.set(key, node);
+      }
+    });
+    return map;
+  }, [graphData.nodes]);
+
   const overviewSummary = useMemo(() => {
     if (!data) {
       return '先生成背景补课图谱，再按阅读需要逐步补齐概念、方法和批判视角。';
     }
 
-    return `为了更好理解 ${data?.paper_topic || '当前论文'}，建议优先补齐最影响阅读的概念、方法和批判视角。`;
+    return `为了更好理解 ${data?.paper_topic || '当前论文'}，建议优先补齐最影响阅读的概念、方法与批判视角。`;
   }, [data]);
 
   const overviewPoints = useMemo(
@@ -108,6 +133,25 @@ const BackgroundKnowledgePanel = ({
       backgroundItems.length > 0 ? `推荐补课主题 ${backgroundItems.length} 项` : '尚未生成补课清单',
     ],
     [backgroundItems.length, graphData.nodes.length, learningSections.length],
+  );
+
+  const backgroundCards = useMemo(
+    () =>
+      backgroundItems.slice(0, 6).map((item) => {
+        const node = nodeByLabel.get(normalizeText(item).toLowerCase());
+        const stageLabel = normalizeText(node?.stageLabel);
+        const whyText =
+          normalizeText(node?.why) ||
+          normalizeText(node?.summary) ||
+          (stageLabel ? `建议先补这部分 ${stageLabel}，再继续精读正文。` : '建议先补这部分背景，再继续精读正文。');
+
+        return {
+          title: item,
+          stageLabel,
+          whyText,
+        };
+      }),
+    [backgroundItems, nodeByLabel],
   );
 
   if (!data && !isLoading) {
@@ -218,13 +262,15 @@ const BackgroundKnowledgePanel = ({
         {activeMode === 'why' && (
           <>
             <div className="grid gap-4 md:grid-cols-3">
-              {backgroundItems.slice(0, 6).map((item) => (
-                <div key={item} className="theme-card rounded-2xl p-4 text-sm theme-text-secondary">
-                  <div className="theme-text-primary mb-2 text-sm font-semibold">{item}</div>
-                  <div className="flex items-center gap-2 text-[11px] text-pixiu">
-                    <ArrowRight size={12} />
-                    这是后续精读的前置背景
-                  </div>
+              {backgroundCards.map((item) => (
+                <div key={item.title} className="theme-card rounded-2xl p-4 text-sm theme-text-secondary">
+                  <div className="theme-text-primary mb-2 text-sm font-semibold">{item.title}</div>
+                  {item.stageLabel && (
+                    <div className="mb-2">
+                      <span className="workbench-kind-chip">{item.stageLabel}</span>
+                    </div>
+                  )}
+                  <div className="line-clamp-3 leading-7">{item.whyText}</div>
                 </div>
               ))}
             </div>
@@ -233,7 +279,9 @@ const BackgroundKnowledgePanel = ({
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="theme-text-primary text-sm font-bold">{data?.paper_topic || '当前论文'}</h3>
-                  <div className="theme-text-secondary mt-1 text-xs">当前知识水平：{data?.user_knowledge_level || selectedKnowledgeLevel}</div>
+                  <div className="theme-text-secondary mt-1 text-xs">
+                    当前知识水平：{data?.user_knowledge_level || selectedKnowledgeLevel}
+                  </div>
                 </div>
                 <span className="theme-text-muted text-[10px] italic">拖拽节点 / 滚轮缩放</span>
               </div>
@@ -257,27 +305,42 @@ const BackgroundKnowledgePanel = ({
 
         {activeMode === 'path' && (
           <>
-            {visiblePathSteps.map((step, index) => (
-              <InsightCard
-                key={`${step.groupTitle}-${step.title}-${index}`}
-                title={`${index + 1}. ${step.title}`}
-                summary={step.goal || `${step.title} 是这一阶段的关键补课点。`}
-                keyPoints={[
-                  step.groupTitle,
-                  ...(step.stageLabel ? [step.stageLabel] : []),
-                  ...(Array.isArray(step.prerequisiteEdges)
-                    ? step.prerequisiteEdges.slice(0, 2).map((edge) => {
-                        const sourceText = edge.sourceIds?.length
-                          ? `依据：${edge.sourceIds.join('、')}`
-                          : edge.confidenceReason || '基于路径推断';
-                        return `前置于：${edge.target}，${sourceText}`;
-                      })
-                    : []),
-                ]}
-                content={step.goal || ''}
-                detailsTitle="展开学习说明"
-              />
-            ))}
+            {visiblePathSteps.map((step, index) => {
+              const stepKeyPoints = uniqueStrings([
+                step.groupTitle,
+                step.stageLabel && step.stageLabel !== step.groupTitle ? step.stageLabel : '',
+                Array.isArray(step.sourceIds) && step.sourceIds.length > 0 ? `依据：${step.sourceIds.join('、')}` : '',
+                ...(Array.isArray(step.prerequisiteEdges)
+                  ? step.prerequisiteEdges.slice(0, 2).map((edge) => {
+                    const supportText = edge.sourceIds?.length
+                      ? `依据：${edge.sourceIds.join('、')}`
+                      : edge.confidenceReason || '基于当前学习路径推断';
+                    return `后续会用到：${edge.target}，${supportText}`;
+                  })
+                  : []),
+              ]);
+
+              const detailBlocks = uniqueStrings([
+                step.goal || '',
+                Array.isArray(step.sourceIds) && step.sourceIds.length > 0
+                  ? `### 相关依据\n- ${step.sourceIds.join('\n- ')}`
+                  : '',
+                Array.isArray(step.prerequisiteEdges) && step.prerequisiteEdges.length > 0
+                  ? `### 学完后继续看\n- ${step.prerequisiteEdges.slice(0, 3).map((edge) => edge.target).join('\n- ')}`
+                  : '',
+              ]).join('\n\n');
+
+              return (
+                <InsightCard
+                  key={`${step.groupTitle}-${step.title}-${index}`}
+                  title={`${index + 1}. ${step.title}`}
+                  summary={step.goal || `${step.title} 是这一阶段的关键补课点。`}
+                  keyPoints={stepKeyPoints}
+                  content={detailBlocks}
+                  detailsTitle="展开学习说明"
+                />
+              );
+            })}
 
             {visiblePathCount < flattenedPathSteps.length && (
               <div className="flex justify-center">
@@ -350,14 +413,14 @@ const BackgroundKnowledgePanel = ({
                             </button>
                           )}
                           {source.canJumpToSource && (
-                          <button
-                            type="button"
-                            onClick={() => onJumpToSource?.(source)}
-                            className="source-link-chip inline-flex items-center gap-1"
-                          >
-                            <Link2 size={12} />
-                            跳回原文 {source.locationLabel}
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => onJumpToSource?.(source)}
+                              className="source-link-chip inline-flex items-center gap-1"
+                            >
+                              <Link2 size={12} />
+                              跳回原文 {source.locationLabel}
+                            </button>
                           )}
                         </div>
                       ) : null}

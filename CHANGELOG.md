@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-10 10:20 v0.1.22
+
+1. **恢复详情展开去重显示逻辑**：重新修复 `frontend/src/components/InsightCard.jsx`，当卡片展开完整详情时自动隐藏原先的简版摘要与要点，避免问答、深度研究、背景补课等复用卡片在展开后出现上下重复内容。
+2. **恢复并重构背景补课面板**：重新整理 `frontend/src/components/BackgroundKnowledgePanel.jsx`，修复 Git 冲突回退后出现的固定文案反复显示、学习路径信息重复、以及“前置于”表述不自然的问题；`先补什么 / 怎么补 / 看依据` 三个视图重新回到分步展示逻辑。
+3. **保留依据跳回原文能力**：在恢复背景补课模块时继续兼容现有 `rag_sources` 定位信息，保留来源片段的“跳回原文”入口，不改动后端接口字段，仅在前端做归一化与展示恢复。
+
 ### 2026-06-10 09:40 v0.1.21
 
 1. **完成 Evidence Item 元数据统一**：`smart_chunker` 和 `LiteratureRAG.add_sections_to_db()` 会把新解析论文 section 的 `id/pageIndex/page/section` 传播到 chunk 与 Chroma metadata，`evidence_service` 统一输出 `sourceId/sourceType/text/pageIndex/sectionId/chunkIndex/pdfId/metadata/similarity/score`，并用 `pdfId + chunkIndex` 生成更稳定的 fallback `sourceId`。

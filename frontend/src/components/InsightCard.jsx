@@ -27,6 +27,7 @@ const InsightCard = ({
   });
 
   const [isExpanded, setIsExpanded] = React.useState(model.defaultExpanded);
+  const shouldShowCompactContent = !(model.hasDetails && isExpanded);
 
   return (
     <section className={`theme-card rounded-2xl p-4 ${className}`.trim()}>
@@ -44,9 +45,11 @@ const InsightCard = ({
         </div>
       )}
 
-      <div className="theme-text-primary text-sm leading-7">{model.summary}</div>
+      {shouldShowCompactContent && (
+        <div className="theme-text-primary text-sm leading-7">{model.summary}</div>
+      )}
 
-      {model.hasPoints && (
+      {shouldShowCompactContent && model.hasPoints && (
         <div className="mt-3 space-y-2">
           {model.points.map((point) => (
             <div key={point} className="theme-card-soft rounded-xl px-3 py-2 text-sm leading-6 theme-text-secondary">
