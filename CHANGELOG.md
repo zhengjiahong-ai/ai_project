@@ -2,12 +2,16 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-12 10:12 v0.1.24
+
+1. **完成表格/数值证据候选定位**：批判阅读 claims 兼容新增 `numericVerificationStatus`、`numericEvidenceCandidates` 和顶层 `numericEvidenceSummary`，基于同次 `rag_sources` 中的 Table/Figure 文本、指标名和百分比做规则型候选定位，避免生成不可追溯来源。
+2. **增强前端主张证据卡片**：`criticalAnalysisData` 归一化数值候选、页码与跳转元数据，`CriticalAnalysisPanel` 在主张-证据校验区展示候选表图/数值片段，并明确提示候选证据不足以自动验证。
+
 ### 2026-06-12 10:10 v0.1.23
 
 1. **完成论点-证据验证 MVP 评分规则**：Python 批判阅读响应新增规则型 `contributionScore`、`riskScore` 和 `noveltyDimensions`，分数来自 claims 支撑率、缺失证据、夸大风险以及方法/实验轴证据覆盖，不引入模型训练或微调。
 2. **替换前端临时多维评分**：`criticalAnalysisData` 优先使用后端评分字段，`CriticalAnalysisPanel` 在图表 tooltip、维度卡片和 claim 卡片中展示评分依据与缺失证据；旧响应缺少新字段时继续兼容展示。
 3. **同步任务与接口文档**：`go3.md` 不再要求新建或恢复 `docs/CONSTRAINTS.md`，接口字段同步记录到 `API.md`，README 补充批判阅读规则评分说明。
-4. **验证结果**：已通过 `python -m pytest tests/test_citation_responses.py -q`（10 passed）和 `node src/components/criticalAnalysisData.test.js`。未覆盖真实 DeepSeek 调用、Docker Compose 全链路和浏览器端上传 PDF smoke。
 
 ### 2026-06-10 10:20 v0.1.22
 
@@ -20,14 +24,12 @@
 1. **完成 Evidence Item 元数据统一**：`smart_chunker` 和 `LiteratureRAG.add_sections_to_db()` 会把新解析论文 section 的 `id/pageIndex/page/section` 传播到 chunk 与 Chroma metadata，`evidence_service` 统一输出 `sourceId/sourceType/text/pageIndex/sectionId/chunkIndex/pdfId/metadata/similarity/score`，并用 `pdfId + chunkIndex` 生成更稳定的 fallback `sourceId`。
 2. **增强跨面板来源跳回原文**：聊天引用、批判阅读证据、背景补课来源和深度研究 findings 会保留页码与章节锚点；前端只有在 evidence item 存在有效 `pageIndex` 时显示“跳回原文 p.N”，旧索引或无页码来源继续降级为片段预览。
 3. **扩展深度研究 finding 来源**：`task.findings[*]` 保留既有 `sourceIds`，并兼容新增 `sources`，用于携带同次检索使用的规范化 evidence items，不改变现有 Java `/api` 路由或必填请求字段。
-4. **同步文档与版本**：更新 `README.md`、`frontend/VERSION`、`docs/CONSTRAINTS.md` 和 `docs/FRONTEND_REFACTOR_PLAN.md`，明确新数据优先、旧 Chroma 索引不强制迁移、页码为 0-based 的接口与展示规则。
 
 ### 2026-06-10 09:30 v0.1.20
 
 1. **完成翻译服务旧代码清理**：删除 `services/chat_service.py` 中 `translate_page()` 直接委派到 `page_translation_service.translate_page()` 后的不可达旧实现，避免同一逐页翻译逻辑在两个服务文件中重复维护。
 2. **清理旧翻译 helper 与导入**：移除 `chat_service.py` 中仅服务不可达旧分支的 `_trim_page_text`、`_trim_translation_reference`、`_call_translation_with_timeout`、`ThreadPoolExecutor`、`FuturesTimeoutError` 和 `get_translation_llm` 引用；真实 overlay/plain 翻译逻辑仍由 `page_translation_service.py` 负责。
 3. **保持接口行为不变**：不修改 Python `/api/translate-page` 路由、Java `/api/translate-page` 转发、前端请求字段或逐页翻译响应结构。
-4. **验证结果**：新增结构回归测试锁定 `chat_service` 不再保留旧翻译 helper；已通过 `python -m pytest tests/test_page_translation_service.py tests/test_routes.py -q`（22 passed）和 `.\mvnw.cmd -Dtest=AiServiceTest#translatePageForwardsRequestToPythonService test`（1 test passed，保留 Mockito 动态 agent 警告）。未覆盖真实 LLM 翻译调用和 Docker Compose 全链路。
 
 ### 2026-06-09 23:40 v0.1.19
 

@@ -75,6 +75,7 @@ Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它
   - 围绕贡献、方法、实验、局限四条轴线进行证据化分析
   - 生成结构化批判报告与 claim-support 映射
   - 基于 claims 支撑率、缺失证据、夸大风险和方法/实验覆盖生成规则型 `contributionScore`、`riskScore` 与 `noveltyDimensions`，不需要训练或微调模型
+  - 对含百分比或指标数值的 claim，尝试定位同次证据中的 `Table/Figure`、指标名和数值候选片段，并明确标注“候选证据不足以自动验证”
 - `深度研究`
   - 先生成 research brief preview
   - 再创建异步研究任务

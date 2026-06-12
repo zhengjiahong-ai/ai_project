@@ -231,7 +231,31 @@ http://ai-service:8000/api
     "overclaim_risks": [],
     "missing_evidence": [],
     "critical_analysis": "...",
-    "claims": [],
+    "claims": [
+      {
+        "id": "claim-1",
+        "claim": "作者声称 F1 提升 20%。",
+        "supportLevel": "PARTIAL",
+        "evidenceSourceIds": ["source-1"],
+        "missingEvidence": ["缺少可自动核验的表格结构"],
+        "reason": "当前证据能对应作者主张，但尚不足以完整证明该贡献。",
+        "numericVerificationStatus": "insufficient_for_auto_verification",
+        "numericEvidenceCandidates": [
+          {
+            "sourceId": "source-1",
+            "text": "Table 2: Main results. The proposed method improves F1 by 20% over the baseline.",
+            "pageIndex": 4,
+            "sectionId": "section-results",
+            "chunkIndex": 8,
+            "label": "Table 2",
+            "metrics": ["f1"],
+            "numbers": ["20%"],
+            "reason": "匹配到 Table 2；指标 f1；数值 20%。候选片段仍需人工对照原表或图。",
+            "status": "candidate_found"
+          }
+        ]
+      }
+    ],
     "contributionScore": {
       "score": 86,
       "level": "high",
@@ -257,6 +281,12 @@ http://ai-service:8000/api
         "detail": "主张证据较充分。"
       }
     ],
+    "numericEvidenceSummary": {
+      "claimCount": 3,
+      "numericClaimCount": 1,
+      "candidateCount": 1,
+      "status": "insufficient_for_auto_verification"
+    },
     "rag_sources": [],
     "sentenceSourceMap": {},
     "resolved_from": "pdf_id",
@@ -274,6 +304,8 @@ http://ai-service:8000/api
 说明：
 
 - `contributionScore`、`riskScore` 和 `noveltyDimensions` 是规则型评分，不代表训练模型输出；评分依据来自 claim 支撑度、缺失证据、夸大风险以及方法/实验轴证据覆盖。
+- `claims[*].numericEvidenceCandidates` 是表格/数值候选定位，不是自动表格 OCR 或严格数值核验；即使找到 `Table/Figure`、指标名和百分比片段，`numericVerificationStatus` 也可能是 `insufficient_for_auto_verification`，前端应提示需要人工核对原文。
+- `numericEvidenceCandidates[*].sourceId` 必须来自同次响应的 `rag_sources[*].sourceId`；`pageIndex` 仍为 0-based，可用于前端跳回原文。
 - 旧客户端可忽略新增字段；缺少新增字段时前端会按旧版结构降级展示。
 
 ### `POST /api/background-knowledge`

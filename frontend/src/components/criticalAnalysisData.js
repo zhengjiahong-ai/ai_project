@@ -232,9 +232,21 @@ const SUPPORT_LEVEL_STYLES = {
   UNSUPPORTED: 'border-rose-500/30 bg-rose-500/10 text-rose-600',
 };
 
+const NUMERIC_VERIFICATION_LABELS = {
+  not_applicable: '不涉及数值核对',
+  candidate_found: '找到候选数值证据',
+  insufficient_for_auto_verification: '候选证据不足以自动验证',
+  not_found: '未找到对应数值证据',
+};
+
 const normalizeSupportLevel = (value) => {
   const level = normalizeText(value).toUpperCase();
   return SUPPORT_LEVEL_LABELS[level] ? level : 'PARTIAL';
+};
+
+const normalizeNumericVerificationStatus = (value) => {
+  const status = normalizeText(value);
+  return NUMERIC_VERIFICATION_LABELS[status] ? status : 'not_applicable';
 };
 
 export const getEvidencePreview = (data, maxItems = 5) => {
@@ -307,6 +319,39 @@ export const getClaimSupportRows = (data, maxItems = 6) => {
       const sources = evidenceSourceIds
         .map((sourceId) => sourceMap.get(sourceId))
         .filter(Boolean);
+      const numericVerificationStatus = normalizeNumericVerificationStatus(item?.numericVerificationStatus);
+      const numericEvidenceCandidates = Array.isArray(item?.numericEvidenceCandidates)
+        ? item.numericEvidenceCandidates
+          .map((candidate, candidateIndex) => {
+            const sourceId = normalizeText(candidate?.sourceId) || normalizeText(candidate?.id);
+            if (!sourceId) {
+              return null;
+            }
+            const source = sourceMap.get(sourceId);
+            const text = normalizeText(candidate?.text) || source?.text || '';
+            if (!text) {
+              return null;
+            }
+            return {
+              id: normalizeText(candidate?.id) || `${sourceId}-numeric-${candidateIndex + 1}`,
+              sourceId,
+              text,
+              preview: truncate(text, 140),
+              label: normalizeText(candidate?.label),
+              metrics: normalizeList(candidate?.metrics),
+              numbers: normalizeList(candidate?.numbers),
+              reason: normalizeText(candidate?.reason),
+              status: normalizeText(candidate?.status) || 'candidate_found',
+              chunkIndex: normalizeInteger(candidate?.chunkIndex) ?? source?.chunkIndex ?? null,
+              ...normalizeSourceLocation({
+                ...source,
+                ...candidate,
+              }),
+            };
+          })
+          .filter(Boolean)
+          .slice(0, 3)
+        : [];
 
       return {
         id: normalizeText(item?.id) || `claim-${index + 1}`,
@@ -318,6 +363,9 @@ export const getClaimSupportRows = (data, maxItems = 6) => {
         sources,
         missingEvidence: normalizeList(item?.missingEvidence),
         reason: normalizeText(item?.reason) || '暂无理由。',
+        numericVerificationStatus,
+        numericVerificationStatusLabel: NUMERIC_VERIFICATION_LABELS[numericVerificationStatus],
+        numericEvidenceCandidates,
       };
     })
     .filter(Boolean)

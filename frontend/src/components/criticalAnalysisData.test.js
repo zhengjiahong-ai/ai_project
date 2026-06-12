@@ -124,6 +124,18 @@ const run = async () => {
         evidenceSourceIds: ['chunk-1', 'missing'],
         missingEvidence: [],
         reason: '实验结果提供了直接支撑。',
+        numericVerificationStatus: 'insufficient_for_auto_verification',
+        numericEvidenceCandidates: [
+          {
+            sourceId: 'chunk-1',
+            text: 'Table 2: F1 improves by 20%.',
+            label: 'Table 2',
+            metrics: ['f1'],
+            numbers: ['20%'],
+            status: 'candidate_found',
+            reason: '匹配到表格和百分比。',
+          },
+        ],
       },
       {
         id: 'claim-2',
@@ -132,6 +144,7 @@ const run = async () => {
         evidenceSourceIds: [],
         missingEvidence: ['缺少跨领域实验'],
         reason: '证据不足。',
+        numericVerificationStatus: 'not_applicable',
       },
     ],
   });
@@ -140,8 +153,17 @@ const run = async () => {
   assert.equal(claimRows[0].supportLabel, '已支撑');
   assert.equal(claimRows[0].sources.length, 1);
   assert.equal(claimRows[0].sources[0].locationLabel, 'p.3');
+  assert.equal(claimRows[0].numericVerificationStatusLabel, '候选证据不足以自动验证');
+  assert.equal(claimRows[0].numericEvidenceCandidates.length, 1);
+  assert.equal(claimRows[0].numericEvidenceCandidates[0].sourceId, 'chunk-1');
+  assert.equal(claimRows[0].numericEvidenceCandidates[0].locationLabel, 'p.3');
+  assert.equal(claimRows[0].numericEvidenceCandidates[0].canJumpToSource, true);
+  assert.deepEqual(claimRows[0].numericEvidenceCandidates[0].metrics, ['f1']);
+  assert.deepEqual(claimRows[0].numericEvidenceCandidates[0].numbers, ['20%']);
   assert.equal(claimRows[1].supportLevel, 'PARTIAL');
   assert.equal(claimRows[1].missingEvidence[0], '缺少跨领域实验');
+  assert.equal(claimRows[1].numericVerificationStatusLabel, '不涉及数值核对');
+  assert.deepEqual(claimRows[1].numericEvidenceCandidates, []);
 
   console.log('critical analysis data helper smoke tests passed');
 };

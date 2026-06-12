@@ -342,6 +342,59 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                           ))}
                         </div>
                       )}
+                      {row.numericVerificationStatus !== 'not_applicable' && (
+                        <div className="mt-3 rounded-xl border border-sky-400/20 bg-sky-500/10 p-3">
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-sky-600">表格/数值证据</span>
+                            <span className="text-[11px] font-medium text-sky-600">
+                              {row.numericVerificationStatusLabel}
+                            </span>
+                          </div>
+                          {row.numericEvidenceCandidates.length > 0 ? (
+                            <div className="space-y-2">
+                              {row.numericEvidenceCandidates.map((candidate) => (
+                                <div key={candidate.id} className="rounded-lg bg-white/45 p-3 text-xs leading-relaxed dark:bg-slate-950/20">
+                                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                                    {candidate.label && (
+                                      <span className="source-link-chip">{candidate.label}</span>
+                                    )}
+                                    {candidate.metrics.map((metric) => (
+                                      <span key={`${candidate.id}-metric-${metric}`} className="source-link-chip">
+                                        {metric}
+                                      </span>
+                                    ))}
+                                    {candidate.numbers.map((number) => (
+                                      <span key={`${candidate.id}-number-${number}`} className="source-link-chip">
+                                        {number}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <p className="theme-text-secondary">{candidate.preview}</p>
+                                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                                    {candidate.reason && (
+                                      <span className="theme-text-muted text-[11px]">{candidate.reason}</span>
+                                    )}
+                                    {candidate.canJumpToSource && (
+                                      <button
+                                        type="button"
+                                        onClick={() => onJumpToSource?.(candidate)}
+                                        className="source-link-chip inline-flex items-center gap-1"
+                                      >
+                                        <Link2 size={12} />
+                                        跳回原文 {candidate.locationLabel}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs leading-relaxed text-sky-600">
+                              未找到可对应的表格/数值片段。
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

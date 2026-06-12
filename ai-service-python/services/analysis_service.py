@@ -99,6 +99,42 @@ SUPPORT_SIGNAL_TERMS = [
     "消融",
     "准确率",
 ]
+TABLE_FIGURE_LABEL_RE = re.compile(
+    r"\b(?:table|fig\.?|figure)\s*[:.]?\s*\d+[a-z]?\b|(?:表|图)\s*[:：]?\s*\d+[a-z]?",
+    re.IGNORECASE,
+)
+PERCENT_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*[%％]")
+PLUS_MINUS_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*(?:±|\+/-)\s*\d+(?:\.\d+)?")
+DECIMAL_RE = re.compile(r"(?<![A-Za-z])\b[+-]?\d+\.\d+\b")
+METRIC_ALIASES = {
+    "accuracy": ["accuracy", "acc", "准确率"],
+    "f1": ["f1", "f1-score", "f1 score", "f1值", "f1 值"],
+    "precision": ["precision", "精确率", "精度"],
+    "recall": ["recall", "召回率"],
+    "auc": ["auc"],
+    "bleu": ["bleu"],
+    "rouge": ["rouge"],
+    "map": ["map", "mAP"],
+    "latency": ["latency", "延迟"],
+    "throughput": ["throughput", "吞吐"],
+    "performance": ["performance", "性能"],
+}
+NUMERIC_CHANGE_TERMS = [
+    "improve",
+    "improves",
+    "improved",
+    "gain",
+    "gains",
+    "increase",
+    "increases",
+    "decrease",
+    "decreases",
+    "提升",
+    "提高",
+    "增加",
+    "下降",
+    "降低",
+]
 
 
 class PaperNotIndexedError(RuntimeError):
@@ -999,6 +1035,145 @@ def _source_ids(items: List[Dict[str, Any]]) -> List[str]:
     return ids
 
 
+def _normalize_number_token(value: str) -> str:
+    return re.sub(r"\s+", "", str(value or "").replace("％", "%")).strip()
+
+
+def _extract_numeric_values(text: Any) -> List[str]:
+    value = str(text or "")
+    results: List[str] = []
+    seen = set()
+    for pattern in (PLUS_MINUS_RE, PERCENT_RE, DECIMAL_RE):
+        for match in pattern.findall(value):
+            token = _normalize_number_token(match)
+            if not token or token in seen:
+                continue
+            seen.add(token)
+            results.append(token)
+    return results[:8]
+
+
+def _extract_metric_terms(text: Any) -> List[str]:
+    value = str(text or "").lower()
+    metrics: List[str] = []
+    seen = set()
+    for canonical, aliases in METRIC_ALIASES.items():
+        for alias in aliases:
+            alias_text = alias.lower()
+            if re.search(rf"(?<![a-z0-9]){re.escape(alias_text)}(?![a-z0-9])", value) or alias_text in value:
+                if canonical not in seen:
+                    seen.add(canonical)
+                    metrics.append(canonical)
+                break
+    return metrics
+
+
+def _extract_table_figure_label(text: Any) -> str:
+    match = TABLE_FIGURE_LABEL_RE.search(str(text or ""))
+    return " ".join(match.group(0).replace("：", ":").split()) if match else ""
+
+
+def _has_numeric_change_term(text: Any) -> bool:
+    value = str(text or "").lower()
+    return any(term.lower() in value for term in NUMERIC_CHANGE_TERMS)
+
+
+def _numeric_candidate_reason(label: str, metrics: List[str], numbers: List[str]) -> str:
+    parts = []
+    if label:
+        parts.append(f"匹配到 {label}")
+    if metrics:
+        parts.append(f"指标 {', '.join(metrics[:3])}")
+    if numbers:
+        parts.append(f"数值 {', '.join(numbers[:3])}")
+    return "；".join(parts) + "。候选片段仍需人工对照原表或图。" if parts else "候选片段仍需人工对照原表或图。"
+
+
+def _build_numeric_evidence_candidates(claim_text: str, rag_sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    claim_numbers = _extract_numeric_values(claim_text)
+    if not claim_numbers:
+        return []
+
+    claim_metrics = _extract_metric_terms(claim_text)
+    candidates = []
+    seen_source_ids = set()
+    for source in rag_sources:
+        source_id = str(source.get("sourceId") or source.get("id") or "").strip()
+        if not source_id or source_id in seen_source_ids:
+            continue
+
+        text = str(source.get("text") or "")
+        numbers = _extract_numeric_values(text)
+        if not numbers:
+            continue
+
+        metrics = _extract_metric_terms(text)
+        label = _extract_table_figure_label(text)
+        metric_overlap = sorted(set(claim_metrics).intersection(metrics))
+        has_candidate_context = bool(label or metric_overlap or _has_numeric_change_term(text))
+        if claim_metrics and not metric_overlap and not label:
+            has_candidate_context = False
+        if not has_candidate_context:
+            continue
+
+        seen_source_ids.add(source_id)
+        matched_metrics = metric_overlap or metrics
+        candidates.append(
+            {
+                "sourceId": source_id,
+                "text": text,
+                "pageIndex": source.get("pageIndex"),
+                "sectionId": source.get("sectionId"),
+                "chunkIndex": source.get("chunkIndex"),
+                "label": label,
+                "metrics": matched_metrics[:5],
+                "numbers": numbers[:6],
+                "reason": _numeric_candidate_reason(label, matched_metrics, numbers),
+                "status": "candidate_found",
+            }
+        )
+        if len(candidates) >= 3:
+            break
+
+    return candidates
+
+
+def _attach_numeric_evidence_to_claims(
+    claims: List[Dict[str, Any]],
+    rag_sources: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    numeric_claim_count = 0
+    candidate_count = 0
+    for claim in claims:
+        claim_text = str(claim.get("claim") or "")
+        if not _extract_numeric_values(claim_text):
+            claim["numericVerificationStatus"] = "not_applicable"
+            claim["numericEvidenceCandidates"] = []
+            continue
+
+        numeric_claim_count += 1
+        candidates = _build_numeric_evidence_candidates(claim_text, rag_sources)
+        claim["numericEvidenceCandidates"] = candidates
+        candidate_count += len(candidates)
+        claim["numericVerificationStatus"] = (
+            "insufficient_for_auto_verification" if candidates else "not_found"
+        )
+
+    if numeric_claim_count <= 0:
+        status = "not_applicable"
+    elif candidate_count > 0:
+        status = "insufficient_for_auto_verification"
+    else:
+        status = "not_found"
+
+    return {
+        "claimCount": len(claims),
+        "numericClaimCount": numeric_claim_count,
+        "candidateCount": candidate_count,
+        "status": status,
+    }
+
+
 def _missing_evidence_for_support(level: str, has_method: bool, has_experiment: bool) -> List[str]:
     if level == "SUPPORTED":
         return []
@@ -1406,6 +1581,7 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
             max_items=ANALYSIS_RESPONSE_SOURCE_LIMIT,
             max_text_chars=700,
         )
+        numeric_evidence_summary = _attach_numeric_evidence_to_claims(claims, rag_sources)
         sentence_source_fields = {
             "claimed_contributions": report["claimed_contributions"],
             "evidence_based_contributions": report["evidence_based_contributions"],
@@ -1433,6 +1609,7 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
             "contributionScore": assessment["contributionScore"],
             "riskScore": assessment["riskScore"],
             "noveltyDimensions": assessment["noveltyDimensions"],
+            "numericEvidenceSummary": numeric_evidence_summary,
             "rag_sources": rag_sources,
             "sentenceSourceMap": build_field_sentence_source_map(sentence_source_fields, rag_sources),
             "resolved_from": resolved_from,
@@ -1441,6 +1618,7 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
         }
         record_metric("axisCount", len(axis_results))
         record_metric("responseSources", len(response_sources))
+        record_metric("numericEvidenceCandidates", numeric_evidence_summary["candidateCount"])
         finalize_trace(
             "success",
             response_meta={

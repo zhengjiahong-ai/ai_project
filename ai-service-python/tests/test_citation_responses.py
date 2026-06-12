@@ -168,6 +168,142 @@ class CitationResponseTests(unittest.TestCase):
         self.assertIn("noveltyDimensions", response)
         self.assertGreater(response["riskScore"]["score"], response["contributionScore"]["score"])
 
+    def test_deep_analysis_numeric_claim_gets_table_candidate(self):
+        axis_result = {
+            "key": "experiments",
+            "label": "实验与结果",
+            "question": "实验结果是什么？",
+            "queryPlan": {},
+            "judge": {"verdict": "CORRECT", "confidence": 0.84},
+            "evidence": [
+                {
+                    "sourceId": "table-source-1",
+                    "text": "Table 2: Main results. The proposed method improves F1 by 20% over the baseline.",
+                    "sourceType": "current_paper",
+                    "pageIndex": 4,
+                    "sectionId": "section-results",
+                    "chunkIndex": 8,
+                }
+            ],
+        }
+        report = {
+            "claimed_contributions": "作者声称 F1 提升 20%。",
+            "evidence_based_contributions": "表格结果显示 F1 有提升候选证据。",
+            "inferred_real_contributions": "表格结果显示 F1 有提升候选证据。",
+            "weaknesses": [],
+            "overclaim_risks": [],
+            "missing_evidence": [],
+            "critical_analysis": "找到数值候选证据，但仍需人工核对表格。",
+        }
+
+        with (
+            patch.object(
+                analysis_service,
+                "_load_analysis_source",
+                return_value=(axis_result["evidence"], "paper_content", None, axis_result["evidence"][0]["text"]),
+            ),
+            patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
+            patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
+            patch.object(analysis_service, "_extract_claims_with_llm", return_value=["作者声称 F1 提升 20%。"]),
+        ):
+            response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
+
+        claim = response["claims"][0]
+        response_source_ids = {source["sourceId"] for source in response["rag_sources"]}
+        candidate_source_ids = {item["sourceId"] for item in claim["numericEvidenceCandidates"]}
+
+        self.assertEqual(claim["numericVerificationStatus"], "insufficient_for_auto_verification")
+        self.assertEqual(candidate_source_ids, {"table-source-1"})
+        self.assertLessEqual(candidate_source_ids, response_source_ids)
+        self.assertEqual(claim["numericEvidenceCandidates"][0]["pageIndex"], 4)
+        self.assertIn("f1", claim["numericEvidenceCandidates"][0]["metrics"])
+        self.assertIn("20%", claim["numericEvidenceCandidates"][0]["numbers"])
+        self.assertEqual(response["numericEvidenceSummary"]["numericClaimCount"], 1)
+        self.assertEqual(response["numericEvidenceSummary"]["candidateCount"], 1)
+
+    def test_deep_analysis_numeric_claim_without_candidate_is_not_found(self):
+        axis_result = {
+            "key": "experiments",
+            "label": "实验与结果",
+            "question": "实验结果是什么？",
+            "queryPlan": {},
+            "judge": {"verdict": "CORRECT", "confidence": 0.7},
+            "evidence": [
+                {
+                    "sourceId": "experiment-source-1",
+                    "text": "The paper describes the experimental setup and baseline configuration.",
+                    "sourceType": "current_paper",
+                }
+            ],
+        }
+        report = {
+            "claimed_contributions": "作者声称准确率提升 20%。",
+            "evidence_based_contributions": "当前证据不足。",
+            "inferred_real_contributions": "当前证据不足。",
+            "weaknesses": [],
+            "overclaim_risks": [],
+            "missing_evidence": ["缺少对应表格或数值结果"],
+            "critical_analysis": "没有找到对应数值片段。",
+        }
+
+        with (
+            patch.object(
+                analysis_service,
+                "_load_analysis_source",
+                return_value=(axis_result["evidence"], "paper_content", None, axis_result["evidence"][0]["text"]),
+            ),
+            patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
+            patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
+            patch.object(analysis_service, "_extract_claims_with_llm", return_value=["作者声称准确率提升 20%。"]),
+        ):
+            response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
+
+        self.assertEqual(response["claims"][0]["numericVerificationStatus"], "not_found")
+        self.assertEqual(response["claims"][0]["numericEvidenceCandidates"], [])
+        self.assertEqual(response["numericEvidenceSummary"]["numericClaimCount"], 1)
+        self.assertEqual(response["numericEvidenceSummary"]["candidateCount"], 0)
+
+    def test_deep_analysis_non_numeric_claim_is_not_applicable(self):
+        axis_result = {
+            "key": "contributions",
+            "label": "贡献与创新",
+            "question": "贡献是什么？",
+            "queryPlan": {},
+            "judge": {"verdict": "CORRECT", "confidence": 0.8},
+            "evidence": [
+                {
+                    "sourceId": "claim-source-1",
+                    "text": "作者提出新的检索排序方法。",
+                    "sourceType": "current_paper",
+                }
+            ],
+        }
+        report = {
+            "claimed_contributions": "作者提出新的检索排序方法。",
+            "evidence_based_contributions": "方法描述有当前证据支撑。",
+            "inferred_real_contributions": "方法描述有当前证据支撑。",
+            "weaknesses": [],
+            "overclaim_risks": [],
+            "missing_evidence": [],
+            "critical_analysis": "方法主张有证据支撑。",
+        }
+
+        with (
+            patch.object(
+                analysis_service,
+                "_load_analysis_source",
+                return_value=(axis_result["evidence"], "paper_content", None, axis_result["evidence"][0]["text"]),
+            ),
+            patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
+            patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
+            patch.object(analysis_service, "_extract_claims_with_llm", return_value=["作者提出新的检索排序方法。"]),
+        ):
+            response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
+
+        self.assertEqual(response["claims"][0]["numericVerificationStatus"], "not_applicable")
+        self.assertEqual(response["claims"][0]["numericEvidenceCandidates"], [])
+        self.assertEqual(response["numericEvidenceSummary"]["numericClaimCount"], 0)
+
 
 class AnalysisClaimSupportTests(unittest.TestCase):
     def test_supported_claim_requires_experiment_or_metric_evidence(self):
