@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-12 10:45 v0.1.26
+
+1. **完成深度研究 JUDGE 结构化效用评分**：`judge_evidence_quality()` 兼容新增 `judgeScore`、`coverage` 和 `retryReason`，分数来自 verdict、confidence、关键词覆盖、证据数量和来源类型，不引入新模型训练。
+2. **增强 deep research finding 与 trace 可观测性**：每条 finding 写入 JUDGE 分、证据覆盖、缺失点和 retry 原因；judge trace step 记录 `decision=stop/try_library/retry`，完成 trace 汇总 `averageJudgeScore/retryFindingCount/insufficientFindingCount`。
+
 ### 2026-06-12 10:26 v0.1.25
 
 1. **完成批判阅读引用网络真实化**：Python `/api/deep-analysis` 成功响应新增可选 `citationGraph`，当前没有真实引用图时明确返回 `null`，不生成、不推断、不模拟 citation network。

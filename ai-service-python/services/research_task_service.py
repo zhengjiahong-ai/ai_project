@@ -334,6 +334,7 @@ def _run_research_task(
                 "taskId": task_id,
                 "findingCount": len(findings),
                 "stage": DONE_STAGE,
+                **_build_judge_trace_summary(findings),
                 **summarize_safety_results(
                     wrap_untrusted_context("Research paper skeleton", _stringify_paper_skeleton(paper_skeleton), max_tokens=1000),
                     wrap_untrusted_context(
@@ -373,8 +374,10 @@ def _research_sub_question(
     with trace_step("research_judge_current", input_size=len(combined_evidence)) as step:
         judge = _judge_research_evidence(sub_question, combined_evidence, keywords=query_plan.get("keywords") or [])
         step["outputSize"] = len(judge.get("missingAspects") or [])
+        _annotate_judge_step(step, judge, "try_library" if _should_try_library(judge) else "stop")
 
     library_evidence: List[Dict[str, Any]] = []
+    retry_reason = ""
     if _should_try_library(judge):
         library_evidence = _retrieve_library_evidence(
             query_plan.get("rewritten") or query_plan.get("original") or sub_question,
@@ -384,8 +387,10 @@ def _research_sub_question(
         with trace_step("research_judge_library", input_size=len(combined_evidence)) as step:
             judge = _judge_research_evidence(sub_question, combined_evidence, keywords=query_plan.get("keywords") or [])
             step["outputSize"] = len(judge.get("missingAspects") or [])
+            _annotate_judge_step(step, judge, "retry" if _should_retry(judge) else "stop")
 
     if _should_retry(judge):
+        retry_reason = _clean_text(judge.get("retryReason"))
         retry_query = _build_retry_query(sub_question, query_plan, judge)
         with trace_step(
             "research_retry_retrieval",
@@ -402,13 +407,17 @@ def _research_sub_question(
                 keywords=[*(query_plan.get("keywords") or []), *(judge.get("missingAspects") or [])],
             )
             step["outputSize"] = len(judge.get("missingAspects") or [])
+            _annotate_judge_step(step, judge, "stop")
 
     summary = _build_finding_summary(sub_question, combined_evidence, judge)
     return {
         "subQuestion": sub_question,
         "summary": summary,
         "verdict": str(judge.get("verdict") or "INCORRECT"),
+        "judgeScore": _normalize_judge_score(judge.get("judgeScore")),
+        "coverage": _normalize_judge_coverage(judge.get("coverage")),
         "missingAspects": _normalize_missing_aspects(judge.get("missingAspects")),
+        "retryReason": retry_reason,
         "sourceIds": [str(item.get("sourceId")) for item in combined_evidence if item.get("sourceId")][:6],
         "sources": combined_evidence[:6],
     }
@@ -788,6 +797,68 @@ def _next_steps(findings: List[Dict[str, Any]]) -> str:
 
     missing_lines.append("- 如果后续需要更完整的研究报告，可在模块 8B 增加任务面板并展示逐项 findings。")
     return "\n".join(missing_lines)
+
+
+def _annotate_judge_step(step: Dict[str, Any], judge_result: Dict[str, Any], decision: str) -> None:
+    meta = dict(step.get("meta") or {})
+    coverage = _normalize_judge_coverage(judge_result.get("coverage"))
+    meta.update(
+        {
+            "verdict": str(judge_result.get("verdict") or "INCORRECT"),
+            "judgeScore": _normalize_judge_score(judge_result.get("judgeScore")),
+            "coverageScore": coverage.get("score"),
+            "missingAspects": _normalize_missing_aspects(judge_result.get("missingAspects")),
+            "retryReason": _clean_text(judge_result.get("retryReason")),
+            "decision": decision if decision in {"stop", "try_library", "retry"} else "stop",
+        }
+    )
+    step["meta"] = meta
+
+
+def _build_judge_trace_summary(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
+    scores = [
+        item.get("judgeScore")
+        for item in findings
+        if isinstance(item.get("judgeScore"), int)
+    ]
+    return {
+        "averageJudgeScore": round(sum(scores) / len(scores), 1) if scores else None,
+        "retryFindingCount": sum(1 for item in findings if _clean_text(item.get("retryReason"))),
+        "insufficientFindingCount": sum(1 for item in findings if str(item.get("verdict") or "") == "INCORRECT"),
+    }
+
+
+def _normalize_judge_score(value: Any) -> int:
+    try:
+        score = int(round(float(value)))
+    except (TypeError, ValueError):
+        score = 0
+    return max(0, min(100, score))
+
+
+def _normalize_judge_coverage(value: Any) -> Dict[str, Any]:
+    coverage = value if isinstance(value, dict) else {}
+    return {
+        "score": round(max(0.0, min(1.0, _coerce_float(coverage.get("score"), 0.0))), 2),
+        "matchedAspects": max(0, _coerce_int(coverage.get("matchedAspects"), 0)),
+        "totalAspects": max(0, _coerce_int(coverage.get("totalAspects"), 0)),
+        "evidenceCount": max(0, _coerce_int(coverage.get("evidenceCount"), 0)),
+        "sourceTypes": _normalize_text_list(coverage.get("sourceTypes"), limit=6),
+    }
+
+
+def _coerce_int(value: Any, fallback: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _coerce_float(value: Any, fallback: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
 
 
 def _should_try_library(judge_result: Dict[str, Any]) -> bool:

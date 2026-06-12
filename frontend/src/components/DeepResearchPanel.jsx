@@ -41,6 +41,15 @@ const formatTraceMeta = (value) => {
     .join(' · ');
 };
 
+const formatFindingCoverage = (coverage) => {
+  if (!coverage || coverage.score === null) {
+    return '';
+  }
+  const percent = Math.round(coverage.score * 100);
+  const evidenceText = coverage.evidenceCount !== null ? ` · 证据 ${coverage.evidenceCount} 条` : '';
+  return `覆盖 ${percent}%${evidenceText}`;
+};
+
 const DeepResearchPanel = ({
   pdfFileName = '',
   paperStructure = null,
@@ -547,17 +556,22 @@ const DeepResearchPanel = ({
                 <div className="space-y-4">
                   {normalizedTask.findings.map((finding) => {
                     const verdictMeta = getResearchVerdictMeta(finding.verdict);
+                    const judgeText = finding.judgeScore !== null ? `JUDGE ${finding.judgeScore}/100` : '';
+                    const coverageText = formatFindingCoverage(finding.coverage);
                     return (
                       <InsightCard
                         key={`${normalizedTask.taskId}-${finding.id}`}
                         title={finding.subQuestion}
                         summary={finding.summary}
                         keyPoints={[
+                          judgeText,
+                          coverageText,
                           finding.sources.length > 0
                             ? `来源：${finding.sources.map((source) => source.locationLabel ? `${source.sourceId} (${source.locationLabel})` : source.sourceId).join('、')}`
                             : '尚未绑定来源片段',
                           finding.missingAspects.length > 0 ? `仍缺证据：${finding.missingAspects.join('、')}` : '当前没有额外缺口提示',
-                        ]}
+                          finding.retryReason ? `Retry：${finding.retryReason}` : '',
+                        ].filter(Boolean)}
                         meta={(
                           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${verdictMeta.toneClass}`}>
                             {verdictMeta.label}
@@ -565,10 +579,12 @@ const DeepResearchPanel = ({
                         )}
                         content={[
                           `### 结论摘要\n${finding.summary}`,
+                          judgeText || coverageText ? `### JUDGE 评分\n${[judgeText, coverageText].filter(Boolean).join(' · ')}` : '',
                           finding.sources.length > 0
                             ? `### 证据来源\n${finding.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
                             : '',
                           finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
+                          finding.retryReason ? `### Retry 原因\n${finding.retryReason}` : '',
                         ].filter(Boolean).join('\n\n')}
                         detailsTitle="展开 finding 详情"
                         footer={onCaptureArtifact || finding.sources.some((source) => source.canJumpToSource) ? (
@@ -583,10 +599,12 @@ const DeepResearchPanel = ({
                                     summary: finding.summary,
                                     content: [
                                       `### 结论摘要\n${finding.summary}`,
+                                      judgeText || coverageText ? `### JUDGE 评分\n${[judgeText, coverageText].filter(Boolean).join(' · ')}` : '',
                                       finding.sources.length > 0
                                         ? `### 证据来源\n${finding.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
                                         : '',
                                       finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
+                                      finding.retryReason ? `### Retry 原因\n${finding.retryReason}` : '',
                                     ].filter(Boolean).join('\n\n'),
                                     tags: ['research', finding.verdict.toLowerCase()],
                                   })

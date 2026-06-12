@@ -86,6 +86,38 @@ const normalizeInteger = (value) => {
   return null;
 };
 
+const normalizeNumber = (value, min = 0, max = 1) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+  return Math.min(max, Math.max(min, numeric));
+};
+
+const normalizeJudgeScore = (value) => {
+  const numeric = normalizeNumber(value, 0, 100);
+  return numeric === null ? null : Math.round(numeric);
+};
+
+const normalizeCoverage = (coverage) => {
+  if (!coverage || typeof coverage !== 'object') {
+    return {
+      score: null,
+      matchedAspects: null,
+      totalAspects: null,
+      evidenceCount: null,
+      sourceTypes: [],
+    };
+  }
+  return {
+    score: normalizeNumber(coverage.score, 0, 1),
+    matchedAspects: normalizeInteger(coverage.matchedAspects),
+    totalAspects: normalizeInteger(coverage.totalAspects),
+    evidenceCount: normalizeInteger(coverage.evidenceCount),
+    sourceTypes: normalizeTextList(coverage.sourceTypes, 6),
+  };
+};
+
 const normalizeEvidenceSources = (sources, fallbackSourceIds = []) => {
   if (Array.isArray(sources) && sources.length > 0) {
     return sources
@@ -204,6 +236,9 @@ export const normalizeResearchTask = (task) => {
         summary: normalizeText(finding?.summary) || '暂无结论摘要。',
         verdict: VERDICT_META[verdict] ? verdict : 'INCORRECT',
         missingAspects: normalizeTextList(finding?.missingAspects, 6),
+        judgeScore: normalizeJudgeScore(finding?.judgeScore),
+        coverage: normalizeCoverage(finding?.coverage),
+        retryReason: normalizeText(finding?.retryReason),
         sourceIds,
         sources: normalizeEvidenceSources(finding?.sources, sourceIds),
       };

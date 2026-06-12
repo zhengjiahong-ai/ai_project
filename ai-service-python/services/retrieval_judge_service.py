@@ -27,19 +27,21 @@ def judge_evidence_quality(
 
 def _heuristic_judge(question: str, evidence_items: Any, keywords: Optional[List[str]] = None) -> Dict[str, Any]:
     evidence = normalize_evidence_items(evidence_items, limit=8, max_text_chars=900)
+    keyword_terms = _normalize_terms(keywords) or _fallback_terms(question)
     if not evidence:
         return _result(
             verdict="INCORRECT",
             confidence=0.12,
             reason="没有检索到可用证据片段。",
-            missing_aspects=_missing_aspects(keywords, [], default="可用证据"),
+            missing_aspects=_missing_aspects(keyword_terms, [], default="可用证据"),
+            coverage=_build_coverage([], keyword_terms, []),
         )
 
     evidence_text = "\n".join(item.get("text", "") for item in evidence if item.get("text"))
     total_length = len(evidence_text)
-    keyword_terms = _normalize_terms(keywords) or _fallback_terms(question)
     matched_terms = _matched_terms(keyword_terms, evidence_text)
-    coverage = len(matched_terms) / len(keyword_terms) if keyword_terms else 0.5
+    coverage_payload = _build_coverage(evidence, keyword_terms, matched_terms)
+    coverage = coverage_payload["score"]
     best_similarity = _best_number(evidence, "similarity")
     best_score = _best_number(evidence, "score")
 
@@ -49,6 +51,7 @@ def _heuristic_judge(question: str, evidence_items: Any, keywords: Optional[List
             confidence=0.28,
             reason="证据片段过短，且未覆盖主要检索关键词。",
             missing_aspects=_missing_aspects(keyword_terms, matched_terms),
+            coverage=coverage_payload,
         )
 
     if best_similarity is not None and best_similarity >= 0.85 and total_length >= 30:
@@ -57,6 +60,7 @@ def _heuristic_judge(question: str, evidence_items: Any, keywords: Optional[List
             confidence=max(0.72, min(0.95, best_similarity)),
             reason="检索结果与问题高度相似，可支撑回答。",
             missing_aspects=[],
+            coverage=coverage_payload,
         )
 
     if coverage >= 0.6 and total_length >= 40:
@@ -65,6 +69,7 @@ def _heuristic_judge(question: str, evidence_items: Any, keywords: Optional[List
             confidence=0.72,
             reason="证据覆盖了主要检索关键词，可支撑回答。",
             missing_aspects=[],
+            coverage=coverage_payload,
         )
 
     confidence = 0.25
@@ -89,6 +94,7 @@ def _heuristic_judge(question: str, evidence_items: Any, keywords: Optional[List
             confidence=confidence,
             reason="证据数量、文本长度和关键词覆盖整体足够。",
             missing_aspects=[],
+            coverage=coverage_payload,
         )
     if confidence > 0.35:
         return _result(
@@ -96,12 +102,14 @@ def _heuristic_judge(question: str, evidence_items: Any, keywords: Optional[List
             confidence=confidence,
             reason="证据部分相关，但覆盖还不够完整。",
             missing_aspects=_missing_aspects(keyword_terms, matched_terms),
+            coverage=coverage_payload,
         )
     return _result(
         verdict="INCORRECT",
         confidence=confidence,
         reason="证据相关性和覆盖度不足。",
         missing_aspects=_missing_aspects(keyword_terms, matched_terms),
+        coverage=coverage_payload,
     )
 
 
@@ -145,6 +153,11 @@ Evidence:
     missing_aspects = payload.get("missingAspects") if isinstance(payload.get("missingAspects"), list) else []
     reason = str(payload.get("reason") or fallback["reason"]).strip()[:240]
     should_retry = bool(payload.get("shouldRetry")) if "shouldRetry" in payload else verdict != "CORRECT"
+    coverage = _build_coverage(
+        evidence,
+        _normalize_terms(keywords) or _fallback_terms(question),
+        _matched_terms(_normalize_terms(keywords) or _fallback_terms(question), "\n".join(item.get("text", "") for item in evidence)),
+    )
 
     return _result(
         verdict=verdict,
@@ -152,6 +165,7 @@ Evidence:
         reason=reason,
         missing_aspects=[str(item).strip()[:80] for item in missing_aspects if str(item).strip()][:6],
         should_retry=should_retry,
+        coverage=coverage,
     )
 
 
@@ -161,16 +175,90 @@ def _result(
     reason: str,
     missing_aspects: Optional[List[str]] = None,
     should_retry: Optional[bool] = None,
+    coverage: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     normalized_verdict = verdict if verdict in VALID_VERDICTS else "INCORRECT"
     normalized_confidence = round(max(0.0, min(1.0, float(confidence))), 2)
+    normalized_missing = missing_aspects or []
+    normalized_should_retry = normalized_verdict != "CORRECT" if should_retry is None else bool(should_retry)
+    normalized_coverage = _normalize_coverage(coverage)
     return {
         "verdict": normalized_verdict,
         "confidence": normalized_confidence,
         "reason": reason[:240],
-        "missingAspects": missing_aspects or [],
-        "shouldRetry": normalized_verdict != "CORRECT" if should_retry is None else bool(should_retry),
+        "missingAspects": normalized_missing,
+        "shouldRetry": normalized_should_retry,
+        "judgeScore": _judge_score(normalized_verdict, normalized_confidence, normalized_coverage),
+        "coverage": normalized_coverage,
+        "retryReason": _retry_reason(normalized_should_retry, normalized_missing, reason),
     }
+
+
+def _build_coverage(evidence: List[Dict[str, Any]], terms: List[str], matched_terms: List[str]) -> Dict[str, Any]:
+    source_types = []
+    seen_source_types = set()
+    for item in evidence:
+        source_type = str(item.get("sourceType") or "").strip()
+        if not source_type or source_type in seen_source_types:
+            continue
+        seen_source_types.add(source_type)
+        source_types.append(source_type[:80])
+
+    total_aspects = len(terms)
+    matched_aspects = len({term.lower() for term in matched_terms})
+    score = matched_aspects / total_aspects if total_aspects else (0.5 if evidence else 0.0)
+    return {
+        "score": round(max(0.0, min(1.0, score)), 2),
+        "matchedAspects": matched_aspects,
+        "totalAspects": total_aspects,
+        "evidenceCount": len(evidence),
+        "sourceTypes": source_types,
+    }
+
+
+def _normalize_coverage(value: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    coverage = value if isinstance(value, dict) else {}
+    return {
+        "score": round(max(0.0, min(1.0, _coerce_float(coverage.get("score"), 0.0))), 2),
+        "matchedAspects": max(0, _coerce_int(coverage.get("matchedAspects"), 0)),
+        "totalAspects": max(0, _coerce_int(coverage.get("totalAspects"), 0)),
+        "evidenceCount": max(0, _coerce_int(coverage.get("evidenceCount"), 0)),
+        "sourceTypes": [
+            str(item).strip()[:80]
+            for item in (coverage.get("sourceTypes") if isinstance(coverage.get("sourceTypes"), list) else [])
+            if str(item).strip()
+        ][:6],
+    }
+
+
+def _judge_score(verdict: str, confidence: float, coverage: Dict[str, Any]) -> int:
+    verdict_bonus = {"CORRECT": 16, "AMBIGUOUS": 4, "INCORRECT": -8}.get(verdict, -8)
+    evidence_bonus = min(int(coverage.get("evidenceCount") or 0), 4) * 3
+    source_bonus = min(len(coverage.get("sourceTypes") or []), 2) * 2
+    raw_score = confidence * 70 + float(coverage.get("score") or 0) * 20 + evidence_bonus + source_bonus + verdict_bonus
+    return int(round(max(0, min(100, raw_score))))
+
+
+def _retry_reason(should_retry: bool, missing_aspects: List[str], reason: str) -> str:
+    if not should_retry:
+        return ""
+    if missing_aspects:
+        return f"证据覆盖不足，仍缺少：{', '.join(missing_aspects[:3])}"[:240]
+    return str(reason or "证据质量不足，需要补充检索。")[:240]
+
+
+def _coerce_int(value: Any, fallback: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _coerce_float(value: Any, fallback: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
 
 
 def _normalize_terms(value: Any) -> List[str]:

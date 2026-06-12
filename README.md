@@ -81,6 +81,7 @@ Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它
   - 先生成 research brief preview
   - 再创建异步研究任务
   - 任务状态、计划、发现与报告保存在 Python SQLite 快照中
+  - 每条 finding 会展示规则型 `judgeScore`、证据覆盖率、缺失点和触发 retry 的原因，trace 中也能看到当前子问题为什么停止、补查文献库或重试
   - 前端按 `pdfId` 恢复最近任务
 
 ## 仓库结构

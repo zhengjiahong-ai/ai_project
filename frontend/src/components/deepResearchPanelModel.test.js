@@ -62,6 +62,15 @@ const run = async () => {
         summary: '当前论文已有部分结果，但 ablation 不完整。',
         verdict: 'AMBIGUOUS',
         missingAspects: ['ablation', '', 'baseline'],
+        judgeScore: '82',
+        coverage: {
+          score: '0.67',
+          matchedAspects: '2',
+          totalAspects: '3',
+          evidenceCount: '2',
+          sourceTypes: ['current_paper', '', 'library'],
+        },
+        retryReason: '证据覆盖不足，仍缺少 baseline。',
         sourceIds: ['paper-1-chunk-2', '', 'lib-1-chunk-3'],
         sources: [
           {
@@ -90,6 +99,13 @@ const run = async () => {
   assert.deepEqual(normalizedRunningTask.plan, ['子问题一', '子问题二']);
   assert.equal(normalizedRunningTask.findings[0].verdict, 'AMBIGUOUS');
   assert.deepEqual(normalizedRunningTask.findings[0].missingAspects, ['ablation', 'baseline']);
+  assert.equal(normalizedRunningTask.findings[0].judgeScore, 82);
+  assert.equal(normalizedRunningTask.findings[0].coverage.score, 0.67);
+  assert.equal(normalizedRunningTask.findings[0].coverage.matchedAspects, 2);
+  assert.equal(normalizedRunningTask.findings[0].coverage.totalAspects, 3);
+  assert.equal(normalizedRunningTask.findings[0].coverage.evidenceCount, 2);
+  assert.deepEqual(normalizedRunningTask.findings[0].coverage.sourceTypes, ['current_paper', 'library']);
+  assert.equal(normalizedRunningTask.findings[0].retryReason, '证据覆盖不足，仍缺少 baseline。');
   assert.deepEqual(normalizedRunningTask.findings[0].sourceIds, ['paper-1-chunk-2', 'lib-1-chunk-3']);
   assert.equal(normalizedRunningTask.findings[0].sources[0].pageIndex, 4);
   assert.equal(normalizedRunningTask.findings[0].sources[0].sectionId, 'section-5');
@@ -98,6 +114,15 @@ const run = async () => {
   assert.equal(normalizedRunningTask.findings[1].subQuestion, '子问题 2');
   assert.equal(normalizedRunningTask.findings[1].summary, '暂无结论摘要。');
   assert.equal(normalizedRunningTask.findings[1].verdict, 'INCORRECT');
+  assert.equal(normalizedRunningTask.findings[1].judgeScore, null);
+  assert.deepEqual(normalizedRunningTask.findings[1].coverage, {
+    score: null,
+    matchedAspects: null,
+    totalAspects: null,
+    evidenceCount: null,
+    sourceTypes: [],
+  });
+  assert.equal(normalizedRunningTask.findings[1].retryReason, '');
   assert.equal(normalizedRunningTask.report, '');
   assert.equal(normalizedRunningTask.createdAt, '2026-06-01T10:00:00Z');
   assert.equal(normalizedRunningTask.updatedAt, '2026-06-01T10:02:00Z');
