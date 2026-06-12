@@ -92,6 +92,52 @@ export const getNoveltyDimensionRows = (data, maxItems = 4) => {
     .slice(0, maxItems);
 };
 
+export const getCitationGraph = (data) => {
+  const graph = data?.citationGraph;
+  if (!graph || typeof graph !== 'object') {
+    return null;
+  }
+
+  const nodes = Array.isArray(graph.nodes)
+    ? graph.nodes
+      .map((node) => {
+        const id = normalizeText(node?.id);
+        if (!id) {
+          return null;
+        }
+        return {
+          ...node,
+          id,
+          name: normalizeText(node?.name) || normalizeText(node?.label) || id,
+        };
+      })
+      .filter(Boolean)
+    : [];
+
+  const links = Array.isArray(graph.links)
+    ? graph.links
+      .map((link) => {
+        const source = normalizeText(link?.source);
+        const target = normalizeText(link?.target);
+        if (!source || !target) {
+          return null;
+        }
+        return {
+          ...link,
+          source,
+          target,
+        };
+      })
+      .filter(Boolean)
+    : [];
+
+  if (nodes.length === 0 || links.length === 0) {
+    return null;
+  }
+
+  return { nodes, links };
+};
+
 export const getEvidenceBasedContributions = (data) => {
   const preferred = normalizeText(data?.evidence_based_contributions);
   if (preferred) {

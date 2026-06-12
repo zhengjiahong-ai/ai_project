@@ -1610,6 +1610,7 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
             "riskScore": assessment["riskScore"],
             "noveltyDimensions": assessment["noveltyDimensions"],
             "numericEvidenceSummary": numeric_evidence_summary,
+            "citationGraph": None,
             "rag_sources": rag_sources,
             "sentenceSourceMap": build_field_sentence_source_map(sentence_source_fields, rag_sources),
             "resolved_from": resolved_from,

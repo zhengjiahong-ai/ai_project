@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-12 10:26 v0.1.25
+
+1. **完成批判阅读引用网络真实化**：Python `/api/deep-analysis` 成功响应新增可选 `citationGraph`，当前没有真实引用图时明确返回 `null`，不生成、不推断、不模拟 citation network。
+2. **移除前端固定模拟关系图**：`CriticalAnalysisPanel` 删除 `fallbackNetworkData`，改为只在有效 `citationGraph.nodes/links` 存在时渲染 `ForceGraph`；无真实图时展示“暂无引用网络”空态。
+
 ### 2026-06-12 10:12 v0.1.24
 
 1. **完成表格/数值证据候选定位**：批判阅读 claims 兼容新增 `numericVerificationStatus`、`numericEvidenceCandidates` 和顶层 `numericEvidenceSummary`，基于同次 `rag_sources` 中的 Table/Figure 文本、指标名和百分比做规则型候选定位，避免生成不可追溯来源。

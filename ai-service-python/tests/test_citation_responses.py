@@ -79,6 +79,8 @@ class CitationResponseTests(unittest.TestCase):
 
         self.assertEqual(response_source_ids, {"analysis-source-1"})
         self.assertEqual(emitted_source_ids, {"analysis-source-1"})
+        self.assertIn("citationGraph", response)
+        self.assertIsNone(response["citationGraph"])
 
     def test_deep_analysis_claims_only_reference_response_sources(self):
         axis_result = {

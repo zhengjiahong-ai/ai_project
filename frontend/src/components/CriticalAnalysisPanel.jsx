@@ -25,6 +25,7 @@ import InsightCard from './InsightCard.jsx';
 import {
   buildMetricCards,
   buildSummary,
+  getCitationGraph,
   getClaimSupportRows,
   getDetailSections,
   getEvidencePreview,
@@ -32,22 +33,6 @@ import {
   getSentenceSourceReferences,
   getStructuredSections,
 } from './criticalAnalysisData.js';
-
-const fallbackNetworkData = {
-  nodes: [
-    { id: 'current', name: '当前论文', val: 15, color: '#4D0099' },
-    { id: 'ref1', name: '核心理论源', val: 8, color: '#94a3b8' },
-    { id: 'ref2', name: '实验对比组', val: 8, color: '#94a3b8' },
-    { id: 'cite1', name: '后续应用研究', val: 5, color: '#7c3aed' },
-    { id: 'cite2', name: '算法扩展研究', val: 5, color: '#7c3aed' },
-  ],
-  links: [
-    { source: 'current', target: 'ref1' },
-    { source: 'current', target: 'ref2' },
-    { source: 'cite1', target: 'current' },
-    { source: 'cite2', target: 'current' },
-  ],
-};
 
 const readingSteps = [
   { id: 'summary', label: '先看判断' },
@@ -66,7 +51,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
     }
   }, [data, isLoading]);
 
-  const networkData = useMemo(() => fallbackNetworkData, []);
+  const networkData = useMemo(() => getCitationGraph(data), [data]);
   const metrics = useMemo(() => buildMetricCards(data), [data]);
   const summary = useMemo(() => buildSummary(data), [data]);
   const detailSections = useMemo(() => getDetailSections(data), [data]);
@@ -186,22 +171,33 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                   <LayoutDashboard size={14} className="text-pixiu" />
                   证据关系图
                 </h3>
-                <span className="theme-text-muted text-[10px] italic">拖拽节点 / 缩放查看</span>
+                {networkData && (
+                  <span className="theme-text-muted text-[10px] italic">拖拽节点 / 缩放查看</span>
+                )}
               </div>
 
-              <div ref={containerRef} className="theme-card-soft relative h-64 w-full rounded-xl">
-                <ForceGraph
-                  graphData={networkData}
-                  height={250}
-                  width={containerWidth}
-                  nodeLabel="name"
-                  nodeRelSize={6}
-                  linkColor={() => '#64748b'}
-                  linkDirectionalArrowLength={3}
-                  linkDirectionalArrowRelPos={1}
-                  cooldownTicks={100}
-                />
-              </div>
+              {networkData ? (
+                <div ref={containerRef} className="theme-card-soft relative h-64 w-full rounded-xl">
+                  <ForceGraph
+                    graphData={networkData}
+                    height={250}
+                    width={containerWidth}
+                    nodeLabel="name"
+                    nodeRelSize={6}
+                    linkColor={() => '#64748b'}
+                    linkDirectionalArrowLength={3}
+                    linkDirectionalArrowRelPos={1}
+                    cooldownTicks={100}
+                  />
+                </div>
+              ) : (
+                <div ref={containerRef} className="theme-card-soft flex min-h-40 flex-col items-center justify-center rounded-xl p-6 text-center">
+                  <p className="theme-text-primary text-sm font-semibold">暂无引用网络</p>
+                  <p className="theme-text-secondary mt-2 max-w-sm text-xs leading-relaxed">
+                    当前批判阅读没有收到真实 citation graph，因此不会用模拟引用关系兜底展示。
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="theme-card rounded-2xl p-5">

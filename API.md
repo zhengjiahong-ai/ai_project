@@ -287,6 +287,7 @@ http://ai-service:8000/api
       "candidateCount": 1,
       "status": "insufficient_for_auto_verification"
     },
+    "citationGraph": null,
     "rag_sources": [],
     "sentenceSourceMap": {},
     "resolved_from": "pdf_id",
@@ -306,6 +307,7 @@ http://ai-service:8000/api
 - `contributionScore`、`riskScore` 和 `noveltyDimensions` 是规则型评分，不代表训练模型输出；评分依据来自 claim 支撑度、缺失证据、夸大风险以及方法/实验轴证据覆盖。
 - `claims[*].numericEvidenceCandidates` 是表格/数值候选定位，不是自动表格 OCR 或严格数值核验；即使找到 `Table/Figure`、指标名和百分比片段，`numericVerificationStatus` 也可能是 `insufficient_for_auto_verification`，前端应提示需要人工核对原文。
 - `numericEvidenceCandidates[*].sourceId` 必须来自同次响应的 `rag_sources[*].sourceId`；`pageIndex` 仍为 0-based，可用于前端跳回原文。
+- `citationGraph` 是可选真实引用网络；没有真实 citation graph 时必须为 `null`，前端不得用模拟网络兜底。存在真实图时形态为 `{ "nodes": [], "links": [] }`，节点至少需要稳定 `id`，边至少需要 `source/target`。
 - 旧客户端可忽略新增字段；缺少新增字段时前端会按旧版结构降级展示。
 
 ### `POST /api/background-knowledge`

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   buildMetricCards,
   buildSummary,
+  getCitationGraph,
   getDetailSections,
   getEvidencePreview,
   getEvidenceBasedContributions,
@@ -46,6 +47,30 @@ const run = async () => {
   const structuredSummary = buildSummary(structuredPayload);
   assert.match(structuredSummary, /基于证据的真实贡献/);
   assert.equal(getEvidenceBasedContributions(structuredPayload), structuredPayload.evidence_based_contributions);
+
+  assert.equal(getCitationGraph(legacyPayload), null);
+  assert.equal(getCitationGraph({ citationGraph: null }), null);
+  assert.equal(getCitationGraph({ citationGraph: { nodes: [], links: [] } }), null);
+
+  const citationGraph = getCitationGraph({
+    citationGraph: {
+      nodes: [
+        { id: 'current', name: '当前论文', val: 12 },
+        { id: 'ref-1', label: '真实参考文献', color: '#64748b' },
+        { id: '', name: '无效节点' },
+      ],
+      links: [
+        { source: 'current', target: 'ref-1', relation: 'cites' },
+        { source: 'current', target: '', relation: 'broken' },
+      ],
+    },
+  });
+  assert.equal(citationGraph.nodes.length, 2);
+  assert.equal(citationGraph.nodes[0].name, '当前论文');
+  assert.equal(citationGraph.nodes[1].name, '真实参考文献');
+  assert.equal(citationGraph.links.length, 1);
+  assert.equal(citationGraph.links[0].source, 'current');
+  assert.equal(citationGraph.links[0].target, 'ref-1');
 
   const detailSections = getDetailSections(structuredPayload);
   assert.equal(detailSections[1].title, '基于证据的真实贡献');
