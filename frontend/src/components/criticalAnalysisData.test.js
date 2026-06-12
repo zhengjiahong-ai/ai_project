@@ -6,6 +6,7 @@ import {
   getEvidencePreview,
   getEvidenceBasedContributions,
   getClaimSupportRows,
+  getNoveltyDimensionRows,
   getSentenceSourceReferences,
   getStructuredSections,
 } from './criticalAnalysisData.js';
@@ -53,6 +54,40 @@ const run = async () => {
   const metrics = buildMetricCards(structuredPayload);
   assert.equal(metrics[1].detail, structuredPayload.evidence_based_contributions);
   assert.equal(metrics.length, 3);
+  assert.equal(metrics[0].name, '作者主张');
+
+  const assessedPayload = {
+    ...structuredPayload,
+    contributionScore: {
+      score: 84.8,
+      label: '可信度较高',
+      summary: '2/2 条主张获得直接证据支撑。',
+      factors: ['主张支撑率 100%', '方法章节覆盖充分'],
+    },
+    riskScore: {
+      score: 18.2,
+      label: '低风险',
+      summary: '未发现明显伪贡献风险。',
+      factors: ['缺失证据 0 条', '夸大风险 0 条'],
+    },
+    noveltyDimensions: [
+      { id: 'claim_support', label: '主张支撑', score: 100, status: 'strong', detail: '主张证据充分。' },
+      { id: 'method_grounding', label: '方法落地', score: 85, status: 'strong', detail: '方法证据充分。' },
+      { id: 'empty', label: ' ', score: 999, status: 'unknown', detail: '' },
+    ],
+  };
+  const assessedMetrics = buildMetricCards(assessedPayload);
+  assert.equal(assessedMetrics[0].name, '核心贡献可信度');
+  assert.equal(assessedMetrics[0].score, 85);
+  assert.match(assessedMetrics[0].detail, /2\/2 条主张/);
+  assert.match(assessedMetrics[0].basis[0], /主张支撑率/);
+  assert.equal(assessedMetrics[1].name, '伪贡献/夸大风险');
+  assert.equal(assessedMetrics[1].score, 18);
+
+  const noveltyRows = getNoveltyDimensionRows(assessedPayload);
+  assert.equal(noveltyRows.length, 2);
+  assert.equal(noveltyRows[0].score, 100);
+  assert.equal(noveltyRows[0].statusLabel, '强');
 
   const structuredSections = getStructuredSections(structuredPayload);
   assert.deepEqual(

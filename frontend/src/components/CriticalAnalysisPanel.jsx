@@ -28,6 +28,7 @@ import {
   getClaimSupportRows,
   getDetailSections,
   getEvidencePreview,
+  getNoveltyDimensionRows,
   getSentenceSourceReferences,
   getStructuredSections,
 } from './criticalAnalysisData.js';
@@ -71,6 +72,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
   const detailSections = useMemo(() => getDetailSections(data), [data]);
   const structuredSections = useMemo(() => getStructuredSections(data), [data]);
   const claimSupportRows = useMemo(() => getClaimSupportRows(data), [data]);
+  const noveltyDimensions = useMemo(() => getNoveltyDimensionRows(data), [data]);
   const evidencePreview = useMemo(() => getEvidencePreview(data), [data]);
   const sentenceReferences = useMemo(() => getSentenceSourceReferences(data), [data]);
 
@@ -226,6 +228,13 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                               <span className="text-pixiu">{item.score} 分</span>
                             </div>
                             <p className="leading-normal opacity-80">{item.detail}</p>
+                            {Array.isArray(item.basis) && item.basis.length > 0 && (
+                              <div className="mt-2 space-y-1 border-t border-white/10 pt-2 opacity-80">
+                                {item.basis.slice(0, 4).map((basis, basisIndex) => (
+                                  <div key={`${item.name}-basis-${basisIndex}`}>- {basis}</div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       }}
@@ -241,6 +250,20 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+
+              {noveltyDimensions.length > 0 && (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {noveltyDimensions.map((dimension) => (
+                    <div key={dimension.id} className="theme-card-soft rounded-xl p-3">
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <span className="theme-text-primary text-xs font-bold">{dimension.label}</span>
+                        <span className="theme-text-muted text-[11px]">{dimension.statusLabel} · {dimension.score} 分</span>
+                      </div>
+                      <p className="theme-text-secondary text-xs leading-relaxed">{dimension.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
@@ -310,6 +333,15 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                         </span>
                       </div>
                       <p className="theme-text-secondary text-xs leading-relaxed">{row.reason}</p>
+                      {row.missingEvidence.length > 0 && (
+                        <div className="mt-3 space-y-1">
+                          {row.missingEvidence.map((item, index) => (
+                            <div key={`${row.id}-missing-${index}`} className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-600">
+                              {item}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

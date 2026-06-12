@@ -163,6 +163,10 @@ class CitationResponseTests(unittest.TestCase):
         self.assertEqual(response["claims"][0]["supportLevel"], "UNSUPPORTED")
         self.assertEqual(response["claims"][0]["evidenceSourceIds"], [])
         self.assertTrue(response["claims"][0]["missingEvidence"])
+        self.assertIn("contributionScore", response)
+        self.assertIn("riskScore", response)
+        self.assertIn("noveltyDimensions", response)
+        self.assertGreater(response["riskScore"]["score"], response["contributionScore"]["score"])
 
 
 class AnalysisClaimSupportTests(unittest.TestCase):
@@ -265,6 +269,82 @@ class AnalysisClaimSupportTests(unittest.TestCase):
         self.assertGreaterEqual(len(claims), 1)
         self.assertLessEqual(len(claims), 6)
         self.assertTrue(all(claim["id"].startswith("claim-") for claim in claims))
+
+    def test_contribution_assessment_rewards_supported_claims_and_axis_coverage(self):
+        report = {
+            "missing_evidence": [],
+            "overclaim_risks": [],
+        }
+        claims = [
+            {
+                "supportLevel": "SUPPORTED",
+                "missingEvidence": [],
+            },
+            {
+                "supportLevel": "SUPPORTED",
+                "missingEvidence": [],
+            },
+        ]
+        axis_results = [
+            {
+                "key": "methods",
+                "judge": {"verdict": "CORRECT"},
+                "evidence": [{"sourceId": "m1", "text": "方法部分给出模型结构。"}],
+            },
+            {
+                "key": "experiments",
+                "judge": {"verdict": "CORRECT"},
+                "evidence": [{"sourceId": "e1", "text": "实验显示准确率提升。"}],
+            },
+        ]
+
+        assessment = analysis_service._build_contribution_assessment(report, claims, axis_results)
+
+        self.assertGreaterEqual(assessment["contributionScore"]["score"], 80)
+        self.assertLessEqual(assessment["riskScore"]["score"], 30)
+        self.assertEqual(
+            [dimension["id"] for dimension in assessment["noveltyDimensions"]],
+            ["claim_support", "method_grounding", "experiment_validation", "scope_boundary"],
+        )
+        self.assertEqual(assessment["noveltyDimensions"][2]["status"], "strong")
+
+    def test_contribution_assessment_penalizes_missing_evidence_and_overclaims(self):
+        report = {
+            "missing_evidence": ["缺少跨领域测试", "缺少消融实验"],
+            "overclaim_risks": ["泛化能力表述过强"],
+        }
+        claims = [
+            {
+                "supportLevel": "UNSUPPORTED",
+                "missingEvidence": ["缺少直接支撑证据"],
+            },
+            {
+                "supportLevel": "PARTIAL",
+                "missingEvidence": ["缺少实验指标或对比结果"],
+            },
+        ]
+        axis_results = [
+            {
+                "key": "methods",
+                "judge": {"verdict": "CORRECT"},
+                "evidence": [{"sourceId": "m1", "text": "方法部分给出模型结构。"}],
+            },
+            {
+                "key": "experiments",
+                "judge": {"verdict": "INCORRECT"},
+                "evidence": [],
+            },
+        ]
+
+        assessment = analysis_service._build_contribution_assessment(report, claims, axis_results)
+
+        self.assertLessEqual(assessment["contributionScore"]["score"], 55)
+        self.assertGreaterEqual(assessment["riskScore"]["score"], 60)
+        experiment_dimension = next(
+            dimension for dimension in assessment["noveltyDimensions"] if dimension["id"] == "experiment_validation"
+        )
+        self.assertEqual(experiment_dimension["status"], "weak")
+        self.assertTrue(any("实验" in factor for factor in assessment["riskScore"]["factors"]))
 
 
 if __name__ == "__main__":

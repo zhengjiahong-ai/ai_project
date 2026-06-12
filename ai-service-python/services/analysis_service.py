@@ -1141,6 +1141,190 @@ def _build_claim_support_items(
     return claims
 
 
+def _clamp_score(value: float) -> int:
+    return max(0, min(100, int(round(value))))
+
+
+def _axis_has_usable_evidence(axis_results: List[Dict[str, Any]], axis_key: str) -> bool:
+    for item in axis_results:
+        if item.get("key") != axis_key:
+            continue
+        judge = item.get("judge") or {}
+        return bool(item.get("evidence") or []) and judge.get("verdict") != "INCORRECT"
+    return False
+
+
+def _dimension_status(score: int) -> str:
+    if score >= 75:
+        return "strong"
+    if score >= 45:
+        return "partial"
+    return "weak"
+
+
+def _score_level(score: int, *, risk: bool = False) -> str:
+    if risk:
+        if score >= 70:
+            return "high"
+        if score >= 35:
+            return "medium"
+        return "low"
+    if score >= 75:
+        return "high"
+    if score >= 45:
+        return "medium"
+    return "low"
+
+
+def _support_ratio(claims: List[Dict[str, Any]]) -> float:
+    if not claims:
+        return 0.0
+    weights = {
+        "SUPPORTED": 1.0,
+        "PARTIAL": 0.5,
+        "UNSUPPORTED": 0.0,
+    }
+    total = sum(weights.get(str(claim.get("supportLevel") or "").upper(), 0.5) for claim in claims)
+    return total / len(claims)
+
+
+def _build_contribution_assessment(
+    report: Dict[str, Any],
+    claims: List[Dict[str, Any]],
+    axis_results: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    support_ratio = _support_ratio(claims)
+    supported_count = sum(1 for claim in claims if str(claim.get("supportLevel") or "").upper() == "SUPPORTED")
+    partial_count = sum(1 for claim in claims if str(claim.get("supportLevel") or "").upper() == "PARTIAL")
+    unsupported_count = sum(1 for claim in claims if str(claim.get("supportLevel") or "").upper() == "UNSUPPORTED")
+    report_missing = _normalize_list_items(report.get("missing_evidence"), [])
+    overclaim_risks = _normalize_list_items(report.get("overclaim_risks"), [])
+    claim_missing_count = sum(len(_normalize_list_items(claim.get("missingEvidence"), [])) for claim in claims)
+    has_method = _axis_has_usable_evidence(axis_results, "methods")
+    has_experiment = _axis_has_usable_evidence(axis_results, "experiments")
+
+    method_score = 100 if has_method else 25
+    experiment_score = 100 if has_experiment else 20
+    scope_penalty = len(report_missing) * 18 + len(overclaim_risks) * 22
+    scope_score = _clamp_score(100 - scope_penalty)
+    claim_support_score = _clamp_score(support_ratio * 100)
+
+    contribution_score = _clamp_score(
+        support_ratio * 55
+        + (15 if has_method else 0)
+        + (20 if has_experiment else 0)
+        + scope_score * 0.10
+    )
+    risk_score = _clamp_score(
+        unsupported_count * 20
+        + partial_count * 10
+        + len(report_missing) * 12
+        + claim_missing_count * 6
+        + len(overclaim_risks) * 16
+        + (0 if has_method else 10)
+        + (0 if has_experiment else 15)
+    )
+
+    claim_count = len(claims)
+    support_summary = (
+        f"{supported_count}/{claim_count} 条主张获得直接证据支撑。"
+        if claim_count
+        else "尚未形成可评分的作者主张。"
+    )
+    contribution_factors = [
+        f"主张支撑率 {int(round(support_ratio * 100))}%",
+        "方法章节证据覆盖充分" if has_method else "缺少可用的方法章节证据",
+        "实验章节证据覆盖充分" if has_experiment else "缺少可用的实验或指标证据",
+    ]
+    if report_missing:
+        contribution_factors.append(f"仍有 {len(report_missing)} 条报告级缺失证据")
+    if overclaim_risks:
+        contribution_factors.append(f"存在 {len(overclaim_risks)} 条夸大风险")
+
+    risk_factors = [
+        f"证据不足主张 {unsupported_count} 条",
+        f"部分支撑主张 {partial_count} 条",
+        f"缺失证据 {len(report_missing) + claim_missing_count} 条",
+        f"夸大风险 {len(overclaim_risks)} 条",
+    ]
+    if not has_method:
+        risk_factors.append("方法证据覆盖不足")
+    if not has_experiment:
+        risk_factors.append("实验或指标证据覆盖不足")
+
+    novelty_dimensions = [
+        {
+            "id": "claim_support",
+            "label": "主张支撑",
+            "score": claim_support_score,
+            "status": _dimension_status(claim_support_score),
+            "detail": support_summary,
+        },
+        {
+            "id": "method_grounding",
+            "label": "方法落地",
+            "score": method_score,
+            "status": _dimension_status(method_score),
+            "detail": "方法轴检索到可用证据。" if has_method else "方法轴缺少可用证据或 judge 判定不足。",
+        },
+        {
+            "id": "experiment_validation",
+            "label": "实验验证",
+            "score": experiment_score,
+            "status": _dimension_status(experiment_score),
+            "detail": "实验轴检索到可用指标或对比证据。" if has_experiment else "实验轴缺少可用指标或对比证据。",
+        },
+        {
+            "id": "scope_boundary",
+            "label": "边界约束",
+            "score": scope_score,
+            "status": _dimension_status(scope_score),
+            "detail": (
+                "当前缺失证据和夸大风险较少。"
+                if scope_score >= 75
+                else f"存在 {len(report_missing)} 条缺失证据和 {len(overclaim_risks)} 条夸大风险。"
+            ),
+        },
+    ]
+
+    return {
+        "contributionScore": {
+            "score": contribution_score,
+            "level": _score_level(contribution_score),
+            "label": {"high": "可信度较高", "medium": "可信度中等", "low": "可信度较低"}[
+                _score_level(contribution_score)
+            ],
+            "summary": support_summary,
+            "factors": contribution_factors,
+            "basis": {
+                "supportedClaims": supported_count,
+                "partialClaims": partial_count,
+                "unsupportedClaims": unsupported_count,
+                "claimCount": claim_count,
+                "methodCovered": has_method,
+                "experimentCovered": has_experiment,
+            },
+        },
+        "riskScore": {
+            "score": risk_score,
+            "level": _score_level(risk_score, risk=True),
+            "label": {"high": "高风险", "medium": "中风险", "low": "低风险"}[
+                _score_level(risk_score, risk=True)
+            ],
+            "summary": f"检测到 {unsupported_count} 条证据不足主张、{len(report_missing)} 条报告级缺失证据和 {len(overclaim_risks)} 条夸大风险。",
+            "factors": risk_factors,
+            "basis": {
+                "reportMissingEvidenceCount": len(report_missing),
+                "claimMissingEvidenceCount": claim_missing_count,
+                "overclaimRiskCount": len(overclaim_risks),
+                "methodCovered": has_method,
+                "experimentCovered": has_experiment,
+            },
+        },
+        "noveltyDimensions": novelty_dimensions,
+    }
+
+
 def _generate_structured_critical_report(
     axis_results: List[Dict[str, Any]],
     analysis_context: str,
@@ -1215,6 +1399,7 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
         ]
         report = _generate_structured_critical_report(axis_results, analysis_context or paper_content[:2400], resolved_from)
         claims = _build_claim_support_items(report, axis_results, use_llm=True)
+        assessment = _build_contribution_assessment(report, claims, axis_results)
         response_sources = _collect_response_sources(axis_results)
         rag_sources = compact_evidence_for_response(
             response_sources,
@@ -1228,6 +1413,9 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
             "overclaim_risks": report["overclaim_risks"],
             "missing_evidence": report["missing_evidence"],
             "critical_analysis": report["critical_analysis"],
+            "contributionScore": assessment["contributionScore"]["summary"],
+            "riskScore": assessment["riskScore"]["summary"],
+            "noveltyDimensions": [dimension["detail"] for dimension in assessment["noveltyDimensions"]],
         }
         for claim in claims:
             sentence_source_fields[f"claims.{claim['id']}"] = claim.get("claim", "")
@@ -1242,6 +1430,9 @@ def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
             "missing_evidence": report["missing_evidence"],
             "critical_analysis": report["critical_analysis"],
             "claims": claims,
+            "contributionScore": assessment["contributionScore"],
+            "riskScore": assessment["riskScore"],
+            "noveltyDimensions": assessment["noveltyDimensions"],
             "rag_sources": rag_sources,
             "sentenceSourceMap": build_field_sentence_source_map(sentence_source_fields, rag_sources),
             "resolved_from": resolved_from,

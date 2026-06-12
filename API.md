@@ -232,6 +232,31 @@ http://ai-service:8000/api
     "missing_evidence": [],
     "critical_analysis": "...",
     "claims": [],
+    "contributionScore": {
+      "score": 86,
+      "level": "high",
+      "label": "可信度较高",
+      "summary": "2/3 条主张获得直接证据支撑。",
+      "factors": [],
+      "basis": {}
+    },
+    "riskScore": {
+      "score": 24,
+      "level": "low",
+      "label": "低风险",
+      "summary": "检测到 0 条证据不足主张、1 条报告级缺失证据和 0 条夸大风险。",
+      "factors": [],
+      "basis": {}
+    },
+    "noveltyDimensions": [
+      {
+        "id": "claim_support",
+        "label": "主张支撑",
+        "score": 80,
+        "status": "strong",
+        "detail": "主张证据较充分。"
+      }
+    ],
     "rag_sources": [],
     "sentenceSourceMap": {},
     "resolved_from": "pdf_id",
@@ -245,6 +270,11 @@ http://ai-service:8000/api
 
 - `paper_not_indexed`
 - `rag_index_unavailable`
+
+说明：
+
+- `contributionScore`、`riskScore` 和 `noveltyDimensions` 是规则型评分，不代表训练模型输出；评分依据来自 claim 支撑度、缺失证据、夸大风险以及方法/实验轴证据覆盖。
+- 旧客户端可忽略新增字段；缺少新增字段时前端会按旧版结构降级展示。
 
 ### `POST /api/background-knowledge`
 

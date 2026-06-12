@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-12 10:10 v0.1.23
+
+1. **完成论点-证据验证 MVP 评分规则**：Python 批判阅读响应新增规则型 `contributionScore`、`riskScore` 和 `noveltyDimensions`，分数来自 claims 支撑率、缺失证据、夸大风险以及方法/实验轴证据覆盖，不引入模型训练或微调。
+2. **替换前端临时多维评分**：`criticalAnalysisData` 优先使用后端评分字段，`CriticalAnalysisPanel` 在图表 tooltip、维度卡片和 claim 卡片中展示评分依据与缺失证据；旧响应缺少新字段时继续兼容展示。
+3. **同步任务与接口文档**：`go3.md` 不再要求新建或恢复 `docs/CONSTRAINTS.md`，接口字段同步记录到 `API.md`，README 补充批判阅读规则评分说明。
+4. **验证结果**：已通过 `python -m pytest tests/test_citation_responses.py -q`（10 passed）和 `node src/components/criticalAnalysisData.test.js`。未覆盖真实 DeepSeek 调用、Docker Compose 全链路和浏览器端上传 PDF smoke。
+
 ### 2026-06-10 10:20 v0.1.22
 
 1. **恢复详情展开去重显示逻辑**：重新修复 `frontend/src/components/InsightCard.jsx`，当卡片展开完整详情时自动隐藏原先的简版摘要与要点，避免问答、深度研究、背景补课等复用卡片在展开后出现上下重复内容。

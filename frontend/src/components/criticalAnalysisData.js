@@ -13,6 +13,14 @@ const normalizeInteger = (value) => {
   return null;
 };
 
+const normalizeScore = (value, fallback = 0) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(100, Math.max(0, Math.round(parsed)));
+};
+
 const normalizeList = (value) => {
   if (!Array.isArray(value)) {
     return [];
@@ -32,6 +40,58 @@ const truncate = (value, maxLength = 180) => {
   return `${text.slice(0, maxLength).trimEnd()}...`;
 };
 
+const normalizeScoreCard = (value) => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const score = normalizeScore(value.score, null);
+  if (score === null) {
+    return null;
+  }
+
+  return {
+    score,
+    label: normalizeText(value.label),
+    level: normalizeText(value.level),
+    summary: normalizeText(value.summary),
+    basis: normalizeList(value.factors),
+  };
+};
+
+const DIMENSION_STATUS_LABELS = {
+  strong: '强',
+  partial: '中',
+  weak: '弱',
+};
+
+export const getNoveltyDimensionRows = (data, maxItems = 4) => {
+  if (!Array.isArray(data?.noveltyDimensions)) {
+    return [];
+  }
+
+  return data.noveltyDimensions
+    .map((item) => {
+      const id = normalizeText(item?.id);
+      const label = normalizeText(item?.label);
+      if (!id || !label) {
+        return null;
+      }
+      const status = normalizeText(item?.status) || 'partial';
+      const score = normalizeScore(item?.score, 0);
+      return {
+        id,
+        label,
+        score,
+        status,
+        statusLabel: DIMENSION_STATUS_LABELS[status] || '中',
+        detail: normalizeText(item?.detail) || '暂无评分依据。',
+      };
+    })
+    .filter(Boolean)
+    .slice(0, maxItems);
+};
+
 export const getEvidenceBasedContributions = (data) => {
   const preferred = normalizeText(data?.evidence_based_contributions);
   if (preferred) {
@@ -47,6 +107,45 @@ export const buildMetricCards = (data) => {
 
   if (!data) {
     return [];
+  }
+
+  const contributionScore = normalizeScoreCard(data.contributionScore);
+  const riskScore = normalizeScoreCard(data.riskScore);
+  const noveltyDimensions = getNoveltyDimensionRows(data);
+
+  if (contributionScore || riskScore || noveltyDimensions.length > 0) {
+    const coverageScore = noveltyDimensions.length > 0
+      ? normalizeScore(
+        noveltyDimensions.reduce((sum, item) => sum + item.score, 0) / noveltyDimensions.length,
+        0,
+      )
+      : 0;
+
+    return [
+      {
+        name: '核心贡献可信度',
+        score: contributionScore?.score ?? coverageScore,
+        detail: contributionScore?.summary || '系统暂未返回核心贡献可信度摘要。',
+        label: contributionScore?.label || '',
+        basis: contributionScore?.basis || [],
+      },
+      {
+        name: '伪贡献/夸大风险',
+        score: riskScore?.score ?? 0,
+        detail: riskScore?.summary || '系统暂未返回风险评分摘要。',
+        label: riskScore?.label || '',
+        basis: riskScore?.basis || [],
+      },
+      {
+        name: '证据验证覆盖',
+        score: coverageScore,
+        detail: noveltyDimensions.length > 0
+          ? noveltyDimensions.map((item) => `${item.label}: ${item.score} 分`).join('；')
+          : '系统暂未返回分维度证据覆盖评分。',
+        label: '',
+        basis: noveltyDimensions.map((item) => `${item.label} ${item.statusLabel}: ${item.detail}`),
+      },
+    ];
   }
 
   const claimedContributions = normalizeText(data.claimed_contributions);
