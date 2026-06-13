@@ -50,6 +50,7 @@ _TASK_LOCK = threading.RLock()
 _TASK_EXECUTOR = ThreadPoolExecutor(max_workers=2)
 _STORAGE_LOADED = False
 INTERRUPTED_RESTART_ERROR = "服务已重启，运行中的深度研究任务无法继续执行，请重新发起任务。"
+MAX_DYNAMIC_FOLLOW_UPS = 1
 
 
 class ResearchTaskNotFoundError(Exception):
@@ -271,23 +272,36 @@ def _run_research_task(
             brief_override=brief_override,
         )
         record_metric("subQuestionCount", len(sub_questions))
-        _update_task_snapshot(task_id, stage=PLANNING_STAGE, progress=0.2, plan=sub_questions)
+        plan_items = _build_initial_plan_items(sub_questions)
+        _update_task_snapshot(task_id, stage=PLANNING_STAGE, progress=0.2, plan=copy.deepcopy(plan_items))
         if _is_cancelled(task_id):
             return
 
         findings: List[Dict[str, Any]] = []
-        total = max(len(sub_questions), 1)
-        for index, sub_question in enumerate(sub_questions):
+        follow_up_count = 0
+        index = 0
+        while index < len(plan_items):
             if _is_cancelled(task_id):
                 return
 
+            plan_items[index]["status"] = "running"
+            sub_question = _clean_text(plan_items[index].get("question"))
+            total = max(len(plan_items), 1)
             base_progress = round(0.2 + (index / total) * 0.6, 2)
-            _update_task_snapshot(task_id, stage=RETRIEVING_STAGE, progress=base_progress)
+            _update_task_snapshot(
+                task_id,
+                stage=RETRIEVING_STAGE,
+                progress=base_progress,
+                plan=copy.deepcopy(plan_items),
+            )
 
             with trace_step(
                 f"research_sub_question_{index + 1}",
                 input_size=len(str(sub_question or "")),
-                meta={"subQuestion": sanitize_text(sub_question, max_chars=120)},
+                meta={
+                    "subQuestion": sanitize_text(sub_question, max_chars=120),
+                    "kind": _clean_text(plan_items[index].get("kind")) or "initial",
+                },
             ) as step:
                 finding = _research_sub_question(
                     sub_question=sub_question,
@@ -300,21 +314,57 @@ def _run_research_task(
             if _is_cancelled(task_id):
                 return
 
+            if plan_items[index].get("kind") == "follow_up":
+                finding = {
+                    **finding,
+                    "isFollowUp": True,
+                    "followUpOf": _clean_text(plan_items[index].get("sourceQuestion")),
+                    "sourceMissingAspects": _normalize_missing_aspects(plan_items[index].get("sourceMissingAspects")),
+                }
+
             findings.append(finding)
+            plan_items[index]["status"] = "done"
+            if follow_up_count < MAX_DYNAMIC_FOLLOW_UPS and _should_create_follow_up(finding):
+                with trace_step(
+                    "research_follow_up_planning",
+                    input_size=len(str(finding.get("summary") or "")),
+                    meta={
+                        "sourceQuestion": sanitize_text(finding.get("subQuestion"), max_chars=120),
+                        "missingAspects": _normalize_missing_aspects(finding.get("missingAspects")),
+                    },
+                ) as step:
+                    follow_up_item = _build_follow_up_plan_item(finding, len(plan_items) + 1)
+                    if follow_up_item:
+                        plan_items.append(follow_up_item)
+                        follow_up_count += 1
+                        record_metric("followUpCount", follow_up_count)
+                        step["outputSize"] = 1
+                    else:
+                        step["outputSize"] = 0
+
+            total = max(len(plan_items), 1)
             done_progress = round(0.2 + ((index + 1) / total) * 0.6, 2)
             _update_task_snapshot(
                 task_id,
                 stage=JUDGING_STAGE,
                 progress=done_progress,
+                plan=copy.deepcopy(plan_items),
                 findings=copy.deepcopy(findings),
             )
+            index += 1
 
         if _is_cancelled(task_id):
             return
 
-        _update_task_snapshot(task_id, stage=SYNTHESIZING_STAGE, progress=0.9, findings=copy.deepcopy(findings))
+        _update_task_snapshot(
+            task_id,
+            stage=SYNTHESIZING_STAGE,
+            progress=0.9,
+            plan=copy.deepcopy(plan_items),
+            findings=copy.deepcopy(findings),
+        )
         with trace_step("research_report_synthesis", input_size=len(findings)) as step:
-            report = _build_research_report(research_question, brief, sub_questions, findings)
+            report = _build_research_report(research_question, brief, plan_items, findings)
             step["outputSize"] = len(str(report or ""))
         if _is_cancelled(task_id):
             return
@@ -324,6 +374,7 @@ def _run_research_task(
             status="succeeded",
             stage=DONE_STAGE,
             progress=1.0,
+            plan=copy.deepcopy(plan_items),
             findings=copy.deepcopy(findings),
             report=report,
             error="",
@@ -333,6 +384,7 @@ def _run_research_task(
             response_meta={
                 "taskId": task_id,
                 "findingCount": len(findings),
+                "followUpCount": follow_up_count,
                 "stage": DONE_STAGE,
                 **_build_judge_trace_summary(findings),
                 **summarize_safety_results(
@@ -420,6 +472,53 @@ def _research_sub_question(
         "retryReason": retry_reason,
         "sourceIds": [str(item.get("sourceId")) for item in combined_evidence if item.get("sourceId")][:6],
         "sources": combined_evidence[:6],
+    }
+
+
+def _build_initial_plan_items(sub_questions: List[str]) -> List[Dict[str, Any]]:
+    items = []
+    for index, sub_question in enumerate(sub_questions, start=1):
+        question = _clean_text(sub_question)
+        if not question:
+            continue
+        items.append(
+            {
+                "id": f"initial-{index}",
+                "question": question,
+                "kind": "initial",
+                "status": "pending",
+                "sourceQuestion": "",
+                "sourceMissingAspects": [],
+            }
+        )
+    return items
+
+
+def _should_create_follow_up(finding: Dict[str, Any]) -> bool:
+    return (
+        str(finding.get("verdict") or "").upper() == "INCORRECT"
+        and bool(_normalize_missing_aspects(finding.get("missingAspects")))
+    )
+
+
+def _build_follow_up_plan_item(finding: Dict[str, Any], index: int) -> Dict[str, Any]:
+    source_question = _clean_text(finding.get("subQuestion"))
+    missing_aspects = _normalize_missing_aspects(finding.get("missingAspects"))
+    if not source_question or not missing_aspects:
+        return {}
+
+    missing_text = "、".join(missing_aspects[:3])
+    question = (
+        f"围绕“{source_question}”继续核查缺失证据：{missing_text}。"
+        "仅使用当前论文和内部文献库线索，不扩大到外部 Web。"
+    )
+    return {
+        "id": f"follow-up-{index}",
+        "question": question[:160],
+        "kind": "follow_up",
+        "status": "pending",
+        "sourceQuestion": source_question,
+        "sourceMissingAspects": missing_aspects,
     }
 
 
@@ -742,7 +841,7 @@ def _build_finding_summary(sub_question: str, evidence: List[Dict[str, Any]], ju
 def _build_research_report(
     question: str,
     brief: str,
-    sub_questions: List[str],
+    plan_items: List[Any],
     findings: List[Dict[str, Any]],
 ) -> str:
     lines = [
@@ -765,7 +864,7 @@ def _build_research_report(
 
     lines.extend([
         "## 综合判断",
-        _overall_assessment(question, findings, planned_count=len(sub_questions)),
+        _overall_assessment(question, findings, planned_count=len(plan_items)),
         "",
         "## 证据不足与后续建议",
         _next_steps(findings),

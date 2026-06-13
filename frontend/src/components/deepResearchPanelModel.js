@@ -118,6 +118,51 @@ const normalizeCoverage = (coverage) => {
   };
 };
 
+const normalizeResearchPlanItems = (plan) => {
+  if (!Array.isArray(plan)) {
+    return [];
+  }
+
+  return plan
+    .map((item, index) => {
+      if (typeof item === 'string') {
+        const question = normalizeText(item);
+        if (!question) {
+          return null;
+        }
+        return {
+          id: `plan-${index + 1}`,
+          question,
+          kind: 'initial',
+          status: '',
+          sourceQuestion: '',
+          sourceMissingAspects: [],
+        };
+      }
+
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+
+      const question = normalizeText(item.question) || normalizeText(item.subQuestion) || normalizeText(item.text);
+      if (!question) {
+        return null;
+      }
+      const kind = normalizeText(item.kind).toLowerCase();
+      const status = normalizeText(item.status).toLowerCase();
+      return {
+        id: normalizeText(item.id) || `plan-${index + 1}`,
+        question,
+        kind: kind === 'follow_up' ? 'follow_up' : 'initial',
+        status: ['pending', 'running', 'done'].includes(status) ? status : '',
+        sourceQuestion: normalizeText(item.sourceQuestion),
+        sourceMissingAspects: normalizeTextList(item.sourceMissingAspects, 6),
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 6);
+};
+
 const normalizeEvidenceSources = (sources, fallbackSourceIds = []) => {
   if (Array.isArray(sources) && sources.length > 0) {
     return sources
@@ -217,6 +262,7 @@ export const normalizeResearchTask = (task) => {
     }
     return TERMINAL_RESEARCH_STATUSES.includes(normalizedStatus) ? 'done' : 'planning';
   })();
+  const planItems = normalizeResearchPlanItems(task.plan);
 
   return {
     taskId: normalizeText(task.taskId),
@@ -226,7 +272,8 @@ export const normalizeResearchTask = (task) => {
     progress: clampResearchProgress(task.progress),
     question: normalizeText(task.question),
     pdfId: normalizeText(task.pdfId),
-    plan: normalizeTextList(task.plan, 5),
+    plan: planItems.map((item) => item.question),
+    planItems,
     findings: (Array.isArray(task.findings) ? task.findings : []).map((finding, index) => {
       const verdict = normalizeText(finding?.verdict).toUpperCase();
       const sourceIds = normalizeTextList(finding?.sourceIds, 6);
@@ -239,6 +286,9 @@ export const normalizeResearchTask = (task) => {
         judgeScore: normalizeJudgeScore(finding?.judgeScore),
         coverage: normalizeCoverage(finding?.coverage),
         retryReason: normalizeText(finding?.retryReason),
+        isFollowUp: Boolean(finding?.isFollowUp),
+        followUpOf: normalizeText(finding?.followUpOf),
+        sourceMissingAspects: normalizeTextList(finding?.sourceMissingAspects, 6),
         sourceIds,
         sources: normalizeEvidenceSources(finding?.sources, sourceIds),
       };
@@ -333,6 +383,7 @@ export const createDeepResearchSnapshot = ({
     stageLabel: getResearchStageMeta(normalizedTask?.stage).label,
     progressPercent: Math.round((normalizedTask?.progress || 0) * 100),
     verdictLabels: (normalizedTask?.findings || []).map((finding) => getResearchVerdictMeta(finding.verdict).label),
+    planItemCount: normalizedTask?.planItems?.length || 0,
     sourceIdCounts: (normalizedTask?.findings || []).map((finding) => finding.sourceIds.length),
     missingAspectCounts: (normalizedTask?.findings || []).map((finding) => finding.missingAspects.length),
     hasReport: Boolean(normalizedTask?.report),

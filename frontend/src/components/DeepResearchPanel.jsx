@@ -50,6 +50,19 @@ const formatFindingCoverage = (coverage) => {
   return `覆盖 ${percent}%${evidenceText}`;
 };
 
+const getPlanItemStatusLabel = (status) => {
+  if (status === 'running') {
+    return '执行中';
+  }
+  if (status === 'done') {
+    return '已完成';
+  }
+  if (status === 'pending') {
+    return '待执行';
+  }
+  return '';
+};
+
 const DeepResearchPanel = ({
   pdfFileName = '',
   paperStructure = null,
@@ -526,21 +539,44 @@ const DeepResearchPanel = ({
                   {isPlanExpanded ? '收起计划' : '展开计划'}
                 </button>
               </div>
-              {normalizedTask.plan.length > 0 ? (
+              {normalizedTask.planItems.length > 0 ? (
                 isPlanExpanded ? (
                   <div className="space-y-3">
-                    {normalizedTask.plan.map((item, index) => (
+                    {normalizedTask.planItems.map((item, index) => {
+                      const statusLabel = getPlanItemStatusLabel(item.status);
+                      return (
                       <div key={`${normalizedTask.taskId}-plan-${index}`} className="theme-card-soft rounded-xl px-4 py-3">
-                        <div className="theme-text-primary text-sm font-semibold">子问题 {index + 1}</div>
-                        <div className="theme-text-secondary mt-1 text-sm leading-7">{item}</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="theme-text-primary text-sm font-semibold">
+                            {item.kind === 'follow_up' ? 'Follow-up' : `子问题 ${index + 1}`}
+                          </div>
+                          {item.kind === 'follow_up' ? (
+                            <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
+                              缺口驱动
+                            </span>
+                          ) : null}
+                          {statusLabel ? (
+                            <span className="theme-text-muted rounded-full border theme-border px-2 py-0.5 text-[11px]">
+                              {statusLabel}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="theme-text-secondary mt-1 text-sm leading-7">{item.question}</div>
+                        {item.kind === 'follow_up' ? (
+                          <div className="theme-text-muted mt-2 text-xs leading-6">
+                            {item.sourceQuestion ? `由“${item.sourceQuestion}”的证据缺口生成` : '由证据缺口生成'}
+                            {item.sourceMissingAspects.length > 0 ? `：${item.sourceMissingAspects.join('、')}` : ''}
+                          </div>
+                        ) : null}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {normalizedTask.plan.slice(0, 2).map((item, index) => (
+                    {normalizedTask.planItems.slice(0, 2).map((item, index) => (
                       <div key={`${normalizedTask.taskId}-plan-preview-${index}`} className="theme-card-soft rounded-xl px-4 py-3 text-sm leading-7 theme-text-secondary">
-                        {item}
+                        {item.kind === 'follow_up' ? 'Follow-up：' : ''}{item.question}
                       </div>
                     ))}
                   </div>

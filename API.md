@@ -508,7 +508,16 @@ http://ai-service:8000/api
     "progress": 0.0,
     "question": "...",
     "pdfId": "example_pdf",
-    "plan": [],
+    "plan": [
+      {
+        "id": "initial-1",
+        "question": "子问题 1",
+        "kind": "initial",
+        "status": "pending",
+        "sourceQuestion": "",
+        "sourceMissingAspects": []
+      }
+    ],
     "findings": [],
     "report": "",
     "error": "",
@@ -595,7 +604,8 @@ http://ai-service:8000/api
 
 - trace 是脱敏摘要，不应假设能拿到完整 prompt 或全文上下文
 - deep research 的 judge step 可能在 `steps[*].meta` 中包含 `verdict/judgeScore/coverageScore/missingAspects/retryReason/decision`，用于说明当前子问题为什么停止、补查文献库或触发 retry。
-- deep research 完成时，`responseMeta` 可能包含 `averageJudgeScore/retryFindingCount/insufficientFindingCount`，用于快速排查长路径任务的证据效用。
+- deep research 证据缺口触发最小动态重规划时，trace 会包含 `research_follow_up_planning` step。
+- deep research 完成时，`responseMeta` 可能包含 `averageJudgeScore/retryFindingCount/insufficientFindingCount/followUpCount`，用于快速排查长路径任务的证据效用和 follow-up 次数。
 
 ## Java 到 Python 的转发关系
 
@@ -671,6 +681,17 @@ http://ai-service:8000/api
 - `createdAt`
 - `updatedAt`
 
+`plan[*]` 兼容两种形态：
+
+- 旧快照可能是字符串子问题，前端会按 `kind=initial` 处理。
+- 新快照优先使用对象计划项：`{ "id": "initial-1", "question": "...", "kind": "initial|follow_up", "status": "pending|running|done", "sourceQuestion": "", "sourceMissingAspects": [] }`。
+
+动态重规划规则：
+
+- 每个任务最多追加 1 个 `kind=follow_up` 计划项。
+- 仅当某个 finding 的最终 `verdict` 为 `INCORRECT` 且 `missingAspects` 非空时触发。
+- follow-up 仍只使用当前论文和内部文献库，不引入外部 Web 搜索。
+
 `findings[*]` 兼容字段：
 
 - `subQuestion`
@@ -680,6 +701,9 @@ http://ai-service:8000/api
 - `coverage`：`{ "score": 0.0, "matchedAspects": 0, "totalAspects": 0, "evidenceCount": 0, "sourceTypes": [] }`，其中 `score` 为 `0-1`。
 - `missingAspects`
 - `retryReason`：触发 retry 时记录原因；未触发 retry 时为空字符串。
+- `isFollowUp`：`true` 表示该 finding 来自动态追加的 follow-up 子问题。
+- `followUpOf`：follow-up 来源子问题。
+- `sourceMissingAspects`：生成 follow-up 时引用的缺失证据点。
 - `sourceIds`
 - `sources`
 

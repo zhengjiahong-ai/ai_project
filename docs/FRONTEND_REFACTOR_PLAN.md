@@ -1,5 +1,11 @@
 # 前端重构计划
 
+## 2026-06-13 P1-7 Deep Research 动态 follow-up 计划展示
+
+- Deep Research 任务计划兼容后端新增的对象型 `plan` 项，并继续支持旧字符串计划快照。
+- `deepResearchPanelModel.js` 新增 `planItems` 归一化，保留 `question/kind/status/sourceQuestion/sourceMissingAspects`，用于区分初始子问题和证据缺口驱动的 follow-up。
+- `DeepResearchPanel` 的研究计划区展示 follow-up 来源、缺失点和执行状态，帮助用户理解为什么系统追加了新的探索节点。
+
 ## 2026-06-12 P1-6 Deep Research JUDGE 评分展示
 
 - Deep Research findings 兼容展示后端新增的 `judgeScore`、`coverage` 和 `retryReason`。

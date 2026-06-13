@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-13 09:55 v0.1.27
+
+1. **完成 Deep Research 最小动态重规划**：`research_task_service.py` 将任务 `plan` 兼容升级为对象型计划项，初始子问题记录 `kind/status`；当某个 finding 最终 `verdict=INCORRECT` 且仍有 `missingAspects` 时，每个任务最多追加并执行 1 个 `follow_up` 子问题。
+2. **增强 follow-up 溯源与前端计划展示**：follow-up finding 记录 `isFollowUp/followUpOf/sourceMissingAspects`，trace summary 新增 `followUpCount`；`deepResearchPanelModel` 归一化 `planItems` 并兼容旧字符串 plan，`DeepResearchPanel` 在计划区展示 follow-up 来源、缺失点和状态。
+
 ### 2026-06-12 10:45 v0.1.26
 
 1. **完成深度研究 JUDGE 结构化效用评分**：`judge_evidence_quality()` 兼容新增 `judgeScore`、`coverage` 和 `retryReason`，分数来自 verdict、confidence、关键词覆盖、证据数量和来源类型，不引入新模型训练。

@@ -55,7 +55,18 @@ const run = async () => {
     progress: 1.8,
     question: '研究问题',
     pdfId: 'paper-1',
-    plan: ['子问题一', '', '子问题二'],
+    plan: [
+      '子问题一',
+      '',
+      {
+        id: 'follow-up-1',
+        question: '继续核查消融实验和关键指标。',
+        kind: 'follow_up',
+        status: 'done',
+        sourceQuestion: '子问题一',
+        sourceMissingAspects: ['消融实验', '', '关键指标'],
+      },
+    ],
     findings: [
       {
         subQuestion: '实验支撑是否充分？',
@@ -96,7 +107,24 @@ const run = async () => {
 
   assert.equal(normalizedRunningTask.traceId, 'trace-1');
   assert.equal(normalizedRunningTask.progress, 1);
-  assert.deepEqual(normalizedRunningTask.plan, ['子问题一', '子问题二']);
+  assert.deepEqual(normalizedRunningTask.plan, ['子问题一', '继续核查消融实验和关键指标。']);
+  assert.equal(normalizedRunningTask.planItems.length, 2);
+  assert.deepEqual(normalizedRunningTask.planItems[0], {
+    id: 'plan-1',
+    question: '子问题一',
+    kind: 'initial',
+    status: '',
+    sourceQuestion: '',
+    sourceMissingAspects: [],
+  });
+  assert.deepEqual(normalizedRunningTask.planItems[1], {
+    id: 'follow-up-1',
+    question: '继续核查消融实验和关键指标。',
+    kind: 'follow_up',
+    status: 'done',
+    sourceQuestion: '子问题一',
+    sourceMissingAspects: ['消融实验', '关键指标'],
+  });
   assert.equal(normalizedRunningTask.findings[0].verdict, 'AMBIGUOUS');
   assert.deepEqual(normalizedRunningTask.findings[0].missingAspects, ['ablation', 'baseline']);
   assert.equal(normalizedRunningTask.findings[0].judgeScore, 82);
@@ -167,6 +195,7 @@ const run = async () => {
   assert.deepEqual(snapshot.verdictLabels, ['证据充足', '证据不足']);
   assert.deepEqual(snapshot.sourceIdCounts, [2, 0]);
   assert.deepEqual(snapshot.missingAspectCounts, [0, 1]);
+  assert.equal(snapshot.planItemCount, 0);
   assert.equal(snapshot.hasReport, true);
   assert.equal(snapshot.errorText, '任务状态已丢失');
 
