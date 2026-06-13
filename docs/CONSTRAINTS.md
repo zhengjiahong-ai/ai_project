@@ -45,3 +45,11 @@
 - `sources` 复用 evidence item 契约，保留 `sourceId/sourceType/text/pageIndex/sectionId/chunkIndex/pdfId` 等可用来源锚点。
 - 冲突检测只标记“需人工核查”，不得自动融合矛盾结论或裁决哪一方正确。
 - Java 网关继续透传 Python 响应；旧客户端可忽略 `conflicts`。
+
+## Deep Research trace summary 持久化边界
+
+- `GET /api/traces/{traceId}` 的响应结构保持 `{ "status": "success", "trace": {} }`，Java 网关继续只读透传 Python `/api/traces/{traceId}`。
+- Deep Research 终态任务会把脱敏后的 public trace summary 写入 `task.traceSummary` 并随 SQLite 快照保存；服务重启后可按 `traceId` 恢复已完成任务的关键执行轨迹。
+- `task.traceSummary` 只保存 public summary 字段，不保存完整 prompt、论文全文、headers、API key 或未裁剪 step 列表。
+- 普通聊天、批判阅读、背景补课等短请求 trace 仍为进程内临时摘要；服务重启或内存清空后返回 `404` 是允许行为。
+- 旧任务快照没有 `traceSummary` 时按空对象兼容，前端和旧客户端可忽略该字段。

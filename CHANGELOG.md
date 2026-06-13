@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-13 14:45 v0.1.29
+
+1. **完成 Deep Research trace summary 持久化**：Python AI 服务将 Deep Research 终态的 public trace summary 写入研究任务 SQLite 快照，新增 `traceSummary` 兼容字段和旧库自动迁移；服务重启后 `GET /api/traces/{traceId}` 可从已完成任务快照恢复关键执行轨迹。
+2. **保持 trace 安全边界和接口兼容**：持久化内容复用 `trace_service` 的脱敏、裁剪和 public summary 规则，不保存完整 prompt、论文全文、headers 或 API key；Java `/api/traces/{traceId}` 与前端调用路径不变，普通短请求 trace 仍为进程内临时摘要。
+
 ### 2026-06-13 14:20 v0.1.28
 
 1. **完成 Deep Research 跨源冲突检测 MVP**：`research_task_service.py` 在综合阶段前基于 `findings[*].sources` 做规则型冲突扫描，生成任务级 `conflicts`，覆盖同一指标数值差异和同一主题正反结论，不调用额外 LLM、不自动裁决哪一方正确。

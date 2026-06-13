@@ -25,6 +25,7 @@ from services.safety_service import (
     wrap_untrusted_context,
 )
 from services.trace_service import (
+    build_public_trace_summary,
     finalize_trace,
     record_metric,
     sanitize_text,
@@ -94,6 +95,7 @@ def create_research_task(
         "plan": [],
         "findings": [],
         "conflicts": [],
+        "traceSummary": {},
         "report": "",
         "error": "",
         "createdAt": created_at,
@@ -170,6 +172,21 @@ def get_latest_research_task(pdf_id: str) -> Dict[str, Any]:
         return {"status": "success", "task": copy.deepcopy(latest)}
 
 
+def get_persisted_trace_summary(trace_id: str) -> Dict[str, Any] | None:
+    _ensure_storage_loaded()
+    normalized_trace_id = _clean_text(trace_id)
+    if not normalized_trace_id:
+        return None
+
+    with _TASK_LOCK:
+        for task in _TASKS.values():
+            if str(task.get("traceId") or "") != normalized_trace_id:
+                continue
+            summary = task.get("traceSummary")
+            return copy.deepcopy(summary) if isinstance(summary, dict) and summary else None
+    return None
+
+
 def cancel_research_task(task_id: str) -> Dict[str, Any]:
     _ensure_storage_loaded()
     with _TASK_LOCK:
@@ -190,14 +207,15 @@ def cancel_research_task(task_id: str) -> Dict[str, Any]:
         _persist_task_snapshot_locked(cancelled)
 
     with use_trace(str(cancelled.get("traceId") or "")):
-        finalize_trace(
+        trace_snapshot = finalize_trace(
             "cancelled",
             response_meta={
                 "taskId": task_id,
                 "stage": DONE_STAGE,
             },
         )
-    return {"status": "success", "task": copy.deepcopy(cancelled)}
+        _persist_trace_summary(task_id, trace_snapshot)
+    return {"status": "success", "task": _copy_task_snapshot(task_id)}
 
 
 def clear_research_tasks(clear_storage: bool = True) -> None:
@@ -256,11 +274,12 @@ def _run_research_task(
             documents, normalized_pdf_id = _load_current_paper_documents(pdf_id)
         if not documents:
             _fail_task(task_id, "Current paper has not been indexed yet.")
-            finalize_trace(
+            trace_snapshot = finalize_trace(
                 "error",
                 error="Current paper has not been indexed yet.",
                 response_meta={"taskId": task_id, "stage": DONE_STAGE},
             )
+            _persist_trace_summary(task_id, trace_snapshot)
             return
         if _is_cancelled(task_id):
             return
@@ -391,7 +410,7 @@ def _run_research_task(
             report=report,
             error="",
         )
-        finalize_trace(
+        trace_snapshot = finalize_trace(
             "success",
             response_meta={
                 "taskId": task_id,
@@ -410,9 +429,11 @@ def _run_research_task(
                 ),
             },
         )
+        _persist_trace_summary(task_id, trace_snapshot)
     except Exception as error:
         _fail_task(task_id, str(error))
-        finalize_trace("error", error=error, response_meta={"taskId": task_id, "stage": DONE_STAGE})
+        trace_snapshot = finalize_trace("error", error=error, response_meta={"taskId": task_id, "stage": DONE_STAGE})
+        _persist_trace_summary(task_id, trace_snapshot)
 
 
 def _research_sub_question(
@@ -1397,7 +1418,11 @@ def _update_task_snapshot(task_id: str, **updates: Any) -> Dict[str, Any]:
         task = _TASKS.get(task_id)
         if task is None:
             raise ResearchTaskNotFoundError("Research task not found.")
-        if str(task.get("status") or "") == "cancelled" and updates.get("status") != "cancelled":
+        if (
+            str(task.get("status") or "") == "cancelled"
+            and updates.get("status") != "cancelled"
+            and set(updates.keys()) != {"traceSummary"}
+        ):
             return copy.deepcopy(task)
 
         updated = {
@@ -1408,6 +1433,12 @@ def _update_task_snapshot(task_id: str, **updates: Any) -> Dict[str, Any]:
         _TASKS[task_id] = updated
         _persist_task_snapshot_locked(updated)
         return copy.deepcopy(updated)
+
+
+def _persist_trace_summary(task_id: str, trace_snapshot: Dict[str, Any] | None) -> None:
+    if not trace_snapshot:
+        return
+    _update_task_snapshot(task_id, traceSummary=build_public_trace_summary(trace_snapshot))
 
 
 def _fail_task(task_id: str, error_message: str) -> None:
@@ -1471,6 +1502,7 @@ def _initialize_storage_locked() -> None:
                 plan TEXT NOT NULL,
                 findings TEXT NOT NULL,
                 conflicts TEXT NOT NULL DEFAULT '[]',
+                traceSummary TEXT NOT NULL DEFAULT '{}',
                 report TEXT NOT NULL,
                 error TEXT NOT NULL,
                 createdAt TEXT NOT NULL,
@@ -1481,6 +1513,8 @@ def _initialize_storage_locked() -> None:
         columns = {row[1] for row in connection.execute("PRAGMA table_info(research_tasks)").fetchall()}
         if "conflicts" not in columns:
             connection.execute("ALTER TABLE research_tasks ADD COLUMN conflicts TEXT NOT NULL DEFAULT '[]'")
+        if "traceSummary" not in columns:
+            connection.execute("ALTER TABLE research_tasks ADD COLUMN traceSummary TEXT NOT NULL DEFAULT '{}'")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_research_tasks_pdf_updated ON research_tasks (pdfId, updatedAt)")
         connection.commit()
 
@@ -1503,8 +1537,8 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
             """
             INSERT INTO research_tasks (
                 taskId, traceId, status, stage, progress, question, pdfId,
-                plan, findings, conflicts, report, error, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                plan, findings, conflicts, traceSummary, report, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(taskId) DO UPDATE SET
                 traceId=excluded.traceId,
                 status=excluded.status,
@@ -1515,6 +1549,7 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 plan=excluded.plan,
                 findings=excluded.findings,
                 conflicts=excluded.conflicts,
+                traceSummary=excluded.traceSummary,
                 report=excluded.report,
                 error=excluded.error,
                 createdAt=excluded.createdAt,
@@ -1531,6 +1566,7 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 json.dumps(snapshot["plan"], ensure_ascii=False),
                 json.dumps(snapshot["findings"], ensure_ascii=False),
                 json.dumps(snapshot["conflicts"], ensure_ascii=False),
+                json.dumps(snapshot["traceSummary"], ensure_ascii=False),
                 snapshot["report"],
                 snapshot["error"],
                 snapshot["createdAt"],
@@ -1561,6 +1597,7 @@ def _task_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
         "plan": _safe_json_list(row["plan"]),
         "findings": _safe_json_list(row["findings"]),
         "conflicts": _safe_json_list(row["conflicts"]) if "conflicts" in row.keys() else [],
+        "traceSummary": _safe_json_dict(row["traceSummary"]) if "traceSummary" in row.keys() else {},
         "report": str(row["report"] or ""),
         "error": str(row["error"] or ""),
         "createdAt": created_at,
@@ -1583,6 +1620,7 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
         "plan": list(task.get("plan") or []),
         "findings": list(task.get("findings") or []),
         "conflicts": list(task.get("conflicts") or []),
+        "traceSummary": dict(task.get("traceSummary") or {}),
         "report": str(task.get("report") or ""),
         "error": str(task.get("error") or ""),
         "createdAt": created_at,
@@ -1596,6 +1634,14 @@ def _safe_json_list(value: Any) -> List[Any]:
     except json.JSONDecodeError:
         return []
     return parsed if isinstance(parsed, list) else []
+
+
+def _safe_json_dict(value: Any) -> Dict[str, Any]:
+    try:
+        parsed = json.loads(str(value or "{}"))
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
 
 
 def _research_task_db_path() -> Path:

@@ -253,7 +253,7 @@ docker compose up -d grobid
 
 - Chroma 向量库目录：`/app/chroma_data` 或本地配置路径
 - 深度研究 SQLite：`ai-service-python/data/research_tasks.sqlite3` 或 `RESEARCH_TASK_DB_PATH`
-- trace 为进程内摘要存储，不做长期数据库持久化
+- 普通 trace 为进程内摘要存储；Deep Research 终态脱敏 trace summary 会随 SQLite 任务快照保存，服务重启后仍可通过 `traceId` 查询关键执行轨迹
 
 ## 验证命令
 

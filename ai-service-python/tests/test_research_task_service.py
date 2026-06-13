@@ -1,10 +1,12 @@
 import os
+import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from unittest.mock import patch
 
 from schemas.requests import ResearchTaskCreateRequest
-from services import research_task_service
+from services import research_task_service, trace_service
 
 
 class ResearchTaskDynamicReplanningTests(unittest.TestCase):
@@ -15,6 +17,7 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         research_task_service.clear_research_tasks(clear_storage=True)
 
     def tearDown(self):
+        trace_service.clear_traces()
         research_task_service.clear_research_tasks(clear_storage=True)
         if self.previous_db_path is None:
             os.environ.pop("RESEARCH_TASK_DB_PATH", None)
@@ -271,6 +274,110 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
 
         self.assertEqual(task["conflicts"], [])
         self.assertNotIn("## 证据冲突/需人工核查", task["report"])
+
+    def test_successful_task_persists_public_trace_summary(self):
+        task, _calls = self._run_task_with_findings(
+            [
+                {"summary": "已有方法证据", "verdict": "CORRECT", "judgeScore": 86, "coverage": {}, "missingAspects": [], "retryReason": "", "sourceIds": ["source-1"], "sources": []},
+                {"summary": "已有实验支撑", "verdict": "CORRECT", "judgeScore": 84, "coverage": {}, "missingAspects": [], "retryReason": "", "sourceIds": ["source-2"], "sources": []},
+                {"summary": "已有局限说明", "verdict": "CORRECT", "judgeScore": 82, "coverage": {}, "missingAspects": [], "retryReason": "", "sourceIds": ["source-3"], "sources": []},
+            ]
+        )
+
+        summary = task["traceSummary"]
+        self.assertEqual(summary["traceId"], task["traceId"])
+        self.assertEqual(summary["taskType"], "deep_research")
+        self.assertEqual(summary["status"], "success")
+        self.assertEqual(summary["responseMeta"]["taskId"], task["taskId"])
+        self.assertEqual(summary["responseMeta"]["findingCount"], 3)
+        self.assertGreaterEqual(len(summary["steps"]), 1)
+
+    def test_trace_summary_can_be_loaded_from_task_snapshot_after_restart(self):
+        task, _calls = self._run_task_with_findings(
+            [
+                {"summary": "已有方法证据", "verdict": "CORRECT", "judgeScore": 86, "coverage": {}, "missingAspects": [], "retryReason": "", "sourceIds": ["source-1"], "sources": []},
+                {"summary": "已有实验支撑", "verdict": "CORRECT", "judgeScore": 84, "coverage": {}, "missingAspects": [], "retryReason": "", "sourceIds": ["source-2"], "sources": []},
+                {"summary": "已有局限说明", "verdict": "CORRECT", "judgeScore": 82, "coverage": {}, "missingAspects": [], "retryReason": "", "sourceIds": ["source-3"], "sources": []},
+            ]
+        )
+
+        trace_service.clear_traces()
+        research_task_service.reload_research_tasks_from_storage()
+
+        response = trace_service.get_trace_summary(task["traceId"])
+
+        self.assertEqual(response["status"], "success")
+        self.assertEqual(response["trace"]["traceId"], task["traceId"])
+        self.assertEqual(response["trace"]["responseMeta"]["taskId"], task["taskId"])
+        self.assertEqual(response["trace"]["status"], "success")
+
+    def test_trace_lookup_missing_persisted_summary_still_raises_not_found(self):
+        task_id = self._create_task()
+        task = research_task_service.get_research_task(task_id)["task"]
+
+        trace_service.clear_traces()
+        research_task_service.reload_research_tasks_from_storage()
+
+        with self.assertRaises(trace_service.TraceNotFoundError):
+            trace_service.get_trace_summary(task["traceId"])
+
+    def test_storage_migration_adds_trace_summary_column_to_old_database(self):
+        db_path = os.environ["RESEARCH_TASK_DB_PATH"]
+        with closing(sqlite3.connect(db_path)) as connection:
+            connection.execute("DROP TABLE IF EXISTS research_tasks")
+            connection.execute(
+                """
+                CREATE TABLE research_tasks (
+                    taskId TEXT PRIMARY KEY,
+                    traceId TEXT,
+                    status TEXT NOT NULL,
+                    stage TEXT NOT NULL,
+                    progress REAL NOT NULL,
+                    question TEXT NOT NULL,
+                    pdfId TEXT NOT NULL,
+                    plan TEXT NOT NULL,
+                    findings TEXT NOT NULL,
+                    conflicts TEXT NOT NULL DEFAULT '[]',
+                    report TEXT NOT NULL,
+                    error TEXT NOT NULL,
+                    createdAt TEXT NOT NULL,
+                    updatedAt TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO research_tasks (
+                    taskId, traceId, status, stage, progress, question, pdfId,
+                    plan, findings, conflicts, report, error, createdAt, updatedAt
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "old-task",
+                    "old-trace",
+                    "succeeded",
+                    "done",
+                    1.0,
+                    "旧任务",
+                    "paper-1",
+                    "[]",
+                    "[]",
+                    "[]",
+                    "旧报告",
+                    "",
+                    "2026-06-13T00:00:00Z",
+                    "2026-06-13T00:00:00Z",
+                ),
+            )
+            connection.commit()
+
+        research_task_service.reload_research_tasks_from_storage()
+        restored = research_task_service.get_research_task("old-task")["task"]
+
+        self.assertEqual(restored["traceSummary"], {})
+        with closing(sqlite3.connect(db_path)) as connection:
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(research_tasks)").fetchall()}
+        self.assertIn("traceSummary", columns)
 
 
 if __name__ == "__main__":

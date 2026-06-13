@@ -210,8 +210,15 @@ def get_trace_summary(trace_id: str) -> Dict[str, Any]:
     try:
         snapshot = get_trace_snapshot(trace_id)
     except KeyError as error:
+        persisted = _load_persisted_trace_summary(trace_id)
+        if persisted:
+            return {"status": "success", "trace": persisted}
         raise TraceNotFoundError("Trace not found.") from error
 
+    return {"status": "success", "trace": build_public_trace_summary(snapshot)}
+
+
+def build_public_trace_summary(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     trace = {
         "traceId": sanitize_text(snapshot.get("traceId"), max_chars=120),
         "taskType": sanitize_text(snapshot.get("taskType"), max_chars=80),
@@ -226,7 +233,19 @@ def get_trace_summary(trace_id: str) -> Dict[str, Any]:
     }
     if snapshot.get("error"):
         trace["error"] = sanitize_text(snapshot.get("error"), max_chars=240)
-    return {"status": "success", "trace": trace}
+    return trace
+
+
+def _load_persisted_trace_summary(trace_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        from services import research_task_service
+    except Exception:
+        return None
+
+    try:
+        return research_task_service.get_persisted_trace_summary(trace_id)
+    except Exception:
+        return None
 
 
 def clear_traces() -> None:

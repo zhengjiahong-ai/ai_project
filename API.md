@@ -518,6 +518,7 @@ http://ai-service:8000/api
         "sourceMissingAspects": []
       }
     ],
+    "traceSummary": {},
     "findings": [],
     "report": "",
     "error": "",
@@ -603,6 +604,8 @@ http://ai-service:8000/api
 说明：
 
 - trace 是脱敏摘要，不应假设能拿到完整 prompt 或全文上下文
+- Deep Research 终态 trace summary 会随研究任务 SQLite 快照保存；服务重启后，`GET /api/traces/{traceId}` 可从已完成任务快照恢复 summary。
+- 普通聊天、批判阅读、背景补课等短请求 trace 仍是进程内临时摘要；服务重启或内存清空后可能返回 `404`。
 - deep research 的 judge step 可能在 `steps[*].meta` 中包含 `verdict/judgeScore/coverageScore/missingAspects/retryReason/decision`，用于说明当前子问题为什么停止、补查文献库或触发 retry。
 - deep research 证据缺口触发最小动态重规划时，trace 会包含 `research_follow_up_planning` step。
 - deep research 完成时，`responseMeta` 可能包含 `averageJudgeScore/retryFindingCount/insufficientFindingCount/followUpCount`，用于快速排查长路径任务的证据效用和 follow-up 次数。
@@ -677,6 +680,7 @@ http://ai-service:8000/api
 - `plan`
 - `findings`
 - `conflicts`
+- `traceSummary`：Deep Research 终态脱敏 trace 摘要；旧快照或未结束任务可能为空对象。
 - `report`
 - `error`
 - `createdAt`
