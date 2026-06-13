@@ -1,6 +1,5 @@
 ﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
-import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import { highlightPlugin } from '@react-pdf-viewer/highlight';
 import {
   Bookmark,
@@ -14,7 +13,6 @@ import {
 } from 'lucide-react';
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
-import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import '@react-pdf-viewer/highlight/lib/styles/index.css';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url';
 import { apiService } from '../services/api';
@@ -360,7 +358,6 @@ const PdfViewer = ({
   const [highlights, setHighlights] = useState([]);
   const [activeHighlightId, setActiveHighlightId] = useState(null);
 
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
   const pdfDocRef = useRef(null);
   const currentPageRef = useRef(0);
   const isFirstRender = useRef(true);
@@ -681,7 +678,7 @@ const PdfViewer = ({
             key={viewerKey}
             fileUrl={fileUrl}
             initialPage={initialViewerPage}
-            plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
+            plugins={[highlightPluginInstance]}
             theme={theme}
             onDocumentLoad={handleDocumentLoad}
             onPageChange={handleViewerPageChange}

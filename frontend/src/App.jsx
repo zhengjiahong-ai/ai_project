@@ -29,7 +29,6 @@ import DeepResearchPanel from './components/DeepResearchPanel.jsx';
 import LibrarySidebar from './components/LibrarySidebar';
 import Navbar from './components/Navbar';
 import PaperAnalysis from './components/PaperAnalysis';
-import PdfToolbar from './components/PdfToolbar';
 import PdfViewer from './components/PdfViewer';
 import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 import TranslationPanel from './components/TranslationPanel';
@@ -2917,14 +2916,6 @@ export default function App() {
                       focusedSourceAnchorToken={focusedSourceRequest.token}
                     />
                   </div>
-
-                  {pdfFile && (
-                    <PdfToolbar
-                      onDynamicExplain={handleDynamicExplain}
-                      isTranslated={isTranslated}
-                      onToggleTranslation={handleToggleTranslation}
-                    />
-                  )}
                     </div>
                   </Panel>
 
