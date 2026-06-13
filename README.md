@@ -84,6 +84,7 @@ Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它
   - 每条 finding 会展示规则型 `judgeScore`、证据覆盖率、缺失点和触发 retry 的原因，trace 中也能看到当前子问题为什么停止、补查文献库或重试
   - 当某个子问题最终判定为证据不足且仍有关键缺口时，会在预算内追加 1 个 follow-up 子问题继续核查；前端计划区显示 follow-up 的来源、缺失点和执行状态
   - 对同次 findings 绑定的来源片段做规则型跨源冲突检测，发现同一指标数值差异或正反结论时单独标记“需人工核查”，不会自动融合成单一结论
+  - trace 面板展示 LLM 调用、检索调用、retry、服务端安全截断和估算输入/输出 token，便于观察长任务成本与预算消耗
   - 前端按 `pdfId` 恢复最近任务
 
 ## 仓库结构
@@ -253,7 +254,7 @@ docker compose up -d grobid
 
 - Chroma 向量库目录：`/app/chroma_data` 或本地配置路径
 - 深度研究 SQLite：`ai-service-python/data/research_tasks.sqlite3` 或 `RESEARCH_TASK_DB_PATH`
-- 普通 trace 为进程内摘要存储；Deep Research 终态脱敏 trace summary 会随 SQLite 任务快照保存，服务重启后仍可通过 `traceId` 查询关键执行轨迹
+- 普通 trace 为进程内摘要存储；Deep Research 终态脱敏 trace summary 会随 SQLite 任务快照保存，服务重启后仍可通过 `traceId` 查询关键执行轨迹，并查看 LLM/检索/retry/截断和估算 token 计数器
 
 ## 验证命令
 

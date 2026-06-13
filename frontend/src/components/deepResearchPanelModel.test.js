@@ -9,6 +9,7 @@ import {
   getResearchStatusMeta,
   getResearchVerdictMeta,
   normalizeResearchBriefPreview,
+  normalizeTraceCounters,
   normalizeTraceSummary,
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
@@ -249,7 +250,15 @@ const run = async () => {
     durationMs: 3000,
     requestMeta: { question: '研究问题' },
     responseMeta: { findingCount: 3 },
-    counters: { llmCalls: 2, retrievalCalls: 4 },
+    counters: {
+      llmCalls: 2,
+      retrievalCalls: 4,
+      retryCount: '1',
+      truncationCount: 2.7,
+      estimatedInputTokens: '123',
+      estimatedOutputTokens: 'bad',
+      extraCounter: 99,
+    },
     steps: Array.from({ length: 20 }, (_, index) => ({
       name: `step-${index + 1}`,
       status: index === 3 ? 'error' : 'success',
@@ -265,7 +274,23 @@ const run = async () => {
   assert.equal(normalizedTrace.traceId, 'trace-1');
   assert.equal(normalizedTrace.taskType, 'deep_research');
   assert.equal(normalizedTrace.durationMs, 3000);
-  assert.deepEqual(normalizedTrace.counters, { llmCalls: 2, retrievalCalls: 4 });
+  assert.deepEqual(normalizedTrace.counters, {
+    llmCalls: 2,
+    retrievalCalls: 4,
+    retryCount: 1,
+    truncationCount: 2,
+    estimatedInputTokens: 123,
+    estimatedOutputTokens: 0,
+  });
+  assert.deepEqual(normalizedTrace.rawCounters, {
+    llmCalls: 2,
+    retrievalCalls: 4,
+    retryCount: '1',
+    truncationCount: 2.7,
+    estimatedInputTokens: '123',
+    estimatedOutputTokens: 'bad',
+    extraCounter: 99,
+  });
   assert.equal(normalizedTrace.steps.length, 12);
   assert.equal(normalizedTrace.steps[3].status, 'error');
   assert.equal(normalizedTrace.steps[3].error, '失败摘要');
@@ -274,7 +299,24 @@ const run = async () => {
   const fallbackTrace = normalizeTraceSummary({ traceId: 123, steps: 'bad', counters: null });
   assert.equal(fallbackTrace.traceId, '');
   assert.deepEqual(fallbackTrace.steps, []);
-  assert.deepEqual(fallbackTrace.counters, {});
+  assert.deepEqual(fallbackTrace.counters, {
+    llmCalls: 0,
+    retrievalCalls: 0,
+    retryCount: 0,
+    truncationCount: 0,
+    estimatedInputTokens: 0,
+    estimatedOutputTokens: 0,
+  });
+  assert.deepEqual(fallbackTrace.rawCounters, {});
+
+  assert.deepEqual(normalizeTraceCounters({ llmCalls: -1, retrievalCalls: '3.9', retryCount: null }), {
+    llmCalls: 0,
+    retrievalCalls: 3,
+    retryCount: 0,
+    truncationCount: 0,
+    estimatedInputTokens: 0,
+    estimatedOutputTokens: 0,
+  });
 
   const normalizedPreview = normalizeResearchBriefPreview({
     question: '研究问题',

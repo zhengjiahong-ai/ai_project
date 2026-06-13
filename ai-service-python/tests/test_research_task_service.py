@@ -3,10 +3,44 @@ import sqlite3
 import tempfile
 import unittest
 from contextlib import closing
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+from llm.client import DeepSeekLLM
 from schemas.requests import ResearchTaskCreateRequest
 from services import research_task_service, trace_service
+
+
+class DeepSeekLLMTraceCounterTests(unittest.TestCase):
+    def tearDown(self):
+        trace_service.clear_traces()
+
+    def test_call_records_llm_and_estimated_token_counters(self):
+        trace_id = trace_service.start_trace("unit_test")
+        fake_response = Mock()
+        fake_response.status_code = 200
+        fake_response.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": "short answer",
+                    }
+                }
+            ]
+        }
+
+        with patch("llm.client.requests.post", return_value=fake_response):
+            result = DeepSeekLLM(api_key="test-key")._call(
+                messages=[
+                    {"role": "system", "content": "system instruction"},
+                    {"role": "user", "content": "user question"},
+                ]
+            )
+
+        snapshot = trace_service.get_trace_snapshot(trace_id)
+        self.assertEqual(result, "short answer")
+        self.assertEqual(snapshot["counters"]["llmCalls"], 1)
+        self.assertGreater(snapshot["counters"]["estimatedInputTokens"], 0)
+        self.assertGreater(snapshot["counters"]["estimatedOutputTokens"], 0)
 
 
 class ResearchTaskDynamicReplanningTests(unittest.TestCase):
@@ -291,6 +325,71 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         self.assertEqual(summary["responseMeta"]["taskId"], task["taskId"])
         self.assertEqual(summary["responseMeta"]["findingCount"], 3)
         self.assertGreaterEqual(len(summary["steps"]), 1)
+        self.assertTrue(
+            {
+                "llmCalls",
+                "retrievalCalls",
+                "retryCount",
+                "truncationCount",
+                "estimatedInputTokens",
+                "estimatedOutputTokens",
+            }.issubset(set(summary["counters"].keys()))
+        )
+        self.assertEqual(summary["counters"]["retryCount"], 0)
+        self.assertEqual(summary["counters"]["truncationCount"], 0)
+
+    def test_research_retry_increments_trace_retry_counter(self):
+        task_id = self._create_task()
+        judge_calls = []
+
+        def fake_judge(_sub_question, _evidence, **_kwargs):
+            judge_calls.append(True)
+            if len(judge_calls) == 1:
+                return {
+                    "verdict": "INCORRECT",
+                    "judgeScore": 20,
+                    "coverage": {"score": 0.1, "matchedAspects": 0, "totalAspects": 2, "evidenceCount": 1, "sourceTypes": ["current_paper"]},
+                    "missingAspects": ["消融实验"],
+                    "retryReason": "证据不足，需要补查消融实验。",
+                    "shouldRetry": False,
+                }
+            if len(judge_calls) == 2:
+                return {
+                    "verdict": "INCORRECT",
+                    "judgeScore": 30,
+                    "coverage": {"score": 0.2, "matchedAspects": 0, "totalAspects": 2, "evidenceCount": 2, "sourceTypes": ["current_paper", "library"]},
+                    "missingAspects": ["消融实验"],
+                    "retryReason": "证据不足，需要补查消融实验。",
+                    "shouldRetry": True,
+                }
+            return {
+                "verdict": "CORRECT",
+                "judgeScore": 88,
+                "coverage": {"score": 0.9, "matchedAspects": 2, "totalAspects": 2, "evidenceCount": 2, "sourceTypes": ["current_paper", "library"]},
+                "missingAspects": [],
+                "retryReason": "",
+                "shouldRetry": False,
+            }
+
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一"])),
+            patch.object(research_task_service, "_retrieve_current_paper_evidence", return_value=[{"sourceId": "paper-1", "text": "paper evidence", "sourceType": "current_paper"}]),
+            patch.object(research_task_service, "_retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library evidence", "sourceType": "library"}]),
+            patch.object(research_task_service, "_judge_research_evidence", side_effect=fake_judge),
+        ):
+            task = research_task_service.run_research_task_now(task_id)
+
+        self.assertGreaterEqual(task["traceSummary"]["counters"]["retryCount"], 1)
+
+    def test_research_safety_budget_clamp_increments_truncation_counter(self):
+        trace_id = trace_service.start_trace("deep_research")
+        block = research_task_service.wrap_untrusted_context("large block", "x" * 200, max_tokens=10)
+
+        research_task_service._record_safety_budget_counters(block)
+
+        snapshot = trace_service.get_trace_snapshot(trace_id)
+        self.assertEqual(snapshot["counters"]["truncationCount"], 1)
 
     def test_trace_summary_can_be_loaded_from_task_snapshot_after_restart(self):
         task, _calls = self._run_task_with_findings(

@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 import requests
 from dotenv import load_dotenv
 
+from services.safety_service import estimate_tokens
 from services.trace_service import record_counter, trace_step
 
 load_dotenv()
@@ -74,12 +75,14 @@ class DeepSeekLLM:
 
         timeout = float(os.environ.get("DEEPSEEK_TIMEOUT_SECONDS", "120"))
         input_size = sum(len(str(item.get("content") or "")) for item in resolved_messages)
+        estimated_input_tokens = sum(estimate_tokens(item.get("content") or "") for item in resolved_messages)
         with trace_step(
             "llm_call",
             input_size=input_size,
             meta={"provider": "deepseek", "model": self.model, "messageCount": len(resolved_messages)},
         ) as step:
             record_counter("llmCalls")
+            record_counter("estimatedInputTokens", estimated_input_tokens)
             response = requests.post(
                 f"{self.base_url}/chat/completions",
                 headers={
@@ -100,6 +103,7 @@ class DeepSeekLLM:
                 .get("content", "")
             )
             step["outputSize"] = len(str(content or ""))
+            record_counter("estimatedOutputTokens", estimate_tokens(content))
             return str(content or "")
 
 

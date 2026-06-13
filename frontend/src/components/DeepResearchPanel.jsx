@@ -41,6 +41,17 @@ const formatTraceMeta = (value) => {
     .join(' · ');
 };
 
+const TRACE_COUNTER_ITEMS = [
+  { key: 'llmCalls', label: 'LLM calls' },
+  { key: 'retrievalCalls', label: 'Retrieval calls' },
+  { key: 'retryCount', label: 'Retry' },
+  { key: 'truncationCount', label: '截断' },
+  { key: 'estimatedInputTokens', label: 'Input tokens' },
+  { key: 'estimatedOutputTokens', label: 'Output tokens' },
+];
+
+const formatCounterValue = (value) => Number(value || 0).toLocaleString('en-US');
+
 const formatFindingCoverage = (coverage) => {
   if (!coverage || coverage.score === null) {
     return '';
@@ -461,8 +472,15 @@ const DeepResearchPanel = ({
                         </div>
                       </div>
                       <div className="theme-card-soft rounded-xl px-4 py-3">
-                        <div className="theme-text-muted">计数器</div>
-                        <div className="theme-text-primary mt-1 font-semibold">{formatTraceMeta(traceSummary.counters)}</div>
+                        <div className="theme-text-muted">预算计数器</div>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          {TRACE_COUNTER_ITEMS.map((item) => (
+                            <div key={item.key} className="min-w-0">
+                              <div className="theme-text-muted truncate">{item.label}</div>
+                              <div className="theme-text-primary font-semibold">{formatCounterValue(traceSummary.counters?.[item.key])}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
@@ -473,6 +491,8 @@ const DeepResearchPanel = ({
                           <div className="theme-text-secondary mt-1">{formatTraceMeta(traceSummary.requestMeta)}</div>
                           <div className="theme-text-primary mt-3 font-semibold">响应摘要</div>
                           <div className="theme-text-secondary mt-1">{formatTraceMeta(traceSummary.responseMeta)}</div>
+                          <div className="theme-text-primary mt-3 font-semibold">原始计数器</div>
+                          <div className="theme-text-secondary mt-1">{formatTraceMeta(traceSummary.rawCounters)}</div>
                           {traceSummary.error && (
                             <>
                               <div className="theme-text-primary mt-3 font-semibold">错误摘要</div>

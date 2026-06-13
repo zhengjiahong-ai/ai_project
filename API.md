@@ -594,7 +594,11 @@ http://ai-service:8000/api
     "responseMeta": {},
     "counters": {
       "llmCalls": 1,
-      "retrievalCalls": 2
+      "retrievalCalls": 2,
+      "retryCount": 1,
+      "truncationCount": 0,
+      "estimatedInputTokens": 420,
+      "estimatedOutputTokens": 120
     },
     "steps": []
   }
@@ -604,6 +608,7 @@ http://ai-service:8000/api
 说明：
 
 - trace 是脱敏摘要，不应假设能拿到完整 prompt 或全文上下文
+- `counters` 稳定包含 `llmCalls/retrievalCalls/retryCount/truncationCount/estimatedInputTokens/estimatedOutputTokens`；token 为基于字符数的粗略估算，不等同于模型供应商真实计费 token。
 - Deep Research 终态 trace summary 会随研究任务 SQLite 快照保存；服务重启后，`GET /api/traces/{traceId}` 可从已完成任务快照恢复 summary。
 - 普通聊天、批判阅读、背景补课等短请求 trace 仍是进程内临时摘要；服务重启或内存清空后可能返回 `404`。
 - deep research 的 judge step 可能在 `steps[*].meta` 中包含 `verdict/judgeScore/coverageScore/missingAspects/retryReason/decision`，用于说明当前子问题为什么停止、补查文献库或触发 retry。

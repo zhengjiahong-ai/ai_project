@@ -1,5 +1,11 @@
 # 前端重构计划
 
+## 2026-06-13 P1-10 Deep Research trace 预算指标展示
+
+- Deep Research trace summary 兼容后端稳定 counters 字段，旧 trace 缺少预算字段时统一降级为 0。
+- `deepResearchPanelModel.js` 归一化 `llmCalls/retrievalCalls/retryCount/truncationCount/estimatedInputTokens/estimatedOutputTokens`，同时保留原始 counters 供展开详情调试。
+- `DeepResearchPanel` 将 trace “计数器”改为固定预算指标卡，直接展示 LLM 调用、检索调用、retry、截断和估算输入/输出 token。
+
 ## 2026-06-13 P1-8 Deep Research 跨源冲突核查展示
 
 - Deep Research 任务快照兼容后端新增的 `conflicts` 字段，旧快照没有冲突列表时稳定降级为空态。

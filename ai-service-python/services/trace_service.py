@@ -78,6 +78,10 @@ def start_trace(
         "counters": {
             "llmCalls": 0,
             "retrievalCalls": 0,
+            "retryCount": 0,
+            "truncationCount": 0,
+            "estimatedInputTokens": 0,
+            "estimatedOutputTokens": 0,
         },
         "steps": [],
     }

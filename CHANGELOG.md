@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-13 14:58 v0.1.30
+
+1. **完成 Deep Research 成本、延迟和预算计数器**：trace summary 稳定输出 `llmCalls/retrievalCalls/retryCount/truncationCount/estimatedInputTokens/estimatedOutputTokens`，LLM 调用按现有字符数规则估算输入/输出 token，Deep Research retry 与安全预算截断会写入 counters 并随任务快照持久化。
+2. **增强前端 trace 可观测性**：`deepResearchPanelModel` 归一化固定预算字段并兼容旧 trace，`DeepResearchPanel` 将计数器展示为预算指标卡，同时在展开详情保留原始 counters 摘要。
+
 ### 2026-06-13 14:45 v0.1.29
 
 1. **完成 Deep Research trace summary 持久化**：Python AI 服务将 Deep Research 终态的 public trace summary 写入研究任务 SQLite 快照，新增 `traceSummary` 兼容字段和旧库自动迁移；服务重启后 `GET /api/traces/{traceId}` 可从已完成任务快照恢复关键执行轨迹。

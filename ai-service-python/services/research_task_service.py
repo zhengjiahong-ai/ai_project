@@ -27,6 +27,7 @@ from services.safety_service import (
 from services.trace_service import (
     build_public_trace_summary,
     finalize_trace,
+    record_counter,
     record_metric,
     sanitize_text,
     start_trace,
@@ -410,6 +411,13 @@ def _run_research_task(
             report=report,
             error="",
         )
+        final_skeleton_block = wrap_untrusted_context("Research paper skeleton", _stringify_paper_skeleton(paper_skeleton), max_tokens=1000)
+        final_evidence_block = wrap_untrusted_context(
+            "Research current paper evidence",
+            format_evidence_context(documents, title="当前论文证据", max_items=4, max_text_chars=260),
+            max_tokens=1400,
+        )
+        _record_safety_budget_counters(final_skeleton_block, final_evidence_block)
         trace_snapshot = finalize_trace(
             "success",
             response_meta={
@@ -419,14 +427,7 @@ def _run_research_task(
                 "conflictCount": len(conflicts),
                 "stage": DONE_STAGE,
                 **_build_judge_trace_summary(findings),
-                **summarize_safety_results(
-                    wrap_untrusted_context("Research paper skeleton", _stringify_paper_skeleton(paper_skeleton), max_tokens=1000),
-                    wrap_untrusted_context(
-                        "Research current paper evidence",
-                        format_evidence_context(documents, title="当前论文证据", max_items=4, max_text_chars=260),
-                        max_tokens=1400,
-                    ),
-                ),
+                **summarize_safety_results(final_skeleton_block, final_evidence_block),
             },
         )
         _persist_trace_summary(task_id, trace_snapshot)
@@ -478,6 +479,7 @@ def _research_sub_question(
     if _should_retry(judge):
         retry_reason = _clean_text(judge.get("retryReason"))
         retry_query = _build_retry_query(sub_question, query_plan, judge)
+        record_counter("retryCount")
         with trace_step(
             "research_retry_retrieval",
             input_size=len(str(retry_query or "")),
@@ -588,6 +590,7 @@ def _build_research_plan(
         format_evidence_context(documents, title="当前论文线索", max_items=4, max_text_chars=260),
         max_tokens=1400,
     )
+    _record_safety_budget_counters(paper_skeleton_block, current_evidence_block)
     prompt = f"""
 You are planning a deep research task for an academic paper assistant.
 Return valid JSON only.
@@ -676,6 +679,7 @@ def _build_research_brief_preview(
         user_constraints,
         max_tokens=300,
     )
+    _record_safety_budget_counters(paper_skeleton_block, current_evidence_block, constraints_block)
     prompt = f"""
 You are preparing a brief preview before starting a long deep-research task for an academic paper assistant.
 Return valid JSON only.
@@ -770,6 +774,14 @@ def _normalize_brief_preview(
         "needsClarification": needs_clarification,
         "source": source if source in {"llm", "fallback"} else "fallback",
     }
+
+
+def _record_safety_budget_counters(*blocks: Any) -> None:
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        if block.get("budgetClamped"):
+            record_counter("truncationCount")
 
 
 def _retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, limit: int = 5) -> List[Dict[str, Any]]:

@@ -363,12 +363,35 @@ const normalizePlainObject = (value) => {
   );
 };
 
+const TRACE_COUNTER_KEYS = [
+  'llmCalls',
+  'retrievalCalls',
+  'retryCount',
+  'truncationCount',
+  'estimatedInputTokens',
+  'estimatedOutputTokens',
+];
+
+const normalizeCounterValue = (value) => {
+  const numeric = Math.floor(Number(value));
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return 0;
+  }
+  return numeric;
+};
+
+export const normalizeTraceCounters = (counters) => {
+  const rawCounters = normalizePlainObject(counters);
+  return Object.fromEntries(TRACE_COUNTER_KEYS.map((key) => [key, normalizeCounterValue(rawCounters[key])]));
+};
+
 export const normalizeTraceSummary = (trace) => {
   if (!trace || typeof trace !== 'object') {
     return null;
   }
 
   const rawSteps = Array.isArray(trace.steps) ? trace.steps : [];
+  const rawCounters = normalizePlainObject(trace.counters);
   return {
     traceId: normalizeText(trace.traceId),
     taskType: normalizeText(trace.taskType) || 'unknown',
@@ -378,7 +401,8 @@ export const normalizeTraceSummary = (trace) => {
     durationMs: Number.isFinite(Number(trace.durationMs)) ? Math.max(0, Number(trace.durationMs)) : null,
     requestMeta: normalizePlainObject(trace.requestMeta),
     responseMeta: normalizePlainObject(trace.responseMeta),
-    counters: normalizePlainObject(trace.counters),
+    counters: normalizeTraceCounters(trace.counters),
+    rawCounters,
     steps: rawSteps.slice(0, 12).map((step, index) => ({
       name: normalizeText(step?.name) || `step-${index + 1}`,
       status: normalizeText(step?.status) || 'unknown',
