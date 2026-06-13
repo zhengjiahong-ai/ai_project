@@ -13,6 +13,7 @@ from services.utils import parse_json_from_llm
 
 
 DEFAULT_USER_LEVEL = "一般"
+DEFAULT_PREFERRED_DEPTH = "标准"
 ROOT_NODE_ID = "current-paper"
 STAGE_ORDER = [
     "foundation",
@@ -92,6 +93,16 @@ USER_LEVEL_ALIASES = {
     "expert": "进阶",
     "深入": "进阶",
 }
+PREFERRED_DEPTH_ALIASES = {
+    "": DEFAULT_PREFERRED_DEPTH,
+    "速览": "速览",
+    "快速": "速览",
+    "简要": "速览",
+    "标准": "标准",
+    "普通": "标准",
+    "深入": "深入",
+    "深度": "深入",
+}
 LEVEL_RANK = {
     "basic": 0,
     "intermediate": 1,
@@ -111,16 +122,18 @@ RELATION_TYPE_MAP = {
 
 
 def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, Any]:
+    reader_profile = _resolve_reader_profile(request)
+    adaptation_reason = _build_adaptation_reason(reader_profile)
     trace_id = start_trace(
         "background",
         request_meta={
             "pdfId": sanitize_text(request.pdfId, max_chars=80),
-            "userLevel": sanitize_text(request.user_knowledge_level, max_chars=40),
+            "userLevel": sanitize_text(reader_profile.get("user_knowledge_level"), max_chars=40),
             "paperTopic": sanitize_text(request.paper_topic, max_chars=120),
         },
     )
     try:
-        user_level = _normalize_user_level(request.user_knowledge_level)
+        user_level = str(reader_profile.get("user_knowledge_level") or DEFAULT_USER_LEVEL)
         normalized_pdf_id = _normalize_pdf_id(request.pdfId)
         paper_context, current_paper_sources = _load_current_paper_context(request, normalized_pdf_id)
         paper_topic = _resolve_topic(request, paper_context)
@@ -143,7 +156,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
         try:
             llm_payload = _generate_graph_payload(
                 paper_topic=paper_topic,
-                user_level=user_level,
+                reader_profile=reader_profile,
                 paper_context=paper_context,
                 rag_sources=response_rag_sources,
                 request=request,
@@ -152,7 +165,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
                 payload = _normalize_payload(
                     llm_payload,
                     paper_topic=paper_topic,
-                    user_level=user_level,
+                    reader_profile=reader_profile,
                     pdf_id=normalized_pdf_id,
                     rag_sources=response_rag_sources,
                 )
@@ -161,7 +174,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
             print(f"background knowledge graph generation fell back to linear plan: {error}")
             payload = _fallback_payload(
                 paper_topic=paper_topic,
-                user_level=user_level,
+                reader_profile=reader_profile,
                 pdf_id=normalized_pdf_id,
                 rag_sources=response_rag_sources,
                 error=error,
@@ -171,6 +184,8 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
         payload["queryPlan"] = query_plan
         payload["neo4j"] = _persist_optional_neo4j(payload)
         payload["traceId"] = trace_id
+        payload["reader_profile"] = payload.get("reader_profile") or reader_profile
+        payload["adaptation_reason"] = adaptation_reason
         record_metric("ragSourceCount", len(response_rag_sources))
         record_metric("graphNodeCount", len((payload.get("graph") or {}).get("nodes") or []))
         finalize_trace(
@@ -308,11 +323,17 @@ def _normalize_hybrid_sources(hybrid_results: Dict[str, List[dict]]) -> List[dic
 
 def _generate_graph_payload(
     paper_topic: str,
-    user_level: str,
+    reader_profile: Dict[str, Any],
     paper_context: str,
     rag_sources: List[dict],
     request: BackgroundKnowledgeRequest,
 ) -> Dict[str, Any]:
+    user_level = str(reader_profile.get("user_knowledge_level") or DEFAULT_USER_LEVEL)
+    preferred_depth = str(reader_profile.get("preferredDepth") or DEFAULT_PREFERRED_DEPTH)
+    learning_goal = str(reader_profile.get("learningGoal") or "").strip()
+    known_concepts = _coerce_list_of_strings(reader_profile.get("knownConcepts"))
+    confusing_concepts = _coerce_list_of_strings(reader_profile.get("confusingConcepts"))
+    behavior_signals = reader_profile.get("behaviorSignals") if isinstance(reader_profile.get("behaviorSignals"), dict) else {}
     allowed_source_ids = [source.get("sourceId") for source in rag_sources if isinstance(source, dict) and source.get("sourceId")]
     source_context = "\n\n".join(
         f"{item.get('sourceId')}: {item.get('text', '')[:1200]}"
@@ -390,11 +411,18 @@ Rules:
 - Include one node with id "{ROOT_NODE_ID}" for the current paper or target topic.
 - Use concise Chinese for labels, summaries, and learning goals.
 - Tune the path for user level: {user_level}.
+- Preferred support depth: {preferred_depth}.
+- Reduce repetition for already-known concepts: {known_concepts}.
+- Prioritize concepts the user is currently confused about: {confusing_concepts}.
+- Align the path with this learning goal when present: {learning_goal or "未提供明确目标"}.
 - Prefer 6 to 10 concept nodes.
 - sourceIds can only use these ids: {allowed_source_ids if allowed_source_ids else []}.
 - If no snippet supports a concept, use [] instead of inventing citations.
 - graph.edges should include prerequisite edges where source must be learned before target.
 - Each graph.edges item must have type "prerequisite" and should include valid sourceIds or a short confidenceReason.
+
+Reader behavior signals:
+{_stringify_mapping(behavior_signals)}
 
 Paper topic:
 {paper_topic}
@@ -412,7 +440,7 @@ RAG snippets:
     with trace_step(
         "generate_background_graph",
         input_size=len(prompt),
-        meta={"userLevel": user_level, "ragSourceCount": len(rag_sources)},
+        meta={"userLevel": user_level, "preferredDepth": preferred_depth, "ragSourceCount": len(rag_sources)},
     ) as step:
         raw = get_llm()._call(
             prompt,
@@ -436,10 +464,11 @@ RAG snippets:
 def _normalize_payload(
     payload: Dict[str, Any],
     paper_topic: str,
-    user_level: str,
+    reader_profile: Dict[str, Any],
     pdf_id: Optional[str],
     rag_sources: List[dict],
 ) -> Dict[str, Any]:
+    user_level = str(reader_profile.get("user_knowledge_level") or DEFAULT_USER_LEVEL)
     graph, aliases = _normalize_graph(payload.get("graph"), paper_topic)
     background = _normalize_background(payload.get("background_knowledge"), graph, aliases)
     if len(graph.get("nodes", [])) <= 1 and background:
@@ -458,6 +487,13 @@ def _normalize_payload(
         "pdfId": pdf_id,
         "paper_topic": str(payload.get("paper_topic") or paper_topic),
         "user_knowledge_level": user_level,
+        "reader_profile": {
+            "selfAssessedFamiliarity": reader_profile.get("selfAssessedFamiliarity") or user_level,
+            "preferredDepth": reader_profile.get("preferredDepth") or DEFAULT_PREFERRED_DEPTH,
+            "learningGoal": reader_profile.get("learningGoal") or "",
+            "knownConcepts": _coerce_list_of_strings(reader_profile.get("knownConcepts")),
+            "confusingConcepts": _coerce_list_of_strings(reader_profile.get("confusingConcepts")),
+        },
         "graph": graph,
         "learning_path": learning_path,
         "learning_path_sections": sections,
@@ -771,11 +807,12 @@ def _flatten_learning_path_sections(sections: List[dict]) -> List[dict]:
 
 def _fallback_payload(
     paper_topic: str,
-    user_level: str,
+    reader_profile: Dict[str, Any],
     pdf_id: Optional[str],
     rag_sources: List[dict],
     error: Optional[Exception] = None,
 ) -> Dict[str, Any]:
+    user_level = str(reader_profile.get("user_knowledge_level") or DEFAULT_USER_LEVEL)
     fallback_prompt = f"""
 Recommend prerequisite knowledge for reading a paper.
 
@@ -794,7 +831,7 @@ Return a short ordered list, one item per line.
     payload = _normalize_payload(
         {"paper_topic": paper_topic, "background_knowledge": background},
         paper_topic=paper_topic,
-        user_level=user_level,
+        reader_profile=reader_profile,
         pdf_id=pdf_id,
         rag_sources=rag_sources,
     )
@@ -1078,6 +1115,87 @@ def _parse_line_items(raw: str) -> List[str]:
 def _normalize_user_level(value: Any) -> str:
     text = _coerce_text(value).lower()
     return USER_LEVEL_ALIASES.get(text, DEFAULT_USER_LEVEL)
+
+
+def _normalize_preferred_depth(value: Any) -> str:
+    text = _coerce_text(value)
+    return PREFERRED_DEPTH_ALIASES.get(text, DEFAULT_PREFERRED_DEPTH)
+
+
+def _normalize_string_list(value: Any) -> List[str]:
+    if isinstance(value, str):
+        items = re.split(r"[\n,，;；、]+", value)
+        return _dedupe_strings([item.strip() for item in items if item.strip()])
+    return _coerce_list_of_strings(value)
+
+
+def _coerce_non_negative_int(value: Any) -> int:
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _resolve_reader_profile(request: BackgroundKnowledgeRequest) -> Dict[str, Any]:
+    raw_profile = request.reader_profile if isinstance(request.reader_profile, dict) else {}
+    behavior_signals = request.behavior_signals if isinstance(request.behavior_signals, dict) else {}
+    self_assessed = _normalize_user_level(
+        raw_profile.get("selfAssessedFamiliarity") or raw_profile.get("user_knowledge_level") or request.user_knowledge_level
+    )
+    known_concepts = _normalize_string_list(raw_profile.get("knownConcepts"))
+    confusing_concepts = _normalize_string_list(raw_profile.get("confusingConcepts"))
+    question_count = _coerce_non_negative_int(behavior_signals.get("questionCount"))
+    translation_usage_count = _coerce_non_negative_int(behavior_signals.get("translationUsageCount"))
+    highlight_count = _coerce_non_negative_int(behavior_signals.get("highlightCount"))
+    note_count = _coerce_non_negative_int(behavior_signals.get("noteCount"))
+
+    inferred_level = self_assessed
+    if question_count >= 4 or translation_usage_count >= 3:
+        inferred_level = "入门"
+    elif note_count >= 3 and highlight_count >= 3 and question_count <= 2:
+        inferred_level = "进阶"
+
+    if len(known_concepts) >= 4 and inferred_level == "入门":
+        inferred_level = "一般"
+    if len(confusing_concepts) >= 3 and inferred_level == "进阶":
+        inferred_level = "一般"
+
+    return {
+        "user_knowledge_level": inferred_level,
+        "selfAssessedFamiliarity": self_assessed,
+        "preferredDepth": _normalize_preferred_depth(raw_profile.get("preferredDepth")),
+        "learningGoal": _coerce_text(raw_profile.get("learningGoal")),
+        "knownConcepts": known_concepts,
+        "confusingConcepts": confusing_concepts,
+        "behaviorSignals": {
+            "questionCount": question_count,
+            "highlightCount": highlight_count,
+            "noteCount": note_count,
+            "artifactCount": _coerce_non_negative_int(behavior_signals.get("artifactCount")),
+            "translationUsageCount": translation_usage_count,
+            "recentQuestions": _normalize_string_list(behavior_signals.get("recentQuestions"))
+            if isinstance(behavior_signals.get("recentQuestions"), str)
+            else _coerce_list_of_strings(behavior_signals.get("recentQuestions")),
+            "currentSection": _coerce_text(behavior_signals.get("currentSection")),
+            "currentPage": behavior_signals.get("currentPage"),
+            "activeWorkspaceTab": _coerce_text(behavior_signals.get("activeWorkspaceTab")),
+        },
+    }
+
+
+def _build_adaptation_reason(reader_profile: Dict[str, Any]) -> str:
+    reasons = []
+    if reader_profile.get("selfAssessedFamiliarity") != reader_profile.get("user_knowledge_level"):
+        reasons.append(
+            f"结合最近提问、翻译使用和笔记行为，将熟悉度从“{reader_profile.get('selfAssessedFamiliarity')}”调整为“{reader_profile.get('user_knowledge_level')}”"
+        )
+    if reader_profile.get("confusingConcepts"):
+        reasons.append(f"优先处理当前卡点：{'、'.join(reader_profile.get('confusingConcepts')[:3])}")
+    if reader_profile.get("learningGoal"):
+        reasons.append(f"补课目标聚焦于“{reader_profile.get('learningGoal')}”")
+    if reader_profile.get("preferredDepth"):
+        reasons.append(f"输出粒度按“{reader_profile.get('preferredDepth')}”组织")
+    return "；".join(reasons) if reasons else "主要依据你的自评熟悉度生成。"
 
 
 def _merge_node(existing: Dict[str, Any], candidate: Dict[str, Any]) -> Dict[str, Any]:

@@ -1010,6 +1010,10 @@ html[data-theme='dark'] .pdf-viewer-shell .rpv-thumbnail__item {
   border: 1px solid rgba(148, 163, 184, 0.18);
 }
 
+.workflow-profile-card {
+  border: 1px solid rgba(123, 63, 242, 0.14);
+}
+
 .workflow-context-label {
   flex-shrink: 0;
   min-width: 2.5rem;
@@ -1054,7 +1058,7 @@ html[data-theme='dark'] .pdf-viewer-shell .rpv-thumbnail__item {
 
 @media (min-width: 1200px) {
   .workspace-top-summary-grid {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
     align-items: stretch;
   }
 }

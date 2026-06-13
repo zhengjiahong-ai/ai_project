@@ -258,6 +258,13 @@ class AiServiceTest {
         Map<String, Object> request = new HashMap<>();
         request.put("pdfId", "paper-1");
         request.put("user_knowledge_level", "normal");
+        request.put("reader_profile", Map.of(
+                "selfAssessedFamiliarity", "一般",
+                "preferredDepth", "深入",
+                "knownConcepts", List.of("Transformer")));
+        request.put("behavior_signals", Map.of(
+                "questionCount", 2,
+                "recentQuestions", List.of("什么是图检索")));
 
         when(restTemplate.postForObject(eq("http://python/api/background-knowledge"), eq(request), eq(Map.class)))
                 .thenReturn(Map.of(

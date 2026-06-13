@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 
 import {
   createBackgroundKnowledgeSnapshot,
+  createDefaultReaderProfile,
   createGenerateHandler,
   normalizeGraph,
   normalizeKnowledgeLevel,
+  normalizeReaderProfile,
   resolveLearningPathSections,
 } from './backgroundKnowledgePanelModel.js';
 
@@ -13,16 +15,49 @@ const run = async () => {
   assert.equal(normalizeKnowledgeLevel('普通/一般'), '一般');
   assert.equal(normalizeKnowledgeLevel('进阶'), '进阶');
   assert.equal(normalizeKnowledgeLevel('unknown'), '一般');
+  assert.deepEqual(createDefaultReaderProfile(), {
+    selfAssessedFamiliarity: '一般',
+    preferredDepth: '标准',
+    learningGoal: '',
+    knownConcepts: [],
+    confusingConcepts: [],
+  });
+  assert.deepEqual(normalizeReaderProfile({
+    selfAssessedFamiliarity: '普通/一般',
+    preferredDepth: '深度',
+    learningGoal: '理解方法链路',
+    knownConcepts: 'Transformer，检索增强生成',
+    confusingConcepts: ['图检索'],
+  }), {
+    selfAssessedFamiliarity: '一般',
+    preferredDepth: '深入',
+    learningGoal: '理解方法链路',
+    knownConcepts: ['Transformer', '检索增强生成'],
+    confusingConcepts: ['图检索'],
+  });
 
-  let generatedLevel = null;
-  createGenerateHandler((level) => {
-    generatedLevel = level;
-  }, '普通/一般')();
-  assert.equal(generatedLevel, '一般');
+  let generatedProfile = null;
+  createGenerateHandler((profile) => {
+    generatedProfile = profile;
+  }, { selfAssessedFamiliarity: '普通/一般', preferredDepth: '标准' })();
+  assert.deepEqual(generatedProfile, {
+    selfAssessedFamiliarity: '一般',
+    preferredDepth: '标准',
+    learningGoal: '',
+    knownConcepts: [],
+    confusingConcepts: [],
+  });
 
   const legacyData = {
     paper_topic: 'AcademicRAG',
     user_knowledge_level: '普通/一般',
+    reader_profile: {
+      selfAssessedFamiliarity: '一般',
+      preferredDepth: '标准',
+      learningGoal: '扫清概念障碍',
+      knownConcepts: ['Transformer'],
+      confusingConcepts: ['RAG'],
+    },
     graph: {
       nodes: [
         { id: 'current-paper', label: 'AcademicRAG', type: 'paper', level: 'target' },
@@ -48,6 +83,13 @@ const run = async () => {
   const legacySnapshot = createBackgroundKnowledgeSnapshot(legacyData, '普通/一般');
   assert.equal(legacySnapshot.selectedKnowledgeLevel, '一般');
   assert.equal(legacySnapshot.displayedKnowledgeLevel, '普通/一般');
+  assert.deepEqual(legacySnapshot.readerProfileSummary, [
+    '自评熟悉度：一般',
+    '补课深度：标准',
+    '目标：扫清概念障碍',
+    '已掌握：Transformer',
+    '卡点：RAG',
+  ]);
   assert.deepEqual(legacySnapshot.learningSectionTitles, ['学习路径']);
   assert.deepEqual(legacySnapshot.learningItems, ['RAG']);
   assert.deepEqual(legacySnapshot.ragSourceIds, ['source-1']);

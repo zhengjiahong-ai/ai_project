@@ -137,6 +137,8 @@ export const createApiService = (client) => ({
     paperStructure = null,
     paper_topic = null,
     user_knowledge_level = '普通/一般',
+    reader_profile = null,
+    behavior_signals = null,
   }) =>
     client.post('/background-knowledge', {
       pdfId,
@@ -144,6 +146,8 @@ export const createApiService = (client) => ({
       paperStructure,
       paper_topic,
       user_knowledge_level,
+      reader_profile,
+      behavior_signals,
     }),
 
   translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null, pageLayout = null, options = {}) => {

@@ -17,7 +17,12 @@ import {
 import { Group, Panel, Separator } from 'react-resizable-panels';
 
 import BackgroundKnowledgePanel from './components/BackgroundKnowledgePanel.jsx';
+import BackgroundReaderProfileEditor from './components/BackgroundReaderProfileEditor.jsx';
 import BottomWorkbench from './components/BottomWorkbench.jsx';
+import {
+  createDefaultReaderProfile,
+  summarizeReaderProfile,
+} from './components/backgroundKnowledgePanelModel.js';
 import ChatPanel from './components/ChatPanel';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel';
 import DeepResearchPanel from './components/DeepResearchPanel.jsx';
@@ -146,7 +151,7 @@ const WORKBENCH_EXPANDED_SIZE = 32;
 const WORKBENCH_COLLAPSED_SIZE = 18;
 const WORKBENCH_COLLAPSE_THRESHOLD = 22;
 const THEME_STORAGE_KEY = 'pixiu-theme';
-const DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL = '一般';
+const DEFAULT_BACKGROUND_READER_PROFILE = createDefaultReaderProfile();
 const RESEARCH_POLL_INTERVAL_MS = 1500;
 const STRUCTURED_TRANSLATION_TIMEOUT_MS = 90000;
 
@@ -159,6 +164,43 @@ const normalizeBackgroundKnowledgeLevel = (value) => {
     return '进阶';
   }
   return '一般';
+};
+
+const normalizeReaderTagList = (value) => {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((item) => `${item ?? ''}`.trim()).filter(Boolean))];
+  }
+
+  if (typeof value === 'string') {
+    return [...new Set(
+      value
+        .split(/[\n,，;；、]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    )];
+  }
+
+  return [];
+};
+
+const normalizeBackgroundReaderProfile = (value) => {
+  const profile = value && typeof value === 'object' ? value : {};
+  const preferredDepthText = `${profile.preferredDepth ?? ''}`.trim();
+  return {
+    selfAssessedFamiliarity: normalizeBackgroundKnowledgeLevel(
+      profile.selfAssessedFamiliarity || profile.user_knowledge_level || DEFAULT_BACKGROUND_READER_PROFILE.selfAssessedFamiliarity,
+    ),
+    preferredDepth: ['速览', '标准', '深入'].includes(preferredDepthText)
+      ? preferredDepthText
+      : preferredDepthText === '快速' || preferredDepthText === '简要'
+        ? '速览'
+        : preferredDepthText === '深度'
+          ? '深入'
+          : DEFAULT_BACKGROUND_READER_PROFILE.preferredDepth,
+    learningGoal: `${profile.learningGoal ?? ''}`.trim(),
+    knownConcepts: normalizeReaderTagList(profile.knownConcepts),
+    confusingConcepts: normalizeReaderTagList(profile.confusingConcepts),
+  };
 };
 
 const getWorkspaceSectionId = (tabId) =>
@@ -592,7 +634,11 @@ export default function App() {
   const [activeWorkspaceSectionId, setActiveWorkspaceSectionId] = useState(() => getWorkspaceSectionId(DEFAULT_ACTIVE_TAB));
   const [analysisData, setAnalysisData] = useState(null);
   const [backgroundKnowledgeData, setBackgroundKnowledgeData] = useState(null);
-  const [backgroundKnowledgeLevel, setBackgroundKnowledgeLevel] = useState(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
+  const [backgroundReaderProfile, setBackgroundReaderProfile] = useState(DEFAULT_BACKGROUND_READER_PROFILE);
+  const backgroundReaderProfileSummary = useMemo(
+    () => summarizeReaderProfile(backgroundReaderProfile),
+    [backgroundReaderProfile],
+  );
   const [isRestored, setIsRestored] = useState(false);
   const [isTranslated, setIsTranslated] = useState(false);
   const [deconstructData, setDeconstructData] = useState(null);
@@ -798,6 +844,7 @@ export default function App() {
     welcomeMessage: WELCOME_MESSAGE,
     defaultActiveTab: DEFAULT_ACTIVE_TAB,
     normalizeBackgroundKnowledgeLevel,
+    normalizeBackgroundReaderProfile,
     normalizeSocraticSession,
     normalizeTranslationState,
     setPdfId,
@@ -807,7 +854,7 @@ export default function App() {
     setNotes,
     setAnalysisData,
     setBackgroundKnowledgeData,
-    setBackgroundKnowledgeLevel,
+    setBackgroundReaderProfile,
     setMessages,
     setPdfHighlights,
     setWorkbenchCards,
@@ -891,7 +938,7 @@ export default function App() {
       setDeconstructData(response);
       setAnalysisData(null);
       setBackgroundKnowledgeData(null);
-      setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
+      setBackgroundReaderProfile(DEFAULT_BACKGROUND_READER_PROFILE);
       resetArtifacts();
       setMessages(readyMessages);
       setSocraticSession(createEmptySocraticSession(response.pdfId));
@@ -913,7 +960,7 @@ export default function App() {
       setPdfId(null);
       setSocraticSession(createEmptySocraticSession());
       setBackgroundKnowledgeData(null);
-      setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
+      setBackgroundReaderProfile(DEFAULT_BACKGROUND_READER_PROFILE);
       commitTranslationState(createEmptyTranslationState());
       setIsTranslated(false);
       currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
@@ -1010,7 +1057,7 @@ export default function App() {
         setDeconstructData(null);
         setAnalysisData(null);
         setBackgroundKnowledgeData(null);
-        setBackgroundKnowledgeLevel(DEFAULT_BACKGROUND_KNOWLEDGE_LEVEL);
+        setBackgroundReaderProfile(DEFAULT_BACKGROUND_READER_PROFILE);
         setSocraticSession(createEmptySocraticSession());
         commitTranslationState(createEmptyTranslationState());
         setIsTranslated(false);
@@ -1270,7 +1317,7 @@ export default function App() {
     }
   }, [pdfId, setTaskActive]);
 
-  const handleGenerateBackgroundKnowledge = useCallback(async (selectedLevel = backgroundKnowledgeLevel) => {
+  const handleGenerateBackgroundKnowledge = useCallback(async (selectedProfile = backgroundReaderProfile) => {
     if (!pdfId) {
       window.alert('请先上传 PDF 文件。');
       return;
@@ -1280,7 +1327,8 @@ export default function App() {
     setTaskActive('backgroundKnowledgeLoading', true);
 
     try {
-      const requestedKnowledgeLevel = normalizeBackgroundKnowledgeLevel(selectedLevel);
+      const requestedProfile = normalizeBackgroundReaderProfile(selectedProfile);
+      const requestedKnowledgeLevel = normalizeBackgroundKnowledgeLevel(requestedProfile.selfAssessedFamiliarity);
       const researchProblem = deconstructData?.paper_structure?.research_problem;
       const coreHypothesis = deconstructData?.paper_structure?.core_hypothesis;
       const paperTopic =
@@ -1289,6 +1337,22 @@ export default function App() {
           : typeof coreHypothesis === 'string' && coreHypothesis.trim()
             ? coreHypothesis
             : null;
+      const recentQuestions = messages
+        .filter((message) => message?.role === 'user')
+        .map((message) => `${message?.content ?? ''}`.trim())
+        .filter(Boolean)
+        .slice(-4);
+      const behaviorSignals = {
+        questionCount: recentQuestions.length,
+        highlightCount: pdfHighlights.length,
+        noteCount: notes.length,
+        artifactCount: workbenchCards.length,
+        translationUsageCount: translationState?.pages ? Object.keys(translationState.pages).length : 0,
+        recentQuestions,
+        currentPage: Number.isFinite(pdfPageState?.pageIndex) ? pdfPageState.pageIndex + 1 : null,
+        currentSection: `${deconstructData?.paper_structure?.title || ''}`.trim() || null,
+        activeWorkspaceTab: activeTab,
+      };
 
       const response = await apiService.backgroundKnowledge({
         pdfId,
@@ -1296,6 +1360,8 @@ export default function App() {
         paperStructure: deconstructData?.paper_structure || null,
         paper_topic: paperTopic,
         user_knowledge_level: requestedKnowledgeLevel,
+        reader_profile: requestedProfile,
+        behavior_signals: behaviorSignals,
       });
 
       if (!response || response.status !== 'success') {
@@ -1303,7 +1369,12 @@ export default function App() {
       }
 
       setBackgroundKnowledgeData(response);
-      setBackgroundKnowledgeLevel(normalizeBackgroundKnowledgeLevel(response?.user_knowledge_level || requestedKnowledgeLevel));
+      setBackgroundReaderProfile(normalizeBackgroundReaderProfile(
+        response?.reader_profile || {
+          ...requestedProfile,
+          selfAssessedFamiliarity: response?.user_knowledge_level || requestedKnowledgeLevel,
+        },
+      ));
       const db = await initDB();
       await db.put('backgroundKnowledgeStore', response, pdfId);
     } catch (error) {
@@ -1312,7 +1383,19 @@ export default function App() {
     } finally {
       setTaskActive('backgroundKnowledgeLoading', false);
     }
-  }, [backgroundKnowledgeLevel, deconstructData, pdfId, setTaskActive]);
+  }, [
+    activeTab,
+    backgroundReaderProfile,
+    deconstructData,
+    messages,
+    notes.length,
+    pdfHighlights.length,
+    pdfId,
+    pdfPageState?.pageIndex,
+    setTaskActive,
+    translationState?.pages,
+    workbenchCards.length,
+  ]);
 
   const handleDeepResearchQuestionChange = useCallback((nextQuestionDraft) => {
     if (!pdfId) {
@@ -2923,6 +3006,40 @@ export default function App() {
                                   )}
                                 </div>
                               </div>
+                              <div className="workflow-profile-card theme-card rounded-xl p-3">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="theme-text-primary text-xs font-semibold">背景补课偏好</div>
+                                    <div className="theme-text-secondary mt-1 text-[11px] leading-5">
+                                      这里决定补课的深浅、目标和当前卡点，生成背景补课时会直接作为上下文透传。
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveWorkspaceSectionId(getWorkspaceSectionId('background'));
+                                      setActiveTab('background');
+                                    }}
+                                    className="workflow-next-action"
+                                  >
+                                    去补课
+                                  </button>
+                                </div>
+                                <div className="mt-3">
+                                  <BackgroundReaderProfileEditor
+                                    value={backgroundReaderProfile}
+                                    onChange={setBackgroundReaderProfile}
+                                    compact
+                                  />
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {backgroundReaderProfileSummary.map((item) => (
+                                    <span key={item} className="workbench-kind-chip">
+                                      {item}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
                               <div className="workflow-next-card theme-card rounded-xl p-3">
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
@@ -3074,8 +3191,8 @@ export default function App() {
                         isLoading={isBackgroundKnowledgeLoading}
                         hasPaperContext={!!deconstructData?.paper_skeleton}
                         onGenerate={handleGenerateBackgroundKnowledge}
-                        knowledgeLevel={backgroundKnowledgeLevel}
-                        onKnowledgeLevelChange={setBackgroundKnowledgeLevel}
+                        readerProfile={backgroundReaderProfile}
+                        onReaderProfileChange={setBackgroundReaderProfile}
                         onCaptureArtifact={handleCaptureWorkbenchArtifact}
                         onJumpToSource={handleJumpToSource}
                       />

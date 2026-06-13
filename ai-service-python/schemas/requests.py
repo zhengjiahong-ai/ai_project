@@ -46,6 +46,8 @@ class SocraticSessionAnswerRequest(BaseModel):
 class BackgroundKnowledgeRequest(BaseModel):
     paper_topic: Optional[Any] = None
     user_knowledge_level: Optional[Any] = "普通/一般"
+    reader_profile: Optional[Dict[str, Any]] = None
+    behavior_signals: Optional[Dict[str, Any]] = None
     pdfId: Optional[str] = None
     paperSkeleton: Optional[Dict[str, Any]] = None
     paperStructure: Optional[Dict[str, Any]] = None

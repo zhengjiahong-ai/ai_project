@@ -119,6 +119,17 @@ const run = async () => {
     paperStructure: { research_problem: 'RAG' },
     paper_topic: 'RAG',
     user_knowledge_level: '进阶',
+    reader_profile: {
+      selfAssessedFamiliarity: '一般',
+      preferredDepth: '深入',
+      learningGoal: '理解方法链路',
+      knownConcepts: ['Transformer'],
+      confusingConcepts: ['图检索'],
+    },
+    behavior_signals: {
+      questionCount: 3,
+      recentQuestions: ['为什么要图检索'],
+    },
   });
   assert.equal(backgroundUrl, '/background-knowledge');
   assert.deepEqual(backgroundPayload, {
@@ -127,6 +138,17 @@ const run = async () => {
     paperStructure: { research_problem: 'RAG' },
     paper_topic: 'RAG',
     user_knowledge_level: '进阶',
+    reader_profile: {
+      selfAssessedFamiliarity: '一般',
+      preferredDepth: '深入',
+      learningGoal: '理解方法链路',
+      knownConcepts: ['Transformer'],
+      confusingConcepts: ['图检索'],
+    },
+    behavior_signals: {
+      questionCount: 3,
+      recentQuestions: ['为什么要图检索'],
+    },
   });
 
   let explainPayload = null;

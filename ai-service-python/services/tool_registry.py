@@ -159,6 +159,8 @@ def _build_default_tool_registry() -> ToolRegistry:
             "properties": {
                 "paper_topic": {},
                 "user_knowledge_level": {},
+                "reader_profile": {"type": "object"},
+                "behavior_signals": {"type": "object"},
                 "pdfId": {"type": "string"},
                 "paperSkeleton": {"type": "object"},
                 "paperStructure": {"type": "object"},

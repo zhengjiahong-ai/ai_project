@@ -70,6 +70,21 @@ Browser
 - `SocraticQuestionsPanel`
 - `DeepResearchPanel`
 
+其中 `BackgroundKnowledgePanel` 不再只依赖单一的 `user_knowledge_level` 下拉选择，而是由两类信息共同驱动：
+
+- 显式读者画像 `reader_profile`
+  - `selfAssessedFamiliarity`
+  - `preferredDepth`
+  - `learningGoal`
+  - `knownConcepts`
+  - `confusingConcepts`
+- 隐式行为信号 `behavior_signals`
+  - 最近提问次数与问题文本
+  - 翻译、标注、笔记、工作台沉淀等使用情况
+  - 当前阅读位置与所在功能页
+
+这样背景补课会更接近“围绕当前阅读卡点进行自适应补课”，而不是机械套用固定等级。
+
 ### 前端状态组织
 
 `App.jsx` 管理整条阅读会话主状态，包括：
@@ -250,6 +265,15 @@ H2 文件数据库用于保存：
 - `translate_page`
 
 深度研究优先通过这里调用内部能力，而不是直接散落调用底层模块。
+
+#### `background_knowledge_service.py`
+
+背景补课服务当前采用“显式画像 + 隐式行为”的自适应策略：
+
+- 前端传入 `reader_profile`，表达用户自评熟悉度、补课目标、已掌握与卡点概念
+- 前端传入 `behavior_signals`，补充近期提问、翻译、标注、笔记等行为
+- Python 将二者归一化为内部 `reader_profile`
+- 旧字段 `user_knowledge_level` 仍被接受，但仅作为兼容回退，不再是唯一控制参数
 
 #### `trace_service.py`
 

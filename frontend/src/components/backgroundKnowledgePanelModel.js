@@ -1,4 +1,6 @@
 export const KNOWLEDGE_LEVEL_OPTIONS = ['入门', '一般', '进阶'];
+export const BACKGROUND_DEPTH_OPTIONS = ['速览', '标准', '深入'];
+export const BACKGROUND_GOAL_OPTIONS = ['扫清概念障碍', '理解方法链路', '为批判阅读做准备'];
 
 const STAGE_META = {
   foundation: { title: '基础概念', color: '#0ea5e9' },
@@ -13,6 +15,66 @@ export const normalizeKnowledgeLevel = (value) => {
     return '一般';
   }
   return KNOWLEDGE_LEVEL_OPTIONS.includes(text) ? text : '一般';
+};
+
+export const createDefaultReaderProfile = () => ({
+  selfAssessedFamiliarity: '一般',
+  preferredDepth: '标准',
+  learningGoal: '',
+  knownConcepts: [],
+  confusingConcepts: [],
+});
+
+const normalizeStringList = (value) => {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map((item) => `${item ?? ''}`.trim()).filter(Boolean))];
+  }
+
+  if (typeof value === 'string') {
+    return [...new Set(
+      value
+        .split(/[\n,，;；、]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    )];
+  }
+
+  return [];
+};
+
+export const normalizePreferredDepth = (value) => {
+  const text = `${value ?? ''}`.trim();
+  if (text === '快速' || text === '简要') {
+    return '速览';
+  }
+  if (text === '深度' || text === '深入') {
+    return '深入';
+  }
+  return BACKGROUND_DEPTH_OPTIONS.includes(text) ? text : '标准';
+};
+
+export const normalizeReaderProfile = (value, fallbackKnowledgeLevel = '一般') => {
+  const profile = value && typeof value === 'object' ? value : {};
+  return {
+    selfAssessedFamiliarity: normalizeKnowledgeLevel(
+      profile.selfAssessedFamiliarity || profile.user_knowledge_level || fallbackKnowledgeLevel,
+    ),
+    preferredDepth: normalizePreferredDepth(profile.preferredDepth),
+    learningGoal: `${profile.learningGoal ?? ''}`.trim(),
+    knownConcepts: normalizeStringList(profile.knownConcepts),
+    confusingConcepts: normalizeStringList(profile.confusingConcepts),
+  };
+};
+
+export const summarizeReaderProfile = (profile) => {
+  const normalized = normalizeReaderProfile(profile);
+  return [
+    `自评熟悉度：${normalized.selfAssessedFamiliarity}`,
+    `补课深度：${normalized.preferredDepth}`,
+    normalized.learningGoal ? `目标：${normalized.learningGoal}` : '',
+    normalized.knownConcepts.length > 0 ? `已掌握：${normalized.knownConcepts.join('、')}` : '',
+    normalized.confusingConcepts.length > 0 ? `卡点：${normalized.confusingConcepts.join('、')}` : '',
+  ].filter(Boolean);
 };
 
 export const normalizeGraph = (data) => {
@@ -220,8 +282,8 @@ const sortSectionsByPrerequisites = (data, sections) => {
   }));
 };
 
-export const createGenerateHandler = (onGenerate, knowledgeLevel) => () =>
-  onGenerate?.(normalizeKnowledgeLevel(knowledgeLevel));
+export const createGenerateHandler = (onGenerate, readerProfile) => () =>
+  onGenerate?.(normalizeReaderProfile(readerProfile));
 
 export const getUncoveredNodeLabels = (data) => {
   const sourceCoverage = data?.sourceCoverage;
@@ -236,9 +298,15 @@ export const getUncoveredNodeLabels = (data) => {
 
 export const createBackgroundKnowledgeSnapshot = (data, knowledgeLevel = '一般') => {
   const sections = resolveLearningPathSections(data);
+  const normalizedReaderProfile = normalizeReaderProfile(
+    data?.reader_profile,
+    knowledgeLevel || data?.user_knowledge_level,
+  );
   return {
     selectedKnowledgeLevel: normalizeKnowledgeLevel(knowledgeLevel || data?.user_knowledge_level),
     displayedKnowledgeLevel: data?.user_knowledge_level || normalizeKnowledgeLevel(knowledgeLevel),
+    readerProfileSummary: summarizeReaderProfile(normalizedReaderProfile),
+    readerProfile: normalizedReaderProfile,
     graphNodeCount: normalizeGraph(data).nodes.length,
     graphLinkCount: normalizeGraph(data).links.length,
     learningSectionTitles: sections.map((section) => section.title),

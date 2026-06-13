@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-13 17:20 v0.1.31
+
+1. **重构背景补课用户建模方式**：将原本刚性的 `user_knowledge_level` 单字段控制升级为“读者画像 + 行为信号”联合驱动；前端新增 `reader_profile` 输入，支持填写当前熟悉度、希望补课深度、学习目标、已掌握概念与当前卡点，后端与 AI 服务会综合这些显式信息和近期提问/翻译/标注/笔记行为生成更贴近阅读现场的补课路径。
+2. **保持旧接口与旧数据兼容**：Java 网关继续透明转发 `/api/background-knowledge`，Python 仍接受 `user_knowledge_level` 作为兼容回退字段；前端恢复 IndexedDB 历史数据时会优先读取新的 `reader_profile`，若只有旧字段则自动归一化到新的读者画像结构。
+3. **补齐背景补课链路文档与测试**：同步更新 `API.md`、`ARCHITECTURE.md` 对新请求结构和自适应逻辑的说明，并扩展前端 API/model 测试与 Java 转发测试，覆盖 `reader_profile`、`behavior_signals` 的请求透传与快照归一化。
+
 ### 2026-06-13 14:58 v0.1.30
 
 1. **完成 Deep Research 成本、延迟和预算计数器**：trace summary 稳定输出 `llmCalls/retrievalCalls/retryCount/truncationCount/estimatedInputTokens/estimatedOutputTokens`，LLM 调用按现有字符数规则估算输入/输出 token，Deep Research retry 与安全预算截断会写入 counters 并随任务快照持久化。

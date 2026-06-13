@@ -12,16 +12,23 @@ import {
 
 import InsightCard from './InsightCard.jsx';
 import {
-  KNOWLEDGE_LEVEL_OPTIONS,
   createGenerateHandler,
   getUncoveredNodeLabels,
   normalizeGraph,
   normalizeKnowledgeLevel,
+  normalizeReaderProfile,
   resolveLearningPathSections,
+  summarizeReaderProfile,
 } from './backgroundKnowledgePanelModel.js';
 import { normalizeSourceLocation } from './evidenceCitationModel.js';
 
 const EMPTY_LIST = [];
+
+const learningModes = [
+  { id: 'why', label: '先补什么' },
+  { id: 'path', label: '怎么补' },
+  { id: 'sources', label: '看依据' },
+];
 
 const formatPercent = (value) => {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -44,36 +51,13 @@ const uniqueStrings = (items = []) => {
   });
 };
 
-const KnowledgeLevelPicker = ({ value, onChange, compact = false }) => (
-  <label className={`flex ${compact ? 'items-center gap-2' : 'flex-col gap-2'} text-left`}>
-    <span className="theme-text-secondary text-xs font-medium">知识水平</span>
-    <select
-      value={normalizeKnowledgeLevel(value)}
-      onChange={(event) => onChange?.(normalizeKnowledgeLevel(event.target.value))}
-      className="theme-card-soft theme-text-primary rounded-lg border border-transparent px-3 py-2 text-sm outline-none transition focus:border-pixiu/40"
-    >
-      {KNOWLEDGE_LEVEL_OPTIONS.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
-  </label>
-);
-
-const learningModes = [
-  { id: 'why', label: '先补什么' },
-  { id: 'path', label: '怎么补' },
-  { id: 'sources', label: '看依据' },
-];
-
 const BackgroundKnowledgePanel = ({
   data,
   isLoading,
   hasPaperContext,
   onGenerate,
-  knowledgeLevel = '一般',
-  onKnowledgeLevelChange,
+  readerProfile,
+  onReaderProfileChange,
   GraphComponent = ForceGraph,
   onCaptureArtifact,
   onJumpToSource,
@@ -89,7 +73,12 @@ const BackgroundKnowledgePanel = ({
     }
   }, [data, isLoading]);
 
-  const selectedKnowledgeLevel = normalizeKnowledgeLevel(knowledgeLevel || data?.user_knowledge_level);
+  const selectedReaderProfile = normalizeReaderProfile(
+    readerProfile || data?.reader_profile || { user_knowledge_level: data?.user_knowledge_level },
+  );
+  const selectedKnowledgeLevel = normalizeKnowledgeLevel(
+    selectedReaderProfile.selfAssessedFamiliarity || data?.user_knowledge_level,
+  );
   const graphData = useMemo(() => normalizeGraph(data), [data]);
   const learningSections = useMemo(() => resolveLearningPathSections(data), [data]);
   const backgroundItems = Array.isArray(data?.background_knowledge) ? data.background_knowledge : EMPTY_LIST;
@@ -105,7 +94,11 @@ const BackgroundKnowledgePanel = ({
   const confidenceText = formatPercent(data?.confidence);
   const coverageText = formatPercent(sourceCoverage?.ratio);
   const uncoveredNodeLabels = useMemo(() => getUncoveredNodeLabels(data), [data]);
-  const handleGenerate = createGenerateHandler(onGenerate, selectedKnowledgeLevel);
+  const handleGenerate = createGenerateHandler(onGenerate, selectedReaderProfile);
+  const readerProfileSummary = useMemo(
+    () => summarizeReaderProfile(data?.reader_profile || selectedReaderProfile),
+    [data?.reader_profile, selectedReaderProfile],
+  );
 
   const nodeByLabel = useMemo(() => {
     const map = new Map();
@@ -123,14 +116,14 @@ const BackgroundKnowledgePanel = ({
       return '先生成背景补课图谱，再按阅读需要逐步补齐概念、方法和批判视角。';
     }
 
-    return `为了更好理解 ${data?.paper_topic || '当前论文'}，建议优先补齐最影响阅读的概念、方法与批判视角。`;
+    return `为了更好理解 ${data?.paper_topic || '当前论文'}，建议优先补齐最影响精读推进的背景节点。`;
   }, [data]);
 
   const overviewPoints = useMemo(
     () => [
-      graphData.nodes.length > 0 ? `图谱包含 ${graphData.nodes.length} 个节点` : '等待图谱节点生成',
-      learningSections.length > 0 ? `学习路径拆成 ${learningSections.length} 个阶段` : '尚未生成学习路径',
-      backgroundItems.length > 0 ? `推荐补课主题 ${backgroundItems.length} 项` : '尚未生成补课清单',
+      graphData.nodes.length > 0 ? `图谱包含 ${graphData.nodes.length} 个知识节点` : '等待图谱节点生成',
+      learningSections.length > 0 ? `学习路径已拆成 ${learningSections.length} 个阶段` : '尚未生成学习路径',
+      backgroundItems.length > 0 ? `推荐补课主题 ${backgroundItems.length} 项` : '尚未生成补课主题',
     ],
     [backgroundItems.length, graphData.nodes.length, learningSections.length],
   );
@@ -143,7 +136,9 @@ const BackgroundKnowledgePanel = ({
         const whyText =
           normalizeText(node?.why) ||
           normalizeText(node?.summary) ||
-          (stageLabel ? `建议先补这部分 ${stageLabel}，再继续精读正文。` : '建议先补这部分背景，再继续精读正文。');
+          (stageLabel
+            ? `建议先补这一部分的 ${stageLabel}，再继续精读正文。`
+            : '建议先补这一部分背景，再继续精读正文。');
 
         return {
           title: item,
@@ -162,10 +157,10 @@ const BackgroundKnowledgePanel = ({
         </div>
         <h3 className="theme-text-primary text-xl font-bold">生成背景补课图谱</h3>
         <p className="theme-text-secondary mb-6 mt-2 max-w-sm text-sm">
-          先把这篇论文需要的概念、方法和依赖关系梳理成一条学习路线。
+          先把这篇论文需要的概念、方法和依赖关系梳理成一条可执行的补课路径。
         </p>
-        <div className="mb-6 w-full max-w-xs">
-          <KnowledgeLevelPicker value={selectedKnowledgeLevel} onChange={onKnowledgeLevelChange} />
+        <div className="theme-card-soft theme-text-secondary mb-6 w-full max-w-2xl rounded-2xl px-4 py-3 text-sm leading-6">
+          补课偏好已经收进上方悬停菜单。先在顶部微调熟悉度、目标和卡点，再开始生成会更准确。
         </div>
         <button
           type="button"
@@ -185,7 +180,9 @@ const BackgroundKnowledgePanel = ({
       <div className="theme-panel flex h-full flex-col items-center justify-center p-8 text-center">
         <Loader2 className="mb-5 animate-spin text-pixiu" size={48} />
         <p className="theme-text-primary text-lg font-medium">正在构建背景知识图谱</p>
-        <p className="theme-text-secondary mt-2 text-xs">系统会先梳理依赖关系，再生成可执行的补课顺序。</p>
+        <p className="theme-text-secondary mt-2 text-xs">
+          系统会结合你的自评、卡点和最近阅读行为，先梳理依赖关系，再生成可执行的补课顺序。
+        </p>
       </div>
     );
   }
@@ -208,7 +205,6 @@ const BackgroundKnowledgePanel = ({
             背景补课
           </h2>
           <div className="flex flex-wrap items-center gap-3">
-            <KnowledgeLevelPicker value={selectedKnowledgeLevel} onChange={onKnowledgeLevelChange} compact />
             <button
               type="button"
               onClick={handleGenerate}
@@ -217,6 +213,22 @@ const BackgroundKnowledgePanel = ({
               <RefreshCw size={16} />
               重新生成
             </button>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-start gap-2">
+          <span className="theme-text-secondary pt-1 text-xs font-medium">本次补课依据</span>
+          <div className="flex flex-1 flex-wrap gap-2">
+            {readerProfileSummary.map((item) => (
+              <span key={item} className="workbench-kind-chip">
+                {item}
+              </span>
+            ))}
+            {data?.adaptation_reason && (
+              <span className="theme-card-soft theme-text-secondary rounded-full px-3 py-1 text-xs leading-6">
+                {data.adaptation_reason}
+              </span>
+            )}
           </div>
         </div>
 
@@ -240,23 +252,25 @@ const BackgroundKnowledgePanel = ({
           icon={<BookOpenCheck size={16} className="text-pixiu" />}
           summary={overviewSummary}
           keyPoints={overviewPoints}
-          footer={onCaptureArtifact ? (
-            <button
-              type="button"
-              onClick={() =>
-                onCaptureArtifact({
-                  kind: 'background-overview',
-                  title: '背景补课总览',
-                  summary: overviewSummary,
-                  content: [overviewSummary, ...overviewPoints.map((item) => `- ${item}`)].join('\n\n'),
-                  tags: ['background', selectedKnowledgeLevel],
-                })
-              }
-              className="source-link-chip"
-            >
-              加入工作台
-            </button>
-          ) : null}
+          footer={
+            onCaptureArtifact ? (
+              <button
+                type="button"
+                onClick={() =>
+                  onCaptureArtifact({
+                    kind: 'background-overview',
+                    title: '背景补课总览',
+                    summary: overviewSummary,
+                    content: [overviewSummary, ...overviewPoints.map((item) => `- ${item}`)].join('\n\n'),
+                    tags: ['background', selectedKnowledgeLevel],
+                  })
+                }
+                className="source-link-chip"
+              >
+                加入工作台
+              </button>
+            ) : null
+          }
         />
 
         {activeMode === 'why' && (
@@ -280,7 +294,7 @@ const BackgroundKnowledgePanel = ({
                 <div>
                   <h3 className="theme-text-primary text-sm font-bold">{data?.paper_topic || '当前论文'}</h3>
                   <div className="theme-text-secondary mt-1 text-xs">
-                    当前知识水平：{data?.user_knowledge_level || selectedKnowledgeLevel}
+                    当前识别的熟悉程度：{data?.user_knowledge_level || selectedKnowledgeLevel}
                   </div>
                 </div>
                 <span className="theme-text-muted text-[10px] italic">拖拽节点 / 滚轮缩放</span>
@@ -365,7 +379,7 @@ const BackgroundKnowledgePanel = ({
                     title="图谱置信度"
                     icon={<ShieldCheck size={16} className="text-pixiu" />}
                     summary={confidenceText}
-                    keyPoints={['综合节点结构完整性和证据覆盖比例。']}
+                    keyPoints={['综合节点结构完整性和证据覆盖比例得出。']}
                   />
                 )}
 
@@ -393,37 +407,39 @@ const BackgroundKnowledgePanel = ({
                       summary={source.text || '暂无片段内容'}
                       content={source.text || ''}
                       detailsTitle="展开依据片段"
-                      footer={onCaptureArtifact || source.canJumpToSource ? (
-                        <div className="flex flex-wrap gap-2">
-                          {onCaptureArtifact && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                onCaptureArtifact({
-                                  kind: 'background-evidence',
-                                  title: `背景依据 ${source.id}`,
-                                  summary: source.text || '暂无片段内容',
-                                  content: source.text || '',
-                                  tags: ['background', 'evidence'],
-                                })
-                              }
-                              className="source-link-chip"
-                            >
-                              加入工作台
-                            </button>
-                          )}
-                          {source.canJumpToSource && (
-                            <button
-                              type="button"
-                              onClick={() => onJumpToSource?.(source)}
-                              className="source-link-chip inline-flex items-center gap-1"
-                            >
-                              <Link2 size={12} />
-                              跳回原文 {source.locationLabel}
-                            </button>
-                          )}
-                        </div>
-                      ) : null}
+                      footer={
+                        onCaptureArtifact || source.canJumpToSource ? (
+                          <div className="flex flex-wrap gap-2">
+                            {onCaptureArtifact && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onCaptureArtifact({
+                                    kind: 'background-evidence',
+                                    title: `背景依据 ${source.id}`,
+                                    summary: source.text || '暂无片段内容',
+                                    content: source.text || '',
+                                    tags: ['background', 'evidence'],
+                                  })
+                                }
+                                className="source-link-chip"
+                              >
+                                加入工作台
+                              </button>
+                            )}
+                            {source.canJumpToSource && (
+                              <button
+                                type="button"
+                                onClick={() => onJumpToSource?.(source)}
+                                className="source-link-chip inline-flex items-center gap-1"
+                              >
+                                <Link2 size={12} />
+                                跳回原文 {source.locationLabel}
+                              </button>
+                            )}
+                          </div>
+                        ) : null
+                      }
                     />
                   ))}
                 </div>
@@ -438,7 +454,7 @@ const BackgroundKnowledgePanel = ({
               <div className="theme-text-secondary text-sm">
                 {data?.neo4j?.enabled
                   ? data?.neo4j?.message || data?.neo4j?.status
-                  : '未配置 Neo4j，当前图谱来自接口返回结果。'}
+                  : '未配置 Neo4j，当前图谱来自接口返回结构。'}
               </div>
             </div>
           </>

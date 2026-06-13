@@ -322,7 +322,24 @@ http://ai-service:8000/api
   "paperSkeleton": {},
   "paperStructure": {},
   "paper_topic": null,
-  "user_knowledge_level": "一般"
+  "user_knowledge_level": "一般",
+  "reader_profile": {
+    "selfAssessedFamiliarity": "一般",
+    "preferredDepth": "标准",
+    "learningGoal": "理解方法链路",
+    "knownConcepts": ["Transformer"],
+    "confusingConcepts": ["图检索"]
+  },
+  "behavior_signals": {
+    "questionCount": 3,
+    "highlightCount": 4,
+    "noteCount": 2,
+    "translationUsageCount": 1,
+    "recentQuestions": ["为什么这里需要图检索"],
+    "currentSection": "Method",
+    "currentPage": 6,
+    "activeWorkspaceTab": "background"
+  }
 }
 ```
 
@@ -332,6 +349,8 @@ http://ai-service:8000/api
 - `graph`
 - `learning_path`
 - `learning_path_sections`
+- `reader_profile`
+- `adaptation_reason`
 - `rag_sources`
 - `confidence`
 - `sourceCoverage`
@@ -339,7 +358,9 @@ http://ai-service:8000/api
 
 说明：
 
-- `user_knowledge_level` 当前前端归一到 `入门`、`一般`、`进阶`
+- `reader_profile` 是新的主输入，允许用户通过“我会什么 / 我卡在哪 / 我想补到多深”来驱动补课结果
+- `behavior_signals` 由前端根据近期提问、翻译、标注、笔记等行为补充，用来帮助后端自适应补课顺序
+- `user_knowledge_level` 保留为兼容字段；当前系统会把它与 `reader_profile`、`behavior_signals` 一起综合，生成最终 `reader_profile.user_knowledge_level`
 
 ### `POST /api/socratic-questions`
 

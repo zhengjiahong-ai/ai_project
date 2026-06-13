@@ -87,7 +87,12 @@ class AcademicControllerTest {
     void backgroundKnowledgeReturnsForwardedPayload() throws Exception {
         when(aiService.backgroundKnowledge(eq(Map.of(
                 "pdfId", "paper-1",
-                "user_knowledge_level", "normal")))).thenReturn(Map.of(
+                "user_knowledge_level", "normal",
+                "reader_profile", Map.of(
+                        "selfAssessedFamiliarity", "一般",
+                        "preferredDepth", "深入"),
+                "behavior_signals", Map.of(
+                        "questionCount", 2))))).thenReturn(Map.of(
                         "status", "success",
                         "pdfId", "paper-1",
                         "background_knowledge", List.of("RAG", "knowledge graph")));
@@ -95,7 +100,7 @@ class AcademicControllerTest {
         mockMvc.perform(post("/api/background-knowledge")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"pdfId":"paper-1","user_knowledge_level":"normal"}
+                        {"pdfId":"paper-1","user_knowledge_level":"normal","reader_profile":{"selfAssessedFamiliarity":"一般","preferredDepth":"深入"},"behavior_signals":{"questionCount":2}}
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pdfId").value("paper-1"))

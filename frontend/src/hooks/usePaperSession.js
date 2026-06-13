@@ -17,6 +17,7 @@ export const usePaperSession = ({
   welcomeMessage,
   defaultActiveTab,
   normalizeBackgroundKnowledgeLevel,
+  normalizeBackgroundReaderProfile,
   normalizeSocraticSession,
   normalizeTranslationState,
   setPdfId,
@@ -26,7 +27,7 @@ export const usePaperSession = ({
   setNotes,
   setAnalysisData,
   setBackgroundKnowledgeData,
-  setBackgroundKnowledgeLevel,
+  setBackgroundReaderProfile,
   setMessages,
   setPdfHighlights,
   setWorkbenchCards,
@@ -102,7 +103,11 @@ export const usePaperSession = ({
     setNotes(savedNotes || []);
     setAnalysisData(savedAnalysis || null);
     setBackgroundKnowledgeData(savedBackgroundKnowledge || null);
-    setBackgroundKnowledgeLevel(normalizeBackgroundKnowledgeLevel(savedBackgroundKnowledge?.user_knowledge_level));
+    setBackgroundReaderProfile(normalizeBackgroundReaderProfile(
+      savedBackgroundKnowledge?.reader_profile || {
+        user_knowledge_level: normalizeBackgroundKnowledgeLevel(savedBackgroundKnowledge?.user_knowledge_level),
+      },
+    ));
     setMessages(nextMessages);
     setPdfHighlights(savedHighlights || []);
     setWorkbenchCards(savedWorkbenchCards || []);
@@ -130,13 +135,14 @@ export const usePaperSession = ({
     jumpToPage,
     lastNonTranslationTabRef,
     normalizeBackgroundKnowledgeLevel,
+    normalizeBackgroundReaderProfile,
     normalizeSocraticSession,
     normalizeTranslationState,
     papersListRef,
     setActiveTab,
     setAnalysisData,
     setBackgroundKnowledgeData,
-    setBackgroundKnowledgeLevel,
+    setBackgroundReaderProfile,
     setDeconstructData,
     setIsTranslated,
     setMessages,
