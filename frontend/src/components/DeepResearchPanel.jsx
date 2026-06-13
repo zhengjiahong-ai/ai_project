@@ -63,6 +63,26 @@ const getPlanItemStatusLabel = (status) => {
   return '';
 };
 
+const getConflictTypeLabel = (type) => {
+  if (type === 'numeric_mismatch') {
+    return '数值不一致';
+  }
+  if (type === 'opposing_conclusion') {
+    return '结论相反';
+  }
+  return '待核查冲突';
+};
+
+const getConflictSeverityClass = (severity) => {
+  if (severity === 'high') {
+    return 'border-rose-400/25 bg-rose-500/10 text-rose-400';
+  }
+  if (severity === 'low') {
+    return 'border-slate-400/25 bg-slate-500/10 text-slate-400';
+  }
+  return 'border-amber-400/25 bg-amber-500/10 text-amber-500';
+};
+
 const DeepResearchPanel = ({
   pdfFileName = '',
   paperStructure = null,
@@ -673,6 +693,59 @@ const DeepResearchPanel = ({
                 <div className="theme-text-secondary text-sm">
                   {isRunningTask ? '正在整理 findings，稍后会逐步显示结构化结果。' : '当前任务还没有返回 findings。'}
                 </div>
+              )}
+            </div>
+
+            <div className="theme-card rounded-2xl p-5">
+              <div className="theme-text-primary mb-3 text-sm font-bold">证据冲突/需人工核查</div>
+              {normalizedTask.conflicts.length > 0 ? (
+                <div className="space-y-4">
+                  {normalizedTask.conflicts.map((conflict) => (
+                    <InsightCard
+                      key={`${normalizedTask.taskId}-${conflict.id}`}
+                      title={conflict.claim || conflict.topic || '跨源证据冲突'}
+                      summary={conflict.summary}
+                      keyPoints={[
+                        getConflictTypeLabel(conflict.conflictType),
+                        conflict.sources.length > 0
+                          ? `来源：${conflict.sources.map((source) => source.locationLabel ? `${source.sourceId} (${source.locationLabel})` : source.sourceId).join('、')}`
+                          : '尚未绑定来源片段',
+                      ]}
+                      meta={(
+                        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getConflictSeverityClass(conflict.severity)}`}>
+                          {conflict.severity === 'high' ? '高风险' : conflict.severity === 'low' ? '低风险' : '中风险'}
+                        </span>
+                      )}
+                      content={[
+                        `### 冲突摘要\n${conflict.summary}`,
+                        `### 类型\n${getConflictTypeLabel(conflict.conflictType)}`,
+                        conflict.sources.length > 0
+                          ? `### 冲突来源\n${conflict.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
+                          : '',
+                      ].filter(Boolean).join('\n\n')}
+                      detailsTitle="展开冲突详情"
+                      footer={conflict.sources.some((source) => source.canJumpToSource) ? (
+                        <div className="flex flex-wrap gap-2">
+                          {conflict.sources
+                            .filter((source) => source.canJumpToSource)
+                            .map((source) => (
+                              <button
+                                key={source.sourceId}
+                                type="button"
+                                onClick={() => onJumpToSource?.(source)}
+                                className="source-link-chip inline-flex items-center gap-1"
+                              >
+                                <Link2 size={12} />
+                                跳回原文 {source.locationLabel}
+                              </button>
+                            ))}
+                        </div>
+                      ) : null}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="theme-text-secondary text-sm">当前未检测到明确跨源冲突。</div>
               )}
             </div>
 

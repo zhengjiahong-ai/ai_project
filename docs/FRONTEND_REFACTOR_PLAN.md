@@ -1,5 +1,11 @@
 # 前端重构计划
 
+## 2026-06-13 P1-8 Deep Research 跨源冲突核查展示
+
+- Deep Research 任务快照兼容后端新增的 `conflicts` 字段，旧快照没有冲突列表时稳定降级为空态。
+- `deepResearchPanelModel.js` 归一化冲突类型、严重度、摘要、来源 ID 和 evidence source 跳转元数据。
+- `DeepResearchPanel` 在 Findings 与研究报告之间新增“证据冲突/需人工核查”区，展示数值不一致或正反结论冲突，并复用来源跳回原文入口。
+
 ## 2026-06-13 P1-7 Deep Research 动态 follow-up 计划展示
 
 - Deep Research 任务计划兼容后端新增的对象型 `plan` 项，并继续支持旧字符串计划快照。

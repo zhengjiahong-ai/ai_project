@@ -118,6 +118,40 @@ const normalizeCoverage = (coverage) => {
   };
 };
 
+const normalizeResearchConflicts = (conflicts) => {
+  if (!Array.isArray(conflicts)) {
+    return [];
+  }
+
+  return conflicts
+    .map((conflict, index) => {
+      if (!conflict || typeof conflict !== 'object') {
+        return null;
+      }
+      const sourceIds = normalizeTextList(conflict.sourceIds, 6);
+      const conflictType = normalizeText(conflict.conflictType).toLowerCase();
+      const severity = normalizeText(conflict.severity).toLowerCase();
+      const summary = normalizeText(conflict.summary);
+      const topic = normalizeText(conflict.topic);
+      const claim = normalizeText(conflict.claim);
+      if (!summary && !claim && sourceIds.length === 0) {
+        return null;
+      }
+      return {
+        id: normalizeText(conflict.id) || `conflict-${index + 1}`,
+        topic,
+        claim,
+        conflictType: ['numeric_mismatch', 'opposing_conclusion'].includes(conflictType) ? conflictType : 'unknown',
+        severity: ['high', 'medium', 'low'].includes(severity) ? severity : 'medium',
+        summary: summary || '不同来源存在需要人工核查的矛盾线索。',
+        sourceIds,
+        sources: normalizeEvidenceSources(conflict.sources, sourceIds),
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+};
+
 const normalizeResearchPlanItems = (plan) => {
   if (!Array.isArray(plan)) {
     return [];
@@ -293,6 +327,7 @@ export const normalizeResearchTask = (task) => {
         sources: normalizeEvidenceSources(finding?.sources, sourceIds),
       };
     }),
+    conflicts: normalizeResearchConflicts(task.conflicts),
     report: typeof task.report === 'string' ? task.report : '',
     error: normalizeText(task.error),
     createdAt: normalizeText(task.createdAt),
@@ -386,6 +421,7 @@ export const createDeepResearchSnapshot = ({
     planItemCount: normalizedTask?.planItems?.length || 0,
     sourceIdCounts: (normalizedTask?.findings || []).map((finding) => finding.sourceIds.length),
     missingAspectCounts: (normalizedTask?.findings || []).map((finding) => finding.missingAspects.length),
+    conflictCount: normalizedTask?.conflicts?.length || 0,
     hasReport: Boolean(normalizedTask?.report),
     errorText: normalizeText(pollError) || normalizeText(errorMessage) || normalizedTask?.error || '',
   };

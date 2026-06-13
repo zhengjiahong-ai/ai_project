@@ -136,6 +136,142 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         self.assertEqual([item["kind"] for item in task["plan"]].count("follow_up"), 0)
         self.assertEqual(len(task["findings"]), 3)
 
+    def test_detects_numeric_conflicts_and_persists_them(self):
+        task, _calls = self._run_task_with_findings(
+            [
+                {
+                    "summary": "当前论文报告 accuracy 达到 91.2%。",
+                    "verdict": "CORRECT",
+                    "judgeScore": 82,
+                    "coverage": {},
+                    "missingAspects": [],
+                    "retryReason": "",
+                    "sourceIds": ["paper-accuracy"],
+                    "sources": [
+                        {
+                            "sourceId": "paper-accuracy",
+                            "text": "The accuracy reaches 91.2% on the benchmark.",
+                            "sourceType": "current_paper",
+                            "pageIndex": 3,
+                            "chunkIndex": 2,
+                        }
+                    ],
+                },
+                {
+                    "summary": "内部文献库记录 accuracy 为 87.5%。",
+                    "verdict": "CORRECT",
+                    "judgeScore": 80,
+                    "coverage": {},
+                    "missingAspects": [],
+                    "retryReason": "",
+                    "sourceIds": ["library-accuracy"],
+                    "sources": [
+                        {
+                            "sourceId": "library-accuracy",
+                            "text": "A replication reports accuracy of 87.5% under the same benchmark.",
+                            "sourceType": "library",
+                            "pageIndex": 5,
+                            "chunkIndex": 9,
+                        }
+                    ],
+                },
+                {"summary": "无额外冲突。", "verdict": "CORRECT", "judgeScore": 90, "coverage": {}, "missingAspects": [], "retryReason": "", "sourceIds": [], "sources": []},
+            ]
+        )
+
+        self.assertEqual(task["conflicts"][0]["conflictType"], "numeric_mismatch")
+        self.assertEqual(task["conflicts"][0]["severity"], "high")
+        self.assertIn("91.2%", task["conflicts"][0]["summary"])
+        self.assertIn("87.5%", task["conflicts"][0]["summary"])
+        self.assertEqual(task["conflicts"][0]["sourceIds"], ["paper-accuracy", "library-accuracy"])
+        self.assertIn("## 证据冲突/需人工核查", task["report"])
+        self.assertIn("paper-accuracy", task["report"])
+
+        research_task_service.reload_research_tasks_from_storage()
+        restored = research_task_service.get_research_task(task["taskId"])["task"]
+        self.assertEqual(restored["conflicts"][0]["sourceIds"], ["paper-accuracy", "library-accuracy"])
+
+    def test_detects_opposing_conclusion_conflicts(self):
+        task, _calls = self._run_task_with_findings(
+            [
+                {
+                    "summary": "方法显著提升效果。",
+                    "verdict": "CORRECT",
+                    "judgeScore": 82,
+                    "coverage": {},
+                    "missingAspects": [],
+                    "retryReason": "",
+                    "sourceIds": ["paper-effect"],
+                    "sources": [
+                        {
+                            "sourceId": "paper-effect",
+                            "text": "The proposed method significantly improves retrieval quality.",
+                            "sourceType": "current_paper",
+                        }
+                    ],
+                },
+                {
+                    "summary": "复现实验显示没有提升。",
+                    "verdict": "AMBIGUOUS",
+                    "judgeScore": 58,
+                    "coverage": {},
+                    "missingAspects": [],
+                    "retryReason": "",
+                    "sourceIds": ["library-effect"],
+                    "sources": [
+                        {
+                            "sourceId": "library-effect",
+                            "text": "The replication shows no improvement in retrieval quality.",
+                            "sourceType": "library",
+                        }
+                    ],
+                },
+                {"summary": "无额外冲突。", "verdict": "CORRECT", "judgeScore": 90, "coverage": {}, "missingAspects": [], "retryReason": "", "sourceIds": [], "sources": []},
+            ]
+        )
+
+        conflict_types = [item["conflictType"] for item in task["conflicts"]]
+        self.assertIn("opposing_conclusion", conflict_types)
+
+    def test_does_not_report_conflict_for_unrelated_or_matching_values(self):
+        task, _calls = self._run_task_with_findings(
+            [
+                {
+                    "summary": "accuracy 为 91.2%。",
+                    "verdict": "CORRECT",
+                    "judgeScore": 82,
+                    "coverage": {},
+                    "missingAspects": [],
+                    "retryReason": "",
+                    "sourceIds": ["paper-accuracy"],
+                    "sources": [{"sourceId": "paper-accuracy", "text": "Accuracy is 91.2%.", "sourceType": "current_paper"}],
+                },
+                {
+                    "summary": "f1 为 87.5%。",
+                    "verdict": "CORRECT",
+                    "judgeScore": 80,
+                    "coverage": {},
+                    "missingAspects": [],
+                    "retryReason": "",
+                    "sourceIds": ["library-f1"],
+                    "sources": [{"sourceId": "library-f1", "text": "F1 is 87.5%.", "sourceType": "library"}],
+                },
+                {
+                    "summary": "accuracy 同样为 91.2%。",
+                    "verdict": "CORRECT",
+                    "judgeScore": 90,
+                    "coverage": {},
+                    "missingAspects": [],
+                    "retryReason": "",
+                    "sourceIds": ["library-accuracy"],
+                    "sources": [{"sourceId": "library-accuracy", "text": "Accuracy reaches 91.2%.", "sourceType": "library"}],
+                },
+            ]
+        )
+
+        self.assertEqual(task["conflicts"], [])
+        self.assertNotIn("## 证据冲突/需人工核查", task["report"])
+
 
 if __name__ == "__main__":
     unittest.main()

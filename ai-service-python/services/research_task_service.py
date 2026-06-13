@@ -51,6 +51,7 @@ _TASK_EXECUTOR = ThreadPoolExecutor(max_workers=2)
 _STORAGE_LOADED = False
 INTERRUPTED_RESTART_ERROR = "服务已重启，运行中的深度研究任务无法继续执行，请重新发起任务。"
 MAX_DYNAMIC_FOLLOW_UPS = 1
+MAX_RESEARCH_CONFLICTS = 5
 
 
 class ResearchTaskNotFoundError(Exception):
@@ -92,6 +93,7 @@ def create_research_task(
         "pdfId": pdf_id,
         "plan": [],
         "findings": [],
+        "conflicts": [],
         "report": "",
         "error": "",
         "createdAt": created_at,
@@ -363,8 +365,17 @@ def _run_research_task(
             plan=copy.deepcopy(plan_items),
             findings=copy.deepcopy(findings),
         )
+        conflicts = _detect_research_conflicts(findings)
+        _update_task_snapshot(
+            task_id,
+            stage=SYNTHESIZING_STAGE,
+            progress=0.92,
+            plan=copy.deepcopy(plan_items),
+            findings=copy.deepcopy(findings),
+            conflicts=copy.deepcopy(conflicts),
+        )
         with trace_step("research_report_synthesis", input_size=len(findings)) as step:
-            report = _build_research_report(research_question, brief, plan_items, findings)
+            report = _build_research_report(research_question, brief, plan_items, findings, conflicts)
             step["outputSize"] = len(str(report or ""))
         if _is_cancelled(task_id):
             return
@@ -376,6 +387,7 @@ def _run_research_task(
             progress=1.0,
             plan=copy.deepcopy(plan_items),
             findings=copy.deepcopy(findings),
+            conflicts=copy.deepcopy(conflicts),
             report=report,
             error="",
         )
@@ -385,6 +397,7 @@ def _run_research_task(
                 "taskId": task_id,
                 "findingCount": len(findings),
                 "followUpCount": follow_up_count,
+                "conflictCount": len(conflicts),
                 "stage": DONE_STAGE,
                 **_build_judge_trace_summary(findings),
                 **summarize_safety_results(
@@ -843,6 +856,7 @@ def _build_research_report(
     brief: str,
     plan_items: List[Any],
     findings: List[Dict[str, Any]],
+    conflicts: List[Dict[str, Any]] | None = None,
 ) -> str:
     lines = [
         "## 研究 brief",
@@ -862,6 +876,20 @@ def _build_research_report(
             lines.append(f"- 缺失点：{', '.join(finding.get('missingAspects') or [])}")
         lines.append("")
 
+    normalized_conflicts = conflicts if isinstance(conflicts, list) else []
+    if normalized_conflicts:
+        lines.append("## 证据冲突/需人工核查")
+        for index, conflict in enumerate(normalized_conflicts[:MAX_RESEARCH_CONFLICTS], start=1):
+            source_ids = conflict.get("sourceIds") if isinstance(conflict.get("sourceIds"), list) else []
+            lines.extend([
+                f"### {index}. {conflict.get('claim') or conflict.get('topic') or '跨源证据冲突'}",
+                f"- 类型：{conflict.get('conflictType') or 'unknown'}",
+                f"- 严重度：{conflict.get('severity') or 'medium'}",
+                f"- 摘要：{conflict.get('summary') or '不同来源存在需要人工核查的矛盾线索。'}",
+                f"- 冲突来源：{', '.join(str(item) for item in source_ids if item) or '未绑定稳定来源'}",
+                "",
+            ])
+
     lines.extend([
         "## 综合判断",
         _overall_assessment(question, findings, planned_count=len(plan_items)),
@@ -870,6 +898,198 @@ def _build_research_report(
         _next_steps(findings),
     ])
     return "\n".join(line for line in lines if line is not None).strip()
+
+
+def _detect_research_conflicts(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    evidence_items = _collect_conflict_evidence(findings)
+    conflicts: List[Dict[str, Any]] = []
+    seen = set()
+
+    numeric_claims = []
+    for item in evidence_items:
+        numeric_claims.extend(_extract_numeric_claims(item))
+
+    by_topic: Dict[str, List[Dict[str, Any]]] = {}
+    for claim in numeric_claims:
+        by_topic.setdefault(str(claim.get("topic") or ""), []).append(claim)
+
+    for topic, claims in by_topic.items():
+        if not topic or len(claims) < 2:
+            continue
+        for left_index, left in enumerate(claims):
+            for right in claims[left_index + 1:]:
+                if left.get("sourceId") == right.get("sourceId"):
+                    continue
+                left_value = _coerce_float(left.get("value"), 0.0)
+                right_value = _coerce_float(right.get("value"), 0.0)
+                if abs(left_value - right_value) < 0.1:
+                    continue
+                key = ("numeric_mismatch", topic, tuple(sorted([str(left.get("sourceId")), str(right.get("sourceId"))])))
+                if key in seen:
+                    continue
+                seen.add(key)
+                conflicts.append(_build_numeric_conflict(len(conflicts) + 1, topic, left, right))
+                if len(conflicts) >= MAX_RESEARCH_CONFLICTS:
+                    return conflicts
+
+    polarized = [item for item in evidence_items if _evidence_polarity(item.get("text"))]
+    for left_index, left in enumerate(polarized):
+        for right in polarized[left_index + 1:]:
+            if left.get("sourceId") == right.get("sourceId"):
+                continue
+            left_polarity = _evidence_polarity(left.get("text"))
+            right_polarity = _evidence_polarity(right.get("text"))
+            if left_polarity == right_polarity:
+                continue
+            topic = _shared_conflict_topic(left.get("text"), right.get("text"))
+            if not topic:
+                continue
+            key = ("opposing_conclusion", topic, tuple(sorted([str(left.get("sourceId")), str(right.get("sourceId"))])))
+            if key in seen:
+                continue
+            seen.add(key)
+            conflicts.append(_build_opposing_conflict(len(conflicts) + 1, topic, left, right))
+            if len(conflicts) >= MAX_RESEARCH_CONFLICTS:
+                return conflicts
+
+    return conflicts
+
+
+def _collect_conflict_evidence(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    collected: List[Dict[str, Any]] = []
+    seen = set()
+    for finding in findings or []:
+        sources = finding.get("sources") if isinstance(finding, dict) else []
+        for item in normalize_evidence_items(sources, max_text_chars=700):
+            source_id = str(item.get("sourceId") or "")
+            text = _clean_text(item.get("text"))
+            if not source_id or not text:
+                continue
+            key = (source_id, text[:180])
+            if key in seen:
+                continue
+            seen.add(key)
+            collected.append(item)
+    return collected
+
+
+def _extract_numeric_claims(item: Dict[str, Any]) -> List[Dict[str, Any]]:
+    text = str(item.get("text") or "")
+    claims = []
+    pattern = r"(?P<metric>accuracy|acc|f1|precision|recall|auc|bleu|rouge|map|ndcg|score|准确率|精度|召回率|得分|指标)[^。\n.;,，]{0,48}?(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>%|percent|分|倍)?"
+    for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+        topic = _normalize_conflict_topic(match.group("metric"))
+        if not topic:
+            continue
+        claims.append({
+            "topic": topic,
+            "value": float(match.group("value")),
+            "unit": "%" if (match.group("unit") or "").lower() in {"%", "percent"} else (match.group("unit") or ""),
+            "sourceId": item.get("sourceId"),
+            "source": item,
+        })
+    return claims
+
+
+def _build_numeric_conflict(index: int, topic: str, left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+    left_value = _format_conflict_value(left)
+    right_value = _format_conflict_value(right)
+    left_source = left.get("source") if isinstance(left.get("source"), dict) else {}
+    right_source = right.get("source") if isinstance(right.get("source"), dict) else {}
+    source_ids = [str(left_source.get("sourceId") or ""), str(right_source.get("sourceId") or "")]
+    return {
+        "id": f"conflict-{index}",
+        "topic": topic,
+        "claim": f"{topic} 相关数值存在差异",
+        "conflictType": "numeric_mismatch",
+        "severity": "high" if abs(_coerce_float(left.get("value"), 0.0) - _coerce_float(right.get("value"), 0.0)) >= 2 else "medium",
+        "summary": f"不同来源对 {topic} 给出 {left_value} 与 {right_value}，需要人工核查实验设置、数据集或指标定义是否一致。",
+        "sourceIds": [item for item in source_ids if item],
+        "sources": [left_source, right_source],
+    }
+
+
+def _build_opposing_conflict(index: int, topic: str, left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+    source_ids = [str(left.get("sourceId") or ""), str(right.get("sourceId") or "")]
+    return {
+        "id": f"conflict-{index}",
+        "topic": topic,
+        "claim": f"{topic} 相关结论存在相反表述",
+        "conflictType": "opposing_conclusion",
+        "severity": "medium",
+        "summary": f"不同来源围绕 {topic} 出现正反结论，需要人工核查上下文、实验条件和适用范围。",
+        "sourceIds": [item for item in source_ids if item],
+        "sources": [left, right],
+    }
+
+
+def _format_conflict_value(claim: Dict[str, Any]) -> str:
+    value = _coerce_float(claim.get("value"), 0.0)
+    formatted = str(int(value)) if value.is_integer() else f"{value:.4f}".rstrip("0").rstrip(".")
+    return f"{formatted}{claim.get('unit') or ''}"
+
+
+def _normalize_conflict_topic(value: Any) -> str:
+    text = _clean_text(value).lower()
+    aliases = {
+        "acc": "accuracy",
+        "准确率": "accuracy",
+        "精度": "precision",
+        "召回率": "recall",
+        "得分": "score",
+        "指标": "score",
+    }
+    return aliases.get(text, text)
+
+
+def _evidence_polarity(text: Any) -> str:
+    value = str(text or "").lower()
+    negative_patterns = [
+        "no improvement", "not improve", "does not improve", "failed to improve",
+        "decrease", "decreased", "worse", "negative", "unsupported",
+        "没有提升", "未提升", "无提升", "下降", "降低", "无效", "不支持",
+    ]
+    positive_patterns = [
+        "significantly improves", "improves", "improved", "improvement", "increase", "increased",
+        "effective", "supports", "supported", "positive",
+        "显著提升", "提升", "提高", "有效", "支持",
+    ]
+    if any(pattern in value for pattern in negative_patterns):
+        return "negative"
+    if any(pattern in value for pattern in positive_patterns):
+        return "positive"
+    return ""
+
+
+def _shared_conflict_topic(left: Any, right: Any) -> str:
+    left_terms = _extract_conflict_terms(left)
+    right_terms = _extract_conflict_terms(right)
+    shared = [term for term in left_terms if term in right_terms]
+    return shared[0] if shared else ""
+
+
+def _extract_conflict_terms(text: Any) -> List[str]:
+    value = str(text or "").lower()
+    stopwords = {
+        "the", "and", "for", "with", "that", "this", "shows", "show", "method",
+        "proposed", "significantly", "improves", "improvement", "quality", "replication",
+        "没有", "提升", "显著", "方法", "复现实验", "显示",
+    }
+    terms = []
+    seen = set()
+    for token in re.findall(r"[a-z][a-z0-9_-]{2,}", value):
+        if token in stopwords:
+            continue
+        if token not in seen:
+            seen.add(token)
+            terms.append(token)
+    for segment in re.findall(r"[\u4e00-\u9fff]{2,}", value):
+        if segment in stopwords:
+            continue
+        if segment not in seen:
+            seen.add(segment)
+            terms.append(segment)
+    return terms[:12]
 
 
 def _overall_assessment(question: str, findings: List[Dict[str, Any]], planned_count: int) -> str:
@@ -1250,6 +1470,7 @@ def _initialize_storage_locked() -> None:
                 pdfId TEXT NOT NULL,
                 plan TEXT NOT NULL,
                 findings TEXT NOT NULL,
+                conflicts TEXT NOT NULL DEFAULT '[]',
                 report TEXT NOT NULL,
                 error TEXT NOT NULL,
                 createdAt TEXT NOT NULL,
@@ -1257,6 +1478,9 @@ def _initialize_storage_locked() -> None:
             )
             """
         )
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(research_tasks)").fetchall()}
+        if "conflicts" not in columns:
+            connection.execute("ALTER TABLE research_tasks ADD COLUMN conflicts TEXT NOT NULL DEFAULT '[]'")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_research_tasks_pdf_updated ON research_tasks (pdfId, updatedAt)")
         connection.commit()
 
@@ -1279,8 +1503,8 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
             """
             INSERT INTO research_tasks (
                 taskId, traceId, status, stage, progress, question, pdfId,
-                plan, findings, report, error, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                plan, findings, conflicts, report, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(taskId) DO UPDATE SET
                 traceId=excluded.traceId,
                 status=excluded.status,
@@ -1290,6 +1514,7 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 pdfId=excluded.pdfId,
                 plan=excluded.plan,
                 findings=excluded.findings,
+                conflicts=excluded.conflicts,
                 report=excluded.report,
                 error=excluded.error,
                 createdAt=excluded.createdAt,
@@ -1305,6 +1530,7 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 snapshot["pdfId"],
                 json.dumps(snapshot["plan"], ensure_ascii=False),
                 json.dumps(snapshot["findings"], ensure_ascii=False),
+                json.dumps(snapshot["conflicts"], ensure_ascii=False),
                 snapshot["report"],
                 snapshot["error"],
                 snapshot["createdAt"],
@@ -1334,6 +1560,7 @@ def _task_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
         "pdfId": str(row["pdfId"] or ""),
         "plan": _safe_json_list(row["plan"]),
         "findings": _safe_json_list(row["findings"]),
+        "conflicts": _safe_json_list(row["conflicts"]) if "conflicts" in row.keys() else [],
         "report": str(row["report"] or ""),
         "error": str(row["error"] or ""),
         "createdAt": created_at,
@@ -1355,6 +1582,7 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
         "pdfId": str(task.get("pdfId") or ""),
         "plan": list(task.get("plan") or []),
         "findings": list(task.get("findings") or []),
+        "conflicts": list(task.get("conflicts") or []),
         "report": str(task.get("report") or ""),
         "error": str(task.get("error") or ""),
         "createdAt": created_at,

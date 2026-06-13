@@ -36,3 +36,12 @@
 - `retryReason` 仅在该 finding 触发自动 retry 时记录原因；未触发 retry 时为空字符串。
 - `GET /api/traces/{traceId}` 的 deep research judge step 可在 `steps[*].meta` 中包含 `decision`，取值为 `stop`、`try_library` 或 `retry`，用于解释为什么停止、补查文献库或重试。
 - 旧客户端可忽略这些新增字段；Java 网关继续透传 Python 响应。
+
+## 深度研究跨源冲突字段
+
+- `POST /api/research-tasks`、`GET /api/research-tasks/{taskId}` 和 `GET /api/research-tasks/latest` 的 `task` 兼容新增 `conflicts` 数组。
+- `task.conflicts[*]` 可包含 `id/topic/claim/conflictType/severity/summary/sourceIds/sources`。
+- `conflictType` 当前只承诺规则型 MVP 值：`numeric_mismatch` 和 `opposing_conclusion`。
+- `sources` 复用 evidence item 契约，保留 `sourceId/sourceType/text/pageIndex/sectionId/chunkIndex/pdfId` 等可用来源锚点。
+- 冲突检测只标记“需人工核查”，不得自动融合矛盾结论或裁决哪一方正确。
+- Java 网关继续透传 Python 响应；旧客户端可忽略 `conflicts`。

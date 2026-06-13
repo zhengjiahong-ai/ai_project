@@ -99,6 +99,32 @@ const run = async () => {
         verdict: 'unexpected',
       },
     ],
+    conflicts: [
+      {
+        id: 'conflict-1',
+        topic: 'accuracy',
+        claim: 'accuracy 相关数值存在差异',
+        conflictType: 'numeric_mismatch',
+        severity: 'high',
+        summary: '不同来源对 accuracy 给出 91.2% 与 87.5%。',
+        sourceIds: ['paper-1-chunk-2', 'lib-1-chunk-3'],
+        sources: [
+          {
+            sourceId: 'paper-1-chunk-2',
+            text: 'Accuracy reaches 91.2%.',
+            sourceType: 'current_paper',
+            pageIndex: 4,
+            sectionId: 'section-5',
+            chunkIndex: 2,
+          },
+          {
+            sourceId: 'lib-1-chunk-3',
+            text: 'Accuracy is 87.5%.',
+            sourceType: 'library',
+          },
+        ],
+      },
+    ],
     report: null,
     error: null,
     createdAt: '2026-06-01T10:00:00Z',
@@ -151,9 +177,17 @@ const run = async () => {
     sourceTypes: [],
   });
   assert.equal(normalizedRunningTask.findings[1].retryReason, '');
+  assert.equal(normalizedRunningTask.conflicts.length, 1);
+  assert.equal(normalizedRunningTask.conflicts[0].conflictType, 'numeric_mismatch');
+  assert.equal(normalizedRunningTask.conflicts[0].severity, 'high');
+  assert.deepEqual(normalizedRunningTask.conflicts[0].sourceIds, ['paper-1-chunk-2', 'lib-1-chunk-3']);
+  assert.equal(normalizedRunningTask.conflicts[0].sources[0].locationLabel, 'p.5');
+  assert.equal(normalizedRunningTask.conflicts[0].sources[0].canJumpToSource, true);
   assert.equal(normalizedRunningTask.report, '');
   assert.equal(normalizedRunningTask.createdAt, '2026-06-01T10:00:00Z');
   assert.equal(normalizedRunningTask.updatedAt, '2026-06-01T10:02:00Z');
+
+  assert.deepEqual(normalizeResearchTask({ taskId: 'legacy-task' }).conflicts, []);
 
   const snapshot = createDeepResearchSnapshot({
     pdfFileName: 'paper.pdf',
@@ -181,6 +215,7 @@ const run = async () => {
           missingAspects: ['更完整指标'],
         },
       ],
+      conflicts: [{ summary: '存在冲突' }],
       report: '## 报告',
       error: '',
     },
@@ -195,6 +230,7 @@ const run = async () => {
   assert.deepEqual(snapshot.verdictLabels, ['证据充足', '证据不足']);
   assert.deepEqual(snapshot.sourceIdCounts, [2, 0]);
   assert.deepEqual(snapshot.missingAspectCounts, [0, 1]);
+  assert.equal(snapshot.conflictCount, 1);
   assert.equal(snapshot.planItemCount, 0);
   assert.equal(snapshot.hasReport, true);
   assert.equal(snapshot.errorText, '任务状态已丢失');

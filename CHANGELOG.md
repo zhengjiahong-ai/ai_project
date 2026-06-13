@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-13 14:20 v0.1.28
+
+1. **完成 Deep Research 跨源冲突检测 MVP**：`research_task_service.py` 在综合阶段前基于 `findings[*].sources` 做规则型冲突扫描，生成任务级 `conflicts`，覆盖同一指标数值差异和同一主题正反结论，不调用额外 LLM、不自动裁决哪一方正确。
+2. **增强报告、快照和前端核查展示**：研究报告新增“证据冲突/需人工核查”章节；SQLite 任务快照持久化 `conflicts` 并兼容旧库迁移；`deepResearchPanelModel` 归一化冲突来源，`DeepResearchPanel` 在 Findings 与报告之间展示冲突卡片和可用的跳回原文入口。
+
 ### 2026-06-13 09:55 v0.1.27
 
 1. **完成 Deep Research 最小动态重规划**：`research_task_service.py` 将任务 `plan` 兼容升级为对象型计划项，初始子问题记录 `kind/status`；当某个 finding 最终 `verdict=INCORRECT` 且仍有 `missingAspects` 时，每个任务最多追加并执行 1 个 `follow_up` 子问题。

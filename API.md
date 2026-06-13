@@ -676,6 +676,7 @@ http://ai-service:8000/api
 - `pdfId`
 - `plan`
 - `findings`
+- `conflicts`
 - `report`
 - `error`
 - `createdAt`
@@ -706,6 +707,23 @@ http://ai-service:8000/api
 - `sourceMissingAspects`：生成 follow-up 时引用的缺失证据点。
 - `sourceIds`
 - `sources`
+
+`conflicts[*]` 兼容字段：
+
+- `id`
+- `topic`
+- `claim`
+- `conflictType`：`numeric_mismatch` 表示同一指标附近出现不同数值，`opposing_conclusion` 表示同一主题附近出现正反结论。
+- `severity`：`high|medium|low`，仅表示需要人工核查的优先级，不代表自动裁决结果。
+- `summary`
+- `sourceIds`
+- `sources`：复用 evidence item 字段，包含 `sourceId/sourceType/text/pageIndex/sectionId/chunkIndex/pdfId` 等可用来源锚点。
+
+冲突检测规则：
+
+- 当前为规则型 MVP，不调用 LLM 额外判定。
+- 只基于 Deep Research 已检索并绑定到 `findings[*].sources` 的证据片段检测，不额外发起检索。
+- 检出冲突时报告会单独列出“证据冲突/需人工核查”；系统不会自动融合为单一结论。
 
 ### Retrieval Judge
 
