@@ -44,6 +44,34 @@ Browser
 - 右侧多功能工作区
 - 底部沉淀工作台 `BottomWorkbench`
 
+`App.jsx` 目前还维护一个轻量应用模式状态：
+
+- `reader`：默认阅读 IDE 模式，使用现有单论文阅读工作台。
+- `agent`：Agent 研究模式前端原型，展示多论文研究工作区和 Agent 对话式任务界面。
+
+`Navbar` 暴露 `阅读 IDE / Agent 研究` 模式切换。切换只影响前端工作区渲染，不改变现有 PDF 上传、阅读、问答和本地持久化流程。
+
+### Agent 研究模式原型
+
+Agent 研究模式当前位于：
+
+- `frontend/src/components/agent/AgentWorkspace.jsx`
+- `frontend/src/components/agent/agentMockData.js`
+
+它是一个前端框架原型，目标是先确定多论文研究场景的界面结构，暂不声明已经具备完整智能体能力。当前三栏结构为：
+
+- `AgentProjectSidebar`：研究工作区，展示研究主题、多论文列表、解析/索引状态和最近任务。
+- `AgentChatWorkspace`：中间任务对话区，底部固定输入框，上方展示用户任务、任务理解、执行计划、工具调用、阶段性结果和研究结论草稿。
+- `AgentEvidencePanel`：右侧工具调用与证据链，展示工具状态和可追溯证据片段。
+
+当前数据来自 `agentMockData.js`，用于支撑前端交互和展示，不代表后端真实任务结果。后续接入真实能力时，建议按以下顺序推进：
+
+1. 接入论文库多选和研究工作区状态。
+2. 接入跨论文 RAG 检索结果。
+3. 复用现有批判阅读、背景补课、引导学习和深度研究接口作为工具能力。
+4. 增加任务执行 trace 与证据链持久化。
+5. 再引入更复杂的任务规划和多步骤调度。
+
 ### 功能分区
 
 右侧工作区按阶段划分为三个 section：

@@ -1,5 +1,13 @@
 # 前端重构计划
 
+## 2026-06-14 P2-1 Agent 研究模式前端框架
+
+- `Navbar` 新增 `阅读 IDE / Agent 研究` 双模式切换，默认仍进入原有阅读 IDE，避免影响现有单论文阅读工作流。
+- `App.jsx` 新增轻量 `appMode` 状态，`reader` 模式渲染原有 PDF 阅读工作台，`agent` 模式渲染新增 `AgentWorkspace`。
+- 新增 `frontend/src/components/agent/AgentWorkspace.jsx`，先实现三栏前端框架：左侧研究工作区、中间 Codex 风格 Agent 对话任务区、右侧工具调用与证据链。
+- 新增 `frontend/src/components/agent/agentMockData.js`，当前仅使用 mock 数据展示多论文、执行计划、工具调用、阶段性结果和证据片段。
+- 本阶段不引入复杂智能体概念，不接真实后端 Agent；目标是先固定产品形态，后续再逐步接入论文库多选、跨论文 RAG、深度研究和工具 trace。
+
 ## 2026-06-13 P1-10 Deep Research trace 预算指标展示
 
 - Deep Research trace summary 兼容后端稳定 counters 字段，旧 trace 缺少预算字段时统一降级为 0。
