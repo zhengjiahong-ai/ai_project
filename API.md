@@ -19,6 +19,28 @@ http://ai-service:8000/api
 1. 浏览器可直接使用的 Java API
 2. Java 转发到 Python 的内部对应关系
 
+## Agent 研究模式说明
+
+当前仓库中的 `Agent 研究` 前端面板仍是原型界面，尚未接入真实 Agent 项目和 Agent 任务接口。
+
+现状：
+
+- 已存在的前端原型文件：
+  - `frontend/src/components/agent/AgentWorkspace.jsx`
+  - `frontend/src/components/agent/agentMockData.js`
+- 已上线的真实后端能力：
+  - 单论文问答
+  - 背景补课
+  - 批判阅读
+  - 单论文 deep research 任务
+- 尚未上线的真实能力：
+  - Agent 项目管理
+  - 多论文 Agent 编排任务
+  - Agent 时间线事件流
+  - Agent 项目级 trace 查询
+
+因此，本文件后文中新增的 Agent 研究模式接口均视为“规划中的 API 草案”，不是当前已上线接口。前端在真实接入前不应假设这些接口已经可用。
+
 ## 通用响应约定
 
 大多数接口返回：
@@ -636,6 +658,240 @@ http://ai-service:8000/api
 - deep research 证据缺口触发最小动态重规划时，trace 会包含 `research_follow_up_planning` step。
 - deep research 完成时，`responseMeta` 可能包含 `averageJudgeScore/retryFindingCount/insufficientFindingCount/followUpCount`，用于快速排查长路径任务的证据效用和 follow-up 次数。
 
+## Agent 研究模式规划 API
+
+以下接口为建议中的统一对外契约，用于把当前 Agent 面板从 mock 原型升级为真实工作台。
+
+### 设计边界
+
+- 现有 `research-tasks` 继续服务单论文 deep research。
+- 新增 `agent-projects` / `agent-tasks` 只服务多论文 Agent 研究模式。
+- Agent 任务仍遵守“项目论文优先、内部文献库补充、不做外部 Web 搜索”的系统边界。
+
+### `POST /api/agent-projects`
+
+创建一个 Agent 研究项目。
+
+请求体草案：
+
+```json
+{
+  "title": "多论文比较：RAG 与 Self-RAG",
+  "goal": "比较研究问题、方法设计、证据覆盖和局限性",
+  "paperIds": ["rag-paper", "self-rag-paper"]
+}
+```
+
+成功响应草案：
+
+```json
+{
+  "status": "success",
+  "project": {
+    "projectId": "project-1",
+    "title": "多论文比较：RAG 与 Self-RAG",
+    "goal": "比较研究问题、方法设计、证据覆盖和局限性",
+    "paperIds": ["rag-paper", "self-rag-paper"],
+    "createdAt": "2026-06-14T10:00:00Z",
+    "updatedAt": "2026-06-14T10:00:00Z"
+  }
+}
+```
+
+### `GET /api/agent-projects`
+
+读取项目列表。
+
+成功响应草案：
+
+```json
+{
+  "status": "success",
+  "projects": [
+    {
+      "projectId": "project-1",
+      "title": "多论文比较：RAG 与 Self-RAG",
+      "goal": "比较研究问题、方法设计、证据覆盖和局限性",
+      "paperIds": ["rag-paper", "self-rag-paper"],
+      "latestTaskId": "agent-task-1",
+      "updatedAt": "2026-06-14T10:00:00Z"
+    }
+  ]
+}
+```
+
+### `GET /api/agent-projects/{projectId}`
+
+读取单个项目详情。
+
+成功响应草案：
+
+```json
+{
+  "status": "success",
+  "project": {
+    "projectId": "project-1",
+    "title": "多论文比较：RAG 与 Self-RAG",
+    "goal": "比较研究问题、方法设计、证据覆盖和局限性",
+    "paperIds": ["rag-paper", "self-rag-paper"],
+    "papers": [
+      {
+        "pdfId": "rag-paper",
+        "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP",
+        "indexed": true
+      }
+    ],
+    "latestTaskId": "agent-task-1",
+    "createdAt": "2026-06-14T10:00:00Z",
+    "updatedAt": "2026-06-14T10:00:00Z"
+  }
+}
+```
+
+### `PATCH /api/agent-projects/{projectId}`
+
+更新项目标题、目标或默认约束。
+
+请求体草案：
+
+```json
+{
+  "title": "多论文方法比较",
+  "goal": "重点比较方法和实验",
+  "defaultConstraints": "优先关注方法与实验，不展开背景综述"
+}
+```
+
+### `POST /api/agent-projects/{projectId}/papers`
+
+向项目追加论文。
+
+请求体草案：
+
+```json
+{
+  "paperIds": ["toolformer-paper"]
+}
+```
+
+### `DELETE /api/agent-projects/{projectId}/papers/{pdfId}`
+
+从项目中移除一篇论文。
+
+### `POST /api/agent-projects/{projectId}/tasks`
+
+创建一个项目级 Agent 研究任务。
+
+请求体草案：
+
+```json
+{
+  "prompt": "比较这些论文在研究问题、方法设计、实验指标和局限性上的差异",
+  "focusedPaperIds": ["rag-paper", "self-rag-paper"],
+  "constraints": "先输出对比表，再输出结论草稿",
+  "context": {
+    "activePaperId": "rag-paper",
+    "activeSection": "Method"
+  }
+}
+```
+
+成功响应草案：
+
+```json
+{
+  "status": "success",
+  "task": {
+    "taskId": "agent-task-1",
+    "projectId": "project-1",
+    "traceId": "trace-1",
+    "status": "pending",
+    "stage": "planning",
+    "progress": 0.0,
+    "prompt": "比较这些论文在研究问题、方法设计、实验指标和局限性上的差异",
+    "planItems": [],
+    "toolCalls": [],
+    "evidenceItems": [],
+    "findings": [],
+    "draftReport": "",
+    "createdAt": "2026-06-14T10:05:00Z",
+    "updatedAt": "2026-06-14T10:05:00Z"
+  }
+}
+```
+
+### `GET /api/agent-projects/{projectId}/tasks/latest`
+
+读取项目最近一次 Agent 任务快照。
+
+### `GET /api/agent-tasks/{taskId}`
+
+查询 Agent 任务状态。
+
+建议任务快照结构：
+
+- `taskId`
+- `projectId`
+- `traceId`
+- `status`
+- `stage`
+- `progress`
+- `prompt`
+- `planItems`
+- `events`
+- `toolCalls`
+- `evidenceItems`
+- `findings`
+- `comparisonTable`
+- `conflicts`
+- `openQuestions`
+- `draftReport`
+- `createdAt`
+- `updatedAt`
+
+### `POST /api/agent-tasks/{taskId}/cancel`
+
+取消 Agent 任务。
+
+### `GET /api/agent-traces/{traceId}`
+
+读取 Agent 任务的脱敏 trace 摘要。
+
+建议和现有 `GET /api/traces/{traceId}` 语义保持一致，但补充项目级字段：
+
+- `projectId`
+- `paperIds`
+- `focusedPaperIds`
+- `planItemCount`
+- `evidenceItemCount`
+- `conflictCount`
+
+### Agent Event Item
+
+建议 Agent 任务补充一个面向前端时间线的事件结构：
+
+- `eventId`
+- `type`
+- `timestamp`
+- `taskId`
+- `stage`
+- `summary`
+- `meta`
+
+建议事件类型：
+
+- `task_created`
+- `task_understood`
+- `plan_generated`
+- `plan_item_started`
+- `tool_called`
+- `tool_completed`
+- `evidence_added`
+- `finding_generated`
+- `report_updated`
+- `task_completed`
+- `task_failed`
+
 ## Java 到 Python 的转发关系
 
 | Java API | Python API |
@@ -655,6 +911,22 @@ http://ai-service:8000/api
 | `GET /api/research-tasks/{taskId}` | `GET /api/research-tasks/{taskId}` |
 | `POST /api/research-tasks/{taskId}/cancel` | `POST /api/research-tasks/{taskId}/cancel` |
 | `GET /api/traces/{traceId}` | `GET /api/traces/{traceId}` |
+
+当前没有已实现的 Agent 专属转发关系。建议未来新增：
+
+| 规划中的 Java API | 规划中的 Python API |
+| --- | --- |
+| `POST /api/agent-projects` | `POST /api/agent-projects` |
+| `GET /api/agent-projects` | `GET /api/agent-projects` |
+| `GET /api/agent-projects/{projectId}` | `GET /api/agent-projects/{projectId}` |
+| `PATCH /api/agent-projects/{projectId}` | `PATCH /api/agent-projects/{projectId}` |
+| `POST /api/agent-projects/{projectId}/papers` | `POST /api/agent-projects/{projectId}/papers` |
+| `DELETE /api/agent-projects/{projectId}/papers/{pdfId}` | `DELETE /api/agent-projects/{projectId}/papers/{pdfId}` |
+| `POST /api/agent-projects/{projectId}/tasks` | `POST /api/agent-projects/{projectId}/tasks` |
+| `GET /api/agent-projects/{projectId}/tasks/latest` | `GET /api/agent-projects/{projectId}/tasks/latest` |
+| `GET /api/agent-tasks/{taskId}` | `GET /api/agent-tasks/{taskId}` |
+| `POST /api/agent-tasks/{taskId}/cancel` | `POST /api/agent-tasks/{taskId}/cancel` |
+| `GET /api/agent-traces/{traceId}` | `GET /api/agent-traces/{traceId}` |
 
 ## Python 直接暴露但前端当前未直接使用的接口
 
