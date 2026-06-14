@@ -38,3 +38,5 @@ ai-service-python/core/chroma_literature_db/
 node_modules/
 
 .vscode/
+
+CLAUDE.md
