@@ -5,7 +5,9 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -102,5 +104,68 @@ public class AcademicController {
     @GetMapping("/traces/{traceId}")
     public ResponseEntity<Map<String, Object>> getTrace(@PathVariable String traceId) {
         return aiService.getTrace(traceId);
+    }
+
+    @PostMapping("/agent-projects")
+    public ResponseEntity<Map<String, Object>> createAgentProject(@RequestBody Map<String, Object> request) {
+        return aiService.createAgentProject(request);
+    }
+
+    @GetMapping("/agent-projects")
+    public ResponseEntity<Map<String, Object>> listAgentProjects() {
+        return aiService.listAgentProjects();
+    }
+
+    @GetMapping("/agent-projects/{projectId}")
+    public ResponseEntity<Map<String, Object>> getAgentProject(@PathVariable String projectId) {
+        return aiService.getAgentProject(projectId);
+    }
+
+    @PatchMapping("/agent-projects/{projectId}")
+    public ResponseEntity<Map<String, Object>> updateAgentProject(
+            @PathVariable String projectId,
+            @RequestBody Map<String, Object> request) {
+        return aiService.updateAgentProject(projectId, request);
+    }
+
+    @PostMapping("/agent-projects/{projectId}/papers")
+    public ResponseEntity<Map<String, Object>> addAgentProjectPapers(
+            @PathVariable String projectId,
+            @RequestBody Map<String, Object> request) {
+        return aiService.addAgentProjectPapers(projectId, request);
+    }
+
+    @DeleteMapping("/agent-projects/{projectId}/papers/{pdfId}")
+    public ResponseEntity<Map<String, Object>> removeAgentProjectPaper(
+            @PathVariable String projectId,
+            @PathVariable String pdfId) {
+        return aiService.removeAgentProjectPaper(projectId, pdfId);
+    }
+
+    @PostMapping("/agent-projects/{projectId}/tasks")
+    public ResponseEntity<Map<String, Object>> createAgentTask(
+            @PathVariable String projectId,
+            @RequestBody Map<String, Object> request) {
+        return aiService.createAgentTask(projectId, request);
+    }
+
+    @GetMapping("/agent-projects/{projectId}/tasks/latest")
+    public ResponseEntity<Map<String, Object>> getLatestAgentTask(@PathVariable String projectId) {
+        return aiService.getLatestAgentTask(projectId);
+    }
+
+    @GetMapping("/agent-tasks/{taskId}")
+    public ResponseEntity<Map<String, Object>> getAgentTask(@PathVariable String taskId) {
+        return aiService.getAgentTask(taskId);
+    }
+
+    @PostMapping("/agent-tasks/{taskId}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelAgentTask(@PathVariable String taskId) {
+        return aiService.cancelAgentTask(taskId);
+    }
+
+    @GetMapping("/agent-traces/{traceId}")
+    public ResponseEntity<Map<String, Object>> getAgentTrace(@PathVariable String traceId) {
+        return aiService.getAgentTrace(traceId);
     }
 }

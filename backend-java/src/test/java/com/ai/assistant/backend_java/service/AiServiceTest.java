@@ -517,4 +517,185 @@ class AiServiceTest {
         assertEquals("error", response.getBody().get("status"));
         assertEquals("Trace not found.", response.getBody().get("message"));
     }
+
+    @Test
+    void createAgentProjectForwardsRequestToPythonService() {
+        Map<String, Object> request = new HashMap<>();
+        request.put("title", "Agent 项目");
+        request.put("goal", "比较方法");
+        request.put("paperIds", List.of("paper-1", "paper-2"));
+
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "project", Map.of("projectId", "project-1"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.createAgentProject(request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
+    void listAgentProjectsForwardsGetRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "projects", List.of(Map.of("projectId", "project-1")))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.listAgentProjects();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
+    void getAgentProjectForwardsGetRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project-1"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "project", Map.of("projectId", "project-1"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getAgentProject("project-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("project-1", ((Map<?, ?>) response.getBody().get("project")).get("projectId"));
+    }
+
+    @Test
+    void updateAgentProjectForwardsPatchRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project-1"),
+                eq(HttpMethod.PATCH),
+                any(HttpEntity.class),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "project", Map.of("projectId", "project-1", "goal", "新目标"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.updateAgentProject("project-1", Map.of("goal", "新目标"));
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("新目标", ((Map<?, ?>) response.getBody().get("project")).get("goal"));
+    }
+
+    @Test
+    void addAgentProjectPapersForwardsPostRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project-1/papers"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "project", Map.of("projectId", "project-1", "paperIds", List.of("paper-1", "paper-3")))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.addAgentProjectPapers("project-1", Map.of("paperIds", List.of("paper-3")));
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
+    void removeAgentProjectPaperForwardsDeleteRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project-1/papers/paper-1"),
+                eq(HttpMethod.DELETE),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "project", Map.of("projectId", "project-1"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.removeAgentProjectPaper("project-1", "paper-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
+    void createAgentTaskForwardsPostRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project-1/tasks"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "task", Map.of("taskId", "agent-task-1"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.createAgentTask("project-1", Map.of("prompt", "比较方法"));
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
+    void getLatestAgentTaskForwardsGetRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project%201/tasks/latest"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "task", Map.of("taskId", "agent-task-1"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getLatestAgentTask("project 1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("agent-task-1", ((Map<?, ?>) response.getBody().get("task")).get("taskId"));
+    }
+
+    @Test
+    void getAgentTaskForwardsGetRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-tasks/agent-task-1"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "task", Map.of("taskId", "agent-task-1"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getAgentTask("agent-task-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("agent-task-1", ((Map<?, ?>) response.getBody().get("task")).get("taskId"));
+    }
+
+    @Test
+    void cancelAgentTaskForwardsPostRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-tasks/agent-task-1/cancel"),
+                eq(HttpMethod.POST),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "task", Map.of("taskId", "agent-task-1", "status", "cancelled"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.cancelAgentTask("agent-task-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("cancelled", ((Map<?, ?>) response.getBody().get("task")).get("status"));
+    }
+
+    @Test
+    void getAgentTraceForwardsGetRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-traces/trace-1"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "trace", Map.of("traceId", "trace-1", "taskType", "agent_research"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getAgentTrace("trace-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("trace-1", ((Map<?, ?>) response.getBody().get("trace")).get("traceId"));
+    }
 }

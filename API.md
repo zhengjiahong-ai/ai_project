@@ -1,56 +1,45 @@
 # API
 
-## 说明
+## 概览
 
-浏览器只应直接访问 Java 网关：
+Pixiu Academic Assistant 当前有两条 API 访问路径：
 
-```text
-http://localhost:8081/api
+1. 阅读 IDE 链路
+   Browser -> Frontend -> Java gateway `http://localhost:8081/api`
+2. Agent 研究链路
+   Browser -> Frontend -> Python AI service `http://localhost:8000/api`
+
+前端仍保留 Agent 接口走 Java 网关的兼容回退能力，但当前默认行为是：
+
+- `VITE_API_BASE_URL=http://localhost:8081/api`
+- `VITE_AGENT_API_BASE_URL=http://localhost:8000/api`
+
+之所以拆成两条链路，是因为阅读 IDE 已经依赖 Java 侧的上传编排和会话持久化，而新的 Agent 工作区需要在本地 Java 运行时尚未重建到最新路由时仍能使用。
+
+## 通用响应形态
+
+大多数接口成功时返回：
+
+```json
+{
+  "status": "success"
+}
 ```
 
-Java 再将请求转发到 Python：
+失败时通常返回：
 
-```text
-http://ai-service:8000/api
+```json
+{
+  "status": "error",
+  "message": "..."
+}
 ```
 
-本文档分为两部分：
+部分任务和 trace 接口还会使用 `404`、`409` 或 `400` HTTP 状态码表达资源不存在、索引问题或请求不合法。
 
-1. 浏览器可直接使用的 Java API
-2. Java 转发到 Python 的内部对应关系
+## 阅读 IDE API
 
-## Agent 研究模式说明
-
-当前仓库中的 `Agent 研究` 前端面板仍是原型界面，尚未接入真实 Agent 项目和 Agent 任务接口。
-
-现状：
-
-- 已存在的前端原型文件：
-  - `frontend/src/components/agent/AgentWorkspace.jsx`
-  - `frontend/src/components/agent/agentMockData.js`
-- 已上线的真实后端能力：
-  - 单论文问答
-  - 背景补课
-  - 批判阅读
-  - 单论文 deep research 任务
-- 尚未上线的真实能力：
-  - Agent 项目管理
-  - 多论文 Agent 编排任务
-  - Agent 时间线事件流
-  - Agent 项目级 trace 查询
-
-因此，本文件后文中新增的 Agent 研究模式接口均视为“规划中的 API 草案”，不是当前已上线接口。前端在真实接入前不应假设这些接口已经可用。
-
-## 通用响应约定
-
-大多数接口返回：
-
-- 成功：`{ "status": "success", ... }`
-- 失败：`{ "status": "error", "message": "..." }`
-
-部分研究任务和 trace 查询接口还会配合 `404`、`409` 等 HTTP 状态码。
-
-## Java 对外 API
+以下接口主要由单论文阅读工作流使用，并通过 Java 网关访问。
 
 ### `POST /api/upload`
 
@@ -61,7 +50,7 @@ http://ai-service:8000/api
 - `multipart/form-data`
 - 字段：`file`
 
-成功响应示例：
+成功示例：
 
 ```json
 {
@@ -95,37 +84,37 @@ http://ai-service:8000/api
 
 说明：
 
-- `pdfId` 会被规范化，前端后续都应以它作为论文主键
-- 成功后 Java 会在 H2 中记录论文条目
+- `pdfId` 是前端后续引用论文的稳定主键。
+- 上传成功后，Java 会在 H2 中保存论文记录。
 
 ### `POST /api/chat`
 
-论文问答。
+单论文问答。
 
-请求体：
+请求示例：
 
 ```json
 {
-  "message": "这篇论文的核心方法是什么？",
+  "message": "What is the core method of this paper?",
   "pdfId": "example_pdf",
   "history": [],
   "paperSkeleton": {}
 }
 ```
 
-成功响应示例：
+成功示例：
 
 ```json
 {
   "status": "success",
-  "message": "......",
+  "message": "...",
   "rag_sources": [],
   "sentenceSourceMap": {},
   "queryPlan": {
     "original": "...",
     "rewritten": "...",
     "keywords": [],
-    "intent": "解释方法",
+    "intent": "explain_method",
     "needsRetrieval": true,
     "queries": [],
     "answerStyle": "concise"
@@ -141,44 +130,15 @@ http://ai-service:8000/api
 }
 ```
 
-说明：
-
-- 当带 `pdfId` 时，Java 会先把当前用户消息写入 H2，再从 H2 拼出远端 `history`
-- Python 优先检索当前论文，不足时才补内部文献库
-
 ### `GET /api/chat/history/{sessionId}`
 
-获取某篇论文的聊天历史。
-
-成功响应示例：
-
-```json
-{
-  "status": "success",
-  "sessionId": "example_pdf",
-  "messageCount": 2,
-  "messages": [
-    {
-      "id": 1,
-      "role": "user",
-      "content": "......",
-      "timestamp": "2026-06-10T12:00:00"
-    },
-    {
-      "id": 2,
-      "role": "assistant",
-      "content": "......",
-      "timestamp": "2026-06-10T12:00:03"
-    }
-  ]
-}
-```
+读取某篇论文的聊天历史。
 
 ### `POST /api/explain`
 
-术语或选中文本解释。
+解释选中文本或术语。
 
-请求体：
+常见请求形态：
 
 ```json
 {
@@ -198,7 +158,7 @@ http://ai-service:8000/api
 }
 ```
 
-成功响应字段：
+常见成功字段：
 
 - `term`
 - `explanation`
@@ -207,165 +167,46 @@ http://ai-service:8000/api
 - `retrievalJudge`
 - `traceId`
 
-说明：
-
-- Java 会把 `text` 适配成 Python 需要的 `term`
-
 ### `POST /api/translate-page`
 
-逐页翻译。
-
-请求体：
-
-```json
-{
-  "pdfId": "example_pdf",
-  "pageIndex": 0,
-  "pageText": "...",
-  "paperSkeleton": {},
-  "pageLayout": {}
-}
-```
-
-成功响应字段依页面结构而定，通常包括：
-
-- `translatedText`
-- `blocks`
-- `pageIndex`
-- 其他页面翻译布局相关字段
+翻译当前论文的单页内容。
 
 ### `POST /api/critical-reading/{pdfId}`
 
-对当前论文做批判阅读。
+对当前论文执行证据化批判阅读。
 
-成功响应示例：
+重要响应字段：
 
-```json
-{
-  "status": "success",
-  "pdfId": "example_pdf",
-  "analysis": {
-    "status": "success",
-    "claimed_contributions": "...",
-    "evidence_based_contributions": "...",
-    "inferred_real_contributions": "...",
-    "weaknesses": [],
-    "overclaim_risks": [],
-    "missing_evidence": [],
-    "critical_analysis": "...",
-    "claims": [
-      {
-        "id": "claim-1",
-        "claim": "作者声称 F1 提升 20%。",
-        "supportLevel": "PARTIAL",
-        "evidenceSourceIds": ["source-1"],
-        "missingEvidence": ["缺少可自动核验的表格结构"],
-        "reason": "当前证据能对应作者主张，但尚不足以完整证明该贡献。",
-        "numericVerificationStatus": "insufficient_for_auto_verification",
-        "numericEvidenceCandidates": [
-          {
-            "sourceId": "source-1",
-            "text": "Table 2: Main results. The proposed method improves F1 by 20% over the baseline.",
-            "pageIndex": 4,
-            "sectionId": "section-results",
-            "chunkIndex": 8,
-            "label": "Table 2",
-            "metrics": ["f1"],
-            "numbers": ["20%"],
-            "reason": "匹配到 Table 2；指标 f1；数值 20%。候选片段仍需人工对照原表或图。",
-            "status": "candidate_found"
-          }
-        ]
-      }
-    ],
-    "contributionScore": {
-      "score": 86,
-      "level": "high",
-      "label": "可信度较高",
-      "summary": "2/3 条主张获得直接证据支撑。",
-      "factors": [],
-      "basis": {}
-    },
-    "riskScore": {
-      "score": 24,
-      "level": "low",
-      "label": "低风险",
-      "summary": "检测到 0 条证据不足主张、1 条报告级缺失证据和 0 条夸大风险。",
-      "factors": [],
-      "basis": {}
-    },
-    "noveltyDimensions": [
-      {
-        "id": "claim_support",
-        "label": "主张支撑",
-        "score": 80,
-        "status": "strong",
-        "detail": "主张证据较充分。"
-      }
-    ],
-    "numericEvidenceSummary": {
-      "claimCount": 3,
-      "numericClaimCount": 1,
-      "candidateCount": 1,
-      "status": "insufficient_for_auto_verification"
-    },
-    "citationGraph": null,
-    "rag_sources": [],
-    "sentenceSourceMap": {},
-    "resolved_from": "pdf_id",
-    "pdf_id": "example_pdf",
-    "traceId": "..."
-  }
-}
-```
-
-失败时常见情况：
-
-- `paper_not_indexed`
-- `rag_index_unavailable`
+- `claims`
+- `contributionScore`
+- `riskScore`
+- `noveltyDimensions`
+- `numericEvidenceSummary`
+- 可选 `citationGraph`
+- `rag_sources`
+- `traceId`
 
 说明：
 
-- `contributionScore`、`riskScore` 和 `noveltyDimensions` 是规则型评分，不代表训练模型输出；评分依据来自 claim 支撑度、缺失证据、夸大风险以及方法/实验轴证据覆盖。
-- `claims[*].numericEvidenceCandidates` 是表格/数值候选定位，不是自动表格 OCR 或严格数值核验；即使找到 `Table/Figure`、指标名和百分比片段，`numericVerificationStatus` 也可能是 `insufficient_for_auto_verification`，前端应提示需要人工核对原文。
-- `numericEvidenceCandidates[*].sourceId` 必须来自同次响应的 `rag_sources[*].sourceId`；`pageIndex` 仍为 0-based，可用于前端跳回原文。
-- `citationGraph` 是可选真实引用网络；没有真实 citation graph 时必须为 `null`，前端不得用模拟网络兜底。存在真实图时形态为 `{ "nodes": [], "links": [] }`，节点至少需要稳定 `id`，边至少需要 `source/target`。
-- 旧客户端可忽略新增字段；缺少新增字段时前端会按旧版结构降级展示。
+- `contributionScore`、`riskScore` 和 `noveltyDimensions` 是规则型评分，不是训练模型输出。
+- `numericEvidenceCandidates` 是证据候选，不是严格自动验证。
+- `citationGraph` 必须是真实数据或 `null`，前端不应伪造 fallback 图谱。
 
 ### `POST /api/background-knowledge`
 
-生成背景补课内容。
+生成自适应背景补课内容和学习路径。
 
-请求体：
+请求可包含：
 
-```json
-{
-  "pdfId": "example_pdf",
-  "paperSkeleton": {},
-  "paperStructure": {},
-  "paper_topic": null,
-  "user_knowledge_level": "一般",
-  "reader_profile": {
-    "selfAssessedFamiliarity": "一般",
-    "preferredDepth": "标准",
-    "learningGoal": "理解方法链路",
-    "knownConcepts": ["Transformer"],
-    "confusingConcepts": ["图检索"]
-  },
-  "behavior_signals": {
-    "questionCount": 3,
-    "highlightCount": 4,
-    "noteCount": 2,
-    "translationUsageCount": 1,
-    "recentQuestions": ["为什么这里需要图检索"],
-    "currentSection": "Method",
-    "currentPage": 6,
-    "activeWorkspaceTab": "background"
-  }
-}
-```
+- `pdfId`
+- `paperSkeleton`
+- `paperStructure`
+- `paper_topic`
+- 兼容字段 `user_knowledge_level`
+- `reader_profile`
+- `behavior_signals`
 
-成功响应通常包含：
+常见响应字段：
 
 - `background_knowledge`
 - `graph`
@@ -378,320 +219,93 @@ http://ai-service:8000/api
 - `sourceCoverage`
 - `traceId`
 
-说明：
-
-- `reader_profile` 是新的主输入，允许用户通过“我会什么 / 我卡在哪 / 我想补到多深”来驱动补课结果
-- `behavior_signals` 由前端根据近期提问、翻译、标注、笔记等行为补充，用来帮助后端自适应补课顺序
-- `user_knowledge_level` 保留为兼容字段；当前系统会把它与 `reader_profile`、`behavior_signals` 一起综合，生成最终 `reader_profile.user_knowledge_level`
-
 ### `POST /api/socratic-questions`
 
-旧式一次性生成问题接口。
-
-请求体：
-
-```json
-{
-  "paper_content": "...",
-  "reading_progress": "..."
-}
-```
-
-成功响应：
-
-```json
-{
-  "status": "success",
-  "questions": [],
-  "rag_sources": []
-}
-```
+旧版一次性苏格拉底问题生成接口。
 
 ### `POST /api/socratic-session/start`
 
-启动固定 5 轮引导学习。
-
-请求体：
-
-```json
-{
-  "pdfId": "example_pdf",
-  "paperSkeleton": {},
-  "readingProgress": "我已经读完摘要和引言"
-}
-```
-
-成功响应：
-
-```json
-{
-  "status": "success",
-  "intro": "...",
-  "totalQuestions": 5,
-  "currentIndex": 1,
-  "currentQuestion": "..."
-}
-```
+启动固定 5 轮引导学习会话。
 
 ### `POST /api/socratic-session/answer`
 
-提交当前轮回答。
-
-请求体：
-
-```json
-{
-  "pdfId": "example_pdf",
-  "paperSkeleton": {},
-  "readingProgress": "......",
-  "currentIndex": 1,
-  "currentQuestion": "...",
-  "userAnswer": "...",
-  "turns": []
-}
-```
-
-中间轮成功响应：
-
-```json
-{
-  "status": "success",
-  "evaluation": {
-    "masteryLevel": "一般",
-    "feedback": "...",
-    "hint": "...",
-    "coveredAspects": [],
-    "missingAspects": [],
-    "evidenceQuality": {}
-  },
-  "nextQuestion": "...",
-  "nextIndex": 2,
-  "isComplete": false
-}
-```
-
-最后一轮成功响应：
-
-```json
-{
-  "status": "success",
-  "evaluation": {
-    "masteryLevel": "较好",
-    "feedback": "...",
-    "hint": "...",
-    "coveredAspects": [],
-    "missingAspects": [],
-    "evidenceQuality": {}
-  },
-  "finalSummary": "...",
-  "reviewSuggestions": [],
-  "isComplete": true
-}
-```
+提交引导学习会话中的一轮回答。
 
 ### `POST /api/research-tasks/brief-preview`
 
-生成深度研究前的 brief 预览。
-
-请求体：
-
-```json
-{
-  "question": "这篇论文的方法相比基线真正改进了什么？",
-  "pdfId": "example_pdf",
-  "paperSkeleton": {},
-  "userConstraints": "只关注方法和实验，不展开背景综述"
-}
-```
-
-成功响应：
-
-```json
-{
-  "status": "success",
-  "briefPreview": {
-    "question": "...",
-    "pdfId": "example_pdf",
-    "brief": "...",
-    "assumptions": [],
-    "clarifyingQuestions": [],
-    "suggestedSubQuestions": [],
-    "needsClarification": false,
-    "source": "..."
-  }
-}
-```
+在启动 Deep Research 前生成 brief preview。
 
 ### `POST /api/research-tasks`
 
-创建深度研究任务。
-
-请求体：
-
-```json
-{
-  "question": "这篇论文的方法相比基线真正改进了什么？",
-  "pdfId": "example_pdf",
-  "paperSkeleton": {},
-  "userConstraints": "只关注方法和实验",
-  "briefPreview": {}
-}
-```
-
-成功响应：
-
-```json
-{
-  "status": "success",
-  "task": {
-    "taskId": "...",
-    "traceId": "...",
-    "status": "pending",
-    "stage": "planning",
-    "progress": 0.0,
-    "question": "...",
-    "pdfId": "example_pdf",
-    "plan": [
-      {
-        "id": "initial-1",
-        "question": "子问题 1",
-        "kind": "initial",
-        "status": "pending",
-        "sourceQuestion": "",
-        "sourceMissingAspects": []
-      }
-    ],
-    "traceSummary": {},
-    "findings": [],
-    "report": "",
-    "error": "",
-    "createdAt": "...",
-    "updatedAt": "..."
-  }
-}
-```
+创建单论文 Deep Research 任务。
 
 ### `GET /api/research-tasks/latest?pdfId=...`
 
-读取某篇论文最近一次研究任务快照。
-
-成功响应：
-
-```json
-{
-  "status": "success",
-  "task": {}
-}
-```
+恢复某篇论文最近一次 Deep Research 任务快照。
 
 没有快照时返回 `404`。
 
 ### `GET /api/research-tasks/{taskId}`
 
-按 `taskId` 查询任务状态。
-
-成功响应：
-
-```json
-{
-  "status": "success",
-  "task": {}
-}
-```
+轮询单个 Deep Research 任务快照。
 
 ### `POST /api/research-tasks/{taskId}/cancel`
 
-取消任务。
-
-成功响应：
-
-```json
-{
-  "status": "success",
-  "task": {}
-}
-```
-
-说明：
-
-- 已结束任务会直接返回当前快照
-- 该接口是幂等的
+取消 Deep Research 任务。
 
 ### `GET /api/traces/{traceId}`
 
-获取脱敏 trace 摘要。
-
-成功响应：
-
-```json
-{
-  "status": "success",
-  "trace": {
-    "traceId": "...",
-    "taskType": "chat",
-    "status": "success",
-    "startedAt": "...",
-    "finishedAt": "...",
-    "durationMs": 1234,
-    "requestMeta": {},
-    "responseMeta": {},
-    "counters": {
-      "llmCalls": 1,
-      "retrievalCalls": 2,
-      "retryCount": 1,
-      "truncationCount": 0,
-      "estimatedInputTokens": 420,
-      "estimatedOutputTokens": 120
-    },
-    "steps": []
-  }
-}
-```
+读取脱敏 public trace summary。
 
 说明：
 
-- trace 是脱敏摘要，不应假设能拿到完整 prompt 或全文上下文
-- `counters` 稳定包含 `llmCalls/retrievalCalls/retryCount/truncationCount/estimatedInputTokens/estimatedOutputTokens`；token 为基于字符数的粗略估算，不等同于模型供应商真实计费 token。
-- Deep Research 终态 trace summary 会随研究任务 SQLite 快照保存；服务重启后，`GET /api/traces/{traceId}` 可从已完成任务快照恢复 summary。
-- 普通聊天、批判阅读、背景补课等短请求 trace 仍是进程内临时摘要；服务重启或内存清空后可能返回 `404`。
-- deep research 的 judge step 可能在 `steps[*].meta` 中包含 `verdict/judgeScore/coverageScore/missingAspects/retryReason/decision`，用于说明当前子问题为什么停止、补查文献库或触发 retry。
-- deep research 证据缺口触发最小动态重规划时，trace 会包含 `research_follow_up_planning` step。
-- deep research 完成时，`responseMeta` 可能包含 `averageJudgeScore/retryFindingCount/insufficientFindingCount/followUpCount`，用于快速排查长路径任务的证据效用和 follow-up 次数。
+- trace 输出会被刻意裁剪，不暴露完整 prompt、API key 或完整论文正文。
+- 已完成的 Deep Research 任务会把 trace summary 写入 SQLite 快照，服务重启后通常仍可恢复。
 
-## Agent 研究模式规划 API
+## Agent 研究 API
 
-以下接口为建议中的统一对外契约，用于把当前 Agent 面板从 mock 原型升级为真实工作台。
+以下接口已经实现，并被当前 Agent 工作区使用。它们不再只是规划中的接口草案。
 
-### 设计边界
+当前前端行为：
 
-- 现有 `research-tasks` 继续服务单论文 deep research。
-- 新增 `agent-projects` / `agent-tasks` 只服务多论文 Agent 研究模式。
-- Agent 任务仍遵守“项目论文优先、内部文献库补充、不做外部 Web 搜索”的系统边界。
+- Agent 面板可以创建和列出项目级研究工作区。
+- Agent 任务是异步执行的，需要轮询。
+- 前端会在本地快照中保存每个项目的任务历史。
+- 切换项目时会恢复该项目的任务历史和当前选中任务。
 
 ### `POST /api/agent-projects`
 
-创建一个 Agent 研究项目。
+创建 Agent 研究项目。
 
-请求体草案：
+请求示例：
 
 ```json
 {
-  "title": "多论文比较：RAG 与 Self-RAG",
-  "goal": "比较研究问题、方法设计、证据覆盖和局限性",
+  "title": "RAG vs Self-RAG",
+  "goal": "Compare research problem, method design, evidence coverage, and limitations.",
   "paperIds": ["rag-paper", "self-rag-paper"]
 }
 ```
 
-成功响应草案：
+成功示例：
 
 ```json
 {
   "status": "success",
   "project": {
     "projectId": "project-1",
-    "title": "多论文比较：RAG 与 Self-RAG",
-    "goal": "比较研究问题、方法设计、证据覆盖和局限性",
+    "title": "RAG vs Self-RAG",
+    "goal": "Compare research problem, method design, evidence coverage, and limitations.",
     "paperIds": ["rag-paper", "self-rag-paper"],
+    "papers": [
+      {
+        "pdfId": "rag-paper",
+        "title": "rag-paper",
+        "indexed": true
+      }
+    ],
+    "latestTaskId": "",
+    "defaultConstraints": "",
     "createdAt": "2026-06-14T10:00:00Z",
     "updatedAt": "2026-06-14T10:00:00Z"
   }
@@ -700,73 +314,31 @@ http://ai-service:8000/api
 
 ### `GET /api/agent-projects`
 
-读取项目列表。
-
-成功响应草案：
-
-```json
-{
-  "status": "success",
-  "projects": [
-    {
-      "projectId": "project-1",
-      "title": "多论文比较：RAG 与 Self-RAG",
-      "goal": "比较研究问题、方法设计、证据覆盖和局限性",
-      "paperIds": ["rag-paper", "self-rag-paper"],
-      "latestTaskId": "agent-task-1",
-      "updatedAt": "2026-06-14T10:00:00Z"
-    }
-  ]
-}
-```
+列出 Agent 项目。
 
 ### `GET /api/agent-projects/{projectId}`
 
-读取单个项目详情。
-
-成功响应草案：
-
-```json
-{
-  "status": "success",
-  "project": {
-    "projectId": "project-1",
-    "title": "多论文比较：RAG 与 Self-RAG",
-    "goal": "比较研究问题、方法设计、证据覆盖和局限性",
-    "paperIds": ["rag-paper", "self-rag-paper"],
-    "papers": [
-      {
-        "pdfId": "rag-paper",
-        "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP",
-        "indexed": true
-      }
-    ],
-    "latestTaskId": "agent-task-1",
-    "createdAt": "2026-06-14T10:00:00Z",
-    "updatedAt": "2026-06-14T10:00:00Z"
-  }
-}
-```
+读取单个 Agent 项目。
 
 ### `PATCH /api/agent-projects/{projectId}`
 
 更新项目标题、目标或默认约束。
 
-请求体草案：
+请求示例：
 
 ```json
 {
-  "title": "多论文方法比较",
-  "goal": "重点比较方法和实验",
-  "defaultConstraints": "优先关注方法与实验，不展开背景综述"
+  "title": "Method Comparison",
+  "goal": "Focus on method and experiment differences.",
+  "defaultConstraints": "Prioritize method and experiment sections."
 }
 ```
 
 ### `POST /api/agent-projects/{projectId}/papers`
 
-向项目追加论文。
+向项目添加论文。
 
-请求体草案：
+请求示例：
 
 ```json
 {
@@ -776,19 +348,19 @@ http://ai-service:8000/api
 
 ### `DELETE /api/agent-projects/{projectId}/papers/{pdfId}`
 
-从项目中移除一篇论文。
+从项目中移除论文。
 
 ### `POST /api/agent-projects/{projectId}/tasks`
 
-创建一个项目级 Agent 研究任务。
+为项目创建一个异步 Agent 任务。
 
-请求体草案：
+请求示例：
 
 ```json
 {
-  "prompt": "比较这些论文在研究问题、方法设计、实验指标和局限性上的差异",
+  "prompt": "Compare these papers on research question, method design, experimental evidence, and limitations.",
   "focusedPaperIds": ["rag-paper", "self-rag-paper"],
-  "constraints": "先输出对比表，再输出结论草稿",
+  "constraints": "Show a comparison table first, then a draft conclusion.",
   "context": {
     "activePaperId": "rag-paper",
     "activeSection": "Method"
@@ -796,7 +368,7 @@ http://ai-service:8000/api
 }
 ```
 
-成功响应草案：
+成功示例：
 
 ```json
 {
@@ -805,30 +377,52 @@ http://ai-service:8000/api
     "taskId": "agent-task-1",
     "projectId": "project-1",
     "traceId": "trace-1",
-    "status": "pending",
+    "status": "running",
     "stage": "planning",
-    "progress": 0.0,
-    "prompt": "比较这些论文在研究问题、方法设计、实验指标和局限性上的差异",
+    "progress": 0.1,
+    "prompt": "Compare these papers on research question, method design, experimental evidence, and limitations.",
+    "focusedPaperIds": ["rag-paper", "self-rag-paper"],
+    "constraints": "Show a comparison table first, then a draft conclusion.",
+    "context": {
+      "activePaperId": "rag-paper",
+      "activeSection": "Method"
+    },
     "planItems": [],
+    "events": [],
     "toolCalls": [],
     "evidenceItems": [],
     "findings": [],
+    "comparisonTable": {
+      "columns": [],
+      "rows": []
+    },
+    "conflicts": [],
+    "openQuestions": [],
     "draftReport": "",
+    "error": "",
     "createdAt": "2026-06-14T10:05:00Z",
     "updatedAt": "2026-06-14T10:05:00Z"
   }
 }
 ```
 
+执行语义：
+
+- 接口会立即创建任务并返回 `status=running`。
+- 当前阶段流转为 `planning -> retrieving -> synthesizing -> done`。
+- 前端应通过 `GET /api/agent-tasks/{taskId}` 轮询更新。
+
 ### `GET /api/agent-projects/{projectId}/tasks/latest`
 
-读取项目最近一次 Agent 任务快照。
+读取某项目最近一次 Agent 任务。
+
+如果项目没有任务，返回 `404`。
 
 ### `GET /api/agent-tasks/{taskId}`
 
-查询 Agent 任务状态。
+轮询单个 Agent 任务快照。
 
-建议任务快照结构：
+重要任务字段：
 
 - `taskId`
 - `projectId`
@@ -837,6 +431,9 @@ http://ai-service:8000/api
 - `stage`
 - `progress`
 - `prompt`
+- `focusedPaperIds`
+- `constraints`
+- `context`
 - `planItems`
 - `events`
 - `toolCalls`
@@ -846,8 +443,22 @@ http://ai-service:8000/api
 - `conflicts`
 - `openQuestions`
 - `draftReport`
+- `error`
 - `createdAt`
 - `updatedAt`
+
+终态状态：
+
+- `succeeded`
+- `failed`
+- `cancelled`
+
+说明：
+
+- `events` 驱动 Agent 时间线。
+- `toolCalls` 描述检索或工具活动。
+- `comparisonTable` 和 `conflicts` 是面向研究过程的轻量输出，不只是最终快照。
+- `draftReport` 当前包含 `## Task`、`## Scope`、`## Evidence Snapshot`、`## Current Conclusion`、`## Conflict Candidates` 和 `## Open Questions` 等章节。
 
 ### `POST /api/agent-tasks/{taskId}/cancel`
 
@@ -855,44 +466,13 @@ http://ai-service:8000/api
 
 ### `GET /api/agent-traces/{traceId}`
 
-读取 Agent 任务的脱敏 trace 摘要。
+读取 Agent 任务的脱敏 trace summary。
 
-建议和现有 `GET /api/traces/{traceId}` 语义保持一致，但补充项目级字段：
-
-- `projectId`
-- `paperIds`
-- `focusedPaperIds`
-- `planItemCount`
-- `evidenceItemCount`
-- `conflictCount`
-
-### Agent Event Item
-
-建议 Agent 任务补充一个面向前端时间线的事件结构：
-
-- `eventId`
-- `type`
-- `timestamp`
-- `taskId`
-- `stage`
-- `summary`
-- `meta`
-
-建议事件类型：
-
-- `task_created`
-- `task_understood`
-- `plan_generated`
-- `plan_item_started`
-- `tool_called`
-- `tool_completed`
-- `evidence_added`
-- `finding_generated`
-- `report_updated`
-- `task_completed`
-- `task_failed`
+当前复用其他 AI 流程使用的 trace summary 服务。
 
 ## Java 到 Python 的转发关系
+
+### 阅读 IDE 映射
 
 | Java API | Python API |
 | --- | --- |
@@ -912,9 +492,11 @@ http://ai-service:8000/api
 | `POST /api/research-tasks/{taskId}/cancel` | `POST /api/research-tasks/{taskId}/cancel` |
 | `GET /api/traces/{traceId}` | `GET /api/traces/{traceId}` |
 
-当前没有已实现的 Agent 专属转发关系。建议未来新增：
+### 源码中的 Agent 映射
 
-| 规划中的 Java API | 规划中的 Python API |
+Java 网关源码中已经暴露以下 Agent 路由，并转发到 Python：
+
+| Java API | Python API |
 | --- | --- |
 | `POST /api/agent-projects` | `POST /api/agent-projects` |
 | `GET /api/agent-projects` | `GET /api/agent-projects` |
@@ -928,26 +510,28 @@ http://ai-service:8000/api
 | `POST /api/agent-tasks/{taskId}/cancel` | `POST /api/agent-tasks/{taskId}/cancel` |
 | `GET /api/agent-traces/{traceId}` | `GET /api/agent-traces/{traceId}` |
 
-## Python 直接暴露但前端当前未直接使用的接口
+不过当前前端默认直接访问 Python Agent API，因为本地 Java 运行时可能滞后于源码更新。
+
+## Python 直接暴露的内部接口
+
+这些接口存在于 Python 服务，但不是当前产品主流程中的浏览器优先入口。
 
 ### `POST /api/rag/add-literature`
 
-上传文献到 Python 内部文献库。
+向 Python 内部 RAG 库上传文献。
 
 ### `POST /api/rag/retrieve`
 
-直接调用 Python RAG 检索。
-
-这两个接口当前没有经过 Java 正式转发给浏览器使用。
+直接调用 Python 侧检索。
 
 ## 关键数据结构
 
 ### Evidence Item
 
-多个接口中的 `rag_sources`、`sources` 采用相近的证据结构，常见字段包括：
+`rag_sources`、`sources` 和 Agent evidence 中常见字段：
 
 - `sourceId`
-- `id` 兼容字段
+- `id`，部分旧流程中的兼容别名。
 - `sourceType`
 - `text`
 - `pdfId`
@@ -958,100 +542,63 @@ http://ai-service:8000/api
 - `similarity`
 - `score`
 
-注意：
+说明：
 
-- `pageIndex` 是 0-based
-- 前端展示页码时通常会做 `pageIndex + 1`
-- 旧缓存或旧索引可能没有页码与章节锚点
+- `pageIndex` 是 0-based。
+- 前端展示页码时通常使用 `pageIndex + 1`。
+- 旧缓存或旧索引可能没有页码锚点。
 
-### Research Task Snapshot
+### Agent Event Item
 
-研究任务快照固定字段：
+Agent 时间线使用以下事件对象：
 
+- `eventId`
+- `type`
+- `timestamp`
 - `taskId`
-- `traceId`
-- `status`
 - `stage`
-- `progress`
-- `question`
-- `pdfId`
-- `plan`
-- `findings`
-- `conflicts`
-- `traceSummary`：Deep Research 终态脱敏 trace 摘要；旧快照或未结束任务可能为空对象。
-- `report`
-- `error`
-- `createdAt`
-- `updatedAt`
-
-`plan[*]` 兼容两种形态：
-
-- 旧快照可能是字符串子问题，前端会按 `kind=initial` 处理。
-- 新快照优先使用对象计划项：`{ "id": "initial-1", "question": "...", "kind": "initial|follow_up", "status": "pending|running|done", "sourceQuestion": "", "sourceMissingAspects": [] }`。
-
-动态重规划规则：
-
-- 每个任务最多追加 1 个 `kind=follow_up` 计划项。
-- 仅当某个 finding 的最终 `verdict` 为 `INCORRECT` 且 `missingAspects` 非空时触发。
-- follow-up 仍只使用当前论文和内部文献库，不引入外部 Web 搜索。
-
-`findings[*]` 兼容字段：
-
-- `subQuestion`
 - `summary`
-- `verdict`
-- `judgeScore`：`0-100` 的规则型证据效用分，不等同于模型概率。
-- `coverage`：`{ "score": 0.0, "matchedAspects": 0, "totalAspects": 0, "evidenceCount": 0, "sourceTypes": [] }`，其中 `score` 为 `0-1`。
-- `missingAspects`
-- `retryReason`：触发 retry 时记录原因；未触发 retry 时为空字符串。
-- `isFollowUp`：`true` 表示该 finding 来自动态追加的 follow-up 子问题。
-- `followUpOf`：follow-up 来源子问题。
-- `sourceMissingAspects`：生成 follow-up 时引用的缺失证据点。
-- `sourceIds`
-- `sources`
+- `meta`
 
-`conflicts[*]` 兼容字段：
+当前常见事件类型：
 
-- `id`
-- `topic`
-- `claim`
-- `conflictType`：`numeric_mismatch` 表示同一指标附近出现不同数值，`opposing_conclusion` 表示同一主题附近出现正反结论。
-- `severity`：`high|medium|low`，仅表示需要人工核查的优先级，不代表自动裁决结果。
-- `summary`
-- `sourceIds`
-- `sources`：复用 evidence item 字段，包含 `sourceId/sourceType/text/pageIndex/sectionId/chunkIndex/pdfId` 等可用来源锚点。
+- `task_created`
+- `task_started`
+- `task_understood`
+- `plan_generated`
+- `retrieval_started`
+- `paper_evidence_collected`
+- `tool_completed`
+- `judgement_completed`
+- `report_updated`
+- `task_completed`
+- `task_cancelled`
+- `task_failed`
 
-冲突检测规则：
+## 前端 Agent 状态说明
 
-- 当前为规则型 MVP，不调用 LLM 额外判定。
-- 只基于 Deep Research 已检索并绑定到 `findings[*].sources` 的证据片段检测，不额外发起检索。
-- 检出冲突时报告会单独列出“证据冲突/需人工核查”；系统不会自动融合为单一结论。
+前端 Agent 工作区在 API 之上增加了一层本地状态：
 
-### Retrieval Judge
+- 项目级任务历史保存在 `tasksByProjectId`。
+- 切换项目时从该 map 恢复历史。
+- 当前任务可以在旧任务之间切换。
+- 任务历史会作为前端快照持久化。
 
-常见字段：
-
-- `verdict`
-- `confidence`
-- `reason`
-- `missingAspects`
-- `shouldRetry`
-- `judgeScore`
-- `coverage`
-- `retryReason`
+这是 UI/会话行为，目前还没有后端“列出某项目全部任务”的接口支撑。
 
 ## 错误处理建议
 
-- 前端应同时读取 HTTP 状态码和响应体中的 `status/message/errorCode`
-- 对 `paper_not_indexed`、`rag_index_unavailable` 这种业务错误，应给用户“重新上传或重新解析”的引导
-- 对 `404` 的研究任务/trace 查询，不要伪造本地恢复成功
+- 同时读取 HTTP 状态码和响应体中的 `status/message`。
+- `latest` 任务接口返回 `404` 时，应视为正常空态。
+- `paper_not_indexed` 或检索 fallback 应作为可引导用户处理的业务状态，而不是通用崩溃。
+- 缺失 trace 或任务时不要伪造恢复成功。
 
-## 调试建议
+## 调试清单
 
-如果你要联调接口，优先检查：
+如果 Agent 请求失败，优先检查：
 
-1. `frontend` 是否指向 `http://localhost:8081/api`
-2. Java `PYTHON_URL` 是否正确
-3. GROBID 是否可用
-4. Python RAG 是否成功初始化
-5. 当前论文是否已经完成索引
+1. 阅读 IDE base URL 是否仍指向 `http://localhost:8081/api`。
+2. Agent base URL 是否指向 `http://localhost:8000/api`，或 Java 网关是否已重建。
+3. Python 服务 CORS 是否允许前端来源。
+4. GROBID 和 Python RAG 是否可用。
+5. 项目挂载的论文是否已经完成索引。

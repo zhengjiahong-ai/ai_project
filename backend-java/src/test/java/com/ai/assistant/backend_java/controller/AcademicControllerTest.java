@@ -2,7 +2,9 @@ package com.ai.assistant.backend_java.controller;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -245,5 +247,138 @@ class AcademicControllerTest {
         mockMvc.perform(get("/api/traces/missing-trace"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Trace not found."));
+    }
+
+    @Test
+    void createAgentProjectReturnsProjectPayload() throws Exception {
+        when(aiService.createAgentProject(eq(Map.of(
+                "title", "Agent 项目",
+                "goal", "比较方法",
+                "paperIds", List.of("paper-1", "paper-2"))))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "project", Map.of(
+                                "projectId", "project-1",
+                                "title", "Agent 项目",
+                                "goal", "比较方法",
+                                "paperIds", List.of("paper-1", "paper-2")))));
+
+        mockMvc.perform(post("/api/agent-projects")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"title":"Agent 项目","goal":"比较方法","paperIds":["paper-1","paper-2"]}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.project.projectId").value("project-1"));
+    }
+
+    @Test
+    void listAgentProjectsReturnsForwardedPayload() throws Exception {
+        when(aiService.listAgentProjects()).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "projects", List.of(Map.of("projectId", "project-1", "title", "Agent 项目")))));
+
+        mockMvc.perform(get("/api/agent-projects"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projects[0].projectId").value("project-1"));
+    }
+
+    @Test
+    void updateAgentProjectReturnsForwardedPayload() throws Exception {
+        when(aiService.updateAgentProject(eq("project-1"), eq(Map.of("goal", "新目标")))).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "project", Map.of("projectId", "project-1", "goal", "新目标"))));
+
+        mockMvc.perform(patch("/api/agent-projects/project-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"goal":"新目标"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.project.goal").value("新目标"));
+    }
+
+    @Test
+    void addAgentProjectPapersReturnsForwardedPayload() throws Exception {
+        when(aiService.addAgentProjectPapers(eq("project-1"), eq(Map.of("paperIds", List.of("paper-3"))))).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "project", Map.of("projectId", "project-1", "paperIds", List.of("paper-1", "paper-3")))));
+
+        mockMvc.perform(post("/api/agent-projects/project-1/papers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"paperIds":["paper-3"]}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.project.paperIds[1]").value("paper-3"));
+    }
+
+    @Test
+    void removeAgentProjectPaperReturnsForwardedPayload() throws Exception {
+        when(aiService.removeAgentProjectPaper("project-1", "paper-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "project", Map.of("projectId", "project-1", "paperIds", List.of()))));
+
+        mockMvc.perform(delete("/api/agent-projects/project-1/papers/paper-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.project.projectId").value("project-1"));
+    }
+
+    @Test
+    void createAgentTaskReturnsForwardedPayload() throws Exception {
+        when(aiService.createAgentTask(eq("project-1"), eq(Map.of("prompt", "比较方法差异")))).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "task", Map.of("taskId", "agent-task-1", "status", "succeeded"))));
+
+        mockMvc.perform(post("/api/agent-projects/project-1/tasks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"prompt":"比较方法差异"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.task.taskId").value("agent-task-1"));
+    }
+
+    @Test
+    void getLatestAgentTaskReturnsForwardedPayload() throws Exception {
+        when(aiService.getLatestAgentTask("project-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "task", Map.of("taskId", "agent-task-1", "status", "succeeded"))));
+
+        mockMvc.perform(get("/api/agent-projects/project-1/tasks/latest"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.task.taskId").value("agent-task-1"));
+    }
+
+    @Test
+    void getAgentTaskReturnsForwardedPayload() throws Exception {
+        when(aiService.getAgentTask("agent-task-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "task", Map.of("taskId", "agent-task-1", "status", "succeeded"))));
+
+        mockMvc.perform(get("/api/agent-tasks/agent-task-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.task.taskId").value("agent-task-1"));
+    }
+
+    @Test
+    void cancelAgentTaskReturnsForwardedPayload() throws Exception {
+        when(aiService.cancelAgentTask("agent-task-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "task", Map.of("taskId", "agent-task-1", "status", "cancelled"))));
+
+        mockMvc.perform(post("/api/agent-tasks/agent-task-1/cancel"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.task.status").value("cancelled"));
+    }
+
+    @Test
+    void getAgentTraceReturnsForwardedPayload() throws Exception {
+        when(aiService.getAgentTrace("trace-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "trace", Map.of("traceId", "trace-1", "taskType", "agent_research"))));
+
+        mockMvc.perform(get("/api/agent-traces/trace-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trace.taskType").value("agent_research"));
     }
 }

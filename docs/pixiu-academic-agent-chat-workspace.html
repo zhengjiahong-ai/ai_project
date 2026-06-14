@@ -1,0 +1,264 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pixiu Academic Assistant — Agent 对话式工作区</title>
+  <style>
+    :root {
+      --bg:#f5f3fa; --surface:#fff; --surface2:#fbfaff; --fg:#20162f; --muted:#70657f; --muted2:#958aa4;
+      --border:#e6e0ee; --border2:#d6c9e8; --purple:#4d0099; --purple2:#6d3df2; --purple3:#efe7ff;
+      --orange:#f97316; --green:#16a34a; --blue:#2563eb; --yellow:#d97706; --red:#dc2626;
+      --shadow:0 12px 34px rgba(47,24,84,.08); --soft:0 7px 18px rgba(47,24,84,.06);
+      --radius:14px; --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+      --mono:"JetBrains Mono","SFMono-Regular",Consolas,ui-monospace,monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden}
+    body{font-family:var(--font);color:var(--fg);background:radial-gradient(circle at 18% -10%,rgba(109,61,242,.12),transparent 34%),linear-gradient(180deg,#fbfaff,var(--bg))}
+    button,textarea,input,select{font:inherit}button{cursor:pointer}
+    .app{height:100vh;display:grid;grid-template-rows:56px 1fr}
+    .topbar{display:grid;grid-template-columns:290px 1fr auto;align-items:center;gap:16px;padding:0 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.88);backdrop-filter:blur(16px);z-index:5}
+    .brand{display:flex;align-items:center;gap:10px;min-width:0}.logo{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:900;letter-spacing:-.05em;background:radial-gradient(circle at 72% 24%,rgba(249,115,22,.95),transparent 15px),linear-gradient(135deg,var(--purple),#7c3aed);box-shadow:0 10px 22px rgba(77,0,153,.2)}
+    .brand strong{display:block;font-size:14px;letter-spacing:-.02em;white-space:nowrap}.brand span{display:block;margin-top:2px;font-size:11px;color:var(--muted);white-space:nowrap}
+    .tabs{justify-self:center;display:inline-flex;padding:4px;border-radius:999px;border:1px solid var(--border);background:#f7f4fc}.tab{min-width:118px;height:34px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-weight:700;font-size:13px}.tab.active{color:#fff;background:linear-gradient(135deg,var(--purple),var(--purple2));box-shadow:0 8px 20px rgba(77,0,153,.18)}
+    .top-actions{display:flex;align-items:center;gap:8px}.link,.chip,.btn,.icon-btn{height:34px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:10px;font-size:12px;font-weight:650;white-space:nowrap}.link{padding:0 8px;border:0;color:var(--muted);background:transparent}.link:hover{color:var(--purple);background:var(--purple3)}.chip{padding:0 10px;color:#137333;border:1px solid #caead2;background:#f1fbf4}.btn{padding:0 12px;border:1px solid rgba(77,0,153,.18);color:#fff;background:linear-gradient(135deg,var(--purple),var(--purple2));box-shadow:0 8px 20px rgba(77,0,153,.16)}.icon-btn{width:34px;border:1px solid var(--border);color:var(--muted);background:#fff}.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+    .screen{display:none;height:calc(100vh - 56px);padding:12px}.screen.active{display:block}
+    .agent-grid{height:100%;display:grid;grid-template-columns:292px minmax(660px,1fr) 370px;grid-template-rows:minmax(0,1fr);gap:12px;transition:grid-template-columns .24s ease}.agent-grid.left-collapsed{grid-template-columns:46px minmax(760px,1fr) 370px}.agent-grid.right-collapsed{grid-template-columns:292px minmax(760px,1fr) 46px}.agent-grid.left-collapsed.right-collapsed{grid-template-columns:46px minmax(820px,1fr) 46px}
+    .reader-grid{height:100%;display:grid;grid-template-columns:292px minmax(620px,1fr) 382px;gap:12px}
+    .panel{min-width:0;min-height:0;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.96);box-shadow:var(--soft)}
+    .panel-head{min-height:49px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fff,#fbfaff)}
+    .panel-title strong{display:block;font-size:13px;letter-spacing:-.01em}.panel-title span{display:block;margin-top:2px;color:var(--muted);font-size:11px}.panel-actions{display:flex;align-items:center;gap:6px}.panel-body{height:calc(100% - 49px);overflow:auto;padding:12px}
+    .mini-btn,.collapse-btn{height:28px;border-radius:9px;border:1px solid var(--border2);color:var(--purple);background:#f7f1ff;font-size:12px;font-weight:750}.mini-btn{padding:0 9px}.collapse-btn{width:28px;background:#fff;font-weight:900}.collapse-btn:hover{background:var(--purple3)}
+    .collapse-rail{display:none;height:100%;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.96);box-shadow:var(--soft);overflow:hidden}.rail-button{width:100%;height:100%;border:0;display:grid;grid-template-rows:40px 1fr 40px;justify-items:center;align-items:center;color:var(--purple);background:linear-gradient(180deg,#fff,#fbf8ff)}.rail-text{writing-mode:vertical-rl;transform:rotate(180deg);font-size:12px;font-weight:850;letter-spacing:.08em;color:var(--purple)}.rail-icon{width:28px;height:28px;display:grid;place-items:center;border-radius:9px;border:1px solid #d9c8f4;background:var(--purple3);font-size:15px;font-weight:900}
+    .agent-grid.left-collapsed #projectPanel,.agent-grid.right-collapsed #toolsPanel{display:none}.agent-grid.left-collapsed #leftRail,.agent-grid.right-collapsed #rightRail{display:block}#leftRail{grid-column:1;grid-row:1}#rightRail{grid-column:3;grid-row:1}
+    .pill{min-height:22px;display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted);font-size:11px;font-weight:650}.pill.purple{color:var(--purple);border-color:#d9c8f4;background:#f6efff}.pill.green{color:#137333;border-color:#caead2;background:#f1fbf4}.pill.yellow{color:#9a5b00;border-color:#f5d9a6;background:#fff8eb}.pill.blue{color:#1d4ed8;border-color:#c9dcff;background:#eff6ff}.pill.gray{color:#776d84;background:#f6f4f8}
+    .project-card{padding:13px;border:1px solid #dfd3ef;border-radius:13px;background:radial-gradient(circle at 92% 12%,rgba(249,115,22,.12),transparent 52px),linear-gradient(135deg,#fff,#f7f2ff);margin-bottom:12px}.eyebrow{color:var(--purple);font-size:11px;font-weight:800;letter-spacing:.04em;margin-bottom:7px}.project-card h2{margin:0 0 9px;font-size:16px;line-height:1.25;letter-spacing:-.03em}.pill-row{display:flex;flex-wrap:wrap;gap:6px}.section-label{display:flex;justify-content:space-between;align-items:center;margin:14px 2px 8px;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+    .paper-list,.task-list,.tool-list{display:flex;flex-direction:column;gap:8px}.paper{display:grid;grid-template-columns:28px 1fr;gap:9px;padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;transition:.16s ease}.paper.active,.paper:hover{border-color:#d5c4f1;background:#fbf8ff;box-shadow:0 8px 18px rgba(77,0,153,.07)}.file-icon{width:28px;height:34px;display:grid;place-items:center;border-radius:7px;color:var(--purple);background:var(--purple3);font-size:13px;font-weight:900}.paper-name{font-size:12px;line-height:1.35;font-weight:800;margin-bottom:6px}.paper-meta{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;margin-bottom:7px}.tag-row{display:flex;flex-wrap:wrap;gap:5px}.tag{padding:2px 6px;border-radius:7px;background:#f4f1f8;color:#6d617d;font-size:10px;font-weight:650}.task{padding:9px 10px;border:1px solid var(--border);border-radius:11px;background:#fff}.task strong{display:block;font-size:12px;margin-bottom:4px}.task span{color:var(--muted);font-size:11px}
+    .agent-main{grid-column:2;grid-row:1;display:grid;grid-template-rows:49px minmax(0,1fr) auto;background:#fcfbfe}
+    .agent-main-head{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fff,#fbfaff)}.agent-main-head strong{font-size:13px}.agent-main-head span{font-size:11px;color:var(--muted)}
+    .chat-flow{min-height:0;overflow:auto;padding:18px 18px 12px;display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#fcfbfe,#f8f6fc)}
+    .message{display:grid;gap:8px}.message.user{justify-items:end}.bubble{max-width:86%;border:1px solid var(--border);border-radius:16px;background:#fff;box-shadow:0 6px 18px rgba(47,24,84,.04)}.message.user .bubble{background:#f5efff;border-color:#d9c8f4}.message.agent .bubble{width:min(920px,100%)}.bubble-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;border-bottom:1px solid var(--border)}.who{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:850}.avatar{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--purple),var(--purple2));font-size:12px;font-weight:900}.message.user .avatar{background:#fff;color:var(--purple);border:1px solid #d9c8f4}.stamp{color:var(--muted2);font-size:11px;font-family:var(--mono)}.bubble-body{padding:13px}.bubble-body p{margin:0;color:#3e344d;font-size:13px;line-height:1.62}
+    .agent-section{border:1px solid var(--border);border-radius:13px;background:#fff;margin-top:10px;overflow:hidden}.agent-section summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#fbf9ff;border-bottom:1px solid var(--border);cursor:pointer}.agent-section summary::-webkit-details-marker{display:none}.section-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:850}.section-icon{width:22px;height:22px;display:grid;place-items:center;border-radius:7px;color:var(--purple);background:var(--purple3);font-weight:900}.section-body{padding:11px 12px}
+    .checklist{display:grid;gap:8px}.check{display:grid;grid-template-columns:24px 1fr auto;gap:9px;align-items:start;padding:8px;border:1px solid var(--border);border-radius:10px;background:#fff}.check .mark{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:900;border:1px solid var(--border2);background:#f7f2ff;color:var(--purple)}.check.done .mark{background:#eaf8ef;color:var(--green);border-color:#c7ead0}.check.current{border-color:#cab6ec;background:linear-gradient(90deg,rgba(109,61,242,.08),transparent 46%),#fff}.check.wait .mark{background:#f6f4f8;color:var(--muted2)}.check b{font-size:12px}.check small{display:block;margin-top:2px;color:var(--muted);font-size:11px;line-height:1.45}
+    .trace{border:1px solid #ded6eb;border-radius:12px;background:#171321;color:#e9ddff;font-family:var(--mono);overflow:hidden}.trace-line{display:grid;grid-template-columns:92px 1fr auto;gap:10px;padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-size:11px;line-height:1.45}.trace-line:last-child{border-bottom:0}.trace-tool{color:#c4a7ff;font-weight:800}.trace-result{color:#d8d1e8}.trace-status{color:#8ef0b0}.trace-status.run{color:#f8c77e}
+    .result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.result-card{padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff}.result-card b{display:block;font-size:12px;margin-bottom:5px}.result-card p{font-size:11px!important;color:var(--muted)!important;line-height:1.5!important}
+    table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;line-height:1.45}th{color:var(--muted);background:#fbf9ff;font-size:11px;font-weight:850}td:first-child{font-weight:800;color:var(--purple)}
+    .composer{border-top:1px solid var(--border);background:rgba(255,255,255,.92);backdrop-filter:blur(14px);padding:12px 16px}.quick-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap}.quick{height:26px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted);padding:0 10px;font-size:11px;font-weight:700}.quick:hover{border-color:#d3c0ef;color:var(--purple);background:#fbf8ff}.composer-box{display:grid;grid-template-columns:1fr 126px 42px;gap:9px;align-items:end;padding:10px;border:1px solid #d9c9ef;border-radius:16px;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 9px 24px rgba(77,0,153,.07)}.composer textarea{width:100%;min-height:54px;max-height:120px;resize:none;border:0;outline:0;background:transparent;color:var(--fg);font-size:14px;line-height:1.55}.mode-select{height:38px;border:1px solid var(--border);border-radius:11px;background:#fbf9ff;color:var(--purple);font-size:12px;font-weight:760;padding:0 8px}.send{width:42px;height:38px;border:0;border-radius:12px;color:#fff;background:linear-gradient(135deg,var(--purple),var(--purple2));box-shadow:0 8px 18px rgba(77,0,153,.18);font-size:16px;font-weight:900}
+    .tools-panel{grid-column:3;grid-row:1}.tool{border:1px solid var(--border);border-radius:13px;background:#fff;overflow:hidden}.tool.active{border-color:#cdb9ed;box-shadow:0 10px 22px rgba(77,0,153,.08)}.tool-top{display:flex;justify-content:space-between;align-items:center;padding:10px 11px;border-bottom:1px solid #f0ebf7;background:#fbf9ff}.tool-name{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:850}.tool-icon{width:24px;height:24px;display:grid;place-items:center;border-radius:8px;color:var(--purple);background:var(--purple3);font-size:13px}.tool-detail{padding:10px 11px}.kv{display:grid;grid-template-columns:42px 1fr;gap:8px;margin-bottom:7px;font-size:11px;line-height:1.45}.kv b{color:var(--muted)}
+    .evidence{padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff;margin-top:9px}.evidence strong{display:block;font-size:12px;line-height:1.35;margin-bottom:5px}.evidence .loc{display:flex;gap:6px;color:var(--purple);font-size:11px;font-weight:750;margin-bottom:6px}.quote{padding-left:9px;border-left:3px solid #dacaf2;color:var(--muted);font-size:11px;line-height:1.55}
+    .pdf-panel{display:grid;grid-template-rows:49px 1fr}.pdf-canvas{min-height:0;overflow:auto;padding:18px;background:linear-gradient(90deg,rgba(77,0,153,.04) 1px,transparent 1px),linear-gradient(180deg,rgba(77,0,153,.04) 1px,transparent 1px),#efedf4;background-size:28px 28px}.pdf-page{width:min(760px,100%);min-height:980px;margin:0 auto;padding:48px 54px;border-radius:6px;border:1px solid #ddd5e8;background:#fff;box-shadow:0 20px 50px rgba(47,24,84,.12)}.pdf-page h1{margin:0 0 14px;font-size:28px;line-height:1.2;letter-spacing:-.03em}.pdf-page .authors{color:var(--muted);font-size:13px;margin-bottom:28px}.pdf-page h2{margin:26px 0 10px;font-size:17px}.pdf-page p{color:#3f354e;font-size:14px;line-height:1.82;text-align:justify}.highlight{background:linear-gradient(180deg,transparent 48%,rgba(249,115,22,.22) 48%);border-radius:3px}.chat{display:grid;grid-template-rows:49px 1fr auto}.chat-body{min-height:0;overflow:auto;padding:12px;background:#fcfbfe}.msg{max-width:92%;padding:10px 11px;border:1px solid var(--border);border-radius:13px;background:#fff;font-size:12px;line-height:1.55;margin-bottom:10px}.msg.ai{border-color:#d8c7f2;background:#fbf8ff}.msg.user{margin-left:auto;color:#fff;border-color:rgba(77,0,153,.2);background:linear-gradient(135deg,var(--purple),var(--purple2))}.chat-input{padding:10px;border-top:1px solid var(--border);background:#fff}.chat-input textarea{width:100%;min-height:42px;border:1px solid var(--border);border-radius:12px;padding:10px;resize:none}.toc-item{display:flex;justify-content:space-between;gap:8px;padding:9px 10px;border-radius:10px;color:var(--muted);font-size:12px}.toc-item.active{color:var(--purple);background:var(--purple3);font-weight:800}.toc-item span:last-child{font-family:var(--mono);color:var(--muted2)}
+    @media(max-width:1180px){.topbar{grid-template-columns:230px 1fr auto}.top-actions .link{display:none}.agent-grid{grid-template-columns:260px minmax(560px,1fr) 330px}.agent-grid.left-collapsed{grid-template-columns:46px minmax(620px,1fr) 330px}.agent-grid.right-collapsed{grid-template-columns:260px minmax(620px,1fr) 46px}.reader-grid{grid-template-columns:260px minmax(520px,1fr) 340px}.composer-box{grid-template-columns:1fr 42px}.mode-select{display:none}.result-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="logo">P</div><div><strong>Pixiu Academic Assistant</strong><span>面向论文阅读与研究任务的 AI 工作台</span></div></div>
+    <nav class="tabs" aria-label="模式切换"><button class="tab" data-mode="reader">阅读 IDE</button><button class="tab active" data-mode="agent">Agent 研究</button></nav>
+    <div class="top-actions"><button class="link">论文库</button><span class="chip"><span class="dot"></span>服务正常</span><button class="btn">上传论文</button><button class="link">关于</button><button class="icon-btn">⌘</button></div>
+  </header>
+
+  <main id="agent" class="screen active">
+    <div class="agent-grid" id="agentGrid">
+      <aside class="panel" id="projectPanel">
+        <div class="panel-head"><div class="panel-title"><strong>Project / Papers</strong><span>多论文项目树</span></div><div class="panel-actions"><button class="mini-btn">+ 添加</button><button class="collapse-btn" data-collapse="left">‹</button></div></div>
+        <div class="panel-body">
+          <section class="project-card"><div class="eyebrow">RESEARCH PROJECT</div><h2>大模型辅助学术阅读与跨论文综述</h2><div class="pill-row"><span class="pill purple">5 篇论文</span><span class="pill green">索引完成 4/5</span><span class="pill yellow">1 个任务运行中</span></div></section>
+          <div class="section-label"><span>Papers</span><span>解析 / 索引 / 关键词</span></div>
+          <div class="paper-list">
+            <article class="paper active"><div class="file-icon">PDF</div><div><div class="paper-name">Retrieval-Augmented Generation for Knowledge-Intensive NLP</div><div class="paper-meta"><span class="pill green">已解析</span><span class="pill green">已索引</span></div><div class="tag-row"><span class="tag">RAG</span><span class="tag">检索增强</span><span class="tag">证据链</span></div></div></article>
+            <article class="paper"><div class="file-icon">PDF</div><div><div class="paper-name">Chain-of-Thought Prompting Elicits Reasoning in LLMs</div><div class="paper-meta"><span class="pill green">已解析</span><span class="pill green">已索引</span></div><div class="tag-row"><span class="tag">推理</span><span class="tag">Prompt</span><span class="tag">CoT</span></div></div></article>
+            <article class="paper"><div class="file-icon">PDF</div><div><div class="paper-name">Toolformer: Language Models Can Teach Themselves to Use Tools</div><div class="paper-meta"><span class="pill green">已解析</span><span class="pill blue">索引中</span></div><div class="tag-row"><span class="tag">工具调用</span><span class="tag">自监督</span></div></div></article>
+            <article class="paper"><div class="file-icon">PDF</div><div><div class="paper-name">Self-RAG: Learning to Retrieve, Generate and Critique</div><div class="paper-meta"><span class="pill green">已解析</span><span class="pill green">已索引</span></div><div class="tag-row"><span class="tag">自反思</span><span class="tag">批判性阅读</span></div></div></article>
+            <article class="paper"><div class="file-icon">PDF</div><div><div class="paper-name">Survey on AI Agents for Scientific Discovery</div><div class="paper-meta"><span class="pill yellow">待解析</span><span class="pill">未索引</span></div><div class="tag-row"><span class="tag">综述</span><span class="tag">科学发现</span></div></div></article>
+          </div>
+          <div class="section-label"><span>Research Tasks</span><button class="mini-btn">创建任务</button></div>
+          <div class="task-list"><div class="task"><strong>跨论文方法对比</strong><span>比较研究问题、方法、创新点与局限</span></div><div class="task"><strong>背景补课路径</strong><span>生成 RAG 与 Agent 阅读路线</span></div><div class="task"><strong>综述草稿</strong><span>生成中文文献综述初稿</span></div></div>
+        </div>
+      </aside>
+
+      <aside class="collapse-rail" id="leftRail"><button class="rail-button" data-collapse="left"><span class="rail-icon">›</span><span class="rail-text">Project / Papers</span><span></span></button></aside>
+
+      <section class="panel agent-main">
+        <div class="agent-main-head">
+          <div><strong>Agent 工作区</strong><br><span>对话式研究任务执行流 · 类 Codex / Cursor Agent</span></div>
+          <div class="pill-row"><span class="pill blue" id="agentStatus">正在执行 · 批判性阅读</span><span class="pill purple">深度研究</span></div>
+        </div>
+
+        <div class="chat-flow" id="chatFlow">
+          <div class="message user">
+            <div class="bubble">
+              <div class="bubble-head"><div class="who"><span class="avatar">你</span>研究任务</div><span class="stamp">10:42</span></div>
+              <div class="bubble-body"><p>比较这些论文的研究问题、方法设计、实验指标和局限性，并输出可追溯证据的中文综述草稿。</p></div>
+            </div>
+          </div>
+
+          <div class="message agent">
+            <div class="bubble">
+              <div class="bubble-head"><div class="who"><span class="avatar">A</span>Pixiu Research Agent</div><span class="stamp">运行中 · 01:12</span></div>
+              <div class="bubble-body">
+                <p>我会把这次任务视为一个跨论文研究分析流程：先识别每篇论文的研究问题，再比较方法设计与实验指标，随后用批判性阅读工具检查结论边界，最后生成可引用、可追溯、可继续追问的综述草稿。</p>
+
+                <details class="agent-section" open>
+                  <summary><span class="section-title"><span class="section-icon">T</span>思考与任务理解</span><span class="pill purple">面向用户解释</span></summary>
+                  <div class="section-body">
+                    <p>当前项目包含 RAG、CoT、Toolformer、Self-RAG 与 AI Agents for Scientific Discovery 五类材料。它们共同关注“如何让大模型完成更复杂、更可信的知识任务”，但分别从检索、推理链、工具调用、自我批判与科学研究流程自动化切入。</p>
+                  </div>
+                </details>
+
+                <details class="agent-section" open>
+                  <summary><span class="section-title"><span class="section-icon">P</span>执行计划</span><span class="pill blue">第 3 步 / 6 步</span></summary>
+                  <div class="section-body">
+                    <div class="checklist">
+                      <div class="check done"><div class="mark">✓</div><div><b>理解研究目标</b><small>确认输出维度：研究问题、方法、实验指标、创新点、局限。</small></div><span class="pill green">完成</span></div>
+                      <div class="check done"><div class="mark">✓</div><div><b>检索相关论文证据</b><small>围绕每个维度召回高相关段落，并保留论文名、章节与页码。</small></div><span class="pill green">完成</span></div>
+                      <div class="check current"><div class="mark">3</div><div><b>提取每篇论文的研究问题</b><small>正在归纳各论文的核心问题和方法假设。</small></div><span class="pill blue">进行中</span></div>
+                      <div class="check wait"><div class="mark">4</div><div><b>调用批判性阅读工具</b><small>检查实验设置、结论强度和潜在局限。</small></div><span class="pill gray">等待</span></div>
+                      <div class="check wait"><div class="mark">5</div><div><b>汇总跨论文差异</b><small>生成对比表、共同趋势与关键分歧。</small></div><span class="pill gray">等待</span></div>
+                      <div class="check wait"><div class="mark">6</div><div><b>生成研究结论</b><small>输出综述草稿、后续阅读建议与可追问问题。</small></div><span class="pill gray">等待</span></div>
+                    </div>
+                  </div>
+                </details>
+
+                <details class="agent-section" open>
+                  <summary><span class="section-title"><span class="section-icon">⌘</span>工具调用</span><span class="pill green">3 完成 · 1 运行</span></summary>
+                  <div class="section-body">
+                    <div class="trace">
+                      <div class="trace-line"><span class="trace-tool">RAG 检索</span><span class="trace-result">关联 4 篇论文 · 命中 18 条证据片段</span><span class="trace-status">done</span></div>
+                      <div class="trace-line"><span class="trace-tool">批判性阅读</span><span class="trace-result">正在检查实验指标是否可横向比较</span><span class="trace-status run">running</span></div>
+                      <div class="trace-line"><span class="trace-tool">背景补课</span><span class="trace-result">已生成 RAG / CoT / Tool Use 概念关系</span><span class="trace-status">done</span></div>
+                      <div class="trace-line"><span class="trace-tool">引导式学习</span><span class="trace-result">已生成 6 个追问问题</span><span class="trace-status">done</span></div>
+                      <div class="trace-line"><span class="trace-tool">深度研究</span><span class="trace-result">等待证据汇总后生成综述草稿</span><span class="trace-status run">queued</span></div>
+                    </div>
+                  </div>
+                </details>
+
+                <details class="agent-section" open>
+                  <summary><span class="section-title"><span class="section-icon">R</span>阶段性结果</span><span class="pill purple">中间产物</span></summary>
+                  <div class="section-body">
+                    <div class="result-grid">
+                      <div class="result-card"><b>共同研究问题</b><p>如何让大模型在知识密集任务中产生更可靠、更可解释、更可验证的输出。</p></div>
+                      <div class="result-card"><b>方法路线差异</b><p>RAG 强调外部知识，CoT 强调显式推理，Toolformer 强调工具选择，Self-RAG 强调检索-生成-批判闭环。</p></div>
+                      <div class="result-card"><b>证据覆盖</b><p>已找到 8 条高可信证据片段，覆盖 Methods、Approach、Experiments 与 Conclusion。</p></div>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+
+          <div class="message agent">
+            <div class="bubble">
+              <div class="bubble-head"><div class="who"><span class="avatar">A</span>最终回答草稿</div><span class="stamp">可追溯 · 可继续追问</span></div>
+              <div class="bubble-body">
+                <p>下面是当前可用证据生成的研究结论草稿。每个观点都可以继续展开到右侧证据面板中的论文、章节、页码和原文片段。</p>
+                <details class="agent-section" open>
+                  <summary><span class="section-title"><span class="section-icon">✓</span>跨论文对比总结</span><span class="pill green">草稿 v0.3</span></summary>
+                  <div class="section-body" style="overflow:auto">
+                    <table>
+                      <thead><tr><th>论文</th><th>研究问题</th><th>方法设计</th><th>创新点</th><th>局限性</th></tr></thead>
+                      <tbody>
+                        <tr><td>RAG</td><td>如何让生成模型利用外部知识</td><td>检索器 + 生成器联合建模</td><td>把证据文档接入生成过程</td><td>检索质量直接影响答案可靠性</td></tr>
+                        <tr><td>CoT</td><td>如何诱导模型显式推理</td><td>通过推理链提示处理复杂任务</td><td>提升多步推理可读性</td><td>推理链不一定真实可靠</td></tr>
+                        <tr><td>Toolformer</td><td>模型如何自主学习工具调用</td><td>少量示例引导自监督工具使用</td><td>把外部工具纳入语言模型流程</td><td>工具选择与错误恢复仍有限</td></tr>
+                        <tr><td>Self-RAG</td><td>如何减少无证据生成</td><td>检索、生成、批判闭环</td><td>显式控制何时检索和批判</td><td>流程复杂度与延迟增加</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+                <details class="agent-section" open>
+                  <summary><span class="section-title"><span class="section-icon">N</span>后续阅读建议</span><span class="pill blue">可继续追问</span></summary>
+                  <div class="section-body">
+                    <p>建议下一步继续追问：“请只比较 RAG 与 Self-RAG 的证据追溯机制”，或“把这些论文整理成一段 800 字文献综述并标注引用来源”。</p>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="composer">
+          <div class="quick-row">
+            <button class="quick">方法对比</button><button class="quick">创新点总结</button><button class="quick">局限性分析</button><button class="quick">生成综述</button><button class="quick">制定阅读计划</button>
+          </div>
+          <div class="composer-box">
+            <textarea id="taskInput" placeholder="让 Agent 比较这些论文的研究问题、方法设计、实验指标和局限性"></textarea>
+            <select class="mode-select" aria-label="分析模式"><option>快速分析</option><option selected>深度研究</option><option>生成报告</option></select>
+            <button class="send" id="sendBtn">↑</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel tools-panel" id="toolsPanel">
+        <div class="panel-head"><div class="panel-title"><strong>Tools & Evidence</strong><span>工具调用记录与可追溯证据</span></div><div class="panel-actions"><span class="pill green">可追溯</span><button class="collapse-btn" data-collapse="right">›</button></div></div>
+        <div class="panel-body">
+          <div class="section-label"><span>当前工具调用</span><span>5 个工具</span></div>
+          <div class="tool-list">
+            <article class="tool active"><div class="tool-top"><div class="tool-name"><span class="tool-icon">R</span>RAG 检索</div><span class="pill green">完成</span></div><div class="tool-detail"><div class="kv"><b>输入</b><span>“研究问题 + 方法 + 局限”跨论文检索</span></div><div class="kv"><b>输出</b><span>命中 18 条高相关证据，覆盖 4 篇论文</span></div></div></article>
+            <article class="tool active"><div class="tool-top"><div class="tool-name"><span class="tool-icon">C</span>批判性阅读</div><span class="pill blue">运行中</span></div><div class="tool-detail"><div class="kv"><b>输入</b><span>对比实验设置、假设边界与结论强度</span></div><div class="kv"><b>输出</b><span>已发现 3 类方法差异与 2 个共同局限</span></div></div></article>
+            <article class="tool"><div class="tool-top"><div class="tool-name"><span class="tool-icon">B</span>背景补课</div><span class="pill green">完成</span></div><div class="tool-detail"><div class="kv"><b>输入</b><span>RAG、CoT、自反思 Agent 基础概念</span></div><div class="kv"><b>输出</b><span>已生成概念关系图谱</span></div></div></article>
+            <article class="tool"><div class="tool-top"><div class="tool-name"><span class="tool-icon">L</span>引导式学习</div><span class="pill green">完成</span></div><div class="tool-detail"><div class="kv"><b>输入</b><span>按问题链解释论文脉络</span></div><div class="kv"><b>输出</b><span>生成 6 个后续追问</span></div></div></article>
+            <article class="tool"><div class="tool-top"><div class="tool-name"><span class="tool-icon">D</span>深度研究</div><span class="pill">排队中</span></div><div class="tool-detail"><div class="kv"><b>输入</b><span>生成可引用的中文综述草稿</span></div><div class="kv"><b>输出</b><span>等待汇总证据与观点</span></div></div></article>
+          </div>
+          <div class="section-label"><span>引用证据片段</span><span>Evidence</span></div>
+          <div class="evidence"><strong>Retrieval-Augmented Generation for Knowledge-Intensive NLP</strong><div class="loc"><span>Methods</span><span>p.3</span><span>§2.1</span></div><div class="quote">模型通过可微检索器访问外部知识源，使生成过程能够引用与问题相关的文档片段。</div></div>
+          <div class="evidence"><strong>Self-RAG: Learning to Retrieve, Generate and Critique</strong><div class="loc"><span>Approach</span><span>p.5</span><span>§3</span></div><div class="quote">系统在检索、生成和自我批判之间形成显式控制流程，以减少无证据生成。</div></div>
+          <div class="evidence"><strong>Toolformer</strong><div class="loc"><span>Training</span><span>p.4</span><span>§2</span></div><div class="quote">语言模型可以从少量示例中学习何时调用外部工具，并将调用结果整合回生成文本。</div></div>
+        </div>
+      </aside>
+
+      <aside class="collapse-rail" id="rightRail"><button class="rail-button" data-collapse="right"><span class="rail-icon">‹</span><span class="rail-text">Tools & Evidence</span><span></span></button></aside>
+    </div>
+  </main>
+
+  <main id="reader" class="screen">
+    <div class="reader-grid">
+      <aside class="panel">
+        <div class="panel-head"><div class="panel-title"><strong>论文导航</strong><span>单论文阅读工作区</span></div><button class="mini-btn">目录</button></div>
+        <div class="panel-body">
+          <section class="project-card"><div class="eyebrow">CURRENT PAPER</div><h2>Retrieval-Augmented Generation for Knowledge-Intensive NLP</h2><div class="pill-row"><span class="pill green">已解析</span><span class="pill purple">23 页</span><span class="pill blue">42 条笔记</span></div></section>
+          <div class="section-label"><span>目录</span><span>TOC</span></div>
+          <div class="toc-item active"><span>摘要 Abstract</span><span>1</span></div><div class="toc-item"><span>1. Introduction</span><span>2</span></div><div class="toc-item"><span>2. Methods</span><span>3</span></div><div class="toc-item"><span>3. Experiments</span><span>8</span></div><div class="toc-item"><span>4. Results</span><span>14</span></div><div class="toc-item"><span>5. Related Work</span><span>19</span></div><div class="toc-item"><span>6. Conclusion</span><span>22</span></div>
+          <div class="section-label"><span>阅读辅助</span><span>AI</span></div><div class="task-list"><div class="task"><strong>总结本节</strong><span>提取研究问题、方法和贡献</span></div><div class="task"><strong>解释公式</strong><span>对选中公式进行逐步解释</span></div><div class="task"><strong>生成笔记</strong><span>保存到当前论文知识库</span></div></div>
+        </div>
+      </aside>
+      <section class="panel pdf-panel">
+        <div class="panel-head"><div class="panel-title"><strong>PDF 阅读器</strong><span>p.3 · Methods · 检索增强生成框架</span></div><div class="pill-row"><span class="pill">125%</span><span class="pill purple">高亮 6</span><span class="pill green">已同步</span></div></div>
+        <div class="pdf-canvas"><article class="pdf-page"><h1>Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</h1><div class="authors">Patrick Lewis, Ethan Perez, Aleksandra Piktus 等 · Pixiu 论文库节选视图</div><h2>Abstract</h2><p>本文研究如何让参数化生成模型与非参数化记忆结合，以完成知识密集型自然语言处理任务。<span class="highlight">核心思想是将检索到的文档片段作为生成条件，从而提升答案的事实性与可追溯性。</span>这种方式使模型能够在无需完全重新训练的情况下访问外部知识。</p><h2>2. Retrieval-Augmented Generation</h2><p>在 RAG 框架中，输入问题首先被送入检索模块，检索模块从大规模文档集合中返回若干相关段落。随后生成模型基于问题与检索段落共同生成最终回答。与纯参数模型相比，该框架把知识来源显式暴露出来，因而更适合需要引用依据的学术阅读、开放域问答和研究辅助任务。</p><p>对 Pixiu Academic Assistant 而言，这种机制可以直接映射为“证据追溯”：AI 的每个回答不仅给出结论，还要返回论文名、章节、页码和原文摘要，帮助研究者快速判断观点是否可信。</p></article></div>
+      </section>
+      <aside class="panel chat">
+        <div class="panel-head"><div class="panel-title"><strong>AI 对话与辅助功能</strong><span>围绕当前 PDF 的单论文问答</span></div><span class="pill green">上下文已载入</span></div>
+        <div class="chat-body"><div class="msg user">请解释 Methods 里 RAG 的核心流程。</div><div class="msg ai">RAG 的流程可以拆成三步：先把问题编码成检索向量，再从论文或知识库中召回相关段落，最后让生成模型同时参考问题与证据生成回答。</div><div class="msg user">它和 Agent 研究模式有什么区别？</div><div class="msg ai">阅读 IDE 围绕单篇 PDF；Agent 研究模式会把多篇论文作为项目资源，自动规划任务、调用工具、比较证据，并生成跨论文研究产物。</div></div>
+        <div class="chat-input"><textarea placeholder="询问当前论文，例如：这段方法和 Self-RAG 有什么区别？"></textarea></div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script>
+  const tabs=document.querySelectorAll(".tab");
+  const screens={reader:document.getElementById("reader"),agent:document.getElementById("agent")};
+  tabs.forEach(tab=>tab.addEventListener("click",()=>{const mode=tab.dataset.mode;tabs.forEach(t=>t.classList.toggle("active",t===tab));Object.entries(screens).forEach(([k,el])=>el.classList.toggle("active",k===mode));}));
+  const agentGrid=document.getElementById("agentGrid");
+  document.querySelectorAll("[data-collapse]").forEach(btn=>btn.addEventListener("click",()=>agentGrid.classList.toggle(btn.dataset.collapse==="left"?"left-collapsed":"right-collapsed")));
+  document.querySelectorAll(".quick").forEach(btn=>btn.addEventListener("click",()=>{document.getElementById("taskInput").value="请帮我进行“"+btn.textContent+"”，要求包含可追溯证据和后续追问建议。";}));
+  const sendBtn=document.getElementById("sendBtn"),taskInput=document.getElementById("taskInput"),chatFlow=document.getElementById("chatFlow"),agentStatus=document.getElementById("agentStatus");
+  sendBtn.addEventListener("click",()=>{
+    const text=taskInput.value.trim()||"让 Agent 比较这些论文的研究问题、方法设计、实验指标和局限性";
+    const user=document.createElement("div");
+    user.className="message user";
+    user.innerHTML='<div class="bubble"><div class="bubble-head"><div class="who"><span class="avatar">你</span>新任务</div><span class="stamp">刚刚</span></div><div class="bubble-body"><p>'+text.replace(/[<>&]/g,s=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[s]))+'</p></div></div>';
+    chatFlow.appendChild(user);
+    const agent=document.createElement("div");
+    agent.className="message agent";
+    agent.innerHTML='<div class="bubble"><div class="bubble-head"><div class="who"><span class="avatar">A</span>Pixiu Research Agent</div><span class="stamp">已接收 · 规划中</span></div><div class="bubble-body"><p>我已接收这个研究任务。接下来会先确认涉及论文范围，再生成检索计划，并把工具调用、证据片段和阶段性结果持续追加在这里。</p><details class="agent-section" open><summary><span class="section-title"><span class="section-icon">P</span>新执行计划</span><span class="pill blue">准备开始</span></summary><div class="section-body"><div class="checklist"><div class="check current"><div class="mark">1</div><div><b>重建研究目标</b><small>根据你的新输入更新比较维度。</small></div><span class="pill blue">进行中</span></div><div class="check wait"><div class="mark">2</div><div><b>检索证据</b><small>从已索引论文中召回相关段落。</small></div><span class="pill gray">等待</span></div></div></div></details></div></div>';
+    chatFlow.appendChild(agent);
+    agentStatus.textContent="已接收新任务 · 规划中";
+    taskInput.value="";
+    chatFlow.scrollTop=chatFlow.scrollHeight;
+  });
+</script>
+</body>
+</html>

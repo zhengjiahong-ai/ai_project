@@ -234,6 +234,60 @@ public class AiService {
         return forwardReadOnlyTrace(HttpMethod.GET, "/traces/" + encodedTraceId);
     }
 
+    public ResponseEntity<Map<String, Object>> createAgentProject(Map<String, Object> request) {
+        return forwardAgentRequest(HttpMethod.POST, "/agent-projects", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> listAgentProjects() {
+        return forwardAgentRequest(HttpMethod.GET, "/agent-projects", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> getAgentProject(String projectId) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/agent-projects/" + encodedProjectId, null);
+    }
+
+    public ResponseEntity<Map<String, Object>> updateAgentProject(String projectId, Map<String, Object> request) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.PATCH, "/agent-projects/" + encodedProjectId, request);
+    }
+
+    public ResponseEntity<Map<String, Object>> addAgentProjectPapers(String projectId, Map<String, Object> request) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.POST, "/agent-projects/" + encodedProjectId + "/papers", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> removeAgentProjectPaper(String projectId, String pdfId) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        String encodedPdfId = URLEncoder.encode(String.valueOf(pdfId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.DELETE, "/agent-projects/" + encodedProjectId + "/papers/" + encodedPdfId, null);
+    }
+
+    public ResponseEntity<Map<String, Object>> createAgentTask(String projectId, Map<String, Object> request) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.POST, "/agent-projects/" + encodedProjectId + "/tasks", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> getLatestAgentTask(String projectId) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/agent-projects/" + encodedProjectId + "/tasks/latest", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> getAgentTask(String taskId) {
+        String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/agent-tasks/" + encodedTaskId, null);
+    }
+
+    public ResponseEntity<Map<String, Object>> cancelAgentTask(String taskId) {
+        String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.POST, "/agent-tasks/" + encodedTaskId + "/cancel", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> getAgentTrace(String traceId) {
+        String encodedTraceId = URLEncoder.encode(String.valueOf(traceId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/agent-traces/" + encodedTraceId, null);
+    }
+
     private List<Map<String, String>> buildHistoryPayload(String pdfId) {
         List<ChatMessage> history = chatMessageRepository.findByPdfIdOrderByTimestampAsc(pdfId);
         List<Map<String, String>> historyList = new ArrayList<>();
@@ -279,6 +333,21 @@ public class AiService {
 
         try {
             ResponseEntity<Map> response = restTemplate.exchange(url, method, HttpEntity.EMPTY, Map.class);
+            return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
+        } catch (HttpStatusCodeException error) {
+            return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));
+        }
+    }
+
+    private ResponseEntity<Map<String, Object>> forwardAgentRequest(
+            HttpMethod method,
+            String path,
+            Map<String, Object> payload) {
+        String url = PYTHON_SERVICE_URL + path;
+        HttpEntity<?> entity = payload == null ? HttpEntity.EMPTY : new HttpEntity<>(payload);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(url, method, entity, Map.class);
             return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
         } catch (HttpStatusCodeException error) {
             return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));

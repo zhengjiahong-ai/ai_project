@@ -1,169 +1,80 @@
 # Pixiu Academic Assistant
 
-Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它围绕 PDF 论文提供上传解析、篇章解构、对话问答、术语解释、逐页翻译、背景补课、引导学习、批判阅读、深度研究和本地知识沉淀等能力。
+Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它把 PDF 解析、单论文阅读辅助、证据化分析，以及新的多论文 Agent 研究工作区整合在同一个项目里。
 
-当前仓库采用三层架构：
+## 当前技术栈
 
-- `frontend/`: React 19 + Vite 7 前端工作台
-- `backend-java/`: Spring Boot Java 网关，统一对外暴露 `/api`
-- `ai-service-python/`: FastAPI AI 服务，负责论文解析、RAG、LLM 调用与研究任务执行
-
-配套依赖还包括：
-
-- `GROBID 0.7.2`：解析 PDF 为 TEI/XML 并提取结构信息
-- `ChromaDB + sentence-transformers`：当前论文和内部文献库检索
-- `H2`：Java 网关侧保存论文记录和聊天历史
-- `SQLite`：Python 侧保存深度研究任务快照
-- `IndexedDB`：浏览器侧保存 PDF、阅读进度、对话、笔记、翻译与工作台资产
+- `frontend/`：React 19 + Vite 7 前端工作台。
+- `backend-java/`：Spring Boot 网关与轻量持久化层。
+- `ai-service-python/`：FastAPI AI 服务，负责解析、检索、分析、任务执行和 trace。
+- `grobid`：PDF 结构抽取服务。
+- `ChromaDB + sentence-transformers`：当前论文和内部文献库检索。
+- `H2`：Java 侧论文记录和聊天历史持久化。
+- `SQLite`：Python 侧 Deep Research 任务快照持久化。
+- `IndexedDB`：浏览器侧阅读会话和工作区状态持久化。
 
 ## 当前能力
 
-### 论文上传与结构解析
+### 阅读 IDE
 
-- 浏览器上传 PDF 到 Java `/api/upload`
-- Java 转发到 Python `/api/analyze-pdf`
-- Python 调用 GROBID 解析正文与版面结构
-- Python 生成：
-  - `paper_skeleton`：按摘要、引言、方法、结果、讨论、结论的摘要
-  - `paper_structure`：研究问题、核心假设、方法框架、主要贡献、实验逻辑、局限性
-  - `paper_structure.sections`：真实章节树，尽量包含层级、页码、锚点、来源和置信度
-  - `translationLayoutIndex`：逐页翻译需要的版面索引
-- 当前论文正文会被切分后写入 RAG 索引，供聊天、术语解释、批判阅读和深度研究使用
+主阅读工作区已经打通端到端链路：
 
-### 阅读工作台
+- 上传并解析 PDF。
+- 提取论文骨架和章节结构。
+- 基于证据的单论文问答。
+- 划词或术语解释。
+- 逐页翻译。
+- 自适应背景补课。
+- 苏格拉底式引导学习。
+- 带证据主张的批判阅读。
+- 带 trace 和持久化快照的 Deep Research 异步任务。
 
-前端 `App.jsx` 已经实现三阶段阅读工作流：
+### Agent 研究
 
-- 阶段一 `浅读解构`
-  - 问答
-  - 篇章解构
-  - 逐页翻译
-- 阶段二 `深度探究`
-  - 背景补课
-  - 引导学习
-  - 批判阅读
-  - 深度研究
-- 阶段三 `知识内化`
-  - 底部工作台中的卡片和边注沉淀
+Agent 工作区已经不再只是静态原型壳。当前已经具备第一版可用的端到端链路：
 
-界面核心区域包括：
+- 创建和切换 Agent 项目。
+- 向项目挂载多篇论文。
+- 创建异步 Agent 任务。
+- 轮询任务进度和阶段状态。
+- 展示时间线事件、工具调用、证据片段、对比表、冲突候选、开放问题和报告草稿。
+- 在前端快照中按项目保存任务历史。
+- 切换项目时恢复对应项目的任务历史。
 
-- 左侧论文库与章节导航
-- 中央 PDF 阅读器
-- 右侧 AI 功能面板
-- 底部工作台 `BottomWorkbench`
+当前 AI 效果边界：
 
-### Agent 研究模式前端原型
+- Agent 结论已经从通用占位文本升级为有证据依据的规则型草稿。
+- 这仍是第一版规则型综合，不是最终形态的复杂多步推理系统。
 
-前端已新增一个轻量的双模式入口：
+## 运行链路
 
-- `阅读 IDE`：保留当前单篇论文阅读工作流，继续承载 PDF 预览、问答、篇章解构、翻译、背景补课、引导学习、批判阅读、深度研究和工作台沉淀。
-- `Agent 研究`：新增前端框架原型，用于承载后续多论文、多工具协作的研究场景。
+当前产品里存在两条 API 访问路径。
 
-当前 `Agent 研究` 仍是前端原型壳，暂不接入真实多论文 Agent 后端。它主要用于先固定产品形态和交互骨架：
-
-- 左侧 `研究工作区`：展示研究主题、多篇论文列表和最近任务。
-- 中间 `Agent 研究任务`：采用类似 Codex 的底部输入框和上方对话流，展示任务理解、执行计划、工具调用、阶段性结果与研究结论草稿。
-- 右侧 `工具调用与证据链`：展示工具状态和可追溯证据片段。
-
-相关前端文件：
-
-- `frontend/src/components/agent/AgentWorkspace.jsx`
-- `frontend/src/components/agent/agentMockData.js`
-- `frontend/src/components/Navbar.jsx`
-- `frontend/src/App.jsx`
-
-这一阶段刻意不引入复杂智能体概念，只保留 `研究工作区`、`执行计划`、`工具调用`、`阶段性结果`、`研究结论草稿` 和 `证据链` 等可直接理解的界面模块。后续真实能力接入时，优先复用现有论文解析、RAG、批判阅读、背景补课、引导学习和深度研究能力。
-
-### 智能能力
-
-- `问答`
-  - Python 侧使用轻量 agentic RAG
-  - 优先检索当前论文，必要时补充内部文献库
-  - 返回 `rag_sources`、`queryPlan`、`retrievalJudge`、`sentenceSourceMap`
-- `术语解释 / 划词解释`
-  - 基于选中文本、页内上下文和论文检索片段生成解释
-- `逐页翻译`
-  - 优先走结构化页面翻译
-  - 保留版面块与覆盖层信息
-  - 超时和失败时允许回退
-- `背景补课`
-  - 根据论文主题、骨架和用户知识水平生成概念图谱、学习路径与补课材料
-  - Neo4j 为可选增强，不是运行前提
-- `引导学习`
-  - 固定 5 轮苏格拉底式问题
-  - 优先基于当前论文证据评估用户回答
-- `批判阅读`
-  - 围绕贡献、方法、实验、局限四条轴线进行证据化分析
-  - 生成结构化批判报告与 claim-support 映射
-  - 基于 claims 支撑率、缺失证据、夸大风险和方法/实验覆盖生成规则型 `contributionScore`、`riskScore` 与 `noveltyDimensions`，不需要训练或微调模型
-  - 对含百分比或指标数值的 claim，尝试定位同次证据中的 `Table/Figure`、指标名和数值候选片段，并明确标注“候选证据不足以自动验证”
-  - 引用网络只在后端返回真实 `citationGraph` 时展示；当前没有真实图时返回 `null`，前端显示“暂无引用网络”，不再使用模拟关系图兜底
-- `深度研究`
-  - 先生成 research brief preview
-  - 再创建异步研究任务
-  - 任务状态、计划、发现与报告保存在 Python SQLite 快照中
-  - 每条 finding 会展示规则型 `judgeScore`、证据覆盖率、缺失点和触发 retry 的原因，trace 中也能看到当前子问题为什么停止、补查文献库或重试
-  - 当某个子问题最终判定为证据不足且仍有关键缺口时，会在预算内追加 1 个 follow-up 子问题继续核查；前端计划区显示 follow-up 的来源、缺失点和执行状态
-  - 对同次 findings 绑定的来源片段做规则型跨源冲突检测，发现同一指标数值差异或正反结论时单独标记“需人工核查”，不会自动融合成单一结论
-  - trace 面板展示 LLM 调用、检索调用、retry、服务端安全截断和估算输入/输出 token，便于观察长任务成本与预算消耗
-  - 前端按 `pdfId` 恢复最近任务
-
-## 仓库结构
-
-```text
-.
-├─ frontend/                    # React + Vite 前端工作台
-│  ├─ src/
-│  │  ├─ components/            # 各功能面板与工作台组件
-│  │  ├─ hooks/                 # 页面状态和会话逻辑
-│  │  ├─ services/              # API 与本地存储封装
-│  │  └─ utils/                 # 翻译、学习、证据展示等纯逻辑
-│  └─ VERSION                   # 前端展示版本号
-├─ backend-java/                # Spring Boot 网关
-│  ├─ src/main/java/.../controller/AcademicController.java
-│  ├─ src/main/java/.../service/AiService.java
-│  └─ src/main/resources/application.properties
-├─ ai-service-python/           # FastAPI AI 服务
-│  ├─ app.py
-│  ├─ routes/api.py
-│  ├─ core/                     # PDF 解析、outline、RAG 基础能力
-│  ├─ services/                 # 聊天、分析、研究任务、trace、安全等服务
-│  ├─ rag/                      # RAG 获取和 hybrid retrieval 包装
-│  └─ schemas/                  # Pydantic 请求模型
-├─ docs/
-│  └─ 中期答辩/                  # 历史答辩资料，保留
-├─ docker-compose.yml
-├─ CHANGELOG.md
-├─ ARCHITECTURE.md
-└─ API.md
-```
-
-## 运行架构
-
-默认访问链路：
+### 阅读 IDE 链路
 
 ```text
 Browser
-  -> http://localhost:5173
-  -> http://localhost:8081/api
-  -> http://ai-service:8000/api
-  -> http://grobid:8070
+  -> Frontend http://localhost:5173
+  -> Java gateway http://localhost:8081/api
+  -> Python AI service http://ai-service:8000/api
+  -> GROBID http://grobid:8070
 ```
 
-端口说明：
+### Agent 研究链路
 
-| 服务 | 本机地址 | 说明 |
-| --- | --- | --- |
-| 前端 | `http://localhost:5173` | Vite dev server |
-| Java 网关 | `http://localhost:8081/api` | 浏览器唯一后端入口 |
-| Python AI 服务 | `http://localhost:8000/api` | Java 容器内转发目标 |
-| GROBID | `http://localhost:8070` | PDF 结构解析 |
-| Neo4j | `http://localhost:7474` | 可选 profile |
+Agent 面板当前默认由前端直接访问 Python Agent API：
+
+```text
+Browser
+  -> Frontend http://localhost:5173
+  -> Python AI service http://localhost:8000/api
+```
+
+Java 网关源码里已经包含 Agent 转发接口，但本地运行时可能尚未重建到最新版本，所以当前前端默认直连 Python，避免 Agent 面板因为 Java 运行时滞后而不可用。
 
 ## 环境变量
 
-根目录 `.env` 主要供 Docker Compose 与 Python 服务使用：
+根目录 `.env` 主要供 Docker Compose 和 Python 服务使用：
 
 ```env
 DEEPSEEK_API_KEY=
@@ -185,26 +96,33 @@ RESEARCH_TASK_DB_PATH=ai-service-python/data/research_tasks.sqlite3
 
 ```env
 VITE_API_BASE_URL=http://localhost:8081/api
+VITE_AGENT_API_BASE_URL=http://localhost:8000/api
 VITE_MODEL_NAME=DeepSeek V4
 ```
 
+说明：
+
+- `VITE_API_BASE_URL` 用于阅读 IDE。
+- `VITE_AGENT_API_BASE_URL` 用于 Agent 工作区。
+- Python CORS 已允许本地 Vite 来源，例如 `http://localhost:5173`。
+
 ## 快速启动
 
-### 方式一：Docker Compose
+### Docker Compose
 
-推荐直接在仓库根目录执行：
+在仓库根目录执行：
 
 ```bash
 docker compose up --build
 ```
 
-如果只想启动主要服务：
+只启动主要服务：
 
 ```bash
 docker compose up -d frontend backend ai-service grobid
 ```
 
-如果要启用 Neo4j：
+启用 Neo4j：
 
 ```bash
 docker compose --profile neo4j up -d
@@ -216,7 +134,7 @@ docker compose --profile neo4j up -d
 http://localhost:5173
 ```
 
-### 方式二：本地分服务开发
+### 本地分服务启动
 
 前端：
 
@@ -241,42 +159,62 @@ pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-GROBID 建议继续通过 Docker 运行：
+GROBID 建议继续通过 Docker 启动：
 
 ```bash
 docker compose up -d grobid
 ```
 
-## 数据持久化边界
+## Agent 工作区说明
+
+今天 Agent 工作区完成了比较完整的一轮迭代，当前包括：
+
+- 更完整的右侧 Agent 工作区展示，而不是简单 mock 面板。
+- 拆分后的前端子组件，便于后续维护。
+- 基于 `tasksByProjectId` 的项目级任务历史。
+- 切换项目时恢复历史任务。
+- 完整显示 `draftReport`，不再只截断展示前几个段落。
+- 前端直连 Python Agent API。
+- 异步执行阶段：`planning -> retrieving -> synthesizing -> done`。
+- 第一版跨论文冲突检测和基于证据的结论草稿。
+
+当前限制：
+
+- Agent 项目和任务在 Python 侧仍是进程内存储，服务重启后会丢失。
+- 前端项目切换已经可用，但后端还没有“列出某项目所有任务”的接口。
+- Agent 结论已经能生成有用草稿，但仍是轻量规则型综合。
+- 如果 Java 运行时早于最新 Agent 转发代码启动，Agent 模式应继续使用默认的 Python 直连路径，或重建 Java 服务。
+
+## 数据持久化
 
 ### 浏览器侧
 
-`frontend/src/services/localDb.js` 中的 IndexedDB 库名为 `PixiuAcademicDB_v6`，主要存：
+IndexedDB 保存本地阅读工作区和产物，包括：
 
-- `pdfStore`
-- `historyStore`
-- `analysisStore`
-- `notesStore`
-- `deconstructStore`
-- `libraryStore`
-- `highlightStore`
-- `sessionStore`
-- `translationStore`
-- `backgroundKnowledgeStore`
-- `artifactStore`
-
-清理浏览器站点数据会丢失本地阅读记录与缓存 PDF。
+- PDF。
+- 聊天历史。
+- 分析结果。
+- 笔记和高亮。
+- 翻译状态。
+- 背景补课结果。
+- 工作台产物。
+- Agent 工作区快照，包括项目级任务历史。
 
 ### Java 侧
 
-- H2 文件数据库路径：`backend-java/data/academic_db.mv.db`
-- 保存论文记录与聊天历史
+H2 保存：
+
+- 论文记录。
+- 聊天消息。
 
 ### Python 侧
 
-- Chroma 向量库目录：`/app/chroma_data` 或本地配置路径
-- 深度研究 SQLite：`ai-service-python/data/research_tasks.sqlite3` 或 `RESEARCH_TASK_DB_PATH`
-- 普通 trace 为进程内摘要存储；Deep Research 终态脱敏 trace summary 会随 SQLite 任务快照保存，服务重启后仍可通过 `traceId` 查询关键执行轨迹，并查看 LLM/检索/retry/截断和估算 token 计数器
+Python 保存：
+
+- Chroma 检索索引。
+- Deep Research SQLite 快照，默认位置为 `ai-service-python/data/research_tasks.sqlite3` 或 `RESEARCH_TASK_DB_PATH`。
+- 进程内 Agent 项目和 Agent 任务。
+- 进程内 public trace summary；Deep Research 终态 trace summary 会随 SQLite 任务快照保存。
 
 ## 验证命令
 
@@ -303,15 +241,14 @@ cd ai-service-python
 python -m pytest tests -q
 ```
 
-也可运行部分高价值回归：
+## 已知问题
 
-```bash
-cd ai-service-python
-python -m pytest tests/test_outline_extractor.py tests/test_page_translation_service.py -q
-```
+- `npm run build` 当前会因为 `frontend/src/components/MessageMarkdownRenderer.js` 缺少 `rehype-katex` 依赖而失败；这和本次 Agent 工作无关。
+- 某些本地环境如果没有安装 Python 测试依赖，`pytest` 可能不可用。
+- Agent 服务当前优先完成框架搭建、链路打通和有意义草稿输出，复杂算法和更强综合质量留给后续迭代。
 
 ## 文档导航
 
-- [ARCHITECTURE.md](ARCHITECTURE.md): 系统分层、数据流、状态与存储设计
-- [API.md](API.md): 当前对外 API、请求响应模型和注意事项
-- [CHANGELOG.md](CHANGELOG.md): 变更记录
+- [ARCHITECTURE.md](ARCHITECTURE.md)：系统结构、运行链路、持久化边界和模块职责。
+- [API.md](API.md)：接口契约、请求响应结构和关键数据形态。
+- [CHANGELOG.md](CHANGELOG.md)：变更记录。

@@ -5,6 +5,10 @@ from fastapi.responses import JSONResponse
 
 from schemas.requests import (
     BackgroundKnowledgeRequest,
+    AgentProjectCreateRequest,
+    AgentProjectPapersRequest,
+    AgentProjectUpdateRequest,
+    AgentTaskCreateRequest,
     ChatRequest,
     DeepAnalysisRequest,
     PageTranslationRequest,
@@ -15,7 +19,7 @@ from schemas.requests import (
     SocraticQuestionRequest,
     TermExplainRequest,
 )
-from services import analysis_service, chat_service, rag_service, research_task_service, trace_service
+from services import agent_project_service, analysis_service, chat_service, rag_service, research_task_service, trace_service
 
 
 router = APIRouter(prefix="/api")
@@ -81,6 +85,114 @@ async def chat(request: ChatRequest):
 async def create_research_task(request: ResearchTaskCreateRequest):
     try:
         return JSONResponse(research_task_service.create_research_task(request))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/agent-projects")
+async def create_agent_project(request: AgentProjectCreateRequest):
+    try:
+        return JSONResponse(agent_project_service.create_agent_project(request))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/agent-projects")
+async def list_agent_projects():
+    try:
+        return JSONResponse(agent_project_service.list_agent_projects())
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/agent-projects/{project_id}")
+async def get_agent_project(project_id: str):
+    try:
+        return JSONResponse(agent_project_service.get_agent_project(project_id))
+    except agent_project_service.AgentProjectNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.patch("/agent-projects/{project_id}")
+async def update_agent_project(project_id: str, request: AgentProjectUpdateRequest):
+    try:
+        return JSONResponse(agent_project_service.update_agent_project(project_id, request))
+    except agent_project_service.AgentProjectNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/agent-projects/{project_id}/papers")
+async def add_project_papers(project_id: str, request: AgentProjectPapersRequest):
+    try:
+        return JSONResponse(agent_project_service.add_project_papers(project_id, request))
+    except agent_project_service.AgentProjectNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.delete("/agent-projects/{project_id}/papers/{pdf_id}")
+async def remove_project_paper(project_id: str, pdf_id: str):
+    try:
+        return JSONResponse(agent_project_service.remove_project_paper(project_id, pdf_id))
+    except agent_project_service.AgentProjectNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/agent-projects/{project_id}/tasks")
+async def create_agent_task(project_id: str, request: AgentTaskCreateRequest):
+    try:
+        return JSONResponse(agent_project_service.create_agent_task(project_id, request))
+    except agent_project_service.AgentProjectNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except ValueError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=400)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/agent-projects/{project_id}/tasks/latest")
+async def get_latest_agent_task(project_id: str):
+    try:
+        return JSONResponse(agent_project_service.get_latest_agent_task(project_id))
+    except (agent_project_service.AgentProjectNotFoundError, agent_project_service.AgentTaskNotFoundError) as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/agent-tasks/{task_id}")
+async def get_agent_task(task_id: str):
+    try:
+        return JSONResponse(agent_project_service.get_agent_task(task_id))
+    except agent_project_service.AgentTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/agent-tasks/{task_id}/cancel")
+async def cancel_agent_task(task_id: str):
+    try:
+        return JSONResponse(agent_project_service.cancel_agent_task(task_id))
+    except agent_project_service.AgentTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/agent-traces/{trace_id}")
+async def get_agent_trace(trace_id: str):
+    try:
+        return JSONResponse(trace_service.get_trace_summary(trace_id))
+    except trace_service.TraceNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 

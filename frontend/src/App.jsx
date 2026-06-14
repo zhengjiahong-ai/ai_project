@@ -2643,7 +2643,10 @@ export default function App() {
 
         <main className="workspace-main flex min-h-0 flex-1 overflow-hidden">
           {appMode === 'agent' ? (
-            <AgentWorkspace />
+            <AgentWorkspace
+              initialPaperIds={papersList.map((paper) => paper.id).filter(Boolean)}
+              activePaperId={pdfId || ''}
+            />
           ) : (
           <>
           <aside

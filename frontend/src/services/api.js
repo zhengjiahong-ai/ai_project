@@ -4,6 +4,10 @@ export const resolveApiBaseUrl = (
   env = globalThis.__VITE_ENV__ ?? (typeof import.meta !== 'undefined' ? import.meta.env : undefined),
 ) => env?.VITE_API_BASE_URL || 'http://localhost:8081/api';
 
+export const resolveAgentApiBaseUrl = (
+  env = globalThis.__VITE_ENV__ ?? (typeof import.meta !== 'undefined' ? import.meta.env : undefined),
+) => env?.VITE_AGENT_API_BASE_URL || 'http://localhost:8000/api';
+
 export const createApiClient = (baseURL = resolveApiBaseUrl(), axiosInstance = axios) => {
   const client = axiosInstance.create({
     baseURL,
@@ -31,7 +35,24 @@ export const createApiClient = (baseURL = resolveApiBaseUrl(), axiosInstance = a
   return client;
 };
 
-export const createApiService = (client) => ({
+const isHttpNotFound = (error) => error?.response?.status === 404;
+
+const withAgentFallback = async (primaryRequest, fallbackRequest) => {
+  try {
+    return await primaryRequest();
+  } catch (error) {
+    if (isHttpNotFound(error) && fallbackRequest) {
+      return fallbackRequest();
+    }
+    throw error;
+  }
+};
+
+export const createApiService = (client, agentFallbackClient = null, options = {}) => {
+  const agentPrimaryClient = options.agentDirect && agentFallbackClient ? agentFallbackClient : client;
+  const agentSecondaryClient = options.agentDirect ? null : agentFallbackClient;
+
+  return {
   uploadPdf: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -82,9 +103,91 @@ export const createApiService = (client) => ({
   getResearchTask: async (taskId) => client.get(`/research-tasks/${encodeURIComponent(taskId)}`),
 
   getLatestResearchTask: async (pdfId) =>
-    client.get(`/research-tasks/latest?pdfId=${encodeURIComponent(pdfId)}`),
+    client.get(`/research-tasks/latest?pdfId=${encodeURIComponent(pdfId)}`, { skipErrorLog: true }),
 
   getTrace: async (traceId) => client.get(`/traces/${encodeURIComponent(traceId)}`),
+
+  createAgentProject: async (payload) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post('/agent-projects', payload, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.post('/agent-projects', payload) : null,
+    ),
+
+  listAgentProjects: async () =>
+    withAgentFallback(
+      () => agentPrimaryClient.get('/agent-projects', { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.get('/agent-projects') : null,
+    ),
+
+  getAgentProject: async (projectId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.get(`/agent-projects/${encodeURIComponent(projectId)}`, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.get(`/agent-projects/${encodeURIComponent(projectId)}`) : null,
+    ),
+
+  updateAgentProject: async (projectId, payload) =>
+    withAgentFallback(
+      () => agentPrimaryClient.patch(`/agent-projects/${encodeURIComponent(projectId)}`, payload, { skipErrorLog: true }),
+      agentSecondaryClient
+        ? () => agentSecondaryClient.patch(`/agent-projects/${encodeURIComponent(projectId)}`, payload)
+        : null,
+    ),
+
+  addAgentProjectPapers: async (projectId, paperIds) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-projects/${encodeURIComponent(projectId)}/papers`, { paperIds }, { skipErrorLog: true }),
+      agentSecondaryClient
+        ? () => agentSecondaryClient.post(`/agent-projects/${encodeURIComponent(projectId)}/papers`, { paperIds })
+        : null,
+    ),
+
+  removeAgentProjectPaper: async (projectId, pdfId) =>
+    withAgentFallback(
+      () =>
+        agentPrimaryClient.delete(`/agent-projects/${encodeURIComponent(projectId)}/papers/${encodeURIComponent(pdfId)}`, {
+          skipErrorLog: true,
+        }),
+      agentSecondaryClient
+        ? () =>
+            agentSecondaryClient.delete(
+              `/agent-projects/${encodeURIComponent(projectId)}/papers/${encodeURIComponent(pdfId)}`,
+            )
+        : null,
+    ),
+
+  createAgentTask: async (projectId, payload) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-projects/${encodeURIComponent(projectId)}/tasks`, payload, { skipErrorLog: true }),
+      agentSecondaryClient
+        ? () => agentSecondaryClient.post(`/agent-projects/${encodeURIComponent(projectId)}/tasks`, payload)
+        : null,
+    ),
+
+  getLatestAgentTask: async (projectId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.get(`/agent-projects/${encodeURIComponent(projectId)}/tasks/latest`, { skipErrorLog: true }),
+      agentSecondaryClient
+        ? () => agentSecondaryClient.get(`/agent-projects/${encodeURIComponent(projectId)}/tasks/latest`)
+        : null,
+    ),
+
+  getAgentTask: async (taskId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.get(`/agent-tasks/${encodeURIComponent(taskId)}`, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.get(`/agent-tasks/${encodeURIComponent(taskId)}`) : null,
+    ),
+
+  cancelAgentTask: async (taskId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/cancel`, null, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/cancel`) : null,
+    ),
+
+  getAgentTrace: async (traceId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.get(`/agent-traces/${encodeURIComponent(traceId)}`, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.get(`/agent-traces/${encodeURIComponent(traceId)}`) : null,
+    ),
 
   cancelResearchTask: async (taskId) =>
     client.post(`/research-tasks/${encodeURIComponent(taskId)}/cancel`),
@@ -197,11 +300,13 @@ export const createApiService = (client) => ({
       }
     }
   },
-});
+  };
+};
 
 const apiClient = createApiClient();
+const agentFallbackClient = createApiClient(resolveAgentApiBaseUrl());
 
-export const apiService = createApiService(apiClient);
+export const apiService = createApiService(apiClient, agentFallbackClient, { agentDirect: true });
 export const uploadPdf = apiService.uploadPdf;
 
 export default apiClient;

@@ -1,6 +1,19 @@
-﻿# 更新日志 (CHANGELOG)
+﻿# 更新日志
+
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
+
+### 2026-06-14 22:30 v0.1.32
+
+1. **Agent 面板升级为可用的项目工作区**：将原本偏原型的一体化面板拆分为多个子组件和模型/存储辅助文件，包括 `AgentWorkspace`、主区 sections、侧栏 sections、证据 sections、UI 归一化和本地快照逻辑。
+2. **Agent 项目和任务 API 完成前端接入**：新增项目创建、项目列表、项目切换、论文挂载、任务创建、任务轮询、任务取消和 trace 查询等真实请求。面板现在调用 Python Agent API，不再依赖 mock 数据。
+3. **修复本地 Agent 404 联调路径**：Agent 请求默认通过 `VITE_AGENT_API_BASE_URL` 指向 `http://localhost:8000/api`；阅读 IDE 继续使用 `VITE_API_BASE_URL=http://localhost:8081/api`。Python CORS 已允许本地 Vite 前端直接访问 Agent 接口。
+4. **新增 Agent 异步执行态**：Agent 任务按 `planning -> retrieving -> synthesizing -> done` 暴露阶段进度，并通过轮询更新事件时间线、计划项、工具调用、证据片段、对比表、冲突候选和开放问题。
+5. **按项目保留 Agent 任务历史**：前端新增 `tasksByProjectId`，切换项目时恢复对应任务列表和当前任务，避免新任务覆盖旧对话或旧结果。
+6. **优化 Agent 结果区可读性**：最终报告草稿不再只截断展示前几个 section，主工作区和证据区更清晰地展示研究时间线、对比区、冲突、证据和草稿输出。
+7. **增强 Agent 结论生成**：`agent_project_service.py` 现在根据证据密度、论文支持画像、共同主题、冲突候选和开放问题生成报告草稿，并包含 `## Current Conclusion`，不再只是通用占位文本。
+8. **同步核心文档**：刷新 `API.md`、`README.md` 和 `ARCHITECTURE.md`，记录当前 Agent 运行路径、接口列表、前端任务历史行为、Python 直连策略、已知限制和验证状态。
+
 
 ### 2026-06-13 18:10 v0.1.31
 

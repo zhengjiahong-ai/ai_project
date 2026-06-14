@@ -2,269 +2,264 @@
 
 ## 概览
 
-Pixiu Academic Assistant 是一个面向论文阅读的多服务工作台，核心职责分成三层：
+Pixiu Academic Assistant 是一个多服务协作的论文阅读工作台，目前包含两个主要产品界面：
+
+1. 阅读 IDE
+   面向单篇论文阅读、分析和学习。
+2. Agent 研究
+   面向多论文项目工作区和阶段式异步研究任务。
+
+系统分为三层：
 
 1. `frontend`
-   - 承担阅读工作台 UI、用户交互、浏览器本地状态与 PDF 渲染
+   负责 UI、浏览器状态、会话恢复和 PDF 交互。
 2. `backend-java`
-   - 作为浏览器唯一后端入口
-   - 负责上传转发、会话历史持久化、统一 `/api` 路由
+   负责网关、上传编排、H2 持久化和阅读 IDE 的统一 `/api`。
 3. `ai-service-python`
-   - 负责 PDF 解析、结构提取、检索、LLM 编排、批判分析、研究任务与 trace
+   负责 PDF 解析、检索、证据处理、AI 编排、长任务和 trace。
 
-配套依赖：
+配套服务：
 
-- `GROBID`: 论文结构化解析
-- `ChromaDB + embeddings`: 当前论文与内部文献检索
-- `H2`: Java 网关状态存储
-- `SQLite`: Python 深度研究任务快照
-- `IndexedDB`: 浏览器端阅读资产缓存
+- `GROBID`：PDF 结构抽取。
+- `ChromaDB` 和 embeddings：检索。
+- 可选 `Neo4j`：背景知识持久化增强。
 
-## 系统上下文
+## 系统链路
+
+### 阅读 IDE 链路
+
+主阅读产品仍使用 Java 网关：
 
 ```text
 Browser
   -> Frontend (React/Vite)
   -> Backend Java (/api)
   -> AI Service Python (/api)
-  -> GROBID
-  -> ChromaDB / internal retrieval
-  -> Optional Neo4j
+  -> GROBID / Chroma / optional Neo4j
 ```
+
+这条链路存在的原因：
+
+- 上传和会话管理已经依赖 Java 侧持久化。
+- 阅读 IDE 仍围绕稳定的统一网关契约组织。
+
+### Agent 研究链路
+
+当前 Agent 工作区默认使用另一条链路：
+
+```text
+Browser
+  -> Frontend Agent workspace
+  -> Python AI service (/api) directly by default
+```
+
+这样设计的原因：
+
+- Agent 接口在三层源码里已经加入，但本地 Java 运行时可能不会立即重建。
+- 直连 Python 可以保证 Agent 面板在本地迭代中保持可用。
+- 如果 Java 路由可用，前端仍保留回退兼容空间。
 
 ## 前端架构
 
-### 核心入口
+### 主工作区
 
-前端主入口在 `frontend/src/App.jsx`，它把工作台组织为：
+`frontend/src/App.jsx` 仍负责应用模式和高层阅读状态。
 
-- 顶部导航栏 `Navbar`
-- 左侧论文库与阅读导航 `LibrarySidebar`
-- 中部 PDF 区域 `PdfViewer`、`PdfToolbar`
-- 右侧多功能工作区
-- 底部沉淀工作台 `BottomWorkbench`
+主要 UI 区域：
 
-`App.jsx` 目前还维护一个轻量应用模式状态：
+- 顶部导航 `Navbar`。
+- 左侧论文库和阅读导航。
+- 中央 PDF 阅读器和工具栏。
+- 右侧功能工作区。
+- 底部知识沉淀工作台。
 
-- `reader`：默认阅读 IDE 模式，使用现有单论文阅读工作台。
-- `agent`：Agent 研究模式前端原型，展示多论文研究工作区和 Agent 对话式任务界面。
+应用模式：
 
-`Navbar` 暴露 `阅读 IDE / Agent 研究` 模式切换。切换只影响前端工作区渲染，不改变现有 PDF 上传、阅读、问答和本地持久化流程。
+- `reader`。
+- `agent`。
 
-### Agent 研究模式原型
+### 阅读 IDE 模块
 
-Agent 研究模式当前位于：
+阅读 IDE 由多个可复用面板组成：
+
+- `ChatPanel`。
+- `PaperAnalysis`。
+- `TranslationPanel`。
+- `CriticalAnalysisPanel`。
+- `BackgroundKnowledgePanel`。
+- `SocraticQuestionsPanel`。
+- `DeepResearchPanel`。
+- `BottomWorkbench`。
+
+这些面板消费已经归一化的接口输出和浏览器侧持久化状态。
+
+### Agent 工作区模块
+
+Agent 面板已经从单个大型原型文件拆成多个更容易维护的子组件。
+
+关键文件：
 
 - `frontend/src/components/agent/AgentWorkspace.jsx`
-- `frontend/src/components/agent/agentMockData.js`
+- `frontend/src/components/agent/AgentWorkspaceMain.jsx`
+- `frontend/src/components/agent/AgentWorkspaceMainSections.jsx`
+- `frontend/src/components/agent/AgentWorkspaceMainComposer.jsx`
+- `frontend/src/components/agent/AgentWorkspaceSidebar.jsx`
+- `frontend/src/components/agent/AgentWorkspaceSidebarSections.jsx`
+- `frontend/src/components/agent/AgentWorkspaceEvidenceSections.jsx`
+- `frontend/src/components/agent/agentWorkspaceModel.js`
+- `frontend/src/components/agent/agentWorkspaceUi.js`
+- `frontend/src/components/agent/agentWorkspaceStore.js`
 
-它是一个前端框架原型，目标是先确定多论文研究场景的界面结构，暂不声明已经具备完整智能体能力。当前三栏结构为：
+当前 Agent UI 职责：
 
-- `AgentProjectSidebar`：研究工作区，展示研究主题、多论文列表、解析/索引状态和最近任务。
-- `AgentChatWorkspace`：中间任务对话区，底部固定输入框，上方展示用户任务、任务理解、执行计划、工具调用、阶段性结果和研究结论草稿。
-- `AgentEvidencePanel`：右侧工具调用与证据链，展示工具状态和可追溯证据片段。
+- 展示项目列表。
+- 创建项目。
+- 切换项目。
+- 恢复项目级任务历史。
+- 从项目历史中选择当前任务。
+- 展示计划、时间线、工具调用、证据、对比、冲突、开放问题和报告草稿。
 
-当前数据来自 `agentMockData.js`，用于支撑前端交互和展示，不代表后端真实任务结果。后续接入真实能力时，建议按以下顺序推进：
+### 前端 Agent 状态模型
 
-1. 接入论文库多选和研究工作区状态。
-2. 接入跨论文 RAG 检索结果。
-3. 复用现有批判阅读、背景补课、引导学习和深度研究接口作为工具能力。
-4. 增加任务执行 trace 与证据链持久化。
-5. 再引入更复杂的任务规划和多步骤调度。
+Agent 工作区现在维护项目级任务历史：
 
-### 功能分区
+- `projects`
+- `activeProjectId`
+- `currentTask`
+- `tasksByProjectId`
 
-右侧工作区按阶段划分为三个 section：
+`tasksByProjectId` 是当前新增的关键状态。它支持：
 
-- `阅读助手`
-  - `chat`
-  - `deconstruct`
-  - `translation`
-- `分析研究`
-  - `analysis`
-  - `background`
-  - `socratic`
-  - `deep-research`
-- `资产沉淀`
-  - `notes`
+- 每个项目保存多个任务。
+- 切换项目时恢复对应任务。
+- 在旧任务和新任务之间切换。
+- 刷新后通过快照恢复。
 
-对应的主要组件：
+这仍是前端持久化的历史层，因为后端尚未提供“列出某项目所有任务”的接口。
 
-- `ChatPanel`
-- `PaperAnalysis`
-- `TranslationPanel`
-- `CriticalAnalysisPanel`
-- `BackgroundKnowledgePanel`
-- `SocraticQuestionsPanel`
-- `DeepResearchPanel`
+## 浏览器持久化
 
-其中 `BackgroundKnowledgePanel` 不再只依赖单一的 `user_knowledge_level` 下拉选择，而是由两类信息共同驱动：
+### IndexedDB
 
-- 显式读者画像 `reader_profile`
-  - `selfAssessedFamiliarity`
-  - `preferredDepth`
-  - `learningGoal`
-  - `knownConcepts`
-  - `confusingConcepts`
-- 隐式行为信号 `behavior_signals`
-  - 最近提问次数与问题文本
-  - 翻译、标注、笔记、工作台沉淀等使用情况
-  - 当前阅读位置与所在功能页
+浏览器使用 IndexedDB 恢复本地工作现场。
 
-这样背景补课会更接近“围绕当前阅读卡点进行自适应补课”，而不是机械套用固定等级。
+保存内容包括：
 
-### 前端状态组织
+- PDF Blob。
+- 聊天记录。
+- 篇章解构结果。
+- 批判阅读结果。
+- 高亮和笔记。
+- 翻译状态。
+- 背景补课结果。
+- 工作台产物。
+- 论文库记录。
+- Agent 工作区快照，包括 `tasksByProjectId`。
 
-`App.jsx` 管理整条阅读会话主状态，包括：
+### 轻量 UI 状态
 
-- 当前 PDF 文件与 `pdfId`
-- 聊天消息
-- 篇章解构结果 `deconstructData`
-- 批判阅读结果 `analysisData`
-- 背景补课结果
-- 苏格拉底学习会话
-- 逐页翻译状态
-- 深度研究状态
-- 本地笔记与工作台资产
-
-核心 hooks：
-
-- `useThemePreference`
-- `useAbortableChat`
-- `usePaperArtifacts`
-- `usePaperSession`
-- `useReadingWorkspace`
-- `useTaskActivity`
-
-### 浏览器持久化
-
-浏览器使用 `idb` 访问 IndexedDB，封装在：
-
-- `frontend/src/services/localDb.js`
-- `frontend/src/services/workspaceSession.js`
-
-IndexedDB 负责保存：
-
-- PDF Blob
-- 聊天记录
-- 解构结果
-- 批判阅读结果
-- 高亮和笔记
-- 背景补课结果
-- 翻译状态
-- 苏格拉底会话
-- 工作台资产
-- 论文库条目
-
-`localStorage` 仅保存轻量 UI 状态：
-
-- 当前激活 tab
-- 上次打开的 `pdfId`
+当前 tab、上次打开论文等轻量 UI 状态仍单独存储在浏览器本地存储中。
 
 ## Java 网关架构
 
-### 角色
+### 职责
 
-Java 层不是复杂业务层，而是一个“统一入口 + 简单持久化 + 转发层”：
+Java 层保持轻量：
 
-- 对浏览器暴露固定 `/api`
-- 接收上传并转发给 Python
-- 保存聊天历史到 H2
-- 提供聊天历史恢复接口
-- 为 Python 任务类接口补一层统一 HTTP 入口
+- 向阅读 IDE 暴露稳定 `/api`。
+- 转发请求到 Python。
+- 在 H2 中保存论文和聊天记录。
+- 归一化部分请求或响应结构。
 
 ### 关键类
 
 - `AcademicController`
-  - 声明所有 `/api/*` 路由
 - `AiService`
-  - 执行转发、上传封装、历史读写和错误适配
 - `PaperRepository`
-  - 保存论文记录
 - `ChatMessageRepository`
-  - 保存会话消息
 
-### 存储
+### Java 侧 Agent 状态
 
-H2 文件数据库用于保存：
+Java 源码中已经包含 Agent 转发路由：
 
-- `Paper`
-- `ChatMessage`
+- `/api/agent-projects`
+- `/api/agent-projects/{projectId}`
+- `/api/agent-projects/{projectId}/papers`
+- `/api/agent-projects/{projectId}/tasks`
+- `/api/agent-projects/{projectId}/tasks/latest`
+- `/api/agent-tasks/{taskId}`
+- `/api/agent-tasks/{taskId}/cancel`
+- `/api/agent-traces/{traceId}`
 
-这里保存的是“网关层需要的会话数据”，不是完整论文内容。
+但当前产品运行时不依赖 Java 访问 Agent，因为前端默认直连 Python Agent API。
 
 ## Python AI 服务架构
 
-### 入口与路由
+### 入口和路由
 
-- `main.py` 作为 uvicorn 入口
-- `app.py` 创建 FastAPI 应用
-- `routes/api.py` 注册全部 `/api` 路由
+主要入口文件：
 
-应用启动时会执行 `startup_warmup()`，尝试预热 RAG 后端。
+- `main.py`
+- `app.py`
+- `routes/api.py`
 
-### 代码组织
+`app.py` 创建 FastAPI 应用并配置本地前端 CORS。
 
-`ai-service-python` 主要分成四块：
+### 模块分组
+
+Python 服务大致分为：
 
 - `core/`
-  - PDF/TEI 解析与 outline 构建
+  PDF 解析、章节抽取、chunking 和 outline。
 - `services/`
-  - 聊天、翻译、背景补课、分析、研究任务、trace、安全
+  聊天、翻译、背景补课、批判阅读、研究任务、Agent 任务、trace 和安全。
 - `rag/`
-  - RAG 获取与 hybrid 检索包装
+  检索和索引封装。
 - `schemas/`
-  - Pydantic 请求模型
+  请求模型。
 
-### 关键服务
+### 核心服务职责
 
 #### `analysis_service.py`
 
 负责：
 
-- 上传 PDF 后驱动 GROBID 解析
-- 从 TEI 构建章节树
-- 提取摘要与论文结构摘要
-- 将正文块写入 RAG
-- 批判阅读 `deep_analysis`
-
-输出中最关键的是：
-
-- `paper_skeleton`
-- `paper_structure`
-- `paper_structure.sections`
-- `translationLayoutIndex`
+- 上传后的 PDF 分析。
+- GROBID 解析。
+- 论文骨架和结构抽取。
+- chunk 生成与 RAG 索引。
+- 批判阅读和相关证据化输出。
 
 #### `chat_service.py`
 
 负责：
 
-- 术语解释
-- 普通聊天
-- 苏格拉底式学习
-- 逐页翻译入口转发
+- 论文问答。
+- 术语解释。
+- 苏格拉底式学习。
+- 逐页翻译入口。
 
-其中聊天不是简单 prompt 调用，而是一个轻量 agentic RAG 流程：
+阅读问答不是单次裸 prompt 调用，而是轻量证据流程：
 
-1. 生成查询计划 `queryPlan`
-2. 优先检索当前论文
-3. 必要时补充内部文献库
-4. 使用 `retrievalJudge` 判断证据质量
-5. 必要时自动重试一次
-6. 基于证据生成回答并附来源
+1. 构建 query plan。
+2. 优先检索当前论文。
+3. 必要时补充内部文献库。
+4. 判断证据质量。
+5. 必要时自动重试一次。
+6. 基于证据生成回答并附带来源。
 
 #### `research_task_service.py`
 
-负责深度研究任务生命周期：
+负责单论文 Deep Research：
 
-- 研究 brief preview
-- 创建研究任务
-- 异步执行
-- 轮询查询
-- 取消任务
-- 恢复最近任务快照
+- brief preview。
+- 异步任务执行。
+- 轮询。
+- 取消。
+- latest 快照恢复。
+- SQLite 持久化。
 
-任务执行阶段固定为：
+当前任务阶段：
 
 - `planning`
 - `retrieving`
@@ -272,17 +267,51 @@ H2 文件数据库用于保存：
 - `synthesizing`
 - `done`
 
-任务状态固定为：
+#### `agent_project_service.py`
 
-- `pending`
-- `running`
-- `succeeded`
-- `failed`
-- `cancelled`
+这是当前 Agent 研究项目和任务生命周期的后端核心。
+
+它负责：
+
+- 创建、列出、读取、更新项目。
+- 添加或移除项目论文。
+- 创建异步 Agent 任务。
+- 查询 Agent 任务。
+- 取消 Agent 任务。
+
+当前 Agent 任务阶段：
+
+- `planning`
+- `retrieving`
+- `synthesizing`
+- `done`
+
+当前任务行为：
+
+- 创建项目级任务。
+- 按论文收集证据。
+- 聚合规范化 evidence item。
+- 构建对比表。
+- 生成冲突候选。
+- 生成开放问题。
+- 生成报告草稿。
+
+当前 AI 结论行为：
+
+- 报告草稿不再是通用空占位。
+- 服务会根据论文证据密度、支持画像和共同主题生成规则型结论。
+- 报告里显式包含冲突候选和开放问题。
+
+当前重要限制：
+
+- Agent 项目和任务仍保存在 Python 进程内存中。
+- Python 服务重启会清空 Agent 状态。
 
 #### `tool_registry.py`
 
-这是 Python 内部能力编排的统一封装层。当前内建工具包括：
+内部工具注册层为 Python 能力编排提供稳定边界。
+
+示例工具：
 
 - `retrieve_current_paper`
 - `retrieve_library`
@@ -292,171 +321,158 @@ H2 文件数据库用于保存：
 - `run_critical_analysis`
 - `translate_page`
 
-深度研究优先通过这里调用内部能力，而不是直接散落调用底层模块。
-
-#### `background_knowledge_service.py`
-
-背景补课服务当前采用“显式画像 + 隐式行为”的自适应策略：
-
-- 前端传入 `reader_profile`，表达用户自评熟悉度、补课目标、已掌握与卡点概念
-- 前端传入 `behavior_signals`，补充近期提问、翻译、标注、笔记等行为
-- Python 将二者归一化为内部 `reader_profile`
-- 旧字段 `user_knowledge_level` 仍被接受，但仅作为兼容回退，不再是唯一控制参数
+Agent 服务当前通过这一层使用检索类能力，而不是散落调用底层模块。
 
 #### `trace_service.py`
 
-为聊天、术语解释、背景补课、批判阅读和深度研究提供轻量 trace：
+为以下能力提供脱敏 trace summary：
 
-- 记录阶段
-- 记录耗时
-- 记录 retrieval / llm 计数
-- 保存裁剪后的 request/response 元数据
+- 聊天。
+- 术语解释。
+- 背景补课。
+- 批判阅读。
+- Deep Research。
+- Agent Research。
 
-注意 trace 是脱敏摘要，不保存完整 prompt、API Key 或完整论文全文。
+trace 不保存：
+
+- 完整 prompt。
+- API key。
+- 完整论文正文。
+- 不安全的原始上下文转储。
 
 #### `safety_service.py`
 
-负责把论文正文、RAG 片段、页面文本等视为不可信输入，对进入模型的上下文进行包装和约束，降低提示注入风险。
+把论文正文、RAG 片段和页面文本视为不可信上下文，在进入模型前做包装和约束。
 
-## 解析与检索链路
+主要防护：
 
-### PDF 解析链路
+- 论文文本中的提示注入。
+- 检索片段中的越权指令。
+- 特权上下文的意外暴露。
 
-```text
-upload PDF
-  -> Java /api/upload
-  -> Python /api/analyze-pdf
-  -> GROBID processFulltextDocument
-  -> TEI XML
-  -> parse_tei_xml + build_document_outline
-  -> paper_skeleton / paper_structure / sections
-  -> chunking + RAG indexing
-```
+## Agent 研究执行模型
 
-### 问答链路
+当前 Agent 系统刻意保持轻量，目标是先把整体链路搭起来。
 
-```text
-Frontend ChatPanel
-  -> Java /api/chat
-  -> Python chat_service.chat
-  -> build_chat_query_plan
-  -> retrieve current paper and/or library
-  -> judge evidence quality
-  -> optional retry
-  -> LLM answer
-  -> rag_sources + sentenceSourceMap
-```
+### 项目模型
 
-### 批判阅读链路
+每个 Agent 项目包含：
 
-```text
-Frontend CriticalAnalysisPanel
-  -> Java /api/critical-reading/{pdfId}
-  -> Python /api/deep-analysis
-  -> load current paper chunks
-  -> analyze 4 axes
-  -> structured report
-  -> claim support classification
-```
+- 标题。
+- 目标。
+- 论文 ID 列表。
+- 论文 stub。
+- 最新任务指针。
+- 默认约束。
 
-### 深度研究链路
+### 任务模型
 
-```text
-DeepResearchPanel
-  -> brief preview
-  -> create task
-  -> ThreadPoolExecutor async run
-  -> retrieve current paper first
-  -> optional library supplement
-  -> evidence judge
-  -> synthesize report
-  -> persist SQLite snapshot
-```
+每个 Agent 任务包含：
 
-## 存储边界
+- 项目关联。
+- 任务状态和阶段。
+- 进度。
+- prompt 和约束。
+- 聚焦论文。
+- 计划项。
+- 时间线事件。
+- 工具调用。
+- 证据项。
+- findings。
+- 对比表。
+- 冲突候选。
+- 开放问题。
+- 报告草稿。
+- trace ID。
 
-### 前端 IndexedDB
+### 输出理念
 
-存“用户工作现场”：
+Agent 面板不再只展示最终答案快照，而是开始展示研究过程：
 
-- PDF 文件
-- 论文库记录
-- 对话
-- 翻译
-- 笔记
-- 高亮
-- 工作台资产
-- 各功能模块结果
+- 生成了什么计划。
+- 收集了什么证据。
+- 哪些论文证据更强或更弱。
+- 哪里存在冲突或证据覆盖不均衡。
+- 当前证据能支持什么草稿结论。
+
+## 持久化边界
+
+### 浏览器
+
+保存用户工作现场和恢复快照。
 
 ### Java H2
 
-存“网关会话数据”：
+保存网关会话数据：
 
-- 论文记录
-- 聊天历史
+- 论文记录。
+- 聊天历史。
 
 ### Python SQLite
 
-存“深度研究任务快照”：
+保存 Deep Research 快照：
 
-- `taskId`
-- `traceId`
-- `status`
-- `stage`
-- `progress`
-- `question`
-- `pdfId`
-- `plan`
-- `findings`
-- `report`
-- `error`
-- `createdAt`
-- `updatedAt`
+- 任务元数据。
+- 阶段和进度。
+- findings。
+- 报告。
+- 错误。
+- 已完成任务的 trace summary。
+
+### Python 进程内 Agent 状态
+
+保存当前 Agent 工作状态：
+
+- 项目。
+- 任务。
+
+这是后续最需要补齐的持久化缺口。
 
 ### Python RAG / Chroma
 
-存“可检索证据片段”：
+保存可检索论文片段和 metadata：
 
-- 当前论文 chunk
-- 论文元数据
-- 页码、章节锚点等可用 metadata
+- chunk 文本。
+- 论文关联。
+- 页码和章节 metadata。
 
 ## 设计约束
 
-### 当前论文优先
+### 证据优先
 
-几乎所有智能能力默认遵守：
+大多数 AI 能力遵守同一边界：
 
-- 优先使用当前论文证据
-- 不足时才补内部文献库
-- 不做外部 Web 搜索
+- 优先使用当前论文证据。
+- 不足时补充内部文献库。
+- 主流程不做外部 Web 搜索。
 
-### 证据化输出
+### 安全降级
 
-聊天、解释、背景补课、批判阅读和深度研究都尽量附带：
+前端在旧缓存或 metadata 不完整时应安全降级：
 
-- `rag_sources`
-- `sentenceSourceMap`
-- `retrievalJudge`
-- `traceId`
+- 缺少页码锚点时不要伪造跳转入口。
+- 缺少 trace 或任务快照时展示空态，不伪造恢复成功。
+- fallback evidence 应明确弱于 indexed evidence。
 
-### 兼容旧缓存
+### Agent 成熟度
 
-前端对旧 IndexedDB 缓存采取兼容策略：
+当前 Agent 架构应理解为：
 
-- 旧论文可能只有单层目录
-- 旧证据可能没有页码和章节锚点
-- UI 在缺信息时降级展示，不伪造跳转能力
+- 真实端到端链路。
+- 有意义的过程可视化。
+- 轻量规则型综合。
+- 尚未达到最终 AI 质量目标。
 
-## 运维与部署
+## 部署说明
 
-默认通过 `docker-compose.yml` 编排：
+默认仍通过 `docker-compose.yml` 编排：
 
 - `frontend`
 - `backend`
 - `ai-service`
 - `grobid`
-- `neo4j` 可选 profile
+- 可选 `neo4j`
 
 关键 volume：
 
@@ -467,20 +483,36 @@ DeepResearchPanel
 - `grobid_data`
 - `neo4j_data`
 
-## 测试与质量控制
+## 测试和验证
+
+常用命令：
 
 前端：
 
-- `npm run lint`
-- `npm test`
-- `npm run build`
+```bash
+npm run lint
+npm test
+npm run build
+```
 
 Python：
 
-- `pytest tests -q`
+```bash
+pytest tests -q
+```
 
 Java：
 
-- `mvn test`
+```bash
+mvn test
+```
 
-整体设计上，这个项目已经不是单纯“PDF 上传 + 问答”的 demo，而是一个以当前论文为中心、强调证据、可恢复状态和长期沉淀的阅读工作台。
+最近 Agent 相关代码工作已完成的验证：
+
+- `node frontend/src/services/api.test.js` 通过。
+- `python -m py_compile ai-service-python/services/agent_project_service.py` 通过。
+- `python -m py_compile ai-service-python/tests/test_agent_project_service.py` 通过。
+
+已知非本次问题：
+
+- 前端生产构建仍会因为缺少 `rehype-katex` 失败。

@@ -86,3 +86,26 @@ class ResearchTaskBriefPreviewRequest(BaseModel):
     pdfId: str
     paperSkeleton: Optional[Dict[str, Any]] = None
     userConstraints: Optional[str] = ""
+
+
+class AgentProjectCreateRequest(BaseModel):
+    title: Optional[str] = ""
+    goal: Optional[str] = ""
+    paperIds: Optional[List[str]] = None
+
+
+class AgentProjectUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    goal: Optional[str] = None
+    defaultConstraints: Optional[str] = None
+
+
+class AgentProjectPapersRequest(BaseModel):
+    paperIds: List[str]
+
+
+class AgentTaskCreateRequest(BaseModel):
+    prompt: str
+    focusedPaperIds: Optional[List[str]] = None
+    constraints: Optional[str] = ""
+    context: Optional[Dict[str, Any]] = None
