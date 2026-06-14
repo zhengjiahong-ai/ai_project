@@ -18,6 +18,7 @@ import { Group, Panel, Separator } from 'react-resizable-panels';
 
 import BackgroundKnowledgePanel from './components/BackgroundKnowledgePanel.jsx';
 import BackgroundReaderProfileEditor from './components/BackgroundReaderProfileEditor.jsx';
+import AgentWorkspace from './components/agent/AgentWorkspace.jsx';
 import BottomWorkbench from './components/BottomWorkbench.jsx';
 import {
   createDefaultReaderProfile,
@@ -625,6 +626,7 @@ const formatCriticalReadingErrorMessage = (error) => {
 
 export default function App() {
   const { theme, toggleTheme: handleToggleTheme } = useThemePreference(THEME_STORAGE_KEY);
+  const [appMode, setAppMode] = useState('reader');
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
   const [pdfId, setPdfId] = useState(null);
@@ -2635,9 +2637,15 @@ export default function App() {
           onToggleLibrary={() => setIsLibraryOpen(true)}
           currentFileName={pdfFileName}
           onOpenAbout={() => setIsAboutOpen(true)}
+          appMode={appMode}
+          onAppModeChange={setAppMode}
         />
 
         <main className="workspace-main flex min-h-0 flex-1 overflow-hidden">
+          {appMode === 'agent' ? (
+            <AgentWorkspace />
+          ) : (
+          <>
           <aside
             className={`workspace-sidebar theme-panel theme-border hidden shrink-0 flex-col border-r transition-[width] duration-200 xl:flex ${
               isSidebarCollapsed ? 'w-14' : 'w-64'
@@ -3313,6 +3321,8 @@ export default function App() {
               </Panel>
             </Group>
           </section>
+          </>
+          )}
         </main>
       </div>
     </>

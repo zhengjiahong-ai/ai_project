@@ -16,6 +16,8 @@ const Navbar = ({
   onToggleTheme,
   currentFileName,
   onOpenAbout,
+  appMode = 'reader',
+  onAppModeChange,
 }) => {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -43,6 +45,31 @@ const Navbar = ({
             <span className="theme-text-primary truncate font-medium">{currentFileName}</span>
           </div>
         )}
+      </div>
+
+      <div className="hidden items-center rounded-full border border-slate-200 bg-slate-100 p-1 text-xs font-bold lg:flex">
+        <button
+          type="button"
+          onClick={() => onAppModeChange?.('reader')}
+          className={`rounded-full px-3 py-1.5 transition ${
+            appMode === 'reader'
+              ? 'bg-white text-pixiu shadow-sm'
+              : 'theme-text-secondary hover:text-pixiu'
+          }`}
+        >
+          阅读 IDE
+        </button>
+        <button
+          type="button"
+          onClick={() => onAppModeChange?.('agent')}
+          className={`rounded-full px-3 py-1.5 transition ${
+            appMode === 'agent'
+              ? 'bg-pixiu text-white shadow-sm'
+              : 'theme-text-secondary hover:text-pixiu'
+          }`}
+        >
+          Agent 研究
+        </button>
       </div>
 
       <div className="flex items-center gap-2">
