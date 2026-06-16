@@ -11,7 +11,7 @@ export const AgentWorkspaceLeftRail = ({ onExpand }) => (
   <button
     type="button"
     onClick={onExpand}
-    className="flex h-full w-12 flex-col items-center justify-between rounded-[24px] border border-[#ddcfee] bg-white/90 py-4 text-[#5b2ea6] shadow-[0_10px_30px_rgba(70,36,120,0.08)]"
+    className="agent-rail flex h-full w-12 flex-col items-center justify-between rounded-[24px] py-4"
     title="展开项目侧栏"
   >
     <ChevronRight size={18} />
@@ -38,17 +38,17 @@ const AgentWorkspaceSidebar = ({
   onSelectProject,
   onCollapse,
 }) => (
-  <aside className="min-h-0 min-w-0 overflow-hidden rounded-[24px] border border-[#e6deef] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(251,249,255,0.96))] shadow-[0_16px_40px_rgba(49,24,82,0.08)]">
-    <div className="flex items-center justify-between border-b border-[#eee7f5] px-4 py-3">
+  <aside className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[24px]">
+    <div className="agent-header flex items-center justify-between border-b px-4 py-3">
       <div>
-        <div className="text-sm font-semibold text-slate-900">Project / Papers</div>
-        <div className="text-[11px] text-slate-500">多论文研究工作区</div>
+        <div className="agent-title text-sm font-semibold">Project / Papers</div>
+        <div className="agent-muted text-[11px]">多论文研究工作区</div>
       </div>
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={onCreateProject}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#d9c8ef] bg-[#f6efff] text-[#6b36d9]"
+          className="agent-secondary-button agent-icon-accent inline-flex h-8 w-8 items-center justify-center rounded-xl"
           title="创建项目"
         >
           <Plus size={14} />
@@ -56,7 +56,7 @@ const AgentWorkspaceSidebar = ({
         <button
           type="button"
           onClick={onCollapse}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500"
+          className="agent-secondary-button inline-flex h-8 w-8 items-center justify-center rounded-xl"
           title="收起侧栏"
         >
           <ChevronLeft size={14} />

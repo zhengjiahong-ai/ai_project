@@ -18,13 +18,13 @@ export const STATUS_LABELS = {
 };
 
 export const STATUS_TONE = {
-  succeeded: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-  running: 'text-amber-700 bg-amber-50 border-amber-200',
-  pending: 'text-slate-600 bg-slate-100 border-slate-200',
-  cancelled: 'text-slate-600 bg-slate-100 border-slate-200',
-  failed: 'text-rose-700 bg-rose-50 border-rose-200',
-  fallback: 'text-amber-700 bg-amber-50 border-amber-200',
-  done: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+  succeeded: 'agent-status-succeeded',
+  running: 'agent-status-running',
+  pending: 'agent-status-pending',
+  cancelled: 'agent-status-cancelled',
+  failed: 'agent-status-failed',
+  fallback: 'agent-status-fallback',
+  done: 'agent-status-done',
 };
 
 export const TERMINAL_AGENT_STATUSES = new Set(['succeeded', 'failed', 'cancelled']);

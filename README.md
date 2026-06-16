@@ -177,6 +177,7 @@ docker compose up -d grobid
 - 前端直连 Python Agent API。
 - 异步执行阶段：`planning -> retrieving -> synthesizing -> done`。
 - 第一版跨论文冲突检测和基于证据的结论草稿。
+- Agent 工作区和顶部“阅读 IDE / Agent 研究”切换按钮已覆盖全局明暗主题切换。
 
 当前限制：
 

@@ -27,7 +27,7 @@ const AgentWorkspaceMain = ({
   onRefresh,
   onSelectTask,
 }) => (
-  <main className="min-h-0 min-w-0 overflow-hidden rounded-[26px] border border-[#e6deef] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,248,255,0.96))] shadow-[0_16px_40px_rgba(49,24,82,0.08)]">
+  <main className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[26px]">
     <AgentWorkspaceHeader
       activeProject={activeProject}
       currentTask={currentTask}
@@ -36,7 +36,7 @@ const AgentWorkspaceMain = ({
       onRefresh={onRefresh}
     />
 
-    <div className="grid h-[calc(100%-61px)] min-h-0 grid-rows-[minmax(0,1fr)_auto] bg-[linear-gradient(180deg,#fcfbfe,#f8f5fb)]">
+    <div className="agent-main-surface grid h-[calc(100%-61px)] min-h-0 grid-rows-[minmax(0,1fr)_auto]">
       <div className="min-h-0 overflow-y-auto px-5 py-5">
         <div className="space-y-4">
           <AgentTaskHistorySection tasks={projectTasks} currentTask={currentTask} onSelectTask={onSelectTask} />

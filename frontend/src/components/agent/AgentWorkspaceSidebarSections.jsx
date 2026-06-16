@@ -4,19 +4,19 @@ import { FileText } from 'lucide-react';
 import { formatRelativeMeta, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
 
 export const AgentProjectHeroCard = ({ activeProject, currentTask }) => (
-  <section className="rounded-[20px] border border-[#ded1ef] bg-[radial-gradient(circle_at_92%_12%,rgba(249,115,22,0.12),transparent_52px),linear-gradient(135deg,#ffffff,#f8f2ff)] p-4 shadow-[0_10px_20px_rgba(84,43,140,0.05)]">
-    <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#6b36d9]">Research Project</div>
-    <h2 className="text-base font-semibold leading-6 text-slate-900">
+  <section className="agent-hero-card rounded-[20px] p-4">
+    <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--accent-strong)]">Research Project</div>
+    <h2 className="agent-title text-base font-semibold leading-6">
       {activeProject?.title || 'Agent 学术研究工作台'}
     </h2>
-    <p className="mt-2 line-clamp-4 text-xs leading-6 text-slate-600">
+    <p className="agent-body mt-2 line-clamp-4 text-xs leading-6">
       {activeProject?.goal || '创建项目后，这里会展示项目目标、论文规模和最新任务状态。'}
     </p>
     <div className="mt-3 flex flex-wrap gap-2">
-      <span className="rounded-full border border-[#dcc8f6] bg-[#f5eeff] px-2.5 py-1 text-[11px] font-semibold text-[#6b36d9]">
+      <span className="agent-chip-accent px-2.5 py-1 text-[11px] font-semibold">
         {(activeProject?.paperIds || []).length} 篇论文
       </span>
-      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+      <span className="agent-chip-success px-2.5 py-1 text-[11px] font-semibold">
         链路已接通
       </span>
       <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getStatusTone(currentTask?.status)}`}>
@@ -32,22 +32,22 @@ const AgentProjectListItem = ({ project, isActive, taskCount, onSelect }) => (
     onClick={() => onSelect(project)}
     className={`w-full rounded-[18px] border p-3 text-left transition ${
       isActive
-        ? 'border-[#d4c0f0] bg-[#fbf8ff] shadow-[0_10px_24px_rgba(96,52,170,0.08)]'
-        : 'border-[#ece5f3] bg-white hover:border-[#dbc8f2] hover:bg-[#fcf9ff]'
+        ? 'agent-card'
+        : 'agent-card-soft hover:border-[color:var(--accent)]'
     }`}
   >
     <div className="flex items-start gap-3">
-      <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f2eaff] text-[#6b36d9]">
+      <div className="agent-icon-accent mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
         <FileText size={16} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-semibold text-slate-900">{project.title}</div>
-        <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-slate-500">
+        <div className="agent-title truncate text-[13px] font-semibold">{project.title}</div>
+        <div className="agent-muted mt-1 line-clamp-2 text-[11px] leading-5">
           {project.goal || '未填写项目目标'}
         </div>
-        <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+        <div className="agent-muted mt-2 flex items-center justify-between gap-2 text-[11px]">
           <span className="truncate">{formatRelativeMeta(project)}</span>
-          <span className="shrink-0 rounded-full bg-[#f5eeff] px-2 py-0.5 font-semibold text-[#6b36d9]">
+          <span className="agent-chip-accent shrink-0 px-2 py-0.5 font-semibold">
             {taskCount} 轮
           </span>
         </div>
@@ -58,7 +58,7 @@ const AgentProjectListItem = ({ project, isActive, taskCount, onSelect }) => (
 
 export const AgentProjectListSection = ({ projectOptions, activeProjectId, taskCountsByProjectId = {}, onSelectProject }) => (
   <>
-    <div className="mt-5 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+    <div className="agent-section-label mt-5 flex items-center justify-between text-[11px]">
       <span>Projects</span>
       <span>{projectOptions.length} items</span>
     </div>
@@ -74,7 +74,7 @@ export const AgentProjectListSection = ({ projectOptions, activeProjectId, taskC
         />
       ))}
       {projectOptions.length === 0 && (
-        <div className="rounded-[18px] border border-dashed border-[#dacfed] bg-white/70 px-4 py-5 text-xs leading-6 text-slate-500">
+        <div className="agent-empty-state rounded-[18px] border-dashed px-4 py-5 text-xs leading-6">
           还没有 Agent 项目。你可以在下面填写标题、目标和论文 ID，先创建一个研究项目。
         </div>
       )}
@@ -91,7 +91,7 @@ export const AgentProjectCreateForm = ({
   onSelectedPaperIdsChange,
 }) => (
   <>
-    <div className="mt-5 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+    <div className="agent-section-label mt-5 flex items-center justify-between text-[11px]">
       <span>Create</span>
       <span>Draft</span>
     </div>
@@ -100,19 +100,19 @@ export const AgentProjectCreateForm = ({
       <input
         value={projectTitle}
         onChange={(event) => onProjectTitleChange(event.target.value)}
-        className="w-full rounded-2xl border border-[#dfd6ea] bg-white px-3 py-2.5 text-xs text-slate-700 outline-none transition focus:border-[#cbb4f0] focus:ring-2 focus:ring-[#efe6ff]"
+        className="agent-input w-full rounded-2xl px-3 py-2.5 text-xs outline-none transition"
         placeholder="项目标题"
       />
       <textarea
         value={projectGoal}
         onChange={(event) => onProjectGoalChange(event.target.value)}
-        className="min-h-[82px] w-full rounded-2xl border border-[#dfd6ea] bg-white px-3 py-2.5 text-xs text-slate-700 outline-none transition focus:border-[#cbb4f0] focus:ring-2 focus:ring-[#efe6ff]"
+        className="agent-input min-h-[82px] w-full rounded-2xl px-3 py-2.5 text-xs outline-none transition"
         placeholder="项目目标"
       />
       <textarea
         value={selectedPaperIds}
         onChange={(event) => onSelectedPaperIdsChange(event.target.value)}
-        className="min-h-[82px] w-full rounded-2xl border border-[#dfd6ea] bg-white px-3 py-2.5 text-xs text-slate-700 outline-none transition focus:border-[#cbb4f0] focus:ring-2 focus:ring-[#efe6ff]"
+        className="agent-input min-h-[82px] w-full rounded-2xl px-3 py-2.5 text-xs outline-none transition"
         placeholder="论文 ID，支持逗号、空格或换行分隔"
       />
     </div>

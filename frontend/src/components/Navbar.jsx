@@ -47,14 +47,14 @@ const Navbar = ({
         )}
       </div>
 
-      <div className="hidden items-center rounded-full border border-slate-200 bg-slate-100 p-1 text-xs font-bold lg:flex">
+      <div className="agent-mode-switch hidden items-center rounded-full p-1 text-xs font-bold lg:flex">
         <button
           type="button"
           onClick={() => onAppModeChange?.('reader')}
           className={`rounded-full px-3 py-1.5 transition ${
             appMode === 'reader'
-              ? 'bg-white text-pixiu shadow-sm'
-              : 'theme-text-secondary hover:text-pixiu'
+              ? 'agent-mode-button-active'
+              : 'agent-mode-button'
           }`}
         >
           阅读 IDE
@@ -64,8 +64,8 @@ const Navbar = ({
           onClick={() => onAppModeChange?.('agent')}
           className={`rounded-full px-3 py-1.5 transition ${
             appMode === 'agent'
-              ? 'bg-pixiu text-white shadow-sm'
-              : 'theme-text-secondary hover:text-pixiu'
+              ? 'agent-mode-button-active agent-mode-button-active-agent'
+              : 'agent-mode-button'
           }`}
         >
           Agent 研究

@@ -1056,6 +1056,279 @@ html[data-theme='dark'] .pdf-viewer-shell .rpv-thumbnail__item {
   color: white;
 }
 
+.agent-mode-switch {
+  border: 1px solid var(--border-subtle);
+  background: var(--panel-muted);
+  color: var(--text-secondary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.agent-mode-button {
+  color: var(--text-secondary);
+}
+
+.agent-mode-button:hover {
+  color: var(--accent-strong);
+}
+
+.agent-mode-button-active {
+  background: var(--panel-bg);
+  color: var(--accent-strong);
+  box-shadow: var(--shadow-elevated);
+}
+
+.agent-mode-button-active-agent {
+  background: var(--accent);
+  color: #fff;
+}
+
+.agent-shell {
+  background:
+    radial-gradient(circle at 18% -10%, rgba(109, 61, 242, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(251, 250, 255, 0.96), rgba(245, 241, 250, 0.98)),
+    var(--app-bg);
+}
+
+html[data-theme='dark'] .agent-shell {
+  background:
+    radial-gradient(circle at 18% -10%, rgba(183, 130, 255, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(11, 18, 32, 0.96), rgba(17, 24, 39, 0.98)),
+    var(--app-bg);
+}
+
+.agent-panel,
+.agent-rail {
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, var(--panel-bg), var(--panel-muted));
+  color: var(--text-primary);
+  box-shadow: var(--shadow-elevated);
+}
+
+.agent-rail {
+  color: var(--accent-strong);
+}
+
+.agent-main-surface {
+  background: linear-gradient(180deg, var(--panel-bg), var(--panel-muted));
+}
+
+.agent-header {
+  border-color: var(--border-subtle);
+}
+
+.agent-card,
+.agent-card-soft,
+.agent-section,
+.agent-input,
+.agent-empty-state {
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.agent-card {
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-elevated);
+}
+
+.agent-card-soft,
+.agent-section,
+.agent-empty-state {
+  background: var(--panel-muted);
+}
+
+.agent-section {
+  overflow: hidden;
+}
+
+.agent-input {
+  background: var(--panel-bg);
+  color: var(--text-primary);
+}
+
+.agent-input::placeholder {
+  color: var(--text-muted);
+}
+
+.agent-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(123, 63, 242, 0.16);
+}
+
+.agent-composer {
+  border-color: var(--border-subtle);
+  background: var(--panel-overlay);
+}
+
+.agent-secondary-button {
+  border: 1px solid var(--border-subtle);
+  background: var(--panel-bg);
+  color: var(--text-secondary);
+}
+
+.agent-secondary-button:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.agent-primary-button {
+  background: linear-gradient(135deg, #5b2ea6, #7d57e6);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(91, 46, 166, 0.24);
+}
+
+html[data-theme='dark'] .agent-primary-button {
+  background: linear-gradient(135deg, #7d57e6, #b782ff);
+  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.44);
+}
+
+.agent-hero-card {
+  border: 1px solid rgba(123, 63, 242, 0.2);
+  background:
+    radial-gradient(circle at 92% 12%, rgba(249, 115, 22, 0.12), transparent 52px),
+    linear-gradient(135deg, var(--panel-bg), var(--accent-soft));
+  box-shadow: var(--shadow-elevated);
+}
+
+.agent-user-bubble {
+  border: 1px solid rgba(123, 63, 242, 0.26);
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-elevated);
+}
+
+.agent-chip,
+.agent-chip-accent,
+.agent-chip-success,
+.agent-chip-info,
+.agent-chip-warning,
+.agent-chip-danger {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--panel-muted);
+  color: var(--text-secondary);
+}
+
+.agent-chip-accent {
+  border-color: rgba(123, 63, 242, 0.3);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.agent-chip-success,
+.agent-status-succeeded,
+.agent-status-done {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.agent-chip-info {
+  border-color: rgba(14, 165, 233, 0.28);
+  background: rgba(14, 165, 233, 0.12);
+  color: #0369a1;
+}
+
+.agent-chip-warning,
+.agent-status-running,
+.agent-status-fallback {
+  border-color: rgba(245, 158, 11, 0.32);
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.agent-chip-danger,
+.agent-status-failed {
+  border-color: rgba(239, 68, 68, 0.32);
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+
+.agent-status-pending,
+.agent-status-cancelled {
+  border-color: var(--border-subtle);
+  background: var(--panel-muted);
+  color: var(--text-secondary);
+}
+
+html[data-theme='dark'] .agent-chip-success,
+html[data-theme='dark'] .agent-status-succeeded,
+html[data-theme='dark'] .agent-status-done {
+  color: #6ee7b7;
+}
+
+html[data-theme='dark'] .agent-chip-info {
+  color: #7dd3fc;
+}
+
+html[data-theme='dark'] .agent-chip-warning,
+html[data-theme='dark'] .agent-status-running,
+html[data-theme='dark'] .agent-status-fallback {
+  color: #fcd34d;
+}
+
+html[data-theme='dark'] .agent-chip-danger,
+html[data-theme='dark'] .agent-status-failed {
+  color: #fca5a5;
+}
+
+.agent-icon-accent {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.agent-title {
+  color: var(--text-primary);
+}
+
+.agent-body {
+  color: var(--text-secondary);
+}
+
+.agent-muted,
+.agent-section-label {
+  color: var(--text-muted);
+}
+
+.agent-section-label {
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.agent-table-head {
+  background: var(--panel-muted);
+  color: var(--text-muted);
+}
+
+.agent-table-row {
+  border-color: var(--border-subtle);
+}
+
+.agent-progress-track {
+  background: var(--panel-bg);
+}
+
+.agent-progress-bar {
+  background: linear-gradient(135deg, #5b2ea6, #7d57e6);
+}
+
+html[data-theme='dark'] .agent-progress-bar {
+  background: linear-gradient(135deg, #7d57e6, #b782ff);
+}
+
+.agent-timeline-dot {
+  background: linear-gradient(135deg, #5b2ea6, #7d57e6);
+  box-shadow: 0 0 0 4px rgba(107, 54, 217, 0.12);
+}
+
+html[data-theme='dark'] .agent-timeline-dot {
+  background: linear-gradient(135deg, #7d57e6, #b782ff);
+  box-shadow: 0 0 0 4px rgba(183, 130, 255, 0.16);
+}
+
+.agent-evidence-meta {
+  color: var(--accent-strong);
+}
+
 @media (min-width: 1200px) {
   .workspace-top-summary-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
