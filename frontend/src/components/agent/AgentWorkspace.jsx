@@ -12,6 +12,8 @@ import {
   normalizeAgentProjectListResponse,
   normalizeAgentProjectResponse,
   normalizeAgentTaskResponse,
+  removeAgentProjectFromState,
+  resolveNextAgentProjectNumber,
 } from './agentWorkspaceModel.js';
 import { loadAgentWorkspaceSnapshot, saveAgentWorkspaceSnapshot } from './agentWorkspaceStore.js';
 import { STAGE_LABELS, TERMINAL_AGENT_STATUSES } from './agentWorkspaceUi.js';
@@ -30,10 +32,12 @@ const updateProject = (projects, projectId, patch) =>
 
 const resolveInitialState = () => {
   const snapshot = loadAgentWorkspaceSnapshot();
+  const projects = snapshot?.projects || [];
   return {
     ...createEmptyAgentWorkspaceState(),
     ...(snapshot || {}),
     tasksByProjectId: snapshot?.tasksByProjectId || {},
+    nextProjectNumber: resolveNextAgentProjectNumber(projects, snapshot?.nextProjectNumber),
   };
 };
 
@@ -61,6 +65,7 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
       latestTask: state.latestTask,
       currentTask: state.currentTask,
       tasksByProjectId: state.tasksByProjectId,
+      nextProjectNumber: state.nextProjectNumber,
     });
   }, [state]);
 
@@ -113,6 +118,7 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
           ...prev,
           loading: false,
           projects: normalized.projects,
+          nextProjectNumber: resolveNextAgentProjectNumber(normalized.projects, prev.nextProjectNumber),
           activeProjectId: nextProject?.projectId || '',
           activeProject: nextProject,
           currentTask: cachedTasks[0] || null,
@@ -226,7 +232,7 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
       .filter(Boolean);
 
     const payload = {
-      title: projectTitle || `Agent 项目 ${projectOptions.length + 1}`,
+      title: projectTitle || `Agent 项目 ${state.nextProjectNumber}`,
       goal: projectGoal,
       paperIds,
     };
@@ -237,6 +243,10 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
       setState((prev) => ({
         ...prev,
         projects: upsertProject(prev.projects, project),
+        nextProjectNumber: resolveNextAgentProjectNumber(
+          upsertProject(prev.projects, project),
+          Number(prev.nextProjectNumber || 1) + 1,
+        ),
         activeProjectId: project.projectId,
         activeProject: project,
         currentTask: null,
@@ -248,6 +258,26 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
       setState((prev) => ({
         ...prev,
         error: error?.response?.data?.message || error?.message || '创建 Agent 项目失败',
+      }));
+    }
+  };
+
+  const handleDeleteProject = async (project) => {
+    const normalizedProject = normalizeAgentProject(project);
+    if (!normalizedProject.projectId) return;
+    const confirmed = window.confirm(`确定删除项目“${normalizedProject.title}”吗？此操作会删除该项目的任务历史。`);
+    if (!confirmed) return;
+
+    try {
+      await apiService.deleteAgentProject(normalizedProject.projectId);
+      setState((prev) => ({
+        ...removeAgentProjectFromState(prev, normalizedProject.projectId),
+        error: '',
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        error: error?.response?.data?.message || error?.message || '删除 Agent 项目失败',
       }));
     }
   };
@@ -375,6 +405,7 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
             onSelectedPaperIdsChange={setSelectedPaperIds}
             onCreateProject={handleCreateProject}
             onSelectProject={handleSelectProject}
+            onDeleteProject={handleDeleteProject}
             onCollapse={() => setLeftCollapsed(true)}
           />
         )}

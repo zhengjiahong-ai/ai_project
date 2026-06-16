@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 
 import { formatRelativeMeta, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
 
@@ -26,37 +26,54 @@ export const AgentProjectHeroCard = ({ activeProject, currentTask }) => (
   </section>
 );
 
-const AgentProjectListItem = ({ project, isActive, taskCount, onSelect }) => (
-  <button
-    type="button"
-    onClick={() => onSelect(project)}
-    className={`w-full rounded-[18px] border p-3 text-left transition ${
-      isActive
-        ? 'agent-card'
-        : 'agent-card-soft hover:border-[color:var(--accent)]'
-    }`}
-  >
-    <div className="flex items-start gap-3">
-      <div className="agent-icon-accent mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-        <FileText size={16} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="agent-title truncate text-[13px] font-semibold">{project.title}</div>
-        <div className="agent-muted mt-1 line-clamp-2 text-[11px] leading-5">
-          {project.goal || '未填写项目目标'}
+const AgentProjectListItem = ({ project, isActive, taskCount, onSelect, onDelete }) => (
+  <div className="relative">
+    <button
+      type="button"
+      onClick={() => onSelect(project)}
+      className={`w-full rounded-[18px] border p-3 pr-9 text-left transition ${
+        isActive
+          ? 'agent-card'
+          : 'agent-card-soft hover:border-[color:var(--accent)]'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="agent-icon-accent mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+          <FileText size={16} />
         </div>
-        <div className="agent-muted mt-2 flex items-center justify-between gap-2 text-[11px]">
-          <span className="truncate">{formatRelativeMeta(project)}</span>
-          <span className="agent-chip-accent shrink-0 px-2 py-0.5 font-semibold">
-            {taskCount} 轮
-          </span>
+        <div className="min-w-0 flex-1">
+          <div className="agent-title truncate text-[13px] font-semibold">{project.title}</div>
+          <div className="agent-muted mt-1 line-clamp-2 text-[11px] leading-5">
+            {project.goal || '未填写项目目标'}
+          </div>
+          <div className="agent-muted mt-2 flex items-center justify-between gap-2 text-[11px]">
+            <span className="truncate">{formatRelativeMeta(project)}</span>
+            <span className="agent-chip-accent shrink-0 px-2 py-0.5 font-semibold">
+              {taskCount} 轮
+            </span>
+          </div>
         </div>
       </div>
-    </div>
-  </button>
+    </button>
+    <button
+      type="button"
+      onClick={() => onDelete(project)}
+      className="agent-secondary-button absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-lg"
+      title={`删除 ${project.title}`}
+      aria-label={`删除 ${project.title}`}
+    >
+      <X size={13} />
+    </button>
+  </div>
 );
 
-export const AgentProjectListSection = ({ projectOptions, activeProjectId, taskCountsByProjectId = {}, onSelectProject }) => (
+export const AgentProjectListSection = ({
+  projectOptions,
+  activeProjectId,
+  taskCountsByProjectId = {},
+  onSelectProject,
+  onDeleteProject,
+}) => (
   <>
     <div className="agent-section-label mt-5 flex items-center justify-between text-[11px]">
       <span>Projects</span>
@@ -71,6 +88,7 @@ export const AgentProjectListSection = ({ projectOptions, activeProjectId, taskC
           isActive={project.projectId === activeProjectId}
           taskCount={taskCountsByProjectId[project.projectId] || 0}
           onSelect={onSelectProject}
+          onDelete={onDeleteProject}
         />
       ))}
       {projectOptions.length === 0 && (

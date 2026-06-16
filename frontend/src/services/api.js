@@ -133,6 +133,14 @@ export const createApiService = (client, agentFallbackClient = null, options = {
         : null,
     ),
 
+  deleteAgentProject: async (projectId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.delete(`/agent-projects/${encodeURIComponent(projectId)}`, { skipErrorLog: true }),
+      agentSecondaryClient
+        ? () => agentSecondaryClient.delete(`/agent-projects/${encodeURIComponent(projectId)}`)
+        : null,
+    ),
+
   addAgentProjectPapers: async (projectId, paperIds) =>
     withAgentFallback(
       () => agentPrimaryClient.post(`/agent-projects/${encodeURIComponent(projectId)}/papers`, { paperIds }, { skipErrorLog: true }),

@@ -34,6 +34,7 @@ Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它
 Agent 工作区已经不再只是静态原型壳。当前已经具备第一版可用的端到端链路：
 
 - 创建和切换 Agent 项目。
+- 删除 Agent 项目。
 - 向项目挂载多篇论文。
 - 创建异步 Agent 任务。
 - 轮询任务进度和阶段状态。
@@ -173,6 +174,7 @@ docker compose up -d grobid
 - 拆分后的前端子组件，便于后续维护。
 - 基于 `tasksByProjectId` 的项目级任务历史。
 - 切换项目时恢复历史任务。
+- 项目卡片支持确认后删除，删除不会重排已有项目标题编号，后续默认编号继续单调递增。
 - 完整显示 `draftReport`，不再只截断展示前几个段落。
 - 前端直连 Python Agent API。
 - 异步执行阶段：`planning -> retrieving -> synthesizing -> done`。
@@ -200,6 +202,7 @@ IndexedDB 保存本地阅读工作区和产物，包括：
 - 背景补课结果。
 - 工作台产物。
 - Agent 工作区快照，包括项目级任务历史。
+- Agent 默认项目编号游标。
 
 ### Java 侧
 
@@ -214,7 +217,7 @@ Python 保存：
 
 - Chroma 检索索引。
 - Deep Research SQLite 快照，默认位置为 `ai-service-python/data/research_tasks.sqlite3` 或 `RESEARCH_TASK_DB_PATH`。
-- 进程内 Agent 项目和 Agent 任务。
+- 进程内 Agent 项目和 Agent 任务；删除项目会同步删除该项目任务。
 - 进程内 public trace summary；Deep Research 终态 trace summary 会随 SQLite 任务快照保存。
 
 ## 验证命令
@@ -244,7 +247,6 @@ python -m pytest tests -q
 
 ## 已知问题
 
-- `npm run build` 当前会因为 `frontend/src/components/MessageMarkdownRenderer.js` 缺少 `rehype-katex` 依赖而失败；这和本次 Agent 工作无关。
 - 某些本地环境如果没有安装 Python 测试依赖，`pytest` 可能不可用。
 - Agent 服务当前优先完成框架搭建、链路打通和有意义草稿输出，复杂算法和更强综合质量留给后续迭代。
 

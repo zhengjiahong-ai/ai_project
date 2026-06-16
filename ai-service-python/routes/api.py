@@ -125,6 +125,16 @@ async def update_agent_project(project_id: str, request: AgentProjectUpdateReque
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
 
+@router.delete("/agent-projects/{project_id}")
+async def delete_agent_project(project_id: str):
+    try:
+        return JSONResponse(agent_project_service.delete_agent_project(project_id))
+    except agent_project_service.AgentProjectNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
 @router.post("/agent-projects/{project_id}/papers")
 async def add_project_papers(project_id: str, request: AgentProjectPapersRequest):
     try:

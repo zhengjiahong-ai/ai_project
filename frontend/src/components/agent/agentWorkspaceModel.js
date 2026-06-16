@@ -5,9 +5,22 @@ export const createEmptyAgentWorkspaceState = () => ({
   latestTask: null,
   currentTask: null,
   tasksByProjectId: {},
+  nextProjectNumber: 1,
   loading: false,
   error: '',
 });
+
+export const resolveNextAgentProjectNumber = (projects = [], nextProjectNumber = null) => {
+  const projectList = Array.isArray(projects) ? projects : [];
+  const titleNumbers = projectList
+    .map((project) => `${project?.title ?? ''}`.trim().match(/^Agent 项目\s+(\d+)$/))
+    .filter(Boolean)
+    .map((match) => Number(match[1]))
+    .filter((value) => Number.isInteger(value) && value > 0);
+  const inferredNext = Math.max(projectList.length + 1, titleNumbers.length ? Math.max(...titleNumbers) + 1 : 1);
+  const snapshotNext = Number(nextProjectNumber);
+  return Number.isInteger(snapshotNext) && snapshotNext > 0 ? Math.max(snapshotNext, inferredNext) : inferredNext;
+};
 
 export const normalizeAgentProject = (value) => {
   const project = value && typeof value === 'object' ? value : {};
@@ -85,3 +98,35 @@ export const appendAgentTaskForProject = (tasksByProjectId, task) => {
 
 export const getProjectTasks = (tasksByProjectId, projectId) =>
   projectId ? tasksByProjectId?.[projectId] || [] : [];
+
+export const removeAgentProjectFromState = (state, projectId) => {
+  const targetProjectId = `${projectId ?? ''}`.trim();
+  if (!targetProjectId) return state;
+
+  const nextProjects = (state.projects || []).filter((project) => project.projectId !== targetProjectId);
+  const nextTasksByProjectId = Object.fromEntries(
+    Object.entries(state.tasksByProjectId || {}).filter(([taskProjectId]) => taskProjectId !== targetProjectId),
+  );
+  const wasActive = state.activeProjectId === targetProjectId;
+
+  if (!wasActive) {
+    return {
+      ...state,
+      projects: nextProjects,
+      tasksByProjectId: nextTasksByProjectId,
+      latestTask: state.latestTask?.projectId === targetProjectId ? state.currentTask : state.latestTask,
+    };
+  }
+
+  const nextActiveProject = nextProjects[0] || null;
+  const nextTask = getProjectTasks(nextTasksByProjectId, nextActiveProject?.projectId)[0] || null;
+  return {
+    ...state,
+    projects: nextProjects,
+    activeProjectId: nextActiveProject?.projectId || '',
+    activeProject: nextActiveProject,
+    currentTask: nextTask,
+    latestTask: nextTask,
+    tasksByProjectId: nextTasksByProjectId,
+  };
+};

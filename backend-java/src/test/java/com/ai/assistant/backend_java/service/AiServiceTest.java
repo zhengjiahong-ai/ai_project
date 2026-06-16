@@ -620,6 +620,22 @@ class AiServiceTest {
     }
 
     @Test
+    void deleteAgentProjectForwardsDeleteRequestWithEncodedProjectId() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project%201"),
+                eq(HttpMethod.DELETE),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "projectId", "project 1")));
+
+        ResponseEntity<Map<String, Object>> response = aiService.deleteAgentProject("project 1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("project 1", response.getBody().get("projectId"));
+    }
+
+    @Test
     void createAgentTaskForwardsPostRequest() {
         when(restTemplate.exchange(
                 eq("http://python/api/agent-projects/project-1/tasks"),

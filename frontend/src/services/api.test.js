@@ -123,6 +123,9 @@ const run = async () => {
   await agentService.removeAgentProjectPaper('project 1', 'paper 2');
   assert.equal(agentUrl, '/agent-projects/project%201/papers/paper%202');
 
+  await agentService.deleteAgentProject('project 1');
+  assert.equal(agentUrl, '/agent-projects/project%201');
+
   await agentService.createAgentTask('project 1', { prompt: 'compare' });
   assert.equal(agentUrl, '/agent-projects/project%201/tasks');
   assert.deepEqual(agentPayload, { prompt: 'compare' });
@@ -150,18 +153,34 @@ const run = async () => {
       },
       post: async () => ({}),
       patch: async () => ({}),
-      delete: async () => ({}),
+      delete: async (url) => {
+        agentFallbackCalls.push(`primary:${url}`);
+        const error = new Error('not found');
+        error.response = { status: 404 };
+        throw error;
+      },
     },
     {
       get: async (url) => {
         agentFallbackCalls.push(`fallback:${url}`);
         return { status: 'success', projects: [] };
       },
+      delete: async (url) => {
+        agentFallbackCalls.push(`fallback:${url}`);
+        return { status: 'success', projectId: 'project 1' };
+      },
     },
   );
 
   await agentFallbackService.listAgentProjects();
   assert.deepEqual(agentFallbackCalls, ['primary:/agent-projects', 'fallback:/agent-projects']);
+  agentFallbackCalls.length = 0;
+
+  await agentFallbackService.deleteAgentProject('project 1');
+  assert.deepEqual(agentFallbackCalls, [
+    'primary:/agent-projects/project%201',
+    'fallback:/agent-projects/project%201',
+  ]);
 
   let cancelResearchUrl = '';
   const cancelResearchService = createApiService({

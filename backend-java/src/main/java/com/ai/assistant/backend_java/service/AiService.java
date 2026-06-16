@@ -252,6 +252,11 @@ public class AiService {
         return forwardAgentRequest(HttpMethod.PATCH, "/agent-projects/" + encodedProjectId, request);
     }
 
+    public ResponseEntity<Map<String, Object>> deleteAgentProject(String projectId) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.DELETE, "/agent-projects/" + encodedProjectId, null);
+    }
+
     public ResponseEntity<Map<String, Object>> addAgentProjectPapers(String projectId, Map<String, Object> request) {
         String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
         return forwardAgentRequest(HttpMethod.POST, "/agent-projects/" + encodedProjectId + "/papers", request);

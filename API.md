@@ -269,6 +269,7 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 当前前端行为：
 
 - Agent 面板可以创建和列出项目级研究工作区。
+- Agent 面板可以删除项目，删除会移除该项目及其任务历史。
 - Agent 任务是异步执行的，需要轮询。
 - 前端会在本地快照中保存每个项目的任务历史。
 - 切换项目时会恢复该项目的任务历史和当前选中任务。
@@ -333,6 +334,25 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
   "defaultConstraints": "Prioritize method and experiment sections."
 }
 ```
+
+### `DELETE /api/agent-projects/{projectId}`
+
+删除 Agent 项目。
+
+成功示例：
+
+```json
+{
+  "status": "success",
+  "projectId": "project-1"
+}
+```
+
+说明：
+
+- 删除项目会同步删除该项目关联的 Agent 任务历史。
+- 项目不存在时返回 `404` 和 `{ "status": "error", "message": "Agent project not found." }`。
+- 前端默认删除前会弹出确认，删除后不会重排已有项目标题编号，也不会回退后续默认项目编号。
 
 ### `POST /api/agent-projects/{projectId}/papers`
 
@@ -502,6 +522,7 @@ Java 网关源码中已经暴露以下 Agent 路由，并转发到 Python：
 | `GET /api/agent-projects` | `GET /api/agent-projects` |
 | `GET /api/agent-projects/{projectId}` | `GET /api/agent-projects/{projectId}` |
 | `PATCH /api/agent-projects/{projectId}` | `PATCH /api/agent-projects/{projectId}` |
+| `DELETE /api/agent-projects/{projectId}` | `DELETE /api/agent-projects/{projectId}` |
 | `POST /api/agent-projects/{projectId}/papers` | `POST /api/agent-projects/{projectId}/papers` |
 | `DELETE /api/agent-projects/{projectId}/papers/{pdfId}` | `DELETE /api/agent-projects/{projectId}/papers/{pdfId}` |
 | `POST /api/agent-projects/{projectId}/tasks` | `POST /api/agent-projects/{projectId}/tasks` |
@@ -583,6 +604,8 @@ Agent 时间线使用以下事件对象：
 - 切换项目时从该 map 恢复历史。
 - 当前任务可以在旧任务之间切换。
 - 任务历史会作为前端快照持久化。
+- 默认项目标题使用本地快照中的 `nextProjectNumber` 单调递增；旧快照缺少该字段时，会按现有 `Agent 项目 N` 标题最大值和项目数量推导。
+- 删除项目不会重排已有项目标题编号，也不会降低 `nextProjectNumber`。
 
 这是 UI/会话行为，目前还没有后端“列出某项目全部任务”的接口支撑。
 

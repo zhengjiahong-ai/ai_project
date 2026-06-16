@@ -53,3 +53,10 @@
 - `task.traceSummary` 只保存 public summary 字段，不保存完整 prompt、论文全文、headers、API key 或未裁剪 step 列表。
 - 普通聊天、批判阅读、背景补课等短请求 trace 仍为进程内临时摘要；服务重启或内存清空后返回 `404` 是允许行为。
 - 旧任务快照没有 `traceSummary` 时按空对象兼容，前端和旧客户端可忽略该字段。
+
+## Agent 项目删除与编号边界
+
+- `DELETE /api/agent-projects/{projectId}` 由 Java `/api` 透传到 Python `/api`，成功响应保持 `{ "status": "success", "projectId": "..." }`。
+- 删除 Agent 项目会同步删除该项目关联的进程内 Agent 任务；项目不存在时返回兼容式 `404` 错误体。
+- 前端新增 Agent 调用继续集中维护在 `frontend/src/services/api.js`。
+- 前端默认项目标题编号由本地 `nextProjectNumber` 单调递增控制；删除项目不得重命名已有项目，也不得回退后续默认编号。

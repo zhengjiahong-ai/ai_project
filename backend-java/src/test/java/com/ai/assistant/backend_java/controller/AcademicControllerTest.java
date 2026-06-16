@@ -324,6 +324,17 @@ class AcademicControllerTest {
     }
 
     @Test
+    void deleteAgentProjectReturnsForwardedPayload() throws Exception {
+        when(aiService.deleteAgentProject("project-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "projectId", "project-1")));
+
+        mockMvc.perform(delete("/api/agent-projects/project-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectId").value("project-1"));
+    }
+
+    @Test
     void createAgentTaskReturnsForwardedPayload() throws Exception {
         when(aiService.createAgentTask(eq("project-1"), eq(Map.of("prompt", "比较方法差异")))).thenReturn(ResponseEntity.ok(Map.of(
                 "status", "success",

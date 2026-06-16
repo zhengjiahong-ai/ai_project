@@ -36,6 +36,7 @@ const AgentWorkspaceSidebar = ({
   onSelectedPaperIdsChange,
   onCreateProject,
   onSelectProject,
+  onDeleteProject,
   onCollapse,
 }) => (
   <aside className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[24px]">
@@ -72,6 +73,7 @@ const AgentWorkspaceSidebar = ({
         activeProjectId={activeProjectId}
         taskCountsByProjectId={taskCountsByProjectId}
         onSelectProject={onSelectProject}
+        onDeleteProject={onDeleteProject}
       />
 
       <AgentProjectCreateForm

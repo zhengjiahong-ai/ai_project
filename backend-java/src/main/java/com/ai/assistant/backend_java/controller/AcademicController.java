@@ -128,6 +128,11 @@ public class AcademicController {
         return aiService.updateAgentProject(projectId, request);
     }
 
+    @DeleteMapping("/agent-projects/{projectId}")
+    public ResponseEntity<Map<String, Object>> deleteAgentProject(@PathVariable String projectId) {
+        return aiService.deleteAgentProject(projectId);
+    }
+
     @PostMapping("/agent-projects/{projectId}/papers")
     public ResponseEntity<Map<String, Object>> addAgentProjectPapers(
             @PathVariable String projectId,

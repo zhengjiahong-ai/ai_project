@@ -88,6 +88,22 @@ def update_agent_project(project_id: str, request: AgentProjectUpdateRequest) ->
     return {"status": "success", "project": _copy_project(project_id)}
 
 
+def delete_agent_project(project_id: str) -> Dict[str, Any]:
+    normalized_project_id = _clean_text(project_id)
+    with _LOCK:
+        if normalized_project_id not in _PROJECTS:
+            raise AgentProjectNotFoundError("Agent project not found.")
+        del _PROJECTS[normalized_project_id]
+        task_ids = [
+            task_id
+            for task_id, task in _TASKS.items()
+            if _clean_text(task.get("projectId")) == normalized_project_id
+        ]
+        for task_id in task_ids:
+            del _TASKS[task_id]
+    return {"status": "success", "projectId": normalized_project_id}
+
+
 def add_project_papers(project_id: str, request: AgentProjectPapersRequest) -> Dict[str, Any]:
     incoming_ids = _normalize_id_list(request.paperIds)
     with _LOCK:
@@ -207,8 +223,11 @@ def clear_agent_state() -> None:
 
 
 def _run_minimal_agent_task(task_id: str) -> None:
-    task = _copy_task(task_id)
-    project = _copy_project(str(task.get("projectId") or ""))
+    try:
+        task = _copy_task(task_id)
+        project = _copy_project(str(task.get("projectId") or ""))
+    except (AgentProjectNotFoundError, AgentTaskNotFoundError):
+        return
     paper_ids = list(task.get("focusedPaperIds") or project.get("paperIds") or [])
     prompt = _clean_text(task.get("prompt"))
     constraints = _clean_text(task.get("constraints"))
@@ -309,7 +328,10 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 },
             )
         except Exception as error:
-            current_task = _copy_task(task_id)
+            try:
+                current_task = _copy_task(task_id)
+            except AgentTaskNotFoundError:
+                return
             _update_task(
                 task_id,
                 status="failed",
