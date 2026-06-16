@@ -8,7 +8,6 @@
 2. **保持项目编号单调递增**：前端 Agent 快照新增 `nextProjectNumber`，旧快照会按现有 `Agent 项目 N` 推导初始编号；删除项目不会重命名现有项目，也不会回退后续默认编号。
 3. **打通三层删除接口**：前端 `api.js` 新增 `deleteAgentProject()`；Java 网关新增 `/api/agent-projects/{projectId}` DELETE 转发；Python 服务新增项目删除逻辑并同步清理关联 Agent 任务，异步 worker 可容忍项目或任务被删除。
 4. **同步文档与测试**：更新 `API.md`、`README.md`、`docs/CONSTRAINTS.md` 和前端版本号到 `0.1.34`；新增前端模型/API、Python Agent 服务、Java controller/service 覆盖。
-5. **验证结果**：已通过 `npm.cmd test`、`npm.cmd run build`（保留 Vite 大 chunk、pdfjs eval、react-resizable-panels "use client" 警告）、`python -m pytest tests -q`（64 passed）和 `.\mvnw.cmd test`（53 tests passed，保留 Mockito 动态 agent 警告）。未重新执行 Docker Compose 启动或浏览器端手工交互 smoke。
 
 ### 2026-06-16 20:30 v0.1.33
 
