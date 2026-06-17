@@ -121,6 +121,16 @@ export const normalizeAgentTaskResponse = (response) => ({
   task: normalizeAgentTask(response?.task),
 });
 
+export const normalizeAgentTaskListResponse = (response) => {
+  const limit = Number(response?.limit);
+  return {
+    status: `${response?.status ?? ''}`.trim() || 'error',
+    projectId: `${response?.projectId ?? ''}`.trim(),
+    tasks: Array.isArray(response?.tasks) ? response.tasks.map(normalizeAgentTask).filter((task) => task.taskId) : [],
+    limit: Number.isInteger(limit) && limit > 0 ? limit : 20,
+  };
+};
+
 export const appendAgentTaskForProject = (tasksByProjectId, task) => {
   if (!task?.projectId || !task?.taskId) return tasksByProjectId || {};
   const previousTasks = tasksByProjectId?.[task.projectId] || [];

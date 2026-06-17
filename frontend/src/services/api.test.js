@@ -133,6 +133,9 @@ const run = async () => {
   await agentService.getLatestAgentTask('project 1');
   assert.equal(agentUrl, '/agent-projects/project%201/tasks/latest');
 
+  await agentService.listAgentProjectTasks('project 1', 20);
+  assert.equal(agentUrl, '/agent-projects/project%201/tasks?limit=20');
+
   await agentService.getAgentTask('task 1');
   assert.equal(agentUrl, '/agent-tasks/task%201');
 
@@ -180,6 +183,13 @@ const run = async () => {
   assert.deepEqual(agentFallbackCalls, [
     'primary:/agent-projects/project%201',
     'fallback:/agent-projects/project%201',
+  ]);
+  agentFallbackCalls.length = 0;
+
+  await agentFallbackService.listAgentProjectTasks('project 1', 20);
+  assert.deepEqual(agentFallbackCalls, [
+    'primary:/agent-projects/project%201/tasks?limit=20',
+    'fallback:/agent-projects/project%201/tasks?limit=20',
   ]);
 
   let cancelResearchUrl = '';

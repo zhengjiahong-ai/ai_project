@@ -278,6 +278,15 @@ public class AiService {
         return forwardAgentRequest(HttpMethod.GET, "/agent-projects/" + encodedProjectId + "/tasks/latest", null);
     }
 
+    public ResponseEntity<Map<String, Object>> listAgentProjectTasks(String projectId, Integer limit) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        String path = "/agent-projects/" + encodedProjectId + "/tasks";
+        if (limit != null) {
+            path = path + "?limit=" + limit;
+        }
+        return forwardAgentRequest(HttpMethod.GET, path, null);
+    }
+
     public ResponseEntity<Map<String, Object>> getAgentTask(String taskId) {
         String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
         return forwardAgentRequest(HttpMethod.GET, "/agent-tasks/" + encodedTaskId, null);

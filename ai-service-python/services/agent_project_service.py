@@ -214,6 +214,25 @@ def get_latest_agent_task(project_id: str) -> Dict[str, Any]:
     return {"status": "success", "task": _copy_task(task_id)}
 
 
+def list_agent_project_tasks(project_id: str, limit: Any = 20) -> Dict[str, Any]:
+    project = _copy_project(project_id)
+    normalized_project_id = _clean_text(project.get("projectId"))
+    normalized_limit = _normalize_history_limit(limit)
+    with _LOCK:
+        tasks = [
+            copy.deepcopy(task)
+            for task in _TASKS.values()
+            if _clean_text(task.get("projectId")) == normalized_project_id
+        ]
+    tasks.sort(key=lambda item: str(item.get("updatedAt") or item.get("createdAt") or ""), reverse=True)
+    return {
+        "status": "success",
+        "projectId": normalized_project_id,
+        "tasks": tasks[:normalized_limit],
+        "limit": normalized_limit,
+    }
+
+
 def get_agent_task(task_id: str) -> Dict[str, Any]:
     return {"status": "success", "task": _copy_task(task_id)}
 
@@ -940,6 +959,16 @@ def _normalize_id_list(value: Any) -> List[str]:
         seen.add(text)
         items.append(text)
     return items
+
+
+def _normalize_history_limit(value: Any) -> int:
+    try:
+        limit = int(value)
+    except (TypeError, ValueError):
+        return 20
+    if limit <= 0:
+        return 20
+    return min(limit, 100)
 
 
 def _clean_text(value: Any) -> str:

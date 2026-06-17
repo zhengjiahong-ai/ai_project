@@ -668,6 +668,43 @@ class AiServiceTest {
     }
 
     @Test
+    void listAgentProjectTasksForwardsGetRequestWithLimit() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project%201/tasks?limit=10"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "projectId", "project 1",
+                        "limit", 10,
+                        "tasks", List.of(Map.of("taskId", "agent-task-2")))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.listAgentProjectTasks("project 1", 10);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> tasks = (List<Map<String, Object>>) response.getBody().get("tasks");
+        assertEquals("agent-task-2", tasks.get(0).get("taskId"));
+    }
+
+    @Test
+    void listAgentProjectTasksUsesPythonDefaultWhenLimitIsMissing() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project-1/tasks"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "projectId", "project-1",
+                        "tasks", List.of())));
+
+        ResponseEntity<Map<String, Object>> response = aiService.listAgentProjectTasks("project-1", null);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
     void getAgentTaskForwardsGetRequest() {
         when(restTemplate.exchange(
                 eq("http://python/api/agent-tasks/agent-task-1"),

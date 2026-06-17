@@ -361,6 +361,30 @@ class AcademicControllerTest {
     }
 
     @Test
+    void listAgentProjectTasksReturnsForwardedPayload() throws Exception {
+        when(aiService.listAgentProjectTasks("project-1", 10)).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "projectId", "project-1",
+                "limit", 10,
+                "tasks", List.of(Map.of("taskId", "agent-task-2", "status", "succeeded")))));
+
+        mockMvc.perform(get("/api/agent-projects/project-1/tasks").param("limit", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks[0].taskId").value("agent-task-2"));
+    }
+
+    @Test
+    void listAgentProjectTasksPropagatesNotFoundStatus() throws Exception {
+        when(aiService.listAgentProjectTasks("missing-project", null)).thenReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "status", "error",
+                "message", "Agent project not found.")));
+
+        mockMvc.perform(get("/api/agent-projects/missing-project/tasks"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Agent project not found."));
+    }
+
+    @Test
     void getAgentTaskReturnsForwardedPayload() throws Exception {
         when(aiService.getAgentTask("agent-task-1")).thenReturn(ResponseEntity.ok(Map.of(
                 "status", "success",

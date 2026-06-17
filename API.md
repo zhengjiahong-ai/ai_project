@@ -273,8 +273,8 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 - Agent 面板可以删除项目，删除会移除该项目及其任务历史。
 - Agent 任务是异步执行的，需要轮询。
 - Python 侧会把 Agent 项目、任务和事件摘要写入 SQLite 快照，服务重启后可恢复项目、latest task 和终态任务输出。
-- 前端会在本地快照中保存每个项目的任务历史。
-- 切换项目时会恢复该项目的任务历史和当前选中任务。
+- 后端提供项目级任务历史接口，前端进入或切换项目时优先从服务端恢复任务历史。
+- 前端仍会在本地快照中保存每个项目的任务历史，作为旧接口、离线或临时失败时的 fallback。
 
 ### `POST /api/agent-projects`
 
@@ -436,6 +436,40 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 - Agent 任务的 API 契约保持不变；Python 内部已将计划项生成、工具调用摘要、证据聚合、对比/冲突/开放问题和报告草稿综合拆到 `agent_orchestrator.py`。
 - 服务重启后会从 Agent SQLite 快照恢复任务；重启前仍处于 `running` 或 `pending` 的任务会恢复为 `failed`、`stage=done`、`progress=1.0`，`error` 为 `Agent task was interrupted by service restart.`，并追加 `task_expired` 事件。
 
+### `GET /api/agent-projects/{projectId}/tasks`
+
+读取某项目的 Agent 任务历史。
+
+查询参数：
+
+- `limit`：可选，默认 `20`，Python 侧会约束到 `1..100`；非法或小于等于 0 时回退为 `20`。
+
+成功示例：
+
+```json
+{
+  "status": "success",
+  "projectId": "project-1",
+  "limit": 20,
+  "tasks": [
+    {
+      "taskId": "agent-task-2",
+      "projectId": "project-1",
+      "status": "succeeded",
+      "stage": "done",
+      "updatedAt": "2026-06-17T10:10:00Z"
+    }
+  ]
+}
+```
+
+说明：
+
+- `tasks` 按 `updatedAt` 倒序返回。
+- 返回完整 Agent task 快照，字段与 `GET /api/agent-tasks/{taskId}` 一致，前端可直接恢复旧任务详情。
+- 项目存在但没有任务时返回 `200` 和空数组。
+- 项目不存在时返回 `404` 和 `{ "status": "error", "message": "Agent project not found." }`。
+
 ### `GET /api/agent-projects/{projectId}/tasks/latest`
 
 读取某项目最近一次 Agent 任务。
@@ -530,6 +564,7 @@ Java 网关源码中已经暴露以下 Agent 路由，并转发到 Python：
 | `POST /api/agent-projects/{projectId}/papers` | `POST /api/agent-projects/{projectId}/papers` |
 | `DELETE /api/agent-projects/{projectId}/papers/{pdfId}` | `DELETE /api/agent-projects/{projectId}/papers/{pdfId}` |
 | `POST /api/agent-projects/{projectId}/tasks` | `POST /api/agent-projects/{projectId}/tasks` |
+| `GET /api/agent-projects/{projectId}/tasks` | `GET /api/agent-projects/{projectId}/tasks` |
 | `GET /api/agent-projects/{projectId}/tasks/latest` | `GET /api/agent-projects/{projectId}/tasks/latest` |
 | `GET /api/agent-tasks/{taskId}` | `GET /api/agent-tasks/{taskId}` |
 | `POST /api/agent-tasks/{taskId}/cancel` | `POST /api/agent-tasks/{taskId}/cancel` |
@@ -605,14 +640,13 @@ Agent 时间线使用以下事件对象：
 
 前端 Agent 工作区在 API 之上增加了一层本地状态：
 
-- 项目级任务历史保存在 `tasksByProjectId`。
-- 切换项目时从该 map 恢复历史。
+- 项目级任务历史优先来自 `GET /api/agent-projects/{projectId}/tasks`。
+- `tasksByProjectId` 仍保存浏览器快照，作为服务端历史接口不可用时的 fallback。
+- 切换项目时优先从服务端恢复历史，失败时从该 map 恢复历史。
 - 当前任务可以在旧任务之间切换。
 - 任务历史会作为前端快照持久化。
 - 默认项目标题使用本地快照中的 `nextProjectNumber` 单调递增；旧快照缺少该字段时，会按现有 `Agent 项目 N` 标题最大值和项目数量推导。
 - 删除项目不会重排已有项目标题编号，也不会降低 `nextProjectNumber`。
-
-这是 UI/会话行为，目前还没有后端“列出某项目全部任务”的接口支撑。
 
 ## 错误处理建议
 

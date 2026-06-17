@@ -13,6 +13,7 @@ import {
   normalizeAgentProject,
   normalizeAgentProjectListResponse,
   normalizeAgentProjectResponse,
+  normalizeAgentTaskListResponse,
   normalizeAgentTaskResponse,
   removeAgentProjectFromState,
   removeSelectedAgentPaperId,
@@ -33,6 +34,15 @@ const upsertProject = (projects, project) => [
 
 const updateProject = (projects, projectId, patch) =>
   (projects || []).map((item) => (item.projectId === projectId ? { ...item, ...patch } : item));
+
+const replaceProjectTasks = (tasksByProjectId, projectId, tasks = []) => ({
+  ...(tasksByProjectId || {}),
+  [projectId]: [...tasks].sort((a, b) => {
+    const left = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const right = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return right - left;
+  }),
+});
 
 const resolveInitialState = () => {
   const snapshot = loadAgentWorkspaceSnapshot();
@@ -108,6 +118,44 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
     });
   };
 
+  const loadProjectTaskHistory = async (projectId, preferredTaskId = '') => {
+    if (!projectId) return [];
+
+    const response = await apiService.listAgentProjectTasks(projectId, 20);
+    const normalized = normalizeAgentTaskListResponse(response);
+    const tasks = normalized.tasks;
+
+    setState((prev) => {
+      const previousCurrentTaskId = preferredTaskId || prev.currentTask?.taskId || '';
+      const selectedTask = tasks.find((task) => task.taskId === previousCurrentTaskId) || tasks[0] || null;
+      const latestTaskPatch = tasks[0]
+        ? {
+            latestTaskId: tasks[0].taskId,
+            updatedAt: tasks[0].updatedAt || createTimestamp(),
+          }
+        : {};
+      const nextProjects = Object.keys(latestTaskPatch).length
+        ? updateProject(prev.projects, projectId, latestTaskPatch)
+        : prev.projects;
+      const nextActiveProject =
+        prev.activeProject?.projectId === projectId && Object.keys(latestTaskPatch).length
+          ? { ...prev.activeProject, ...latestTaskPatch }
+          : prev.activeProject;
+
+      return {
+        ...prev,
+        projects: nextProjects,
+        activeProject: nextActiveProject,
+        currentTask: prev.activeProjectId === projectId ? selectedTask : prev.currentTask,
+        latestTask: selectedTask || prev.latestTask,
+        tasksByProjectId: replaceProjectTasks(prev.tasksByProjectId, projectId, tasks),
+        error: '',
+      };
+    });
+
+    return tasks;
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -135,6 +183,14 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
           latestTask: cachedTasks[0] || prev.latestTask,
           error: '',
         }));
+
+        if (nextProject?.projectId) {
+          try {
+            await loadProjectTaskHistory(nextProject.projectId, cachedTasks[0]?.taskId || '');
+          } catch (_error) {
+            // Keep the local snapshot as a fallback when the project task-history endpoint is unavailable.
+          }
+        }
       } catch (error) {
         if (cancelled) return;
         setState((prev) => ({
@@ -169,6 +225,13 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
           projects: upsertProject(prev.projects, project),
           error: '',
         }));
+
+        try {
+          await loadProjectTaskHistory(project.projectId, state.currentTask?.taskId || '');
+          return;
+        } catch (_error) {
+          // Fall back to the pre-P1-13 latest-task path for older backends or offline snapshots.
+        }
 
         if (!project.latestTaskId) {
           setState((prev) => ({
@@ -324,8 +387,15 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
         ...prev,
         activeProject: project,
         projects: upsertProject(prev.projects, project),
-        error: '',
-      }));
+          error: '',
+        }));
+
+      try {
+        await loadProjectTaskHistory(project.projectId, currentTask?.taskId || '');
+        return;
+      } catch (_error) {
+        // Older Java/Python runtimes may not expose the task-history endpoint yet.
+      }
 
       if (currentTask?.taskId) {
         const taskResponse = await apiService.getAgentTask(currentTask.taskId);

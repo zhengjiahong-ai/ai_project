@@ -161,6 +161,51 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         self.assertEqual(restored["events"][-1]["type"], "task_expired")
         self.assertEqual(latest["taskId"], task["taskId"])
 
+    def test_project_task_history_lists_tasks_by_updated_time_and_limit(self):
+        project = self._create_project()
+        older_task = self._create_task_without_worker(project["projectId"])
+        newer_task = self._create_task_without_worker(project["projectId"])
+
+        history = agent_project_service.list_agent_project_tasks(project["projectId"], limit=1)
+
+        self.assertEqual(history["status"], "success")
+        self.assertEqual(history["projectId"], project["projectId"])
+        self.assertEqual(history["limit"], 1)
+        self.assertEqual([task["taskId"] for task in history["tasks"]], [newer_task["taskId"]])
+        self.assertEqual(history["tasks"][0]["projectId"], project["projectId"])
+        self.assertGreaterEqual(history["tasks"][0]["updatedAt"], older_task["updatedAt"])
+
+    def test_project_task_history_normalizes_limit_and_empty_state(self):
+        project = self._create_project()
+
+        empty_history = agent_project_service.list_agent_project_tasks(project["projectId"], limit=0)
+
+        self.assertEqual(empty_history["limit"], 20)
+        self.assertEqual(empty_history["tasks"], [])
+
+        self._create_task_without_worker(project["projectId"])
+        large_limit_history = agent_project_service.list_agent_project_tasks(project["projectId"], limit=500)
+
+        self.assertEqual(large_limit_history["limit"], 100)
+        self.assertEqual(len(large_limit_history["tasks"]), 1)
+
+    def test_project_task_history_restores_failed_interrupted_tasks_from_sqlite(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+
+        agent_project_service.reload_agent_state_from_storage()
+
+        history = agent_project_service.list_agent_project_tasks(project["projectId"], limit=20)
+
+        self.assertEqual(len(history["tasks"]), 1)
+        self.assertEqual(history["tasks"][0]["taskId"], task["taskId"])
+        self.assertEqual(history["tasks"][0]["status"], "failed")
+        self.assertEqual(history["tasks"][0]["events"][-1]["type"], "task_expired")
+
+    def test_project_task_history_missing_project_raises(self):
+        with self.assertRaises(agent_project_service.AgentProjectNotFoundError):
+            agent_project_service.list_agent_project_tasks("missing-project", limit=20)
+
     def test_delete_project_removes_persisted_tasks_and_events(self):
         project = self._create_project()
         task = self._create_task_without_worker(project["projectId"])

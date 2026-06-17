@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-17 19:35 v0.1.38
+
+1. **完成项目级 Agent 任务历史接口**：新增 `GET /api/agent-projects/{projectId}/tasks`，Python 按 `updatedAt` 倒序返回完整 Agent task 快照并支持 `limit`，Java 网关同步转发该接口。
+2. **前端改为服务端历史优先恢复**：Agent 工作区进入、切换或刷新项目时优先读取服务端任务历史，本地 `tasksByProjectId` 继续作为旧接口、离线或临时失败 fallback。
+3. **补齐文档和约束**：更新 `API.md`、`README.md`、`ARCHITECTURE.md`、`docs/CONSTRAINTS.md`、Agent 相关计划文档、`go3.md` 和前端版本号到 `0.1.38`。
+
 ### 2026-06-17 14:48 v0.1.37
 
 1. **持久化 Agent 工作区状态**：Python AI 服务新增 Agent SQLite 快照，保存项目、任务和事件摘要；默认数据库为 `ai-service-python/data/agent_state.sqlite3`，测试或隔离运行可用 `AGENT_STATE_DB_PATH` 覆盖。

@@ -167,6 +167,16 @@ async def create_agent_task(project_id: str, request: AgentTaskCreateRequest):
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
 
+@router.get("/agent-projects/{project_id}/tasks")
+async def list_agent_project_tasks(project_id: str, limit: int = 20):
+    try:
+        return JSONResponse(agent_project_service.list_agent_project_tasks(project_id, limit=limit))
+    except agent_project_service.AgentProjectNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
 @router.get("/agent-projects/{project_id}/tasks/latest")
 async def get_latest_agent_task(project_id: str):
     try:

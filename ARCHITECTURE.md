@@ -133,9 +133,9 @@ Agent 工作区现在维护项目级任务历史：
 - 每个项目保存多个任务。
 - 切换项目时恢复对应任务。
 - 在旧任务和新任务之间切换。
-- 刷新后通过快照恢复。
+- 服务端任务历史接口不可用时通过快照恢复。
 
-这仍是前端持久化的历史层，因为后端尚未提供“列出某项目所有任务”的接口。
+正常路径下，Agent 工作区进入或切换项目会优先调用 `GET /api/agent-projects/{projectId}/tasks` 从 Python SQLite 快照恢复服务端任务历史；`tasksByProjectId` 只保留为旧接口、离线或临时失败时的 fallback。
 
 ## 浏览器持久化
 
@@ -186,6 +186,7 @@ Java 源码中已经包含 Agent 转发路由：
 - `/api/agent-projects/{projectId}`
 - `/api/agent-projects/{projectId}/papers`
 - `/api/agent-projects/{projectId}/tasks`
+- `/api/agent-projects/{projectId}/tasks` GET 历史列表
 - `/api/agent-projects/{projectId}/tasks/latest`
 - `/api/agent-tasks/{taskId}`
 - `/api/agent-tasks/{taskId}/cancel`
@@ -313,8 +314,8 @@ Python 服务大致分为：
 当前重要限制：
 
 - Agent 项目、任务和事件摘要已保存到 Python SQLite 快照。
+- 后端已经提供项目级任务历史接口，按 `updatedAt` 倒序返回完整任务快照。
 - Python 服务重启后会恢复终态 Agent 任务；重启前仍在运行的任务会标记为 `failed` 并记录 `task_expired` 事件。
-- 后端仍没有“列出某项目全部任务”的项目级历史接口。
 
 #### `tool_registry.py`
 

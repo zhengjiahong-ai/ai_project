@@ -43,6 +43,7 @@ Java 层已经新增一组 `/api/agent-projects` 路由，负责作为兼容网�
 建议新增：
 
 - `POST /api/agent-projects/{projectId}/tasks`
+- `GET /api/agent-projects/{projectId}/tasks`
 - `GET /api/agent-projects/{projectId}/tasks/latest`
 - `GET /api/agent-tasks/{taskId}`
 - `POST /api/agent-tasks/{taskId}/cancel`
@@ -51,6 +52,7 @@ Java 层已经新增一组 `/api/agent-projects` 路由，负责作为兼容网�
 职责：
 
 - 将 Agent 任务和现有 `research-tasks` 区分开
+- 按项目列出任务历史，供前端恢复旧任务和服务端快照
 - 保持接口语义清晰：
   - `research-tasks` 仍偏单论文深度研究
   - `agent-tasks` 偏多论文研究编排
@@ -161,7 +163,7 @@ Agent 面板后续会返回更复杂的数据结构，Java 层需要承担“对
 任务：
 
 - 增加 `agent-traces` 只读接口转发。
-- 支持项目级任务列表查询。
+- 项目级任务列表查询已由 `GET /api/agent-projects/{projectId}/tasks` 补齐。
 - 补充分页、排序、状态过滤参数。
 - 规范错误码体系。
 

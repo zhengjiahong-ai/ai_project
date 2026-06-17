@@ -179,6 +179,15 @@ export const createApiService = (client, agentFallbackClient = null, options = {
         : null,
     ),
 
+  listAgentProjectTasks: async (projectId, limit = 20) => {
+    const normalizedLimit = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Math.floor(Number(limit)) : 20;
+    const path = `/agent-projects/${encodeURIComponent(projectId)}/tasks?limit=${encodeURIComponent(normalizedLimit)}`;
+    return withAgentFallback(
+      () => agentPrimaryClient.get(path, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.get(path) : null,
+    );
+  },
+
   getAgentTask: async (taskId) =>
     withAgentFallback(
       () => agentPrimaryClient.get(`/agent-tasks/${encodeURIComponent(taskId)}`, { skipErrorLog: true }),

@@ -67,4 +67,7 @@
 - `/api/agent-projects*` 和 `/api/agent-tasks*` 的请求/响应字段保持不变；持久化只改变服务重启后的恢复能力。
 - 服务重启前已经进入 `succeeded`、`failed` 或 `cancelled` 的任务按快照恢复。
 - 服务重启前仍处于 `running` 或 `pending` 的任务恢复为 `failed`、`stage=done`、`progress=1.0`，`error` 固定为 `Agent task was interrupted by service restart.`，并追加 `task_expired` 事件。
-- 本边界不新增项目级任务历史列表接口；`GET /api/agent-projects/{projectId}/tasks` 仍留给后续任务。
+- 项目级任务历史列表接口已补齐：`GET /api/agent-projects/{projectId}/tasks` 由 Java `/api` 透传到 Python `/api`。
+- 任务历史成功响应保持 `{ "status": "success", "projectId": "...", "tasks": [], "limit": 20 }`，`tasks` 复用完整 Agent task 快照并按 `updatedAt` 倒序返回。
+- `limit` 默认 `20`，Python 侧约束到 `1..100`；项目存在但没有任务时返回空数组，项目不存在时返回 `404 Agent project not found.`。
+- 前端进入、切换或刷新 Agent 项目时优先读取服务端任务历史；本地 `tasksByProjectId` 只作为旧接口、离线或临时失败 fallback。

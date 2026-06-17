@@ -2,14 +2,14 @@
 
 ## 1. 现状结论
 
-基于当前 `ARCHITECTURE.md`、`README.md` 和前端源码，新增的 Agent 面板目前仍处于“交互原型”阶段，核心特征如下：
+基于当前 `ARCHITECTURE.md`、`README.md` 和前端源码，Agent 面板已经从早期交互原型升级为可恢复的项目工作区。当前核心特征如下：
 
 - 入口已经存在：`frontend/src/App.jsx` 通过 `appMode` 在 `reader / agent` 两种模式间切换。
 - 导航已经存在：`frontend/src/components/Navbar.jsx` 提供 `阅读 IDE / Agent 研究` 模式切换。
-- 原型界面已经存在：`frontend/src/components/agent/AgentWorkspace.jsx` 已经定义了三栏布局。
-- 数据仍为 mock：`frontend/src/components/agent/agentMockData.js` 提供论文、计划、工具调用、证据片段和快捷任务的静态数据。
-- 没有真实状态模型：当前 Agent 面板没有接入 API、没有任务会话、没有项目持久化、没有真实工具 trace。
-- 没有和现有阅读工作流打通：当前面板无法复用论文库多选、当前论文上下文、RAG 来源跳转、深度研究任务、背景补课结果、批判阅读结果。
+- 三栏界面已经拆分为多个 Agent 子组件。
+- 数据已接入真实 Agent API，不再依赖 `agentMockData.js` 驱动主流程。
+- 前端已有项目、任务、任务历史、轮询、取消和 trace 查询状态模型。
+- 项目级任务历史优先由服务端 `GET /api/agent-projects/{projectId}/tasks` 恢复，本地 `tasksByProjectId` 作为 fallback。
 
 这意味着前端最关键的工作，不是“继续美化原型”，而是把这个原型升级为一个真实的研究工作台，并且复用现有阅读侧能力，而不是再造一套平行系统。
 
@@ -25,8 +25,6 @@
   - 当前研究项目中选中的多篇论文 ID。
 - `activeTask`
   - 当前 Agent 任务 ID、状态、阶段、最近事件、最近输出。
-- `taskMessages`
-  - 聊天式任务流，区分 `user / assistant / system / tool`。
 - `planItems`
   - 执行计划项，包含状态、依赖关系、来源问题、是否 follow-up。
 - `toolCalls`
@@ -56,6 +54,7 @@
 - `removeProjectPaper(projectId, paperId)`
 - `createAgentTask(projectId, payload)`
 - `getAgentTask(taskId)`
+- `listAgentProjectTasks(projectId, limit)`
 - `cancelAgentTask(taskId)`
 - `getLatestAgentTask(projectId)`
 - `getAgentTrace(traceId)`

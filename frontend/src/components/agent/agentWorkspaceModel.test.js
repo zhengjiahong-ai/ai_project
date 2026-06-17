@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 
 import {
   addSelectedAgentPaperId,
+  appendAgentTaskForProject,
   buildAgentProjectPayload,
   createEmptyAgentWorkspaceState,
+  getProjectTasks,
+  normalizeAgentTaskListResponse,
   resolveNextAgentProjectNumber,
   removeSelectedAgentPaperId,
   removeAgentProjectFromState,
@@ -108,5 +111,37 @@ assert.equal(emptyState.currentTask, null);
 assert.equal(emptyState.latestTask, null);
 assert.deepEqual(emptyState.tasksByProjectId, {});
 assert.equal(emptyState.nextProjectNumber, 2);
+
+const taskListResponse = normalizeAgentTaskListResponse({
+  status: 'success',
+  projectId: 'project-1',
+  limit: 20,
+  tasks: [
+    { taskId: ' task-2 ', projectId: 'project-1', status: 'succeeded', updatedAt: '2026-06-17T10:02:00Z' },
+    { taskId: 'task-1', projectId: 'project-1', status: 'failed', updatedAt: '2026-06-17T10:01:00Z' },
+  ],
+});
+
+assert.equal(taskListResponse.status, 'success');
+assert.equal(taskListResponse.projectId, 'project-1');
+assert.equal(taskListResponse.limit, 20);
+assert.deepEqual(taskListResponse.tasks.map((task) => task.taskId), ['task-2', 'task-1']);
+assert.equal(taskListResponse.tasks[0].stage, 'planning');
+
+const emptyTaskListResponse = normalizeAgentTaskListResponse(null);
+assert.equal(emptyTaskListResponse.status, 'error');
+assert.equal(emptyTaskListResponse.projectId, '');
+assert.equal(emptyTaskListResponse.limit, 20);
+assert.deepEqual(emptyTaskListResponse.tasks, []);
+
+const sortedTasksByProject = [
+  { taskId: 'task-old', projectId: 'project-1', updatedAt: '2026-06-17T10:00:00Z' },
+  { taskId: 'task-new', projectId: 'project-1', updatedAt: '2026-06-17T10:05:00Z' },
+].reduce((tasksByProjectId, task) => appendAgentTaskForProject(tasksByProjectId, task), {});
+
+assert.deepEqual(getProjectTasks(sortedTasksByProject, 'project-1').map((task) => task.taskId), [
+  'task-new',
+  'task-old',
+]);
 
 console.log('agentWorkspaceModel tests passed');

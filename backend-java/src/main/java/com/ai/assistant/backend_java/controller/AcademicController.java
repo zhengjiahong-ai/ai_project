@@ -159,6 +159,13 @@ public class AcademicController {
         return aiService.getLatestAgentTask(projectId);
     }
 
+    @GetMapping("/agent-projects/{projectId}/tasks")
+    public ResponseEntity<Map<String, Object>> listAgentProjectTasks(
+            @PathVariable String projectId,
+            @RequestParam(required = false) Integer limit) {
+        return aiService.listAgentProjectTasks(projectId, limit);
+    }
+
     @GetMapping("/agent-tasks/{taskId}")
     public ResponseEntity<Map<String, Object>> getAgentTask(@PathVariable String taskId) {
         return aiService.getAgentTask(taskId);
