@@ -80,6 +80,10 @@ import {
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
 } from './components/deepResearchPanelModel.js';
+import {
+  buildReadingWorkflowSuggestions,
+  getPrimaryReadingWorkflowSuggestion,
+} from './components/readingWorkflowModel.js';
 import appVersionRaw from '../VERSION?raw';
 
 const workflowStages = [
@@ -2487,93 +2491,35 @@ export default function App() {
     latestAnswer: clampSnippet(latestAiMessage?.content || latestResearchFinding?.summary || ''),
     artifactCount: workbenchCards.length + notes.length,
   };
-  const nextActionSuggestion = (() => {
-    if (!pdfFile) {
-      return {
-        title: '先上传一篇论文',
-        description: '上传后系统会自动进入篇章解构，并把后续阅读、问答、批判和沉淀串成一条流程。',
-        primary: null,
-        secondary: null,
-      };
+  const nextActionSuggestions = buildReadingWorkflowSuggestions({
+    hasPdf: Boolean(pdfFile),
+    activeTab,
+    isDeconstructing,
+    latestUserMessage,
+    deepResearchState: currentDeepResearchState,
+    artifactCount: readingContext.artifactCount,
+    pdfId,
+  });
+  const primaryNextActionSuggestion = getPrimaryReadingWorkflowSuggestion(nextActionSuggestions);
+
+  const handleReadingWorkflowAction = useCallback((suggestion) => {
+    const action = suggestion?.action;
+    if (!action) return;
+
+    if (action.type === 'agent') {
+      setAppMode('agent');
+      return;
     }
 
-    if (isDeconstructing) {
-      return {
-        title: '正在生成论文骨架',
-        description: '你可以先浏览 PDF 原文，等结构出来后再顺着章节继续读。',
-        primary: { label: '查看篇章解构', tabId: 'deconstruct' },
-        secondary: { label: '先做一句问答', tabId: 'chat' },
-      };
-    }
+    const targetTabId = action.tabId;
+    if (!targetTabId) return;
 
-    switch (activeTab) {
-      case 'deconstruct':
-        return {
-          title: '框架已可见，建议继续推进',
-          description: '先用问答确认核心概念，再切换到批判阅读或翻译做局部补强。',
-          primary: { label: '进入问答', tabId: 'chat' },
-          secondary: { label: '开始批判阅读', tabId: 'analysis' },
-        };
-      case 'chat':
-        return {
-          title: '当前问题已经接近阅读现场',
-          description: latestUserMessage?.content
-            ? '如果问题涉及概念背景，可以先补课；如果涉及论文论证，可以直接转入批判阅读。'
-            : '先问一个最想弄明白的问题，系统会帮你接到原文和下一步动作。',
-          primary: { label: '去补背景', tabId: 'background' },
-          secondary: { label: '直接批判阅读', tabId: 'analysis' },
-        };
-      case 'translation':
-        return {
-          title: '译文适合配合原文一起看',
-          description: '读完这一页后可以回到问答或篇章解构，把片段理解放回整体结构里。',
-          primary: { label: '回到问答', tabId: 'chat' },
-          secondary: { label: '回到篇章解构', tabId: 'deconstruct' },
-        };
-      case 'background':
-        return {
-          title: '背景补齐后就能继续深读',
-          description: '补背景的目的不是停留在概念解释，而是为了更快进入批判阅读和引导学习。',
-          primary: { label: '进入引导学习', tabId: 'socratic' },
-          secondary: { label: '去批判阅读', tabId: 'analysis' },
-        };
-      case 'socratic':
-        return {
-          title: '现在适合把理解变成判断',
-          description: '把刚刚的回答整理成一条可检验的观点，再用批判阅读检查它是否站得住。',
-          primary: { label: '查看批判阅读', tabId: 'analysis' },
-          secondary: { label: '发起深度研究', tabId: 'deep-research' },
-        };
-      case 'analysis':
-        return {
-          title: '批判已经开始，适合进一步深挖',
-          description: '如果某个结论值得怀疑，就把它带到深度研究里追溯证据链与相关工作。',
-          primary: { label: '发起深度研究', tabId: 'deep-research' },
-          secondary: { label: '沉淀为工作台卡片', tabId: 'notes' },
-        };
-      case 'deep-research':
-        return {
-          title: '研究结果适合回流到阅读链路',
-          description: '深度研究完成后，建议把 findings 先沉淀，再回到批判阅读核对结论边界。',
-          primary: { label: '回到批判阅读', tabId: 'analysis' },
-          secondary: { label: '查看资产沉淀', tabId: 'notes' },
-        };
-      case 'notes':
-        return {
-          title: '资产已经可以复用',
-          description: '这里会汇总本次阅读的卡片、边注和研究发现，方便后续写综述或继续追问。',
-          primary: { label: '回到阅读', tabId: 'deconstruct' },
-          secondary: { label: '继续问答', tabId: 'chat' },
-        };
-      default:
-        return {
-          title: '继续沿着阅读主线推进',
-          description: '系统会根据你当前所在的功能，推荐下一步最合适的动作。',
-          primary: { label: '回到篇章解构', tabId: 'deconstruct' },
-          secondary: { label: '查看问答', tabId: 'chat' },
-        };
+    if (action.type === 'workbench' || targetTabId === 'notes') {
+      setIsWorkbenchCollapsed(false);
     }
-  })();
+    setActiveWorkspaceSectionId(getWorkspaceSectionId(targetTabId));
+    setActiveTab(targetTabId);
+  }, []);
 
   return (
     <>
@@ -3045,9 +2991,11 @@ export default function App() {
                               <div className="workflow-next-card theme-card rounded-xl p-3">
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
-                                    <div className="theme-text-primary text-xs font-semibold">{nextActionSuggestion.title}</div>
+                                    <div className="theme-text-primary text-xs font-semibold">
+                                      {primaryNextActionSuggestion?.title || nextActionSuggestions[0]?.title}
+                                    </div>
                                     <div className="theme-text-secondary mt-1 text-[11px] leading-5">
-                                      {nextActionSuggestion.description}
+                                      {primaryNextActionSuggestion?.description || nextActionSuggestions[0]?.description}
                                     </div>
                                   </div>
                                   <div className="workflow-next-badge whitespace-nowrap text-[10px] font-semibold">
@@ -3055,33 +3003,19 @@ export default function App() {
                                   </div>
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                  {nextActionSuggestion.primary && (
+                                  {nextActionSuggestions.map((suggestion, index) => (
                                     <button
+                                      key={`${suggestion.title}-${suggestion.label || index}`}
                                       type="button"
-                                      onClick={() => {
-                                        setActiveWorkspaceSectionId(getWorkspaceSectionId(nextActionSuggestion.primary.tabId));
-                                        setActiveTab(nextActionSuggestion.primary.tabId);
-                                      }}
-                                      className="workflow-next-action workflow-next-action-primary"
+                                      disabled={!suggestion.action}
+                                      onClick={() => handleReadingWorkflowAction(suggestion)}
+                                      className={`workflow-next-action ${
+                                        suggestion.tone === 'primary' ? 'workflow-next-action-primary' : ''
+                                      }`}
                                     >
-                                      {nextActionSuggestion.primary.label}
+                                      {suggestion.label || suggestion.title}
                                     </button>
-                                  )}
-                                  {nextActionSuggestion.secondary && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (nextActionSuggestion.secondary.tabId === 'notes') {
-                                          setIsWorkbenchCollapsed(false);
-                                        }
-                                        setActiveWorkspaceSectionId(getWorkspaceSectionId(nextActionSuggestion.secondary.tabId));
-                                        setActiveTab(nextActionSuggestion.secondary.tabId);
-                                      }}
-                                      className="workflow-next-action"
-                                    >
-                                      {nextActionSuggestion.secondary.label}
-                                    </button>
-                                  )}
+                                  ))}
                                 </div>
                               </div>
                             </div>
@@ -3171,7 +3105,7 @@ export default function App() {
                         isLoading={isChatLoading(pdfId)}
                         contextTitle={readingContext.sectionTitle}
                         contextSummary={`${readingContext.pageLabel}${readingContext.sourceSnippet ? ` · ${readingContext.sourceSnippet}` : ''}`}
-                        nextActionHint={nextActionSuggestion.primary?.label || nextActionSuggestion.title}
+                        nextActionHint={primaryNextActionSuggestion?.label || nextActionSuggestions[0]?.title}
                       />
                     )}
 

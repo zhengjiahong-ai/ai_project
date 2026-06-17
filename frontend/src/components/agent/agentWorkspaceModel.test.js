@@ -32,6 +32,7 @@ const libraryPapers = [
 ];
 
 assert.deepEqual(resolveInitialAgentPaperSelection(libraryPapers, 'paper-2'), ['paper-2']);
+assert.deepEqual(resolveInitialAgentPaperSelection(libraryPapers, ' paper-2 '), ['paper-2']);
 assert.deepEqual(resolveInitialAgentPaperSelection(libraryPapers, 'missing-paper'), []);
 assert.deepEqual(resolveInitialAgentPaperSelection(libraryPapers, ''), []);
 

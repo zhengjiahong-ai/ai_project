@@ -137,6 +137,8 @@ Agent 工作区现在维护项目级任务历史：
 
 正常路径下，Agent 工作区进入或切换项目会优先调用 `GET /api/agent-projects/{projectId}/tasks` 从 Python SQLite 快照恢复服务端任务历史；`tasksByProjectId` 只保留为旧接口、离线或临时失败时的 fallback。
 
+阅读 IDE 的推荐下一步现在由前端模型统一生成，按当前面板、解析状态、Deep Research 状态和工作台沉淀数量给出 2-3 个动作。Agent 动作只切换到 `agent` 模式，并沿用 `activePaperId` 将当前论文带入 Agent 新项目草稿；不会自动创建项目或启动任务。
+
 ## 浏览器持久化
 
 ### IndexedDB

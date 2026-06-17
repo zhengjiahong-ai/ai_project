@@ -1,5 +1,11 @@
 # 前端重构计划
 
+## 2026-06-17 P1-14 阅读 IDE 到 Agent 下一步建议
+
+- `App.jsx` 的推荐下一步从单个 primary/secondary 建议升级为 2-3 个动作，覆盖继续单论文阅读、发起 Deep Research 和进入 Agent 研究。
+- 新增 `readingWorkflowModel.js` 统一生成建议，输入当前 PDF、活动面板、解析状态、Deep Research 状态、工作台沉淀数量和 `pdfId`，并用模型测试覆盖关键状态。
+- Agent 建议点击后只切换到 Agent 研究模式，不自动创建项目或任务；当前论文继续通过 `activePaperId` 进入 Agent 新项目草稿，沿用论文库存在性校验。
+
 ## 2026-06-14 P2-1 Agent 研究模式前端框架
 
 - `Navbar` 新增 `阅读 IDE / Agent 研究` 双模式切换，默认仍进入原有阅读 IDE，避免影响现有单论文阅读工作流。

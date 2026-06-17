@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-17 20:10 v0.1.39
+
+1. **收口阅读 IDE 到 Agent 的下一步建议**：阅读 IDE 右侧推荐下一步从单个 primary/secondary 动作升级为 2-3 个建议，覆盖继续单论文阅读、发起 Deep Research 和进入 Agent 研究。
+2. **抽出前端工作流建议模型**：新增 `readingWorkflowModel.js`，按当前 PDF、活动面板、解析状态、Deep Research 状态、工作台沉淀数量和 `pdfId` 生成建议；Agent 建议只切换模式，不自动创建项目或任务。
+
 ### 2026-06-17 19:35 v0.1.38
 
 1. **完成项目级 Agent 任务历史接口**：新增 `GET /api/agent-projects/{projectId}/tasks`，Python 按 `updatedAt` 倒序返回完整 Agent task 快照并支持 `limit`，Java 网关同步转发该接口。
