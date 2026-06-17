@@ -57,6 +57,14 @@
 ## Agent 项目删除与编号边界
 
 - `DELETE /api/agent-projects/{projectId}` 由 Java `/api` 透传到 Python `/api`，成功响应保持 `{ "status": "success", "projectId": "..." }`。
-- 删除 Agent 项目会同步删除该项目关联的进程内 Agent 任务；项目不存在时返回兼容式 `404` 错误体。
+- 删除 Agent 项目会同步删除该项目关联的 Agent SQLite 任务快照和事件摘要；项目不存在时返回兼容式 `404` 错误体。
 - 前端新增 Agent 调用继续集中维护在 `frontend/src/services/api.js`。
 - 前端默认项目标题编号由本地 `nextProjectNumber` 单调递增控制；删除项目不得重命名已有项目，也不得回退后续默认编号。
+
+## Agent SQLite 持久化边界
+
+- Agent 项目、任务和事件摘要保存到 Python SQLite，默认位置为 `ai-service-python/data/agent_state.sqlite3`，测试或隔离运行可通过 `AGENT_STATE_DB_PATH` 覆盖。
+- `/api/agent-projects*` 和 `/api/agent-tasks*` 的请求/响应字段保持不变；持久化只改变服务重启后的恢复能力。
+- 服务重启前已经进入 `succeeded`、`failed` 或 `cancelled` 的任务按快照恢复。
+- 服务重启前仍处于 `running` 或 `pending` 的任务恢复为 `failed`、`stage=done`、`progress=1.0`，`error` 固定为 `Agent task was interrupted by service restart.`，并追加 `task_expired` 事件。
+- 本边界不新增项目级任务历史列表接口；`GET /api/agent-projects/{projectId}/tasks` 仍留给后续任务。

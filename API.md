@@ -272,6 +272,7 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 - Agent 面板可以创建和列出项目级研究工作区。
 - Agent 面板可以删除项目，删除会移除该项目及其任务历史。
 - Agent 任务是异步执行的，需要轮询。
+- Python 侧会把 Agent 项目、任务和事件摘要写入 SQLite 快照，服务重启后可恢复项目、latest task 和终态任务输出。
 - 前端会在本地快照中保存每个项目的任务历史。
 - 切换项目时会恢复该项目的任务历史和当前选中任务。
 
@@ -351,7 +352,7 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 
 说明：
 
-- 删除项目会同步删除该项目关联的 Agent 任务历史。
+- 删除项目会同步删除该项目关联的 Agent 任务历史和已持久化事件摘要。
 - 项目不存在时返回 `404` 和 `{ "status": "error", "message": "Agent project not found." }`。
 - 前端默认删除前会弹出确认，删除后不会重排已有项目标题编号，也不会回退后续默认项目编号。
 
@@ -433,6 +434,7 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 - 当前阶段流转为 `planning -> retrieving -> synthesizing -> done`。
 - 前端应通过 `GET /api/agent-tasks/{taskId}` 轮询更新。
 - Agent 任务的 API 契约保持不变；Python 内部已将计划项生成、工具调用摘要、证据聚合、对比/冲突/开放问题和报告草稿综合拆到 `agent_orchestrator.py`。
+- 服务重启后会从 Agent SQLite 快照恢复任务；重启前仍处于 `running` 或 `pending` 的任务会恢复为 `failed`、`stage=done`、`progress=1.0`，`error` 为 `Agent task was interrupted by service restart.`，并追加 `task_expired` 事件。
 
 ### `GET /api/agent-projects/{projectId}/tasks/latest`
 
@@ -597,6 +599,7 @@ Agent 时间线使用以下事件对象：
 - `task_completed`
 - `task_cancelled`
 - `task_failed`
+- `task_expired`
 
 ## 前端 Agent 状态说明
 

@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-17 14:48 v0.1.37
+
+1. **持久化 Agent 工作区状态**：Python AI 服务新增 Agent SQLite 快照，保存项目、任务和事件摘要；默认数据库为 `ai-service-python/data/agent_state.sqlite3`，测试或隔离运行可用 `AGENT_STATE_DB_PATH` 覆盖。
+2. **恢复项目和 latest task**：Agent 项目、论文列表、latest task 指针、终态任务输出和时间线事件可在服务重启后恢复；删除项目会同步清理该项目任务和事件摘要。
+3. **明确中断任务语义**：服务重启前仍在 `running/pending` 的 Agent 任务会恢复为 `failed`、`stage=done`、`progress=1.0`，并记录 `task_expired` 事件和清晰错误信息；本次不新增项目级任务历史列表接口。
+4. **补充验证与文档**：新增 Agent 持久化单测，更新 `API.md`、`README.md`、`ARCHITECTURE.md`、`docs/AI_AGENT_PANEL_UPDATE_PLAN.md`、`docs/CONSTRAINTS.md` 和前端版本号到 `0.1.37`。
+
 ### 2026-06-17 14:17 v0.1.36
 
 1. **Agent 新建项目改为论文库多选**：左侧 Create 区域移除手填论文 ID 文本框，改为展示已选论文、从论文库搜索添加论文，并支持从草稿中移除已选论文。

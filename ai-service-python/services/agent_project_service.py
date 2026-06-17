@@ -1,9 +1,14 @@
 ﻿import copy
+import json
+import os
 import re
+import sqlite3
 import threading
 import time
 import uuid
+from contextlib import closing
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from schemas.requests import (
@@ -24,10 +29,12 @@ RETRIEVING_STAGE = "retrieving"
 SYNTHESIZING_STAGE = "synthesizing"
 DONE_STAGE = "done"
 AGENT_STEP_DELAY_SECONDS = 0.12
+INTERRUPTED_RESTART_ERROR = "Agent task was interrupted by service restart."
 
 _LOCK = threading.RLock()
 _PROJECTS: Dict[str, Dict[str, Any]] = {}
 _TASKS: Dict[str, Dict[str, Any]] = {}
+_STORAGE_LOADED = False
 
 
 class AgentProjectNotFoundError(Exception):
@@ -39,6 +46,7 @@ class AgentTaskNotFoundError(Exception):
 
 
 def create_agent_project(request: AgentProjectCreateRequest) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     title = _clean_text(request.title) or "Agent Research Project"
     goal = _clean_text(request.goal) or "Build a project-scoped research workspace across multiple papers."
     paper_ids = _normalize_id_list(request.paperIds)
@@ -56,10 +64,12 @@ def create_agent_project(request: AgentProjectCreateRequest) -> Dict[str, Any]:
     }
     with _LOCK:
         _PROJECTS[project["projectId"]] = copy.deepcopy(project)
+        _persist_project_locked(project)
     return {"status": "success", "project": copy.deepcopy(project)}
 
 
 def list_agent_projects() -> Dict[str, Any]:
+    _ensure_storage_loaded()
     with _LOCK:
         projects = sorted(
             (copy.deepcopy(project) for project in _PROJECTS.values()),
@@ -74,6 +84,7 @@ def get_agent_project(project_id: str) -> Dict[str, Any]:
 
 
 def update_agent_project(project_id: str, request: AgentProjectUpdateRequest) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     with _LOCK:
         project = _PROJECTS.get(project_id)
         if project is None:
@@ -86,10 +97,12 @@ def update_agent_project(project_id: str, request: AgentProjectUpdateRequest) ->
             project["defaultConstraints"] = _clean_text(request.defaultConstraints)
         project["updatedAt"] = _utc_now()
         _PROJECTS[project_id] = copy.deepcopy(project)
+        _persist_project_locked(project)
     return {"status": "success", "project": _copy_project(project_id)}
 
 
 def delete_agent_project(project_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     normalized_project_id = _clean_text(project_id)
     with _LOCK:
         if normalized_project_id not in _PROJECTS:
@@ -102,10 +115,12 @@ def delete_agent_project(project_id: str) -> Dict[str, Any]:
         ]
         for task_id in task_ids:
             del _TASKS[task_id]
+        _delete_persisted_project_locked(normalized_project_id)
     return {"status": "success", "projectId": normalized_project_id}
 
 
 def add_project_papers(project_id: str, request: AgentProjectPapersRequest) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     incoming_ids = _normalize_id_list(request.paperIds)
     with _LOCK:
         project = _PROJECTS.get(project_id)
@@ -116,10 +131,12 @@ def add_project_papers(project_id: str, request: AgentProjectPapersRequest) -> D
         project["papers"] = [_paper_stub(pdf_id) for pdf_id in paper_ids]
         project["updatedAt"] = _utc_now()
         _PROJECTS[project_id] = copy.deepcopy(project)
+        _persist_project_locked(project)
     return {"status": "success", "project": _copy_project(project_id)}
 
 
 def remove_project_paper(project_id: str, pdf_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     normalized_pdf_id = _clean_text(pdf_id)
     with _LOCK:
         project = _PROJECTS.get(project_id)
@@ -130,10 +147,12 @@ def remove_project_paper(project_id: str, pdf_id: str) -> Dict[str, Any]:
         project["papers"] = [_paper_stub(item) for item in paper_ids]
         project["updatedAt"] = _utc_now()
         _PROJECTS[project_id] = copy.deepcopy(project)
+        _persist_project_locked(project)
     return {"status": "success", "project": _copy_project(project_id)}
 
 
 def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     project = _copy_project(project_id)
     prompt = _clean_text(request.prompt)
     if not prompt:
@@ -179,6 +198,8 @@ def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[
         _TASKS[task_id] = copy.deepcopy(task)
         _PROJECTS[project_id]["latestTaskId"] = task_id
         _PROJECTS[project_id]["updatedAt"] = now
+        _persist_task_locked(task)
+        _persist_project_locked(_PROJECTS[project_id])
 
     worker = threading.Thread(target=_run_minimal_agent_task, args=(task_id,), daemon=True)
     worker.start()
@@ -198,6 +219,7 @@ def get_agent_task(task_id: str) -> Dict[str, Any]:
 
 
 def cancel_agent_task(task_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     should_finalize_cancelled = False
     with _LOCK:
         task = _TASKS.get(task_id)
@@ -210,6 +232,7 @@ def cancel_agent_task(task_id: str) -> Dict[str, Any]:
             task["events"] = [*task.get("events", []), _event("task_cancelled", task_id, DONE_STAGE, "Task was cancelled.")]
             task["updatedAt"] = _utc_now()
             _TASKS[task_id] = copy.deepcopy(task)
+            _persist_task_locked(task)
             should_finalize_cancelled = True
     if should_finalize_cancelled:
         with use_trace(str(task.get("traceId") or "")):
@@ -217,10 +240,24 @@ def cancel_agent_task(task_id: str) -> Dict[str, Any]:
     return {"status": "success", "task": _copy_task(task_id)}
 
 
-def clear_agent_state() -> None:
+def clear_agent_state(clear_storage: bool = False) -> None:
+    global _STORAGE_LOADED
     with _LOCK:
         _PROJECTS.clear()
         _TASKS.clear()
+        _STORAGE_LOADED = False
+        if clear_storage:
+            _delete_persisted_state_locked()
+            _STORAGE_LOADED = True
+
+
+def reload_agent_state_from_storage() -> None:
+    global _STORAGE_LOADED
+    with _LOCK:
+        _PROJECTS.clear()
+        _TASKS.clear()
+        _STORAGE_LOADED = False
+    _ensure_storage_loaded()
 
 
 def _run_minimal_agent_task(task_id: str) -> None:
@@ -541,6 +578,7 @@ def _build_planning_context(project: Dict[str, Any], paper_ids: List[str], const
 
 
 def _copy_project(project_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     with _LOCK:
         project = _PROJECTS.get(project_id)
         if project is None:
@@ -549,6 +587,7 @@ def _copy_project(project_id: str) -> Dict[str, Any]:
 
 
 def _copy_task(task_id: str) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     with _LOCK:
         task = _TASKS.get(task_id)
         if task is None:
@@ -557,6 +596,7 @@ def _copy_task(task_id: str) -> Dict[str, Any]:
 
 
 def _update_task(task_id: str, **updates: Any) -> Dict[str, Any]:
+    _ensure_storage_loaded()
     with _LOCK:
         task = _TASKS.get(task_id)
         if task is None:
@@ -565,6 +605,7 @@ def _update_task(task_id: str, **updates: Any) -> Dict[str, Any]:
             return copy.deepcopy(task)
         next_task = {**task, **copy.deepcopy(updates), "updatedAt": _utc_now()}
         _TASKS[task_id] = next_task
+        _persist_task_locked(next_task)
         return copy.deepcopy(next_task)
 
 
@@ -903,6 +944,407 @@ def _normalize_id_list(value: Any) -> List[str]:
 
 def _clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
+
+
+def _ensure_storage_loaded() -> None:
+    global _STORAGE_LOADED
+    with _LOCK:
+        if _STORAGE_LOADED:
+            return
+        _initialize_storage_locked()
+        loaded_projects, loaded_tasks = _load_persisted_state_locked()
+        _PROJECTS.clear()
+        _TASKS.clear()
+        for project in loaded_projects:
+            project_id = _clean_text(project.get("projectId"))
+            if project_id:
+                _PROJECTS[project_id] = project
+        for task in loaded_tasks:
+            restored = _restore_task_after_restart(task)
+            task_id = _clean_text(restored.get("taskId"))
+            if task_id:
+                _TASKS[task_id] = restored
+                if restored is not task:
+                    _persist_task_locked(restored)
+        _STORAGE_LOADED = True
+
+
+def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
+    status = _clean_text(task.get("status"))
+    if status in TERMINAL_STATUSES:
+        return task
+    task_id = _clean_text(task.get("taskId"))
+    events = list(task.get("events") or [])
+    if not events or events[-1].get("type") != "task_expired":
+        events.append(_event("task_expired", task_id, DONE_STAGE, INTERRUPTED_RESTART_ERROR))
+    return {
+        **task,
+        "status": "failed",
+        "stage": DONE_STAGE,
+        "progress": 1.0,
+        "events": events,
+        "error": INTERRUPTED_RESTART_ERROR,
+        "updatedAt": _utc_now(),
+    }
+
+
+def _initialize_storage_locked() -> None:
+    db_path = _agent_state_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with closing(sqlite3.connect(db_path)) as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS agent_projects (
+                projectId TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                goal TEXT NOT NULL,
+                paperIds TEXT NOT NULL,
+                papers TEXT NOT NULL,
+                latestTaskId TEXT NOT NULL,
+                defaultConstraints TEXT NOT NULL,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS agent_tasks (
+                taskId TEXT PRIMARY KEY,
+                projectId TEXT NOT NULL,
+                traceId TEXT NOT NULL,
+                status TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                progress REAL NOT NULL,
+                prompt TEXT NOT NULL,
+                focusedPaperIds TEXT NOT NULL,
+                constraints TEXT NOT NULL,
+                context TEXT NOT NULL,
+                planItems TEXT NOT NULL,
+                toolCalls TEXT NOT NULL,
+                evidenceItems TEXT NOT NULL,
+                findings TEXT NOT NULL,
+                comparisonTable TEXT NOT NULL,
+                conflicts TEXT NOT NULL,
+                openQuestions TEXT NOT NULL,
+                draftReport TEXT NOT NULL,
+                error TEXT NOT NULL,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS agent_task_events (
+                eventId TEXT PRIMARY KEY,
+                taskId TEXT NOT NULL,
+                type TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                meta TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_projects_updated ON agent_projects (updatedAt)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_tasks_project_updated ON agent_tasks (projectId, updatedAt)")
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_task_events_task_time ON agent_task_events (taskId, timestamp)")
+        connection.commit()
+
+
+def _load_persisted_state_locked() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    db_path = _agent_state_db_path()
+    if not db_path.exists():
+        return [], []
+    with closing(sqlite3.connect(db_path)) as connection:
+        connection.row_factory = sqlite3.Row
+        project_rows = connection.execute("SELECT * FROM agent_projects ORDER BY createdAt ASC").fetchall()
+        task_rows = connection.execute("SELECT * FROM agent_tasks ORDER BY createdAt ASC").fetchall()
+        event_rows = connection.execute("SELECT * FROM agent_task_events ORDER BY timestamp ASC").fetchall()
+
+    events_by_task: Dict[str, List[Dict[str, Any]]] = {}
+    for row in event_rows:
+        event = _event_from_storage_row(row)
+        events_by_task.setdefault(event["taskId"], []).append(event)
+
+    projects = [_project_from_storage_row(row) for row in project_rows]
+    tasks = [_task_from_storage_row(row, events_by_task.get(str(row["taskId"] or ""), [])) for row in task_rows]
+    return projects, tasks
+
+
+def _persist_project_locked(project: Dict[str, Any]) -> None:
+    _initialize_storage_locked()
+    snapshot = _normalize_project_for_storage(project)
+    with closing(sqlite3.connect(_agent_state_db_path())) as connection:
+        connection.execute(
+            """
+            INSERT INTO agent_projects (
+                projectId, title, goal, paperIds, papers, latestTaskId,
+                defaultConstraints, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(projectId) DO UPDATE SET
+                title=excluded.title,
+                goal=excluded.goal,
+                paperIds=excluded.paperIds,
+                papers=excluded.papers,
+                latestTaskId=excluded.latestTaskId,
+                defaultConstraints=excluded.defaultConstraints,
+                createdAt=excluded.createdAt,
+                updatedAt=excluded.updatedAt
+            """,
+            (
+                snapshot["projectId"],
+                snapshot["title"],
+                snapshot["goal"],
+                json.dumps(snapshot["paperIds"], ensure_ascii=False),
+                json.dumps(snapshot["papers"], ensure_ascii=False),
+                snapshot["latestTaskId"],
+                snapshot["defaultConstraints"],
+                snapshot["createdAt"],
+                snapshot["updatedAt"],
+            ),
+        )
+        connection.commit()
+
+
+def _persist_task_locked(task: Dict[str, Any]) -> None:
+    _initialize_storage_locked()
+    snapshot = _normalize_task_for_storage(task)
+    with closing(sqlite3.connect(_agent_state_db_path())) as connection:
+        connection.execute(
+            """
+            INSERT INTO agent_tasks (
+                taskId, projectId, traceId, status, stage, progress, prompt,
+                focusedPaperIds, constraints, context, planItems, toolCalls,
+                evidenceItems, findings, comparisonTable, conflicts, openQuestions,
+                draftReport, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(taskId) DO UPDATE SET
+                projectId=excluded.projectId,
+                traceId=excluded.traceId,
+                status=excluded.status,
+                stage=excluded.stage,
+                progress=excluded.progress,
+                prompt=excluded.prompt,
+                focusedPaperIds=excluded.focusedPaperIds,
+                constraints=excluded.constraints,
+                context=excluded.context,
+                planItems=excluded.planItems,
+                toolCalls=excluded.toolCalls,
+                evidenceItems=excluded.evidenceItems,
+                findings=excluded.findings,
+                comparisonTable=excluded.comparisonTable,
+                conflicts=excluded.conflicts,
+                openQuestions=excluded.openQuestions,
+                draftReport=excluded.draftReport,
+                error=excluded.error,
+                createdAt=excluded.createdAt,
+                updatedAt=excluded.updatedAt
+            """,
+            (
+                snapshot["taskId"],
+                snapshot["projectId"],
+                snapshot["traceId"],
+                snapshot["status"],
+                snapshot["stage"],
+                snapshot["progress"],
+                snapshot["prompt"],
+                json.dumps(snapshot["focusedPaperIds"], ensure_ascii=False),
+                snapshot["constraints"],
+                json.dumps(snapshot["context"], ensure_ascii=False),
+                json.dumps(snapshot["planItems"], ensure_ascii=False),
+                json.dumps(snapshot["toolCalls"], ensure_ascii=False),
+                json.dumps(snapshot["evidenceItems"], ensure_ascii=False),
+                json.dumps(snapshot["findings"], ensure_ascii=False),
+                json.dumps(snapshot["comparisonTable"], ensure_ascii=False),
+                json.dumps(snapshot["conflicts"], ensure_ascii=False),
+                json.dumps(snapshot["openQuestions"], ensure_ascii=False),
+                snapshot["draftReport"],
+                snapshot["error"],
+                snapshot["createdAt"],
+                snapshot["updatedAt"],
+            ),
+        )
+        connection.execute("DELETE FROM agent_task_events WHERE taskId = ?", (snapshot["taskId"],))
+        for event in snapshot["events"]:
+            connection.execute(
+                """
+                INSERT INTO agent_task_events (
+                    eventId, taskId, type, timestamp, stage, summary, meta
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event["eventId"],
+                    event["taskId"],
+                    event["type"],
+                    event["timestamp"],
+                    event["stage"],
+                    event["summary"],
+                    json.dumps(event["meta"], ensure_ascii=False),
+                ),
+            )
+        connection.commit()
+
+
+def _delete_persisted_project_locked(project_id: str) -> None:
+    _initialize_storage_locked()
+    with closing(sqlite3.connect(_agent_state_db_path())) as connection:
+        task_rows = connection.execute("SELECT taskId FROM agent_tasks WHERE projectId = ?", (project_id,)).fetchall()
+        task_ids = [str(row[0] or "") for row in task_rows]
+        for task_id in task_ids:
+            connection.execute("DELETE FROM agent_task_events WHERE taskId = ?", (task_id,))
+        connection.execute("DELETE FROM agent_tasks WHERE projectId = ?", (project_id,))
+        connection.execute("DELETE FROM agent_projects WHERE projectId = ?", (project_id,))
+        connection.commit()
+
+
+def _delete_persisted_state_locked() -> None:
+    _initialize_storage_locked()
+    with closing(sqlite3.connect(_agent_state_db_path())) as connection:
+        connection.execute("DELETE FROM agent_task_events")
+        connection.execute("DELETE FROM agent_tasks")
+        connection.execute("DELETE FROM agent_projects")
+        connection.commit()
+
+
+def _project_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
+    created_at = str(row["createdAt"] or _utc_now())
+    updated_at = str(row["updatedAt"] or created_at)
+    paper_ids = _safe_json_list(row["paperIds"])
+    papers = _safe_json_list(row["papers"]) or [_paper_stub(pdf_id) for pdf_id in paper_ids]
+    return {
+        "projectId": str(row["projectId"] or ""),
+        "title": str(row["title"] or "Agent Research Project"),
+        "goal": str(row["goal"] or ""),
+        "paperIds": paper_ids,
+        "papers": papers,
+        "latestTaskId": str(row["latestTaskId"] or ""),
+        "defaultConstraints": str(row["defaultConstraints"] or ""),
+        "createdAt": created_at,
+        "updatedAt": updated_at,
+    }
+
+
+def _task_from_storage_row(row: sqlite3.Row, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+    created_at = str(row["createdAt"] or _utc_now())
+    updated_at = str(row["updatedAt"] or created_at)
+    return {
+        "taskId": str(row["taskId"] or ""),
+        "projectId": str(row["projectId"] or ""),
+        "traceId": str(row["traceId"] or ""),
+        "status": str(row["status"] or "failed"),
+        "stage": str(row["stage"] or DONE_STAGE),
+        "progress": float(row["progress"] or 0.0),
+        "prompt": str(row["prompt"] or ""),
+        "focusedPaperIds": _safe_json_list(row["focusedPaperIds"]),
+        "constraints": str(row["constraints"] or ""),
+        "context": _safe_json_dict(row["context"]),
+        "planItems": _safe_json_list(row["planItems"]),
+        "events": events,
+        "toolCalls": _safe_json_list(row["toolCalls"]),
+        "evidenceItems": _safe_json_list(row["evidenceItems"]),
+        "findings": _safe_json_list(row["findings"]),
+        "comparisonTable": _safe_json_dict(row["comparisonTable"]) or {"columns": [], "rows": []},
+        "conflicts": _safe_json_list(row["conflicts"]),
+        "openQuestions": _safe_json_list(row["openQuestions"]),
+        "draftReport": str(row["draftReport"] or ""),
+        "error": str(row["error"] or ""),
+        "createdAt": created_at,
+        "updatedAt": updated_at,
+    }
+
+
+def _event_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
+    return {
+        "eventId": str(row["eventId"] or ""),
+        "type": str(row["type"] or ""),
+        "timestamp": str(row["timestamp"] or ""),
+        "taskId": str(row["taskId"] or ""),
+        "stage": str(row["stage"] or ""),
+        "summary": str(row["summary"] or ""),
+        "meta": _safe_json_dict(row["meta"]),
+    }
+
+
+def _normalize_project_for_storage(project: Dict[str, Any]) -> Dict[str, Any]:
+    now = _utc_now()
+    paper_ids = _normalize_id_list(project.get("paperIds"))
+    return {
+        "projectId": _clean_text(project.get("projectId")),
+        "title": _clean_text(project.get("title")) or "Agent Research Project",
+        "goal": _clean_text(project.get("goal")),
+        "paperIds": paper_ids,
+        "papers": list(project.get("papers") or [_paper_stub(pdf_id) for pdf_id in paper_ids]),
+        "latestTaskId": _clean_text(project.get("latestTaskId")),
+        "defaultConstraints": _clean_text(project.get("defaultConstraints")),
+        "createdAt": str(project.get("createdAt") or now),
+        "updatedAt": str(project.get("updatedAt") or project.get("createdAt") or now),
+    }
+
+
+def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
+    now = _utc_now()
+    created_at = str(task.get("createdAt") or now)
+    return {
+        "taskId": _clean_text(task.get("taskId")),
+        "projectId": _clean_text(task.get("projectId")),
+        "traceId": _clean_text(task.get("traceId")),
+        "status": _clean_text(task.get("status")) or "running",
+        "stage": _clean_text(task.get("stage")) or PLANNING_STAGE,
+        "progress": float(task.get("progress") or 0.0),
+        "prompt": _clean_text(task.get("prompt")),
+        "focusedPaperIds": _normalize_id_list(task.get("focusedPaperIds")),
+        "constraints": _clean_text(task.get("constraints")),
+        "context": dict(task.get("context") or {}),
+        "planItems": list(task.get("planItems") or []),
+        "events": [_normalize_event_for_storage(event, _clean_text(task.get("taskId"))) for event in list(task.get("events") or [])],
+        "toolCalls": list(task.get("toolCalls") or []),
+        "evidenceItems": list(task.get("evidenceItems") or []),
+        "findings": list(task.get("findings") or []),
+        "comparisonTable": dict(task.get("comparisonTable") or {"columns": [], "rows": []}),
+        "conflicts": list(task.get("conflicts") or []),
+        "openQuestions": list(task.get("openQuestions") or []),
+        "draftReport": str(task.get("draftReport") or ""),
+        "error": _clean_text(task.get("error")),
+        "createdAt": created_at,
+        "updatedAt": str(task.get("updatedAt") or created_at),
+    }
+
+
+def _normalize_event_for_storage(event: Dict[str, Any], fallback_task_id: str) -> Dict[str, Any]:
+    return {
+        "eventId": _clean_text(event.get("eventId")) or str(uuid.uuid4()),
+        "type": _clean_text(event.get("type")),
+        "timestamp": _clean_text(event.get("timestamp")) or _utc_now(),
+        "taskId": _clean_text(event.get("taskId")) or fallback_task_id,
+        "stage": _clean_text(event.get("stage")),
+        "summary": _clean_text(event.get("summary")),
+        "meta": dict(event.get("meta") or {}),
+    }
+
+
+def _safe_json_list(value: Any) -> List[Any]:
+    try:
+        parsed = json.loads(str(value or "[]"))
+    except json.JSONDecodeError:
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def _safe_json_dict(value: Any) -> Dict[str, Any]:
+    try:
+        parsed = json.loads(str(value or "{}"))
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _agent_state_db_path() -> Path:
+    configured = os.environ.get("AGENT_STATE_DB_PATH")
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[1] / "data" / "agent_state.sqlite3"
 
 
 def _utc_now() -> str:

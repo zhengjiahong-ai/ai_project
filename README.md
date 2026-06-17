@@ -177,6 +177,7 @@ docker compose up -d grobid
 - 基于 `tasksByProjectId` 的项目级任务历史。
 - 切换项目时恢复历史任务。
 - 项目卡片支持确认后删除，删除不会重排已有项目标题编号，后续默认编号继续单调递增。
+- Python 侧会把 Agent 项目、任务和事件摘要写入 SQLite 快照，服务重启后可恢复项目、latest task 和终态任务输出。
 - 完整显示 `draftReport`，不再只截断展示前几个段落。
 - 前端直连 Python Agent API。
 - 异步执行阶段：`planning -> retrieving -> synthesizing -> done`。
@@ -185,8 +186,8 @@ docker compose up -d grobid
 
 当前限制：
 
-- Agent 项目和任务在 Python 侧仍是进程内存储，服务重启后会丢失。
 - 前端项目切换已经可用，但后端还没有“列出某项目所有任务”的接口。
+- 服务重启前仍在 `running` 或 `pending` 的 Agent 任务会恢复为 `failed`，并在任务错误和事件摘要中说明被服务重启中断。
 - Agent 结论已经能生成有用草稿，但仍是轻量规则型综合。
 - 如果 Java 运行时早于最新 Agent 转发代码启动，Agent 模式应继续使用默认的 Python 直连路径，或重建 Java 服务。
 
@@ -219,10 +220,10 @@ Python 保存：
 
 - Chroma 检索索引。
 - Deep Research SQLite 快照，默认位置为 `ai-service-python/data/research_tasks.sqlite3` 或 `RESEARCH_TASK_DB_PATH`。
-- 进程内 Agent 项目和 Agent 任务；删除项目会同步删除该项目任务。
+- Agent SQLite 快照，默认位置为 `ai-service-python/data/agent_state.sqlite3` 或 `AGENT_STATE_DB_PATH`；删除项目会同步删除该项目任务和事件摘要。
 - 进程内 public trace summary；Deep Research 终态 trace summary 会随 SQLite 任务快照保存。
 
-Python AI 服务内部已经将单论文 Deep Research 拆为 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，并将多论文 Agent 研究的计划、工具调用摘要、证据聚合和报告综合拆到 `agent_orchestrator.py`。这些变化不新增运行命令或环境变量。
+Python AI 服务内部已经将单论文 Deep Research 拆为 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，并将多论文 Agent 研究的计划、工具调用摘要、证据聚合和报告综合拆到 `agent_orchestrator.py`。这些变化不新增运行命令；需要隔离 Agent 状态库时可设置 `AGENT_STATE_DB_PATH`。
 
 ## 验证命令
 
