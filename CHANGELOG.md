@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-17 14:00 v0.1.35
+
+1. **抽出 Deep Research 编排边界**：新增 `research_planner.py`、`research_executor.py` 和 `research_aggregator.py`，将单论文 Deep Research 的计划生成、子问题执行、冲突检测、报告综合和 JUDGE trace 汇总从任务生命周期服务中拆出；`research_task_service.py` 继续保留任务创建、轮询、取消和 SQLite 快照职责。
+2. **抽出 Agent 编排边界**：新增 `agent_orchestrator.py`，承接 Agent 计划项生成、工具调用摘要、证据聚合、对比表、冲突候选、开放问题和报告草稿综合；`agent_project_service.py` 继续负责项目/任务状态、异步执行、取消和 trace 包裹。
+3. **保持接口与运行方式不变**：本次不新增 API、不改变 `/api/research-tasks*` 和 `/api/agent-*` 请求响应字段、不改变数据库 schema 或启动命令；Agent 项目/任务仍是进程内存状态，项目级任务历史接口仍留待后续 P1-12/P1-13。
+4. **同步文档**：更新 `API.md`、`README.md`、`ARCHITECTURE.md`、Agent 相关计划文档和前端版本号到 `0.1.35`。
+
 ### 2026-06-16 20:55 v0.1.34
 
 1. **新增 Agent 项目删除能力**：Agent 研究区左侧项目卡片右上角新增删除按钮，点击后确认并调用真实 `DELETE /api/agent-projects/{projectId}`，删除后项目刷新不会恢复。

@@ -259,6 +259,12 @@ Python 服务大致分为：
 - latest 快照恢复。
 - SQLite 持久化。
 
+它现在保留任务生命周期、取消、轮询和 SQLite 快照职责；具体研究编排边界已拆出：
+
+- `research_planner.py`：研究 brief、初始子问题计划和 follow-up 计划。
+- `research_executor.py`：单个子问题的 query plan、检索、JUDGE、retry 和 finding 输出。
+- `research_aggregator.py`：冲突检测、报告综合和 trace judge 汇总。
+
 当前任务阶段：
 
 - `planning`
@@ -295,6 +301,8 @@ Python 服务大致分为：
 - 生成冲突候选。
 - 生成开放问题。
 - 生成报告草稿。
+
+任务生命周期仍由 `agent_project_service.py` 管理；计划项生成、检索工具调用摘要、证据聚合、对比表、冲突候选、开放问题和草稿报告综合已拆到 `agent_orchestrator.py`，后续可以在该边界内替换更强的 Agent 执行策略。
 
 当前 AI 结论行为：
 

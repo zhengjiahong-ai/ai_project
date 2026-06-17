@@ -15,6 +15,7 @@ from llm.client import get_llm
 from schemas.requests import ResearchTaskBriefPreviewRequest, ResearchTaskCreateRequest
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.query_service import build_retrieval_queries
+from services import research_aggregator, research_executor, research_planner
 from services.safety_service import (
     MAX_RESEARCH_SUB_QUESTIONS,
     MAX_RETRIEVAL_RETRIES,
@@ -1665,3 +1666,19 @@ def _research_task_db_path() -> Path:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+_build_research_plan = research_planner.build_research_plan
+_build_initial_plan_items = research_planner.build_initial_plan_items
+_should_create_follow_up = research_planner.should_create_follow_up
+_build_follow_up_plan_item = research_planner.build_follow_up_plan_item
+_record_safety_budget_counters = research_planner.record_safety_budget_counters
+
+_research_sub_question = research_executor.research_sub_question
+_retrieve_current_paper_evidence = research_executor.retrieve_current_paper_evidence
+_retrieve_library_evidence = research_executor.retrieve_library_evidence
+_judge_research_evidence = research_executor.judge_research_evidence
+
+_build_research_report = research_aggregator.build_research_report
+_detect_research_conflicts = research_aggregator.detect_research_conflicts
+_build_judge_trace_summary = research_aggregator.build_judge_trace_summary

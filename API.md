@@ -261,6 +261,7 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 
 - trace 输出会被刻意裁剪，不暴露完整 prompt、API key 或完整论文正文。
 - 已完成的 Deep Research 任务会把 trace summary 写入 SQLite 快照，服务重启后通常仍可恢复。
+- Deep Research 的对外接口、字段和状态码保持不变；Python 内部已将 planning、sub-question execution、report/conflict aggregation 拆到 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，用于后续低风险替换编排策略。
 
 ## Agent 研究 API
 
@@ -431,6 +432,7 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 - 接口会立即创建任务并返回 `status=running`。
 - 当前阶段流转为 `planning -> retrieving -> synthesizing -> done`。
 - 前端应通过 `GET /api/agent-tasks/{taskId}` 轮询更新。
+- Agent 任务的 API 契约保持不变；Python 内部已将计划项生成、工具调用摘要、证据聚合、对比/冲突/开放问题和报告草稿综合拆到 `agent_orchestrator.py`。
 
 ### `GET /api/agent-projects/{projectId}/tasks/latest`
 

@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 from llm.client import DeepSeekLLM
 from schemas.requests import ResearchTaskCreateRequest
-from services import research_task_service, trace_service
+from services import research_executor, research_task_service, trace_service
 
 
 class DeepSeekLLMTraceCounterTests(unittest.TestCase):
@@ -374,9 +374,9 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         with (
             patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
             patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一"])),
-            patch.object(research_task_service, "_retrieve_current_paper_evidence", return_value=[{"sourceId": "paper-1", "text": "paper evidence", "sourceType": "current_paper"}]),
-            patch.object(research_task_service, "_retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library evidence", "sourceType": "library"}]),
-            patch.object(research_task_service, "_judge_research_evidence", side_effect=fake_judge),
+            patch.object(research_executor, "retrieve_current_paper_evidence", return_value=[{"sourceId": "paper-1", "text": "paper evidence", "sourceType": "current_paper"}]),
+            patch.object(research_executor, "retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library evidence", "sourceType": "library"}]),
+            patch.object(research_executor, "judge_research_evidence", side_effect=fake_judge),
         ):
             task = research_task_service.run_research_task_now(task_id)
 

@@ -12,6 +12,7 @@ from schemas.requests import (
     AgentProjectUpdateRequest,
     AgentTaskCreateRequest,
 )
+from services import agent_orchestrator
 from services.evidence_service import normalize_evidence_items
 from services.tool_registry import get_tool_registry
 from services.trace_service import finalize_trace, record_counter, sanitize_text, start_trace, trace_step, use_trace
@@ -245,12 +246,12 @@ def _run_minimal_agent_task(task_id: str) -> None:
             )
             _agent_step_delay()
             with trace_step("agent_task_understanding", input_size=len(prompt)) as step:
-                planning_context = _build_planning_context(project, paper_ids, constraints)
+                planning_context = agent_orchestrator.build_planning_context(project, paper_ids, constraints)
                 step["outputSize"] = len(planning_context)
 
             if _is_task_cancelled(task_id):
                 return
-            plan_items = _build_plan_items(paper_ids, active_step="retrieve")
+            plan_items = agent_orchestrator.build_plan_items(paper_ids, active_step="retrieve")
             events = [
                 *_copy_task(task_id).get("events", []),
                 _event("task_understood", task_id, PLANNING_STAGE, "Confirmed project scope and focused papers."),
@@ -265,10 +266,29 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 task_id,
                 stage=RETRIEVING_STAGE,
                 progress=0.42,
-                planItems=_build_plan_items(paper_ids, active_step="retrieve"),
+                planItems=agent_orchestrator.build_plan_items(paper_ids, active_step="retrieve"),
                 events=[*_copy_task(task_id).get("events", []), _event("retrieval_started", task_id, RETRIEVING_STAGE, "Started per-paper evidence retrieval.")],
             )
-            paper_contexts, tool_calls, evidence_items = _collect_project_evidence(task_id, prompt, paper_ids)
+
+            def update_retrieval_progress(tool_calls, evidence_items, _paper_contexts, progress, pdf_id):
+                _update_task(
+                    task_id,
+                    toolCalls=tool_calls,
+                    evidenceItems=evidence_items,
+                    events=[
+                        *_copy_task(task_id).get("events", []),
+                        _event("paper_evidence_collected", task_id, RETRIEVING_STAGE, f"Collected evidence from {pdf_id}."),
+                    ],
+                    progress=progress,
+                )
+                _agent_step_delay()
+
+            paper_contexts, tool_calls, evidence_items = agent_orchestrator.collect_project_evidence(
+                prompt,
+                paper_ids,
+                should_cancel=lambda: _is_task_cancelled(task_id),
+                on_progress=update_retrieval_progress,
+            )
             if _is_task_cancelled(task_id):
                 return
             events = [
@@ -286,15 +306,15 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 evidenceItems=evidence_items,
                 events=events,
                 progress=0.72,
-                planItems=_build_plan_items(paper_ids, active_step="synthesize"),
+                planItems=agent_orchestrator.build_plan_items(paper_ids, active_step="synthesize"),
             )
             _agent_step_delay()
 
             if _is_task_cancelled(task_id):
                 return
             _update_task(task_id, stage=SYNTHESIZING_STAGE, progress=0.86)
-            finding, comparison_table, conflicts, open_questions = _build_agent_outputs(prompt, paper_contexts, evidence_items)
-            draft_report = _build_minimal_report(prompt, project, paper_contexts, evidence_items, conflicts, open_questions)
+            finding, comparison_table, conflicts, open_questions = agent_orchestrator.build_agent_outputs(prompt, paper_contexts, evidence_items)
+            draft_report = agent_orchestrator.build_minimal_report(prompt, project, paper_contexts, evidence_items, conflicts, open_questions)
             events = [
                 *_copy_task(task_id).get("events", []),
                 _event("judgement_completed", task_id, SYNTHESIZING_STAGE, "Built cross-paper judgements and conflict candidates."),
@@ -307,7 +327,7 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 stage=DONE_STAGE,
                 progress=1.0,
                 events=events,
-                planItems=_build_plan_items(paper_ids, active_step="done"),
+                planItems=agent_orchestrator.build_plan_items(paper_ids, active_step="done"),
                 findings=[finding],
                 comparisonTable=comparison_table,
                 conflicts=conflicts,

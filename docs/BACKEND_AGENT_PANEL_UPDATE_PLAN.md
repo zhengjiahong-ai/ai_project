@@ -2,25 +2,25 @@
 
 ## 1. 现状结论
 
-当前 Java 后端的定位非常明确：它是浏览器唯一后端入口，负责 `/api` 统一暴露、上传转发、聊天历史持久化、研究任务转发与错误适配。
+当前 Java 后端的定位仍是阅读 IDE 的统一 `/api` 网关，负责上传转发、聊天历史持久化、研究任务转发与错误适配。Agent 工作区当前默认由前端直连 Python `/api`，但 Java 源码已经保留 Agent 项目和任务转发路由作为兼容路径。
 
 从源码看：
 
 - `backend-java/src/main/java/com/ai/assistant/backend_java/controller/AcademicController.java`
-  - 当前没有任何 Agent 项目或 Agent 任务专属路由。
+  - 已包含 Agent 项目、项目论文、任务、取消和 trace 转发路由。
 - `backend-java/src/main/java/com/ai/assistant/backend_java/service/AiService.java`
-  - 当前只封装了已有单论文能力和深度研究任务转发。
+  - 已封装现有单论文能力、深度研究任务转发和 Agent 转发能力。
 - H2 中当前持久化对象仍然只有：
   - `Paper`
   - `ChatMessage`
 
-因此后端目前不具备承载 Agent 面板的“项目管理层”和“会话聚合层”。
+因此后端目前已经具备 Agent 网关转发能力，但还不具备 Java 侧项目管理持久化和会话聚合层。
 
 ## 2. 后端应该新增什么
 
 ### 2.1 新增 Agent 项目 API 网关
 
-Java 层应该新增一组稳定的 `/api/agent-projects` 路由，负责给前端提供统一入口，而不是让前端直接拼 Python 内部任务接口。
+Java 层已经新增一组 `/api/agent-projects` 路由，负责作为兼容网关转发到 Python。当前前端默认仍直连 Python Agent API，以避免本地 Java 运行时未重建时影响 Agent 面板。
 
 建议新增：
 

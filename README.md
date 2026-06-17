@@ -46,6 +46,7 @@ Agent 工作区已经不再只是静态原型壳。当前已经具备第一版�
 
 - Agent 结论已经从通用占位文本升级为有证据依据的规则型草稿。
 - 这仍是第一版规则型综合，不是最终形态的复杂多步推理系统。
+- Deep Research 和 Agent 的后端编排边界已经拆出 planner/executor/aggregator/orchestrator 模块，现有使用流程不变，但后续接入 LangGraph 或 Deep Orchestrator 时可以优先替换这些内部层。
 
 ## 运行链路
 
@@ -219,6 +220,8 @@ Python 保存：
 - Deep Research SQLite 快照，默认位置为 `ai-service-python/data/research_tasks.sqlite3` 或 `RESEARCH_TASK_DB_PATH`。
 - 进程内 Agent 项目和 Agent 任务；删除项目会同步删除该项目任务。
 - 进程内 public trace summary；Deep Research 终态 trace summary 会随 SQLite 任务快照保存。
+
+Python AI 服务内部已经将单论文 Deep Research 拆为 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，并将多论文 Agent 研究的计划、工具调用摘要、证据聚合和报告综合拆到 `agent_orchestrator.py`。这些变化不新增运行命令或环境变量。
 
 ## 验证命令
 

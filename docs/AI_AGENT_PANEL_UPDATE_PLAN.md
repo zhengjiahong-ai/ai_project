@@ -2,7 +2,7 @@
 
 ## 1. 现状结论
 
-当前 Python AI 服务已经具备很多“可复用能力块”，但还没有一个真正面向 Agent 面板的研究编排层。
+当前 Python AI 服务已经具备很多“可复用能力块”，并已经有第一版面向 Agent 面板的项目级研究编排层。P1-11 后，Agent 的计划项生成、工具调用摘要、证据聚合、对比/冲突/开放问题和报告草稿综合已拆到 `services/agent_orchestrator.py`，`agent_project_service.py` 主要保留项目、任务生命周期和异步执行状态。
 
 已经存在的能力：
 
@@ -21,15 +21,14 @@
 - 安全包装：
   - `safety_service.py`
 
-缺失的能力：
+仍缺失的能力：
 
-- 没有“项目级多论文上下文”数据模型
-- 没有“Agent 项目任务”与“单论文 research task”区分
-- 没有把现有工具串成多步研究编排的稳定对外接口
-- 没有面向前端时间线的结构化事件输出
-- 没有项目级结论草稿和证据面板的公共响应模型
+- Agent 项目、任务和事件仍是 Python 进程内存状态，尚未持久化到 SQLite。
+- 后端还没有“列出某项目所有任务”的项目级历史接口。
+- 当前 `agent_orchestrator.py` 仍是轻量规则型执行策略，不是 LangGraph/Deep Orchestrator。
+- 当前事件流是任务快照中的摘要事件，不是独立可回放事件存储。
 
-换句话说，AI 层当前已经有砖，但还没有搭成 Agent 面板要用的房子。
+换句话说，AI 层已经搭出可用的第一版房子，但地基还需要补持久化、任务历史和更强编排策略。
 
 ## 2. AI 服务应该新增什么
 
@@ -57,11 +56,11 @@
 
 ### 2.2 新增 Agent 任务编排服务
 
-建议新增独立服务：
+当前已新增独立编排模块：
 
-- `services/agent_task_service.py`
+- `services/agent_orchestrator.py`
 
-它不应直接替代 `research_task_service.py`，而应复用已有能力作为底层工具。
+它不直接替代 `research_task_service.py`，而是服务 Agent 项目任务，并复用已有能力作为底层工具。
 
 建议职责：
 
