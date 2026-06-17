@@ -5,6 +5,8 @@ import AgentWorkspaceEvidencePanel, { AgentWorkspaceRightRail } from './AgentWor
 import AgentWorkspaceMain from './AgentWorkspaceMain.jsx';
 import AgentWorkspaceSidebar, { AgentWorkspaceLeftRail } from './AgentWorkspaceSidebar.jsx';
 import {
+  addSelectedAgentPaperId,
+  buildAgentProjectPayload,
   appendAgentTaskForProject,
   createEmptyAgentWorkspaceState,
   getProjectTasks,
@@ -13,6 +15,8 @@ import {
   normalizeAgentProjectResponse,
   normalizeAgentTaskResponse,
   removeAgentProjectFromState,
+  removeSelectedAgentPaperId,
+  resolveInitialAgentPaperSelection,
   resolveNextAgentProjectNumber,
 } from './agentWorkspaceModel.js';
 import { loadAgentWorkspaceSnapshot, saveAgentWorkspaceSnapshot } from './agentWorkspaceStore.js';
@@ -41,11 +45,13 @@ const resolveInitialState = () => {
   };
 };
 
-const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
+const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
   const [state, setState] = useState(resolveInitialState);
   const [projectTitle, setProjectTitle] = useState('');
   const [projectGoal, setProjectGoal] = useState('');
-  const [selectedPaperIds, setSelectedPaperIds] = useState(initialPaperIds.join(', '));
+  const [selectedPaperIds, setSelectedPaperIds] = useState(() =>
+    resolveInitialAgentPaperSelection(paperLibrary, activePaperId),
+  );
   const [prompt, setPrompt] = useState('');
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -70,8 +76,12 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
   }, [state]);
 
   useEffect(() => {
-    setSelectedPaperIds((prev) => prev || initialPaperIds.join(', '));
-  }, [initialPaperIds]);
+    const validPaperIds = new Set((paperLibrary || []).map((paper) => `${paper?.id ?? ''}`.trim()).filter(Boolean));
+    setSelectedPaperIds((prev) => {
+      const retainedPaperIds = (prev || []).filter((paperId) => validPaperIds.has(paperId));
+      return retainedPaperIds.length ? retainedPaperIds : resolveInitialAgentPaperSelection(paperLibrary, activePaperId);
+    });
+  }, [paperLibrary, activePaperId]);
 
   const cacheTask = (task, makeCurrent = true) => {
     if (!task?.taskId || !task?.projectId) return;
@@ -226,16 +236,12 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
   const currentStageLabel = STAGE_LABELS[currentTask?.stage] || '等待中';
 
   const handleCreateProject = async () => {
-    const paperIds = selectedPaperIds
-      .split(/[\n,\s，；]+/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    const payload = {
-      title: projectTitle || `Agent 项目 ${state.nextProjectNumber}`,
-      goal: projectGoal,
-      paperIds,
-    };
+    const payload = buildAgentProjectPayload({
+      projectTitle,
+      fallbackTitle: `Agent 项目 ${state.nextProjectNumber}`,
+      projectGoal,
+      selectedPaperIds,
+    });
 
     try {
       const response = await apiService.createAgentProject(payload);
@@ -254,6 +260,7 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
       }));
       setProjectTitle('');
       setProjectGoal('');
+      setSelectedPaperIds(resolveInitialAgentPaperSelection(paperLibrary, activePaperId));
     } catch (error) {
       setState((prev) => ({
         ...prev,
@@ -380,6 +387,14 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
     }));
   };
 
+  const handleAddSelectedPaper = (paperId) => {
+    setSelectedPaperIds((prev) => addSelectedAgentPaperId(prev, paperId));
+  };
+
+  const handleRemoveSelectedPaper = (paperId) => {
+    setSelectedPaperIds((prev) => removeSelectedAgentPaperId(prev, paperId));
+  };
+
   return (
     <div className="agent-shell flex h-full min-h-0 min-w-0 flex-1 overflow-hidden p-3">
       <div
@@ -400,9 +415,11 @@ const AgentWorkspace = ({ initialPaperIds = [], activePaperId = '' }) => {
             projectTitle={projectTitle}
             projectGoal={projectGoal}
             selectedPaperIds={selectedPaperIds}
+            paperLibrary={paperLibrary}
             onProjectTitleChange={setProjectTitle}
             onProjectGoalChange={setProjectGoal}
-            onSelectedPaperIdsChange={setSelectedPaperIds}
+            onAddSelectedPaper={handleAddSelectedPaper}
+            onRemoveSelectedPaper={handleRemoveSelectedPaper}
             onCreateProject={handleCreateProject}
             onSelectProject={handleSelectProject}
             onDeleteProject={handleDeleteProject}

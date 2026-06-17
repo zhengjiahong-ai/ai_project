@@ -31,9 +31,11 @@ const AgentWorkspaceSidebar = ({
   projectTitle,
   projectGoal,
   selectedPaperIds,
+  paperLibrary,
   onProjectTitleChange,
   onProjectGoalChange,
-  onSelectedPaperIdsChange,
+  onAddSelectedPaper,
+  onRemoveSelectedPaper,
   onCreateProject,
   onSelectProject,
   onDeleteProject,
@@ -80,9 +82,11 @@ const AgentWorkspaceSidebar = ({
         projectTitle={projectTitle}
         projectGoal={projectGoal}
         selectedPaperIds={selectedPaperIds}
+        paperLibrary={paperLibrary}
         onProjectTitleChange={onProjectTitleChange}
         onProjectGoalChange={onProjectGoalChange}
-        onSelectedPaperIdsChange={onSelectedPaperIdsChange}
+        onAddSelectedPaper={onAddSelectedPaper}
+        onRemoveSelectedPaper={onRemoveSelectedPaper}
       />
     </div>
   </aside>

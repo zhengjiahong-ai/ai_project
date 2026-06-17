@@ -22,6 +22,49 @@ export const resolveNextAgentProjectNumber = (projects = [], nextProjectNumber =
   return Number.isInteger(snapshotNext) && snapshotNext > 0 ? Math.max(snapshotNext, inferredNext) : inferredNext;
 };
 
+const normalizePaperId = (value) => `${value ?? ''}`.trim();
+
+export const resolveInitialAgentPaperSelection = (paperLibrary = [], activePaperId = '') => {
+  const targetPaperId = normalizePaperId(activePaperId);
+  if (!targetPaperId) return [];
+
+  const hasPaper = (Array.isArray(paperLibrary) ? paperLibrary : []).some(
+    (paper) => normalizePaperId(paper?.id) === targetPaperId,
+  );
+  return hasPaper ? [targetPaperId] : [];
+};
+
+export const addSelectedAgentPaperId = (selectedPaperIds = [], paperId = '') => {
+  const targetPaperId = normalizePaperId(paperId);
+  const previousIds = (Array.isArray(selectedPaperIds) ? selectedPaperIds : [])
+    .map(normalizePaperId)
+    .filter(Boolean);
+
+  if (!targetPaperId || previousIds.includes(targetPaperId)) return previousIds;
+  return [...previousIds, targetPaperId];
+};
+
+export const removeSelectedAgentPaperId = (selectedPaperIds = [], paperId = '') => {
+  const targetPaperId = normalizePaperId(paperId);
+  return (Array.isArray(selectedPaperIds) ? selectedPaperIds : [])
+    .map(normalizePaperId)
+    .filter((item) => item && item !== targetPaperId);
+};
+
+export const buildAgentProjectPayload = ({
+  projectTitle = '',
+  fallbackTitle = 'Agent 项目',
+  projectGoal = '',
+  selectedPaperIds = [],
+} = {}) => ({
+  title: `${projectTitle ?? ''}`.trim() || `${fallbackTitle ?? ''}`.trim() || 'Agent 项目',
+  goal: `${projectGoal ?? ''}`.trim(),
+  paperIds: (Array.isArray(selectedPaperIds) ? selectedPaperIds : []).reduce(
+    (items, paperId) => addSelectedAgentPaperId(items, paperId),
+    [],
+  ),
+});
+
 export const normalizeAgentProject = (value) => {
   const project = value && typeof value === 'object' ? value : {};
   return {

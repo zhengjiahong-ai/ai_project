@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-17 14:17 v0.1.36
+
+1. **Agent 新建项目改为论文库多选**：左侧 Create 区域移除手填论文 ID 文本框，改为展示已选论文、从论文库搜索添加论文，并支持从草稿中移除已选论文。
+2. **调整默认论文选择规则**：进入 Agent 研究时仅在当前打开论文存在于论文库时默认选中该论文；不再默认把论文库全量论文加入新项目草稿，仍允许创建空项目。
+3. **保持接口契约不变**：创建项目继续发送 `{ title, goal, paperIds }` 到现有 Agent 项目接口，不新增后端 API 或字段。
+
 ### 2026-06-17 14:00 v0.1.35
 
 1. **抽出 Deep Research 编排边界**：新增 `research_planner.py`、`research_executor.py` 和 `research_aggregator.py`，将单论文 Deep Research 的计划生成、子问题执行、冲突检测、报告综合和 JUDGE trace 汇总从任务生命周期服务中拆出；`research_task_service.py` 继续保留任务创建、轮询、取消和 SQLite 快照职责。

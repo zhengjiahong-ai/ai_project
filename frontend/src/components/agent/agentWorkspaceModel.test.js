@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 
 import {
+  addSelectedAgentPaperId,
+  buildAgentProjectPayload,
   createEmptyAgentWorkspaceState,
   resolveNextAgentProjectNumber,
+  removeSelectedAgentPaperId,
   removeAgentProjectFromState,
+  resolveInitialAgentPaperSelection,
 } from './agentWorkspaceModel.js';
 
 const projects = [
@@ -17,6 +21,45 @@ assert.equal(resolveNextAgentProjectNumber(projects), 6);
 assert.equal(resolveNextAgentProjectNumber(projects, 8), 8);
 assert.equal(resolveNextAgentProjectNumber(projects, 2), 6);
 assert.equal(resolveNextAgentProjectNumber([{ projectId: 'custom', title: '自定义项目' }]), 2);
+
+const libraryPapers = [
+  { id: 'paper-1', title: '第一篇论文' },
+  { id: 'paper-2', title: '第二篇论文' },
+  { id: 'paper-3', title: '第三篇论文' },
+];
+
+assert.deepEqual(resolveInitialAgentPaperSelection(libraryPapers, 'paper-2'), ['paper-2']);
+assert.deepEqual(resolveInitialAgentPaperSelection(libraryPapers, 'missing-paper'), []);
+assert.deepEqual(resolveInitialAgentPaperSelection(libraryPapers, ''), []);
+
+assert.deepEqual(addSelectedAgentPaperId(['paper-1'], 'paper-2'), ['paper-1', 'paper-2']);
+assert.deepEqual(addSelectedAgentPaperId(['paper-1'], 'paper-1'), ['paper-1']);
+assert.deepEqual(addSelectedAgentPaperId(['paper-1'], '  '), ['paper-1']);
+
+assert.deepEqual(removeSelectedAgentPaperId(['paper-1', 'paper-2'], 'paper-1'), ['paper-2']);
+assert.deepEqual(removeSelectedAgentPaperId(['paper-1', 'paper-2'], 'missing-paper'), ['paper-1', 'paper-2']);
+
+assert.deepEqual(buildAgentProjectPayload({
+  projectTitle: ' Agent 项目 ',
+  fallbackTitle: 'Agent 项目 8',
+  projectGoal: ' 比较方法 ',
+  selectedPaperIds: ['paper-1', 'paper-2'],
+}), {
+  title: 'Agent 项目',
+  goal: '比较方法',
+  paperIds: ['paper-1', 'paper-2'],
+});
+
+assert.deepEqual(buildAgentProjectPayload({
+  projectTitle: '',
+  fallbackTitle: 'Agent 项目 8',
+  projectGoal: '',
+  selectedPaperIds: ['paper-1'],
+}), {
+  title: 'Agent 项目 8',
+  goal: '',
+  paperIds: ['paper-1'],
+});
 
 const state = {
   ...createEmptyAgentWorkspaceState(),
