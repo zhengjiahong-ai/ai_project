@@ -8,6 +8,7 @@
     "build": "node ./scripts/clean-dist.mjs && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test:e2e": "playwright test",
     "test": "node src/utils/pdfTranslationLayout.test.js && node src/utils/translationState.test.js && node src/utils/pageTranslationRequest.test.js && node src/utils/socraticSessionModel.test.js && node src/services/api.test.js && node src/components/translationPanelModel.test.js && node src/components/MarkdownContent.test.js && node src/components/criticalAnalysisData.test.js && node src/components/evidenceCitationModel.test.js && node src/components/BackgroundKnowledgePanel.test.js && node src/components/deepResearchPanelModel.test.js && node src/components/insightCardModel.test.js && node src/components/artifactModel.test.js && node src/components/readingWorkflowModel.test.js && node src/components/agent/agentWorkspaceModel.test.js && node src/components/agent/agentWorkspaceTheme.test.js"
   },
   "dependencies": {
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.61.0",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react-swc": "^4.2.2",

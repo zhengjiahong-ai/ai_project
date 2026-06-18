@@ -238,8 +238,12 @@ Python AI 服务内部已经将单论文 Deep Research 拆为 `research_planner.
 cd frontend
 npm.cmd run lint
 npm.cmd test
+npx.cmd playwright install chromium
+npm.cmd run test:e2e
 npm.cmd run build
 ```
+
+`test:e2e` 使用 Playwright Chromium 和测试内 route mock，覆盖 PDF 上传、论文库、阅读面板、研读工作台，以及 Agent 项目创建、任务轮询、任务历史和证据展示；无需启动 Java、Python、Docker 或真实模型服务。首次运行需安装 Chromium。
 
 Java：
 

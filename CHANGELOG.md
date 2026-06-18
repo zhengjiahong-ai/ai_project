@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-18 v0.1.43
+
+1. **新增双模式浏览器 smoke**：引入 Playwright Chromium，覆盖 PDF 上传、论文库打开、阅读面板切换、研读工作台，以及 Agent 项目创建、任务轮询、任务历史和证据展示。
+2. **隔离端到端后端依赖**：浏览器测试通过 route mock 固定 Java 上传与 Python Agent 响应，不修改生产 API 行为，也无需启动 Docker、Java、Python 或真实模型服务。
+3. **补齐运行入口与文档**：新增 `npm.cmd run test:e2e`、Playwright 配置、有效单页 PDF fixture 和本地运行说明。
+
 ### 2026-06-18 v0.1.42
 
 1. **统一来源展示与降级行为**：聊天、批判阅读、背景补课、Deep Research 和 Agent 共用来源归一化模型及 `SourceChip/SourceList`；无页码或旧缓存来源可展开片段详情。
