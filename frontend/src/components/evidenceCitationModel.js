@@ -20,15 +20,56 @@ const truncate = (value, maxLength = 180) => {
 };
 
 export const normalizeSourceLocation = (source) => {
-  const pageIndex = normalizeInteger(source?.pageIndex);
-  const sectionId = normalizeText(source?.sectionId);
+  const metadata = source?.metadata && typeof source.metadata === 'object' ? source.metadata : {};
+  const pageIndex = normalizeInteger(source?.pageIndex ?? source?.sourcePageIndex ?? metadata.pageIndex);
+  const sectionId = normalizeText(source?.sectionId ?? metadata.sectionId);
   return {
     pageIndex,
     sectionId: sectionId || null,
-    pdfId: normalizeText(source?.pdfId) || null,
+    pdfId: normalizeText(source?.pdfId ?? metadata.pdfId) || null,
     canJumpToSource: Number.isInteger(pageIndex),
     locationLabel: Number.isInteger(pageIndex) ? `p.${pageIndex + 1}` : '',
   };
+};
+
+export const normalizeEvidenceSource = (source, index = 0) => {
+  if (!source || typeof source !== 'object') {
+    return null;
+  }
+
+  const metadata = source.metadata && typeof source.metadata === 'object' ? source.metadata : {};
+  const sourceId = normalizeText(source.sourceId) || normalizeText(source.id) || `source-${index + 1}`;
+  const text = normalizeText(source.text) || normalizeText(source.content) || normalizeText(source.preview);
+  const location = normalizeSourceLocation(source);
+  if (!text && !Number.isInteger(location.pageIndex) && !location.sectionId) {
+    return null;
+  }
+
+  return {
+    sourceId,
+    sourceType: normalizeText(source.sourceType ?? metadata.sourceType) || 'unknown',
+    text,
+    preview: truncate(text),
+    chunkIndex: normalizeInteger(source.chunkIndex ?? metadata.chunkIndex),
+    ...location,
+  };
+};
+
+export const normalizeEvidenceSources = (sources) => {
+  if (!Array.isArray(sources)) {
+    return [];
+  }
+
+  const seen = new Set();
+  return sources
+    .map(normalizeEvidenceSource)
+    .filter((source) => {
+      if (!source || seen.has(source.sourceId)) {
+        return false;
+      }
+      seen.add(source.sourceId);
+      return true;
+    });
 };
 
 export const buildSourceLookup = (sources) => {
@@ -37,22 +78,22 @@ export const buildSourceLookup = (sources) => {
   }
 
   const lookup = new Map();
-  sources.forEach((source, index) => {
-    const sourceId = normalizeText(source?.sourceId) || normalizeText(source?.id) || `source-${index + 1}`;
-    const text = normalizeText(source?.text);
-    if (!sourceId || !text) {
-      return;
-    }
-    lookup.set(sourceId, {
-      sourceId,
-      text,
-      preview: truncate(text),
-      sourceType: normalizeText(source?.sourceType) || 'unknown',
-      chunkIndex: normalizeInteger(source?.chunkIndex),
-      ...normalizeSourceLocation(source),
-    });
-  });
+  normalizeEvidenceSources(sources).forEach((source) => lookup.set(source.sourceId, source));
   return lookup;
+};
+
+export const collectSourcesByIds = (sourceIds, sources) => {
+  if (!Array.isArray(sourceIds)) {
+    return [];
+  }
+
+  const lookup = buildSourceLookup(sources);
+  const seen = new Set();
+  return sourceIds
+    .map((sourceId) => normalizeText(sourceId))
+    .filter((sourceId) => sourceId && !seen.has(sourceId) && seen.add(sourceId))
+    .map((sourceId) => lookup.get(sourceId))
+    .filter(Boolean);
 };
 
 export const normalizeSentenceReferences = (sentenceSourceMap, sources, options = {}) => {

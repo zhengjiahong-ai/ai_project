@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, Archive, BookOpen, FileText, GitCompare, Sparkles, Workflow } from 'lucide-react';
 
 import { buildAgentComparisonArtifact, buildAgentReportArtifact } from '../artifactModel.js';
+import SourceList from '../SourceCitation.jsx';
 import { getAgentArtifactSaveState } from './agentWorkspaceModel.js';
 import { formatAgentTime, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
 
@@ -285,7 +286,7 @@ export const AgentComparisonSection = ({ activeProject, currentTask, activePaper
   );
 };
 
-export const AgentConflictSection = ({ currentTask }) => {
+export const AgentConflictSection = ({ currentTask, onJumpToSource }) => {
   const conflicts = currentTask?.conflicts || [];
 
   return (
@@ -319,6 +320,9 @@ export const AgentConflictSection = ({ currentTask }) => {
                 建议：{conflict.resolutionHint}
               </div>
             )}
+            <div className="mt-2">
+              <SourceList sources={conflict.sources} onJumpToSource={onJumpToSource} variant="agent" />
+            </div>
           </article>
         ))}
         {conflicts.length === 0 && (
@@ -331,7 +335,7 @@ export const AgentConflictSection = ({ currentTask }) => {
   );
 };
 
-export const AgentDraftReportSection = ({ activeProject, currentTask, activePaperId, onCaptureArtifact }) => {
+export const AgentDraftReportSection = ({ activeProject, currentTask, activePaperId, onCaptureArtifact, onJumpToSource }) => {
   const draftReport = `${currentTask?.draftReport || ''}`.trim();
   const draftSections = draftReport
     .split('\n')
@@ -388,6 +392,15 @@ export const AgentDraftReportSection = ({ activeProject, currentTask, activePape
             这里会显示当前 Agent 任务输出的完整结构化草稿，不再截断前几段。
           </div>
         )}
+        <div className="agent-card-soft rounded-2xl px-3 py-3">
+          <div className="agent-title mb-2 text-[11px] font-semibold">报告引用</div>
+          <SourceList
+            sources={currentTask?.reportSources}
+            onJumpToSource={onJumpToSource}
+            emptyText="当前报告没有可关联的结构化来源。"
+            variant="agent"
+          />
+        </div>
       </div>
     </details>
   );

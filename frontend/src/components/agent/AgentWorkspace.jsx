@@ -13,6 +13,7 @@ import {
   normalizeAgentProject,
   normalizeAgentProjectListResponse,
   normalizeAgentProjectResponse,
+  normalizeAgentTask,
   normalizeAgentTaskListResponse,
   normalizeAgentTaskResponse,
   removeAgentProjectFromState,
@@ -46,16 +47,26 @@ const replaceProjectTasks = (tasksByProjectId, projectId, tasks = []) => ({
 
 const resolveInitialState = () => {
   const snapshot = loadAgentWorkspaceSnapshot();
-  const projects = snapshot?.projects || [];
+  const projects = (snapshot?.projects || []).map(normalizeAgentProject);
+  const tasksByProjectId = Object.fromEntries(
+    Object.entries(snapshot?.tasksByProjectId || {}).map(([projectId, tasks]) => [
+      projectId,
+      (Array.isArray(tasks) ? tasks : []).map(normalizeAgentTask).filter((task) => task.taskId),
+    ]),
+  );
   return {
     ...createEmptyAgentWorkspaceState(),
     ...(snapshot || {}),
-    tasksByProjectId: snapshot?.tasksByProjectId || {},
+    projects,
+    activeProject: snapshot?.activeProject ? normalizeAgentProject(snapshot.activeProject) : null,
+    latestTask: snapshot?.latestTask ? normalizeAgentTask(snapshot.latestTask) : null,
+    currentTask: snapshot?.currentTask ? normalizeAgentTask(snapshot.currentTask) : null,
+    tasksByProjectId,
     nextProjectNumber: resolveNextAgentProjectNumber(projects, snapshot?.nextProjectNumber),
   };
 };
 
-const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifact }) => {
+const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifact, onJumpToSource }) => {
   const [state, setState] = useState(resolveInitialState);
   const initialWorkspaceStateRef = useRef(state);
   const [projectTitle, setProjectTitle] = useState('');
@@ -512,6 +523,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
           onSelectTask={handleSelectTask}
           activePaperId={activePaperId}
           onCaptureArtifact={onCaptureArtifact}
+          onJumpToSource={onJumpToSource}
         />
 
         {rightCollapsed ? (
@@ -524,6 +536,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
             stateError={state.error}
             onCancelTask={handleCancelTask}
             onCaptureArtifact={onCaptureArtifact}
+            onJumpToSource={onJumpToSource}
             onCollapse={() => setRightCollapsed(true)}
           />
         )}

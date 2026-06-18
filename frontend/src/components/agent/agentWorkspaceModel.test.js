@@ -7,6 +7,7 @@ import {
   createEmptyAgentWorkspaceState,
   getProjectTasks,
   getAgentArtifactSaveState,
+  normalizeAgentTask,
   normalizeAgentTaskListResponse,
   resolveNextAgentProjectNumber,
   removeSelectedAgentPaperId,
@@ -148,6 +149,28 @@ assert.equal(emptyTaskListResponse.status, 'error');
 assert.equal(emptyTaskListResponse.projectId, '');
 assert.equal(emptyTaskListResponse.limit, 20);
 assert.deepEqual(emptyTaskListResponse.tasks, []);
+
+const normalizedTaskSources = normalizeAgentTask({
+  taskId: 'task-sources',
+  evidenceItems: [
+    { sourceId: 'source-1', text: '证据一', pageIndex: '2', pdfId: 'paper-1' },
+    { id: 'source-2', content: '旧缓存证据二' },
+  ],
+  findings: [
+    { id: 'finding-1', sourceIds: ['source-2', 'source-1', 'missing'] },
+    { id: 'finding-2', sourceIds: ['source-1'] },
+  ],
+  conflicts: [
+    { id: 'conflict-1', sourceIds: ['source-1', 'missing'] },
+    { id: 'legacy-conflict', sources: [{ id: 'source-2', content: '旧缓存证据二' }] },
+  ],
+});
+
+assert.equal(normalizedTaskSources.evidenceItems[0].pageIndex, 2);
+assert.equal(normalizedTaskSources.evidenceItems[1].text, '旧缓存证据二');
+assert.deepEqual(normalizedTaskSources.conflicts[0].sources.map((source) => source.sourceId), ['source-1']);
+assert.deepEqual(normalizedTaskSources.conflicts[1].sources.map((source) => source.sourceId), ['source-2']);
+assert.deepEqual(normalizedTaskSources.reportSources.map((source) => source.sourceId), ['source-2', 'source-1']);
 
 const sortedTasksByProject = [
   { taskId: 'task-old', projectId: 'project-1', updatedAt: '2026-06-17T10:00:00Z' },

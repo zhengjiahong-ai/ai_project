@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 
 import {
   buildSourceLookup,
+  collectSourcesByIds,
+  normalizeEvidenceSources,
   normalizeSentenceReferences,
 } from './evidenceCitationModel.js';
 
@@ -30,6 +32,25 @@ const run = async () => {
   assert.equal(lookup.get('legacy-2').sourceType, 'library');
   assert.equal(lookup.get('legacy-2').pageIndex, null);
   assert.equal(lookup.get('legacy-2').canJumpToSource, false);
+
+  const legacySources = normalizeEvidenceSources([
+    { id: 'legacy-source', content: '旧缓存正文', pageIndex: '4', pdfId: 'paper-2' },
+    { id: 'legacy-source', content: '重复来源应去重' },
+    { id: 'no-page', preview: '只有摘要的旧来源' },
+  ]);
+  assert.equal(legacySources.length, 2);
+  assert.equal(legacySources[0].sourceId, 'legacy-source');
+  assert.equal(legacySources[0].text, '旧缓存正文');
+  assert.equal(legacySources[0].pageIndex, 4);
+  assert.equal(legacySources[0].locationLabel, 'p.5');
+  assert.equal(legacySources[1].text, '只有摘要的旧来源');
+  assert.equal(legacySources[1].canJumpToSource, false);
+
+  const referencedSources = collectSourcesByIds(
+    ['source-1', 'missing', 'legacy-2', 'source-1'],
+    sources,
+  );
+  assert.deepEqual(referencedSources.map((source) => source.sourceId), ['source-1', 'legacy-2']);
 
   const references = normalizeSentenceReferences(
     [

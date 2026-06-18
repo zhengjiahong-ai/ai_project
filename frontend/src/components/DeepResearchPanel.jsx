@@ -3,6 +3,7 @@ import { AlertCircle, ChevronDown, ChevronUp, FileSearch, Link2, Loader2, Refres
 
 import InsightCard from './InsightCard.jsx';
 import MarkdownContent from './MarkdownContent';
+import SourceList from './SourceCitation.jsx';
 import {
   TERMINAL_RESEARCH_STATUSES,
   buildResearchContextHint,
@@ -690,19 +691,7 @@ const DeepResearchPanel = ({
                                 加入工作台
                               </button>
                             )}
-                            {finding.sources
-                              .filter((source) => source.canJumpToSource)
-                              .map((source) => (
-                                <button
-                                  key={source.sourceId}
-                                  type="button"
-                                  onClick={() => onJumpToSource?.(source)}
-                                  className="source-link-chip inline-flex items-center gap-1"
-                                >
-                                  <Link2 size={12} />
-                                  跳回原文 {source.locationLabel}
-                                </button>
-                              ))}
+                            <SourceList sources={finding.sources} onJumpToSource={onJumpToSource} />
                           </div>
                         ) : null}
                       />
@@ -746,19 +735,7 @@ const DeepResearchPanel = ({
                       detailsTitle="展开冲突详情"
                       footer={conflict.sources.some((source) => source.canJumpToSource) ? (
                         <div className="flex flex-wrap gap-2">
-                          {conflict.sources
-                            .filter((source) => source.canJumpToSource)
-                            .map((source) => (
-                              <button
-                                key={source.sourceId}
-                                type="button"
-                                onClick={() => onJumpToSource?.(source)}
-                                className="source-link-chip inline-flex items-center gap-1"
-                              >
-                                <Link2 size={12} />
-                                跳回原文 {source.locationLabel}
-                              </button>
-                            ))}
+                          <SourceList sources={conflict.sources} onJumpToSource={onJumpToSource} />
                         </div>
                       ) : null}
                     />

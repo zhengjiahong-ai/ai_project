@@ -20,7 +20,8 @@ import {
   resolveLearningPathSections,
   summarizeReaderProfile,
 } from './backgroundKnowledgePanelModel.js';
-import { normalizeSourceLocation } from './evidenceCitationModel.js';
+import SourceList from './SourceCitation.jsx';
+import { normalizeEvidenceSources } from './evidenceCitationModel.js';
 
 const EMPTY_LIST = [];
 
@@ -81,14 +82,7 @@ const BackgroundKnowledgePanel = ({
   const graphData = useMemo(() => normalizeGraph(data), [data]);
   const learningSections = useMemo(() => resolveLearningPathSections(data), [data]);
   const backgroundItems = Array.isArray(data?.background_knowledge) ? data.background_knowledge : EMPTY_LIST;
-  const ragSources = Array.isArray(data?.rag_sources)
-    ? data.rag_sources.map((source, index) => ({
-      ...source,
-      id: source?.id || source?.sourceId || `source-${index + 1}`,
-      sourceId: source?.sourceId || source?.id || `source-${index + 1}`,
-      ...normalizeSourceLocation(source),
-    }))
-    : EMPTY_LIST;
+  const ragSources = normalizeEvidenceSources(data?.rag_sources);
   const sourceCoverage = data?.sourceCoverage && typeof data.sourceCoverage === 'object' ? data.sourceCoverage : null;
   const confidenceText = formatPercent(data?.confidence);
   const coverageText = formatPercent(sourceCoverage?.ratio);
@@ -398,8 +392,8 @@ const BackgroundKnowledgePanel = ({
                 <div className="space-y-3">
                   {ragSources.map((source) => (
                     <InsightCard
-                      key={source.id}
-                      title={source.id}
+                      key={source.sourceId}
+                      title={source.sourceId}
                       summary={source.text || '暂无片段内容'}
                       content={source.text || ''}
                       detailsTitle="展开依据片段"
@@ -412,7 +406,7 @@ const BackgroundKnowledgePanel = ({
                                 onClick={() =>
                                   onCaptureArtifact({
                                     kind: 'background-evidence',
-                                    title: `背景依据 ${source.id}`,
+                                    title: `背景依据 ${source.sourceId}`,
                                     summary: source.text || '暂无片段内容',
                                     content: source.text || '',
                                     tags: ['background', 'evidence'],
@@ -423,16 +417,7 @@ const BackgroundKnowledgePanel = ({
                                 加入工作台
                               </button>
                             )}
-                            {source.canJumpToSource && (
-                              <button
-                                type="button"
-                                onClick={() => onJumpToSource?.(source)}
-                                className="source-link-chip inline-flex items-center gap-1"
-                              >
-                                <Link2 size={12} />
-                                跳回原文 {source.locationLabel}
-                              </button>
-                            )}
+                            <SourceList sources={[source]} onJumpToSource={onJumpToSource} />
                           </div>
                         ) : null
                       }

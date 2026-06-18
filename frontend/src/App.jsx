@@ -841,6 +841,7 @@ export default function App() {
   }, [setDeepResearchStateForPdf]);
 
   const {
+    restorePaperState,
     restoreLocalSession,
     restoreSelectedPaper,
     createReadyMessages,
@@ -1886,18 +1887,34 @@ export default function App() {
     ]);
   }, [handleSendMessage]);
 
-  const handleJumpToSource = useCallback((message) => {
+  const handleJumpToSource = useCallback(async (message) => {
     const pageIndex = Number.isFinite(message?.sourcePageIndex)
       ? message.sourcePageIndex
       : Number.isFinite(message?.pageIndex)
         ? message.pageIndex
         : null;
     const anchorId = message?.sourceAnchorId || message?.sectionId || message?.sourceId || null;
+    const targetPdfId = `${message?.pdfId ?? ''}`.trim();
 
     if (!anchorId && !Number.isFinite(pageIndex)) {
-      return;
+      return false;
     }
 
+    if (targetPdfId && targetPdfId !== pdfId) {
+      const hasTargetPaper = papersList.some((paper) => `${paper?.id ?? ''}`.trim() === targetPdfId);
+      if (!hasTargetPaper) {
+        return false;
+      }
+
+      const didRestore = await restorePaperState(targetPdfId);
+      if (!didRestore) {
+        return false;
+      }
+    } else if (Number.isFinite(pageIndex) && !pdfId) {
+      return false;
+    }
+
+    setAppMode('reader');
     if (Number.isFinite(pageIndex)) {
       jumpToPage(pageIndex);
     }
@@ -1908,7 +1925,8 @@ export default function App() {
         token: Date.now(),
       });
     }
-  }, [jumpToPage]);
+    return true;
+  }, [jumpToPage, papersList, pdfId, restorePaperState]);
 
   const handleSaveChatToNote = useCallback((index) => {
     const message = messages[index];
@@ -2558,6 +2576,7 @@ export default function App() {
               paperLibrary={papersList}
               activePaperId={pdfId || ''}
               onCaptureArtifact={handleCaptureWorkbenchArtifact}
+              onJumpToSource={handleJumpToSource}
             />
           ) : (
           <>

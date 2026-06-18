@@ -2,6 +2,7 @@ import React from 'react';
 import { Archive, Wrench } from 'lucide-react';
 
 import { buildAgentEvidenceArtifact } from '../artifactModel.js';
+import SourceList from '../SourceCitation.jsx';
 import { getAgentArtifactSaveState } from './agentWorkspaceModel.js';
 import { getProgressWidth, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
 
@@ -53,7 +54,7 @@ export const AgentToolTraceSection = ({ currentTask }) => (
   </>
 );
 
-export const AgentEvidenceListSection = ({ activeProject, currentTask, activePaperId, onCaptureArtifact }) => (
+export const AgentEvidenceListSection = ({ activeProject, currentTask, activePaperId, onCaptureArtifact, onJumpToSource }) => (
   <>
     <div className="agent-section-label mt-5 flex items-center justify-between text-[11px]">
       <span>Evidence</span>
@@ -94,8 +95,8 @@ export const AgentEvidenceListSection = ({ activeProject, currentTask, activePap
             {Number.isInteger(item.pageIndex) && <span>p.{item.pageIndex + 1}</span>}
             {item.sourceType && <span>{item.sourceType}</span>}
           </div>
-          <div className="agent-body mt-2 border-l-2 border-[color:var(--border-subtle)] pl-3 text-[11px] leading-6">
-            {item.text}
+          <div className="mt-2">
+            <SourceList sources={[item]} onJumpToSource={onJumpToSource} variant="agent" />
           </div>
         </article>
       ))}

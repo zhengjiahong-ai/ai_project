@@ -29,6 +29,7 @@ const AgentWorkspaceEvidencePanel = ({
   stateError,
   onCancelTask,
   onCaptureArtifact,
+  onJumpToSource,
   onCollapse,
 }) => (
   <aside className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[24px]">
@@ -64,6 +65,7 @@ const AgentWorkspaceEvidencePanel = ({
         currentTask={currentTask}
         activePaperId={activePaperId}
         onCaptureArtifact={onCaptureArtifact}
+        onJumpToSource={onJumpToSource}
       />
       <AgentTaskSummaryCard activeProject={activeProject} currentTask={currentTask} activePaperId={activePaperId} />
 

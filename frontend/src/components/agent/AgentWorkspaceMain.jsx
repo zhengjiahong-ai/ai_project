@@ -28,6 +28,7 @@ const AgentWorkspaceMain = ({
   onSelectTask,
   activePaperId,
   onCaptureArtifact,
+  onJumpToSource,
 }) => (
   <main className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[26px]">
     <AgentWorkspaceHeader
@@ -57,12 +58,13 @@ const AgentWorkspaceMain = ({
                   activePaperId={activePaperId}
                   onCaptureArtifact={onCaptureArtifact}
                 />
-                <AgentConflictSection currentTask={currentTask} />
+                <AgentConflictSection currentTask={currentTask} onJumpToSource={onJumpToSource} />
                 <AgentDraftReportSection
                   activeProject={activeProject}
                   currentTask={currentTask}
                   activePaperId={activePaperId}
                   onCaptureArtifact={onCaptureArtifact}
+                  onJumpToSource={onJumpToSource}
                 />
               </AgentResponseCard>
             </>

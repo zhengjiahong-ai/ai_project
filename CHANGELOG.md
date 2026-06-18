@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-18 v0.1.42
+
+1. **统一来源展示与降级行为**：聊天、批判阅读、背景补课、Deep Research 和 Agent 共用来源归一化模型及 `SourceChip/SourceList`；无页码或旧缓存来源可展开片段详情。
+2. **打通 Agent 来源回原文**：Agent evidence、冲突候选和报告引用复用同一 `onJumpToSource` 路径，跨论文来源会恢复对应本地论文并进入阅读 IDE 定位页面。
+3. **补齐 Agent 引用关联**：前端由现有 `evidenceItems` 和 `sourceIds` 派生冲突来源与报告来源，不改变后端 API 或持久化契约。
+
 ### 2026-06-18 v0.1.41
 
 1. **清理前端 lint 技术债**：移除 App 和背景补课中的未使用回调与 prop，稳定 Agent 初始快照和论文选择依赖，避免无效 memo、重复 effect 依赖和未使用 catch 参数。

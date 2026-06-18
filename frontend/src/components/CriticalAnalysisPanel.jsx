@@ -21,6 +21,8 @@ import {
   YAxis,
 } from 'recharts';
 
+import SourceList from './SourceCitation.jsx';
+
 import InsightCard from './InsightCard.jsx';
 import {
   buildMetricCards,
@@ -370,16 +372,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                                     {candidate.reason && (
                                       <span className="theme-text-muted text-[11px]">{candidate.reason}</span>
                                     )}
-                                    {candidate.canJumpToSource && (
-                                      <button
-                                        type="button"
-                                        onClick={() => onJumpToSource?.(candidate)}
-                                        className="source-link-chip inline-flex items-center gap-1"
-                                      >
-                                        <Link2 size={12} />
-                                        跳回原文 {candidate.locationLabel}
-                                      </button>
-                                    )}
+                                    <SourceList sources={[candidate]} onJumpToSource={onJumpToSource} />
                                   </div>
                                 </div>
                               ))}
@@ -420,16 +413,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                       ]}
                       content={item.text}
                       detailsTitle="展开证据片段"
-                      footer={item.canJumpToSource ? (
-                        <button
-                          type="button"
-                          onClick={() => onJumpToSource?.(item)}
-                          className="source-link-chip inline-flex items-center gap-1"
-                        >
-                          <Link2 size={12} />
-                          跳回原文 {item.locationLabel}
-                        </button>
-                      ) : null}
+                      footer={<SourceList sources={[item]} onJumpToSource={onJumpToSource} />}
                     />
                   ))}
                 </div>
@@ -461,19 +445,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                       detailsTitle="展开引用证据"
                       footer={reference.sources.some((source) => source.canJumpToSource) ? (
                         <div className="flex flex-wrap gap-2">
-                          {reference.sources
-                            .filter((source) => source.canJumpToSource)
-                            .map((source) => (
-                              <button
-                                key={source.sourceId}
-                                type="button"
-                                onClick={() => onJumpToSource?.(source)}
-                                className="source-link-chip inline-flex items-center gap-1"
-                              >
-                                <Link2 size={12} />
-                                跳回原文 {source.locationLabel}
-                              </button>
-                            ))}
+                          <SourceList sources={reference.sources} onJumpToSource={onJumpToSource} />
                         </div>
                       ) : null}
                     />

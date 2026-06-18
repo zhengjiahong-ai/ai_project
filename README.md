@@ -183,6 +183,8 @@ docker compose up -d grobid
 - 项目卡片支持确认后删除，删除不会重排已有项目标题编号，后续默认编号继续单调递增。
 - Python 侧会把 Agent 项目、任务和事件摘要写入 SQLite 快照，服务重启后可恢复项目、latest task 和终态任务输出。
 - 完整显示 `draftReport`，不再只截断展示前几个段落。
+- 阅读 IDE 与 Agent 共用来源 chip、片段详情和跳转语义；无页码来源会展开缓存片段，不显示伪跳转。
+- Agent evidence、冲突候选和报告引用可进入阅读 IDE；跨论文来源会先恢复对应本地论文，再定位到 0-based `pageIndex` 对应页面。
 - 前端直连 Python Agent API。
 - 异步执行阶段：`planning -> retrieving -> synthesizing -> done`。
 - 第一版跨论文冲突检测和基于证据的结论草稿。

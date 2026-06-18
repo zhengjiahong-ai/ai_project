@@ -4,6 +4,7 @@ import { Bookmark, ChevronDown, ChevronRight, ChevronUp, FileText, Link2, Plus, 
 import InsightCard from './InsightCard.jsx';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
+import SourceList from './SourceCitation.jsx';
 import { normalizeSentenceReferences } from './evidenceCitationModel.js';
 
 const quickTags = ['# 核心结论', '# 证据追问', '# 批判阅读'];
@@ -40,24 +41,8 @@ const EvidenceReferences = ({ references = [], onJumpToSource }) => {
           {references.map((reference) => (
             <div key={reference.id} className="theme-card-soft rounded-xl p-3 text-xs leading-5 theme-text-secondary">
               <div className="theme-text-primary mb-1 font-semibold">{reference.sentence}</div>
-              <div className="space-y-1">
-                {reference.sources.map((source) => (
-                  <div key={source.sourceId} className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-semibold">[{source.sourceId}]</span>
-                    <span> {source.preview}</span>
-                    {source.canJumpToSource && (
-                      <button
-                        type="button"
-                        onClick={() => onJumpToSource?.(source)}
-                        className="source-link-chip inline-flex items-center gap-1"
-                      >
-                        <Link2 size={12} />
-                        <span>跳回原文 {source.locationLabel}</span>
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <div className="mb-2 theme-text-muted">{reference.sources.map((source) => source.preview).join('；')}</div>
+              <SourceList sources={reference.sources} onJumpToSource={onJumpToSource} />
             </div>
           ))}
         </div>
@@ -209,16 +194,15 @@ const ChatPanel = ({
             target: 'message',
           });
           const sourceFooter = message.sourceAnchorId ? (
-            <button
-              type="button"
-              onClick={() => onJumpToSource?.(message)}
-              className="source-link-chip inline-flex items-center gap-1"
-            >
-              <Link2 size={12} />
-              <span>
-                来源 {Number.isFinite(message.sourcePageIndex) ? `p.${message.sourcePageIndex + 1}` : '原文片段'}
-              </span>
-            </button>
+            <SourceList
+              sources={[{
+                sourceId: message.sourceAnchorId,
+                text: message.sourceText || message.content,
+                pageIndex: message.sourcePageIndex,
+                sectionId: message.sourceAnchorId,
+              }]}
+              onJumpToSource={onJumpToSource}
+            />
           ) : null;
           const citationFooter = references.length > 0 ? (
             <EvidenceReferences references={references} onJumpToSource={onJumpToSource} />

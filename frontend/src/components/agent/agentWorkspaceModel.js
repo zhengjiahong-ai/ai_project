@@ -1,3 +1,5 @@
+import { collectSourcesByIds, normalizeEvidenceSources } from '../evidenceCitationModel.js';
+
 export const createEmptyAgentWorkspaceState = () => ({
   projects: [],
   activeProjectId: '',
@@ -96,6 +98,15 @@ export const normalizeAgentProject = (value) => {
 
 export const normalizeAgentTask = (value) => {
   const task = value && typeof value === 'object' ? value : {};
+  const evidenceItems = normalizeEvidenceSources(task.evidenceItems);
+  const findings = Array.isArray(task.findings) ? task.findings : [];
+  const conflicts = (Array.isArray(task.conflicts) ? task.conflicts : []).map((conflict) => ({
+    ...conflict,
+    sources: Array.isArray(conflict?.sourceIds)
+      ? collectSourcesByIds(conflict.sourceIds, evidenceItems)
+      : normalizeEvidenceSources(conflict?.sources),
+  }));
+  const reportSourceIds = findings.flatMap((finding) => Array.isArray(finding?.sourceIds) ? finding.sourceIds : []);
   return {
     taskId: `${task.taskId ?? ''}`.trim(),
     projectId: `${task.projectId ?? ''}`.trim(),
@@ -108,10 +119,11 @@ export const normalizeAgentTask = (value) => {
     planItems: Array.isArray(task.planItems || task.plan) ? task.planItems || task.plan : [],
     events: Array.isArray(task.events) ? task.events : [],
     toolCalls: Array.isArray(task.toolCalls) ? task.toolCalls : [],
-    evidenceItems: Array.isArray(task.evidenceItems) ? task.evidenceItems : [],
-    findings: Array.isArray(task.findings) ? task.findings : [],
+    evidenceItems,
+    findings,
     comparisonTable: task.comparisonTable && typeof task.comparisonTable === 'object' ? task.comparisonTable : { columns: [], rows: [] },
-    conflicts: Array.isArray(task.conflicts) ? task.conflicts : [],
+    conflicts,
+    reportSources: collectSourcesByIds(reportSourceIds, evidenceItems),
     openQuestions: Array.isArray(task.openQuestions) ? task.openQuestions : [],
     draftReport: `${task.draftReport ?? task.report ?? ''}`,
     error: `${task.error ?? ''}`,
