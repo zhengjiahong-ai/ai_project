@@ -1,6 +1,8 @@
 import React from 'react';
-import { Wrench } from 'lucide-react';
+import { Archive, Wrench } from 'lucide-react';
 
+import { buildAgentEvidenceArtifact } from '../artifactModel.js';
+import { getAgentArtifactSaveState } from './agentWorkspaceModel.js';
 import { getProgressWidth, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
 
 export const AgentToolTraceSection = ({ currentTask }) => (
@@ -51,7 +53,7 @@ export const AgentToolTraceSection = ({ currentTask }) => (
   </>
 );
 
-export const AgentEvidenceListSection = ({ currentTask }) => (
+export const AgentEvidenceListSection = ({ activeProject, currentTask, activePaperId, onCaptureArtifact }) => (
   <>
     <div className="agent-section-label mt-5 flex items-center justify-between text-[11px]">
       <span>Evidence</span>
@@ -61,7 +63,32 @@ export const AgentEvidenceListSection = ({ currentTask }) => (
     <div className="mt-3 space-y-3">
       {(currentTask?.evidenceItems || []).map((item) => (
         <article key={item.sourceId} className="agent-card rounded-[18px] p-3">
-          <div className="agent-title text-xs font-semibold leading-5">{item.pdfId || item.sourceId}</div>
+          <div className="flex items-start justify-between gap-2">
+            <div className="agent-title text-xs font-semibold leading-5">{item.pdfId || item.sourceId}</div>
+            {(() => {
+              const saveState = getAgentArtifactSaveState({ activePdfId: activePaperId, content: item.text });
+              return (
+                <button
+                  type="button"
+                  disabled={!saveState.canSave || !onCaptureArtifact}
+                  title={saveState.reason || '保存这条关键证据'}
+                  onClick={() => {
+                    const artifact = buildAgentEvidenceArtifact({
+                      activePdfId: activePaperId,
+                      projectId: activeProject?.projectId || currentTask?.projectId,
+                      taskId: currentTask?.taskId,
+                      evidence: item,
+                    });
+                    if (artifact) onCaptureArtifact?.(artifact);
+                  }}
+                  className="agent-secondary-button inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Archive size={11} />
+                  加入工作台
+                </button>
+              );
+            })()}
+          </div>
           <div className="agent-evidence-meta mt-1 flex flex-wrap gap-2 text-[10px] font-semibold">
             {item.sectionId && <span>{item.sectionId}</span>}
             {Number.isInteger(item.pageIndex) && <span>p.{item.pageIndex + 1}</span>}

@@ -24,6 +24,20 @@ export const resolveNextAgentProjectNumber = (projects = [], nextProjectNumber =
 
 const normalizePaperId = (value) => `${value ?? ''}`.trim();
 
+export const getAgentArtifactSaveState = ({ activePdfId = '', content = '' } = {}) => {
+  if (!normalizePaperId(activePdfId)) {
+    return {
+      canSave: false,
+      reason: '请先在阅读 IDE 打开一篇论文，再保存到工作台。',
+    };
+  }
+
+  const hasContent = Array.isArray(content) ? content.length > 0 : Boolean(`${content ?? ''}`.trim());
+  return hasContent
+    ? { canSave: true, reason: '' }
+    : { canSave: false, reason: '当前产物尚未生成。' };
+};
+
 export const resolveInitialAgentPaperSelection = (paperLibrary = [], activePaperId = '') => {
   const targetPaperId = normalizePaperId(activePaperId);
   if (!targetPaperId) return [];

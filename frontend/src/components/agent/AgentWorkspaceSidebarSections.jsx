@@ -111,7 +111,10 @@ export const AgentProjectCreateForm = ({
   onRemoveSelectedPaper,
 }) => {
   const [paperQuery, setPaperQuery] = useState('');
-  const selectedIds = Array.isArray(selectedPaperIds) ? selectedPaperIds : [];
+  const selectedIds = useMemo(
+    () => (Array.isArray(selectedPaperIds) ? selectedPaperIds : []),
+    [selectedPaperIds],
+  );
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const paperById = useMemo(
     () => new Map((paperLibrary || []).map((paper) => [`${paper?.id ?? ''}`.trim(), paper]).filter(([id]) => id)),

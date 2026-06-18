@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import InsightCard from './InsightCard.jsx';
+import { buildDeconstructionArtifact } from './artifactModel.js';
 
 const outlineSourceLabels = {
   tei: 'PDF结构',
@@ -48,7 +49,7 @@ const readingModes = [
   },
 ];
 
-const PaperAnalysis = ({ data, isLoading, outlineItems = [], onSelectOutlineItem }) => {
+const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutlineItem, onCaptureArtifact }) => {
   const [activeMode, setActiveMode] = useState('overview');
   const [visibleSectionCount, setVisibleSectionCount] = useState(2);
 
@@ -77,7 +78,7 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], onSelectOutlineItem
         data?.paper_structure?.outlineVersion ? `目录版本 ${data.paper_structure.outlineVersion}` : '使用默认目录识别策略',
       ],
     };
-  }, [availableSections, data?.paper_structure?.outlineVersion, outlineItems.length]);
+  }, [availableSections, data, outlineItems.length]);
 
   const quickActions = [
     {
@@ -96,6 +97,27 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], onSelectOutlineItem
       hint: '从目录直接进入 PDF 对应位置。',
     },
   ];
+  const captureSection = (section) => {
+    const artifact = buildDeconstructionArtifact({
+      pdfId,
+      sectionId: section.key,
+      sectionLabel: section.label,
+      content: section.content,
+    });
+    if (artifact) onCaptureArtifact?.(artifact);
+  };
+
+  const renderSectionCapture = (section) => (
+    <button
+      type="button"
+      onClick={() => captureSection(section)}
+      disabled={!pdfId || !onCaptureArtifact}
+      title={!pdfId ? '请先打开一篇论文。' : `保存${section.label}摘要`}
+      className="source-link-chip disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      加入工作台
+    </button>
+  );
 
   if (isLoading) {
     return (
@@ -185,6 +207,7 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], onSelectOutlineItem
                   content={section.content}
                   detailsTitle={`展开 ${section.label}`}
                   defaultExpanded={section.key === 'abstract'}
+                  footer={renderSectionCapture(section)}
                 />
               ))}
 
@@ -262,6 +285,7 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], onSelectOutlineItem
                 content={section.content}
                 detailsTitle={`展开 ${section.label}`}
                 defaultExpanded={section.key === 'abstract'}
+                footer={renderSectionCapture(section)}
               />
             ))}
 

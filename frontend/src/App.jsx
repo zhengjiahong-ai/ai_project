@@ -2164,16 +2164,6 @@ export default function App() {
     }
   }, [pdfId]);
 
-  const handleDynamicExplain = useCallback(() => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: 'ai',
-        content: '功能提示：在左侧 PDF 视窗中直接划选任何不理解的句子或段落，使用就地上下文菜单发起解释、翻译、拆解或批判阅读。',
-      },
-    ]);
-  }, []);
-
   const requestPageTranslation = useCallback(async ({
     pageIndex,
     pageText,
@@ -2394,31 +2384,6 @@ export default function App() {
     }
   }, [commitTranslationState, deconstructData, isTranslated, pdfId, requestPageTranslation]);
 
-  const handleToggleTranslation = useCallback(() => {
-    if (!pdfId) {
-      window.alert('请先上传 PDF 文件。');
-      return;
-    }
-
-    if (isTranslated) {
-      setIsTranslated(false);
-      if (activeTab === 'translation') {
-        setActiveTab(lastNonTranslationTabRef.current || DEFAULT_ACTIVE_TAB);
-      }
-      return;
-    }
-
-    if (activeTab !== 'translation') {
-      lastNonTranslationTabRef.current = activeTab;
-    }
-
-    setIsTranslated(true);
-    setActiveTab('translation');
-    if (currentPageTextRef.current.pageText) {
-      requestPageTranslation(currentPageTextRef.current);
-    }
-  }, [activeTab, isTranslated, pdfId, requestPageTranslation]);
-
   const handleRetryTranslation = useCallback(() => {
     const currentPage = translationState.currentPage ?? currentPageTextRef.current.pageIndex ?? 0;
     const pagePayload =
@@ -2592,6 +2557,7 @@ export default function App() {
             <AgentWorkspace
               paperLibrary={papersList}
               activePaperId={pdfId || ''}
+              onCaptureArtifact={handleCaptureWorkbenchArtifact}
             />
           ) : (
           <>
@@ -3128,7 +3094,6 @@ export default function App() {
                         hasPaperContext={!!deconstructData?.paper_skeleton}
                         onGenerate={handleGenerateBackgroundKnowledge}
                         readerProfile={backgroundReaderProfile}
-                        onReaderProfileChange={setBackgroundReaderProfile}
                         onCaptureArtifact={handleCaptureWorkbenchArtifact}
                         onJumpToSource={handleJumpToSource}
                       />
@@ -3170,7 +3135,9 @@ export default function App() {
                         data={deconstructData}
                         isLoading={isDeconstructing}
                         outlineItems={paperOutlineItems}
+                        pdfId={pdfId}
                         onSelectOutlineItem={handleSelectOutlineItem}
+                        onCaptureArtifact={handleCaptureWorkbenchArtifact}
                       />
                     )}
 
@@ -3186,10 +3153,12 @@ export default function App() {
 
                     {activeTab === 'translation' && (
                       <TranslationPanel
+                        pdfId={pdfId}
                         pdfFileName={pdfFileName}
                         currentPage={translationState.currentPage}
                         pageData={currentTranslationPage}
                         onRetry={handleRetryTranslation}
+                        onCaptureArtifact={handleCaptureWorkbenchArtifact}
                       />
                     )}
 

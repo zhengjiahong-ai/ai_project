@@ -7,17 +7,21 @@ const toFiniteNumber = (value, fallback = 0) => {
 
 const roundRatio = (value) => Number(clamp(value).toFixed(6));
 
-const CONTROL_TEXT_PATTERN = /[\u0000-\u001f\u007f\ufffd]/;
+const hasControlText = (value) =>
+  [...String(value || '')].some((character) => {
+    const codePoint = character.codePointAt(0);
+    return codePoint <= 0x1f || codePoint === 0x7f || codePoint === 0xfffd;
+  });
 const TRANSLATION_FOOTER_PATTERN =
   /(?:authorized licensed use|downloaded on .* ieee xplore|restrictions apply|\$\d+(?:\.\d+)?|\u00a9\s*\d{4})/i;
 const TRANSLATION_EQUATION_NUMBER_PATTERN = /^(?:\(?\d+[a-z]?\)?|\(\s*[A-Za-z]?\d+[a-z]?\s*\))$/i;
 const TRANSLATION_MATH_SYMBOL_PATTERN =
   /[\u2200-\u22ff\u0391-\u03a9\u03b1-\u03c9\u03d1-\u03d6\u00b1\u00d7\u00f7\u00b2\u00b3\u2070-\u209f]/g;
-const TRANSLATION_MATH_OPERATOR_PATTERN = /[=<>+\-*\/^_{}\[\](),;:|]/g;
+const TRANSLATION_MATH_OPERATOR_PATTERN = /[=<>+*/^_{}[\](),;:|-]/g;
 const TRANSLATION_MATH_KEYWORD_PATTERN =
   /\b(?:argmax|argmin|diag|rank|sinrs?|snr|s\.t\.|subject\s+to|max|min|cn|tr)\b/gi;
 const COMPACT_FORMULA_PATTERN =
-  /(?:[A-Za-z]\w*\s*(?:[=<>+\-*\/^]|\bin\b)|(?:[=<>+\-*\/^]\s*[A-Za-z]\w*)|[A-Za-z]\([^)]*\)|\|\|[^|]+\|\|)/i;
+  /(?:[A-Za-z]\w*\s*(?:[=<>+*/^-]|\bin\b)|(?:[=<>+*/^-]\s*[A-Za-z]\w*)|[A-Za-z]\([^)]*\)|\|\|[^|]+\|\|)/i;
 
 const countMatches = (text, pattern) => (String(text || '').match(pattern) || []).length;
 
@@ -84,7 +88,7 @@ const isLikelyFormulaTextForTranslation = (text, block = {}) => {
     return false;
   }
 
-  if (TRANSLATION_EQUATION_NUMBER_PATTERN.test(value) || CONTROL_TEXT_PATTERN.test(value)) {
+  if (TRANSLATION_EQUATION_NUMBER_PATTERN.test(value) || hasControlText(value)) {
     return true;
   }
 
@@ -543,7 +547,7 @@ const buildColumnFirstReadingOrder = (blocks = [], viewport = {}) => {
   const bodyFullBlocks = [];
 
   sortedBlocks.forEach((block) => {
-    const placement = resolveItemPlacement(block, columnLayout, bodyStartTop);
+    const placement = resolveItemPlacement(block, columnLayout);
     if (placement === 'full') {
       if ((block?.bbox?.top || 0) < bodyStartTop) {
         headerBlocks.push(block);
@@ -610,9 +614,8 @@ const canMergeInColumnLayout = (currentBlock, nextLine, columnLayout) => {
     return true;
   }
 
-  const bodyStartTop = columnLayout.bodyStartTop;
-  const currentPlacement = resolveItemPlacement(currentBlock, columnLayout, bodyStartTop);
-  const nextPlacement = resolveItemPlacement(nextLine, columnLayout, bodyStartTop);
+  const currentPlacement = resolveItemPlacement(currentBlock, columnLayout);
+  const nextPlacement = resolveItemPlacement(nextLine, columnLayout);
 
   return currentPlacement === nextPlacement;
 };
@@ -661,7 +664,7 @@ const createReadableBlock = (block, medianFontSize, bodyStartTop) => ({
   role: resolveReadableBlockRole(block, medianFontSize, bodyStartTop),
 });
 
-const resolveItemPlacement = (item, columnDetection, bodyStartTop) => {
+const resolveItemPlacement = (item, columnDetection) => {
   const bbox = item?.bbox || {};
   const spansMiddle = bbox.left < 0.46 && bbox.left + bbox.width > 0.54;
   const center = bbox.left + bbox.width / 2;
@@ -780,7 +783,7 @@ export const buildReadableTranslationLayout = (pageLayout, translatedBlocks = []
   };
 
   contentItems.forEach((item) => {
-    const placement = resolveItemPlacement(item, columnDetection, bodyStartTop);
+    const placement = resolveItemPlacement(item, columnDetection);
 
     if (placement === 'full') {
       flushColumnSection();

@@ -6,12 +6,26 @@ import {
   buildAgentProjectPayload,
   createEmptyAgentWorkspaceState,
   getProjectTasks,
+  getAgentArtifactSaveState,
   normalizeAgentTaskListResponse,
   resolveNextAgentProjectNumber,
   removeSelectedAgentPaperId,
   removeAgentProjectFromState,
   resolveInitialAgentPaperSelection,
 } from './agentWorkspaceModel.js';
+
+assert.deepEqual(getAgentArtifactSaveState({ activePdfId: '', content: '报告' }), {
+  canSave: false,
+  reason: '请先在阅读 IDE 打开一篇论文，再保存到工作台。',
+});
+assert.deepEqual(getAgentArtifactSaveState({ activePdfId: 'paper-1', content: '  ' }), {
+  canSave: false,
+  reason: '当前产物尚未生成。',
+});
+assert.deepEqual(getAgentArtifactSaveState({ activePdfId: 'paper-1', content: '报告' }), {
+  canSave: true,
+  reason: '',
+});
 
 const projects = [
   { projectId: 'project-5', title: 'Agent 项目 5' },

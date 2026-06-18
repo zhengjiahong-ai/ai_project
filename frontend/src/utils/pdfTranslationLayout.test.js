@@ -548,6 +548,31 @@ const run = () => {
   assert.match(noisyTranslationLayout.blocks[0].text, /The ISAC BS senses a target/);
   assert.match(noisyTranslationLayout.blocks[0].text, /received echo/);
 
+  const controlAndOperatorLayout = buildTranslationRequestPageLayout({
+    viewport,
+    blocks: [
+      {
+        id: 'readable-prose',
+        text: 'This paragraph remains available for translation.',
+        bbox: { left: 0.08, top: 0.2, width: 0.4, height: 0.06 },
+        style: { fontSize: 10, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'control-text',
+        text: 'broken\u0007text',
+        bbox: { left: 0.08, top: 0.3, width: 0.12, height: 0.02 },
+        style: { fontSize: 9, fontWeight: 'normal', italic: false },
+      },
+      {
+        id: 'slash-bracket-formula',
+        text: 'x/y + [z]',
+        bbox: { left: 0.58, top: 0.4, width: 0.12, height: 0.02 },
+        style: { fontSize: 9, fontWeight: 'normal', italic: false },
+      },
+    ],
+  });
+  assert.deepEqual(controlAndOperatorLayout.blocks.map((block) => block.id), ['readable-prose']);
+
   const formulaCleanLayout = buildTranslationRequestPageLayout({
     viewport,
     blocks: [

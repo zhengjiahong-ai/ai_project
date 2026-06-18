@@ -1,5 +1,12 @@
 # 前端重构计划
 
+## 2026-06-18 P1-15 翻译、篇章解构与 Agent 产物沉淀
+
+- 全景翻译当前页和篇章解构的单章节摘要新增“加入工作台”，分别保留 `pdfId/pageIndex` 与 `pdfId/sectionId`。
+- Agent 报告草稿、跨论文对比表和单条关键证据新增统一保存入口；报告与对比表归入当前论文工作台，证据卡额外保留来源 `pdfId/sourceId/pageIndex/sectionId`。
+- artifact 模型新增 `taskId/projectId` 等可回溯字段并兼容旧卡片；Agent 模式没有当前论文或产物尚未生成时明确禁用保存。
+- 本阶段不新增项目级工作台、不把 Agent 产物复制到项目全部论文，也不合并 P1-16 的统一来源跳转工作。
+
 ## 2026-06-17 P1-14 阅读 IDE 到 Agent 下一步建议
 
 - `App.jsx` 的推荐下一步从单个 primary/secondary 建议升级为 2-3 个动作，覆盖继续单论文阅读、发起 Deep Research 和进入 Agent 研究。

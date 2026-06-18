@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Languages, Loader2, RefreshCw, ScrollText } from 'lucide-react';
+import { Archive, Languages, Loader2, RefreshCw, ScrollText } from 'lucide-react';
 
+import { buildTranslationArtifact } from './artifactModel.js';
 import MarkdownContent from './MarkdownContent';
 import { createTranslationPanelViewModel } from './translationPanelModel.js';
 import { buildFidelityTranslationLayout } from '../utils/pdfTranslationLayout.js';
@@ -342,7 +343,7 @@ const TranslationFidelityStage = ({ pageLayout, translatedBlocks, resetKey }) =>
   );
 };
 
-const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRetry }) => {
+const TranslationPanel = ({ pdfId, pdfFileName, currentPage = 0, pageData = null, onRetry, onCaptureArtifact }) => {
   const pageNumber = Number.isFinite(currentPage) ? currentPage + 1 : 1;
   const status = pageData?.status || 'idle';
   const translatedText = pageData?.translatedText || '';
@@ -356,6 +357,10 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
     canRenderPlainColumnFallback,
     shouldShowPlainTranslation,
   } = viewModel;
+  const translationArtifact = useMemo(
+    () => buildTranslationArtifact({ pdfId, pdfFileName, pageIndex: currentPage, translatedText }),
+    [currentPage, pdfFileName, pdfId, translatedText],
+  );
 
   return (
     <div className="theme-panel-muted flex h-full flex-col">
@@ -368,14 +373,27 @@ const TranslationPanel = ({ pdfFileName, currentPage = 0, pageData = null, onRet
           <p className="theme-text-secondary mt-1 text-xs">{pdfFileName ? `${pdfFileName} · 第 ${pageNumber} 页` : `第 ${pageNumber} 页`}</p>
         </div>
 
-        <button
-          onClick={onRetry}
-          disabled={status === 'loading'}
-          className="theme-button-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <RefreshCw size={14} />
-          重试翻译
-        </button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => translationArtifact && onCaptureArtifact?.(translationArtifact)}
+            disabled={status !== 'success' || !translationArtifact || !onCaptureArtifact}
+            title={!pdfId ? '请先打开一篇论文。' : !translationArtifact ? '当前页译文尚未生成。' : '保存当前页译文'}
+            className="theme-button-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Archive size={14} />
+            加入工作台
+          </button>
+          <button
+            type="button"
+            onClick={onRetry}
+            disabled={status === 'loading'}
+            className="theme-button-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw size={14} />
+            重试翻译
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto p-6">

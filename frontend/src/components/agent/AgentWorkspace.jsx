@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiService } from '../../services/api';
 import AgentWorkspaceEvidencePanel, { AgentWorkspaceRightRail } from './AgentWorkspaceEvidencePanel.jsx';
@@ -55,8 +55,9 @@ const resolveInitialState = () => {
   };
 };
 
-const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
+const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifact }) => {
   const [state, setState] = useState(resolveInitialState);
+  const initialWorkspaceStateRef = useRef(state);
   const [projectTitle, setProjectTitle] = useState('');
   const [projectGoal, setProjectGoal] = useState('');
   const [selectedPaperIds, setSelectedPaperIds] = useState(() =>
@@ -166,11 +167,12 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
         if (cancelled) return;
 
         const normalized = normalizeAgentProjectListResponse(response);
-        const previousProjectId = state.activeProjectId;
+        const initialWorkspaceState = initialWorkspaceStateRef.current;
+        const previousProjectId = initialWorkspaceState.activeProjectId;
         const nextProjectId = previousProjectId || normalized.projects[0]?.projectId || '';
         const nextProject =
           normalized.projects.find((item) => item.projectId === nextProjectId) || normalized.projects[0] || null;
-        const cachedTasks = getProjectTasks(state.tasksByProjectId, nextProject?.projectId);
+        const cachedTasks = getProjectTasks(initialWorkspaceState.tasksByProjectId, nextProject?.projectId);
 
         setState((prev) => ({
           ...prev,
@@ -187,7 +189,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
         if (nextProject?.projectId) {
           try {
             await loadProjectTaskHistory(nextProject.projectId, cachedTasks[0]?.taskId || '');
-          } catch (_error) {
+          } catch {
             // Keep the local snapshot as a fallback when the project task-history endpoint is unavailable.
           }
         }
@@ -227,9 +229,9 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
         }));
 
         try {
-          await loadProjectTaskHistory(project.projectId, state.currentTask?.taskId || '');
+          await loadProjectTaskHistory(project.projectId);
           return;
-        } catch (_error) {
+        } catch {
           // Fall back to the pre-P1-13 latest-task path for older backends or offline snapshots.
         }
 
@@ -393,7 +395,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
       try {
         await loadProjectTaskHistory(project.projectId, currentTask?.taskId || '');
         return;
-      } catch (_error) {
+      } catch {
         // Older Java/Python runtimes may not expose the task-history endpoint yet.
       }
 
@@ -508,6 +510,8 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
           onCreateTask={handleCreateTask}
           onRefresh={handleRefresh}
           onSelectTask={handleSelectTask}
+          activePaperId={activePaperId}
+          onCaptureArtifact={onCaptureArtifact}
         />
 
         {rightCollapsed ? (
@@ -519,6 +523,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '' }) => {
             activePaperId={activePaperId}
             stateError={state.error}
             onCancelTask={handleCancelTask}
+            onCaptureArtifact={onCaptureArtifact}
             onCollapse={() => setRightCollapsed(true)}
           />
         )}

@@ -1,6 +1,8 @@
 import React from 'react';
-import { AlertTriangle, BookOpen, FileText, GitCompare, Sparkles, Workflow } from 'lucide-react';
+import { AlertTriangle, Archive, BookOpen, FileText, GitCompare, Sparkles, Workflow } from 'lucide-react';
 
+import { buildAgentComparisonArtifact, buildAgentReportArtifact } from '../artifactModel.js';
+import { getAgentArtifactSaveState } from './agentWorkspaceModel.js';
 import { formatAgentTime, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
 
 export const AgentTaskPromptBubble = ({ task, prompt }) => (
@@ -207,9 +209,22 @@ export const AgentIntermediateArtifactsSection = ({ activeProject, currentTask }
   </details>
 );
 
-export const AgentComparisonSection = ({ currentTask }) => {
+export const AgentComparisonSection = ({ activeProject, currentTask, activePaperId, onCaptureArtifact }) => {
   const columns = currentTask?.comparisonTable?.columns || [];
   const rows = currentTask?.comparisonTable?.rows || [];
+  const saveState = getAgentArtifactSaveState({ activePdfId: activePaperId, content: rows });
+  const captureComparison = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const artifact = buildAgentComparisonArtifact({
+      activePdfId: activePaperId,
+      projectId: activeProject?.projectId || currentTask?.projectId,
+      taskId: currentTask?.taskId,
+      projectTitle: activeProject?.title,
+      comparisonTable: currentTask?.comparisonTable,
+    });
+    if (artifact) onCaptureArtifact?.(artifact);
+  };
 
   return (
     <details className="agent-section mt-4 rounded-[18px]" open>
@@ -220,8 +235,18 @@ export const AgentComparisonSection = ({ currentTask }) => {
           </span>
           跨论文判断
         </span>
-        <span className="agent-chip-info px-2.5 py-1 text-[11px] font-semibold">
-          {rows.length} rows
+        <span className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={captureComparison}
+            disabled={!saveState.canSave || !onCaptureArtifact}
+            title={saveState.reason || '保存完整对比表'}
+            className="agent-secondary-button inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Archive size={12} />
+            加入工作台
+          </button>
+          <span className="agent-chip-info px-2.5 py-1 text-[11px] font-semibold">{rows.length} rows</span>
         </span>
       </summary>
       <div className="px-4 pb-4">
@@ -306,12 +331,25 @@ export const AgentConflictSection = ({ currentTask }) => {
   );
 };
 
-export const AgentDraftReportSection = ({ currentTask }) => {
+export const AgentDraftReportSection = ({ activeProject, currentTask, activePaperId, onCaptureArtifact }) => {
   const draftReport = `${currentTask?.draftReport || ''}`.trim();
   const draftSections = draftReport
     .split('\n')
     .map((item) => item.trim())
     .filter(Boolean);
+  const saveState = getAgentArtifactSaveState({ activePdfId: activePaperId, content: draftReport });
+  const captureReport = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const artifact = buildAgentReportArtifact({
+      activePdfId: activePaperId,
+      projectId: activeProject?.projectId || currentTask?.projectId,
+      taskId: currentTask?.taskId,
+      projectTitle: activeProject?.title,
+      draftReport,
+    });
+    if (artifact) onCaptureArtifact?.(artifact);
+  };
 
   return (
     <details className="agent-section mt-4 rounded-[18px]" open>
@@ -322,8 +360,20 @@ export const AgentDraftReportSection = ({ currentTask }) => {
           </span>
           最终结果草稿
         </span>
-        <span className="agent-chip-info px-2.5 py-1 text-[11px] font-semibold">
-          {draftSections.length || 0} paragraphs
+        <span className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={captureReport}
+            disabled={!saveState.canSave || !onCaptureArtifact}
+            title={saveState.reason || '保存完整报告草稿'}
+            className="agent-secondary-button inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Archive size={12} />
+            加入工作台
+          </button>
+          <span className="agent-chip-info px-2.5 py-1 text-[11px] font-semibold">
+            {draftSections.length || 0} paragraphs
+          </span>
         </span>
       </summary>
       <div className="space-y-2 px-4 pb-4">

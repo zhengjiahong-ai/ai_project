@@ -57,7 +57,6 @@ const BackgroundKnowledgePanel = ({
   hasPaperContext,
   onGenerate,
   readerProfile,
-  onReaderProfileChange,
   GraphComponent = ForceGraph,
   onCaptureArtifact,
   onJumpToSource,
@@ -95,10 +94,7 @@ const BackgroundKnowledgePanel = ({
   const coverageText = formatPercent(sourceCoverage?.ratio);
   const uncoveredNodeLabels = useMemo(() => getUncoveredNodeLabels(data), [data]);
   const handleGenerate = createGenerateHandler(onGenerate, selectedReaderProfile);
-  const readerProfileSummary = useMemo(
-    () => summarizeReaderProfile(data?.reader_profile || selectedReaderProfile),
-    [data?.reader_profile, selectedReaderProfile],
-  );
+  const readerProfileSummary = summarizeReaderProfile(data?.reader_profile || selectedReaderProfile);
 
   const nodeByLabel = useMemo(() => {
     const map = new Map();

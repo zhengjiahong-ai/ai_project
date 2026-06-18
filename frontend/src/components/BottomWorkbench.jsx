@@ -40,6 +40,11 @@ const KIND_LABELS = {
   'background-evidence': '背景依据',
   'research-snapshot': '研究快照',
   'research-finding': '研究发现',
+  'translation-page': '页面译文',
+  'paper-section': '篇章解构',
+  'agent-report': 'Agent 报告',
+  'agent-comparison': 'Agent 对比表',
+  'agent-evidence': 'Agent 证据',
   'margin-note': '边注卡片',
 };
 
