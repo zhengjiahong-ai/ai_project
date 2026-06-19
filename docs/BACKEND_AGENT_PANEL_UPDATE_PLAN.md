@@ -16,6 +16,8 @@
 
 因此后端目前已经具备 Agent 网关转发能力，但还不具备 Java 侧项目管理持久化和会话聚合层。
 
+Python 内部 `tool_registry` 已升级为版本化严格契约：7 个工具均声明输入/输出 schema 和结构化 `safetyScope`，Agent `toolCalls` 会保存工具 `version/safetyScope`。这些字段随现有 JSON 快照保存，不需要 Java 数据库迁移；Java 转发层应原样透传，并兼容旧任务缺少字段。
+
 ## 2. 后端应该新增什么
 
 ### 2.1 新增 Agent 项目 API 网关

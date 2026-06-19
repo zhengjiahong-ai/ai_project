@@ -323,6 +323,10 @@ Python 服务大致分为：
 
 内部工具注册层为 Python 能力编排提供稳定边界。
 
+注册表契约格式为 `schemaVersion=1.0`。每个工具声明 `name/version/description/inputSchema/outputSchema/safetyScope`；注册时校验契约定义，调用前后分别严格校验输入和输出。`list_tools()` 只返回可序列化契约，不暴露 handler。
+
+`safetyScope` 固定描述只读访问、数据范围、模型网络访问、外部副作用和敏感输出。Agent 成功或 fallback 的 `toolCalls` 都会记录工具版本与安全范围；旧 SQLite 快照缺少这些字段时继续兼容。
+
 示例工具：
 
 - `retrieve_current_paper`

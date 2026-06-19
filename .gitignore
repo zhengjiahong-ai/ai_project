@@ -31,6 +31,8 @@ ai-service-python/core/chroma_literature_db/
 /ai-service-python/tests/*
 !/ai-service-python/tests/test_citation_responses.py
 !/ai-service-python/tests/test_evidence_service.py
+!/ai-service-python/tests/test_tool_registry.py
+!/ai-service-python/tests/test_agent_orchestrator.py
 !/ai-service-python/tests/test_agent_project_service.py
 !/ai-service-python/tests/test_outline_extractor.py
 !/ai-service-python/tests/test_page_translation_service.py

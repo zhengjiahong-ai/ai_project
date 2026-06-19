@@ -1,7 +1,7 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from schemas.requests import (
     AgentProjectCreateRequest,
@@ -94,7 +94,21 @@ class AgentProjectPersistenceTests(unittest.TestCase):
             {"pdfId": "paper-a", "evidenceCount": 2, "sourceIds": ["source-a"], "preview": "method evidence", "status": "succeeded"},
             {"pdfId": "paper-b", "evidenceCount": 1, "sourceIds": ["source-b"], "preview": "result evidence", "status": "succeeded"},
         ]
-        tool_calls = [{"id": "retrieve-current-paper-1", "name": "retrieve_current_paper", "status": "succeeded", "target": "paper-a", "result": "Collected evidence."}]
+        tool_calls = [{
+            "id": "retrieve-current-paper-1",
+            "name": "retrieve_current_paper",
+            "version": "1.0.0",
+            "safetyScope": {
+                "access": "read_only",
+                "dataScopes": ["current_paper_index"],
+                "networkAccess": False,
+                "sideEffects": False,
+                "sensitiveOutput": True,
+            },
+            "status": "succeeded",
+            "target": "paper-a",
+            "result": "Collected evidence.",
+        }]
         evidence_items = [
             {"sourceId": "source-a", "text": "Method evidence.", "pdfId": "paper-a", "sectionId": "method"},
             {"sourceId": "source-b", "text": "Result evidence.", "pdfId": "paper-b", "sectionId": "results"},
@@ -126,12 +140,51 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         self.assertEqual(latest["taskId"], task["taskId"])
         self.assertEqual(restored["events"][-1]["type"], "task_completed")
         self.assertEqual(restored["toolCalls"], completed["toolCalls"])
+        self.assertEqual(restored["toolCalls"][0]["version"], "1.0.0")
+        self.assertEqual(restored["toolCalls"][0]["safetyScope"]["access"], "read_only")
         self.assertEqual(restored["evidenceItems"], completed["evidenceItems"])
         self.assertEqual(restored["findings"], completed["findings"])
         self.assertEqual(restored["comparisonTable"], completed["comparisonTable"])
         self.assertEqual(restored["conflicts"], completed["conflicts"])
         self.assertEqual(restored["openQuestions"], completed["openQuestions"])
         self.assertEqual(restored["draftReport"], completed["draftReport"])
+
+    def test_legacy_tool_call_without_contract_metadata_still_restores(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        legacy_tool_call = {"name": "retrieve_current_paper", "status": "succeeded"}
+        agent_project_service._update_task(task["taskId"], toolCalls=[legacy_tool_call])
+
+        agent_project_service.reload_agent_state_from_storage()
+
+        restored = agent_project_service.get_agent_task(task["taskId"])["task"]
+        self.assertEqual(restored["toolCalls"], [legacy_tool_call])
+
+    def test_legacy_agent_execution_path_records_contract_metadata_on_success_and_fallback(self):
+        registry = Mock()
+        registry.get.return_value.version = "1.0.0"
+        registry.get.return_value.safetyScope = {
+            "access": "read_only",
+            "dataScopes": ["current_paper_index"],
+            "networkAccess": False,
+            "sideEffects": False,
+            "sensitiveOutput": True,
+        }
+        registry.invoke.return_value = {"items": []}
+
+        with patch("services.agent_project_service.get_tool_registry", return_value=registry):
+            _result, success_call = agent_project_service._invoke_agent_tool(
+                "retrieve_current_paper", {"pdfId": "paper-a", "query": "method"}, {"items": []}
+            )
+            registry.invoke.side_effect = RuntimeError("index unavailable")
+            _result, fallback_call = agent_project_service._invoke_agent_tool(
+                "retrieve_current_paper", {"pdfId": "paper-a", "query": "method"}, {"items": []}
+            )
+
+        self.assertEqual(success_call["version"], "1.0.0")
+        self.assertEqual(success_call["safetyScope"]["access"], "read_only")
+        self.assertEqual(fallback_call["version"], "1.0.0")
+        self.assertEqual(fallback_call["safetyScope"]["access"], "read_only")
 
     def test_cancelled_task_restores_with_cancel_event(self):
         project = self._create_project()

@@ -71,3 +71,11 @@
 - 任务历史成功响应保持 `{ "status": "success", "projectId": "...", "tasks": [], "limit": 20 }`，`tasks` 复用完整 Agent task 快照并按 `updatedAt` 倒序返回。
 - `limit` 默认 `20`，Python 侧约束到 `1..100`；项目存在但没有任务时返回空数组，项目不存在时返回 `404 Agent project not found.`。
 - 前端进入、切换或刷新 Agent 项目时优先读取服务端任务历史；本地 `tasksByProjectId` 只作为旧接口、离线或临时失败 fallback。
+
+## 内部工具契约边界
+
+- Python `tool_registry` 的注册表契约版本固定为 `schemaVersion=1.0`，每个工具必须声明 SemVer `version`、输入/输出 schema 和完整 `safetyScope`。
+- 输入 schema 默认禁止未知字段；handler 执行前校验输入、返回后校验输出，失败统一抛出包含工具名、方向和字段路径的 `ToolValidationError`。
+- `safetyScope` 必须包含 `access/dataScopes/networkAccess/sideEffects/sensitiveOutput`；当前注册工具只允许 `access=read_only` 且 `sideEffects=false`。
+- Agent `toolCalls.version/safetyScope` 是向后兼容的可选字段，旧 SQLite 快照不得因缺少它们而读取失败。
+- 当前未暴露 MCP server/client、文件系统、API key、完整论文正文或原始 trace；后续 adapter 必须复用同一工具契约并默认关闭。

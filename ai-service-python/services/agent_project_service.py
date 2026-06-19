@@ -537,12 +537,23 @@ def _build_agent_outputs(
 
 def _invoke_agent_tool(name: str, payload: Dict[str, Any], fallback: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     record_counter("retrievalCalls")
+    registry = get_tool_registry()
+    definition = registry.get(name)
+    audit_meta = {
+        "version": definition.version,
+        "safetyScope": copy.deepcopy(definition.safetyScope),
+    }
     try:
-        response = get_tool_registry().invoke(name, payload)
+        response = registry.invoke(name, payload)
         normalized = response if isinstance(response, dict) else {}
-        return normalized, {"name": name, "status": "succeeded", "meta": {}}
+        return normalized, {"name": name, "status": "succeeded", "meta": {}, **audit_meta}
     except Exception as error:
-        return fallback, {"name": name, "status": "fallback", "meta": {"reason": sanitize_text(error, max_chars=180)}}
+        return fallback, {
+            "name": name,
+            "status": "fallback",
+            "meta": {"reason": sanitize_text(error, max_chars=180)},
+            **audit_meta,
+        }
 
 
 def _fallback_tool_result(pdf_id: str) -> Dict[str, Any]:

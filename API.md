@@ -514,7 +514,8 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 说明：
 
 - `events` 驱动 Agent 时间线。
-- `toolCalls` 描述检索或工具活动。
+- `toolCalls` 描述检索或工具活动；新任务中的每条调用会额外包含可选的 `version` 和 `safetyScope`。`version` 是工具 SemVer，`safetyScope` 固定包含 `access/dataScopes/networkAccess/sideEffects/sensitiveOutput`。
+- Agent SQLite 中的旧任务可能没有 `version/safetyScope`，读取和前端展示必须继续兼容；新增字段不会改变任务状态码、轮询方式或其他路由。
 - `comparisonTable` 和 `conflicts` 是面向研究过程的轻量输出，不只是最终快照。
 - `draftReport` 当前包含 `## Task`、`## Scope`、`## Evidence Snapshot`、`## Current Conclusion`、`## Conflict Candidates` 和 `## Open Questions` 等章节。
 
