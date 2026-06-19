@@ -7,6 +7,14 @@
 - 前端新增后端调用时集中维护在 `frontend/src/services/api.js`。
 - 新增或变更接口字段时，同步更新 `API.md`、本文件和相关测试。
 
+## 背景知识图谱来源边界
+
+- `POST /api/background-knowledge` 只允许使用当前 `pdfId` 对应的索引片段、请求携带的 `paperSkeleton/paperStructure` 和显式 `paper_topic`，不得自动检索论文库中的其他论文。
+- 背景知识图谱分为概念发现和 prerequisite 关系判断两个 LLM 阶段；第二阶段失败时可保留概念节点，但不得按列表顺序伪造前置边。
+- `graph.nodes[*]` 和 `graph.edges[*]` 的 `provenanceStatus` 兼容值为 `current_paper_supported`、`model_inference`、`external_supported`；本阶段默认不会产生 `external_supported`。
+- 模型推断、当前论文支持和外部证据支持的置信度上限分别为 `0.60`、`0.85`、`0.95`。模型参数知识和 `confidenceReason` 不得冒充论文证据。
+- 外部学术检索 provider 默认禁用，本阶段不得由论文内容触发联网、工具调用或权限变化；后续接入前需另行定义权限、限流、来源质量、提示注入与审计约束。
+
 ## 批判阅读数值证据字段
 
 - `POST /api/critical-reading/{pdfId}` 由 Java 转发到 Python `POST /api/deep-analysis`，Java 继续透传 Python 响应并包装到 `analysis`。

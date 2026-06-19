@@ -13,9 +13,11 @@ import {
 import InsightCard from './InsightCard.jsx';
 import {
   createGenerateHandler,
+  getProvenanceMeta,
   getUncoveredNodeLabels,
   normalizeGraph,
   normalizeKnowledgeLevel,
+  normalizeProvenanceSummary,
   normalizeReaderProfile,
   resolveLearningPathSections,
   summarizeReaderProfile,
@@ -66,6 +68,7 @@ const BackgroundKnowledgePanel = ({
   const [containerWidth, setContainerWidth] = useState(320);
   const [activeMode, setActiveMode] = useState('why');
   const [visiblePathCount, setVisiblePathCount] = useState(2);
+  const [selectedGraphItem, setSelectedGraphItem] = useState(null);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -84,6 +87,7 @@ const BackgroundKnowledgePanel = ({
   const backgroundItems = Array.isArray(data?.background_knowledge) ? data.background_knowledge : EMPTY_LIST;
   const ragSources = normalizeEvidenceSources(data?.rag_sources);
   const sourceCoverage = data?.sourceCoverage && typeof data.sourceCoverage === 'object' ? data.sourceCoverage : null;
+  const provenanceSummary = normalizeProvenanceSummary(data);
   const confidenceText = formatPercent(data?.confidence);
   const coverageText = formatPercent(sourceCoverage?.ratio);
   const uncoveredNodeLabels = useMemo(() => getUncoveredNodeLabels(data), [data]);
@@ -134,6 +138,7 @@ const BackgroundKnowledgePanel = ({
           title: item,
           stageLabel,
           whyText,
+          provenanceLabel: node?.provenanceLabel || getProvenanceMeta('unknown').label,
         };
       }),
     [backgroundItems, nodeByLabel],
@@ -270,8 +275,9 @@ const BackgroundKnowledgePanel = ({
                 <div key={item.title} className="theme-card rounded-2xl p-4 text-sm theme-text-secondary">
                   <div className="theme-text-primary mb-2 text-sm font-semibold">{item.title}</div>
                   {item.stageLabel && (
-                    <div className="mb-2">
+                    <div className="mb-2 flex flex-wrap gap-2">
                       <span className="workbench-kind-chip">{item.stageLabel}</span>
+                      <span className="workbench-kind-chip">{item.provenanceLabel}</span>
                     </div>
                   )}
                   <div className="line-clamp-3 leading-7">{item.whyText}</div>
@@ -295,7 +301,10 @@ const BackgroundKnowledgePanel = ({
                   graphData,
                   height: 280,
                   width: containerWidth,
-                  nodeLabel: (node) => `${node.label}\n${node.stageLabel}\n${node.summary || node.why || ''}`,
+                  nodeLabel: (node) => `${node.label}\n${node.stageLabel}\n${node.provenanceLabel}\n${node.confidenceReason || node.summary || node.why || ''}`,
+                  linkLabel: (link) => `${link.label}\n${link.provenanceLabel}\n${link.confidenceReason || ''}`,
+                  onNodeClick: (node) => setSelectedGraphItem({ kind: 'node', ...node }),
+                  onLinkClick: (link) => setSelectedGraphItem({ kind: 'edge', ...link }),
                   nodeRelSize: 6,
                   linkColor: () => '#64748b',
                   linkDirectionalArrowLength: 3,
@@ -303,6 +312,30 @@ const BackgroundKnowledgePanel = ({
                   cooldownTicks: 100,
                 })}
               </div>
+
+              {selectedGraphItem && (
+                <div className="theme-card-soft mt-4 rounded-xl p-4 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="theme-text-primary font-semibold">
+                      {selectedGraphItem.kind === 'node'
+                        ? selectedGraphItem.label
+                        : `${selectedGraphItem.source?.label || selectedGraphItem.source} → ${selectedGraphItem.target?.label || selectedGraphItem.target}`}
+                    </span>
+                    <span className="workbench-kind-chip">
+                      {selectedGraphItem.provenanceLabel || getProvenanceMeta(selectedGraphItem.provenanceStatus).label}
+                    </span>
+                    {typeof selectedGraphItem.confidence === 'number' && (
+                      <span className="workbench-kind-chip">置信度 {formatPercent(selectedGraphItem.confidence)}</span>
+                    )}
+                  </div>
+                  <p className="theme-text-secondary mt-2 leading-6">
+                    {selectedGraphItem.confidenceReason || selectedGraphItem.summary || selectedGraphItem.why || '暂无补充说明。'}
+                  </p>
+                  {Array.isArray(selectedGraphItem.sourceIds) && selectedGraphItem.sourceIds.length > 0 && (
+                    <p className="theme-text-muted mt-2 text-xs">依据：{selectedGraphItem.sourceIds.join('、')}</p>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}
@@ -319,7 +352,8 @@ const BackgroundKnowledgePanel = ({
                     const supportText = edge.sourceIds?.length
                       ? `依据：${edge.sourceIds.join('、')}`
                       : edge.confidenceReason || '基于当前学习路径推断';
-                    return `后续会用到：${edge.target}，${supportText}`;
+                    const provenanceLabel = getProvenanceMeta(edge.provenanceStatus).label;
+                    return `后续会用到：${edge.target}，${provenanceLabel}，${supportText}`;
                   })
                   : []),
               ]);
@@ -384,6 +418,37 @@ const BackgroundKnowledgePanel = ({
                   />
                 )}
               </div>
+            )}
+
+            {provenanceSummary && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <InsightCard
+                  title="概念节点证据覆盖"
+                  summary={formatPercent(provenanceSummary.nodes.supportedRatio) || '0%'}
+                  keyPoints={[
+                    `当前论文支持 ${provenanceSummary.nodes.currentPaperSupported}/${provenanceSummary.nodes.total}`,
+                    `模型推断 ${provenanceSummary.nodes.modelInference} 项`,
+                  ]}
+                />
+                <InsightCard
+                  title="前置关系证据覆盖"
+                  summary={formatPercent(provenanceSummary.edges.supportedRatio) || '0%'}
+                  keyPoints={[
+                    `当前论文支持 ${provenanceSummary.edges.currentPaperSupported}/${provenanceSummary.edges.total}`,
+                    `模型推断 ${provenanceSummary.edges.modelInference} 条`,
+                  ]}
+                />
+              </div>
+            )}
+
+            <div className="theme-card-soft theme-text-secondary rounded-2xl p-4 text-sm leading-6">
+              {data?.externalKnowledge?.enabled
+                ? data.externalKnowledge.message || '已启用受控外部学术来源。'
+                : '当前未使用外部学术来源；无当前论文依据的节点和关系均标记为模型推断。'}
+            </div>
+
+            {Array.isArray(data?.warnings) && data.warnings.length > 0 && (
+              <InsightCard title="生成提示" keyPoints={data.warnings} />
             )}
 
             {ragSources.length > 0 && (

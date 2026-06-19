@@ -4,8 +4,10 @@ import {
   createBackgroundKnowledgeSnapshot,
   createDefaultReaderProfile,
   createGenerateHandler,
+  getProvenanceMeta,
   normalizeGraph,
   normalizeKnowledgeLevel,
+  normalizeProvenanceSummary,
   normalizeReaderProfile,
   resolveLearningPathSections,
 } from './backgroundKnowledgePanelModel.js';
@@ -75,6 +77,8 @@ const run = async () => {
 
   const normalizedLegacyGraph = normalizeGraph(legacyData);
   assert.equal(normalizedLegacyGraph.nodes[1].stageLabel, '基础概念');
+  assert.equal(normalizedLegacyGraph.nodes[1].provenanceStatus, 'unknown');
+  assert.equal(getProvenanceMeta('unknown').label, '来源未标注');
 
   const legacySections = resolveLearningPathSections(legacyData);
   assert.equal(legacySections.length, 1);
@@ -208,6 +212,38 @@ const run = async () => {
       { step: 3, title: 'RAG', conceptIds: ['rag'] },
     ],
   };
+
+  const provenanceData = {
+    provenanceSummary: {
+      nodes: { total: 3, currentPaperSupported: 2, modelInference: 1, externalSupported: 0, supportedRatio: 0.67 },
+      edges: { total: 2, currentPaperSupported: 1, modelInference: 1, externalSupported: 0, supportedRatio: 0.5 },
+    },
+    graph: {
+      nodes: [{
+        id: 'attention',
+        label: 'Attention',
+        provenanceStatus: 'current_paper_supported',
+        confidence: 0.85,
+        confidenceReason: '论文方法章节明确使用。',
+        sourceIds: ['source-1'],
+      }],
+      edges: [{
+        source: 'linear-algebra',
+        target: 'attention',
+        type: 'prerequisite',
+        provenanceStatus: 'model_inference',
+        confidence: 0.6,
+        confidenceReason: '模型推断。',
+      }],
+    },
+  };
+  assert.deepEqual(normalizeProvenanceSummary(provenanceData), provenanceData.provenanceSummary);
+  assert.equal(getProvenanceMeta('current_paper_supported').label, '当前论文支持');
+  assert.equal(getProvenanceMeta('model_inference').label, '模型推断');
+  const normalizedProvenanceGraph = normalizeGraph(provenanceData);
+  assert.equal(normalizedProvenanceGraph.nodes[0].confidenceReason, '论文方法章节明确使用。');
+  assert.equal(normalizedProvenanceGraph.edges[0].provenanceStatus, 'model_inference');
+  assert.equal(normalizedProvenanceGraph.edges[0].confidence, 0.6);
 
   const dependencySections = resolveLearningPathSections(dependencyData);
   assert.deepEqual(

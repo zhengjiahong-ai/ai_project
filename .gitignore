@@ -33,6 +33,8 @@ ai-service-python/core/chroma_literature_db/
 !/ai-service-python/tests/test_evidence_service.py
 !/ai-service-python/tests/test_tool_registry.py
 !/ai-service-python/tests/test_mcp_adapter.py
+!/ai-service-python/tests/test_knowledge_graph_service.py
+!/ai-service-python/tests/test_background_knowledge_provenance.py
 !/ai-service-python/tests/test_agent_orchestrator.py
 !/ai-service-python/tests/test_agent_project_service.py
 !/ai-service-python/tests/test_outline_extractor.py

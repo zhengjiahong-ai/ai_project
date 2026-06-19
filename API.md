@@ -217,7 +217,20 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 - `rag_sources`
 - `confidence`
 - `sourceCoverage`
+- `provenanceSummary`
+- `warnings`
+- `externalKnowledge`
 - `traceId`
+
+P2-3 来源与生成约束：
+
+- 服务只读取当前 `pdfId` 对应的论文片段，不检索论文库中的其他论文。
+- 概念发现和 prerequisite 关系判断使用两个独立 LLM 阶段。
+- `graph.nodes[*]`、`graph.edges[*]` 和 prerequisite `graph.links[*]` 可包含 `provenanceStatus/sourceIds/confidence/confidenceReason`。
+- `provenanceStatus` 可为 `current_paper_supported`、`model_inference` 或预留的 `external_supported`。
+- `provenanceSummary.nodes/edges` 分别返回 `total/currentPaperSupported/modelInference/externalSupported/supportedRatio`。
+- 当前版本的 `externalKnowledge.status` 为 `disabled`，不会联网搜索；模型推断不能视为当前论文或外部来源证据。
+- prerequisite 判断失败时响应可包含 `warnings`，并返回空边而不是按概念列表顺序补造依赖关系。
 
 ### `POST /api/socratic-questions`
 

@@ -3,9 +3,10 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from llm.client import get_llm
-from rag.store import get_rag, retrieve_hybrid_results
+from rag.store import get_rag
 from schemas.requests import BackgroundKnowledgeRequest
 from services.evidence_service import compact_evidence_for_response, normalize_evidence_items
+from services.knowledge_graph_service import build_provenance_summary, generate_current_paper_graph
 from services.query_service import build_retrieval_queries
 from services.safety_service import build_guarded_messages, summarize_safety_results, wrap_untrusted_context
 from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
@@ -143,7 +144,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
         retrieved_sources = _retrieve_related_sources(query_plan, normalized_pdf_id)
 
         response_sources = retrieved_sources or current_paper_sources
-        response_source_type = "library" if retrieved_sources else "current_paper" if current_paper_sources else "unknown"
+        response_source_type = "current_paper" if response_sources and normalized_pdf_id else "unknown"
         response_rag_sources = compact_evidence_for_response(
             normalize_evidence_items(
                 response_sources,
@@ -275,16 +276,6 @@ def _resolve_topic(request: BackgroundKnowledgeRequest, paper_context: str) -> s
 
 def _retrieve_related_sources(query_plan: Dict[str, Any], normalized_pdf_id: Optional[str]) -> List[dict]:
     query = query_plan.get("rewritten") or query_plan.get("original") or "prerequisite concepts background knowledge"
-    try:
-        with trace_step("retrieve_background_library", input_size=len(str(query or ""))) as step:
-            record_counter("retrievalCalls")
-            sources = _normalize_hybrid_sources(retrieve_hybrid_results(query, top_k=5))
-            step["outputSize"] = len(sources)
-        if sources:
-            return sources
-    except Exception as error:
-        print(f"background knowledge related-source retrieval skipped: {error}")
-
     if normalized_pdf_id:
         try:
             with trace_step(
@@ -321,7 +312,7 @@ def _normalize_hybrid_sources(hybrid_results: Dict[str, List[dict]]) -> List[dic
     return deduped
 
 
-def _generate_graph_payload(
+def _generate_graph_payload_legacy(
     paper_topic: str,
     reader_profile: Dict[str, Any],
     paper_context: str,
@@ -461,6 +452,23 @@ RAG snippets:
             raise
 
 
+def _generate_graph_payload(
+    paper_topic: str,
+    reader_profile: Dict[str, Any],
+    paper_context: str,
+    rag_sources: List[dict],
+    request: BackgroundKnowledgeRequest,
+) -> Dict[str, Any]:
+    return generate_current_paper_graph(
+        paper_topic=paper_topic,
+        paper_context=paper_context,
+        paper_structure=request.paperStructure if isinstance(request.paperStructure, dict) else {},
+        rag_sources=rag_sources,
+        reader_profile=reader_profile,
+        pdf_id=_normalize_pdf_id(request.pdfId),
+    )
+
+
 def _normalize_payload(
     payload: Dict[str, Any],
     paper_topic: str,
@@ -500,6 +508,13 @@ def _normalize_payload(
         "background_knowledge": background,
         "sourceCoverage": source_coverage,
         "confidence": confidence,
+        "provenanceSummary": build_provenance_summary(graph),
+        "warnings": payload.get("warnings") if isinstance(payload.get("warnings"), list) else [],
+        "externalKnowledge": payload.get("externalKnowledge") or {
+            "enabled": False,
+            "status": "disabled",
+            "message": "External academic retrieval is not enabled.",
+        },
     }
 
 
@@ -507,6 +522,7 @@ def _normalize_graph(graph: Any, paper_topic: str) -> Tuple[Dict[str, list], Dic
     raw_nodes = graph.get("nodes") if isinstance(graph, dict) else []
     raw_links = graph.get("links") if isinstance(graph, dict) else []
     raw_edges = graph.get("edges") if isinstance(graph, dict) else []
+    suppress_implicit_edges = bool(graph.get("suppressImplicitEdges")) if isinstance(graph, dict) else False
     nodes_by_id: Dict[str, Dict[str, Any]] = {}
     node_order: List[str] = []
     aliases: Dict[str, str] = {}
@@ -539,6 +555,9 @@ def _normalize_graph(graph: Any, paper_topic: str) -> Tuple[Dict[str, list], Dic
             "summary": str(node.get("summary") or ""),
             "why": str(node.get("why") or ""),
             "sourceIds": _coerce_list_of_strings(node.get("sourceIds")),
+            "provenanceStatus": str(node.get("provenanceStatus") or ""),
+            "confidence": node.get("confidence"),
+            "confidenceReason": str(node.get("confidenceReason") or ""),
         }
 
         existing = nodes_by_id.get(node_id)
@@ -589,9 +608,13 @@ def _normalize_graph(graph: Any, paper_topic: str) -> Tuple[Dict[str, list], Dic
             "target": target,
             "relation": relation,
             "label": str(link.get("label") or relation),
+            "sourceIds": _coerce_list_of_strings(link.get("sourceIds")),
+            "provenanceStatus": str(link.get("provenanceStatus") or ""),
+            "confidence": link.get("confidence"),
+            "confidenceReason": str(link.get("confidenceReason") or ""),
         })
 
-    if not links:
+    if not links and not suppress_implicit_edges:
         concept_ids = [node_id for node_id in node_order if node_id != ROOT_NODE_ID]
         for index, concept_id in enumerate(concept_ids):
             target = concept_ids[index + 1] if index + 1 < len(concept_ids) else ROOT_NODE_ID
@@ -648,6 +671,8 @@ def _normalize_prerequisite_edges(
             "type": "prerequisite",
             "sourceIds": _coerce_list_of_strings(item.get("sourceIds")),
             "confidenceReason": confidence_reason,
+            "provenanceStatus": str(item.get("provenanceStatus") or ""),
+            "confidence": item.get("confidence"),
         })
 
     return edges
@@ -829,7 +854,11 @@ Return a short ordered list, one item per line.
         background = [paper_topic, "核心术语", "方法基础", "实验或评估逻辑"]
 
     payload = _normalize_payload(
-        {"paper_topic": paper_topic, "background_knowledge": background},
+        {
+            "paper_topic": paper_topic,
+            "background_knowledge": background,
+            "warnings": ["概念发现失败，已使用背景主题降级结果。"],
+        },
         paper_topic=paper_topic,
         reader_profile=reader_profile,
         pdf_id=pdf_id,
@@ -916,7 +945,16 @@ def _attach_graph_metadata(graph: Dict[str, list], rag_sources: List[dict]) -> D
             "stageLabel": STAGE_TITLES[stage],
             "sourceIds": source_ids,
         }
-        normalized["confidence"] = _compute_node_confidence(normalized)
+        provenance_status = _resolve_provenance_status(node.get("provenanceStatus"), source_ids)
+        normalized["provenanceStatus"] = provenance_status
+        normalized["confidence"] = min(
+            _coerce_confidence(node.get("confidence"), _compute_node_confidence(normalized)),
+            _provenance_confidence_cap(provenance_status),
+        )
+        normalized["confidenceReason"] = str(
+            node.get("confidenceReason")
+            or ("当前论文片段支持该概念。" if source_ids else "模型根据当前论文推断的隐含前置概念。")
+        )
         normalized_nodes.append(normalized)
 
     normalized_edges = _attach_edge_metadata(graph.get("edges", []), normalized_nodes, valid_source_ids)
@@ -965,9 +1003,38 @@ def _attach_edge_metadata(edges: Any, nodes: List[dict], valid_source_ids: set) 
             "type": "prerequisite",
             "sourceIds": source_ids,
             "confidenceReason": confidence_reason,
+            "provenanceStatus": _resolve_provenance_status(edge.get("provenanceStatus"), source_ids),
+            "confidence": min(
+                _coerce_confidence(edge.get("confidence"), 0.6 if not source_ids else 0.85),
+                _provenance_confidence_cap(_resolve_provenance_status(edge.get("provenanceStatus"), source_ids)),
+            ),
         })
 
     return normalized_edges
+
+
+def _resolve_provenance_status(value: Any, source_ids: List[str]) -> str:
+    if source_ids:
+        return "current_paper_supported"
+    normalized = str(value or "").strip()
+    if normalized == "external_supported":
+        return normalized
+    return "model_inference"
+
+
+def _provenance_confidence_cap(status: str) -> float:
+    return {
+        "model_inference": 0.60,
+        "current_paper_supported": 0.85,
+        "external_supported": 0.95,
+    }.get(status, 0.60)
+
+
+def _coerce_confidence(value: Any, fallback: float) -> float:
+    try:
+        return round(max(0.0, min(1.0, float(value))), 2)
+    except (TypeError, ValueError):
+        return round(max(0.0, min(1.0, float(fallback))), 2)
 
 
 def _build_source_coverage(graph: Dict[str, list]) -> Dict[str, Any]:
@@ -1054,7 +1121,9 @@ def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None
                 c.why = $why,
                 c.stage = $stage,
                 c.confidence = $confidence,
-                c.sourceIds = $sourceIds
+                c.sourceIds = $sourceIds,
+                c.provenanceStatus = $provenanceStatus,
+                c.confidenceReason = $confidenceReason
             WITH c
             MATCH (p:Paper {id: $paper_id})
             MERGE (p)-[:HAS_BACKGROUND_NODE]->(c)
@@ -1072,6 +1141,8 @@ def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None
             "label": "前置",
             "sourceIds": edge.get("sourceIds", []),
             "confidenceReason": edge.get("confidenceReason", ""),
+            "provenanceStatus": edge.get("provenanceStatus", "model_inference"),
+            "confidence": edge.get("confidence", 0.6),
         }
         for edge in graph.get("edges", [])
         if isinstance(edge, dict)
@@ -1093,7 +1164,9 @@ def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None
             SET r.label = $label,
                 r.relation = $relation,
                 r.sourceIds = $sourceIds,
-                r.confidenceReason = $confidenceReason
+                r.confidenceReason = $confidenceReason,
+                r.provenanceStatus = $provenanceStatus,
+                r.confidence = $confidence
             """,
             source=link.get("source"),
             target=link.get("target"),
@@ -1101,6 +1174,8 @@ def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None
             relation=relation,
             sourceIds=_coerce_list_of_strings(link.get("sourceIds")),
             confidenceReason=str(link.get("confidenceReason") or ""),
+            provenanceStatus=str(link.get("provenanceStatus") or "model_inference"),
+            confidence=_coerce_confidence(link.get("confidence"), 0.6),
         )
 
 

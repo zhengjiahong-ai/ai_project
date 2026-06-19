@@ -9,6 +9,37 @@ const STAGE_META = {
   critical_perspective: { title: '批判视角', color: '#f59e0b' },
 };
 
+const PROVENANCE_META = {
+  current_paper_supported: { label: '当前论文支持', tone: 'evidence' },
+  model_inference: { label: '模型推断', tone: 'inference' },
+  external_supported: { label: '外部证据支持', tone: 'external' },
+  unknown: { label: '来源未标注', tone: 'unknown' },
+};
+
+export const getProvenanceMeta = (value) => PROVENANCE_META[value] || PROVENANCE_META.unknown;
+
+const normalizeProvenanceCounts = (value) => {
+  const counts = value && typeof value === 'object' ? value : {};
+  const total = Number.isInteger(counts.total) && counts.total >= 0 ? counts.total : 0;
+  const currentPaperSupported = Number.isInteger(counts.currentPaperSupported) ? counts.currentPaperSupported : 0;
+  const modelInference = Number.isInteger(counts.modelInference) ? counts.modelInference : 0;
+  const externalSupported = Number.isInteger(counts.externalSupported) ? counts.externalSupported : 0;
+  const supportedRatio = typeof counts.supportedRatio === 'number'
+    ? Math.max(0, Math.min(1, counts.supportedRatio))
+    : total > 0 ? (currentPaperSupported + externalSupported) / total : 0;
+  return { total, currentPaperSupported, modelInference, externalSupported, supportedRatio };
+};
+
+export const normalizeProvenanceSummary = (data) => {
+  if (!data?.provenanceSummary || typeof data.provenanceSummary !== 'object') {
+    return null;
+  }
+  return {
+    nodes: normalizeProvenanceCounts(data.provenanceSummary.nodes),
+    edges: normalizeProvenanceCounts(data.provenanceSummary.edges),
+  };
+};
+
 export const normalizeKnowledgeLevel = (value) => {
   const text = `${value ?? ''}`.trim();
   if (text === '普通/一般') {
@@ -99,6 +130,9 @@ export const normalizeGraph = (data) => {
         why: node.why || '',
         sourceIds: Array.isArray(node.sourceIds) ? node.sourceIds : [],
         confidence,
+        provenanceStatus: node.provenanceStatus || 'unknown',
+        provenanceLabel: getProvenanceMeta(node.provenanceStatus || 'unknown').label,
+        confidenceReason: node.confidenceReason || '',
         val: node.type === 'paper' ? 14 : confidence && confidence >= 0.8 ? 9 : 7,
         color: node.type === 'paper' ? '#4D0099' : stageMeta.color,
       };
@@ -113,6 +147,11 @@ export const normalizeGraph = (data) => {
       target: link.target,
       relation: link.relation || 'related',
       label: link.label || link.relation || 'related',
+      sourceIds: Array.isArray(link.sourceIds) ? link.sourceIds : [],
+      provenanceStatus: link.provenanceStatus || 'unknown',
+      provenanceLabel: getProvenanceMeta(link.provenanceStatus || 'unknown').label,
+      confidence: typeof link.confidence === 'number' ? link.confidence : null,
+      confidenceReason: link.confidenceReason || '',
     })),
     edges: edges.map((edge) => ({
       source: edge.source,
@@ -120,6 +159,9 @@ export const normalizeGraph = (data) => {
       type: edge.type || 'prerequisite',
       sourceIds: Array.isArray(edge.sourceIds) ? edge.sourceIds : [],
       confidenceReason: edge.confidenceReason || '',
+      provenanceStatus: edge.provenanceStatus || 'unknown',
+      provenanceLabel: getProvenanceMeta(edge.provenanceStatus || 'unknown').label,
+      confidence: typeof edge.confidence === 'number' ? edge.confidence : null,
     })),
   };
 };
@@ -192,6 +234,8 @@ const getPrerequisiteEdges = (data, itemByConcept) => {
       target,
       sourceIds: Array.isArray(edge.sourceIds) ? edge.sourceIds : [],
       confidenceReason: edge.confidenceReason || '',
+      provenanceStatus: edge.provenanceStatus || 'unknown',
+      confidence: typeof edge.confidence === 'number' ? edge.confidence : null,
     });
   });
   return validEdges;
@@ -267,6 +311,8 @@ const sortSectionsByPrerequisites = (data, sections) => {
       target: nodeLabels.get(edge.target) || edge.target,
       sourceIds: edge.sourceIds,
       confidenceReason: edge.confidenceReason,
+      ...(edge.provenanceStatus !== 'unknown' ? { provenanceStatus: edge.provenanceStatus } : {}),
+      ...(edge.confidence !== null ? { confidence: edge.confidence } : {}),
     });
     outgoingByItem.set(edge.sourceItem, current);
   });
@@ -315,6 +361,7 @@ export const createBackgroundKnowledgeSnapshot = (data, knowledgeLevel = '一般
     ragSourceIds: (Array.isArray(data?.rag_sources) ? data.rag_sources : []).map((source) => source.id || source.sourceId),
     hasConfidence: typeof data?.confidence === 'number',
     hasSourceCoverage: Boolean(data?.sourceCoverage),
+    provenanceSummary: normalizeProvenanceSummary(data),
     uncoveredNodeLabels: getUncoveredNodeLabels(data),
     neo4jMessage: data?.neo4j?.enabled
       ? data?.neo4j?.message || data?.neo4j?.status || ''
