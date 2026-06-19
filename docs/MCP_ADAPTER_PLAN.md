@@ -4,7 +4,7 @@
 
 项目尚未实现或启用 MCP server/client，也没有新增对外 MCP 路由。Python 内部 `tool_registry` 已提供 `schemaVersion=1.0` 的可序列化工具契约，每个工具包含 `name/version/description/inputSchema/outputSchema/safetyScope`，并在执行前后校验输入与输出。
 
-## P2-2 只读原型边界
+## 只读原型边界
 
 - 默认关闭，仅在显式配置后启动。
 - 首批只允许列举工具、读取论文骨架和只读检索。
