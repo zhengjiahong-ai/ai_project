@@ -78,4 +78,6 @@
 - 输入 schema 默认禁止未知字段；handler 执行前校验输入、返回后校验输出，失败统一抛出包含工具名、方向和字段路径的 `ToolValidationError`。
 - `safetyScope` 必须包含 `access/dataScopes/networkAccess/sideEffects/sensitiveOutput`；当前注册工具只允许 `access=read_only` 且 `sideEffects=false`。
 - Agent `toolCalls.version/safetyScope` 是向后兼容的可选字段，旧 SQLite 快照不得因缺少它们而读取失败。
-- 当前未暴露 MCP server/client、文件系统、API key、完整论文正文或原始 trace；后续 adapter 必须复用同一工具契约并默认关闭。
+- 只读 MCP adapter 默认关闭，仅允许在本机以 `PIXIU_MCP_ENABLED=true python -m mcp_adapter` 启动 `stdio` server；不得挂载到 FastAPI、Java `/api` 或公网端口。
+- MCP `tools/list` 只能从注册表动态筛选 `read_paper_skeleton`、`retrieve_current_paper`、`retrieve_library`，并复用原始输入/输出 schema；调用必须经过 `ToolRegistry.invoke()`。
+- MCP 当前论文检索禁止 `includeAll=true`，并对 `topK/limit/maxTextChars` 使用独立的更小运行时预算；不得暴露文件系统、API key、完整论文正文、完整 prompt、原始 trace、模型网络工具或写操作。

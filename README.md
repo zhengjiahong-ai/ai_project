@@ -53,7 +53,7 @@ Agent 工作区已经不再只是静态原型壳。当前已经具备第一版�
 - Agent 结论已经从通用占位文本升级为有证据依据的规则型草稿。
 - 这仍是第一版规则型综合，不是最终形态的复杂多步推理系统。
 - Deep Research 和 Agent 的后端编排边界已经拆出 planner/executor/aggregator/orchestrator 模块，现有使用流程不变，但后续接入 LangGraph 或 Deep Orchestrator 时可以优先替换这些内部层。
-- 当前仍未启用 MCP server/client；严格工具契约只为后续只读 MCP adapter 提供可复用边界。
+- 已提供默认关闭的只读 MCP adapter 原型；它仅以本机 `stdio` 独立启动，不挂载 FastAPI，也不新增网络监听或 Java 转发。
 
 ## 运行链路
 
@@ -99,6 +99,9 @@ NEO4J_PASSWORD=
 NEO4J_AUTH=neo4j/pixiu_neo4j_password
 
 RESEARCH_TASK_DB_PATH=ai-service-python/data/research_tasks.sqlite3
+
+# 默认不要设置；仅启动本机只读 MCP adapter 时显式设为 true
+PIXIU_MCP_ENABLED=false
 ```
 
 前端可选环境变量：
@@ -167,6 +170,25 @@ cd ai-service-python
 pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
+
+可选的只读 MCP adapter 与 FastAPI 独立。只有 MCP 客户端显式传入开关时才启动：
+
+```json
+{
+  "mcpServers": {
+    "pixiu-readonly": {
+      "command": "python",
+      "args": ["-m", "mcp_adapter"],
+      "cwd": "C:/path/to/ai_project/ai-service-python",
+      "env": {
+        "PIXIU_MCP_ENABLED": "true"
+      }
+    }
+  }
+}
+```
+
+该入口只公开 `read_paper_skeleton`、`retrieve_current_paper`、`retrieve_library`。当前论文检索禁止 `includeAll=true`，并对结果数量和文本长度使用比内部工具更严格的 MCP 预算。不要把该 `stdio` 进程转发为公网服务。
 
 GROBID 建议继续通过 Docker 启动：
 

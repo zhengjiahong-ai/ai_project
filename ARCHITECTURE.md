@@ -327,6 +327,12 @@ Python 服务大致分为：
 
 `safetyScope` 固定描述只读访问、数据范围、模型网络访问、外部副作用和敏感输出。Agent 成功或 fallback 的 `toolCalls` 都会记录工具版本与安全范围；旧 SQLite 快照缺少这些字段时继续兼容。
 
+#### `mcp_adapter/`
+
+只读 MCP adapter 是与 FastAPI 并列的独立本机进程入口。MCP 客户端仅在设置 `PIXIU_MCP_ENABLED=true` 后通过 `python -m mcp_adapter` 拉起 `stdio` server；默认应用启动和 Docker Compose 不会创建 MCP 监听。
+
+Adapter 从 `tool_registry.list_tools()` 动态筛选三个无网络、无副作用的工具，并把协议调用统一送回 `ToolRegistry.invoke()`。MCP 层还拒绝当前论文 `includeAll` 全量读取并收紧检索预算。该边界不提供 HTTP/SSE、resources、prompts、文件系统、模型工具或 trace 读取。
+
 示例工具：
 
 - `retrieve_current_paper`

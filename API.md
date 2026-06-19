@@ -666,3 +666,30 @@ Agent 时间线使用以下事件对象：
 3. Python 服务 CORS 是否允许前端来源。
 4. GROBID 和 Python RAG 是否可用。
 5. 项目挂载的论文是否已经完成索引。
+
+## 只读 MCP adapter（非 `/api` 接口）
+
+P2-2 新增独立的本机 MCP `stdio` server。它不监听 HTTP、不挂载 FastAPI，也不经过 Java 网关；因此以下能力不属于 `/api` 路由。
+
+启动前必须在 MCP 客户端进程环境中设置：
+
+```text
+PIXIU_MCP_ENABLED=true
+```
+
+启动命令：
+
+```bash
+cd ai-service-python
+python -m mcp_adapter
+```
+
+MCP 协议 `tools/list` 仅返回：
+
+- `read_paper_skeleton`：整理客户端请求中提供的论文骨架，不读取服务器文件。
+- `retrieve_current_paper`：按 `pdfId + query` 检索当前论文的有限证据片段。
+- `retrieve_library`：从内部文献索引检索有限证据片段。
+
+每个工具的 `inputSchema/outputSchema` 来自内部 `tool_registry`，`_meta.pixiu` 包含 `schemaVersion/version/safetyScope/runtimeBudgets`。`tools/call` 仍经过 `ToolRegistry.invoke()` 的严格输入输出校验。
+
+MCP 额外限制：当前论文检索拒绝 `includeAll=true`；`retrieve_current_paper` 的 `topK/limit/maxTextChars` 上限为 `8/5/900`，`retrieve_library` 为 `5/4/700`，论文骨架的 `maxSections/maxCharsPerSection` 上限为 `6/220`。成功调用同时返回 JSON text content 和 `structuredContent`；验证错误保留工具名和字段路径，其他内部异常只返回脱敏 tool error。
