@@ -220,6 +220,8 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 - `provenanceSummary`
 - `warnings`
 - `externalKnowledge`
+- `sqlite`
+- `neo4j`
 - `traceId`
 
 P2-3 来源与生成约束：
@@ -231,6 +233,7 @@ P2-3 来源与生成约束：
 - `provenanceSummary.nodes/edges` 分别返回 `total/currentPaperSupported/modelInference/externalSupported/supportedRatio`。
 - 当前版本的 `externalKnowledge.status` 为 `disabled`，不会联网搜索；模型推断不能视为当前论文或外部来源证据。
 - prerequisite 判断失败时响应可包含 `warnings`，并返回空边而不是按概念列表顺序补造依赖关系。
+- `sqlite.status` 描述默认图谱快照写入结果；`error` 只表示持久化降级，不改变本次背景图谱的生成结果。`neo4j` 继续表示可选镜像状态。
 
 ### `POST /api/socratic-questions`
 
@@ -531,6 +534,23 @@ P2-3 来源与生成约束：
 - Agent SQLite 中的旧任务可能没有 `version/safetyScope`，读取和前端展示必须继续兼容；新增字段不会改变任务状态码、轮询方式或其他路由。
 - `comparisonTable` 和 `conflicts` 是面向研究过程的轻量输出，不只是最终快照。
 - `draftReport` 当前包含 `## Task`、`## Scope`、`## Evidence Snapshot`、`## Current Conclusion`、`## Conflict Candidates` 和 `## Open Questions` 等章节。
+- Deep Research 和 Agent 的真实 `conflicts[*]` 可兼容新增 `graphContext`：
+
+```json
+{
+  "status": "available",
+  "paperIds": ["paper-a"],
+  "seedTerms": ["accuracy"],
+  "nodes": [],
+  "edges": [],
+  "sourceIds": [],
+  "provenanceSummary": {},
+  "contextNote": "图谱邻域仅用于解释背景和来源覆盖，不代表自动裁决；冲突仍需人工核查。"
+}
+```
+
+- `graphContext.status` 取值为 `available`、`partial` 或 `unavailable`。邻域限制为一跳、最多 8 个节点和 12 条边；旧任务和旧客户端可缺省或忽略该字段。
+- 该字段只补充已有背景图谱中的上下文与来源覆盖，不改变冲突类型、严重度或人工核查要求；Java 网关继续透传，不新增路由。
 
 ### `POST /api/agent-tasks/{taskId}/cancel`
 

@@ -221,7 +221,10 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         self.assertIn("91.2%", task["conflicts"][0]["summary"])
         self.assertIn("87.5%", task["conflicts"][0]["summary"])
         self.assertEqual(task["conflicts"][0]["sourceIds"], ["paper-accuracy", "library-accuracy"])
+        self.assertIn("graphContext", task["conflicts"][0])
         self.assertIn("## 证据冲突/需人工核查", task["report"])
+        self.assertIn("图谱上下文", task["report"])
+        self.assertIn("未自动裁决", task["report"])
         self.assertIn("paper-accuracy", task["report"])
 
         research_task_service.reload_research_tasks_from_storage()

@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import services.analysis_service as analysis_service
 import services.background_knowledge_service as background_knowledge_service
+import services.knowledge_graph_store as knowledge_graph_store
 import services.page_translation_service as page_translation_service
 from rag.store import get_rag, retrieve_hybrid_results
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest, PageTranslationRequest
@@ -335,6 +336,36 @@ def _build_default_tool_registry() -> ToolRegistry:
             sensitive_output=True,
         ),
     )
+    registry.register(
+        "read_knowledge_graph_neighborhood",
+        "Read a bounded one-hop neighborhood from persisted background knowledge graphs.",
+        {
+            "type": "object",
+            "properties": {
+                "paperIds": {"type": "array", "items": {"type": "string", "minLength": 1}},
+                "sourceIds": {"type": "array", "items": {"type": "string", "minLength": 1}},
+                "seedTerms": {"type": "array", "items": {"type": "string", "minLength": 1}},
+                "maxNodes": {"type": "integer", "minimum": 1, "maximum": 8},
+                "maxEdges": {"type": "integer", "minimum": 1, "maximum": 12},
+            },
+            "additionalProperties": False,
+        },
+        _read_knowledge_graph_neighborhood_tool,
+        output_schema=_object_output(
+            ["status", "paperIds", "seedTerms", "nodes", "edges", "sourceIds", "provenanceSummary", "contextNote"],
+            {
+                "status": {"type": "string", "enum": ["available", "partial", "unavailable"]},
+                "paperIds": {"type": "array", "items": {"type": "string"}},
+                "seedTerms": {"type": "array", "items": {"type": "string"}},
+                "nodes": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "edges": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "sourceIds": {"type": "array", "items": {"type": "string"}},
+                "provenanceSummary": {"type": "object", "additionalProperties": True},
+                "contextNote": {"type": "string", "minLength": 1},
+            },
+        ),
+        safety_scope=_safety_scope(["knowledge_graph_snapshots"], network_access=False, sensitive_output=True),
+    )
     return registry
 
 
@@ -461,6 +492,13 @@ def _judge_evidence_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
     with trace_step("tool_judge_evidence", input_size=len(evidence_items)) as step:
         result = judge_evidence_quality(question, evidence_items, keywords=payload.get("keywords") or [])
         step["outputSize"] = len(result.get("missingAspects") or [])
+        return result
+
+
+def _read_knowledge_graph_neighborhood_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    with trace_step("tool_read_knowledge_graph_neighborhood", input_size=len(payload)) as step:
+        result = knowledge_graph_store.read_graph_neighborhood(payload)
+        step["outputSize"] = len(result.get("nodes") or [])
         return result
 
 

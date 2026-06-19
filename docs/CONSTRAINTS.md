@@ -54,6 +54,16 @@
 - 冲突检测只标记“需人工核查”，不得自动融合矛盾结论或裁决哪一方正确。
 - Java 网关继续透传 Python 响应；旧客户端可忽略 `conflicts`。
 
+## GraphRAG 冲突辅助字段
+
+- Deep Research 与 Agent 的真实 `conflicts[*]` 可兼容新增 `graphContext`；`no-major-conflict` 等无冲突占位项不得触发图谱查询。
+- `graphContext` 包含 `status/paperIds/seedTerms/nodes/edges/sourceIds/provenanceSummary/contextNote`；`status` 兼容值为 `available`、`partial`、`unavailable`。
+- 邻域只读取用户此前通过背景补课生成并保存的图谱快照，限制为一跳、最多 8 个节点和 12 条边；不得因冲突自动调用 LLM、联网或生成新图。
+- 图谱节点和边的 `confidence/provenanceStatus` 仅用于解释来源覆盖，不代表论文权威度或结论真伪概率。
+- GraphRAG 上下文不得修改已有冲突类型、严重度或人工核查标记，也不得自动融合矛盾结论或裁决哪一方正确。
+- 背景图谱默认保存到 `ai-service-python/data/knowledge_graph.sqlite3`，可通过 `KNOWLEDGE_GRAPH_DB_PATH` 覆盖；SQLite 或可选 Neo4j 不可用时不得阻断研究任务。
+- `POST /api/background-knowledge` 可兼容新增 `sqlite.enabled/status/message` 存储状态；旧客户端可忽略，`status=error` 不代表图谱生成失败。
+
 ## Deep Research trace summary 持久化边界
 
 - `GET /api/traces/{traceId}` 的响应结构保持 `{ "status": "success", "trace": {} }`，Java 网关继续只读透传 Python `/api/traces/{traceId}`。

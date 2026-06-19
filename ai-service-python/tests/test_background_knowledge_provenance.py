@@ -5,6 +5,16 @@ from services import background_knowledge_service as service
 
 
 class BackgroundKnowledgeProvenanceIntegrationTest(unittest.TestCase):
+    def test_sqlite_snapshot_persistence_is_non_blocking(self):
+        payload = {"pdfId": "paper.pdf", "paper_topic": "Paper", "graph": {"nodes": [], "edges": []}}
+        expected = {"enabled": True, "status": "error", "message": "disk unavailable"}
+
+        with patch.object(service, "save_graph_snapshot", return_value=expected) as save:
+            result = service._persist_optional_sqlite(payload)
+
+        self.assertEqual(result, expected)
+        save.assert_called_once_with(payload)
+
     @patch.object(service, "get_rag")
     def test_related_sources_are_restricted_to_current_paper(self, get_rag):
         rag = Mock()

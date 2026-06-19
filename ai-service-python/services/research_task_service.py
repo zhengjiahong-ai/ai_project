@@ -386,7 +386,7 @@ def _run_research_task(
             plan=copy.deepcopy(plan_items),
             findings=copy.deepcopy(findings),
         )
-        conflicts = _detect_research_conflicts(findings)
+        conflicts = research_aggregator.enrich_research_conflicts(_detect_research_conflicts(findings))
         _update_task_snapshot(
             task_id,
             stage=SYNTHESIZING_STAGE,

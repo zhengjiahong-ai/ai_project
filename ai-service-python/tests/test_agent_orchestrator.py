@@ -143,9 +143,12 @@ class AgentOrchestratorTests(unittest.TestCase):
         self.assertEqual(comparison_table["columns"][0], "paperId")
         self.assertEqual(len(comparison_table["rows"]), 2)
         self.assertEqual(conflicts[0]["id"], "evidence-coverage-conflict")
+        self.assertIn("graphContext", conflicts[0])
         self.assertTrue(open_questions)
         self.assertIn("# Agent Research Draft", report)
         self.assertIn("## Conflict Candidates", report)
+        self.assertIn("Graph context", report)
+        self.assertIn("not automatically adjudicated", report)
         self.assertIn("paper-a", report)
 
 

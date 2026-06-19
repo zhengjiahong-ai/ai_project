@@ -100,6 +100,7 @@ NEO4J_PASSWORD=
 NEO4J_AUTH=neo4j/pixiu_neo4j_password
 
 RESEARCH_TASK_DB_PATH=ai-service-python/data/research_tasks.sqlite3
+KNOWLEDGE_GRAPH_DB_PATH=ai-service-python/data/knowledge_graph.sqlite3
 
 # 默认不要设置；仅启动本机只读 MCP adapter 时显式设为 true
 PIXIU_MCP_ENABLED=false
@@ -251,9 +252,10 @@ Python 保存：
 - Chroma 检索索引。
 - Deep Research SQLite 快照，默认位置为 `ai-service-python/data/research_tasks.sqlite3` 或 `RESEARCH_TASK_DB_PATH`。
 - Agent SQLite 快照，默认位置为 `ai-service-python/data/agent_state.sqlite3` 或 `AGENT_STATE_DB_PATH`；删除项目会同步删除该项目任务和事件摘要。
+- 背景知识图谱 SQLite 快照，默认位置为 `ai-service-python/data/knowledge_graph.sqlite3` 或 `KNOWLEDGE_GRAPH_DB_PATH`；配置 Neo4j 时仍会同时写入可选镜像。
 - 进程内 public trace summary；Deep Research 终态 trace summary 会随 SQLite 任务快照保存。
 
-Python AI 服务内部已经将单论文 Deep Research 拆为 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，并将多论文 Agent 研究的计划、工具调用摘要、证据聚合和报告综合拆到 `agent_orchestrator.py`。这些变化不新增运行命令；需要隔离 Agent 状态库时可设置 `AGENT_STATE_DB_PATH`。
+Python AI 服务内部已经将单论文 Deep Research 拆为 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，并将多论文 Agent 研究的计划、工具调用摘要、证据聚合和报告综合拆到 `agent_orchestrator.py`。Deep Research 和 Agent 的真实冲突会读取已有背景图谱的一跳邻域，补充来源覆盖说明；无图谱时自动降级，报告仍要求人工核查且不会自动裁决。需要隔离 Agent 或图谱状态库时可设置 `AGENT_STATE_DB_PATH`、`KNOWLEDGE_GRAPH_DB_PATH`。
 
 ## 验证命令
 

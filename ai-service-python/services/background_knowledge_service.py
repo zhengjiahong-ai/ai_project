@@ -7,6 +7,7 @@ from rag.store import get_rag
 from schemas.requests import BackgroundKnowledgeRequest
 from services.evidence_service import compact_evidence_for_response, normalize_evidence_items
 from services.knowledge_graph_service import build_provenance_summary, generate_current_paper_graph
+from services.knowledge_graph_store import save_graph_snapshot
 from services.query_service import build_retrieval_queries
 from services.safety_service import build_guarded_messages, summarize_safety_results, wrap_untrusted_context
 from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
@@ -183,6 +184,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
 
         payload["rag_sources"] = response_rag_sources
         payload["queryPlan"] = query_plan
+        payload["sqlite"] = _persist_optional_sqlite(payload)
         payload["neo4j"] = _persist_optional_neo4j(payload)
         payload["traceId"] = trace_id
         payload["reader_profile"] = payload.get("reader_profile") or reader_profile
@@ -1096,6 +1098,13 @@ def _persist_optional_neo4j(payload: Dict[str, Any]) -> Dict[str, Any]:
         except Exception as error:
             step["outputSize"] = 0
             return {"enabled": True, "status": "error", "message": str(error)[:300]}
+
+
+def _persist_optional_sqlite(payload: Dict[str, Any]) -> Dict[str, Any]:
+    with trace_step("persist_background_sqlite") as step:
+        result = save_graph_snapshot(payload)
+        step["outputSize"] = len((payload.get("graph") or {}).get("nodes") or []) if result.get("status") == "success" else 0
+        return result
 
 
 def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None:

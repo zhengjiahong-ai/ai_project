@@ -2,6 +2,7 @@ import re
 from typing import Any, Dict, List
 
 from services.evidence_service import normalize_evidence_items
+from services.knowledge_graph_store import enrich_conflicts_with_graph_context
 
 
 MAX_RESEARCH_CONFLICTS = 5
@@ -43,8 +44,14 @@ def build_research_report(
                 f"- 严重度：{conflict.get('severity') or 'medium'}",
                 f"- 摘要：{conflict.get('summary') or '不同来源存在需要人工核查的矛盾线索。'}",
                 f"- 冲突来源：{', '.join(str(item) for item in source_ids if item) or '未绑定稳定来源'}",
-                "",
             ])
+            graph_context = conflict.get("graphContext") if isinstance(conflict.get("graphContext"), dict) else {}
+            if graph_context:
+                lines.append(
+                    f"- 图谱上下文：{graph_context.get('status') or 'unavailable'}，"
+                    f"命中 {len(graph_context.get('nodes') or [])} 个节点；本冲突未自动裁决，仍需人工核查。"
+                )
+            lines.append("")
 
     lines.extend([
         "## 综合判断",
@@ -109,6 +116,10 @@ def detect_research_conflicts(findings: List[Dict[str, Any]]) -> List[Dict[str, 
                 return conflicts
 
     return conflicts
+
+
+def enrich_research_conflicts(conflicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return enrich_conflicts_with_graph_context(conflicts)
 
 
 def build_judge_trace_summary(findings: List[Dict[str, Any]]) -> Dict[str, Any]:

@@ -64,13 +64,13 @@ class ToolRegistryContractTests(unittest.TestCase):
     def tearDown(self):
         reset_tool_registry()
 
-    def test_default_registry_exposes_seven_serializable_versioned_contracts(self):
+    def test_default_registry_exposes_eight_serializable_versioned_contracts(self):
         registry = get_tool_registry()
 
         contracts = registry.list_tools()
 
         self.assertEqual(registry.schemaVersion, "1.0")
-        self.assertEqual(len(contracts), 7)
+        self.assertEqual(len(contracts), 8)
         self.assertEqual(
             set(contracts[0]),
             {"name", "version", "description", "inputSchema", "outputSchema", "safetyScope"},
@@ -82,6 +82,17 @@ class ToolRegistryContractTests(unittest.TestCase):
 
         contracts[0]["inputSchema"]["properties"]["tampered"] = {"type": "string"}
         self.assertNotIn("tampered", registry.list_tools()[0]["inputSchema"]["properties"])
+
+    def test_graph_neighborhood_tool_is_strict_and_read_only(self):
+        registry = get_tool_registry()
+        contract = next(item for item in registry.list_tools() if item["name"] == "read_knowledge_graph_neighborhood")
+
+        self.assertEqual(contract["safetyScope"]["access"], "read_only")
+        self.assertFalse(contract["safetyScope"]["networkAccess"])
+        self.assertFalse(contract["safetyScope"]["sideEffects"])
+        self.assertTrue(contract["safetyScope"]["sensitiveOutput"])
+        with self.assertRaisesRegex(ToolValidationError, "unexpected"):
+            registry.invoke("read_knowledge_graph_neighborhood", {"seedTerms": ["accuracy"], "unexpected": True})
 
     def test_registration_rejects_duplicate_name_invalid_version_and_empty_description(self):
         registry = ToolRegistry()

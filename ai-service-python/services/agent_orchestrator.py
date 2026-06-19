@@ -3,6 +3,7 @@ import re
 from typing import Any, Callable, Dict, List, Tuple
 
 from services.evidence_service import normalize_evidence_items
+from services.knowledge_graph_store import enrich_conflicts_with_graph_context
 from services.tool_registry import get_tool_registry
 from services.trace_service import record_counter, sanitize_text, trace_step
 
@@ -143,7 +144,7 @@ def build_agent_outputs(
             for item in paper_contexts
         ],
     }
-    conflicts = detect_conflicts(paper_contexts, evidence_items)
+    conflicts = enrich_conflicts_with_graph_context(detect_conflicts(paper_contexts, evidence_items))
     open_questions = []
     for item in paper_contexts:
         if item.get("evidenceCount", 0) <= 1:
@@ -380,7 +381,15 @@ def build_conflict_lines(conflicts: List[Dict[str, Any]]) -> List[str]:
         papers = [paper for paper in item.get("papers") or [] if clean_text(paper)]
         paper_text = f" Papers: {', '.join(papers[:4])}." if papers else ""
         claim_text = f" Claim: {claim}." if claim else ""
-        lines.append(f"- [{severity}] {summary}{claim_text}{paper_text}")
+        graph_context = item.get("graphContext") if isinstance(item.get("graphContext"), dict) else {}
+        graph_text = ""
+        if graph_context:
+            graph_text = (
+                f" Graph context: {graph_context.get('status') or 'unavailable'} with "
+                f"{len(graph_context.get('nodes') or [])} nodes; this conflict was not automatically adjudicated "
+                "and still requires manual review."
+            )
+        lines.append(f"- [{severity}] {summary}{claim_text}{paper_text}{graph_text}")
     return lines
 
 
