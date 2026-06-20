@@ -77,6 +77,7 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
     "sections": []
   },
   "translationLayoutIndex": {},
+  "parseStatus": "parsed",
   "ragIndexed": true,
   "ragChunkCount": 42
 }
@@ -85,6 +86,9 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 说明：
 
 - `pdfId` 是前端后续引用论文的稳定主键。
+- `parseStatus` 取值为 `parsed` 或 `scanned_or_low_text`。后者表示 PDF 文本层与 GROBID TEI 正文均低于按页数计算的安全阈值。
+- `parseStatus=scanned_or_low_text` 时会额外返回 `parseMessage`，提示先执行 OCR 或更换文字版 PDF；上传本身仍成功，但依赖正文的问答、分析和检索能力可能受限。
+- 若 GROBID 未生成 TEI 且 PDF 同样为低文本，接口返回成功的空骨架降级响应并设置 `ragIndexed=false`；PDF 文本充足时仍按解析异常处理。
 - 上传成功后，Java 会在 H2 中保存论文记录。
 
 ### `POST /api/chat`

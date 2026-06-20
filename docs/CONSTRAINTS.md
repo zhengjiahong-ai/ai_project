@@ -7,6 +7,13 @@
 - 前端新增后端调用时集中维护在 `frontend/src/services/api.js`。
 - 新增或变更接口字段时，同步更新 `API.md`、本文件和相关测试。
 
+## PDF 低文本诊断边界
+
+- `POST /api/upload` 成功响应必须返回机器字段 `parseStatus`，兼容值为 `parsed` 和 `scanned_or_low_text`；Java 网关继续透明透传。
+- 诊断同时参考 PDF 文本层和 GROBID TEI 正文的非空白字符数，阈值为 `min(max(200, pageCount * 50), 2000)`；任一来源达到阈值即视为 `parsed`。
+- `scanned_or_low_text` 仅表示需要 OCR 或更换文字版 PDF，不自动执行 OCR、不上传外部服务，也不阻止 PDF 在阅读器中打开。
+- 低文本状态必须优先于 `ragIndexed=false` 展示，避免把扫描件误报为普通索引异常；旧本地中文状态仍需兼容。
+
 ## 背景知识图谱来源边界
 
 - `POST /api/background-knowledge` 只允许使用当前 `pdfId` 对应的索引片段、请求携带的 `paperSkeleton/paperStructure` 和显式 `paper_topic`，不得自动检索论文库中的其他论文。

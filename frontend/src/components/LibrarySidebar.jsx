@@ -11,8 +11,9 @@ import {
   X,
 } from 'lucide-react';
 import { getPaperStudyProgress } from '../utils/studyProgress.js';
+import { getParseStatusLabel, getParseWarningMessage } from './parseStatusModel.js';
 
-const statusOptions = ['全部', '已解析', '索引异常'];
+const statusOptions = ['全部', '已解析', '需 OCR', '索引异常'];
 
 const formatDateTime = (timestamp) => {
   if (!timestamp) return '未记录';
@@ -29,14 +30,10 @@ const formatDateTime = (timestamp) => {
   });
 };
 
-const getPaperStatus = (paper) => {
-  if (paper?.parseStatus) return paper.parseStatus;
-  if (paper?.ragIndexed === false) return '索引异常';
-  return '已解析';
-};
+const getPaperStatus = (paper) => getParseStatusLabel(paper);
 
 const statusStyle = (status) => {
-  if (status === '索引异常') {
+  if (status === '索引异常' || status === '需 OCR') {
     return 'bg-amber-500/10 text-amber-600';
   }
 
@@ -166,6 +163,7 @@ const LibrarySidebar = ({
                     isActive ? currentStudyProgressSnapshot : null,
                   );
                   const authors = Array.isArray(paper.authors) ? paper.authors.join(', ') : paper.authors;
+                  const parseWarning = getParseWarningMessage(paper);
 
                   return (
                     <tr key={paper.id} className={isActive ? 'bg-pixiu/5' : 'theme-panel'}>
@@ -211,10 +209,15 @@ const LibrarySidebar = ({
                         </p>
                       </td>
                       <td className="theme-border border-b px-4 py-4">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold ${statusStyle(status)}`}>
-                          {status === '索引异常' ? <AlertCircle size={13} /> : <CheckCircle2 size={13} />}
-                          {status}
-                        </span>
+                        <div className="max-w-[15rem]">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold ${statusStyle(status)}`}>
+                            {status === '已解析' ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+                            {status}
+                          </span>
+                          {parseWarning && (
+                            <p className="mt-2 text-[11px] leading-5 text-amber-600">{parseWarning}</p>
+                          )}
+                        </div>
                       </td>
                       <td className="theme-border border-b px-4 py-4">
                         <span className="theme-text-secondary inline-flex items-center gap-1 text-xs">

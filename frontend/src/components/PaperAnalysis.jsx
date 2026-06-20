@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   FileText,
@@ -12,6 +13,7 @@ import {
 
 import InsightCard from './InsightCard.jsx';
 import { buildDeconstructionArtifact } from './artifactModel.js';
+import { getParseWarningMessage } from './parseStatusModel.js';
 
 const outlineSourceLabels = {
   tei: 'PDF结构',
@@ -52,6 +54,7 @@ const readingModes = [
 const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutlineItem, onCaptureArtifact }) => {
   const [activeMode, setActiveMode] = useState('overview');
   const [visibleSectionCount, setVisibleSectionCount] = useState(2);
+  const parseWarning = getParseWarningMessage(data);
 
   const availableSections = useMemo(
     () =>
@@ -61,8 +64,8 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
           label,
           content: data?.paper_skeleton?.[key],
         }))
-        .filter((section) => section.content && !section.content.includes('请提供具体内容')),
-    [data?.paper_skeleton],
+        .filter((section) => !parseWarning && section.content && !section.content.includes('请提供具体内容')),
+    [data?.paper_skeleton, parseWarning],
   );
 
   const overviewSummary = useMemo(() => {
@@ -151,8 +154,8 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
             </div>
             <p className="theme-text-secondary mt-1 text-xs">把后端给出的骨架拆成三步：先看结论，再看目录，最后按需展开章节。</p>
           </div>
-          <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-500">
-            已解构
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${parseWarning ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-500'}`}>
+            {parseWarning ? '需 OCR' : '已解构'}
           </span>
         </div>
 
@@ -172,6 +175,17 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto p-5">
+        {parseWarning && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-700">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+              <div>
+                <h3 className="text-sm font-bold">当前 PDF 需要 OCR</h3>
+                <p className="mt-1 text-xs leading-6">{parseWarning}</p>
+              </div>
+            </div>
+          </div>
+        )}
         {overviewSummary && (
           <InsightCard
             title="这篇论文先看什么"

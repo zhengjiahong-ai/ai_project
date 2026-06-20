@@ -7,6 +7,11 @@ from typing import Any, Dict, List
 from bs4 import BeautifulSoup
 from fastapi import UploadFile
 
+try:
+    from PyPDF2 import PdfReader
+except ImportError:  # pragma: no cover - deployment dependency guard
+    PdfReader = None
+
 from core.document_parser import extract_translation_layout_index, parse_tei_xml
 from core.outline_extractor import OUTLINE_VERSION, build_document_outline
 from llm.client import get_llm
@@ -43,6 +48,9 @@ RAG_INDEX_UNAVAILABLE_ERROR_CODE = "rag_index_unavailable"
 PAPER_NOT_INDEXED_MESSAGE = "当前论文尚未完成全文索引，请重新上传或重新解析后再试。"
 RAG_INDEX_EMPTY_MESSAGE = "论文已解析，但没有可入库的正文片段，批判阅读暂不可用。请重新上传，或确认 PDF 是可提取文字的版本。"
 RAG_INDEX_UNAVAILABLE_MESSAGE = "论文已解析，但全文索引服务暂不可用，批判阅读暂不可用。请稍后重新解析或重启 AI 服务后再试。"
+PARSE_STATUS_PARSED = "parsed"
+PARSE_STATUS_SCANNED_OR_LOW_TEXT = "scanned_or_low_text"
+LOW_TEXT_PARSE_MESSAGE = "检测到的 PDF 文本量过低，可能是扫描件。请先执行 OCR 或更换文字版 PDF。"
 ANALYSIS_AXIS_CONFIGS = (
     {
         "key": "contributions",
@@ -251,6 +259,77 @@ def _build_section_outline(parsed_sections: list[dict]) -> list[dict]:
     return outline
 
 
+def _count_non_whitespace_characters(value: str) -> int:
+    return len(re.sub(r"\s+", "", str(value or "")))
+
+
+def _extract_pdf_text_stats(file_path: str) -> Dict[str, int]:
+    if PdfReader is None:
+        raise RuntimeError("PyPDF2 is required to diagnose PDF text content.")
+    reader = PdfReader(file_path)
+    extracted_text: list[str] = []
+    for page in reader.pages:
+        try:
+            extracted_text.append(page.extract_text() or "")
+        except Exception as error:
+            print(f"PDF text extraction skipped one page: {error}")
+    return {
+        "pageCount": len(reader.pages),
+        "textCharCount": _count_non_whitespace_characters("\n".join(extracted_text)),
+    }
+
+
+def _build_parse_diagnostics(
+    *, page_count: int, pdf_text_char_count: int, tei_text_char_count: int
+) -> Dict[str, Any]:
+    threshold = min(max(200, max(0, int(page_count or 0)) * 50), 2000)
+    max_text_char_count = max(
+        max(0, int(pdf_text_char_count or 0)),
+        max(0, int(tei_text_char_count or 0)),
+    )
+    diagnostics: Dict[str, Any] = {
+        "parseStatus": PARSE_STATUS_PARSED
+        if max_text_char_count >= threshold
+        else PARSE_STATUS_SCANNED_OR_LOW_TEXT,
+        "textThreshold": threshold,
+    }
+    if diagnostics["parseStatus"] == PARSE_STATUS_SCANNED_OR_LOW_TEXT:
+        diagnostics["parseMessage"] = LOW_TEXT_PARSE_MESSAGE
+    return diagnostics
+
+
+def _build_low_text_upload_response(filename: str, pdf_stats: Dict[str, int]) -> Dict[str, Any]:
+    diagnostics = _build_parse_diagnostics(
+        page_count=pdf_stats.get("pageCount", 0),
+        pdf_text_char_count=pdf_stats.get("textCharCount", 0),
+        tei_text_char_count=0,
+    )
+    empty_section_message = "未能从论文中提取足够文本，请先执行 OCR 或更换文字版 PDF。"
+    return {
+        "status": "success",
+        "paper_skeleton": {
+            key: empty_section_message
+            for key in ("abstract", "introduction", "methods", "results", "discussion", "conclusion")
+        },
+        "paper_structure": {
+            "error": "no_content",
+            "raw": "No usable text was extracted from the paper.",
+            "outlineVersion": "unavailable",
+            "sections": [],
+        },
+        "translationLayoutIndex": {},
+        "pdfId": normalize_id(filename),
+        "title": filename,
+        "authors": [],
+        "ragIndexed": False,
+        "ragChunkCount": 0,
+        "ragErrorCode": PAPER_NOT_INDEXED_ERROR_CODE,
+        "message": RAG_INDEX_EMPTY_MESSAGE,
+        "parseStatus": diagnostics["parseStatus"],
+        "parseMessage": diagnostics["parseMessage"],
+    }
+
+
 async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
     input_dir = tempfile.mkdtemp()
     output_dir = tempfile.mkdtemp()
@@ -259,6 +338,8 @@ async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
         file_path = os.path.join(input_dir, "target_paper.pdf")
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
+
+        pdf_stats = _extract_pdf_text_stats(file_path)
 
         get_grobid_client().process(
             "processFulltextDocument",
@@ -270,10 +351,26 @@ async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
 
         xml_files = [name for name in os.listdir(output_dir) if name.endswith(".tei.xml")]
         if not xml_files:
+            diagnostics = _build_parse_diagnostics(
+                page_count=pdf_stats.get("pageCount", 0),
+                pdf_text_char_count=pdf_stats.get("textCharCount", 0),
+                tei_text_char_count=0,
+            )
+            if diagnostics["parseStatus"] == PARSE_STATUS_SCANNED_OR_LOW_TEXT:
+                return _build_low_text_upload_response(file.filename or "uploaded.pdf", pdf_stats)
             raise RuntimeError("GROBID did not produce a TEI XML file.")
 
         tei_file = os.path.join(output_dir, xml_files[0])
         parsed_sections = parse_tei_xml(tei_file)
+        tei_text_char_count = sum(
+            _count_non_whitespace_characters(section.get("content", ""))
+            for section in parsed_sections
+        )
+        parse_diagnostics = _build_parse_diagnostics(
+            page_count=pdf_stats.get("pageCount", 0),
+            pdf_text_char_count=pdf_stats.get("textCharCount", 0),
+            tei_text_char_count=tei_text_char_count,
+        )
         translation_layout_index = extract_translation_layout_index(tei_file)
         outline_version = OUTLINE_VERSION
         try:
@@ -418,7 +515,10 @@ Paper context:
             "authors": authors,
             "ragIndexed": rag_indexed,
             "ragChunkCount": rag_chunk_count,
+            "parseStatus": parse_diagnostics["parseStatus"],
         }
+        if parse_diagnostics.get("parseMessage"):
+            response["parseMessage"] = parse_diagnostics["parseMessage"]
         if rag_message:
             response["message"] = rag_message
         if rag_error_code:
