@@ -88,6 +88,21 @@ class ResearchTaskBriefPreviewRequest(BaseModel):
     userConstraints: Optional[str] = ""
 
 
+class RiskReviewItem(BaseModel):
+    riskId: str
+    reviewStatus: str
+
+
+class ResearchPlanReviewRequest(BaseModel):
+    subQuestions: List[str]
+    reviewNotes: Optional[str] = ""
+
+
+class ResearchFinalReviewRequest(BaseModel):
+    reviewNotes: Optional[str] = ""
+    riskReviews: Optional[List[RiskReviewItem]] = None
+
+
 class AgentProjectCreateRequest(BaseModel):
     title: Optional[str] = ""
     goal: Optional[str] = ""
@@ -109,3 +124,21 @@ class AgentTaskCreateRequest(BaseModel):
     focusedPaperIds: Optional[List[str]] = None
     constraints: Optional[str] = ""
     context: Optional[Dict[str, Any]] = None
+
+
+class AgentPlanItemRequest(BaseModel):
+    id: Optional[str] = ""
+    label: str
+    detail: Optional[str] = ""
+
+
+class AgentPlanReviewRequest(BaseModel):
+    planItems: List[AgentPlanItemRequest]
+    focusedPaperIds: List[str]
+    constraints: Optional[str] = ""
+    reviewNotes: Optional[str] = ""
+
+
+class AgentFinalReviewRequest(BaseModel):
+    reviewNotes: Optional[str] = ""
+    riskReviews: Optional[List[RiskReviewItem]] = None

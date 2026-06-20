@@ -8,6 +8,8 @@ from schemas.requests import (
     AgentProjectPapersRequest,
     AgentProjectUpdateRequest,
     AgentTaskCreateRequest,
+    AgentFinalReviewRequest,
+    AgentPlanReviewRequest,
 )
 from services import agent_project_service, trace_service
 
@@ -61,6 +63,37 @@ class AgentProjectPersistenceTests(unittest.TestCase):
                 ),
             )
         return response["task"]
+
+    def test_agent_task_requires_plan_and_final_review(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        with patch.object(agent_project_service, "_start_agent_worker"):
+            planned = agent_project_service.prepare_agent_task_now(task["taskId"])
+            self.assertEqual(planned["status"], "awaiting_plan_review")
+            approved = agent_project_service.review_agent_plan(
+                task["taskId"],
+                AgentPlanReviewRequest(
+                    planItems=[{"id": "methods", "label": "Compare methods", "detail": "Compare training methods"}],
+                    focusedPaperIds=["paper-a"],
+                    constraints="Only methods",
+                    reviewNotes="缩小范围",
+                ),
+            )["task"]
+        self.assertEqual(approved["status"], "running")
+        self.assertEqual(approved["focusedPaperIds"], ["paper-a"])
+        self.assertEqual(approved["constraints"], "Only methods")
+
+        agent_project_service._update_task(
+            task["taskId"],
+            status="awaiting_final_review",
+            reviewRisks=[{"riskId": "open:1", "type": "open_question", "label": "开放问题", "detail": "more evidence", "sourceIds": [], "reviewStatus": "pending"}],
+        )
+        completed = agent_project_service.review_agent_final(
+            task["taskId"],
+            AgentFinalReviewRequest(reviewNotes="已检查", riskReviews=[{"riskId": "open:1", "reviewStatus": "reviewed"}]),
+        )["task"]
+        self.assertEqual(completed["status"], "succeeded")
+        self.assertEqual(completed["humanReview"]["final"]["reviewNotes"], "已检查")
 
     def test_project_updates_and_paper_changes_restore_from_sqlite(self):
         project = self._create_project()
@@ -121,6 +154,10 @@ class AgentProjectPersistenceTests(unittest.TestCase):
             agent_project_service._run_minimal_agent_task(task["taskId"])
 
         completed = agent_project_service.get_agent_task(task["taskId"])["task"]
+        self.assertEqual(completed["status"], "awaiting_final_review")
+        completed = agent_project_service.review_agent_final(
+            task["taskId"], AgentFinalReviewRequest(reviewNotes="reviewed", riskReviews=[])
+        )["task"]
         self.assertEqual(completed["status"], "succeeded")
         self.assertTrue(completed["events"])
         self.assertTrue(completed["toolCalls"])
@@ -138,7 +175,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         latest = agent_project_service.get_latest_agent_task(project["projectId"])["task"]
         self.assertEqual(restored["status"], "succeeded")
         self.assertEqual(latest["taskId"], task["taskId"])
-        self.assertEqual(restored["events"][-1]["type"], "task_completed")
+        self.assertEqual(restored["events"][-1]["type"], "final_review_approved")
         self.assertEqual(restored["toolCalls"], completed["toolCalls"])
         self.assertEqual(restored["toolCalls"][0]["version"], "1.0.0")
         self.assertEqual(restored["toolCalls"][0]["safetyScope"]["access"], "read_only")

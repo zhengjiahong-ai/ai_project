@@ -273,6 +273,13 @@ P2-3 来源与生成约束：
 
 取消 Deep Research 任务。
 
+### Deep Research 人工审查接口
+
+- `POST /api/research-tasks/{taskId}/plan-review`：提交 `{ "subQuestions": ["..."], "reviewNotes": "..." }`，子问题必须为 1–5 个合法非空项；成功后任务从 `awaiting_plan_review` 进入 `running`。
+- `POST /api/research-tasks/{taskId}/final-review`：提交 `{ "reviewNotes": "...", "riskReviews": [{ "riskId": "...", "reviewStatus": "reviewed|needs_follow_up" }] }`；成功后任务从 `awaiting_final_review` 进入 `succeeded`。
+- 创建任务只启动 Planner。Planner 快照包含 `plan/humanReview/reviewRisks`；等待审查期间可取消，并且服务重启后保持等待状态。
+- 非法字段返回 `422`，不允许的状态转换返回 `409`；已进入后续阶段的重复审批返回当前快照。
+
 ### `GET /api/traces/{traceId}`
 
 读取脱敏 public trace summary。
@@ -559,6 +566,13 @@ P2-3 来源与生成约束：
 ### `POST /api/agent-tasks/{taskId}/cancel`
 
 取消 Agent 任务。
+
+### Agent 人工审查接口
+
+- `POST /api/agent-tasks/{taskId}/plan-review`：提交完整 `planItems`、项目内 `focusedPaperIds`、`constraints` 和可选 `reviewNotes`。批准后的研究指令会参与检索 query 与综合上下文。
+- `POST /api/agent-tasks/{taskId}/final-review`：提交 `reviewNotes` 与 `riskReviews`，用于核查冲突和开放问题；确认后才进入 `succeeded`。
+- `status` 新增 `awaiting_plan_review`、`awaiting_final_review`；对应 `stage` 仍为 `planning`、`synthesizing`。任务快照新增 `humanReview` 与 `reviewRisks`，旧快照可缺省。
+- 等待审查的 SQLite 快照可跨重启恢复；`running/pending` 任务仍按原规则恢复为 `failed`。
 
 ### `GET /api/agent-traces/{traceId}`
 

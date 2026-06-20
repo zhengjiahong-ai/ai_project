@@ -191,3 +191,6 @@ Agent 面板后续会返回更复杂的数据结构，Java 层需要承担“对
 2. 再加 H2 项目元数据表。
 3. 再补 latest task / trace / task list 聚合。
 4. 最后再考虑分页、筛选和未来多用户隔离。
+# P2-7 后端审查状态机（已完成）
+
+Python/Java 已支持 Agent plan/final review 接口、等待状态、风险标记与 SQLite 恢复；批准后的计划项、focused papers 和约束参与真实执行输入。

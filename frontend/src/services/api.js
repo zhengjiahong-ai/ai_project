@@ -101,6 +101,8 @@ export const createApiService = (client, agentFallbackClient = null, options = {
     }),
 
   getResearchTask: async (taskId) => client.get(`/research-tasks/${encodeURIComponent(taskId)}`),
+  reviewResearchPlan: async (taskId, payload) => client.post(`/research-tasks/${encodeURIComponent(taskId)}/plan-review`, payload),
+  reviewResearchFinal: async (taskId, payload) => client.post(`/research-tasks/${encodeURIComponent(taskId)}/final-review`, payload),
 
   getLatestResearchTask: async (pdfId) =>
     client.get(`/research-tasks/latest?pdfId=${encodeURIComponent(pdfId)}`, { skipErrorLog: true }),
@@ -198,6 +200,18 @@ export const createApiService = (client, agentFallbackClient = null, options = {
     withAgentFallback(
       () => agentPrimaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/cancel`, null, { skipErrorLog: true }),
       agentSecondaryClient ? () => agentSecondaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/cancel`) : null,
+    ),
+
+  reviewAgentPlan: async (taskId, payload) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/plan-review`, payload, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/plan-review`, payload) : null,
+    ),
+
+  reviewAgentFinal: async (taskId, payload) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/final-review`, payload, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/final-review`, payload) : null,
     ),
 
   getAgentTrace: async (traceId) =>

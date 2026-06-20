@@ -97,6 +97,14 @@
 - `limit` 默认 `20`，Python 侧约束到 `1..100`；项目存在但没有任务时返回空数组，项目不存在时返回 `404 Agent project not found.`。
 - 前端进入、切换或刷新 Agent 项目时优先读取服务端任务历史；本地 `tasksByProjectId` 只作为旧接口、离线或临时失败 fallback。
 
+## 人机审查边界
+
+- 新建 Deep Research 和 Agent 任务必须经过 `awaiting_plan_review` 与 `awaiting_final_review`，不得由前端绕过 gate 直接标记完成。
+- Plan review 必须提交完整替换计划；Agent 的 `focusedPaperIds` 只能来自所属项目，批准后的计划和约束必须真实进入检索与综合输入。
+- `reviewRisks[*].riskId` 必须稳定关联已有冲突、finding 缺口或开放问题；`reviewStatus` 仅允许 `reviewed`、`needs_follow_up`。
+- 等待审查状态必须跨 SQLite 重启恢复；运行中的任务仍按既有中断失败语义处理。
+- 四个新增接口均保持 `/api` 前缀，前端调用集中在 `frontend/src/services/api.js`，Java 只做透明转发。
+
 ## 内部工具契约边界
 
 - Python `tool_registry` 的注册表契约版本固定为 `schemaVersion=1.0`，每个工具必须声明 SemVer `version`、输入/输出 schema 和完整 `safetyScope`。

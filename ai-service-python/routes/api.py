@@ -9,11 +9,15 @@ from schemas.requests import (
     AgentProjectPapersRequest,
     AgentProjectUpdateRequest,
     AgentTaskCreateRequest,
+    AgentFinalReviewRequest,
+    AgentPlanReviewRequest,
     ChatRequest,
     DeepAnalysisRequest,
     PageTranslationRequest,
     ResearchTaskBriefPreviewRequest,
     ResearchTaskCreateRequest,
+    ResearchFinalReviewRequest,
+    ResearchPlanReviewRequest,
     SocraticSessionAnswerRequest,
     SocraticSessionStartRequest,
     SocraticQuestionRequest,
@@ -207,6 +211,30 @@ async def cancel_agent_task(task_id: str):
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
 
+@router.post("/agent-tasks/{task_id}/plan-review")
+async def review_agent_plan(task_id: str, request: AgentPlanReviewRequest):
+    try:
+        return JSONResponse(agent_project_service.review_agent_plan(task_id, request))
+    except agent_project_service.AgentTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except agent_project_service.AgentReviewConflictError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=409)
+    except ValueError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=422)
+
+
+@router.post("/agent-tasks/{task_id}/final-review")
+async def review_agent_final(task_id: str, request: AgentFinalReviewRequest):
+    try:
+        return JSONResponse(agent_project_service.review_agent_final(task_id, request))
+    except agent_project_service.AgentTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except agent_project_service.AgentReviewConflictError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=409)
+    except ValueError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=422)
+
+
 @router.get("/agent-traces/{trace_id}")
 async def get_agent_trace(trace_id: str):
     try:
@@ -255,6 +283,30 @@ async def cancel_research_task(task_id: str):
         return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/research-tasks/{task_id}/plan-review")
+async def review_research_plan(task_id: str, request: ResearchPlanReviewRequest):
+    try:
+        return JSONResponse(research_task_service.review_research_plan(task_id, request))
+    except research_task_service.ResearchTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except research_task_service.ResearchReviewConflictError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=409)
+    except ValueError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=422)
+
+
+@router.post("/research-tasks/{task_id}/final-review")
+async def review_research_final(task_id: str, request: ResearchFinalReviewRequest):
+    try:
+        return JSONResponse(research_task_service.review_research_final(task_id, request))
+    except research_task_service.ResearchTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except research_task_service.ResearchReviewConflictError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=409)
+    except ValueError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=422)
 
 
 @router.get("/traces/{trace_id}")

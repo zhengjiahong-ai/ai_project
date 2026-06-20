@@ -203,6 +203,9 @@ docker compose up -d grobid
 
 今天 Agent 工作区完成了比较完整的一轮迭代，当前包括：
 
+- Planner 生成计划后进入人工审查，可增删改研究指令、选择 focused papers 并调整约束，确认后才执行检索。
+- Aggregator 生成草稿后进入终稿审查，可逐项标记冲突和缺证据为“已核查”或“仍需跟进”，确认后任务才完成。
+
 - 更完整的右侧 Agent 工作区展示，而不是简单 mock 面板。
 - 拆分后的前端子组件，便于后续维护。
 - 基于服务端 `GET /api/agent-projects/{projectId}/tasks` 的项目级任务历史。
@@ -220,6 +223,7 @@ docker compose up -d grobid
 当前限制：
 
 - 服务重启前仍在 `running` 或 `pending` 的 Agent 任务会恢复为 `failed`，并在任务错误和事件摘要中说明被服务重启中断。
+- `awaiting_plan_review` 和 `awaiting_final_review` 会持久化并在重启后继续等待用户操作。
 - Agent 结论已经能生成有用草稿，但仍是轻量规则型综合。
 - 如果 Java 运行时早于最新 Agent 转发代码启动，Agent 模式应继续使用默认的 Python 直连路径，或重建 Java 服务。
 

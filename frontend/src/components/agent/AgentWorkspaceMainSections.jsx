@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AlertTriangle, Archive, BookOpen, FileText, GitCompare, Sparkles, Workflow } from 'lucide-react';
 
 import { buildAgentComparisonArtifact, buildAgentReportArtifact } from '../artifactModel.js';
@@ -136,7 +136,26 @@ export const AgentTimelineSection = ({ currentTask }) => {
   );
 };
 
-export const AgentTaskPlanSection = ({ currentTask }) => (
+const AgentPlanReviewForm = ({ currentTask, activeProject, onReviewPlan }) => {
+  const [items, setItems] = useState(() => (currentTask?.planItems || []).map((item) => ({ ...item })));
+  const [paperIds, setPaperIds] = useState(() => currentTask?.focusedPaperIds || activeProject?.paperIds || []);
+  const [constraints, setConstraints] = useState(() => currentTask?.constraints || '');
+  const [reviewNotes, setReviewNotes] = useState('');
+  if (currentTask?.status !== 'awaiting_plan_review') return null;
+  return (
+    <div className="mx-4 mb-4 space-y-3 border-t border-[color:var(--border)] pt-4">
+      <div className="agent-title text-xs font-semibold">确认论文范围、约束和研究指令后才会执行</div>
+      <div className="flex flex-wrap gap-2">{(activeProject?.paperIds || []).map((paperId) => <label key={paperId} className="agent-card-soft rounded-lg px-2 py-1 text-xs"><input type="checkbox" checked={paperIds.includes(paperId)} onChange={() => setPaperIds((prev) => prev.includes(paperId) ? prev.filter((id) => id !== paperId) : [...prev, paperId])} /> {paperId}</label>)}</div>
+      {items.map((item, index) => <div key={item.id || index} className="agent-card grid gap-2 rounded-xl p-3"><input value={item.label || ''} onChange={(event) => setItems((prev) => prev.map((value, i) => i === index ? { ...value, label: event.target.value } : value))} className="agent-body rounded-lg bg-transparent px-2 py-1" /><textarea value={item.detail || ''} onChange={(event) => setItems((prev) => prev.map((value, i) => i === index ? { ...value, detail: event.target.value } : value))} className="agent-body rounded-lg bg-transparent px-2 py-1" /><button type="button" className="agent-secondary-button rounded-lg px-2 py-1 text-xs" onClick={() => setItems((prev) => prev.filter((_, i) => i !== index))}>删除</button></div>)}
+      <button type="button" className="agent-secondary-button rounded-lg px-3 py-1 text-xs" onClick={() => setItems((prev) => [...prev, { id: `plan-${prev.length + 1}`, label: '', detail: '' }])}>新增计划项</button>
+      <textarea value={constraints} onChange={(event) => setConstraints(event.target.value)} className="agent-card agent-body min-h-16 w-full rounded-xl p-3" placeholder="执行约束" />
+      <textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="agent-card agent-body min-h-16 w-full rounded-xl p-3" placeholder="审查备注（可选）" />
+      <button type="button" className="agent-primary-button rounded-xl px-4 py-2 text-xs font-semibold" onClick={() => onReviewPlan?.({ planItems: items.filter((item) => item.label?.trim()), focusedPaperIds: paperIds, constraints, reviewNotes })}>确认计划并执行</button>
+    </div>
+  );
+};
+
+export const AgentTaskPlanSection = ({ currentTask, activeProject, onReviewPlan }) => (
   <details className="agent-section mt-4 rounded-[18px]" open>
     <summary className="agent-title flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm font-semibold">
       <span className="flex items-center gap-2">
@@ -173,8 +192,16 @@ export const AgentTaskPlanSection = ({ currentTask }) => (
         </div>
       )}
     </div>
+    <AgentPlanReviewForm key={currentTask?.taskId} currentTask={currentTask} activeProject={activeProject} onReviewPlan={onReviewPlan} />
   </details>
 );
+
+export const AgentHumanFinalReview = ({ currentTask, onReviewFinal }) => {
+  const [statuses, setStatuses] = useState({});
+  const [reviewNotes, setReviewNotes] = useState('');
+  const risks = currentTask?.reviewRisks || [];
+  return <section className="agent-section mt-4 rounded-[18px] p-4"><div className="agent-title text-sm font-semibold">终稿人工审查</div><div className="mt-3 space-y-2">{risks.map((risk) => <div key={risk.riskId} className="agent-card rounded-xl p-3"><div className="agent-title text-xs font-semibold">{risk.label}</div><div className="agent-muted mt-1 text-xs">{risk.detail}</div><select className="agent-card-soft mt-2 rounded-lg px-2 py-1 text-xs" value={statuses[risk.riskId] || 'reviewed'} onChange={(event) => setStatuses((prev) => ({ ...prev, [risk.riskId]: event.target.value }))}><option value="reviewed">已核查</option><option value="needs_follow_up">仍需跟进</option></select></div>)}</div><textarea className="agent-card agent-body mt-3 min-h-16 w-full rounded-xl p-3" value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} placeholder="终稿审查备注（可选）" /><button type="button" className="agent-primary-button mt-3 rounded-xl px-4 py-2 text-xs font-semibold" onClick={() => onReviewFinal?.({ reviewNotes, riskReviews: risks.map((risk) => ({ riskId: risk.riskId, reviewStatus: statuses[risk.riskId] || 'reviewed' })) })}>确认终稿</button></section>;
+};
 
 export const AgentIntermediateArtifactsSection = ({ activeProject, currentTask }) => (
   <details className="agent-section mt-4 rounded-[18px]" open>

@@ -36,6 +36,38 @@ def build_plan_items(paper_ids: List[str], active_step: str = "scope") -> List[D
     ]
 
 
+def build_review_plan_items(prompt: str, paper_ids: List[str], constraints: str = "") -> List[Dict[str, Any]]:
+    return normalize_review_plan_items([
+        {"id": "evidence", "label": "Collect claim-level evidence", "detail": f"Retrieve evidence for: {clean_text(prompt)}"},
+        {"id": "compare", "label": "Compare focused papers", "detail": f"Compare methods and results across {len(paper_ids)} papers."},
+        {"id": "risks", "label": "Review conflicts and gaps", "detail": clean_text(constraints) or "Surface conflicts and missing evidence before finalization."},
+    ])
+
+
+def normalize_review_plan_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    normalized = []
+    for index, item in enumerate(items or [], 1):
+        label = clean_text(item.get("label"))
+        if not label:
+            continue
+        normalized.append({"id": clean_text(item.get("id")) or f"plan-{index}", "label": label[:120], "detail": clean_text(item.get("detail"))[:300], "status": "pending"})
+        if len(normalized) >= 8:
+            break
+    return normalized
+
+
+def update_plan_status(items: List[Dict[str, Any]], status: str) -> List[Dict[str, Any]]:
+    return [{**copy.deepcopy(item), "status": status} for item in items]
+
+
+def build_execution_prompt(prompt: str, plan_items: List[Dict[str, Any]], constraints: str) -> str:
+    directives = "; ".join(f"{clean_text(item.get('label'))}: {clean_text(item.get('detail'))}" for item in plan_items)
+    parts = [clean_text(prompt), f"Approved plan: {directives}"]
+    if clean_text(constraints):
+        parts.append(f"Constraints: {clean_text(constraints)}")
+    return "\n".join(item for item in parts if item)
+
+
 def build_planning_context(project: Dict[str, Any], paper_ids: List[str], constraints: str) -> str:
     parts = [
         f"project={project.get('title')}",

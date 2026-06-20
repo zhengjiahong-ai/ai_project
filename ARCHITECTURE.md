@@ -276,6 +276,8 @@ Python 服务大致分为：
 - `synthesizing`
 - `done`
 
+Deep Research 和 Agent 均在现有任务生命周期内实现两个人工 gate：Planner 输出后以 `awaiting_plan_review` 暂停，批准的完整计划成为 Executor 输入；Aggregator 输出草稿和 `reviewRisks` 后以 `awaiting_final_review` 暂停，终稿审批写入 `humanReview` 后才进入 `succeeded`。等待状态及执行上下文保存在各自 SQLite 快照中，前端等待期间停止轮询。
+
 #### `agent_project_service.py`
 
 这是当前 Agent 研究项目和任务生命周期的后端核心。

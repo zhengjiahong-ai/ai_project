@@ -46,7 +46,12 @@ test('阅读 IDE 与 Agent 研究完成同一浏览器 smoke 主流程', async (
   await page.getByPlaceholder(/让 Agent 比较/).fill(prompt);
   await page.getByTitle('启动 Agent 任务').click();
 
+  await expect(page.getByText('确认论文范围、约束和研究指令后才会执行')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: '确认计划并执行' }).click();
+
   await expect(page.getByText('项目对话记录')).toBeVisible();
+  await expect(page.getByText('终稿人工审查')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: '确认终稿' }).click();
   await expect(page.getByText('研究任务已完成')).toBeVisible({ timeout: 10_000 });
   const evidencePanel = page.locator('aside').filter({ hasText: 'Tools & Evidence' });
   await expect(evidencePanel.getByText('1 items')).toBeVisible();
@@ -63,4 +68,6 @@ test('阅读 IDE 与 Agent 研究完成同一浏览器 smoke 主流程', async (
   });
   expect(mockState.taskPayload.prompt).toBe(prompt);
   expect(mockState.taskPollCount).toBeGreaterThanOrEqual(2);
+  expect(mockState.planReviewPayload.focusedPaperIds).toEqual(['paper-smoke-1']);
+  expect(mockState.finalReviewPayload.riskReviews).toEqual([{ riskId: 'open:1', reviewStatus: 'reviewed' }]);
 });

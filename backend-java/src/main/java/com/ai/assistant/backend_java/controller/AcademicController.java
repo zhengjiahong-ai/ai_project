@@ -101,6 +101,16 @@ public class AcademicController {
         return aiService.cancelResearchTask(taskId);
     }
 
+    @PostMapping("/research-tasks/{taskId}/plan-review")
+    public ResponseEntity<Map<String, Object>> reviewResearchPlan(@PathVariable String taskId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewResearchPlan(taskId, request);
+    }
+
+    @PostMapping("/research-tasks/{taskId}/final-review")
+    public ResponseEntity<Map<String, Object>> reviewResearchFinal(@PathVariable String taskId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewResearchFinal(taskId, request);
+    }
+
     @GetMapping("/traces/{traceId}")
     public ResponseEntity<Map<String, Object>> getTrace(@PathVariable String traceId) {
         return aiService.getTrace(traceId);
@@ -174,6 +184,16 @@ public class AcademicController {
     @PostMapping("/agent-tasks/{taskId}/cancel")
     public ResponseEntity<Map<String, Object>> cancelAgentTask(@PathVariable String taskId) {
         return aiService.cancelAgentTask(taskId);
+    }
+
+    @PostMapping("/agent-tasks/{taskId}/plan-review")
+    public ResponseEntity<Map<String, Object>> reviewAgentPlan(@PathVariable String taskId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewAgentPlan(taskId, request);
+    }
+
+    @PostMapping("/agent-tasks/{taskId}/final-review")
+    public ResponseEntity<Map<String, Object>> reviewAgentFinal(@PathVariable String taskId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewAgentFinal(taskId, request);
     }
 
     @GetMapping("/agent-traces/{traceId}")

@@ -11,6 +11,8 @@ export const STATUS_LABELS = {
   succeeded: '已完成',
   running: '执行中',
   pending: '等待中',
+  awaiting_plan_review: '等待计划确认',
+  awaiting_final_review: '等待终稿确认',
   cancelled: '已取消',
   failed: '失败',
   fallback: '原型模式',
@@ -21,6 +23,8 @@ export const STATUS_TONE = {
   succeeded: 'agent-status-succeeded',
   running: 'agent-status-running',
   pending: 'agent-status-pending',
+  awaiting_plan_review: 'agent-status-pending',
+  awaiting_final_review: 'agent-status-pending',
   cancelled: 'agent-status-cancelled',
   failed: 'agent-status-failed',
   fallback: 'agent-status-fallback',
@@ -28,6 +32,7 @@ export const STATUS_TONE = {
 };
 
 export const TERMINAL_AGENT_STATUSES = new Set(['succeeded', 'failed', 'cancelled']);
+export const PAUSED_AGENT_STATUSES = new Set(['awaiting_plan_review', 'awaiting_final_review']);
 
 export const formatRelativeMeta = (project) => {
   if (!project) return '等待创建项目';

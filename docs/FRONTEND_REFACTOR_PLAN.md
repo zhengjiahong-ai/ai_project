@@ -58,3 +58,6 @@
 - `CriticalAnalysisPanel` 仅在批判阅读响应包含有效 `citationGraph.nodes` 和 `citationGraph.links` 时渲染 `ForceGraph`。
 - 没有真实 `citationGraph` 时展示“暂无引用网络”空态，并说明当前不会用模拟引用关系兜底。
 - citation graph 数据归一化集中在 `criticalAnalysisData.js`，面板组件只消费归一化后的有效图或 `null`。
+# P2-7 人机审查节点（已完成）
+
+Deep Research 与 Agent 工作区已加入计划和终稿双 gate。等待计划确认时提供可编辑计划、论文范围和约束；等待终稿确认时集中展示草稿、冲突、缺证据/开放问题、逐项状态和备注。两个等待状态停止自动轮询，提交审批或手动刷新后再更新。

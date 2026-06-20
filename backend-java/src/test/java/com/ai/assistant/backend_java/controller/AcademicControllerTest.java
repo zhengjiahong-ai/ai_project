@@ -1,6 +1,7 @@
 package com.ai.assistant.backend_java.controller;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -415,5 +416,24 @@ class AcademicControllerTest {
         mockMvc.perform(get("/api/agent-traces/trace-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trace.taskType").value("agent_research"));
+    }
+    @Test
+    void forwardsResearchReviewEndpoints() throws Exception {
+        when(aiService.reviewResearchPlan(eq("task-1"), anyMap())).thenReturn(ResponseEntity.ok(Map.of("status", "success")));
+        when(aiService.reviewResearchFinal(eq("task-1"), anyMap())).thenReturn(ResponseEntity.ok(Map.of("status", "success")));
+        mockMvc.perform(post("/api/research-tasks/task-1/plan-review").contentType(MediaType.APPLICATION_JSON).content("{\"subQuestions\":[\"Q1\"]}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/research-tasks/task-1/final-review").contentType(MediaType.APPLICATION_JSON).content("{\"riskReviews\":[]}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void forwardsAgentReviewEndpoints() throws Exception {
+        when(aiService.reviewAgentPlan(eq("task-1"), anyMap())).thenReturn(ResponseEntity.ok(Map.of("status", "success")));
+        when(aiService.reviewAgentFinal(eq("task-1"), anyMap())).thenReturn(ResponseEntity.ok(Map.of("status", "success")));
+        mockMvc.perform(post("/api/agent-tasks/task-1/plan-review").contentType(MediaType.APPLICATION_JSON).content("{\"planItems\":[],\"focusedPaperIds\":[]}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/agent-tasks/task-1/final-review").contentType(MediaType.APPLICATION_JSON).content("{\"riskReviews\":[]}"))
+                .andExpect(status().isOk());
     }
 }

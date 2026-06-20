@@ -42,6 +42,18 @@ const formatTraceMeta = (value) => {
     .join(' · ');
 };
 
+const ResearchPlanReviewForm = ({ task, onReviewPlan }) => {
+  const [planDraft, setPlanDraft] = useState(() => (task.planItems || []).map((item) => item.question).join('\n'));
+  const [reviewNotes, setReviewNotes] = useState('');
+  return <div className="mt-4 space-y-3 border-t theme-border pt-4"><div className="theme-text-primary text-sm font-semibold">人工确认后才会开始检索</div><textarea value={planDraft} onChange={(event) => setPlanDraft(event.target.value)} className="theme-input min-h-36 w-full rounded-xl p-3 text-sm" aria-label="研究子问题，每行一个" /><textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="theme-input min-h-20 w-full rounded-xl p-3 text-sm" placeholder="计划审查备注（可选）" /><button type="button" className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => onReviewPlan?.({ subQuestions: planDraft.split(/\r?\n/).map((item) => item.trim()).filter(Boolean), reviewNotes })}>确认计划并执行</button></div>;
+};
+
+const ResearchFinalReviewForm = ({ task, onReviewFinal }) => {
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [riskReviews, setRiskReviews] = useState(() => Object.fromEntries((task.reviewRisks || []).map((risk) => [risk.riskId, 'reviewed'])));
+  return <div className="theme-card rounded-2xl p-5"><div className="theme-text-primary mb-3 text-sm font-bold">终稿人工审查</div><div className="space-y-3">{task.reviewRisks.map((risk) => <div key={risk.riskId} className="theme-card-soft rounded-xl p-3"><div className="theme-text-primary text-sm font-semibold">{risk.label}</div><div className="theme-text-secondary mt-1 text-xs leading-6">{risk.detail}</div><select value={riskReviews[risk.riskId] || 'reviewed'} onChange={(event) => setRiskReviews((prev) => ({ ...prev, [risk.riskId]: event.target.value }))} className="theme-input mt-2 rounded-lg px-2 py-1 text-xs"><option value="reviewed">已核查</option><option value="needs_follow_up">仍需跟进</option></select></div>)}<textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="theme-input min-h-20 w-full rounded-xl p-3 text-sm" placeholder="终稿审查备注（可选）" /><button type="button" className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => onReviewFinal?.({ reviewNotes, riskReviews: task.reviewRisks.map((risk) => ({ riskId: risk.riskId, reviewStatus: riskReviews[risk.riskId] || 'reviewed' })) })}>确认终稿</button></div></div>;
+};
+
 const TRACE_COUNTER_ITEMS = [
   { key: 'llmCalls', label: 'LLM calls' },
   { key: 'retrievalCalls', label: 'Retrieval calls' },
@@ -120,6 +132,8 @@ const DeepResearchPanel = ({
   onAcceptBrief,
   onRefresh,
   onCancel,
+  onReviewPlan,
+  onReviewFinal,
   onRefreshTrace,
   onCaptureArtifact,
   onJumpToSource,
@@ -143,6 +157,7 @@ const DeepResearchPanel = ({
   const canRefresh = hasActiveTask && !isCreating && !isCancelling;
   const canCancel = isRunningTask && !isCreating && !isCancelling;
   const latestFinding = normalizedTask?.findings?.[normalizedTask.findings.length - 1] || null;
+
 
   const taskSnapshot = useMemo(() => {
     if (!hasActiveTask) {
@@ -625,6 +640,7 @@ const DeepResearchPanel = ({
               ) : (
                 <div className="theme-text-secondary text-sm">任务正在规划研究路径，稍后会显示子问题列表。</div>
               )}
+              {normalizedTask.status === 'awaiting_plan_review' && <ResearchPlanReviewForm key={normalizedTask.taskId} task={normalizedTask} onReviewPlan={onReviewPlan} />}
             </div>
 
             <div className="theme-card rounded-2xl p-5">
@@ -704,6 +720,8 @@ const DeepResearchPanel = ({
                 </div>
               )}
             </div>
+
+            {normalizedTask.status === 'awaiting_final_review' && <ResearchFinalReviewForm key={normalizedTask.taskId} task={normalizedTask} onReviewFinal={onReviewFinal} />}
 
             <div className="theme-card rounded-2xl p-5">
               <div className="theme-text-primary mb-3 text-sm font-bold">证据冲突/需人工核查</div>

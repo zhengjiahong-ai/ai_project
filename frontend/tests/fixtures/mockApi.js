@@ -58,6 +58,22 @@ const runningTask = {
   draftReport: '',
 };
 
+const plannedTask = {
+  ...runningTask,
+  status: 'awaiting_plan_review',
+  stage: 'planning',
+  progress: 0.2,
+  planItems: [{ id: 'retrieve', label: '检索论文证据', detail: '读取方法与结论章节', status: 'pending' }],
+};
+
+const draftTask = {
+  ...completedTask,
+  status: 'awaiting_final_review',
+  stage: 'synthesizing',
+  progress: 0.95,
+  reviewRisks: [{ riskId: 'open:1', type: 'open_question', label: '开放问题', detail: '真实多论文结果仍需全栈验证。', sourceIds: [], reviewStatus: 'pending' }],
+};
+
 export const installMockApi = async (page) => {
   const state = {
     project: null,
@@ -136,8 +152,16 @@ export const installMockApi = async (page) => {
 
     if (request.method() === 'POST' && path === '/api/agent-projects/project-smoke-1/tasks') {
       state.taskPayload = request.postDataJSON();
-      state.task = { ...runningTask, prompt: state.taskPayload.prompt };
+      state.task = { ...plannedTask, prompt: state.taskPayload.prompt };
       state.project = { ...state.project, latestTaskId: state.task.taskId, updatedAt: now };
+      await json(route, { status: 'success', task: state.task });
+      return;
+    }
+
+    if (request.method() === 'POST' && path === '/api/agent-tasks/task-smoke-1/plan-review') {
+      state.planReviewPayload = request.postDataJSON();
+      state.task = { ...runningTask, prompt: state.taskPayload.prompt, planItems: state.planReviewPayload.planItems };
+      state.taskPollCount = 0;
       await json(route, { status: 'success', task: state.task });
       return;
     }
@@ -145,8 +169,15 @@ export const installMockApi = async (page) => {
     if (request.method() === 'GET' && path === '/api/agent-tasks/task-smoke-1') {
       state.taskPollCount += 1;
       state.task = state.taskPollCount >= 2
-        ? { ...completedTask, prompt: state.taskPayload.prompt }
+        ? { ...draftTask, prompt: state.taskPayload.prompt }
         : { ...runningTask, prompt: state.taskPayload.prompt };
+      await json(route, { status: 'success', task: state.task });
+      return;
+    }
+
+    if (request.method() === 'POST' && path === '/api/agent-tasks/task-smoke-1/final-review') {
+      state.finalReviewPayload = request.postDataJSON();
+      state.task = { ...completedTask, prompt: state.taskPayload.prompt, reviewRisks: draftTask.reviewRisks.map((risk) => ({ ...risk, reviewStatus: 'reviewed' })) };
       await json(route, { status: 'success', task: state.task });
       return;
     }

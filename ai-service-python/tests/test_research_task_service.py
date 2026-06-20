@@ -6,7 +6,7 @@ from contextlib import closing
 from unittest.mock import Mock, patch
 
 from llm.client import DeepSeekLLM
-from schemas.requests import ResearchTaskCreateRequest
+from schemas.requests import ResearchFinalReviewRequest, ResearchPlanReviewRequest, ResearchTaskCreateRequest
 from services import research_executor, research_task_service, trace_service
 
 
@@ -65,6 +65,41 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
             start_async=False,
         )
         return response["task"]["taskId"]
+
+    def test_plan_and_final_review_gate_task_execution(self):
+        task_id = self._create_task()
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一"])),
+        ):
+            planned = research_task_service.prepare_research_task_now(task_id)
+
+        self.assertEqual(planned["status"], "awaiting_plan_review")
+        self.assertEqual(planned["plan"][0]["question"], "子问题一")
+
+        with patch.object(research_task_service._TASK_EXECUTOR, "submit") as submit:
+            approved = research_task_service.review_research_plan(
+                task_id,
+                ResearchPlanReviewRequest(subQuestions=["修改后的子问题"], reviewNotes="聚焦实验"),
+            )["task"]
+        self.assertEqual(approved["status"], "running")
+        self.assertEqual(approved["plan"][0]["question"], "修改后的子问题")
+        submit.assert_called_once()
+
+        research_task_service._update_task_snapshot(
+            task_id,
+            status="awaiting_final_review",
+            reviewRisks=[{"riskId": "missing:finding-1", "type": "missing_evidence", "label": "证据缺口", "detail": "缺少消融", "sourceIds": [], "reviewStatus": "pending"}],
+        )
+        completed = research_task_service.review_research_final(
+            task_id,
+            ResearchFinalReviewRequest(
+                reviewNotes="保留待核查提示",
+                riskReviews=[{"riskId": "missing:finding-1", "reviewStatus": "needs_follow_up"}],
+            ),
+        )["task"]
+        self.assertEqual(completed["status"], "succeeded")
+        self.assertEqual(completed["humanReview"]["final"]["riskReviews"][0]["reviewStatus"], "needs_follow_up")
 
     def _run_task_with_findings(self, findings):
         task_id = self._create_task()
@@ -324,7 +359,7 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         summary = task["traceSummary"]
         self.assertEqual(summary["traceId"], task["traceId"])
         self.assertEqual(summary["taskType"], "deep_research")
-        self.assertEqual(summary["status"], "success")
+        self.assertEqual(summary["status"], "awaiting_review")
         self.assertEqual(summary["responseMeta"]["taskId"], task["taskId"])
         self.assertEqual(summary["responseMeta"]["findingCount"], 3)
         self.assertGreaterEqual(len(summary["steps"]), 1)
@@ -411,7 +446,7 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         self.assertEqual(response["status"], "success")
         self.assertEqual(response["trace"]["traceId"], task["traceId"])
         self.assertEqual(response["trace"]["responseMeta"]["taskId"], task["taskId"])
-        self.assertEqual(response["trace"]["status"], "success")
+        self.assertEqual(response["trace"]["status"], "awaiting_review")
 
     def test_trace_lookup_missing_persisted_summary_still_raises_not_found(self):
         task_id = self._create_task()

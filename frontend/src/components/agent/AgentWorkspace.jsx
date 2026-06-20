@@ -22,7 +22,7 @@ import {
   resolveNextAgentProjectNumber,
 } from './agentWorkspaceModel.js';
 import { loadAgentWorkspaceSnapshot, saveAgentWorkspaceSnapshot } from './agentWorkspaceStore.js';
-import { STAGE_LABELS, TERMINAL_AGENT_STATUSES } from './agentWorkspaceUi.js';
+import { PAUSED_AGENT_STATUSES, STAGE_LABELS, TERMINAL_AGENT_STATUSES } from './agentWorkspaceUi.js';
 
 const AGENT_TASK_POLL_INTERVAL_MS = 1200;
 
@@ -274,7 +274,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
 
   useEffect(() => {
     const taskId = currentTask?.taskId;
-    if (!taskId || TERMINAL_AGENT_STATUSES.has(currentTask?.status)) return undefined;
+    if (!taskId || TERMINAL_AGENT_STATUSES.has(currentTask?.status) || PAUSED_AGENT_STATUSES.has(currentTask?.status)) return undefined;
 
     let stopped = false;
 
@@ -470,6 +470,28 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
     }));
   };
 
+  const handleReviewPlan = async (payload) => {
+    if (!currentTask?.taskId) return;
+    try {
+      const response = await apiService.reviewAgentPlan(currentTask.taskId, payload);
+      cacheTask(normalizeAgentTaskResponse(response).task, true);
+      setState((prev) => ({ ...prev, error: '' }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, error: error?.response?.data?.message || error?.message || 'Agent 计划确认失败' }));
+    }
+  };
+
+  const handleReviewFinal = async (payload) => {
+    if (!currentTask?.taskId) return;
+    try {
+      const response = await apiService.reviewAgentFinal(currentTask.taskId, payload);
+      cacheTask(normalizeAgentTaskResponse(response).task, true);
+      setState((prev) => ({ ...prev, error: '' }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, error: error?.response?.data?.message || error?.message || 'Agent 终稿确认失败' }));
+    }
+  };
+
   const handleAddSelectedPaper = (paperId) => {
     setSelectedPaperIds((prev) => addSelectedAgentPaperId(prev, paperId));
   };
@@ -521,6 +543,8 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
           onCreateTask={handleCreateTask}
           onRefresh={handleRefresh}
           onSelectTask={handleSelectTask}
+          onReviewPlan={handleReviewPlan}
+          onReviewFinal={handleReviewFinal}
           activePaperId={activePaperId}
           onCaptureArtifact={onCaptureArtifact}
           onJumpToSource={onJumpToSource}

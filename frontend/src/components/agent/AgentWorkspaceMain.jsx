@@ -10,6 +10,7 @@ import {
   AgentDraftReportSection,
   AgentIntermediateArtifactsSection,
   AgentTaskHistorySection,
+  AgentHumanFinalReview,
   AgentTaskPlanSection,
   AgentTaskPromptBubble,
   AgentTimelineSection,
@@ -26,6 +27,8 @@ const AgentWorkspaceMain = ({
   onCreateTask,
   onRefresh,
   onSelectTask,
+  onReviewPlan,
+  onReviewFinal,
   activePaperId,
   onCaptureArtifact,
   onJumpToSource,
@@ -50,7 +53,7 @@ const AgentWorkspaceMain = ({
 
               <AgentResponseCard currentTask={currentTask} currentStageLabel={currentStageLabel}>
                 <AgentTimelineSection currentTask={currentTask} />
-                <AgentTaskPlanSection currentTask={currentTask} />
+                <AgentTaskPlanSection currentTask={currentTask} activeProject={activeProject} onReviewPlan={onReviewPlan} />
                 <AgentIntermediateArtifactsSection activeProject={activeProject} currentTask={currentTask} />
                 <AgentComparisonSection
                   activeProject={activeProject}
@@ -66,6 +69,9 @@ const AgentWorkspaceMain = ({
                   onCaptureArtifact={onCaptureArtifact}
                   onJumpToSource={onJumpToSource}
                 />
+                {currentTask.status === 'awaiting_final_review' && (
+                  <AgentHumanFinalReview currentTask={currentTask} onReviewFinal={onReviewFinal} />
+                )}
               </AgentResponseCard>
             </>
           ) : (

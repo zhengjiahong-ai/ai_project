@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from schemas.requests import (
+    AgentFinalReviewRequest,
+    AgentPlanReviewRequest,
     AgentProjectCreateRequest,
     AgentProjectPapersRequest,
     AgentProjectUpdateRequest,
@@ -20,7 +22,7 @@ from schemas.requests import (
 from services import agent_orchestrator
 from services.evidence_service import normalize_evidence_items
 from services.tool_registry import get_tool_registry
-from services.trace_service import finalize_trace, record_counter, sanitize_text, start_trace, trace_step, use_trace
+from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step, use_trace
 
 
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled"}
@@ -42,6 +44,10 @@ class AgentProjectNotFoundError(Exception):
 
 
 class AgentTaskNotFoundError(Exception):
+    pass
+
+
+class AgentReviewConflictError(Exception):
     pass
 
 
@@ -188,6 +194,8 @@ def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[
         "findings": [],
         "comparisonTable": {"columns": [], "rows": []},
         "conflicts": [],
+        "reviewRisks": [],
+        "humanReview": {"plan": {"status": "pending", "reviewNotes": "", "reviewedAt": ""}, "final": {"status": "pending", "reviewNotes": "", "reviewedAt": "", "riskReviews": []}},
         "openQuestions": [],
         "draftReport": "",
         "error": "",
@@ -201,9 +209,59 @@ def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[
         _persist_task_locked(task)
         _persist_project_locked(_PROJECTS[project_id])
 
-    worker = threading.Thread(target=_run_minimal_agent_task, args=(task_id,), daemon=True)
-    worker.start()
+    _start_agent_worker(prepare_agent_task_now, task_id)
     return {"status": "success", "task": _copy_task(task_id)}
+
+
+def _start_agent_worker(target, task_id: str) -> None:
+    worker = threading.Thread(target=target, args=(task_id,), daemon=True)
+    worker.start()
+
+
+def prepare_agent_task_now(task_id: str) -> Dict[str, Any]:
+    task = _copy_task(task_id)
+    paper_ids = list(task.get("focusedPaperIds") or [])
+    plan_items = agent_orchestrator.build_review_plan_items(task.get("prompt") or "", paper_ids, task.get("constraints") or "")
+    events = [*task.get("events", []), _event("plan_generated", task_id, PLANNING_STAGE, "Generated a research plan for human review.")]
+    return _update_task(task_id, status="awaiting_plan_review", stage=PLANNING_STAGE, progress=0.2, planItems=plan_items, events=events)
+
+
+def review_agent_plan(task_id: str, request: AgentPlanReviewRequest) -> Dict[str, Any]:
+    task = _copy_task(task_id)
+    if task.get("status") != "awaiting_plan_review":
+        if task.get("status") in {"running", "awaiting_final_review", "succeeded"}:
+            return {"status": "success", "task": task}
+        raise AgentReviewConflictError("Agent task is not awaiting plan review.")
+    project = _copy_project(str(task.get("projectId") or ""))
+    paper_ids = _normalize_id_list(request.focusedPaperIds)
+    if not paper_ids or any(item not in (project.get("paperIds") or []) for item in paper_ids):
+        raise ValueError("focusedPaperIds must reference papers in the project.")
+    plan_items = agent_orchestrator.normalize_review_plan_items([item.model_dump() if hasattr(item, "model_dump") else item.dict() for item in request.planItems])
+    if not plan_items:
+        raise ValueError("At least one valid Agent plan item is required.")
+    human_review = copy.deepcopy(task.get("humanReview") or {})
+    human_review["plan"] = {"status": "approved", "reviewNotes": _clean_text(request.reviewNotes), "reviewedAt": _utc_now()}
+    updated = _update_task(task_id, status="running", focusedPaperIds=paper_ids, constraints=_clean_text(request.constraints), planItems=plan_items, humanReview=human_review)
+    _start_agent_worker(_run_minimal_agent_task, task_id)
+    return {"status": "success", "task": updated}
+
+
+def review_agent_final(task_id: str, request: AgentFinalReviewRequest) -> Dict[str, Any]:
+    task = _copy_task(task_id)
+    if task.get("status") == "succeeded":
+        return {"status": "success", "task": task}
+    if task.get("status") != "awaiting_final_review":
+        raise AgentReviewConflictError("Agent task is not awaiting final review.")
+    risk_reviews = _validate_agent_risk_reviews(task.get("reviewRisks") or [], request.riskReviews or [])
+    human_review = copy.deepcopy(task.get("humanReview") or {})
+    human_review["final"] = {"status": "approved", "reviewNotes": _clean_text(request.reviewNotes), "reviewedAt": _utc_now(), "riskReviews": risk_reviews}
+    events = [*task.get("events", []), _event("final_review_approved", task_id, DONE_STAGE, "Human reviewer approved the final draft.")]
+    status_by_id = {item["riskId"]: item["reviewStatus"] for item in risk_reviews}
+    reviewed_risks = [{**item, "reviewStatus": status_by_id.get(_clean_text(item.get("riskId")), item.get("reviewStatus") or "pending")} for item in task.get("reviewRisks") or []]
+    updated = _update_task(task_id, status="succeeded", stage=DONE_STAGE, progress=1.0, humanReview=human_review, reviewRisks=reviewed_risks, events=events)
+    with use_trace(str(task.get("traceId") or "")):
+        finalize_trace("success", response_meta={"taskId": task_id, "projectId": task.get("projectId")})
+    return {"status": "success", "task": updated}
 
 
 def get_latest_agent_task(project_id: str) -> Dict[str, Any]:
@@ -288,6 +346,8 @@ def _run_minimal_agent_task(task_id: str) -> None:
     paper_ids = list(task.get("focusedPaperIds") or project.get("paperIds") or [])
     prompt = _clean_text(task.get("prompt"))
     constraints = _clean_text(task.get("constraints"))
+    approved_plan = list(task.get("planItems") or [])
+    execution_prompt = agent_orchestrator.build_execution_prompt(prompt, approved_plan, constraints)
 
     with use_trace(str(task.get("traceId") or "")):
         try:
@@ -307,7 +367,7 @@ def _run_minimal_agent_task(task_id: str) -> None:
 
             if _is_task_cancelled(task_id):
                 return
-            plan_items = agent_orchestrator.build_plan_items(paper_ids, active_step="retrieve")
+            plan_items = agent_orchestrator.update_plan_status(approved_plan, "running")
             events = [
                 *_copy_task(task_id).get("events", []),
                 _event("task_understood", task_id, PLANNING_STAGE, "Confirmed project scope and focused papers."),
@@ -322,7 +382,7 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 task_id,
                 stage=RETRIEVING_STAGE,
                 progress=0.42,
-                planItems=agent_orchestrator.build_plan_items(paper_ids, active_step="retrieve"),
+                planItems=agent_orchestrator.update_plan_status(approved_plan, "running"),
                 events=[*_copy_task(task_id).get("events", []), _event("retrieval_started", task_id, RETRIEVING_STAGE, "Started per-paper evidence retrieval.")],
             )
 
@@ -340,7 +400,7 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 _agent_step_delay()
 
             paper_contexts, tool_calls, evidence_items = agent_orchestrator.collect_project_evidence(
-                prompt,
+                execution_prompt,
                 paper_ids,
                 should_cancel=lambda: _is_task_cancelled(task_id),
                 on_progress=update_retrieval_progress,
@@ -362,15 +422,15 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 evidenceItems=evidence_items,
                 events=events,
                 progress=0.72,
-                planItems=agent_orchestrator.build_plan_items(paper_ids, active_step="synthesize"),
+                planItems=agent_orchestrator.update_plan_status(approved_plan, "running"),
             )
             _agent_step_delay()
 
             if _is_task_cancelled(task_id):
                 return
             _update_task(task_id, stage=SYNTHESIZING_STAGE, progress=0.86)
-            finding, comparison_table, conflicts, open_questions = agent_orchestrator.build_agent_outputs(prompt, paper_contexts, evidence_items)
-            draft_report = agent_orchestrator.build_minimal_report(prompt, project, paper_contexts, evidence_items, conflicts, open_questions)
+            finding, comparison_table, conflicts, open_questions = agent_orchestrator.build_agent_outputs(execution_prompt, paper_contexts, evidence_items)
+            draft_report = agent_orchestrator.build_minimal_report(execution_prompt, project, paper_contexts, evidence_items, conflicts, open_questions)
             events = [
                 *_copy_task(task_id).get("events", []),
                 _event("judgement_completed", task_id, SYNTHESIZING_STAGE, "Built cross-paper judgements and conflict candidates."),
@@ -379,30 +439,20 @@ def _run_minimal_agent_task(task_id: str) -> None:
             ]
             _update_task(
                 task_id,
-                status="succeeded",
-                stage=DONE_STAGE,
-                progress=1.0,
+                status="awaiting_final_review",
+                stage=SYNTHESIZING_STAGE,
+                progress=0.95,
                 events=events,
-                planItems=agent_orchestrator.build_plan_items(paper_ids, active_step="done"),
+                planItems=agent_orchestrator.update_plan_status(approved_plan, "done"),
                 findings=[finding],
                 comparisonTable=comparison_table,
                 conflicts=conflicts,
                 openQuestions=open_questions,
                 draftReport=draft_report,
+                reviewRisks=_build_agent_review_risks(conflicts, open_questions),
                 error="",
             )
-            finalize_trace(
-                "success",
-                response_meta={
-                    "taskId": task_id,
-                    "projectId": task.get("projectId"),
-                    "paperIds": paper_ids,
-                    "planItemCount": len(plan_items),
-                    "toolCallCount": len(tool_calls),
-                    "evidenceItemCount": len(evidence_items),
-                    "paperContextCount": len(paper_contexts),
-                },
-            )
+            record_metric("awaitingFinalReview", True)
         except Exception as error:
             try:
                 current_task = _copy_task(task_id)
@@ -1011,7 +1061,7 @@ def _ensure_storage_loaded() -> None:
 
 def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
     status = _clean_text(task.get("status"))
-    if status in TERMINAL_STATUSES:
+    if status in TERMINAL_STATUSES or status in {"awaiting_plan_review", "awaiting_final_review"}:
         return task
     task_id = _clean_text(task.get("taskId"))
     events = list(task.get("events") or [])
@@ -1026,6 +1076,30 @@ def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
         "error": INTERRUPTED_RESTART_ERROR,
         "updatedAt": _utc_now(),
     }
+
+
+def _build_agent_review_risks(conflicts: List[Dict[str, Any]], open_questions: List[str]) -> List[Dict[str, Any]]:
+    risks = [
+        {"riskId": f"conflict:{item.get('id') or index}", "type": "conflict", "label": "冲突候选", "detail": _clean_text(item.get("claim") or item.get("summary")), "sourceIds": list(item.get("sourceIds") or []), "reviewStatus": "pending"}
+        for index, item in enumerate(conflicts, 1)
+    ]
+    risks.extend(
+        {"riskId": f"open:{index}", "type": "open_question", "label": "开放问题", "detail": _clean_text(question), "sourceIds": [], "reviewStatus": "pending"}
+        for index, question in enumerate(open_questions, 1)
+    )
+    return risks
+
+
+def _validate_agent_risk_reviews(risks: List[Dict[str, Any]], reviews: List[Any]) -> List[Dict[str, Any]]:
+    allowed = {_clean_text(item.get("riskId")) for item in risks}
+    normalized = []
+    for item in reviews:
+        risk_id = _clean_text(getattr(item, "riskId", ""))
+        status = _clean_text(getattr(item, "reviewStatus", ""))
+        if risk_id not in allowed or status not in {"reviewed", "needs_follow_up"}:
+            raise ValueError("Invalid risk review.")
+        normalized.append({"riskId": risk_id, "reviewStatus": status})
+    return normalized
 
 
 def _initialize_storage_locked() -> None:
@@ -1067,6 +1141,8 @@ def _initialize_storage_locked() -> None:
                 comparisonTable TEXT NOT NULL,
                 conflicts TEXT NOT NULL,
                 openQuestions TEXT NOT NULL,
+                reviewRisks TEXT NOT NULL DEFAULT '[]',
+                humanReview TEXT NOT NULL DEFAULT '{}',
                 draftReport TEXT NOT NULL,
                 error TEXT NOT NULL,
                 createdAt TEXT NOT NULL,
@@ -1087,6 +1163,11 @@ def _initialize_storage_locked() -> None:
             )
             """
         )
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(agent_tasks)").fetchall()}
+        if "reviewRisks" not in columns:
+            connection.execute("ALTER TABLE agent_tasks ADD COLUMN reviewRisks TEXT NOT NULL DEFAULT '[]'")
+        if "humanReview" not in columns:
+            connection.execute("ALTER TABLE agent_tasks ADD COLUMN humanReview TEXT NOT NULL DEFAULT '{}'")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_projects_updated ON agent_projects (updatedAt)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_tasks_project_updated ON agent_tasks (projectId, updatedAt)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_task_events_task_time ON agent_task_events (taskId, timestamp)")
@@ -1158,8 +1239,8 @@ def _persist_task_locked(task: Dict[str, Any]) -> None:
                 taskId, projectId, traceId, status, stage, progress, prompt,
                 focusedPaperIds, constraints, context, planItems, toolCalls,
                 evidenceItems, findings, comparisonTable, conflicts, openQuestions,
-                draftReport, error, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                reviewRisks, humanReview, draftReport, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(taskId) DO UPDATE SET
                 projectId=excluded.projectId,
                 traceId=excluded.traceId,
@@ -1177,6 +1258,8 @@ def _persist_task_locked(task: Dict[str, Any]) -> None:
                 comparisonTable=excluded.comparisonTable,
                 conflicts=excluded.conflicts,
                 openQuestions=excluded.openQuestions,
+                reviewRisks=excluded.reviewRisks,
+                humanReview=excluded.humanReview,
                 draftReport=excluded.draftReport,
                 error=excluded.error,
                 createdAt=excluded.createdAt,
@@ -1200,6 +1283,8 @@ def _persist_task_locked(task: Dict[str, Any]) -> None:
                 json.dumps(snapshot["comparisonTable"], ensure_ascii=False),
                 json.dumps(snapshot["conflicts"], ensure_ascii=False),
                 json.dumps(snapshot["openQuestions"], ensure_ascii=False),
+                json.dumps(snapshot["reviewRisks"], ensure_ascii=False),
+                json.dumps(snapshot["humanReview"], ensure_ascii=False),
                 snapshot["draftReport"],
                 snapshot["error"],
                 snapshot["createdAt"],
@@ -1288,6 +1373,8 @@ def _task_from_storage_row(row: sqlite3.Row, events: List[Dict[str, Any]]) -> Di
         "comparisonTable": _safe_json_dict(row["comparisonTable"]) or {"columns": [], "rows": []},
         "conflicts": _safe_json_list(row["conflicts"]),
         "openQuestions": _safe_json_list(row["openQuestions"]),
+        "reviewRisks": _safe_json_list(row["reviewRisks"]) if "reviewRisks" in row.keys() else [],
+        "humanReview": _safe_json_dict(row["humanReview"]) if "humanReview" in row.keys() else {},
         "draftReport": str(row["draftReport"] or ""),
         "error": str(row["error"] or ""),
         "createdAt": created_at,
@@ -1345,6 +1432,8 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
         "comparisonTable": dict(task.get("comparisonTable") or {"columns": [], "rows": []}),
         "conflicts": list(task.get("conflicts") or []),
         "openQuestions": list(task.get("openQuestions") or []),
+        "reviewRisks": list(task.get("reviewRisks") or []),
+        "humanReview": dict(task.get("humanReview") or {}),
         "draftReport": str(task.get("draftReport") or ""),
         "error": _clean_text(task.get("error")),
         "createdAt": created_at,

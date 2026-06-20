@@ -11,6 +11,8 @@ const STATUS_META = {
     label: '进行中',
     toneClass: 'border-pixiu/25 bg-pixiu/10 text-pixiu',
   },
+  awaiting_plan_review: { label: '等待计划确认', toneClass: 'border-amber-400/25 bg-amber-500/10 text-amber-500' },
+  awaiting_final_review: { label: '等待终稿确认', toneClass: 'border-amber-400/25 bg-amber-500/10 text-amber-500' },
   succeeded: {
     label: '已完成',
     toneClass: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-400',
@@ -328,6 +330,13 @@ export const normalizeResearchTask = (task) => {
       };
     }),
     conflicts: normalizeResearchConflicts(task.conflicts),
+    reviewRisks: (Array.isArray(task.reviewRisks) ? task.reviewRisks : []).map((risk, index) => ({
+      riskId: normalizeText(risk?.riskId) || `risk-${index + 1}`,
+      type: normalizeText(risk?.type), label: normalizeText(risk?.label) || '待核查项',
+      detail: normalizeText(risk?.detail), sourceIds: normalizeTextList(risk?.sourceIds, 6),
+      reviewStatus: normalizeText(risk?.reviewStatus) || 'pending',
+    })),
+    humanReview: task.humanReview && typeof task.humanReview === 'object' ? task.humanReview : {},
     report: typeof task.report === 'string' ? task.report : '',
     error: normalizeText(task.error),
     createdAt: normalizeText(task.createdAt),

@@ -1600,6 +1600,33 @@ export default function App() {
     }
   }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
 
+  const handleReviewResearchPlan = useCallback(async (payload) => {
+    const taskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
+    if (!pdfId || !taskId) return;
+    try {
+      const response = await apiService.reviewResearchPlan(taskId, payload);
+      const task = normalizeResearchTask(response?.task);
+      if (!task) throw new Error(response?.message || '计划确认失败');
+      setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, task, errorMessage: '', pollError: '' }));
+    } catch (error) {
+      setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, errorMessage: error?.response?.data?.message || error?.message || '计划确认失败。' }));
+    }
+  }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
+
+  const handleReviewResearchFinal = useCallback(async (payload) => {
+    const taskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
+    if (!pdfId || !taskId) return;
+    try {
+      const response = await apiService.reviewResearchFinal(taskId, payload);
+      const task = normalizeResearchTask(response?.task);
+      if (!task) throw new Error(response?.message || '终稿确认失败');
+      setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, task, errorMessage: '', pollError: '' }));
+      fetchDeepResearchTrace(pdfId, task.traceId);
+    } catch (error) {
+      setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, errorMessage: error?.response?.data?.message || error?.message || '终稿确认失败。' }));
+    }
+  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
+
   const handleCancelResearchTask = useCallback(async () => {
     if (!pdfId) {
       return;
@@ -1733,6 +1760,7 @@ export default function App() {
       !pdfId ||
       !currentResearchTaskId ||
       TERMINAL_RESEARCH_STATUSES.includes(currentResearchTaskStatus) ||
+      ['awaiting_plan_review', 'awaiting_final_review'].includes(currentResearchTaskStatus) ||
       currentResearchPollError
     ) {
       return undefined;
@@ -3144,6 +3172,8 @@ export default function App() {
                         onAcceptBrief={() => handleStartResearchTask({ useBriefPreview: true })}
                         onRefresh={handleRefreshResearchTask}
                         onCancel={handleCancelResearchTask}
+                        onReviewPlan={handleReviewResearchPlan}
+                        onReviewFinal={handleReviewResearchFinal}
                         onRefreshTrace={() => fetchDeepResearchTrace(pdfId, currentDeepResearchState.task?.traceId)}
                         onCaptureArtifact={handleCaptureWorkbenchArtifact}
                         onJumpToSource={handleJumpToSource}

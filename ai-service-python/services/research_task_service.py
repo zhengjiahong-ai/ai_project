@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from llm.client import get_llm
-from schemas.requests import ResearchTaskBriefPreviewRequest, ResearchTaskCreateRequest
+from schemas.requests import ResearchFinalReviewRequest, ResearchPlanReviewRequest, ResearchTaskBriefPreviewRequest, ResearchTaskCreateRequest
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.query_service import build_retrieval_queries
 from services import research_aggregator, research_executor, research_planner
@@ -61,6 +61,10 @@ class ResearchTaskNotFoundError(Exception):
     pass
 
 
+class ResearchReviewConflictError(Exception):
+    pass
+
+
 def create_research_task(
     request: ResearchTaskCreateRequest,
     start_async: bool = True,
@@ -97,6 +101,8 @@ def create_research_task(
         "plan": [],
         "findings": [],
         "conflicts": [],
+        "reviewRisks": [],
+        "humanReview": {"plan": {"status": "pending", "reviewNotes": "", "reviewedAt": ""}, "final": {"status": "pending", "reviewNotes": "", "reviewedAt": "", "riskReviews": []}},
         "traceSummary": {},
         "report": "",
         "error": "",
@@ -115,7 +121,7 @@ def create_research_task(
         _persist_task_snapshot_locked(_TASKS[task_id])
 
     if start_async:
-        _TASK_EXECUTOR.submit(run_research_task_now, task_id)
+        _TASK_EXECUTOR.submit(prepare_research_task_now, task_id)
 
     return {"status": "success", "task": _copy_task_snapshot(task_id)}
 
@@ -257,6 +263,67 @@ def run_research_task_now(task_id: str) -> Dict[str, Any]:
     return _copy_task_snapshot(task_id)
 
 
+def prepare_research_task_now(task_id: str) -> Dict[str, Any]:
+    task = _copy_task_snapshot(task_id)
+    context = _copy_task_context(task_id)
+    _update_task_snapshot(task_id, status="running", stage=PLANNING_STAGE, progress=0.05)
+    documents, normalized_pdf_id = _load_current_paper_documents(str(task.get("pdfId") or ""))
+    if not documents:
+        _fail_task(task_id, "Current paper has not been indexed yet.")
+        return _copy_task_snapshot(task_id)
+    research_question = _compose_research_question(str(task.get("question") or ""), str(context.get("userConstraints") or ""))
+    brief_preview = context.get("briefPreview") or {}
+    brief, sub_questions = _build_research_plan(
+        research_question,
+        context.get("paperSkeleton") or {},
+        documents,
+        brief_override=_clean_text(brief_preview.get("brief")),
+    )
+    plan_items = _build_initial_plan_items(sub_questions)
+    with _TASK_LOCK:
+        _TASK_CONTEXTS[task_id] = {**context, "brief": brief, "normalizedPdfId": normalized_pdf_id, "approvedPlan": []}
+    return _update_task_snapshot(task_id, status="awaiting_plan_review", stage=PLANNING_STAGE, progress=0.2, plan=plan_items)
+
+
+def review_research_plan(task_id: str, request: ResearchPlanReviewRequest) -> Dict[str, Any]:
+    task = _copy_task_snapshot(task_id)
+    if task.get("status") != "awaiting_plan_review":
+        if task.get("status") in {"running", "awaiting_final_review", "succeeded"}:
+            return {"status": "success", "task": task}
+        raise ResearchReviewConflictError("Research task is not awaiting plan review.")
+    questions = research_planner.normalize_sub_questions(request.subQuestions, [])
+    if not questions:
+        raise ValueError("At least one valid sub-question is required.")
+    plan_items = _build_initial_plan_items(questions)
+    reviewed_at = _utc_now()
+    context = _copy_task_context(task_id)
+    with _TASK_LOCK:
+        _TASK_CONTEXTS[task_id] = {**context, "approvedPlan": copy.deepcopy(plan_items)}
+    human_review = copy.deepcopy(task.get("humanReview") or {})
+    human_review["plan"] = {"status": "approved", "reviewNotes": _clean_text(request.reviewNotes), "reviewedAt": reviewed_at}
+    updated = _update_task_snapshot(task_id, status="running", plan=plan_items, humanReview=human_review)
+    _TASK_EXECUTOR.submit(run_research_task_now, task_id)
+    return {"status": "success", "task": updated}
+
+
+def review_research_final(task_id: str, request: ResearchFinalReviewRequest) -> Dict[str, Any]:
+    task = _copy_task_snapshot(task_id)
+    if task.get("status") == "succeeded":
+        return {"status": "success", "task": task}
+    if task.get("status") != "awaiting_final_review":
+        raise ResearchReviewConflictError("Research task is not awaiting final review.")
+    risk_reviews = _validate_risk_reviews(task.get("reviewRisks") or [], request.riskReviews or [])
+    human_review = copy.deepcopy(task.get("humanReview") or {})
+    human_review["final"] = {"status": "approved", "reviewNotes": _clean_text(request.reviewNotes), "reviewedAt": _utc_now(), "riskReviews": risk_reviews}
+    status_by_id = {item["riskId"]: item["reviewStatus"] for item in risk_reviews}
+    reviewed_risks = [{**item, "reviewStatus": status_by_id.get(str(item.get("riskId") or ""), item.get("reviewStatus") or "pending")} for item in task.get("reviewRisks") or []]
+    updated = _update_task_snapshot(task_id, status="succeeded", stage=DONE_STAGE, progress=1.0, humanReview=human_review, reviewRisks=reviewed_risks)
+    with use_trace(str(task.get("traceId") or "")):
+        trace_snapshot = finalize_trace("success", response_meta={"taskId": task_id, "stage": DONE_STAGE})
+        _persist_trace_summary(task_id, trace_snapshot)
+    return {"status": "success", "task": updated}
+
+
 def _run_research_task(
     task_id: str,
     question: str,
@@ -288,12 +355,12 @@ def _run_research_task(
 
         research_question = _compose_research_question(question, user_constraints)
         brief_override = _clean_text((brief_preview or {}).get("brief"))
-        brief, sub_questions = _build_research_plan(
-            research_question,
-            paper_skeleton,
-            documents,
-            brief_override=brief_override,
-        )
+        approved_plan = _copy_task_context(task_id).get("approvedPlan") or []
+        if approved_plan:
+            brief = _clean_text(_copy_task_context(task_id).get("brief")) or brief_override or research_question
+            sub_questions = [_clean_text(item.get("question")) for item in approved_plan]
+        else:
+            brief, sub_questions = _build_research_plan(research_question, paper_skeleton, documents, brief_override=brief_override)
         record_metric("subQuestionCount", len(sub_questions))
         plan_items = _build_initial_plan_items(sub_questions)
         _update_task_snapshot(task_id, stage=PLANNING_STAGE, progress=0.2, plan=copy.deepcopy(plan_items))
@@ -403,13 +470,14 @@ def _run_research_task(
 
         _update_task_snapshot(
             task_id,
-            status="succeeded",
-            stage=DONE_STAGE,
-            progress=1.0,
+            status="awaiting_final_review",
+            stage=SYNTHESIZING_STAGE,
+            progress=0.95,
             plan=copy.deepcopy(plan_items),
             findings=copy.deepcopy(findings),
             conflicts=copy.deepcopy(conflicts),
             report=report,
+            reviewRisks=_build_research_review_risks(findings, conflicts),
             error="",
         )
         final_skeleton_block = wrap_untrusted_context("Research paper skeleton", _stringify_paper_skeleton(paper_skeleton), max_tokens=1000)
@@ -419,17 +487,10 @@ def _run_research_task(
             max_tokens=1400,
         )
         _record_safety_budget_counters(final_skeleton_block, final_evidence_block)
+        record_metric("awaitingFinalReview", True)
         trace_snapshot = finalize_trace(
-            "success",
-            response_meta={
-                "taskId": task_id,
-                "findingCount": len(findings),
-                "followUpCount": follow_up_count,
-                "conflictCount": len(conflicts),
-                "stage": DONE_STAGE,
-                **_build_judge_trace_summary(findings),
-                **summarize_safety_results(final_skeleton_block, final_evidence_block),
-            },
+            "awaiting_review",
+            response_meta={"taskId": task_id, "findingCount": len(findings), "followUpCount": follow_up_count, "conflictCount": len(conflicts), "stage": SYNTHESIZING_STAGE},
         )
         _persist_trace_summary(task_id, trace_snapshot)
     except Exception as error:
@@ -1448,6 +1509,27 @@ def _update_task_snapshot(task_id: str, **updates: Any) -> Dict[str, Any]:
         return copy.deepcopy(updated)
 
 
+def _build_research_review_risks(findings: List[Dict[str, Any]], conflicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    risks = [{"riskId": f"conflict:{item.get('id') or index}", "type": "conflict", "label": "证据冲突", "detail": _clean_text(item.get("claim") or item.get("summary")), "sourceIds": list(item.get("sourceIds") or []), "reviewStatus": "pending"} for index, item in enumerate(conflicts, 1)]
+    for index, finding in enumerate(findings, 1):
+        missing = _normalize_missing_aspects(finding.get("missingAspects"))
+        if missing:
+            risks.append({"riskId": f"missing:{finding.get('id') or index}", "type": "missing_evidence", "label": "缺失证据", "detail": "、".join(missing), "sourceIds": list(finding.get("sourceIds") or []), "reviewStatus": "pending"})
+    return risks
+
+
+def _validate_risk_reviews(risks: List[Dict[str, Any]], reviews: List[Any]) -> List[Dict[str, Any]]:
+    allowed = {str(item.get("riskId") or "") for item in risks}
+    normalized = []
+    for item in reviews:
+        risk_id = _clean_text(getattr(item, "riskId", ""))
+        status = _clean_text(getattr(item, "reviewStatus", ""))
+        if risk_id not in allowed or status not in {"reviewed", "needs_follow_up"}:
+            raise ValueError("Invalid risk review.")
+        normalized.append({"riskId": risk_id, "reviewStatus": status})
+    return normalized
+
+
 def _persist_trace_summary(task_id: str, trace_snapshot: Dict[str, Any] | None) -> None:
     if not trace_snapshot:
         return
@@ -1477,8 +1559,10 @@ def _ensure_storage_loaded() -> None:
             return
         _initialize_storage_locked()
         for task in _load_persisted_tasks_locked():
+            internal_context = task.pop("_context", {})
             restored = _restore_task_after_restart(task)
             _TASKS[str(restored.get("taskId") or "")] = restored
+            _TASK_CONTEXTS[str(restored.get("taskId") or "")] = internal_context
             if restored is not task:
                 _persist_task_snapshot_locked(restored)
         _STORAGE_LOADED = True
@@ -1486,7 +1570,7 @@ def _ensure_storage_loaded() -> None:
 
 def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
     status = str(task.get("status") or "")
-    if status in TERMINAL_STATUSES:
+    if status in TERMINAL_STATUSES or status in {"awaiting_plan_review", "awaiting_final_review"}:
         return task
     restored = {
         **task,
@@ -1515,6 +1599,9 @@ def _initialize_storage_locked() -> None:
                 plan TEXT NOT NULL,
                 findings TEXT NOT NULL,
                 conflicts TEXT NOT NULL DEFAULT '[]',
+                reviewRisks TEXT NOT NULL DEFAULT '[]',
+                humanReview TEXT NOT NULL DEFAULT '{}',
+                context TEXT NOT NULL DEFAULT '{}',
                 traceSummary TEXT NOT NULL DEFAULT '{}',
                 report TEXT NOT NULL,
                 error TEXT NOT NULL,
@@ -1528,6 +1615,12 @@ def _initialize_storage_locked() -> None:
             connection.execute("ALTER TABLE research_tasks ADD COLUMN conflicts TEXT NOT NULL DEFAULT '[]'")
         if "traceSummary" not in columns:
             connection.execute("ALTER TABLE research_tasks ADD COLUMN traceSummary TEXT NOT NULL DEFAULT '{}'")
+        if "reviewRisks" not in columns:
+            connection.execute("ALTER TABLE research_tasks ADD COLUMN reviewRisks TEXT NOT NULL DEFAULT '[]'")
+        if "humanReview" not in columns:
+            connection.execute("ALTER TABLE research_tasks ADD COLUMN humanReview TEXT NOT NULL DEFAULT '{}'")
+        if "context" not in columns:
+            connection.execute("ALTER TABLE research_tasks ADD COLUMN context TEXT NOT NULL DEFAULT '{}'")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_research_tasks_pdf_updated ON research_tasks (pdfId, updatedAt)")
         connection.commit()
 
@@ -1550,8 +1643,8 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
             """
             INSERT INTO research_tasks (
                 taskId, traceId, status, stage, progress, question, pdfId,
-                plan, findings, conflicts, traceSummary, report, error, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                plan, findings, conflicts, reviewRisks, humanReview, context, traceSummary, report, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(taskId) DO UPDATE SET
                 traceId=excluded.traceId,
                 status=excluded.status,
@@ -1562,6 +1655,9 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 plan=excluded.plan,
                 findings=excluded.findings,
                 conflicts=excluded.conflicts,
+                reviewRisks=excluded.reviewRisks,
+                humanReview=excluded.humanReview,
+                context=excluded.context,
                 traceSummary=excluded.traceSummary,
                 report=excluded.report,
                 error=excluded.error,
@@ -1579,6 +1675,9 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 json.dumps(snapshot["plan"], ensure_ascii=False),
                 json.dumps(snapshot["findings"], ensure_ascii=False),
                 json.dumps(snapshot["conflicts"], ensure_ascii=False),
+                json.dumps(snapshot["reviewRisks"], ensure_ascii=False),
+                json.dumps(snapshot["humanReview"], ensure_ascii=False),
+                json.dumps(_TASK_CONTEXTS.get(snapshot["taskId"]) or {}, ensure_ascii=False),
                 json.dumps(snapshot["traceSummary"], ensure_ascii=False),
                 snapshot["report"],
                 snapshot["error"],
@@ -1610,6 +1709,9 @@ def _task_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
         "plan": _safe_json_list(row["plan"]),
         "findings": _safe_json_list(row["findings"]),
         "conflicts": _safe_json_list(row["conflicts"]) if "conflicts" in row.keys() else [],
+        "reviewRisks": _safe_json_list(row["reviewRisks"]) if "reviewRisks" in row.keys() else [],
+        "humanReview": _safe_json_dict(row["humanReview"]) if "humanReview" in row.keys() else {},
+        "_context": _safe_json_dict(row["context"]) if "context" in row.keys() else {},
         "traceSummary": _safe_json_dict(row["traceSummary"]) if "traceSummary" in row.keys() else {},
         "report": str(row["report"] or ""),
         "error": str(row["error"] or ""),
@@ -1633,6 +1735,8 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
         "plan": list(task.get("plan") or []),
         "findings": list(task.get("findings") or []),
         "conflicts": list(task.get("conflicts") or []),
+        "reviewRisks": list(task.get("reviewRisks") or []),
+        "humanReview": dict(task.get("humanReview") or {}),
         "traceSummary": dict(task.get("traceSummary") or {}),
         "report": str(task.get("report") or ""),
         "error": str(task.get("error") or ""),

@@ -229,6 +229,16 @@ public class AiService {
         return forwardResearchTask(HttpMethod.POST, "/research-tasks/" + taskId + "/cancel", null);
     }
 
+    public ResponseEntity<Map<String, Object>> reviewResearchPlan(String taskId, Map<String, Object> request) {
+        String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardResearchTask(HttpMethod.POST, "/research-tasks/" + encodedTaskId + "/plan-review", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> reviewResearchFinal(String taskId, Map<String, Object> request) {
+        String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardResearchTask(HttpMethod.POST, "/research-tasks/" + encodedTaskId + "/final-review", request);
+    }
+
     public ResponseEntity<Map<String, Object>> getTrace(String traceId) {
         String encodedTraceId = URLEncoder.encode(String.valueOf(traceId), StandardCharsets.UTF_8).replace("+", "%20");
         return forwardReadOnlyTrace(HttpMethod.GET, "/traces/" + encodedTraceId);
@@ -295,6 +305,16 @@ public class AiService {
     public ResponseEntity<Map<String, Object>> cancelAgentTask(String taskId) {
         String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
         return forwardAgentRequest(HttpMethod.POST, "/agent-tasks/" + encodedTaskId + "/cancel", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> reviewAgentPlan(String taskId, Map<String, Object> request) {
+        String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.POST, "/agent-tasks/" + encodedTaskId + "/plan-review", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> reviewAgentFinal(String taskId, Map<String, Object> request) {
+        String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.POST, "/agent-tasks/" + encodedTaskId + "/final-review", request);
     }
 
     public ResponseEntity<Map<String, Object>> getAgentTrace(String traceId) {
