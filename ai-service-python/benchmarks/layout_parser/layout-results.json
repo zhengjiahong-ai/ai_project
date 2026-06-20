@@ -1,0 +1,184 @@
+{
+  "schemaVersion": "1.0",
+  "runtime": {
+    "node": "v24.13.0",
+    "pdfjs": "3.4.120"
+  },
+  "documents": [
+    {
+      "id": "active-ris",
+      "status": "success",
+      "pageCount": 5,
+      "annotatedPageCount": 1,
+      "durationMs": 88,
+      "pages": [
+        {
+          "pageIndex": 1,
+          "columnMode": "two-column",
+          "sourceBlockCount": 12,
+          "requestBlockCount": 10,
+          "predictedOrder": [
+            "to K single-antenna users",
+            "Communication Model",
+            "Problem Formulation",
+            "Proposed Solutions"
+          ],
+          "readingOrder": {
+            "goldAnchors": 5,
+            "matchedAnchors": 4,
+            "comparablePairs": 6,
+            "correctPairs": 6,
+            "accuracy": 1
+          },
+          "failures": {
+            "missingAnchors": 1,
+            "readingOrderInversions": 0,
+            "bodyFalseRemovals": 0,
+            "formulaResiduals": 2,
+            "crossColumnSerializations": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "semantic-code-translation",
+      "status": "success",
+      "pageCount": 15,
+      "annotatedPageCount": 1,
+      "durationMs": 30,
+      "pages": [
+        {
+          "pageIndex": 1,
+          "columnMode": "two-column",
+          "sourceBlockCount": 7,
+          "requestBlockCount": 6,
+          "predictedOrder": [
+            "This work",
+            "To evaluate TransAgent",
+            "In summary, this paper makes",
+            "Motivating Example",
+            "Challenges in fixing syntax errors"
+          ],
+          "readingOrder": {
+            "goldAnchors": 5,
+            "matchedAnchors": 5,
+            "comparablePairs": 10,
+            "correctPairs": 10,
+            "accuracy": 1
+          },
+          "failures": {
+            "missingAnchors": 0,
+            "readingOrderInversions": 0,
+            "bodyFalseRemovals": 0,
+            "formulaResiduals": 0,
+            "crossColumnSerializations": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "upgrade-technical-detail",
+      "status": "success",
+      "pageCount": 10,
+      "annotatedPageCount": 1,
+      "durationMs": 41,
+      "pages": [
+        {
+          "pageIndex": 1,
+          "columnMode": "two-column",
+          "sourceBlockCount": 20,
+          "requestBlockCount": 20,
+          "predictedOrder": [
+            "布局感知的 PDF 解析",
+            "归一化编辑距离奖励",
+            "阶段二：引入 ReAct",
+            "思考-行动-观察"
+          ],
+          "readingOrder": {
+            "goldAnchors": 5,
+            "matchedAnchors": 4,
+            "comparablePairs": 6,
+            "correctPairs": 6,
+            "accuracy": 1
+          },
+          "failures": {
+            "missingAnchors": 1,
+            "readingOrderInversions": 0,
+            "bodyFalseRemovals": 0,
+            "formulaResiduals": 0,
+            "crossColumnSerializations": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "agentic-research",
+      "status": "success",
+      "pageCount": 9,
+      "annotatedPageCount": 1,
+      "durationMs": 39,
+      "pages": [
+        {
+          "pageIndex": 1,
+          "columnMode": "two-column",
+          "sourceBlockCount": 22,
+          "requestBlockCount": 22,
+          "predictedOrder": [
+            "第二章 智能体架构",
+            "2.1 模型上下文协议"
+          ],
+          "readingOrder": {
+            "goldAnchors": 4,
+            "matchedAnchors": 2,
+            "comparablePairs": 1,
+            "correctPairs": 1,
+            "accuracy": 1
+          },
+          "failures": {
+            "missingAnchors": 2,
+            "readingOrderInversions": 0,
+            "bodyFalseRemovals": 0,
+            "formulaResiduals": 0,
+            "crossColumnSerializations": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "deepresearch-proposal",
+      "status": "success",
+      "pageCount": 6,
+      "annotatedPageCount": 1,
+      "durationMs": 14,
+      "pages": [
+        {
+          "pageIndex": 1,
+          "columnMode": "single-column",
+          "sourceBlockCount": 1,
+          "requestBlockCount": 1,
+          "predictedOrder": [
+            "性能提升 20%",
+            "3.2 伪贡献识别",
+            "3.2.1 技术融合",
+            "3.2.2 算法实现",
+            "3.3 全流程证据标注"
+          ],
+          "readingOrder": {
+            "goldAnchors": 6,
+            "matchedAnchors": 5,
+            "comparablePairs": 10,
+            "correctPairs": 10,
+            "accuracy": 1
+          },
+          "failures": {
+            "missingAnchors": 1,
+            "readingOrderInversions": 0,
+            "bodyFalseRemovals": 0,
+            "formulaResiduals": 0,
+            "crossColumnSerializations": 0
+          }
+        }
+      ]
+    }
+  ]
+}

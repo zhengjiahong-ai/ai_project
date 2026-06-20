@@ -40,6 +40,7 @@ ai-service-python/core/chroma_literature_db/
 !/ai-service-python/tests/test_agent_project_service.py
 !/ai-service-python/tests/test_outline_extractor.py
 !/ai-service-python/tests/test_page_translation_service.py
+!/ai-service-python/tests/test_layout_parser_benchmark.py
 !/ai-service-python/tests/test_rag_service.py
 !/ai-service-python/tests/test_research_task_service.py
 node_modules/

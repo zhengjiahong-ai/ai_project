@@ -1,0 +1,187 @@
+{
+  "schemaVersion": "1.0",
+  "workspaceRoot": "../../../..",
+  "annotationPolicy": {
+    "headingMatch": "case-insensitive exact match after numbering and punctuation normalization",
+    "readingOrder": "pairwise order accuracy over manually selected text anchors",
+    "regionMatch": "same page and type with IoU >= 0.5",
+    "coordinates": "normalized PDF page coordinates: left, top, width, height"
+  },
+  "documents": [
+    {
+      "id": "active-ris",
+      "title": "Active RIS-Assisted Integrated Sensing and Communication Systems",
+      "path": "ai_project/docs/test/Active RIS-Assisted Integrated Sensing and Communication Systems Joint Receive-Transmit Beamforming and Reflection Design.pdf",
+      "sha256": "419a54ec60ff2757f12559e4cacf4a43ebed5c52ea1c0586b21eebf10a665e62",
+      "tags": ["academic", "two-column", "formula-heavy", "figure", "ieee"],
+      "gold": {
+        "headings": [
+          "Introduction",
+          "System Model",
+          "Communication Model",
+          "Radar Model",
+          "Problem Formulation",
+          "Proposed Solutions",
+          "Numerical Results",
+          "Conclusion"
+        ],
+        "pages": [
+          {
+            "pageIndex": 1,
+            "anchors": [
+              "to K single-antenna users",
+              "Communication Model",
+              "Radar Model",
+              "Problem Formulation",
+              "Proposed Solutions"
+            ],
+            "bodyAnchors": ["to K single-antenna users", "The radar model"],
+            "formulaPatterns": ["SINR", "P0"],
+            "regions": [
+              {"type": "figure", "bbox": {"left": 0.101, "top": 0.029, "width": 0.395, "height": 0.239}},
+              {"type": "formula", "bbox": {"left": 0.211, "top": 0.431, "width": 0.205, "height": 0.052}},
+              {"type": "formula", "bbox": {"left": 0.118, "top": 0.618, "width": 0.371, "height": 0.046}},
+              {"type": "formula", "bbox": {"left": 0.111, "top": 0.781, "width": 0.386, "height": 0.052}},
+              {"type": "formula", "bbox": {"left": 0.568, "top": 0.143, "width": 0.307, "height": 0.075}},
+              {"type": "formula", "bbox": {"left": 0.586, "top": 0.337, "width": 0.283, "height": 0.062}},
+              {"type": "formula", "bbox": {"left": 0.573, "top": 0.548, "width": 0.321, "height": 0.195}},
+              {"type": "formula", "bbox": {"left": 0.596, "top": 0.837, "width": 0.269, "height": 0.057}}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "semantic-code-translation",
+      "title": "Semantic Alignment-Enhanced Code Translation via an LLM-Based Multi-Agent System",
+      "path": "ai_project/test/Semantic Alignment-Enhanced Code Translation via an LLM-Based Multi-Agent System.pdf",
+      "sha256": "2b0464c42ed1301a83c5f9cebd080d4ca7257cca50927b370209d893bd6d5860",
+      "tags": ["academic", "two-column", "algorithm", "table-heavy"],
+      "gold": {
+        "headings": [
+          "Introduction",
+          "Motivating Example",
+          "Approach",
+          "Experimental Setting",
+          "Experimental Results",
+          "Threats to Validity",
+          "Related Work",
+          "Conclusion"
+        ],
+        "pages": [
+          {
+            "pageIndex": 1,
+            "anchors": [
+              "This work",
+              "To evaluate TransAgent",
+              "In summary, this paper makes",
+              "Motivating Example",
+              "Challenges in fixing syntax errors"
+            ],
+            "bodyAnchors": ["This work", "To evaluate TransAgent"],
+            "formulaPatterns": [],
+            "regions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "upgrade-technical-detail",
+      "title": "论文阅读助手升级技术详解",
+      "path": "论文阅读助手升级技术详解.pdf",
+      "sha256": "92be867f118612f5f50470cdb0e13547b067afd0f8a9e310659e405ed322200a",
+      "tags": ["chinese", "single-column", "table", "mixed-latin"],
+      "gold": {
+        "headings": [
+          "布局感知的 PDF 解析：从传统 OCR 到 LayoutRL",
+          "阶段二：引入 ReAct 推理循环与结构化逻辑层",
+          "思考-行动-观察机制",
+          "阶段三：引入 JUDGE 与纠正性检索",
+          "阶段四：基于 LangGraph 的规划层"
+        ],
+        "pages": [
+          {
+            "pageIndex": 1,
+            "anchors": [
+              "Resources",
+              "布局感知的 PDF 解析",
+              "归一化编辑距离奖励",
+              "阶段二：引入 ReAct",
+              "思考-行动-观察"
+            ],
+            "bodyAnchors": ["布局感知的 PDF 解析", "通过在 MCP 工具中集成"],
+            "formulaPatterns": [],
+            "regions": [
+              {"type": "table", "bbox": {"left": 0.121, "top": 0.058, "width": 0.787, "height": 0.268}}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "agentic-research",
+      "title": "论文阅读助手自主性研究",
+      "path": "论文阅读助手自主性研究.pdf",
+      "sha256": "f48b49b98c88b42c5f53efd74e42355f0308c3ceb9421e7f77b4e3897eb59a03",
+      "tags": ["chinese", "single-column", "multi-page-table", "mixed-latin"],
+      "gold": {
+        "headings": [
+          "第二章 智能体架构与异构RAG服务的统一调度",
+          "模型上下文协议（MCP）作为调度中枢",
+          "深度调度者模式",
+          "第五章 多模态解析与长期记忆",
+          "第六章 质量控制与自我修正"
+        ],
+        "pages": [
+          {
+            "pageIndex": 1,
+            "anchors": [
+              "第二章 智能体架构",
+              "2.1 模型上下文协议",
+              "2.2 深度调度者",
+              "下表展示了 MCP 架构"
+            ],
+            "bodyAnchors": ["MCP协议的核心价值", "针对复杂的科研任务"],
+            "formulaPatterns": [],
+            "regions": [
+              {"type": "table", "bbox": {"left": 0.121, "top": 0.058, "width": 0.787, "height": 0.105}},
+              {"type": "table", "bbox": {"left": 0.121, "top": 0.761, "width": 0.787, "height": 0.128}}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "deepresearch-proposal",
+      "title": "南京大学基于 DeepResearch 的科学研究大模型聚合体",
+      "path": "南京大学_基于DeepResearch的科学研究大模型聚合体_2025年11月24日23时41分46秒.pdf",
+      "sha256": "7e2e2ea6a1059eba5e5d88d9224f62d5e315a9c7c33bd876f078e4dd8fcabe34",
+      "tags": ["chinese", "single-column", "form", "long-paragraph"],
+      "gold": {
+        "headings": [
+          "模块一：基础研读模块",
+          "模块二：交互式助学机制",
+          "模块三：深度分析内核",
+          "伪贡献识别与核心贡献评分算法",
+          "全流程证据标注"
+        ],
+        "pages": [
+          {
+            "pageIndex": 1,
+            "anchors": [
+              "性能提升 20%",
+              "3.2 伪贡献识别",
+              "3.2.1 技术融合",
+              "3.2.2 算法实现",
+              "3.3 全流程证据标注",
+              "国内外研究现状"
+            ],
+            "bodyAnchors": ["作者声称", "我们将探索一套"],
+            "formulaPatterns": [],
+            "regions": []
+          }
+        ]
+      }
+    }
+  ]
+}
