@@ -2,6 +2,10 @@
 
 Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它把 PDF 解析、单论文阅读辅助、证据化分析，以及新的多论文 Agent 研究工作区整合在同一个项目里。
 
+## 非开发用户快速开始
+
+如果你只需要使用系统阅读和研究论文，请直接查看 [用户指南](docs/USER_GUIDE.md)。指南覆盖 PDF 上传与论文库、问答、划词解释、翻译、背景补课、引导学习、批判阅读、Deep Research、多论文 Agent 研究、工作台保存和常见失败处理。
+
 ## 当前技术栈
 
 - `frontend/`：React 19 + Vite 7 前端工作台。
@@ -313,6 +317,7 @@ CI 使用同名环境变量即可。fixture 文件采用 `schemaVersion: 1`，�
 
 ## 文档导航
 
+- [docs/USER_GUIDE.md](docs/USER_GUIDE.md)：面向非开发用户的单论文阅读与多论文 Agent 研究操作指南。
 - [ARCHITECTURE.md](ARCHITECTURE.md)：系统结构、运行链路、持久化边界和模块职责。
 - [API.md](API.md)：接口契约、请求响应结构和关键数据形态。
 - [CHANGELOG.md](CHANGELOG.md)：变更记录。
