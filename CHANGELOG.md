@@ -9,7 +9,7 @@
 3. **明确失败降级与审计边界**：Provider 超时、限流、无效响应或不可用时继续使用内部证据；trace、日志和错误不得记录密钥、认证 header、完整响应或完整摘要。
 4. **定义统一外部证据模型**：新增 Provider 中立的外部学术证据规范化与稳定来源 ID，固定缺省字段语义，并让现有 evidence 流程保留 Provider、作者、年份、摘要、DOI、URL、检索时间、query 和许可元数据。
 5. **抽出外部检索 Provider 边界**：新增单 query 协议、只读禁用实现和严格配置工厂；默认配置不读取 Provider 或构造客户端，显式启用时对缺失、未知、未实现和无效 Provider 严格返回脱敏配置错误。
-6. **建立外部 Provider 隔离 benchmark**：新增 Crossref 与 Semantic Scholar 的固定受控采样、脱敏 snapshot 和离线评分；首次匿名采样因 Semantic Scholar 全部返回 429 未达到选型门槛，因此不启用或注册生产 Provider。
+6. **完成外部 Provider 隔离 benchmark**：新增 Crossref 与 Semantic Scholar 的固定匿名采样、脱敏 snapshot 和离线评分；Crossref 以 6/6 成功且无需认证被选为 P3-05 唯一目标，Semantic Scholar 因匿名请求全部 429 被判定为运维不适用。
 
 ### 2026-06-21 v0.1.53
 

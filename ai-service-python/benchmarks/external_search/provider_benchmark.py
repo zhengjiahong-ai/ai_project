@@ -7,7 +7,6 @@ Request destinations and queries cannot be supplied through CLI options.
 import argparse
 import json
 import math
-import os
 import re
 import statistics
 import time
@@ -169,7 +168,7 @@ def _summarize_semantic_scholar(payload):
     return results
 
 
-def _request_spec(provider, case, api_key):
+def _request_spec(provider, case):
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
     if provider == "crossref":
         return CROSSREF_ENDPOINT, {
@@ -177,8 +176,6 @@ def _request_spec(provider, case, api_key):
             "rows": RESULT_LIMIT,
         }, headers
     if provider == "semantic_scholar":
-        if api_key:
-            headers["x-api-key"] = api_key
         return SEMANTIC_SCHOLAR_ENDPOINT, {
             "query": case["query"],
             "limit": RESULT_LIMIT,
@@ -187,9 +184,9 @@ def _request_spec(provider, case, api_key):
     raise ValueError("unsupported benchmark provider")
 
 
-def fetch_provider_case(provider, case, session=None, api_key=None, clock=time.perf_counter):
+def fetch_provider_case(provider, case, session=None, clock=time.perf_counter):
     session = session or requests.Session()
-    endpoint, params, headers = _request_spec(provider, case, api_key)
+    endpoint, params, headers = _request_spec(provider, case)
     started = clock()
     response = None
     base = {
@@ -242,12 +239,11 @@ def fetch_provider_case(provider, case, session=None, api_key=None, clock=time.p
             response.close()
 
 
-def run_live_benchmark(fixtures, session=None, sleep_fn=time.sleep, api_key=None):
+def run_live_benchmark(fixtures, session=None, sleep_fn=time.sleep):
     cases = fixtures.get("cases") or []
     if len(cases) > 6:
         raise ValueError("live benchmark is limited to six fixed cases")
     session = session or requests.Session()
-    api_key = api_key if api_key is not None else os.environ.get("SEMANTIC_SCHOLAR_API_KEY")
     requests_to_make = [(provider, case) for provider in PROVIDERS for case in cases]
     if len(requests_to_make) > 12:
         raise ValueError("live benchmark is limited to twelve requests")
@@ -258,10 +254,7 @@ def run_live_benchmark(fixtures, session=None, sleep_fn=time.sleep, api_key=None
         "fixtureSchemaVersion": fixtures.get("schemaVersion", ""),
         "providers": {
             "crossref": {"authMode": "anonymous", "requests": []},
-            "semantic_scholar": {
-                "authMode": "api_key" if api_key else "anonymous",
-                "requests": [],
-            },
+            "semantic_scholar": {"authMode": "anonymous", "requests": []},
         },
     }
     for index, (provider, case) in enumerate(requests_to_make):
@@ -270,7 +263,6 @@ def run_live_benchmark(fixtures, session=None, sleep_fn=time.sleep, api_key=None
                 provider,
                 case,
                 session=session,
-                api_key=api_key if provider == "semantic_scholar" else None,
             )
         )
         if index < len(requests_to_make) - 1:
@@ -359,11 +351,40 @@ def _score_provider(cases, provider_snapshot):
 
 
 def select_provider(provider_metrics):
-    if any(provider_metrics.get(name, {}).get("successfulCases", 0) < 5 for name in PROVIDERS):
+    excluded = []
+    eligible = []
+    incomplete = []
+    for name in PROVIDERS:
+        metrics = provider_metrics.get(name, {})
+        if metrics.get("successfulCases", 0) >= 5:
+            eligible.append(name)
+            continue
+        case_count = metrics.get("caseCount", 0)
+        rate_limited = (metrics.get("failureCounts") or {}).get("rateLimited429", 0)
+        if (
+            metrics.get("authMode") == "anonymous"
+            and case_count > 0
+            and metrics.get("successfulCases", 0) == 0
+            and rate_limited == case_count
+        ):
+            excluded.append(name)
+        else:
+            incomplete.append(name)
+
+    if not eligible or incomplete:
         return {
             "status": "insufficient_data",
             "selectedProvider": None,
-            "reason": "Each provider must successfully complete at least five of six cases.",
+            "excludedProviders": excluded,
+            "reason": "Each usable anonymous provider must successfully complete at least five of six cases.",
+        }
+
+    if len(eligible) == 1:
+        return {
+            "status": "complete",
+            "selectedProvider": eligible[0],
+            "excludedProviders": excluded,
+            "reason": "anonymous_access_unavailable",
         }
 
     crossref = provider_metrics["crossref"]
@@ -386,7 +407,12 @@ def select_provider(provider_metrics):
     else:
         selected = "crossref"
         reason = "close_score_lower_authentication_and_license_operational_burden"
-    return {"status": "complete", "selectedProvider": selected, "reason": reason}
+    return {
+        "status": "complete",
+        "selectedProvider": selected,
+        "excludedProviders": excluded,
+        "reason": reason,
+    }
 
 
 def build_benchmark_result(fixtures, snapshot):

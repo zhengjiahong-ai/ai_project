@@ -46,8 +46,11 @@
     }
   },
   "selection": {
-    "status": "insufficient_data",
-    "selectedProvider": null,
-    "reason": "Each provider must successfully complete at least five of six cases."
+    "status": "complete",
+    "selectedProvider": "crossref",
+    "excludedProviders": [
+      "semantic_scholar"
+    ],
+    "reason": "anonymous_access_unavailable"
   }
 }

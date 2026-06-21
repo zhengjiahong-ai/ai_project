@@ -10,13 +10,6 @@
 python -m benchmarks.external_search.provider_benchmark --live
 ```
 
-如需使用 Semantic Scholar API key，只通过进程环境提供：
-
-```powershell
-$env:SEMANTIC_SCHOLAR_API_KEY = "..."
-python -m benchmarks.external_search.provider_benchmark --live
-```
-
 默认模式不会联网，只读取已脱敏 snapshot 并重新计算结果：
 
 ```powershell
@@ -30,9 +23,10 @@ python -m benchmarks.external_search.provider_benchmark
 - 请求仅发往固定的 Crossref `/works` 与 Semantic Scholar Academic Graph `/paper/search` endpoint。
 - 6 个 query 固定在 `fixtures.json`；单次 live 运行最多 12 次顺序请求，请求间隔 1.1 秒。
 - 禁止重定向，连接与读取均有超时，响应体上限为 1 MiB，不自动重试。
-- snapshot 仅保留评测所需元数据、响应大小、耗时和白名单限流 header；不保存 API key、认证 header、完整摘要或原始响应。
+- 两个候选都只评估匿名访问，不读取或发送 API key；需要认证才能稳定访问的候选视为运维不适用。
+- snapshot 仅保留评测所需元数据、响应大小、耗时和白名单限流 header；不保存认证 header、完整摘要或原始响应。
 - 结果中的 URL 只是待核验元数据，benchmark 不会跟随或下载这些 URL。
 
 ## 更新 snapshot
 
-只有在重新核验 Provider 政策并明确执行 `--live` 时才更新 snapshot。更新后必须运行默认离线模式，确认 `benchmark-results.json` 可重复生成，并检查 snapshot 不含密钥、认证 header、完整摘要或原始响应。
+只有在重新核验 Provider 政策并明确执行 `--live` 时才更新 snapshot。更新后必须运行默认离线模式，确认 `benchmark-results.json` 可重复生成，并检查 snapshot 不含认证 header、完整摘要或原始响应。

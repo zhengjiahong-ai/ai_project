@@ -107,23 +107,17 @@ class ExternalSearchLiveBenchmarkTests(unittest.TestCase):
         self.assertGreater(result["results"][0]["abstractChars"], 0)
         self.assertTrue(response.closed)
 
-    def test_semantic_scholar_request_uses_only_metadata_fields_and_hides_key(self):
+    def test_semantic_scholar_request_uses_only_metadata_fields_without_authentication(self):
         session = _Session([_Response(_semantic_payload())])
 
-        result = fetch_provider_case(
-            "semantic_scholar",
-            CASE,
-            session=session,
-            api_key="top-secret-key",
-        )
+        result = fetch_provider_case("semantic_scholar", CASE, session=session)
 
         url, kwargs = session.calls[0]
         self.assertEqual(url, SEMANTIC_SCHOLAR_ENDPOINT)
         self.assertEqual(kwargs["params"]["query"], CASE["query"])
         self.assertEqual(kwargs["params"]["limit"], 5)
         self.assertIn("paperId,title,year,abstract,externalIds,url,openAccessPdf", kwargs["params"]["fields"])
-        self.assertEqual(kwargs["headers"]["x-api-key"], "top-secret-key")
-        self.assertNotIn("top-secret-key", json.dumps(result))
+        self.assertNotIn("x-api-key", kwargs["headers"])
         self.assertEqual(result["results"][0]["license"], "CCBY")
 
     def test_response_limit_timeout_and_malformed_json_are_structured_failures(self):
@@ -162,7 +156,7 @@ class ExternalSearchLiveBenchmarkTests(unittest.TestCase):
         self.assertEqual(result["results"], [])
         self.assertNotIn("credential rejected", json.dumps(result))
 
-    def test_live_run_is_sequential_bounded_and_records_only_auth_mode(self):
+    def test_live_run_is_sequential_bounded_and_anonymous(self):
         fixtures = {"schemaVersion": "1.0", "cases": [CASE]}
         session = _Session([_Response(_crossref_payload()), _Response(_semantic_payload())])
         sleeps = []
@@ -171,14 +165,13 @@ class ExternalSearchLiveBenchmarkTests(unittest.TestCase):
             fixtures,
             session=session,
             sleep_fn=sleeps.append,
-            api_key="top-secret-key",
         )
 
         self.assertEqual(len(session.calls), 2)
         self.assertEqual(sleeps, [1.1])
         self.assertEqual(snapshot["providers"]["crossref"]["authMode"], "anonymous")
-        self.assertEqual(snapshot["providers"]["semantic_scholar"]["authMode"], "api_key")
-        self.assertNotIn("top-secret-key", json.dumps(snapshot))
+        self.assertEqual(snapshot["providers"]["semantic_scholar"]["authMode"], "anonymous")
+        self.assertNotIn("x-api-key", session.calls[1][1]["headers"])
 
 
 class ExternalSearchOfflineBenchmarkTests(unittest.TestCase):
@@ -287,6 +280,37 @@ class ExternalSearchOfflineBenchmarkTests(unittest.TestCase):
         self.assertEqual(select_provider(provider_metrics)["selectedProvider"], "semantic_scholar")
         provider_metrics["semantic_scholar"]["medianLatencyMs"] = 300
         self.assertEqual(select_provider(provider_metrics)["selectedProvider"], "crossref")
+
+    def test_anonymous_provider_rate_limited_for_every_case_is_operationally_ineligible(self):
+        provider_metrics = {
+            "crossref": {
+                "authMode": "anonymous",
+                "caseCount": 6,
+                "successfulCases": 6,
+                "qualityScore": 0.399167,
+                "successRate": 1.0,
+                "medianLatencyMs": 552,
+                "failureCounts": {"rateLimited429": 0},
+            },
+            "semantic_scholar": {
+                "authMode": "anonymous",
+                "caseCount": 6,
+                "successfulCases": 0,
+                "qualityScore": 0.0,
+                "successRate": 0.0,
+                "medianLatencyMs": None,
+                "failureCounts": {"rateLimited429": 6},
+            },
+        }
+
+        from benchmarks.external_search.provider_benchmark import select_provider
+
+        selection = select_provider(provider_metrics)
+
+        self.assertEqual(selection["status"], "complete")
+        self.assertEqual(selection["selectedProvider"], "crossref")
+        self.assertEqual(selection["excludedProviders"], ["semantic_scholar"])
+        self.assertEqual(selection["reason"], "anonymous_access_unavailable")
 
 
 if __name__ == "__main__":

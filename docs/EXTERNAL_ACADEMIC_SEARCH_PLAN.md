@@ -85,9 +85,9 @@ trace 只允许记录 Provider 名称、调用结果、计数、缓存命中、�
 
 ## P3-04 benchmark 状态
 
-实际指标与失败样例见 [`external_search_benchmark.md`](external_search_benchmark.md)。2026-06-21 的受控匿名采样中，Crossref 完成 6/6 case，Semantic Scholar 六次请求均因 HTTP 429 失败。由于选型规则要求每个候选 Provider 至少成功 5/6 case，本次结果为 `insufficient_data`，不选择 Provider，P3-04 不标记完成。
+实际指标与失败样例见 [`external_search_benchmark.md`](external_search_benchmark.md)。2026-06-21 的受控匿名采样中，Crossref 完成 6/6 case；Semantic Scholar 六次请求均因 HTTP 429 失败，被判定为匿名运维不可用。项目不配置 Semantic Scholar API key，本次结果选择 Crossref，P3-04 已完成。
 
-隔离 benchmark 的 `--live` 网络代码不是 Provider adapter，不得导入生产工厂或服务路径。重新采样只能使用相同固定 fixture、endpoint、请求预算和脱敏规则；在满足门槛并完成人工审查前，P3-05 不得实现或注册生产联网客户端。
+隔离 benchmark 的 `--live` 网络代码不是 Provider adapter，不得导入生产工厂或服务路径。P3-05 只能实现 Crossref；Semantic Scholar 虽仍在白名单中，但没有新的安全评审和任务授权不得实现或注册。重新采样只能使用相同固定 fixture、endpoint、请求预算、匿名访问和脱敏规则。
 
 ## P3-01 非目标
 

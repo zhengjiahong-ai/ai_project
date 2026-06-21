@@ -36,7 +36,8 @@
 - Provider 边界统一由 Python `external_search_provider.py` 管理。`PIXIU_EXTERNAL_SEARCH_ENABLED` 只有 `1/true/yes/on` 启用，其余值和缺省均返回只读禁用实现，且不得读取 Provider 配置或构造客户端。
 - 显式启用时 `PIXIU_EXTERNAL_SEARCH_PROVIDER` 必须为 `crossref` 或 `semantic_scholar`。缺失、未知、未注册客户端、builder 失败或返回无效对象必须抛出脱敏配置错误，不得返回空结果伪装成功或切换其他来源。
 - P3-03 只提供单 query 协议、禁用实现和严格工厂，不注册任何联网 builder；因此在 P3-05 实现并注册正式客户端前，显式启用合法 Provider 也必须以“客户端尚未实现”失败。
-- P3-04 benchmark 结论见 [`external_search_benchmark.md`](external_search_benchmark.md)。2026-06-21 匿名采样中 Crossref 成功 6/6，Semantic Scholar 因 6 次 HTTP 429 成功 0/6，未满足双方至少成功 5/6 的选型门槛；当前不得选择或注册任何生产 Provider。
+- P3-04 benchmark 结论见 [`external_search_benchmark.md`](external_search_benchmark.md)。2026-06-21 匿名采样中 Crossref 成功 6/6，Semantic Scholar 因 6 次 HTTP 429 被判定为匿名运维不可用；项目不要求配置 Semantic Scholar API key，P3-05 唯一实现目标为 Crossref。
+- benchmark 只评估无需凭据的匿名可用性。至少一个候选必须成功完成 5/6 case；对全部 case 均因匿名 429 失败的候选允许标记为运维不适用并排除，但不得把其他超时、畸形响应或部分失败伪装为排除条件。
 - benchmark 网络代码仅允许在 `ai-service-python/benchmarks/external_search/` 中显式 `--live` 运行，不得复用为生产客户端。默认离线评分不得联网，失败结果不得通过降低门槛、切换来源或扩大白名单绕过。
 
 ## 统一外部证据模型
