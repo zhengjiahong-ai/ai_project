@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "responses": [
+    {
+      "id": "offline-chat",
+      "client": "default",
+      "promptContains": ["OFFLINE_CHAT_MARKER"],
+      "output": "固定离线问答响应。"
+    },
+    {
+      "id": "offline-research-plan",
+      "client": "default",
+      "promptContains": ["You are planning a deep research task", "OFFLINE_RESEARCH_MARKER"],
+      "outputJson": {
+        "brief": "固定离线研究计划",
+        "subQuestions": [
+          "离线子问题一是什么？",
+          "离线子问题二有哪些证据？",
+          "离线子问题三有哪些边界？"
+        ]
+      }
+    },
+    {
+      "id": "offline-background-concepts",
+      "client": "default",
+      "promptContains": ["Identify concepts a reader must understand", "OFFLINE_GRAPH_MARKER"],
+      "outputJson": {
+        "concepts": [
+          {
+            "id": "offline-concept",
+            "label": "离线概念",
+            "type": "concept",
+            "level": "basic",
+            "stage": "foundation",
+            "summary": "固定概念摘要。",
+            "why": "用于验证离线知识图谱。",
+            "searchQueries": [],
+            "sourceIds": ["source-1"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "offline-background-edges",
+      "client": "default",
+      "promptContains": ["Determine only necessary prerequisite relations", "offline-concept"],
+      "outputJson": {
+        "edges": [
+          {
+            "source": "offline-concept",
+            "target": "current-paper",
+            "type": "prerequisite",
+            "sourceIds": ["source-1"],
+            "confidence": 0.8,
+            "confidenceReason": "当前论文片段明确支持。"
+          }
+        ]
+      }
+    },
+    {
+      "id": "offline-page-translation",
+      "client": "translation",
+      "promptContains": ["待翻译文本块", "OFFLINE_TRANSLATION_MARKER", "block-1"],
+      "outputJson": {
+        "translatedBlocks": [
+          {
+            "id": "block-1",
+            "translatedText": "固定离线译文。"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+import os
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from llm import client as llm_client
+from schemas.requests import PageTranslationRequest
+from services import chat_service, page_translation_service, research_planner
+from services.knowledge_graph_service import generate_current_paper_graph
+
+
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "llm_responses.json"
+
+
+class OfflineCorePathsTests(unittest.TestCase):
+    def setUp(self):
+        self.env = patch.dict(
+            os.environ,
+            {
+                "PIXIU_LLM_MODE": "fixture",
+                "PIXIU_LLM_FIXTURE_PATH": str(FIXTURE_PATH),
+            },
+            clear=False,
+        )
+        self.env.start()
+        os.environ.pop("DEEPSEEK_API_KEY", None)
+        llm_client._llm = None
+        llm_client._translation_llm = None
+
+    def tearDown(self):
+        llm_client._llm = None
+        llm_client._translation_llm = None
+        self.env.stop()
+
+    def test_text_chat_uses_offline_fixture(self):
+        with patch("llm.client.requests.post") as post:
+            response = chat_service._call_guarded_llm("OFFLINE_CHAT_MARKER")
+
+        self.assertEqual(response, "固定离线问答响应。")
+        post.assert_not_called()
+
+    def test_research_plan_uses_structured_offline_fixture(self):
+        with patch("llm.client.requests.post") as post:
+            brief, questions = research_planner.build_research_plan(
+                "OFFLINE_RESEARCH_MARKER",
+                {"method": "固定方法摘要"},
+                [{"sourceId": "source-1", "text": "固定论文证据"}],
+            )
+
+        self.assertEqual(brief, "固定离线研究计划")
+        self.assertEqual(len(questions), 3)
+        self.assertEqual(questions[0], "离线子问题一是什么？")
+        post.assert_not_called()
+
+    def test_two_stage_background_graph_uses_offline_fixtures(self):
+        with patch("llm.client.requests.post") as post:
+            result = generate_current_paper_graph(
+                paper_topic="OFFLINE_GRAPH_MARKER",
+                paper_context="固定论文上下文",
+                paper_structure={"method": "固定结构"},
+                rag_sources=[{"sourceId": "source-1", "text": "固定论文证据"}],
+                reader_profile={},
+                pdf_id="offline-paper",
+            )
+
+        self.assertEqual(result["background_knowledge"], ["离线概念"])
+        self.assertEqual(result["graph"]["edges"][0]["target"], "current-paper")
+        post.assert_not_called()
+
+    def test_page_translation_uses_translation_fixture(self):
+        request = PageTranslationRequest(
+            pageIndex=0,
+            pageText="OFFLINE_TRANSLATION_MARKER",
+            paperSkeleton={},
+            pageLayout={
+                "blocks": [
+                    {
+                        "id": "block-1",
+                        "text": "OFFLINE_TRANSLATION_MARKER",
+                        "style": {},
+                    }
+                ]
+            },
+        )
+
+        with patch("llm.client.requests.post") as post:
+            response = page_translation_service.translate_page(request)
+
+        self.assertEqual(response["renderMode"], "overlay")
+        self.assertEqual(response["translatedText"], "固定离线译文。")
+        post.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()

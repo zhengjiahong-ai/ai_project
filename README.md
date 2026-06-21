@@ -105,6 +105,10 @@ KNOWLEDGE_GRAPH_DB_PATH=ai-service-python/data/knowledge_graph.sqlite3
 
 # 默认不要设置；仅启动本机只读 MCP adapter 时显式设为 true
 PIXIU_MCP_ENABLED=false
+
+# 仅测试使用；生产环境不要启用
+PIXIU_LLM_MODE=deepseek
+# PIXIU_LLM_FIXTURE_PATH=ai-service-python/tests/fixtures/llm_responses.json
 ```
 
 前端可选环境变量：
@@ -290,6 +294,17 @@ Python：
 cd ai-service-python
 python -m pytest tests -q
 ```
+
+Python 测试也支持完全离线的固定 LLM 响应，不需要 `DEEPSEEK_API_KEY`，且不会请求 DeepSeek：
+
+```powershell
+cd ai-service-python
+$env:PIXIU_LLM_MODE = "fixture"
+$env:PIXIU_LLM_FIXTURE_PATH = (Resolve-Path ".\tests\fixtures\llm_responses.json")
+python -m pytest tests/test_offline_llm.py tests/test_offline_core_paths.py -q
+```
+
+CI 使用同名环境变量即可。fixture 文件采用 `schemaVersion: 1`，每个响应包含唯一 `id`、`client`（`default` 或 `translation`）、非空 `promptContains`，以及二选一的 `output` 或 `outputJson`。所有 marker 都匹配且仅匹配一个响应时才返回固定结果；未匹配、重复匹配或 schema 非法会直接失败，不会回退到真实 API。该模式只用于自动化测试。
 
 ## 已知问题
 
