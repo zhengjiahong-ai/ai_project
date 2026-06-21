@@ -1,8 +1,10 @@
 import json
+import os
 import unittest
+from unittest.mock import patch
 
+from services.external_search_provider import ExternalSearchConfigurationError
 from services.knowledge_graph_service import (
-    DisabledExternalKnowledgeProvider,
     generate_current_paper_graph,
 )
 
@@ -18,6 +20,17 @@ class _SequenceLlm:
         if isinstance(response, Exception):
             raise response
         return json.dumps(response, ensure_ascii=False)
+
+
+class _InjectedProvider:
+    name = "crossref"
+    enabled = True
+
+    def search(self, query, limit=5):
+        return []
+
+    def status(self):
+        return {"enabled": True, "status": "ready", "provider": self.name}
 
 
 class KnowledgeGraphServiceTest(unittest.TestCase):
@@ -114,12 +127,44 @@ class KnowledgeGraphServiceTest(unittest.TestCase):
         self.assertTrue(result["graph"]["suppressImplicitEdges"])
         self.assertIn("前置关系判断失败", result["warnings"][0])
 
-    def test_disabled_external_provider_is_read_only_and_returns_no_results(self):
-        provider = DisabledExternalKnowledgeProvider()
+    def test_explicit_provider_injection_preserves_provider_status(self):
+        provider = _InjectedProvider()
+        llm = _SequenceLlm([{"concepts": []}])
 
-        self.assertFalse(provider.enabled)
-        self.assertEqual(provider.search(["attention prerequisites"]), [])
-        self.assertEqual(provider.status()["status"], "disabled")
+        result = generate_current_paper_graph(
+            paper_topic="RAG",
+            paper_context="",
+            paper_structure={},
+            rag_sources=[],
+            reader_profile={},
+            pdf_id="paper.pdf",
+            llm=llm,
+            external_provider=provider,
+        )
+
+        self.assertEqual(result["externalKnowledge"], {
+            "enabled": True,
+            "status": "ready",
+            "provider": "crossref",
+        })
+
+    def test_default_provider_factory_rejects_enabled_unimplemented_provider(self):
+        llm = _SequenceLlm([{"concepts": []}])
+
+        with patch.dict(os.environ, {
+            "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
+            "PIXIU_EXTERNAL_SEARCH_PROVIDER": "crossref",
+        }, clear=True):
+            with self.assertRaises(ExternalSearchConfigurationError):
+                generate_current_paper_graph(
+                    paper_topic="RAG",
+                    paper_context="",
+                    paper_structure={},
+                    rag_sources=[],
+                    reader_profile={},
+                    pdf_id="paper.pdf",
+                    llm=llm,
+                )
 
 
 if __name__ == "__main__":

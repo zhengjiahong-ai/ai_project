@@ -1,0 +1,485 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-06-21T08:20:45.432193Z",
+  "fixtureSchemaVersion": "1.0",
+  "providers": {
+    "crossref": {
+      "authMode": "anonymous",
+      "requests": [
+        {
+          "caseId": "attention-is-all-you-need",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 846,
+          "responseBytes": 30860,
+          "rateLimitHeaders": {
+            "x-rate-limit-limit": "5",
+            "x-rate-limit-interval": "1s",
+            "x-concurrency-limit": "1"
+          },
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.1007/978-3-031-84300-6_13",
+              "title": "Is Attention All You Need?",
+              "year": 2025,
+              "doi": "10.1007/978-3-031-84300-6_13",
+              "url": "https://doi.org/10.1007/978-3-031-84300-6_13",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": "https://www.springernature.com/gp/researchers/text-and-data-mining"
+            },
+            {
+              "rank": 2,
+              "providerId": "10.2139/ssrn.5967774",
+              "title": "Attention is All You Need... Unless You Are a CISO: The Inherent Incompatibility Between Transformer Architectures and Zero-Trust Environments",
+              "year": 2026,
+              "doi": "10.2139/ssrn.5967774",
+              "url": "https://doi.org/10.2139/ssrn.5967774",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 3,
+              "providerId": "10.5040/9781350101272.00000005",
+              "title": "All You Need Is LSD",
+              "year": 2018,
+              "doi": "10.5040/9781350101272.00000005",
+              "url": "https://doi.org/10.5040/9781350101272.00000005",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 4,
+              "providerId": "10.1093/bib/bbag239",
+              "title": "Correction to: Attention is all you need: utilizing attention in AI-enabled drug discovery",
+              "year": 2026,
+              "doi": "10.1093/bib/bbag239",
+              "url": "https://doi.org/10.1093/bib/bbag239",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": "https://creativecommons.org/licenses/by-nc/4.0/"
+            },
+            {
+              "rank": 5,
+              "providerId": "10.2139/ssrn.6096874",
+              "title": "Attention via Synaptic Plasticity is All You Need A Biologically Inspired Spiking Neuromorphic Transformer",
+              "year": 2026,
+              "doi": "10.2139/ssrn.6096874",
+              "url": "https://doi.org/10.2139/ssrn.6096874",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "bert",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 548,
+          "responseBytes": 27253,
+          "rateLimitHeaders": {
+            "x-rate-limit-limit": "5",
+            "x-rate-limit-interval": "1s",
+            "x-concurrency-limit": "1"
+          },
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.1109/tim.2024.3374300/mm1",
+              "title": "Spectrum-BERT: Pre-training of Deep Bidirectional Transformers for Spectral Classification of Chinese Liquors_supp1-3374300.docx",
+              "year": 2024,
+              "doi": "10.1109/tim.2024.3374300/mm1",
+              "url": "https://doi.org/10.1109/tim.2024.3374300/mm1",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 2,
+              "providerId": "10.2196/preprints.40992",
+              "title": "Over-Sampling Effect in Pre-Training for Bidirectional Encoder Representations from Transformers (BERT) to Localize Medical BERT and Enhance Biomedical BERT (Preprint)",
+              "year": 2022,
+              "doi": "10.2196/preprints.40992",
+              "url": "https://doi.org/10.2196/preprints.40992",
+              "hasAbstract": true,
+              "abstractChars": 2962,
+              "license": ""
+            },
+            {
+              "rank": 3,
+              "providerId": "10.18653/v1/2022.inlg-main.4",
+              "title": "Arabic Image Captioning using Pre-training of Deep Bidirectional Transformers",
+              "year": 2022,
+              "doi": "10.18653/v1/2022.inlg-main.4",
+              "url": "https://doi.org/10.18653/v1/2022.inlg-main.4",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 4,
+              "providerId": "10.1201/9781003170082-3",
+              "title": "Bidirectional Encoder Representations from Transformers (BERT)",
+              "year": 2022,
+              "doi": "10.1201/9781003170082-3",
+              "url": "https://doi.org/10.1201/9781003170082-3",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 5,
+              "providerId": "10.1016/j.compbiomed.2021.104258",
+              "title": "FAD-BERT: Improved prediction of FAD binding sites using pre-training of deep bidirectional transformers",
+              "year": 2021,
+              "doi": "10.1016/j.compbiomed.2021.104258",
+              "url": "https://doi.org/10.1016/j.compbiomed.2021.104258",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": "https://www.elsevier.com/tdm/userlicense/1.0/"
+            }
+          ]
+        },
+        {
+          "caseId": "deep-residual-learning",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 406,
+          "responseBytes": 51872,
+          "rateLimitHeaders": {
+            "x-rate-limit-limit": "5",
+            "x-rate-limit-interval": "1s",
+            "x-concurrency-limit": "1"
+          },
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.22541/au.170666177.72403547/v1",
+              "title": "Multiple butterflies recognition based on deep residual learning and image analyze",
+              "year": 2024,
+              "doi": "10.22541/au.170666177.72403547/v1",
+              "url": "https://doi.org/10.22541/au.170666177.72403547/v1",
+              "hasAbstract": true,
+              "abstractChars": 1846,
+              "license": ""
+            },
+            {
+              "rank": 2,
+              "providerId": "10.3390/app12188972",
+              "title": "Deep Residual Learning for Image Recognition: A Survey",
+              "year": 2022,
+              "doi": "10.3390/app12188972",
+              "url": "https://doi.org/10.3390/app12188972",
+              "hasAbstract": true,
+              "abstractChars": 876,
+              "license": "https://creativecommons.org/licenses/by/4.0/"
+            },
+            {
+              "rank": 3,
+              "providerId": "10.1109/cvpr.2016.90",
+              "title": "Deep Residual Learning for Image Recognition",
+              "year": 2016,
+              "doi": "10.1109/cvpr.2016.90",
+              "url": "https://doi.org/10.1109/cvpr.2016.90",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 4,
+              "providerId": "10.5220/0011270400003277",
+              "title": "RRConvNet: Recursive-residual Network for Real-life Character Image Recognition",
+              "year": 2022,
+              "doi": "10.5220/0011270400003277",
+              "url": "https://doi.org/10.5220/0011270400003277",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 5,
+              "providerId": "10.1109/cvidl58838.2023.10167244",
+              "title": "EEG-based Drowsiness and Alertness Recognition Using Feature Fusion and Deep Residual Networks",
+              "year": 2023,
+              "doi": "10.1109/cvidl58838.2023.10167244",
+              "url": "https://doi.org/10.1109/cvidl58838.2023.10167244",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": "https://doi.org/10.15223/policy-029"
+            }
+          ]
+        },
+        {
+          "caseId": "retrieval-augmented-generation",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 2079,
+          "responseBytes": 8886,
+          "rateLimitHeaders": {
+            "x-rate-limit-limit": "5",
+            "x-rate-limit-interval": "1s",
+            "x-concurrency-limit": "1"
+          },
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.18653/v1/2026.findings-eacl.35",
+              "title": "Multilingual Retrieval-Augmented Generation for Knowledge-Intensive Question Answering Task",
+              "year": 2026,
+              "doi": "10.18653/v1/2026.findings-eacl.35",
+              "url": "https://doi.org/10.18653/v1/2026.findings-eacl.35",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 2,
+              "providerId": "10.21275/sr251104092705",
+              "title": "Retrieval-Augmented Generation: Enhancing AI with Reliable Knowledge.",
+              "year": 2025,
+              "doi": "10.21275/sr251104092705",
+              "url": "https://doi.org/10.21275/sr251104092705",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 3,
+              "providerId": "10.18653/v1/2024.knowledgenlp-1.6",
+              "title": "DSLR: Document Refinement with Sentence-Level Re-ranking and Reconstruction to Enhance Retrieval-Augmented Generation",
+              "year": 2024,
+              "doi": "10.18653/v1/2024.knowledgenlp-1.6",
+              "url": "https://doi.org/10.18653/v1/2024.knowledgenlp-1.6",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 4,
+              "providerId": "10.18653/v1/2025.arabicnlp-sharedtasks.123",
+              "title": "QU-NLP at QIAS 2025 Shared Task: A Two-Phase LLM Fine-Tuning and Retrieval-Augmented Generation Approach for Islamic Inheritance Reasoning",
+              "year": 2025,
+              "doi": "10.18653/v1/2025.arabicnlp-sharedtasks.123",
+              "url": "https://doi.org/10.18653/v1/2025.arabicnlp-sharedtasks.123",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 5,
+              "providerId": "10.18653/v1/2022.emnlp-main.346",
+              "title": "An Efficient Memory-Augmented Transformer for Knowledge-Intensive NLP Tasks",
+              "year": 2022,
+              "doi": "10.18653/v1/2022.emnlp-main.346",
+              "url": "https://doi.org/10.18653/v1/2022.emnlp-main.346",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "alphafold",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 497,
+          "responseBytes": 7764,
+          "rateLimitHeaders": {
+            "x-rate-limit-limit": "5",
+            "x-rate-limit-interval": "1s",
+            "x-concurrency-limit": "1"
+          },
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.3410/f.740477161.793587439",
+              "title": "Faculty Opinions recommendation of Highly accurate protein structure prediction with AlphaFold.",
+              "year": 2021,
+              "doi": "10.3410/f.740477161.793587439",
+              "url": "https://doi.org/10.3410/f.740477161.793587439",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 2,
+              "providerId": "10.3410/f.740477161.793587538",
+              "title": "Faculty Opinions recommendation of Highly accurate protein structure prediction with AlphaFold.",
+              "year": 2021,
+              "doi": "10.3410/f.740477161.793587538",
+              "url": "https://doi.org/10.3410/f.740477161.793587538",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 3,
+              "providerId": "10.3410/f.740477161.793588825",
+              "title": "Faculty Opinions recommendation of Highly accurate protein structure prediction with AlphaFold.",
+              "year": 2021,
+              "doi": "10.3410/f.740477161.793588825",
+              "url": "https://doi.org/10.3410/f.740477161.793588825",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 4,
+              "providerId": "10.3410/f.740477161.793587604",
+              "title": "Faculty Opinions recommendation of Highly accurate protein structure prediction with AlphaFold.",
+              "year": 2021,
+              "doi": "10.3410/f.740477161.793587604",
+              "url": "https://doi.org/10.3410/f.740477161.793587604",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 5,
+              "providerId": "10.3410/f.740477161.793596551",
+              "title": "Faculty Opinions recommendation of Highly accurate protein structure prediction with AlphaFold.",
+              "year": 2022,
+              "doi": "10.3410/f.740477161.793596551",
+              "url": "https://doi.org/10.3410/f.740477161.793596551",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "deep-learning",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 557,
+          "responseBytes": 6718,
+          "rateLimitHeaders": {
+            "x-rate-limit-limit": "5",
+            "x-rate-limit-interval": "1s",
+            "x-concurrency-limit": "1"
+          },
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.4135/9781506368603.n2",
+              "title": "What’s Deep About Deep Learning?",
+              "year": 2018,
+              "doi": "10.4135/9781506368603.n2",
+              "url": "https://doi.org/10.4135/9781506368603.n2",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 2,
+              "providerId": "10.4135/9781506368603.n5",
+              "title": "Designing Deep Learning: Learning Partnerships",
+              "year": 2018,
+              "doi": "10.4135/9781506368603.n5",
+              "url": "https://doi.org/10.4135/9781506368603.n5",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 3,
+              "providerId": "10.4135/9781506368603.n4",
+              "title": "Deep Learning in Action",
+              "year": 2018,
+              "doi": "10.4135/9781506368603.n4",
+              "url": "https://doi.org/10.4135/9781506368603.n4",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 4,
+              "providerId": "10.4135/9781506368603.n6",
+              "title": "Designing Deep Learning: Learning Environments, Leveraging Digital, Pedagogical Practices",
+              "year": 2018,
+              "doi": "10.4135/9781506368603.n6",
+              "url": "https://doi.org/10.4135/9781506368603.n6",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": ""
+            },
+            {
+              "rank": 5,
+              "providerId": "10.1017/9781108955652.016",
+              "title": "Reinforcement Learning and Deep Reinforcement Learning",
+              "year": 2021,
+              "doi": "10.1017/9781108955652.016",
+              "url": "https://doi.org/10.1017/9781108955652.016",
+              "hasAbstract": false,
+              "abstractChars": 0,
+              "license": "https://www.cambridge.org/core/terms"
+            }
+          ]
+        }
+      ]
+    },
+    "semantic_scholar": {
+      "authMode": "anonymous",
+      "requests": [
+        {
+          "caseId": "attention-is-all-you-need",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 930,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "bert",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 580,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "deep-residual-learning",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 598,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "retrieval-augmented-generation",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 698,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "alphafold",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 575,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "deep-learning",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 680,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        }
+      ]
+    }
+  }
+}

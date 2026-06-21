@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "cases": [
+    {
+      "id": "attention-is-all-you-need",
+      "query": "Attention Is All You Need",
+      "expectedTitle": "Attention Is All You Need",
+      "expectedDoi": "10.48550/arXiv.1706.03762",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "bert",
+      "query": "BERT Pre-training of Deep Bidirectional Transformers for Language Understanding",
+      "expectedTitle": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+      "expectedDoi": "10.18653/v1/N19-1423",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "deep-residual-learning",
+      "query": "Deep Residual Learning for Image Recognition",
+      "expectedTitle": "Deep Residual Learning for Image Recognition",
+      "expectedDoi": "10.1109/CVPR.2016.90",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "retrieval-augmented-generation",
+      "query": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+      "expectedTitle": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+      "expectedDoi": "10.48550/arXiv.2005.11401",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "alphafold",
+      "query": "Highly Accurate Protein Structure Prediction with AlphaFold",
+      "expectedTitle": "Highly accurate protein structure prediction with AlphaFold",
+      "expectedDoi": "10.1038/s41586-021-03819-2",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "deep-learning",
+      "query": "Deep Learning",
+      "expectedTitle": "Deep learning",
+      "expectedDoi": "10.1038/nature14539",
+      "titleSimilarityThreshold": 0.75
+    }
+  ]
+}

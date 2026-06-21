@@ -2,7 +2,20 @@ import re
 from typing import Any, Dict, Iterable, List, Optional
 
 
-VALID_SOURCE_TYPES = {"current_paper", "library", "unknown"}
+VALID_SOURCE_TYPES = {"current_paper", "library", "external_academic", "unknown"}
+EXTERNAL_EVIDENCE_FIELDS = (
+    "provider",
+    "providerId",
+    "title",
+    "authors",
+    "year",
+    "abstract",
+    "doi",
+    "url",
+    "retrievedAt",
+    "query",
+    "license",
+)
 MIN_CITATION_SCORE = 0.12
 
 
@@ -37,6 +50,8 @@ def normalize_evidence_items(
             "sectionId": _resolve_section_id(raw),
             "sourceType": _normalize_source_type(raw.get("sourceType") or raw.get("source_type") or resolved_source_type),
         }
+        if evidence["sourceType"] == "external_academic":
+            evidence.update({field: raw.get(field) for field in EXTERNAL_EVIDENCE_FIELDS})
         normalized.append(evidence)
 
         if limit is not None and len(normalized) >= limit:
@@ -85,7 +100,7 @@ def compact_evidence_for_response(
 
     for item in evidence_items:
         source_id = item.get("sourceId")
-        compacted.append({
+        compact_item = {
             "id": source_id,
             "sourceId": source_id,
             "text": item.get("text", ""),
@@ -97,7 +112,10 @@ def compact_evidence_for_response(
             "pageIndex": item.get("pageIndex"),
             "sectionId": item.get("sectionId"),
             "sourceType": item.get("sourceType") or "unknown",
-        })
+        }
+        if compact_item["sourceType"] == "external_academic":
+            compact_item.update({field: item.get(field) for field in EXTERNAL_EVIDENCE_FIELDS})
+        compacted.append(compact_item)
 
     return compacted
 
@@ -252,7 +270,7 @@ def _extract_citation_terms(text: Any) -> set[str]:
 
 
 def _extract_text(item: Dict[str, Any]) -> str:
-    for key in ("text", "document", "content", "page_content"):
+    for key in ("text", "document", "content", "page_content", "abstract"):
         value = item.get(key)
         if value is not None:
             text = str(value).strip()

@@ -1,7 +1,8 @@
 import re
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional
 
 from llm.client import get_llm
+from services.external_search_provider import ExternalSearchProvider, create_external_search_provider
 from services.safety_service import build_guarded_messages, wrap_untrusted_context
 from services.trace_service import trace_step
 from services.utils import parse_json_from_llm
@@ -18,30 +19,6 @@ CONFIDENCE_CAPS = {
 }
 
 
-class ExternalKnowledgeProvider(Protocol):
-    enabled: bool
-
-    def search(self, queries: List[str]) -> List[Dict[str, Any]]:
-        ...
-
-    def status(self) -> Dict[str, Any]:
-        ...
-
-
-class DisabledExternalKnowledgeProvider:
-    enabled = False
-
-    def search(self, queries: List[str]) -> List[Dict[str, Any]]:
-        return []
-
-    def status(self) -> Dict[str, Any]:
-        return {
-            "enabled": False,
-            "status": "disabled",
-            "message": "External academic retrieval is not enabled.",
-        }
-
-
 def generate_current_paper_graph(
     *,
     paper_topic: str,
@@ -51,10 +28,10 @@ def generate_current_paper_graph(
     reader_profile: Dict[str, Any],
     pdf_id: Optional[str],
     llm: Any = None,
-    external_provider: Optional[ExternalKnowledgeProvider] = None,
+    external_provider: Optional[ExternalSearchProvider] = None,
 ) -> Dict[str, Any]:
+    provider = external_provider if external_provider is not None else create_external_search_provider()
     model = llm or get_llm()
-    provider = external_provider or DisabledExternalKnowledgeProvider()
     allowed_source_ids = {
         str(source.get("sourceId") or "").strip()
         for source in rag_sources

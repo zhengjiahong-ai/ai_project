@@ -469,6 +469,24 @@ Agent 面板不再只展示最终答案快照，而是开始展示研究过程�
 - 不足时补充内部文献库。
 - 主流程不做外部 Web 搜索。
 
+### 外部学术检索信任边界
+
+外部学术检索仍为默认关闭的未来能力，完整威胁模型见 [`docs/EXTERNAL_ACADEMIC_SEARCH_PLAN.md`](docs/EXTERNAL_ACADEMIC_SEARCH_PLAN.md)。`external_search_provider.py` 已提供 Provider 中立的单 query 协议、`DisabledExternalSearchProvider` 和严格配置工厂，但尚未注册任何联网客户端。
+
+工厂只在 `PIXIU_EXTERNAL_SEARCH_ENABLED=1|true|yes|on` 时处理 Provider 配置；默认或其他值直接返回禁用实现，不读取 `PIXIU_EXTERNAL_SEARCH_PROVIDER`，也不调用 builder。显式启用时 Provider 只允许 `crossref` 或 `semantic_scholar`，且必须存在后续任务注册的有效 builder。缺失、未知、尚未实现或构造失败均严格报脱敏配置错误，不静默降级或切换来源。知识图谱通过该工厂取得默认 Provider，同时保留显式依赖注入边界。
+
+未来数据流固定为：
+
+1. 检索当前论文。
+2. 证据不足时检索内部文献库。
+3. JUDGE 仍确认存在明确证据缺口时生成受限 query。
+4. 只有任务显式授权且配置与预算完整时，调用白名单 Provider adapter。
+5. adapter 校验、裁剪、脱敏并归一化响应，再把外部学术元数据作为不可信补充证据交给研究流程和人工审查。
+
+Provider adapter 是唯一允许跨越网络信任边界的组件。当前工厂和禁用实现均不联网；P3-05 之后注册的 adapter 仍只允许 Crossref `https://api.crossref.org/works` 和 Semantic Scholar Academic Graph `https://api.semanticscholar.org/graph/v1/paper` 的只读论文元数据搜索与详情。LLM、前端、Java 网关、内部检索层和 MCP adapter 均不得直接访问 Provider。禁止任意 URL、跨 host 重定向、通用 Web 搜索、推荐或数据集 API、PDF/全文下载、写操作和文件系统访问。
+
+外部内容、链接和响应均视为不可信输入，不能覆盖内部证据或自动裁决冲突。Provider 超时、限流、响应无效、不可用或预算耗尽时，研究任务保留当前论文和内部文献库结果并记录脱敏降级原因。trace 只记录 Provider、计数、结果、延迟和脱敏 query 摘要，不记录 API key、认证 header、完整响应、全文或完整摘要。
+
 ### 安全降级
 
 前端在旧缓存或 metadata 不完整时应安全降级：

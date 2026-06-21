@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-06-21T08:20:45.432193Z",
+  "fixtureSchemaVersion": "1.0",
+  "qualityFormula": "0.35*hitAt5 + 0.25*meanReciprocalRank + 0.20*abstractCoverage + 0.20*doiCoverage",
+  "providers": {
+    "crossref": {
+      "authMode": "anonymous",
+      "caseCount": 6,
+      "successfulCases": 6,
+      "successRate": 1.0,
+      "doiCoverage": 1.0,
+      "abstractCoverage": 0.1,
+      "hitAt5": 0.333333,
+      "meanReciprocalRank": 0.25,
+      "medianLatencyMs": 552,
+      "p95LatencyMs": 2079,
+      "failureCounts": {
+        "rateLimited429": 0,
+        "server5xx": 0,
+        "timeout": 0,
+        "authentication": 0,
+        "invalidResponse": 0
+      },
+      "qualityScore": 0.399167
+    },
+    "semantic_scholar": {
+      "authMode": "anonymous",
+      "caseCount": 6,
+      "successfulCases": 0,
+      "successRate": 0.0,
+      "doiCoverage": 0.0,
+      "abstractCoverage": 0.0,
+      "hitAt5": 0.0,
+      "meanReciprocalRank": 0.0,
+      "medianLatencyMs": null,
+      "p95LatencyMs": null,
+      "failureCounts": {
+        "rateLimited429": 6,
+        "server5xx": 0,
+        "timeout": 0,
+        "authentication": 0,
+        "invalidResponse": 0
+      },
+      "qualityScore": 0.0
+    }
+  },
+  "selection": {
+    "status": "insufficient_data",
+    "selectedProvider": null,
+    "reason": "Each provider must successfully complete at least five of six cases."
+  }
+}

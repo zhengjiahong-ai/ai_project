@@ -1,0 +1,38 @@
+# External academic Provider benchmark
+
+此目录是 P3-04 的隔离评测工具，不是生产联网客户端，也不会注册到 `create_external_search_provider()`。
+
+## 运行
+
+在 `ai-service-python` 目录运行一次受控采样：
+
+```powershell
+python -m benchmarks.external_search.provider_benchmark --live
+```
+
+如需使用 Semantic Scholar API key，只通过进程环境提供：
+
+```powershell
+$env:SEMANTIC_SCHOLAR_API_KEY = "..."
+python -m benchmarks.external_search.provider_benchmark --live
+```
+
+默认模式不会联网，只读取已脱敏 snapshot 并重新计算结果：
+
+```powershell
+python -m benchmarks.external_search.provider_benchmark
+```
+
+`--fixture`、`--snapshot` 和 `--output` 只能更换本地文件路径。CLI 不提供 host、endpoint 或 query 覆盖参数。
+
+## 安全边界
+
+- 请求仅发往固定的 Crossref `/works` 与 Semantic Scholar Academic Graph `/paper/search` endpoint。
+- 6 个 query 固定在 `fixtures.json`；单次 live 运行最多 12 次顺序请求，请求间隔 1.1 秒。
+- 禁止重定向，连接与读取均有超时，响应体上限为 1 MiB，不自动重试。
+- snapshot 仅保留评测所需元数据、响应大小、耗时和白名单限流 header；不保存 API key、认证 header、完整摘要或原始响应。
+- 结果中的 URL 只是待核验元数据，benchmark 不会跟随或下载这些 URL。
+
+## 更新 snapshot
+
+只有在重新核验 Provider 政策并明确执行 `--live` 时才更新 snapshot。更新后必须运行默认离线模式，确认 `benchmark-results.json` 可重复生成，并检查 snapshot 不含密钥、认证 header、完整摘要或原始响应。

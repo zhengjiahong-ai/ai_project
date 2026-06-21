@@ -20,7 +20,33 @@
 - 背景知识图谱分为概念发现和 prerequisite 关系判断两个 LLM 阶段；第二阶段失败时可保留概念节点，但不得按列表顺序伪造前置边。
 - `graph.nodes[*]` 和 `graph.edges[*]` 的 `provenanceStatus` 兼容值为 `current_paper_supported`、`model_inference`、`external_supported`；本阶段默认不会产生 `external_supported`。
 - 模型推断、当前论文支持和外部证据支持的置信度上限分别为 `0.60`、`0.85`、`0.95`。模型参数知识和 `confidenceReason` 不得冒充论文证据。
-- 外部学术检索 provider 默认禁用，本阶段不得由论文内容触发联网、工具调用或权限变化；后续接入前需另行定义权限、限流、来源质量、提示注入与审计约束。
+- 外部学术检索 provider 默认禁用，本阶段不得由论文内容触发联网、工具调用或权限变化。
+
+## 外部学术检索边界
+
+- 完整威胁模型见 [`EXTERNAL_ACADEMIC_SEARCH_PLAN.md`](EXTERNAL_ACADEMIC_SEARCH_PLAN.md)。P3-01 仅固化边界，不授权生产联网。
+- Provider 白名单仅包含 Crossref `https://api.crossref.org/works` 和 Semantic Scholar Academic Graph `https://api.semanticscholar.org/graph/v1/paper` 的只读论文元数据搜索与详情能力；两者只是 P3-04 benchmark 候选。
+- 外部检索默认关闭。未来只有显式开关、白名单 Provider、完整配置、任务授权和预算均有效，且当前论文与内部文献库检索后仍有明确证据缺口时才允许调用。
+- Provider adapter 是未来唯一允许联网的组件。请求 URL 必须由固定 HTTPS host/base path 和结构化参数构造；用户、论文、模型或外部响应不得提供目标 URL，禁止跨 host 重定向。
+- 禁止通用 Web 搜索、任意 URL、推荐或数据集 API、PDF/全文下载、写操作、文件系统访问和模型直接联网；不得跟随外部 DOI、URL 或下载地址获取内容。
+- 外部内容、链接和 Provider 响应均是不可信输入，必须经过长度限制、结构校验、提示注入防护、来源归一化、脱敏和人工审查。
+- 证据顺序固定为“当前论文 → 内部文献库 → 明确证据缺口 → 外部学术元数据”。外部证据不得覆盖内部证据、自动裁决冲突或冒充可信事实；后续实现不得扩大白名单或绕过该顺序。
+- 超时、限流、无效响应、越界重定向、Provider 不可用或预算耗尽时必须停止外部调用，保留内部证据并记录脱敏降级原因。
+- API key、认证 header、完整响应、全文、完整摘要和未脱敏 query 不得进入 trace、日志、错误、缓存键或模型上下文转储。
+- Provider 边界统一由 Python `external_search_provider.py` 管理。`PIXIU_EXTERNAL_SEARCH_ENABLED` 只有 `1/true/yes/on` 启用，其余值和缺省均返回只读禁用实现，且不得读取 Provider 配置或构造客户端。
+- 显式启用时 `PIXIU_EXTERNAL_SEARCH_PROVIDER` 必须为 `crossref` 或 `semantic_scholar`。缺失、未知、未注册客户端、builder 失败或返回无效对象必须抛出脱敏配置错误，不得返回空结果伪装成功或切换其他来源。
+- P3-03 只提供单 query 协议、禁用实现和严格工厂，不注册任何联网 builder；因此在 P3-05 实现并注册正式客户端前，显式启用合法 Provider 也必须以“客户端尚未实现”失败。
+- P3-04 benchmark 结论见 [`external_search_benchmark.md`](external_search_benchmark.md)。2026-06-21 匿名采样中 Crossref 成功 6/6，Semantic Scholar 因 6 次 HTTP 429 成功 0/6，未满足双方至少成功 5/6 的选型门槛；当前不得选择或注册任何生产 Provider。
+- benchmark 网络代码仅允许在 `ai-service-python/benchmarks/external_search/` 中显式 `--live` 运行，不得复用为生产客户端。默认离线评分不得联网，失败结果不得通过降低门槛、切换来源或扩大白名单绕过。
+
+## 统一外部证据模型
+
+- Python 内部统一外部证据必须包含 `sourceId/sourceType/provider/providerId/title/authors/year/abstract/doi/url/retrievedAt/query/license`；`sourceType` 固定为 `external_academic`。
+- 缺省字符串字段为 `""`、`authors` 为 `[]`、`year` 为 `null`；不得虚构作者、年份、许可或访问时间。`provider` 必须非空，缺少 DOI、Provider ID、URL 和标题的记录必须拒绝。
+- `sourceId` 身份优先级固定为 DOI、Provider ID、规范化 URL、Provider/标题/年份指纹；身份键使用 SHA-256 生成 `external-{kind}-{24 位摘要}`，传入的任意 `sourceId` 不得覆盖该规则。
+- DOI 统一移除 `doi:` 和 `doi.org` URL 前缀并转为小写，因此相同 DOI 跨 Provider 生成相同 ID；Provider ID 必须与规范化 Provider 名称组合，避免跨 Provider 碰撞。
+- URL 身份只接受 HTTP(S)，移除 fragment、统一 scheme/host 大小写并排序 query 参数。统一模型只保存 URL 元数据，不授权服务端访问或跟随该 URL。
+- 现有 evidence 归一化和 compact response 必须保留上述外部字段；当前论文、内部文献库和旧来源的字段与兼容行为保持不变。
 
 ## 批判阅读数值证据字段
 
