@@ -1,9 +1,60 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { createApiService, resolveAgentApiBaseUrl, resolveApiBaseUrl } from './api.js';
 
 
+const assertContract = (value, schema, path = 'response') => {
+  const typeChecks = {
+    object: (item) => item !== null && typeof item === 'object' && !Array.isArray(item),
+    array: Array.isArray,
+    string: (item) => typeof item === 'string',
+    number: (item) => typeof item === 'number' && Number.isFinite(item),
+    integer: Number.isInteger,
+    boolean: (item) => typeof item === 'boolean',
+    null: (item) => item === null,
+  };
+  if (schema.type) {
+    assert.equal(typeChecks[schema.type](value), true, `${path} must be ${schema.type}`);
+  }
+  if (schema.enum) {
+    assert.equal(schema.enum.includes(value), true, `${path} must match its enum`);
+  }
+  if (schema.type === 'object') {
+    for (const key of schema.required || []) {
+      assert.equal(Object.hasOwn(value, key), true, `${path}.${key} is required`);
+    }
+    for (const [key, childSchema] of Object.entries(schema.properties || {})) {
+      if (Object.hasOwn(value, key)) {
+        assertContract(value[key], childSchema, `${path}.${key}`);
+      }
+    }
+  }
+  if (schema.type === 'array' && schema.items) {
+    value.forEach((item, index) => assertContract(item, schema.items, `${path}[${index}]`));
+  }
+};
+
+
 const run = async () => {
+  const sharedContract = JSON.parse(
+    readFileSync(new URL('../../../contracts/api-contract-smoke.json', import.meta.url), 'utf8'),
+  );
+  assert.equal(sharedContract.schemaVersion, 1);
+  const contractOperations = Object.fromEntries(
+    sharedContract.operations.map((operation) => [operation.operation, operation]),
+  );
+  assert.deepEqual(Object.keys(contractOperations).sort(), [
+    'agent-projects',
+    'agent-tasks',
+    'agent-traces',
+    'background',
+    'chat',
+    'critical',
+    'research',
+    'trace',
+  ]);
+
   assert.equal(resolveApiBaseUrl({ VITE_API_BASE_URL: 'http://example.com/api' }), 'http://example.com/api');
   assert.equal(resolveAgentApiBaseUrl({ VITE_AGENT_API_BASE_URL: 'http://agent.example.com/api' }), 'http://agent.example.com/api');
 
@@ -341,6 +392,113 @@ const run = async () => {
   assert.equal(customTranslateConfig.timeout, 12345);
   assert.ok(customTranslateConfig.signal);
   assert.equal(customTranslateConfig.skipErrorLog, true);
+
+  const readerCalls = [];
+  const readerContractClient = {
+    post: async (url, body) => {
+      readerCalls.push({ method: 'POST', url, body });
+      const operation = sharedContract.operations.find((item) => item.frontendPath === url);
+      return operation.gatewayResponse;
+    },
+    get: async (url) => {
+      readerCalls.push({ method: 'GET', url });
+      const operation = sharedContract.operations.find((item) => item.frontendPath === url);
+      return operation.gatewayResponse;
+    },
+  };
+  const agentCalls = [];
+  const agentContractClient = {
+    post: async (url, body) => {
+      agentCalls.push({ method: 'POST', url, body });
+      const operation = sharedContract.operations.find((item) => item.frontendPath === url);
+      return operation.gatewayResponse;
+    },
+    get: async (url) => {
+      agentCalls.push({ method: 'GET', url });
+      const operation = sharedContract.operations.find((item) => item.frontendPath === url);
+      return operation.gatewayResponse;
+    },
+  };
+  const contractService = createApiService(readerContractClient, agentContractClient, { agentDirect: true });
+
+  const chatContract = contractOperations.chat;
+  const chatResponse = await contractService.sendMessage(
+    chatContract.frontendRequest.message,
+    chatContract.frontendRequest.pdfId,
+    chatContract.frontendRequest.history,
+    chatContract.frontendRequest.paperSkeleton,
+  );
+  assert.deepEqual(readerCalls.at(-1), {
+    method: chatContract.method,
+    url: chatContract.frontendPath,
+    body: chatContract.frontendRequest,
+  });
+  assertContract(chatResponse, chatContract.pythonResponseContract);
+
+  const criticalContract = contractOperations.critical;
+  const criticalResponse = await contractService.criticalReading('paper-contract-1');
+  assert.deepEqual(readerCalls.at(-1), {
+    method: criticalContract.method,
+    url: criticalContract.frontendPath,
+    body: undefined,
+  });
+  assertContract(criticalResponse.analysis, criticalContract.pythonResponseContract, 'response.analysis');
+
+  const backgroundContract = contractOperations.background;
+  const backgroundResponse = await contractService.backgroundKnowledge(backgroundContract.frontendRequest);
+  assert.deepEqual(readerCalls.at(-1), {
+    method: backgroundContract.method,
+    url: backgroundContract.frontendPath,
+    body: backgroundContract.frontendRequest,
+  });
+  assertContract(backgroundResponse, backgroundContract.pythonResponseContract);
+
+  const researchContract = contractOperations.research;
+  const researchRequest = researchContract.frontendRequest;
+  const researchResponse = await contractService.createResearchTask(
+    researchRequest.question,
+    researchRequest.pdfId,
+    researchRequest.paperSkeleton,
+    researchRequest.userConstraints,
+    researchRequest.briefPreview,
+  );
+  assert.deepEqual(readerCalls.at(-1), {
+    method: researchContract.method,
+    url: researchContract.frontendPath,
+    body: researchRequest,
+  });
+  assertContract(researchResponse, researchContract.pythonResponseContract);
+
+  const traceContract = contractOperations.trace;
+  const traceResponse = await contractService.getTrace('trace-contract-1');
+  assert.deepEqual(readerCalls.at(-1), { method: traceContract.method, url: traceContract.frontendPath });
+  assertContract(traceResponse, traceContract.pythonResponseContract);
+
+  const projectContract = contractOperations['agent-projects'];
+  const projectResponse = await contractService.createAgentProject(projectContract.frontendRequest);
+  assert.deepEqual(agentCalls.at(-1), {
+    method: projectContract.method,
+    url: projectContract.frontendPath,
+    body: projectContract.frontendRequest,
+  });
+  assertContract(projectResponse, projectContract.pythonResponseContract);
+
+  const taskContract = contractOperations['agent-tasks'];
+  const taskResponse = await contractService.createAgentTask('project-contract-1', taskContract.frontendRequest);
+  assert.deepEqual(agentCalls.at(-1), {
+    method: taskContract.method,
+    url: taskContract.frontendPath,
+    body: taskContract.frontendRequest,
+  });
+  assertContract(taskResponse, taskContract.pythonResponseContract);
+
+  const agentTraceContract = contractOperations['agent-traces'];
+  const agentTraceResponse = await contractService.getAgentTrace('agent-trace-contract-1');
+  assert.deepEqual(agentCalls.at(-1), {
+    method: agentTraceContract.method,
+    url: agentTraceContract.frontendPath,
+  });
+  assertContract(agentTraceResponse, agentTraceContract.pythonResponseContract);
 
   console.log('frontend api smoke tests passed');
 };

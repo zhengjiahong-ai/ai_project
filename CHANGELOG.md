@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-21 v0.1.52
+
+1. **建立跨服务 API 契约 fixture**：新增共享 request/response fixture，覆盖 chat、批判阅读、背景知识、Deep Research、trace 和 Agent 项目、任务及 trace。
+2. **统一三层契约 smoke**：Python 验证 FastAPI 路由与请求模型，Java 验证 `/api` 网关路由和响应包装，前端验证请求路径、请求体、Agent 直连及响应字段保留。
+3. **明确兼容演进规则**：必需字段、JSON 类型和关键枚举保持稳定，同时允许新增可选响应字段；接口变化需同步共享 fixture、三层测试和 API 文档。
+
 ### 2026-06-21 v0.1.51
 
 1. **建立离线 LLM fixture provider**：Python AI 服务支持通过显式测试环境变量加载严格 JSON fixture，无需 DeepSeek API key 或网络即可返回确定性文本与结构化响应。

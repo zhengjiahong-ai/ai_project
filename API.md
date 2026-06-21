@@ -37,6 +37,12 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 
 部分任务和 trace 接口还会使用 `404`、`409` 或 `400` HTTP 状态码表达资源不存在、索引问题或请求不合法。
 
+## 跨服务契约 Smoke
+
+`contracts/api-contract-smoke.json` 是阅读 IDE 与 Agent 研究关键接口的共享测试契约，当前覆盖 `chat`、`critical`、`background`、`research`、`trace`、`agent-projects`、`agent-tasks` 和 `agent-traces`。Python、Java 和前端测试读取同一份 request/response fixture，分别验证 FastAPI 请求模型与路由、Java `/api` 网关转发，以及前端请求路径和请求体。
+
+契约采用向后兼容规则：`pythonResponseContract` 中声明的必需字段、JSON 类型和枚举值不可删除或改变；响应可以增加未声明的可选字段。任何相关接口字段变化都必须同步更新共享 fixture、三层 contract smoke 和本文件。
+
 ## 阅读 IDE API
 
 以下接口主要由单论文阅读工作流使用，并通过 Java 网关访问。

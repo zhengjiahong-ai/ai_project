@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "compatibility": "Required response fields, their JSON types, and declared enums are stable; additional response fields are allowed.",
+  "operations": [
+    {
+      "operation": "chat",
+      "method": "POST",
+      "frontendPath": "/chat",
+      "javaPath": "/api/chat",
+      "pythonPath": "/api/chat",
+      "statusCode": 200,
+      "frontendRequest": {
+        "message": "总结本文方法",
+        "pdfId": "paper-contract-1",
+        "history": [{"role": "user", "content": "研究问题是什么？"}],
+        "paperSkeleton": {"abstract": "A retrieval paper."}
+      },
+      "pythonRequest": {
+        "message": "总结本文方法",
+        "pdfId": "paper-contract-1",
+        "history": [{"role": "user", "content": "研究问题是什么？"}],
+        "paperSkeleton": {"abstract": "A retrieval paper."}
+      },
+      "pythonResponse": {
+        "status": "success",
+        "message": "本文提出证据感知的检索方法。",
+        "sources": [{"sourceId": "source-chat-1", "text": "The method uses evidence-aware retrieval.", "pageNumber": 3}],
+        "sentenceSourceMap": [{"sentence": "本文提出证据感知的检索方法。", "sourceIds": ["source-chat-1"]}],
+        "traceId": "trace-chat-contract-1"
+      },
+      "gatewayResponse": {
+        "status": "success",
+        "message": "本文提出证据感知的检索方法。",
+        "sources": [{"sourceId": "source-chat-1", "text": "The method uses evidence-aware retrieval.", "pageNumber": 3}],
+        "sentenceSourceMap": [{"sentence": "本文提出证据感知的检索方法。", "sourceIds": ["source-chat-1"]}],
+        "traceId": "trace-chat-contract-1"
+      },
+      "pythonResponseContract": {
+        "type": "object",
+        "required": ["status", "message", "sources", "sentenceSourceMap", "traceId"],
+        "properties": {
+          "status": {"type": "string", "enum": ["success"]},
+          "message": {"type": "string"},
+          "sources": {"type": "array", "items": {"type": "object", "required": ["sourceId", "text"], "properties": {"sourceId": {"type": "string"}, "text": {"type": "string"}}}},
+          "sentenceSourceMap": {"type": "array"},
+          "traceId": {"type": "string"}
+        }
+      }
+    },
+    {
+      "operation": "critical",
+      "method": "POST",
+      "frontendPath": "/critical-reading/paper-contract-1",
+      "javaPath": "/api/critical-reading/paper-contract-1",
+      "pythonPath": "/api/deep-analysis",
+      "statusCode": 200,
+      "frontendRequest": null,
+      "pythonRequest": {"pdf_id": "paper-contract-1"},
+      "pythonResponse": {
+        "status": "success",
+        "critical_analysis": "方法主张有实验支持，但外部验证不足。",
+        "claims": [{"id": "claim-1", "claim": "准确率提升 8%。", "supportLevel": "PARTIAL", "evidenceSourceIds": ["source-critical-1"], "missingEvidence": ["缺少外部数据集验证"]}],
+        "contributionScore": {"score": 72, "level": "medium", "factors": ["方法与实验章节均有覆盖"]},
+        "riskScore": {"score": 38, "level": "medium", "factors": ["外部验证不足"]},
+        "noveltyDimensions": [{"id": "claim_support", "label": "主张支撑", "status": "moderate", "score": 65}],
+        "numericEvidenceSummary": {"numericClaimCount": 1, "candidateCount": 1},
+        "rag_sources": [{"sourceId": "source-critical-1", "text": "Accuracy improves by 8%.", "pageNumber": 6}],
+        "traceId": "trace-critical-contract-1"
+      },
+      "gatewayResponse": {
+        "status": "success",
+        "pdfId": "paper-contract-1",
+        "analysis": {
+          "status": "success",
+          "critical_analysis": "方法主张有实验支持，但外部验证不足。",
+          "claims": [{"id": "claim-1", "claim": "准确率提升 8%。", "supportLevel": "PARTIAL", "evidenceSourceIds": ["source-critical-1"], "missingEvidence": ["缺少外部数据集验证"]}],
+          "contributionScore": {"score": 72, "level": "medium", "factors": ["方法与实验章节均有覆盖"]},
+          "riskScore": {"score": 38, "level": "medium", "factors": ["外部验证不足"]},
+          "noveltyDimensions": [{"id": "claim_support", "label": "主张支撑", "status": "moderate", "score": 65}],
+          "numericEvidenceSummary": {"numericClaimCount": 1, "candidateCount": 1},
+          "rag_sources": [{"sourceId": "source-critical-1", "text": "Accuracy improves by 8%.", "pageNumber": 6}],
+          "traceId": "trace-critical-contract-1"
+        }
+      },
+      "pythonResponseContract": {
+        "type": "object",
+        "required": ["status", "critical_analysis", "claims", "contributionScore", "riskScore", "noveltyDimensions", "numericEvidenceSummary", "rag_sources", "traceId"],
+        "properties": {
+          "status": {"type": "string", "enum": ["success"]},
+          "claims": {"type": "array", "items": {"type": "object", "required": ["id", "claim", "supportLevel", "evidenceSourceIds", "missingEvidence"], "properties": {"supportLevel": {"type": "string", "enum": ["SUPPORTED", "PARTIAL", "UNSUPPORTED"]}}}},
+          "contributionScore": {"type": "object", "required": ["score", "level", "factors"]},
+          "riskScore": {"type": "object", "required": ["score", "level", "factors"]},
+          "noveltyDimensions": {"type": "array"},
+          "rag_sources": {"type": "array"},
+          "traceId": {"type": "string"}
+        }
+      }
+    },
+    {
+      "operation": "background",
+      "method": "POST",
+      "frontendPath": "/background-knowledge",
+      "javaPath": "/api/background-knowledge",
+      "pythonPath": "/api/background-knowledge",
+      "statusCode": 200,
+      "frontendRequest": {"pdfId": "paper-contract-1", "paperSkeleton": {"abstract": "A retrieval paper."}, "paperStructure": {"research_problem": "evidence retrieval"}, "paper_topic": "RAG", "user_knowledge_level": "进阶", "reader_profile": {"preferredDepth": "深入"}, "behavior_signals": {"questionCount": 2}},
+      "pythonRequest": {"pdfId": "paper-contract-1", "paperSkeleton": {"abstract": "A retrieval paper."}, "paperStructure": {"research_problem": "evidence retrieval"}, "paper_topic": "RAG", "user_knowledge_level": "进阶", "reader_profile": {"preferredDepth": "深入"}, "behavior_signals": {"questionCount": 2}},
+      "pythonResponse": {
+        "status": "success",
+        "pdfId": "paper-contract-1",
+        "background_knowledge": ["向量检索", "重排序"],
+        "knowledge_graph": {"nodes": [{"id": "concept-1", "label": "向量检索", "provenanceStatus": "paper_supported", "sourceIds": ["source-bg-1"], "confidence": 0.8, "confidenceReason": "论文方法章节明确提及"}], "links": []},
+        "provenanceSummary": {"paperSupportedNodeCount": 1, "inferredNodeCount": 0, "sourceCoverage": 1.0},
+        "traceId": "trace-background-contract-1"
+      },
+      "gatewayResponse": {"status": "success", "pdfId": "paper-contract-1", "background_knowledge": ["向量检索", "重排序"], "knowledge_graph": {"nodes": [{"id": "concept-1", "label": "向量检索", "provenanceStatus": "paper_supported", "sourceIds": ["source-bg-1"], "confidence": 0.8, "confidenceReason": "论文方法章节明确提及"}], "links": []}, "provenanceSummary": {"paperSupportedNodeCount": 1, "inferredNodeCount": 0, "sourceCoverage": 1.0}, "traceId": "trace-background-contract-1"},
+      "pythonResponseContract": {"type": "object", "required": ["status", "pdfId", "background_knowledge", "knowledge_graph", "provenanceSummary", "traceId"], "properties": {"status": {"type": "string", "enum": ["success"]}, "pdfId": {"type": "string"}, "background_knowledge": {"type": "array"}, "knowledge_graph": {"type": "object", "required": ["nodes", "links"]}, "provenanceSummary": {"type": "object"}, "traceId": {"type": "string"}}}
+    },
+    {
+      "operation": "research",
+      "method": "POST",
+      "frontendPath": "/research-tasks",
+      "javaPath": "/api/research-tasks",
+      "pythonPath": "/api/research-tasks",
+      "statusCode": 200,
+      "frontendRequest": {"question": "方法证据是否充分？", "pdfId": "paper-contract-1", "paperSkeleton": {"abstract": "A retrieval paper."}, "userConstraints": "重点核查实验", "briefPreview": {"brief": "核查方法与实验"}},
+      "pythonRequest": {"question": "方法证据是否充分？", "pdfId": "paper-contract-1", "paperSkeleton": {"abstract": "A retrieval paper."}, "userConstraints": "重点核查实验", "briefPreview": {"brief": "核查方法与实验"}},
+      "pythonResponse": {
+        "status": "success",
+        "task": {
+          "taskId": "research-task-contract-1", "traceId": "trace-research-contract-1", "status": "awaiting_plan_review", "stage": "plan_review", "progress": 0.15, "question": "方法证据是否充分？", "pdfId": "paper-contract-1",
+          "plan": [{"id": "plan-1", "question": "实验是否支持方法主张？", "status": "pending", "isFollowUp": false}],
+          "findings": [{"id": "finding-1", "question": "实验是否支持方法主张？", "answer": "部分支持", "verdict": "CORRECT", "judgeScore": 0.76, "coverage": 0.7, "missingAspects": ["外部验证"], "retryReason": "", "decision": "stop", "sources": []}],
+          "conflicts": [], "report": "", "humanReview": {"planStatus": "pending", "finalStatus": "not_started"}, "reviewRisks": [], "traceSummary": {}, "error": ""
+        }
+      },
+      "gatewayResponse": {"status": "success", "task": {"taskId": "research-task-contract-1", "traceId": "trace-research-contract-1", "status": "awaiting_plan_review", "stage": "plan_review", "progress": 0.15, "question": "方法证据是否充分？", "pdfId": "paper-contract-1", "plan": [{"id": "plan-1", "question": "实验是否支持方法主张？", "status": "pending", "isFollowUp": false}], "findings": [{"id": "finding-1", "question": "实验是否支持方法主张？", "answer": "部分支持", "verdict": "CORRECT", "judgeScore": 0.76, "coverage": 0.7, "missingAspects": ["外部验证"], "retryReason": "", "decision": "stop", "sources": []}], "conflicts": [], "report": "", "humanReview": {"planStatus": "pending", "finalStatus": "not_started"}, "reviewRisks": [], "traceSummary": {}, "error": ""}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "traceId", "status", "stage", "progress", "question", "pdfId", "plan", "findings", "conflicts", "report", "humanReview", "reviewRisks", "traceSummary", "error"], "properties": {"status": {"type": "string", "enum": ["pending", "planning", "awaiting_plan_review", "running", "awaiting_final_review", "succeeded", "failed", "cancelled"]}, "stage": {"type": "string"}, "plan": {"type": "array"}, "findings": {"type": "array"}, "conflicts": {"type": "array"}, "humanReview": {"type": "object"}}}}}
+    },
+    {
+      "operation": "trace",
+      "method": "GET",
+      "frontendPath": "/traces/trace-contract-1",
+      "javaPath": "/api/traces/trace-contract-1",
+      "pythonPath": "/api/traces/{trace_id}",
+      "statusCode": 200,
+      "frontendRequest": null,
+      "pythonRequest": null,
+      "pythonResponse": {"status": "success", "trace": {"traceId": "trace-contract-1", "taskType": "deep_research", "status": "awaiting_review", "startedAt": "2026-06-21T00:00:00Z", "finishedAt": null, "durationMs": 120, "requestMeta": {"pdfId": "paper-contract-1"}, "responseMeta": {"taskId": "research-task-contract-1"}, "counters": {"llmCalls": 2, "retrievalCalls": 3, "retryCount": 1, "truncationCount": 0, "estimatedInputTokens": 800, "estimatedOutputTokens": 300}, "steps": [{"name": "research_build_plan", "durationMs": 20, "status": "success", "inputSize": 1, "outputSize": 1, "error": ""}]}},
+      "gatewayResponse": {"status": "success", "trace": {"traceId": "trace-contract-1", "taskType": "deep_research", "status": "awaiting_review", "startedAt": "2026-06-21T00:00:00Z", "finishedAt": null, "durationMs": 120, "requestMeta": {"pdfId": "paper-contract-1"}, "responseMeta": {"taskId": "research-task-contract-1"}, "counters": {"llmCalls": 2, "retrievalCalls": 3, "retryCount": 1, "truncationCount": 0, "estimatedInputTokens": 800, "estimatedOutputTokens": 300}, "steps": [{"name": "research_build_plan", "durationMs": 20, "status": "success", "inputSize": 1, "outputSize": 1, "error": ""}]}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "trace"], "properties": {"status": {"type": "string", "enum": ["success"]}, "trace": {"type": "object", "required": ["traceId", "taskType", "status", "startedAt", "finishedAt", "durationMs", "requestMeta", "responseMeta", "counters", "steps"], "properties": {"counters": {"type": "object", "required": ["llmCalls", "retrievalCalls", "retryCount", "truncationCount", "estimatedInputTokens", "estimatedOutputTokens"]}, "steps": {"type": "array"}}}}}
+    },
+    {
+      "operation": "agent-projects",
+      "method": "POST",
+      "frontendPath": "/agent-projects",
+      "javaPath": "/api/agent-projects",
+      "pythonPath": "/api/agent-projects",
+      "statusCode": 200,
+      "frontendRequest": {"title": "对比项目", "goal": "比较两篇论文的方法与证据", "paperIds": ["paper-contract-1", "paper-contract-2"]},
+      "pythonRequest": {"title": "对比项目", "goal": "比较两篇论文的方法与证据", "paperIds": ["paper-contract-1", "paper-contract-2"]},
+      "pythonResponse": {"status": "success", "project": {"projectId": "project-contract-1", "title": "对比项目", "goal": "比较两篇论文的方法与证据", "paperIds": ["paper-contract-1", "paper-contract-2"], "defaultConstraints": "", "createdAt": "2026-06-21T00:00:00Z", "updatedAt": "2026-06-21T00:00:00Z"}},
+      "gatewayResponse": {"status": "success", "project": {"projectId": "project-contract-1", "title": "对比项目", "goal": "比较两篇论文的方法与证据", "paperIds": ["paper-contract-1", "paper-contract-2"], "defaultConstraints": "", "createdAt": "2026-06-21T00:00:00Z", "updatedAt": "2026-06-21T00:00:00Z"}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "project"], "properties": {"status": {"type": "string", "enum": ["success"]}, "project": {"type": "object", "required": ["projectId", "title", "goal", "paperIds", "defaultConstraints", "createdAt", "updatedAt"], "properties": {"paperIds": {"type": "array"}}}}}
+    },
+    {
+      "operation": "agent-tasks",
+      "method": "POST",
+      "frontendPath": "/agent-projects/project-contract-1/tasks",
+      "javaPath": "/api/agent-projects/project-contract-1/tasks",
+      "pythonPath": "/api/agent-projects/{project_id}/tasks",
+      "statusCode": 200,
+      "frontendRequest": {"prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "context": {"source": "contract-smoke"}},
+      "pythonRequest": {"prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "context": {"source": "contract-smoke"}},
+      "pythonResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "projectId": "project-contract-1", "traceId": "agent-trace-contract-1", "status": "awaiting_plan_review", "stage": "plan_review", "progress": 0.15, "prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "planItems": [{"id": "agent-plan-1", "label": "比较方法", "detail": "提取共同点与差异", "status": "pending"}], "events": [], "toolCalls": [], "evidence": [], "comparisonTable": {"columns": ["维度", "论文一", "论文二"], "rows": []}, "conflicts": [], "openQuestions": [], "reportDraft": "", "humanReview": {"planStatus": "pending", "finalStatus": "not_started"}, "reviewRisks": [], "traceSummary": {}, "error": ""}},
+      "gatewayResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "projectId": "project-contract-1", "traceId": "agent-trace-contract-1", "status": "awaiting_plan_review", "stage": "plan_review", "progress": 0.15, "prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "planItems": [{"id": "agent-plan-1", "label": "比较方法", "detail": "提取共同点与差异", "status": "pending"}], "events": [], "toolCalls": [], "evidence": [], "comparisonTable": {"columns": ["维度", "论文一", "论文二"], "rows": []}, "conflicts": [], "openQuestions": [], "reportDraft": "", "humanReview": {"planStatus": "pending", "finalStatus": "not_started"}, "reviewRisks": [], "traceSummary": {}, "error": ""}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "projectId", "traceId", "status", "stage", "progress", "prompt", "focusedPaperIds", "constraints", "planItems", "events", "toolCalls", "evidence", "comparisonTable", "conflicts", "openQuestions", "reportDraft", "humanReview", "reviewRisks", "traceSummary", "error"], "properties": {"status": {"type": "string", "enum": ["pending", "planning", "awaiting_plan_review", "running", "awaiting_final_review", "succeeded", "failed", "cancelled", "expired"]}, "focusedPaperIds": {"type": "array"}, "planItems": {"type": "array"}, "events": {"type": "array"}, "toolCalls": {"type": "array"}, "evidence": {"type": "array"}, "comparisonTable": {"type": "object"}, "conflicts": {"type": "array"}, "openQuestions": {"type": "array"}, "humanReview": {"type": "object"}}}}}
+    },
+    {
+      "operation": "agent-traces",
+      "method": "GET",
+      "frontendPath": "/agent-traces/agent-trace-contract-1",
+      "javaPath": "/api/agent-traces/agent-trace-contract-1",
+      "pythonPath": "/api/agent-traces/{trace_id}",
+      "statusCode": 200,
+      "frontendRequest": null,
+      "pythonRequest": null,
+      "pythonResponse": {"status": "success", "trace": {"traceId": "agent-trace-contract-1", "taskType": "agent_research", "status": "awaiting_review", "startedAt": "2026-06-21T00:00:00Z", "finishedAt": null, "durationMs": 180, "requestMeta": {"projectId": "project-contract-1"}, "responseMeta": {"taskId": "agent-task-contract-1"}, "counters": {"llmCalls": 2, "retrievalCalls": 4, "retryCount": 0, "truncationCount": 0, "estimatedInputTokens": 900, "estimatedOutputTokens": 350}, "steps": [{"name": "agent_plan", "durationMs": 30, "status": "success", "inputSize": 2, "outputSize": 1, "error": ""}]}},
+      "gatewayResponse": {"status": "success", "trace": {"traceId": "agent-trace-contract-1", "taskType": "agent_research", "status": "awaiting_review", "startedAt": "2026-06-21T00:00:00Z", "finishedAt": null, "durationMs": 180, "requestMeta": {"projectId": "project-contract-1"}, "responseMeta": {"taskId": "agent-task-contract-1"}, "counters": {"llmCalls": 2, "retrievalCalls": 4, "retryCount": 0, "truncationCount": 0, "estimatedInputTokens": 900, "estimatedOutputTokens": 350}, "steps": [{"name": "agent_plan", "durationMs": 30, "status": "success", "inputSize": 2, "outputSize": 1, "error": ""}]}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "trace"], "properties": {"status": {"type": "string", "enum": ["success"]}, "trace": {"type": "object", "required": ["traceId", "taskType", "status", "startedAt", "finishedAt", "durationMs", "requestMeta", "responseMeta", "counters", "steps"], "properties": {"taskType": {"type": "string", "enum": ["agent_research"]}, "counters": {"type": "object", "required": ["llmCalls", "retrievalCalls", "retryCount", "truncationCount", "estimatedInputTokens", "estimatedOutputTokens"]}, "steps": {"type": "array"}}}}}
+    }
+  ]
+}
