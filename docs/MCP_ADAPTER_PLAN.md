@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-P2-2 已完成只读 MCP adapter 原型。入口位于 `ai-service-python/mcp_adapter/`，使用 MCP Python SDK 1.9.x 和本机 `stdio` transport；它不挂载 FastAPI、不增加 `/api` 路由，也不修改 Java 或前端链路。
+已完成只读 MCP adapter 原型。入口位于 `ai-service-python/mcp_adapter/`，使用 MCP Python SDK 1.9.x 和本机 `stdio` transport；它不挂载 FastAPI、不增加 `/api` 路由，也不修改 Java 或前端链路。
 
 ## 只读原型边界
 
