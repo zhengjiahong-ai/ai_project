@@ -35,7 +35,10 @@
 - API key、认证 header、完整响应、全文、完整摘要和未脱敏 query 不得进入 trace、日志、错误、缓存键或模型上下文转储。
 - Provider 边界统一由 Python `external_search_provider.py` 管理。`PIXIU_EXTERNAL_SEARCH_ENABLED` 只有 `1/true/yes/on` 启用，其余值和缺省均返回只读禁用实现，且不得读取 Provider 配置或构造客户端。
 - 显式启用时 `PIXIU_EXTERNAL_SEARCH_PROVIDER` 必须为 `crossref` 或 `semantic_scholar`。缺失、未知、未注册客户端、builder 失败或返回无效对象必须抛出脱敏配置错误，不得返回空结果伪装成功或切换其他来源。
-- P3-03 只提供单 query 协议、禁用实现和严格工厂，不注册任何联网 builder；因此在 P3-05 实现并注册正式客户端前，显式启用合法 Provider 也必须以“客户端尚未实现”失败。
+- P3-05 只注册 benchmark 选定的 Crossref 客户端。客户端固定访问 `https://api.crossref.org/works`，禁止重定向，设置连接与读取超时、明确 `User-Agent`、最多 20 条结果和 1 MiB 响应上限，并把有界元数据归一化为统一外部证据；Semantic Scholar 继续以“客户端尚未实现”严格失败。
+- P3-06 为 Crossref 增加 1 小时 TTL 的版本化 JSON 缓存、实例级 1 秒最小请求间隔、限定 HTTP 状态的最多 2 次重试和统一外部证据去重。缓存 key 只使用 Provider 与规范化 query 的 SHA-256，不保存原始 query、header、凭据或请求 URL；缓存损坏、过期或 schema 非法必须安全回退为空缓存。
+- 仅 `429/500/502/503/504` 可触发有限指数退避；`Retry-After` 不超过 30 秒时必须遵守，超过上限则停止重试，不得提前请求。超时、断网、重定向、其他 4xx、畸形响应和超大响应不得重试。
+- Crossref 客户端注册和缓存重试能力不等于业务链路已获联网授权：默认关闭行为不变，当前 Deep Research、Agent、前端、公开 API 和 MCP 均不得调用它。
 - P3-04 benchmark 结论见 [`external_search_benchmark.md`](external_search_benchmark.md)。2026-06-21 匿名采样中 Crossref 成功 6/6，Semantic Scholar 因 6 次 HTTP 429 被判定为匿名运维不可用；项目不要求配置 Semantic Scholar API key，P3-05 唯一实现目标为 Crossref。
 - benchmark 只评估无需凭据的匿名可用性。至少一个候选必须成功完成 5/6 case；对全部 case 均因匿名 429 失败的候选允许标记为运维不适用并排除，但不得把其他超时、畸形响应或部分失败伪装为排除条件。
 - benchmark 网络代码仅允许在 `ai-service-python/benchmarks/external_search/` 中显式 `--live` 运行，不得复用为生产客户端。默认离线评分不得联网，失败结果不得通过降低门槛、切换来源或扩大白名单绕过。

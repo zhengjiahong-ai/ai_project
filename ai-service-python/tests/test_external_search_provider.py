@@ -102,6 +102,25 @@ class ExternalSearchProviderTests(unittest.TestCase):
                 },
             )
 
+    def test_default_registry_creates_only_crossref(self):
+        provider = create_external_search_provider(
+            environ={
+                "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
+                "PIXIU_EXTERNAL_SEARCH_PROVIDER": "crossref",
+            },
+        )
+
+        self.assertEqual(provider.name, "crossref")
+        self.assertTrue(provider.enabled)
+
+        with self.assertRaisesRegex(ExternalSearchConfigurationError, "not implemented"):
+            create_external_search_provider(
+                environ={
+                    "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
+                    "PIXIU_EXTERNAL_SEARCH_PROVIDER": "semantic_scholar",
+                },
+            )
+
     def test_builder_failure_is_wrapped_without_leaking_error_text(self):
         def failing_builder(_config):
             raise RuntimeError("secret-token")

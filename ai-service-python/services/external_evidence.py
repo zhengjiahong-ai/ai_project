@@ -74,6 +74,45 @@ def normalize_external_evidence_items(items: Any, limit: Optional[int] = None) -
     return normalized
 
 
+def deduplicate_external_evidence(
+    items: Any,
+    limit: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    if limit is not None and limit <= 0:
+        return []
+
+    seen_dois = set()
+    seen_provider_ids = set()
+    seen_titles = set()
+    deduplicated = []
+    for item in _iter_items(items):
+        if not isinstance(item, dict):
+            continue
+        doi = _normalize_doi(item.get("doi"))
+        provider = _normalize_provider(item.get("provider")).casefold()
+        provider_id = _clean_string(item.get("providerId")).casefold()
+        title = _normalize_title(item.get("title")).casefold()
+        provider_identity = f"{provider}\0{provider_id}" if provider and provider_id else ""
+        if not any((doi, provider_identity, title)):
+            continue
+        if (
+            (doi and doi in seen_dois)
+            or (provider_identity and provider_identity in seen_provider_ids)
+            or (title and title in seen_titles)
+        ):
+            continue
+        if doi:
+            seen_dois.add(doi)
+        if provider_identity:
+            seen_provider_ids.add(provider_identity)
+        if title:
+            seen_titles.add(title)
+        deduplicated.append(item)
+        if limit is not None and len(deduplicated) >= limit:
+            break
+    return deduplicated
+
+
 def _require_mapping(item: Any) -> Dict[str, Any]:
     if not isinstance(item, dict):
         raise ValueError("External evidence must be a mapping.")

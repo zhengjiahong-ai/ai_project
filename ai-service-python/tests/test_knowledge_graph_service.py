@@ -3,7 +3,6 @@ import os
 import unittest
 from unittest.mock import patch
 
-from services.external_search_provider import ExternalSearchConfigurationError
 from services.knowledge_graph_service import (
     generate_current_paper_graph,
 )
@@ -148,23 +147,28 @@ class KnowledgeGraphServiceTest(unittest.TestCase):
             "provider": "crossref",
         })
 
-    def test_default_provider_factory_rejects_enabled_unimplemented_provider(self):
+    def test_default_provider_factory_exposes_registered_crossref_status(self):
         llm = _SequenceLlm([{"concepts": []}])
 
         with patch.dict(os.environ, {
             "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
             "PIXIU_EXTERNAL_SEARCH_PROVIDER": "crossref",
         }, clear=True):
-            with self.assertRaises(ExternalSearchConfigurationError):
-                generate_current_paper_graph(
-                    paper_topic="RAG",
-                    paper_context="",
-                    paper_structure={},
-                    rag_sources=[],
-                    reader_profile={},
-                    pdf_id="paper.pdf",
-                    llm=llm,
-                )
+            result = generate_current_paper_graph(
+                paper_topic="RAG",
+                paper_context="",
+                paper_structure={},
+                rag_sources=[],
+                reader_profile={},
+                pdf_id="paper.pdf",
+                llm=llm,
+            )
+
+        self.assertEqual(result["externalKnowledge"], {
+            "enabled": True,
+            "status": "ready",
+            "provider": "crossref",
+        })
 
 
 if __name__ == "__main__":

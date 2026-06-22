@@ -62,7 +62,7 @@ Provider adapter 必须根据代码中的固定 HTTPS host、base path 和结构
 
 任一条件缺失、非法或无法验证时必须保持禁用，不得静默切换 Provider、扩大范围或尝试通用网络访问。论文内容和模型输出不得开启该能力。
 
-P3-03 已固化配置工厂：`PIXIU_EXTERNAL_SEARCH_ENABLED` 仅在 `1/true/yes/on` 时开启配置路径，其他值直接返回不联网的禁用实现；开启时 `PIXIU_EXTERNAL_SEARCH_PROVIDER` 仅允许 `crossref` 或 `semantic_scholar`。当前未注册联网 builder，因此显式开启任一合法 Provider 也会返回脱敏的“客户端尚未实现”配置错误。该工厂边界不表示外部检索已经可用。
+P3-03 已固化配置工厂：`PIXIU_EXTERNAL_SEARCH_ENABLED` 仅在 `1/true/yes/on` 时开启配置路径，其他值直接返回不联网的禁用实现；开启时 `PIXIU_EXTERNAL_SEARCH_PROVIDER` 仅允许 `crossref` 或 `semantic_scholar`。P3-05 只注册 Crossref 客户端，固定访问 `https://api.crossref.org/works` 并限制参数、超时、重定向、结果数、响应体和保留字段；Semantic Scholar 仍返回脱敏的“客户端尚未实现”配置错误。客户端注册不表示用户任务已经获准联网，当前业务链路仍不调用它。
 
 ## 数据处理与审计
 
@@ -88,6 +88,14 @@ trace 只允许记录 Provider 名称、调用结果、计数、缓存命中、�
 实际指标与失败样例见 [`external_search_benchmark.md`](external_search_benchmark.md)。2026-06-21 的受控匿名采样中，Crossref 完成 6/6 case；Semantic Scholar 六次请求均因 HTTP 429 失败，被判定为匿名运维不可用。项目不配置 Semantic Scholar API key，本次结果选择 Crossref，P3-04 已完成。
 
 隔离 benchmark 的 `--live` 网络代码不是 Provider adapter，不得导入生产工厂或服务路径。P3-05 只能实现 Crossref；Semantic Scholar 虽仍在白名单中，但没有新的安全评审和任务授权不得实现或注册。重新采样只能使用相同固定 fixture、endpoint、请求预算、匿名访问和脱敏规则。
+
+## P3-05 客户端状态
+
+Crossref 是当前唯一实现并注册的生产 Provider adapter。客户端匿名、只读，仅向固定 `/works` endpoint 发送 `query.bibliographic` 与 `rows` 结构化参数；连接/读取超时为 `3.05/10` 秒，最多请求 20 条结果，响应体最多 1 MiB，禁止重定向且不会跟随 DOI、URL、许可或其他返回链接。Provider 响应经过字段裁剪、JATS/HTML 摘要清理、结构校验和统一外部证据归一化；错误只暴露有限失败码及可选 HTTP 状态，不包含 query、完整 URL 或响应体。
+
+P3-06 已在 Crossref 客户端内部增加 1 小时 TTL 的版本化 JSON 缓存、实例级 1 秒最小请求间隔、限定状态重试和 Provider 中立去重。缓存 key 只使用 Provider 与规范化 query 的 SHA-256，entry 移除 query 且不保存 header、凭据或请求 URL；写入采用原子替换，文件缺失、过期、损坏或 schema 非法时视为空缓存。相同 query 的缓存结果上限足以满足本次请求时直接切片返回，包括空结果。
+
+客户端仅对 `429/500/502/503/504` 最多重试 2 次，退避为 0.5 秒和 1 秒；合法 `Retry-After` 优先，要求等待超过 30 秒时停止重试而不提前请求。超时、断网、3xx、其他 4xx、畸形 JSON 和超大响应直接失败。结果在缓存前按 DOI、Provider ID 和规范化标题去重并保留首次出现项。本阶段仍不提供任务预算、查询规划、工具注册、公开 API、前端开关或业务链路调用；默认关闭和人工授权边界不变。
 
 ## P3-01 非目标
 

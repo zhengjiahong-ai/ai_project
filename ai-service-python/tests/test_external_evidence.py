@@ -134,6 +134,49 @@ class ExternalEvidenceTests(unittest.TestCase):
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]["providerId"], "work-1")
 
+    def test_deduplicates_by_doi_provider_id_and_normalized_title_in_first_seen_order(self):
+        from services.external_evidence import deduplicate_external_evidence
+
+        items = [
+            normalize_external_evidence({
+                "provider": "Crossref", "providerId": "work-1",
+                "doi": "10.1000/ONE", "title": "First Paper",
+            }),
+            normalize_external_evidence({
+                "provider": "Other", "providerId": "other-1",
+                "doi": "https://doi.org/10.1000/one", "title": "Different Title",
+            }),
+            normalize_external_evidence({
+                "provider": "Crossref", "providerId": "WORK-1",
+                "title": "Provider Duplicate",
+            }),
+            normalize_external_evidence({
+                "provider": "Crossref", "providerId": "work-3",
+                "title": "  First   PAPER ",
+            }),
+            normalize_external_evidence({
+                "provider": "Crossref", "providerId": "work-4",
+                "title": "Unique Paper",
+            }),
+        ]
+
+        deduplicated = deduplicate_external_evidence(items)
+
+        self.assertEqual(
+            [item["providerId"] for item in deduplicated],
+            ["work-1", "work-4"],
+        )
+
+    def test_deduplication_rejects_invalid_items_and_honors_limit(self):
+        from services.external_evidence import deduplicate_external_evidence
+
+        valid = normalize_external_evidence({
+            "provider": "Crossref", "providerId": "work-1", "title": "Paper",
+        })
+
+        self.assertEqual(deduplicate_external_evidence([None, {}, valid], limit=1), [valid])
+        self.assertEqual(deduplicate_external_evidence([valid], limit=0), [])
+
     def test_existing_evidence_pipeline_preserves_external_fields(self):
         external = normalize_external_evidence({
             "provider": "Crossref",

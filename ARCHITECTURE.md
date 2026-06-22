@@ -471,9 +471,9 @@ Agent 面板不再只展示最终答案快照，而是开始展示研究过程�
 
 ### 外部学术检索信任边界
 
-外部学术检索仍为默认关闭的未来能力，完整威胁模型见 [`docs/EXTERNAL_ACADEMIC_SEARCH_PLAN.md`](docs/EXTERNAL_ACADEMIC_SEARCH_PLAN.md)。`external_search_provider.py` 已提供 Provider 中立的单 query 协议、`DisabledExternalSearchProvider` 和严格配置工厂，但尚未注册任何联网客户端。
+外部学术检索仍为默认关闭的未来能力，完整威胁模型见 [`docs/EXTERNAL_ACADEMIC_SEARCH_PLAN.md`](docs/EXTERNAL_ACADEMIC_SEARCH_PLAN.md)。`external_search_provider.py` 已提供 Provider 中立的单 query 协议、`DisabledExternalSearchProvider` 和严格配置工厂，并只注册 benchmark 选定的 Crossref 客户端；Semantic Scholar 仍未实现。
 
-工厂只在 `PIXIU_EXTERNAL_SEARCH_ENABLED=1|true|yes|on` 时处理 Provider 配置；默认或其他值直接返回禁用实现，不读取 `PIXIU_EXTERNAL_SEARCH_PROVIDER`，也不调用 builder。显式启用时 Provider 只允许 `crossref` 或 `semantic_scholar`，且必须存在后续任务注册的有效 builder。缺失、未知、尚未实现或构造失败均严格报脱敏配置错误，不静默降级或切换来源。知识图谱通过该工厂取得默认 Provider，同时保留显式依赖注入边界。
+工厂只在 `PIXIU_EXTERNAL_SEARCH_ENABLED=1|true|yes|on` 时处理 Provider 配置；默认或其他值直接返回禁用实现，不读取 `PIXIU_EXTERNAL_SEARCH_PROVIDER`，也不构造客户端。显式选择 `crossref` 时创建固定只读客户端，选择尚未实现的 `semantic_scholar` 或提供缺失、未知、无效配置时严格报脱敏配置错误，不静默降级或切换来源。知识图谱通过该工厂取得默认 Provider，同时保留显式依赖注入边界；当前尚未把 Crossref 搜索接入任何用户任务或业务检索链路。
 
 未来数据流固定为：
 
@@ -483,7 +483,9 @@ Agent 面板不再只展示最终答案快照，而是开始展示研究过程�
 4. 只有任务显式授权且配置与预算完整时，调用白名单 Provider adapter。
 5. adapter 校验、裁剪、脱敏并归一化响应，再把外部学术元数据作为不可信补充证据交给研究流程和人工审查。
 
-Provider adapter 是唯一允许跨越网络信任边界的组件。当前工厂和禁用实现均不联网；P3-05 之后注册的 adapter 仍只允许 Crossref `https://api.crossref.org/works` 和 Semantic Scholar Academic Graph `https://api.semanticscholar.org/graph/v1/paper` 的只读论文元数据搜索与详情。LLM、前端、Java 网关、内部检索层和 MCP adapter 均不得直接访问 Provider。禁止任意 URL、跨 host 重定向、通用 Web 搜索、推荐或数据集 API、PDF/全文下载、写操作和文件系统访问。
+Provider adapter 是唯一允许跨越网络信任边界的组件。当前仅 Crossref adapter 获准访问固定 `https://api.crossref.org/works` 搜索端点：使用结构化参数、连接与读取超时、明确 `User-Agent`、最多 20 条结果、1 MiB 响应上限且禁止重定向；响应只保留有界论文元数据并归一化为统一外部证据。Semantic Scholar 未实现，LLM、前端、Java 网关、内部检索层和 MCP adapter 均不得直接访问 Provider。禁止任意 URL、跨 host 重定向、通用 Web 搜索、推荐或数据集 API、PDF/全文下载、写操作和文件系统访问。
+
+Crossref adapter 在实际 HTTP 前先查询 1 小时 TTL 的版本化 JSON 缓存，默认路径为 `ai-service-python/tmp/external_search_cache.json`。缓存 key 只保存 Provider 与规范化 query 的 SHA-256，entry 不保存原始 query、header、凭据或请求 URL；写入使用同目录临时文件和原子替换，文件缺失、过期、损坏或 schema 非法时安全视为空缓存。缓存未命中时，同一客户端实例把请求起始时间间隔限制为至少 1 秒；仅对 `429/500/502/503/504` 最多重试 2 次，采用有限指数退避并遵守不超过 30 秒的 `Retry-After`，更长等待直接停止重试。结果在写缓存前按 DOI、Provider ID 和规范化标题去重并保留首次出现项。
 
 外部内容、链接和响应均视为不可信输入，不能覆盖内部证据或自动裁决冲突。Provider 超时、限流、响应无效、不可用或预算耗尽时，研究任务保留当前论文和内部文献库结果并记录脱敏降级原因。trace 只记录 Provider、计数、结果、延迟和脱敏 query 摘要，不记录 API key、认证 header、完整响应、全文或完整摘要。
 

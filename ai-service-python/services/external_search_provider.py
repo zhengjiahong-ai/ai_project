@@ -43,6 +43,12 @@ class DisabledExternalSearchProvider:
 ProviderBuilder = Callable[[Mapping[str, str]], ExternalSearchProvider]
 
 
+def _build_crossref_provider(config: Mapping[str, str]) -> ExternalSearchProvider:
+    from services.providers.crossref import build_crossref_provider
+
+    return build_crossref_provider(config)
+
+
 def create_external_search_provider(
     environ: Optional[Mapping[str, str]] = None,
     builders: Optional[Mapping[str, ProviderBuilder]] = None,
@@ -62,7 +68,8 @@ def create_external_search_provider(
             "PIXIU_EXTERNAL_SEARCH_PROVIDER must be one of: crossref, semantic_scholar."
         )
 
-    builder = (builders or {}).get(provider_name)
+    registry = {"crossref": _build_crossref_provider} if builders is None else builders
+    builder = registry.get(provider_name)
     if builder is None:
         raise ExternalSearchConfigurationError(
             "External search provider client is not implemented for the selected provider."
