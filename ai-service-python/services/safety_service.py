@@ -94,6 +94,26 @@ _RESEARCH_SUBQUESTION_BLOCKLIST = re.compile(
     r"联网|上网|浏览网页|访问互联网|调用工具|调用插件|调用MCP|执行命令)",
     re.IGNORECASE,
 )
+_EXTERNAL_QUERY_URL_PATTERN = re.compile(
+    r"(?:https?://|www\.)[^\s<>{}\[\]]+",
+    re.IGNORECASE,
+)
+_EXTERNAL_QUERY_SEGMENT_SPLIT_PATTERN = re.compile(r"[\r\n。；;！？!?]+")
+_EXTERNAL_QUERY_CONTROL_PATTERN = re.compile(
+    r"(?:set|change|override|modify|switch|use|设置|修改|覆盖|切换|使用)\s*"
+    r"(?:the\s+)?(?:provider|host|endpoint|base\s*url|budget|permissions?|privileges?|"
+    r"safety\s*scope|safetyscope|security\s*scope|供应商|主机|端点|预算|权限|安全范围)\b|"
+    r"(?:provider|host|endpoint|base\s*url|budget|permissions?|privileges?|"
+    r"safety\s*scope|safetyscope|security\s*scope)\s*[:=]",
+    re.IGNORECASE,
+)
+_EXTERNAL_QUERY_DIRECTIVE_PATTERN = re.compile(
+    r"\b(?:curl|wget|powershell|cmd(?:\.exe)?|bash|shell)\b|"
+    r"\b(?:browse|open|visit|download|fetch|search)\s+"
+    r"(?:https?://|www\.|the\s+web\b|internet\b|online\b)|"
+    r"(?:访问|打开|下载|抓取|搜索)\s*(?:https?://|www\.|互联网|网页)",
+    re.IGNORECASE,
+)
 
 
 def estimate_tokens(value: Any) -> int:
@@ -285,6 +305,38 @@ def is_allowed_research_sub_question(value: Any) -> bool:
     if not text:
         return False
     return _RESEARCH_SUBQUESTION_BLOCKLIST.search(text) is None
+
+
+def sanitize_external_academic_query_text(value: Any, *, max_chars: int) -> str:
+    if not isinstance(max_chars, int) or isinstance(max_chars, bool) or max_chars <= 0:
+        raise ValueError("External academic query max_chars must be a positive integer.")
+
+    text = str(value or "")
+    safe_segments = []
+    for raw_segment in _EXTERNAL_QUERY_SEGMENT_SPLIT_PATTERN.split(text):
+        if _EXTERNAL_QUERY_DIRECTIVE_PATTERN.search(raw_segment):
+            continue
+        segment = _EXTERNAL_QUERY_URL_PATTERN.sub(" ", raw_segment).strip()
+        if not segment:
+            continue
+        if detect_prompt_injection(segment).get("flags"):
+            continue
+        if _EXTERNAL_QUERY_CONTROL_PATTERN.search(segment):
+            continue
+
+        cleaned = "".join(
+            (
+                character
+                if character.isalnum() or character.isspace() or character in {"_", "-", "+", "%"}
+                else "" if character == "@" else " "
+            )
+            for character in segment
+        )
+        normalized = " ".join(cleaned.split())
+        if normalized:
+            safe_segments.append(normalized)
+
+    return " ".join(safe_segments)[:max_chars].rstrip()
 
 
 def _iter_results(results: Iterable[Any]) -> Iterable[Any]:

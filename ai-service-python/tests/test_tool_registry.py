@@ -1,5 +1,7 @@
 import json
+import os
 import unittest
+from unittest.mock import Mock, patch
 
 from services.tool_registry import (
     ToolRegistry,
@@ -46,6 +48,22 @@ VALID_SAFETY_SCOPE = {
 }
 
 
+def _external_evidence(provider_id, year):
+    return {
+        "provider": "Crossref",
+        "providerId": provider_id,
+        "title": f"Paper {provider_id}",
+        "authors": ["Ada Lovelace"],
+        "year": year,
+        "abstract": "Bounded abstract.",
+        "doi": "",
+        "url": "",
+        "retrievedAt": "2026-06-22T00:00:00Z",
+        "query": "retrieval systems",
+        "license": "",
+    }
+
+
 def register_test_tool(registry, handler=None, **overrides):
     values = {
         "name": "search",
@@ -64,13 +82,13 @@ class ToolRegistryContractTests(unittest.TestCase):
     def tearDown(self):
         reset_tool_registry()
 
-    def test_default_registry_exposes_eight_serializable_versioned_contracts(self):
+    def test_default_registry_exposes_nine_serializable_versioned_contracts(self):
         registry = get_tool_registry()
 
         contracts = registry.list_tools()
 
         self.assertEqual(registry.schemaVersion, "1.0")
-        self.assertEqual(len(contracts), 8)
+        self.assertEqual(len(contracts), 9)
         self.assertEqual(
             set(contracts[0]),
             {"name", "version", "description", "inputSchema", "outputSchema", "safetyScope"},
@@ -82,6 +100,104 @@ class ToolRegistryContractTests(unittest.TestCase):
 
         contracts[0]["inputSchema"]["properties"]["tampered"] = {"type": "string"}
         self.assertNotIn("tampered", registry.list_tools()[0]["inputSchema"]["properties"])
+
+    def test_external_academic_tool_has_strict_versioned_contract(self):
+        registry = get_tool_registry()
+        contract = next(item for item in registry.list_tools() if item["name"] == "retrieve_external_academic")
+
+        self.assertEqual(contract["version"], "1.0.0")
+        self.assertEqual(contract["inputSchema"], {
+            "type": "object",
+            "required": ["query"],
+            "properties": {
+                "query": {"type": "string", "minLength": 1, "maxLength": 256},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 5},
+                "yearFrom": {"type": "integer", "minimum": 1000, "maximum": 9999},
+                "yearTo": {"type": "integer", "minimum": 1000, "maximum": 9999},
+            },
+            "additionalProperties": False,
+        })
+        self.assertEqual(contract["safetyScope"], {
+            "access": "read_only",
+            "dataScopes": ["external_academic_metadata"],
+            "networkAccess": True,
+            "sideEffects": False,
+            "sensitiveOutput": True,
+        })
+        self.assertEqual(contract["outputSchema"]["required"], ["status", "provider", "items"])
+        self.assertFalse(contract["outputSchema"]["additionalProperties"])
+        item_schema = contract["outputSchema"]["properties"]["items"]["items"]
+        self.assertEqual(
+            set(item_schema["required"]),
+            {
+                "sourceId", "sourceType", "provider", "providerId", "title", "authors",
+                "year", "abstract", "doi", "url", "retrievedAt", "query", "license",
+            },
+        )
+        self.assertFalse(item_schema["additionalProperties"])
+
+    def test_external_academic_tool_is_structurally_disabled_without_building_network_client(self):
+        from services import external_search_provider
+
+        with patch.dict(os.environ, {}, clear=True), patch.object(
+            external_search_provider,
+            "_build_crossref_provider",
+            side_effect=AssertionError("network provider must not be built"),
+        ):
+            result = get_tool_registry().invoke(
+                "retrieve_external_academic",
+                {"query": "retrieval systems"},
+            )
+
+        self.assertEqual(result, {"status": "disabled", "provider": "disabled", "items": []})
+
+    def test_external_academic_tool_reuses_provider_and_filters_years(self):
+        provider = Mock(name="crossref-provider")
+        provider.name = "crossref"
+        provider.enabled = True
+        provider.search.return_value = [
+            _external_evidence("work-2020", 2020),
+            _external_evidence("work-2021", 2021),
+            _external_evidence("work-none", None),
+            _external_evidence("work-2023", 2023),
+        ]
+
+        with patch("services.tool_registry.create_external_search_provider", return_value=provider) as factory:
+            registry = get_tool_registry()
+            first = registry.invoke(
+                "retrieve_external_academic",
+                {"query": "  retrieval   systems  ", "limit": 5, "yearFrom": 2021, "yearTo": 2022},
+            )
+            second = registry.invoke(
+                "retrieve_external_academic",
+                {"query": "retrieval systems", "limit": 2},
+            )
+
+        factory.assert_called_once_with()
+        self.assertEqual(provider.search.call_args_list[0].args, ("retrieval systems", 5))
+        self.assertEqual(provider.search.call_args_list[1].args, ("retrieval systems", 2))
+        self.assertEqual(first["status"], "success")
+        self.assertEqual(first["provider"], "crossref")
+        self.assertEqual([item["year"] for item in first["items"]], [2021])
+        self.assertEqual(len(second["items"]), 2)
+        self.assertTrue(all(item["sourceType"] == "external_academic" for item in second["items"]))
+
+    def test_external_academic_tool_rejects_unsafe_and_out_of_bounds_inputs(self):
+        registry = get_tool_registry()
+        invalid_cases = [
+            ({"query": "x" * 257}, "maxLength"),
+            ({"query": "browse https://evil.example"}, "safe academic query"),
+            ({"query": "valid query", "limit": 6}, "at most 5"),
+            ({"query": "valid query", "yearFrom": 999}, "at least 1000"),
+            ({"query": "valid query", "yearTo": 10000}, "at most 9999"),
+            ({"query": "valid query", "yearFrom": 2025, "yearTo": 2024}, "yearFrom must not exceed yearTo"),
+            ({"query": "valid query", "provider": "evil"}, "unknown field"),
+        ]
+
+        for payload, pattern in invalid_cases:
+            with self.subTest(payload=payload):
+                with self.assertRaisesRegex(ToolValidationError, pattern):
+                    registry.invoke("retrieve_external_academic", payload)
 
     def test_graph_neighborhood_tool_is_strict_and_read_only(self):
         registry = get_tool_registry()

@@ -10,13 +10,17 @@ import services.page_translation_service as page_translation_service
 from rag.store import get_rag, retrieve_hybrid_results
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest, PageTranslationRequest
 from services.evidence_service import normalize_evidence_items
+from services.external_evidence import normalize_external_evidence_items
+from services.external_search_provider import create_external_search_provider
 from services.retrieval_judge_service import judge_evidence_quality
+from services.safety_service import sanitize_external_academic_query_text
 from services.trace_service import record_counter, sanitize_text, trace_step
 
 
 Handler = Callable[[Dict[str, Any]], Any]
 
 _DEFAULT_TOOL_REGISTRY = None
+_DEFAULT_EXTERNAL_SEARCH_PROVIDER = None
 
 
 class ToolNotFoundError(KeyError):
@@ -124,8 +128,9 @@ def get_tool_registry() -> ToolRegistry:
 
 
 def reset_tool_registry() -> None:
-    global _DEFAULT_TOOL_REGISTRY
+    global _DEFAULT_TOOL_REGISTRY, _DEFAULT_EXTERNAL_SEARCH_PROVIDER
     _DEFAULT_TOOL_REGISTRY = None
+    _DEFAULT_EXTERNAL_SEARCH_PROVIDER = None
 
 
 def _safety_scope(data_scopes: List[str], *, network_access: bool, sensitive_output: bool) -> Dict[str, Any]:
@@ -144,6 +149,32 @@ def _object_output(required: List[str], properties: Dict[str, Any]) -> Dict[str,
         "required": required,
         "properties": properties,
         "additionalProperties": True,
+    }
+
+
+def _external_evidence_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "required": [
+            "sourceId", "sourceType", "provider", "providerId", "title", "authors",
+            "year", "abstract", "doi", "url", "retrievedAt", "query", "license",
+        ],
+        "properties": {
+            "sourceId": {"type": "string", "minLength": 1},
+            "sourceType": {"type": "string", "enum": ["external_academic"]},
+            "provider": {"type": "string", "minLength": 1},
+            "providerId": {"type": "string"},
+            "title": {"type": "string"},
+            "authors": {"type": "array", "items": {"type": "string"}},
+            "year": {"type": ["integer", "null"], "minimum": 1000, "maximum": 9999},
+            "abstract": {"type": "string"},
+            "doi": {"type": "string"},
+            "url": {"type": "string"},
+            "retrievedAt": {"type": "string"},
+            "query": {"type": "string"},
+            "license": {"type": "string"},
+        },
+        "additionalProperties": False,
     }
 
 
@@ -196,6 +227,37 @@ def _build_default_tool_registry() -> ToolRegistry:
             {"items": {"type": "array", "items": {"type": "object", "additionalProperties": True}}},
         ),
         safety_scope=_safety_scope(["internal_library_index"], network_access=False, sensitive_output=True),
+    )
+    registry.register(
+        "retrieve_external_academic",
+        "Retrieve read-only academic metadata from the configured external provider.",
+        {
+            "type": "object",
+            "required": ["query"],
+            "properties": {
+                "query": {"type": "string", "minLength": 1, "maxLength": 256},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 5},
+                "yearFrom": {"type": "integer", "minimum": 1000, "maximum": 9999},
+                "yearTo": {"type": "integer", "minimum": 1000, "maximum": 9999},
+            },
+            "additionalProperties": False,
+        },
+        _retrieve_external_academic_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "provider", "items"],
+            "properties": {
+                "status": {"type": "string", "enum": ["disabled", "success"]},
+                "provider": {"type": "string", "minLength": 1},
+                "items": {"type": "array", "items": _external_evidence_schema()},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["external_academic_metadata"],
+            network_access=True,
+            sensitive_output=True,
+        ),
     )
     registry.register(
         "read_paper_skeleton",
@@ -456,6 +518,47 @@ def _retrieve_library_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return {"items": filtered}
 
 
+def _retrieve_external_academic_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    query = _clean_text(payload.get("query"))
+    safe_query = sanitize_external_academic_query_text(query, max_chars=256)
+    if not query or safe_query != query:
+        raise ToolValidationError(
+            "retrieve_external_academic requires a safe academic query produced by the bounded query planner."
+        )
+
+    limit = int(payload.get("limit") or 5)
+    year_from = payload.get("yearFrom")
+    year_to = payload.get("yearTo")
+    if year_from is not None and year_to is not None and year_from > year_to:
+        raise ToolValidationError("retrieve_external_academic yearFrom must not exceed yearTo.")
+
+    provider = _get_external_search_provider()
+    if provider.enabled is not True:
+        return {"status": "disabled", "provider": "disabled", "items": []}
+
+    items = normalize_external_evidence_items(provider.search(query, limit))
+    if year_from is not None or year_to is not None:
+        items = [
+            item
+            for item in items
+            if item.get("year") is not None
+            and (year_from is None or item["year"] >= year_from)
+            and (year_to is None or item["year"] <= year_to)
+        ]
+    return {
+        "status": "success",
+        "provider": _clean_text(provider.name).lower(),
+        "items": items[:limit],
+    }
+
+
+def _get_external_search_provider() -> Any:
+    global _DEFAULT_EXTERNAL_SEARCH_PROVIDER
+    if _DEFAULT_EXTERNAL_SEARCH_PROVIDER is None:
+        _DEFAULT_EXTERNAL_SEARCH_PROVIDER = create_external_search_provider()
+    return _DEFAULT_EXTERNAL_SEARCH_PROVIDER
+
+
 def _read_paper_skeleton_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
     paper_skeleton = payload.get("paperSkeleton") if isinstance(payload.get("paperSkeleton"), dict) else {}
     max_sections = _coerce_positive_int(payload.get("maxSections"), 6)
@@ -537,6 +640,7 @@ _SUPPORTED_SCHEMA_KEYWORDS = {
     "items",
     "enum",
     "minLength",
+    "maxLength",
     "minimum",
     "maximum",
     "minItems",
@@ -573,7 +677,7 @@ def _validate_schema_definition(schema: Any, label: str, *, require_object_root:
         _validate_schema_definition(schema["items"], f"{label}.items")
     if "enum" in schema and (not isinstance(schema["enum"], list) or not schema["enum"]):
         raise ToolValidationError(f"{label}.enum must be a non-empty list.")
-    for keyword in ("minLength", "minItems"):
+    for keyword in ("minLength", "maxLength", "minItems"):
         if keyword in schema and (not isinstance(schema[keyword], int) or isinstance(schema[keyword], bool) or schema[keyword] < 0):
             raise ToolValidationError(f"{label}.{keyword} must be a non-negative integer.")
     for keyword in ("minimum", "maximum"):
@@ -620,6 +724,10 @@ def _validate_value(value: Any, schema: Dict[str, Any], tool_name: str, directio
     if isinstance(value, str) and "minLength" in schema and len(value.strip()) < schema["minLength"]:
         raise ToolValidationError(
             f"tool '{tool_name}' {direction} {path}: length must be at least {schema['minLength']}."
+        )
+    if isinstance(value, str) and "maxLength" in schema and len(value) > schema["maxLength"]:
+        raise ToolValidationError(
+            f"tool '{tool_name}' {direction} {path}: maxLength must be at most {schema['maxLength']}."
         )
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         if "minimum" in schema and value < schema["minimum"]:

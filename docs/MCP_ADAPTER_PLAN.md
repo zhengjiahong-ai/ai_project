@@ -22,6 +22,12 @@
 - 非法参数沿用 `ToolValidationError` 的工具名、输入/输出方向和字段路径，不绕过注册层直接调用 handler。
 - 工具成功结果同时返回 JSON text content 和 `structuredContent`；业务异常作为 tool error 返回，未知异常只返回脱敏后的固定错误，不包含堆栈和内部路径。
 
+## 外部学术检索工具边界
+
+- 内部注册表包含版本 `1.0.0` 的 `retrieve_external_academic`，用于后续 Deep Research 和 Agent 通过统一工具契约访问受控学术 Provider；默认配置下只返回结构化禁用状态。
+- 该工具声明 `networkAccess=true` 和 `dataScopes=["external_academic_metadata"]`，因此不满足 MCP 的封闭网络与数据范围策略；`MCP_ALLOWED_TOOL_NAMES` 仍严格只有 `read_paper_skeleton`、`retrieve_current_paper`、`retrieve_library`。
+- 本阶段不修改 MCP `tools/list`、调用 allowlist 或运行时预算。通过 MCP 调用 `retrieve_external_academic` 必须继续返回“不可用”错误，不能绕过内部工具的启用、Provider 或安全边界。
+
 ## 非目标
 
 - 不提供 Streamable HTTP、SSE、认证、远程访问、MCP client、resources 或 prompts。

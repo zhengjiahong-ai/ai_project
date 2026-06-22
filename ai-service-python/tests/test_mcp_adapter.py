@@ -92,7 +92,7 @@ class McpAdapterTests(unittest.TestCase):
         from mcp_adapter.adapter import call_mcp_tool
 
         registry = Mock()
-        for name in ("missing", "translate_page", "run_critical_analysis"):
+        for name in ("missing", "translate_page", "run_critical_analysis", "retrieve_external_academic"):
             with self.subTest(name=name):
                 result = call_mcp_tool(name, {}, registry)
                 self.assertTrue(result["isError"])
