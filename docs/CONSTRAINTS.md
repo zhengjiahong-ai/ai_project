@@ -44,6 +44,8 @@
 - 外部学术工具默认返回 `status=disabled/provider=disabled/items=[]`，不得因工具注册自动启用 Provider。启用后必须复用 Provider 工厂和实例级缓存、限流边界，输出重新归一化为统一外部证据，并按年份范围过滤。
 - `retrieve_external_academic` 的 `safetyScope` 固定为只读、`external_academic_metadata`、`networkAccess=true`、无副作用和敏感输出；它不在 MCP 名称和数据范围 allowlist 中，当前 Deep Research、Agent、MCP 和公开 API 均不得调用。
 - Crossref 客户端注册和缓存重试能力不等于业务链路已获联网授权：默认关闭行为不变，当前 Deep Research、Agent、前端、公开 API 和 MCP 均不得调用它。
+- P3-09 为内部外部检索工具增加任务级审计与预算计数。public trace summary 必须包含 `externalSearchCalls/externalSearchCacheHits/externalSearchFailures/externalEvidenceCount/externalSearchLatencyMs/externalSearchBudgetBlocks`；外部检索 step 只允许记录 Provider、预算状态、结果数量和 `queryHash/queryLength/tokenCount`，不得记录完整 query、完整摘要、完整响应、headers 或密钥。
+- 外部检索默认任务预算为最多 3 次 Provider 调用和最多 15 条外部证据结果。预算耗尽时必须在调用 Provider 前停止，返回 `budget_exceeded` 与脱敏原因，并计入 `externalSearchBudgetBlocks`；Provider 失败必须返回 `failed` 与脱敏原因并计入 `externalSearchFailures`。
 - P3-04 benchmark 结论见 [`external_search_benchmark.md`](external_search_benchmark.md)。2026-06-21 匿名采样中 Crossref 成功 6/6，Semantic Scholar 因 6 次 HTTP 429 被判定为匿名运维不可用；项目不要求配置 Semantic Scholar API key，P3-05 唯一实现目标为 Crossref。
 - benchmark 只评估无需凭据的匿名可用性。至少一个候选必须成功完成 5/6 case；对全部 case 均因匿名 429 失败的候选允许标记为运维不适用并排除，但不得把其他超时、畸形响应或部分失败伪装为排除条件。
 - benchmark 网络代码仅允许在 `ai-service-python/benchmarks/external_search/` 中显式 `--live` 运行，不得复用为生产客户端。默认离线评分不得联网，失败结果不得通过降低门槛、切换来源或扩大白名单绕过。
@@ -124,6 +126,7 @@
 ## Agent SQLite 持久化边界
 
 - Agent 项目、任务和事件摘要保存到 Python SQLite，默认位置为 `ai-service-python/data/agent_state.sqlite3`，测试或隔离运行可通过 `AGENT_STATE_DB_PATH` 覆盖。
+- Agent 终态任务会把脱敏 public trace summary 写入 `task.traceSummary` 并随 SQLite 快照保存；进程内 trace 丢失或服务重启后，`GET /api/agent-traces/{traceId}` 可按 `traceId` 从任务快照恢复。旧快照没有 `traceSummary` 时按空对象兼容。
 - `/api/agent-projects*` 和 `/api/agent-tasks*` 的请求/响应字段保持不变；持久化只改变服务重启后的恢复能力。
 - 服务重启前已经进入 `succeeded`、`failed` 或 `cancelled` 的任务按快照恢复。
 - 服务重启前仍处于 `running` 或 `pending` 的任务恢复为 `failed`、`stage=done`、`progress=1.0`，`error` 固定为 `Agent task was interrupted by service restart.`，并追加 `task_expired` 事件。

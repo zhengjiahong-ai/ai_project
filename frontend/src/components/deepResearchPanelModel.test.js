@@ -257,6 +257,12 @@ const run = async () => {
       truncationCount: 2.7,
       estimatedInputTokens: '123',
       estimatedOutputTokens: 'bad',
+      externalSearchCalls: 3,
+      externalSearchCacheHits: '2',
+      externalSearchFailures: 1.5,
+      externalEvidenceCount: 12,
+      externalSearchLatencyMs: 245.9,
+      externalSearchBudgetBlocks: '1',
       extraCounter: 99,
     },
     steps: Array.from({ length: 20 }, (_, index) => ({
@@ -281,6 +287,12 @@ const run = async () => {
     truncationCount: 2,
     estimatedInputTokens: 123,
     estimatedOutputTokens: 0,
+    externalSearchCalls: 3,
+    externalSearchCacheHits: 2,
+    externalSearchFailures: 1,
+    externalEvidenceCount: 12,
+    externalSearchLatencyMs: 245,
+    externalSearchBudgetBlocks: 1,
   });
   assert.deepEqual(normalizedTrace.rawCounters, {
     llmCalls: 2,
@@ -289,6 +301,12 @@ const run = async () => {
     truncationCount: 2.7,
     estimatedInputTokens: '123',
     estimatedOutputTokens: 'bad',
+    externalSearchCalls: 3,
+    externalSearchCacheHits: '2',
+    externalSearchFailures: 1.5,
+    externalEvidenceCount: 12,
+    externalSearchLatencyMs: 245.9,
+    externalSearchBudgetBlocks: '1',
     extraCounter: 99,
   });
   assert.equal(normalizedTrace.steps.length, 12);
@@ -306,6 +324,12 @@ const run = async () => {
     truncationCount: 0,
     estimatedInputTokens: 0,
     estimatedOutputTokens: 0,
+    externalSearchCalls: 0,
+    externalSearchCacheHits: 0,
+    externalSearchFailures: 0,
+    externalEvidenceCount: 0,
+    externalSearchLatencyMs: 0,
+    externalSearchBudgetBlocks: 0,
   });
   assert.deepEqual(fallbackTrace.rawCounters, {});
 
@@ -316,6 +340,12 @@ const run = async () => {
     truncationCount: 0,
     estimatedInputTokens: 0,
     estimatedOutputTokens: 0,
+    externalSearchCalls: 0,
+    externalSearchCacheHits: 0,
+    externalSearchFailures: 0,
+    externalEvidenceCount: 0,
+    externalSearchLatencyMs: 0,
+    externalSearchBudgetBlocks: 0,
   });
 
   const normalizedPreview = normalizeResearchBriefPreview({

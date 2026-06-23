@@ -50,6 +50,7 @@ Agent 工作区已经不再只是静态原型壳。当前已经具备第一版�
 - 展示时间线事件、工具调用、证据片段、对比表、冲突候选、开放问题和报告草稿。
 - Agent 工具调用会记录内部工具版本和结构化安全范围；内部注册层在执行前后严格校验输入与输出，非法参数不会进入 handler。
 - 服务端按项目返回 Agent 任务历史，刷新、换浏览器或服务重启后可恢复项目历史。
+- Agent 终态任务会保存脱敏 trace summary，服务重启后仍可按 `traceId` 恢复关键调用、预算和耗时计数。
 - 前端快照仍按项目保存任务历史，作为旧接口或临时失败时的 fallback。
 - Agent 报告草稿、跨论文对比表和单条关键证据可以加入工作台；报告与对比表归入进入 Agent 时的当前论文，证据卡同时保留来源论文、页码、章节、项目和任务标识。未打开当前论文时保存入口会禁用。
 
@@ -60,6 +61,7 @@ Agent 工作区已经不再只是静态原型壳。当前已经具备第一版�
 - Deep Research 和 Agent 的后端编排边界已经拆出 planner/executor/aggregator/orchestrator 模块，现有使用流程不变，但后续接入 LangGraph 或 Deep Orchestrator 时可以优先替换这些内部层。
 - 已提供默认关闭的只读 MCP adapter 原型；它仅以本机 `stdio` 独立启动，不挂载 FastAPI，也不新增网络监听或 Java 转发。
 - 背景知识图谱只使用当前论文、论文骨架和显式主题，不读取论文库中的其他论文，也不会自行联网；无当前论文片段支持的知识和关系会明确标记为模型推断。
+- 只读外部学术检索仍默认关闭，且尚未接入 Deep Research 或 Agent 证据不足分支；内部工具已具备 trace 审计、缓存命中、失败和预算阻止计数。
 
 ## 运行链路
 
@@ -264,9 +266,9 @@ Python 保存：
 
 - Chroma 检索索引。
 - Deep Research SQLite 快照，默认位置为 `ai-service-python/data/research_tasks.sqlite3` 或 `RESEARCH_TASK_DB_PATH`。
-- Agent SQLite 快照，默认位置为 `ai-service-python/data/agent_state.sqlite3` 或 `AGENT_STATE_DB_PATH`；删除项目会同步删除该项目任务和事件摘要。
+- Agent SQLite 快照，默认位置为 `ai-service-python/data/agent_state.sqlite3` 或 `AGENT_STATE_DB_PATH`；删除项目会同步删除该项目任务和事件摘要，终态任务会随快照保存脱敏 `traceSummary`。
 - 背景知识图谱 SQLite 快照，默认位置为 `ai-service-python/data/knowledge_graph.sqlite3` 或 `KNOWLEDGE_GRAPH_DB_PATH`；配置 Neo4j 时仍会同时写入可选镜像。
-- 进程内 public trace summary；Deep Research 终态 trace summary 会随 SQLite 任务快照保存。
+- 进程内 public trace summary；Deep Research 和 Agent 终态 trace summary 会随 SQLite 任务快照保存。trace counters 包含 LLM、内部检索、重试、截断和外部学术检索调用/缓存/失败/证据/延迟/预算阻止计数；外部检索 query 只保存 hash、长度和 token 数摘要。
 
 Python AI 服务内部已经将单论文 Deep Research 拆为 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，并将多论文 Agent 研究的计划、工具调用摘要、证据聚合和报告综合拆到 `agent_orchestrator.py`。Deep Research 和 Agent 的真实冲突会读取已有背景图谱的一跳邻域，补充来源覆盖说明；无图谱时自动降级，报告仍要求人工核查且不会自动裁决。需要隔离 Agent 或图谱状态库时可设置 `AGENT_STATE_DB_PATH`、`KNOWLEDGE_GRAPH_DB_PATH`。
 

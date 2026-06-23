@@ -294,6 +294,9 @@ P2-3 来源与生成约束：
 
 - trace 输出会被刻意裁剪，不暴露完整 prompt、API key 或完整论文正文。
 - 已完成的 Deep Research 任务会把 trace summary 写入 SQLite 快照，服务重启后通常仍可恢复。
+- `trace.counters` 固定包含基础计数 `llmCalls/retrievalCalls/retryCount/truncationCount/estimatedInputTokens/estimatedOutputTokens`，并兼容包含外部学术检索计数 `externalSearchCalls/externalSearchCacheHits/externalSearchFailures/externalEvidenceCount/externalSearchLatencyMs/externalSearchBudgetBlocks`。
+- 外部学术检索 step 只记录 Provider、预算状态、结果数量和脱敏 query 摘要；query 摘要为 `queryHash/queryLength/tokenCount`，不保存完整 query、完整摘要、Provider 响应体、headers 或密钥。
+- 外部检索超过任务级默认预算时不会调用 Provider，工具返回 `status=budget_exceeded` 并在 trace 中计入 `externalSearchBudgetBlocks`。
 - Deep Research 的对外接口、字段和状态码保持不变；Python 内部已将 planning、sub-question execution、report/conflict aggregation 拆到 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，用于后续低风险替换编排策略。
 
 ## Agent 研究 API
@@ -584,7 +587,7 @@ P2-3 来源与生成约束：
 
 读取 Agent 任务的脱敏 trace summary。
 
-当前复用其他 AI 流程使用的 trace summary 服务。
+当前复用其他 AI 流程使用的 trace summary 服务。Agent 终态任务会把 public trace summary 写入 SQLite 任务快照；进程内 trace 清空或服务重启后，可通过任务快照按 `traceId` 恢复关键 trace summary。旧 Agent 快照缺少 `traceSummary` 时按空对象兼容。
 
 ## Java 到 Python 的转发关系
 

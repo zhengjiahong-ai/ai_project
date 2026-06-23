@@ -80,6 +80,9 @@ def register_test_tool(registry, handler=None, **overrides):
 
 class ToolRegistryContractTests(unittest.TestCase):
     def tearDown(self):
+        from services import trace_service
+
+        trace_service.clear_traces()
         reset_tool_registry()
 
     def test_default_registry_exposes_nine_serializable_versioned_contracts(self):
@@ -181,6 +184,76 @@ class ToolRegistryContractTests(unittest.TestCase):
         self.assertEqual([item["year"] for item in first["items"]], [2021])
         self.assertEqual(len(second["items"]), 2)
         self.assertTrue(all(item["sourceType"] == "external_academic" for item in second["items"]))
+
+    def test_external_academic_trace_summary_uses_query_digest_not_raw_query(self):
+        from services import trace_service
+
+        provider = Mock(name="crossref-provider")
+        provider.name = "crossref"
+        provider.enabled = True
+        provider.search.return_value = [_external_evidence("work-2024", 2024)]
+        trace_id = trace_service.start_trace("unit_external_search")
+
+        with patch("services.tool_registry.create_external_search_provider", return_value=provider):
+            get_tool_registry().invoke(
+                "retrieve_external_academic",
+                {"query": "retrieval systems private-marker", "limit": 1},
+            )
+
+        summary = trace_service.get_trace_summary(trace_id)["trace"]
+        step = next(item for item in summary["steps"] if item["name"] == "tool_retrieve_external_academic")
+        query_summary = step["meta"]["querySummary"]
+        self.assertEqual(set(query_summary), {"queryHash", "queryLength", "tokenCount"})
+        self.assertEqual(len(query_summary["queryHash"]), 16)
+        self.assertNotIn("retrieval systems", str(step))
+        self.assertNotIn("private-marker", str(step))
+
+    def test_external_academic_tool_stops_when_task_budget_is_exhausted(self):
+        from services import trace_service
+
+        provider = Mock(name="crossref-provider")
+        provider.name = "crossref"
+        provider.enabled = True
+        provider.search.return_value = [_external_evidence("work-2024", 2024)]
+
+        trace_id = trace_service.start_trace("unit_external_search")
+        with patch("services.tool_registry.create_external_search_provider", return_value=provider):
+            registry = get_tool_registry()
+            for _index in range(3):
+                result = registry.invoke("retrieve_external_academic", {"query": "retrieval systems", "limit": 5})
+                self.assertEqual(result["status"], "success")
+            blocked = registry.invoke("retrieve_external_academic", {"query": "retrieval systems", "limit": 5})
+
+        snapshot = trace_service.get_trace_snapshot(trace_id)
+        self.assertEqual(blocked["status"], "budget_exceeded")
+        self.assertEqual(blocked["provider"], "crossref")
+        self.assertEqual(blocked["items"], [])
+        self.assertIn("call budget", blocked["reason"])
+        self.assertEqual(provider.search.call_count, 3)
+        self.assertEqual(snapshot["counters"]["externalSearchCalls"], 3)
+        self.assertEqual(snapshot["counters"]["externalEvidenceCount"], 3)
+        self.assertEqual(snapshot["counters"]["externalSearchBudgetBlocks"], 1)
+
+    def test_external_academic_tool_returns_sanitized_failure_and_counts_it(self):
+        from services import trace_service
+
+        provider = Mock(name="crossref-provider")
+        provider.name = "crossref"
+        provider.enabled = True
+        provider.search.side_effect = RuntimeError("sk-secret full response body with private query")
+
+        trace_id = trace_service.start_trace("unit_external_search")
+        with patch("services.tool_registry.create_external_search_provider", return_value=provider):
+            result = get_tool_registry().invoke("retrieve_external_academic", {"query": "retrieval systems", "limit": 2})
+
+        snapshot = trace_service.get_trace_snapshot(trace_id)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["provider"], "crossref")
+        self.assertEqual(result["items"], [])
+        self.assertNotIn("sk-secret", result["reason"])
+        self.assertNotIn("full response body", result["reason"])
+        self.assertEqual(snapshot["counters"]["externalSearchFailures"], 1)
+        self.assertEqual(snapshot["counters"]["externalSearchCalls"], 0)
 
     def test_external_academic_tool_rejects_unsafe_and_out_of_bounds_inputs(self):
         registry = get_tool_registry()

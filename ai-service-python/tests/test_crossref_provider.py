@@ -301,9 +301,11 @@ class CrossrefProviderTests(unittest.TestCase):
         self.assertTrue(response.closed)
 
     def test_cache_hit_skips_network_and_restores_normalized_query(self):
+        from services import trace_service
         from services.external_search_cache import ExternalSearchCache
         from services.providers.crossref import CrossrefProvider
 
+        trace_id = trace_service.start_trace("unit_crossref_cache")
         with tempfile.TemporaryDirectory() as temp_dir:
             cache = ExternalSearchCache(Path(temp_dir) / "cache.json")
             first_session = _SequenceSession([self._success()])
@@ -317,6 +319,9 @@ class CrossrefProviderTests(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["query"], "retrieval systems")
         self.assertEqual(second_session.calls, [])
+        snapshot = trace_service.get_trace_snapshot(trace_id)
+        self.assertEqual(snapshot["counters"]["externalSearchCacheHits"], 1)
+        trace_service.clear_traces()
 
     def test_instance_rate_limit_waits_between_uncached_requests(self):
         from services.providers.crossref import CrossrefProvider

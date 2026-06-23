@@ -61,6 +61,12 @@ const TRACE_COUNTER_ITEMS = [
   { key: 'truncationCount', label: '截断' },
   { key: 'estimatedInputTokens', label: 'Input tokens' },
   { key: 'estimatedOutputTokens', label: 'Output tokens' },
+  { key: 'externalSearchCalls', label: 'External calls' },
+  { key: 'externalSearchCacheHits', label: 'External cache' },
+  { key: 'externalSearchFailures', label: 'External failures' },
+  { key: 'externalEvidenceCount', label: 'External evidence' },
+  { key: 'externalSearchLatencyMs', label: 'External latency ms' },
+  { key: 'externalSearchBudgetBlocks', label: 'External blocks' },
 ];
 
 const formatCounterValue = (value) => Number(value || 0).toLocaleString('en-US');

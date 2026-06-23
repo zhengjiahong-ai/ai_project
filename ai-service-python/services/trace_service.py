@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import os
 import re
@@ -58,6 +59,15 @@ def sanitize_text(value: Any, max_chars: int = 240) -> str:
     return f"{text[:max_chars].rstrip()}..."
 
 
+def summarize_external_search_query(query: Any) -> Dict[str, Any]:
+    text = " ".join(str(query or "").strip().split())
+    return {
+        "queryHash": hashlib.sha256(text.encode("utf-8")).hexdigest()[:16],
+        "queryLength": len(text),
+        "tokenCount": len(text.split()) if text else 0,
+    }
+
+
 def start_trace(
     task_type: str,
     request_meta: Optional[Dict[str, Any]] = None,
@@ -82,6 +92,12 @@ def start_trace(
             "truncationCount": 0,
             "estimatedInputTokens": 0,
             "estimatedOutputTokens": 0,
+            "externalSearchCalls": 0,
+            "externalSearchCacheHits": 0,
+            "externalSearchFailures": 0,
+            "externalEvidenceCount": 0,
+            "externalSearchLatencyMs": 0,
+            "externalSearchBudgetBlocks": 0,
         },
         "steps": [],
     }
@@ -244,10 +260,23 @@ def _load_persisted_trace_summary(trace_id: str) -> Optional[Dict[str, Any]]:
     try:
         from services import research_task_service
     except Exception:
+        research_task_service = None
+
+    if research_task_service is not None:
+        try:
+            summary = research_task_service.get_persisted_trace_summary(trace_id)
+            if summary:
+                return summary
+        except Exception:
+            pass
+
+    try:
+        from services import agent_project_service
+    except Exception:
         return None
 
     try:
-        return research_task_service.get_persisted_trace_summary(trace_id)
+        return agent_project_service.get_persisted_trace_summary(trace_id)
     except Exception:
         return None
 

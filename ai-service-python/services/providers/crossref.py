@@ -17,6 +17,7 @@ from services.external_search_cache import (
     default_external_search_cache_path,
     normalize_external_search_query,
 )
+from services.trace_service import record_counter
 
 
 CROSSREF_ENDPOINT = "https://api.crossref.org/works"
@@ -77,6 +78,7 @@ class CrossrefProvider:
         normalized_limit = _validate_limit(limit)
         cached = self._cache.get(self.name, normalized_query, normalized_limit)
         if cached is not None:
+            record_counter("externalSearchCacheHits")
             return cached[:normalized_limit]
 
         retry_delay = 0.0

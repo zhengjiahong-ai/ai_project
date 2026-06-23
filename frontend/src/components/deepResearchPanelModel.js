@@ -379,6 +379,12 @@ const TRACE_COUNTER_KEYS = [
   'truncationCount',
   'estimatedInputTokens',
   'estimatedOutputTokens',
+  'externalSearchCalls',
+  'externalSearchCacheHits',
+  'externalSearchFailures',
+  'externalEvidenceCount',
+  'externalSearchLatencyMs',
+  'externalSearchBudgetBlocks',
 ];
 
 const normalizeCounterValue = (value) => {

@@ -22,7 +22,16 @@ from schemas.requests import (
 from services import agent_orchestrator
 from services.evidence_service import normalize_evidence_items
 from services.tool_registry import get_tool_registry
-from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step, use_trace
+from services.trace_service import (
+    build_public_trace_summary,
+    finalize_trace,
+    record_counter,
+    record_metric,
+    sanitize_text,
+    start_trace,
+    trace_step,
+    use_trace,
+)
 
 
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled"}
@@ -196,6 +205,7 @@ def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[
         "conflicts": [],
         "reviewRisks": [],
         "humanReview": {"plan": {"status": "pending", "reviewNotes": "", "reviewedAt": ""}, "final": {"status": "pending", "reviewNotes": "", "reviewedAt": "", "riskReviews": []}},
+        "traceSummary": {},
         "openQuestions": [],
         "draftReport": "",
         "error": "",
@@ -260,8 +270,9 @@ def review_agent_final(task_id: str, request: AgentFinalReviewRequest) -> Dict[s
     reviewed_risks = [{**item, "reviewStatus": status_by_id.get(_clean_text(item.get("riskId")), item.get("reviewStatus") or "pending")} for item in task.get("reviewRisks") or []]
     updated = _update_task(task_id, status="succeeded", stage=DONE_STAGE, progress=1.0, humanReview=human_review, reviewRisks=reviewed_risks, events=events)
     with use_trace(str(task.get("traceId") or "")):
-        finalize_trace("success", response_meta={"taskId": task_id, "projectId": task.get("projectId")})
-    return {"status": "success", "task": updated}
+        trace_snapshot = finalize_trace("success", response_meta={"taskId": task_id, "projectId": task.get("projectId")})
+        _persist_trace_summary(task_id, trace_snapshot)
+    return {"status": "success", "task": _copy_task(task_id)}
 
 
 def get_latest_agent_task(project_id: str) -> Dict[str, Any]:
@@ -295,6 +306,21 @@ def get_agent_task(task_id: str) -> Dict[str, Any]:
     return {"status": "success", "task": _copy_task(task_id)}
 
 
+def get_persisted_trace_summary(trace_id: str) -> Dict[str, Any] | None:
+    _ensure_storage_loaded()
+    normalized_trace_id = _clean_text(trace_id)
+    if not normalized_trace_id:
+        return None
+
+    with _LOCK:
+        for task in _TASKS.values():
+            if _clean_text(task.get("traceId")) != normalized_trace_id:
+                continue
+            summary = task.get("traceSummary")
+            return copy.deepcopy(summary) if isinstance(summary, dict) and summary else None
+    return None
+
+
 def cancel_agent_task(task_id: str) -> Dict[str, Any]:
     _ensure_storage_loaded()
     should_finalize_cancelled = False
@@ -313,7 +339,8 @@ def cancel_agent_task(task_id: str) -> Dict[str, Any]:
             should_finalize_cancelled = True
     if should_finalize_cancelled:
         with use_trace(str(task.get("traceId") or "")):
-            finalize_trace("cancelled", response_meta={"taskId": task_id, "projectId": task.get("projectId")})
+            trace_snapshot = finalize_trace("cancelled", response_meta={"taskId": task_id, "projectId": task.get("projectId")})
+            _persist_trace_summary(task_id, trace_snapshot)
     return {"status": "success", "task": _copy_task(task_id)}
 
 
@@ -466,7 +493,7 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 error=_clean_text(error)[:240] or "Agent task failed.",
                 events=[*current_task.get("events", []), _event("task_failed", task_id, DONE_STAGE, "Agent task failed.")],
             )
-            finalize_trace(
+            trace_snapshot = finalize_trace(
                 "error",
                 error=error,
                 response_meta={
@@ -475,6 +502,7 @@ def _run_minimal_agent_task(task_id: str) -> None:
                     "paperIds": paper_ids,
                 },
             )
+            _persist_trace_summary(task_id, trace_snapshot)
 
 
 def _collect_project_evidence(task_id: str, prompt: str, paper_ids: List[str]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -1102,6 +1130,12 @@ def _validate_agent_risk_reviews(risks: List[Dict[str, Any]], reviews: List[Any]
     return normalized
 
 
+def _persist_trace_summary(task_id: str, trace_snapshot: Dict[str, Any] | None) -> None:
+    if not trace_snapshot:
+        return
+    _update_task(task_id, traceSummary=build_public_trace_summary(trace_snapshot))
+
+
 def _initialize_storage_locked() -> None:
     db_path = _agent_state_db_path()
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1143,6 +1177,7 @@ def _initialize_storage_locked() -> None:
                 openQuestions TEXT NOT NULL,
                 reviewRisks TEXT NOT NULL DEFAULT '[]',
                 humanReview TEXT NOT NULL DEFAULT '{}',
+                traceSummary TEXT NOT NULL DEFAULT '{}',
                 draftReport TEXT NOT NULL,
                 error TEXT NOT NULL,
                 createdAt TEXT NOT NULL,
@@ -1168,6 +1203,8 @@ def _initialize_storage_locked() -> None:
             connection.execute("ALTER TABLE agent_tasks ADD COLUMN reviewRisks TEXT NOT NULL DEFAULT '[]'")
         if "humanReview" not in columns:
             connection.execute("ALTER TABLE agent_tasks ADD COLUMN humanReview TEXT NOT NULL DEFAULT '{}'")
+        if "traceSummary" not in columns:
+            connection.execute("ALTER TABLE agent_tasks ADD COLUMN traceSummary TEXT NOT NULL DEFAULT '{}'")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_projects_updated ON agent_projects (updatedAt)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_tasks_project_updated ON agent_tasks (projectId, updatedAt)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_task_events_task_time ON agent_task_events (taskId, timestamp)")
@@ -1239,8 +1276,8 @@ def _persist_task_locked(task: Dict[str, Any]) -> None:
                 taskId, projectId, traceId, status, stage, progress, prompt,
                 focusedPaperIds, constraints, context, planItems, toolCalls,
                 evidenceItems, findings, comparisonTable, conflicts, openQuestions,
-                reviewRisks, humanReview, draftReport, error, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                reviewRisks, humanReview, traceSummary, draftReport, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(taskId) DO UPDATE SET
                 projectId=excluded.projectId,
                 traceId=excluded.traceId,
@@ -1260,6 +1297,7 @@ def _persist_task_locked(task: Dict[str, Any]) -> None:
                 openQuestions=excluded.openQuestions,
                 reviewRisks=excluded.reviewRisks,
                 humanReview=excluded.humanReview,
+                traceSummary=excluded.traceSummary,
                 draftReport=excluded.draftReport,
                 error=excluded.error,
                 createdAt=excluded.createdAt,
@@ -1285,6 +1323,7 @@ def _persist_task_locked(task: Dict[str, Any]) -> None:
                 json.dumps(snapshot["openQuestions"], ensure_ascii=False),
                 json.dumps(snapshot["reviewRisks"], ensure_ascii=False),
                 json.dumps(snapshot["humanReview"], ensure_ascii=False),
+                json.dumps(snapshot["traceSummary"], ensure_ascii=False),
                 snapshot["draftReport"],
                 snapshot["error"],
                 snapshot["createdAt"],
@@ -1375,6 +1414,7 @@ def _task_from_storage_row(row: sqlite3.Row, events: List[Dict[str, Any]]) -> Di
         "openQuestions": _safe_json_list(row["openQuestions"]),
         "reviewRisks": _safe_json_list(row["reviewRisks"]) if "reviewRisks" in row.keys() else [],
         "humanReview": _safe_json_dict(row["humanReview"]) if "humanReview" in row.keys() else {},
+        "traceSummary": _safe_json_dict(row["traceSummary"]) if "traceSummary" in row.keys() else {},
         "draftReport": str(row["draftReport"] or ""),
         "error": str(row["error"] or ""),
         "createdAt": created_at,
@@ -1434,6 +1474,7 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
         "openQuestions": list(task.get("openQuestions") or []),
         "reviewRisks": list(task.get("reviewRisks") or []),
         "humanReview": dict(task.get("humanReview") or {}),
+        "traceSummary": dict(task.get("traceSummary") or {}),
         "draftReport": str(task.get("draftReport") or ""),
         "error": _clean_text(task.get("error")),
         "createdAt": created_at,

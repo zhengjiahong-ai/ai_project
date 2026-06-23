@@ -159,6 +159,9 @@ class AgentProjectPersistenceTests(unittest.TestCase):
             task["taskId"], AgentFinalReviewRequest(reviewNotes="reviewed", riskReviews=[])
         )["task"]
         self.assertEqual(completed["status"], "succeeded")
+        self.assertEqual(completed["traceSummary"]["traceId"], completed["traceId"])
+        self.assertEqual(completed["traceSummary"]["taskType"], "agent_research")
+        self.assertEqual(completed["traceSummary"]["responseMeta"]["taskId"], task["taskId"])
         self.assertTrue(completed["events"])
         self.assertTrue(completed["toolCalls"])
         self.assertTrue(completed["evidenceItems"])
@@ -173,8 +176,12 @@ class AgentProjectPersistenceTests(unittest.TestCase):
 
         restored = agent_project_service.get_agent_task(task["taskId"])["task"]
         latest = agent_project_service.get_latest_agent_task(project["projectId"])["task"]
+        trace_response = trace_service.get_trace_summary(completed["traceId"])
         self.assertEqual(restored["status"], "succeeded")
         self.assertEqual(latest["taskId"], task["taskId"])
+        self.assertEqual(restored["traceSummary"], completed["traceSummary"])
+        self.assertEqual(trace_response["trace"]["traceId"], completed["traceId"])
+        self.assertEqual(trace_response["trace"]["responseMeta"]["taskId"], task["taskId"])
         self.assertEqual(restored["events"][-1]["type"], "final_review_approved")
         self.assertEqual(restored["toolCalls"], completed["toolCalls"])
         self.assertEqual(restored["toolCalls"][0]["version"], "1.0.0")

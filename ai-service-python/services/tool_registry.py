@@ -1,5 +1,6 @@
 import copy
 import re
+import time
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
@@ -14,13 +15,22 @@ from services.external_evidence import normalize_external_evidence_items
 from services.external_search_provider import create_external_search_provider
 from services.retrieval_judge_service import judge_evidence_quality
 from services.safety_service import sanitize_external_academic_query_text
-from services.trace_service import record_counter, sanitize_text, trace_step
+from services.trace_service import (
+    get_current_trace_id,
+    get_trace_snapshot,
+    record_counter,
+    sanitize_text,
+    summarize_external_search_query,
+    trace_step,
+)
 
 
 Handler = Callable[[Dict[str, Any]], Any]
 
 _DEFAULT_TOOL_REGISTRY = None
 _DEFAULT_EXTERNAL_SEARCH_PROVIDER = None
+EXTERNAL_SEARCH_CALL_BUDGET = 3
+EXTERNAL_SEARCH_EVIDENCE_BUDGET = 15
 
 
 class ToolNotFoundError(KeyError):
@@ -247,9 +257,10 @@ def _build_default_tool_registry() -> ToolRegistry:
             "type": "object",
             "required": ["status", "provider", "items"],
             "properties": {
-                "status": {"type": "string", "enum": ["disabled", "success"]},
+                "status": {"type": "string", "enum": ["disabled", "success", "budget_exceeded", "failed"]},
                 "provider": {"type": "string", "minLength": 1},
                 "items": {"type": "array", "items": _external_evidence_schema()},
+                "reason": {"type": "string"},
             },
             "additionalProperties": False,
         },
@@ -533,23 +544,88 @@ def _retrieve_external_academic_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ToolValidationError("retrieve_external_academic yearFrom must not exceed yearTo.")
 
     provider = _get_external_search_provider()
-    if provider.enabled is not True:
-        return {"status": "disabled", "provider": "disabled", "items": []}
+    provider_name = _clean_text(provider.name).lower() or "unknown"
+    query_summary = summarize_external_search_query(query)
+    with trace_step(
+        "tool_retrieve_external_academic",
+        input_size=len(query),
+        meta={
+            "provider": provider_name if provider.enabled is True else "disabled",
+            "querySummary": query_summary,
+            "limit": limit,
+            "budget": _external_search_budget_snapshot(),
+        },
+    ) as step:
+        if provider.enabled is not True:
+            step["meta"] = {
+                **step.get("meta", {}),
+                "status": "disabled",
+                "reason": "external_search_disabled",
+            }
+            return {"status": "disabled", "provider": "disabled", "items": []}
 
-    items = normalize_external_evidence_items(provider.search(query, limit))
-    if year_from is not None or year_to is not None:
-        items = [
-            item
-            for item in items
-            if item.get("year") is not None
-            and (year_from is None or item["year"] >= year_from)
-            and (year_to is None or item["year"] <= year_to)
-        ]
-    return {
-        "status": "success",
-        "provider": _clean_text(provider.name).lower(),
-        "items": items[:limit],
-    }
+        budget_reason = _external_search_budget_block_reason(limit)
+        if budget_reason:
+            record_counter("externalSearchBudgetBlocks")
+            step["meta"] = {
+                **step.get("meta", {}),
+                "status": "budget_exceeded",
+                "reason": budget_reason,
+                "budget": _external_search_budget_snapshot(),
+            }
+            return {
+                "status": "budget_exceeded",
+                "provider": provider_name,
+                "items": [],
+                "reason": budget_reason,
+            }
+
+        started_at = time.perf_counter()
+        try:
+            raw_items = provider.search(query, limit)
+        except Exception:
+            record_counter("externalSearchFailures")
+            elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+            record_counter("externalSearchLatencyMs", elapsed_ms)
+            step["meta"] = {
+                **step.get("meta", {}),
+                "status": "failed",
+                "reason": "provider_failure",
+                "latencyMs": elapsed_ms,
+            }
+            return {
+                "status": "failed",
+                "provider": provider_name,
+                "items": [],
+                "reason": "External academic provider failed.",
+            }
+
+        elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+        record_counter("externalSearchCalls")
+        record_counter("externalSearchLatencyMs", elapsed_ms)
+        items = normalize_external_evidence_items(raw_items)
+        if year_from is not None or year_to is not None:
+            items = [
+                item
+                for item in items
+                if item.get("year") is not None
+                and (year_from is None or item["year"] >= year_from)
+                and (year_to is None or item["year"] <= year_to)
+            ]
+        items = items[:limit]
+        record_counter("externalEvidenceCount", len(items))
+        step["outputSize"] = len(items)
+        step["meta"] = {
+            **step.get("meta", {}),
+            "status": "success",
+            "latencyMs": elapsed_ms,
+            "budget": _external_search_budget_snapshot(),
+        }
+        return {
+            "status": "success",
+            "provider": provider_name,
+            "items": items,
+        }
 
 
 def _get_external_search_provider() -> Any:
@@ -557,6 +633,39 @@ def _get_external_search_provider() -> Any:
     if _DEFAULT_EXTERNAL_SEARCH_PROVIDER is None:
         _DEFAULT_EXTERNAL_SEARCH_PROVIDER = create_external_search_provider()
     return _DEFAULT_EXTERNAL_SEARCH_PROVIDER
+
+
+def _external_search_budget_snapshot() -> Dict[str, int]:
+    return {
+        "callLimit": EXTERNAL_SEARCH_CALL_BUDGET,
+        "callsUsed": _trace_counter_value("externalSearchCalls"),
+        "evidenceLimit": EXTERNAL_SEARCH_EVIDENCE_BUDGET,
+        "evidenceUsed": _trace_counter_value("externalEvidenceCount"),
+    }
+
+
+def _external_search_budget_block_reason(requested_limit: int) -> str:
+    snapshot = _external_search_budget_snapshot()
+    if snapshot["callsUsed"] >= snapshot["callLimit"]:
+        return "External academic search call budget exceeded."
+    if snapshot["evidenceUsed"] + max(0, int(requested_limit or 0)) > snapshot["evidenceLimit"]:
+        return "External academic search evidence budget exceeded."
+    return ""
+
+
+def _trace_counter_value(name: str) -> int:
+    trace_id = get_current_trace_id()
+    if not trace_id:
+        return 0
+    try:
+        snapshot = get_trace_snapshot(trace_id)
+    except KeyError:
+        return 0
+    value = (snapshot.get("counters") or {}).get(name)
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
 
 
 def _read_paper_skeleton_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
