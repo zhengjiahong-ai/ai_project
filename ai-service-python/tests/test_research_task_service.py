@@ -517,5 +517,186 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         self.assertIn("traceSummary", columns)
 
 
+class ResearchTaskExternalSearchTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.previous_db_path = os.environ.get("RESEARCH_TASK_DB_PATH")
+        os.environ["RESEARCH_TASK_DB_PATH"] = os.path.join(self.temp_dir.name, "research_tasks.sqlite3")
+        research_task_service.clear_research_tasks(clear_storage=True)
+
+    def tearDown(self):
+        trace_service.clear_traces()
+        research_task_service.clear_research_tasks(clear_storage=True)
+        if self.previous_db_path is None:
+            os.environ.pop("RESEARCH_TASK_DB_PATH", None)
+        else:
+            os.environ["RESEARCH_TASK_DB_PATH"] = self.previous_db_path
+        self.temp_dir.cleanup()
+
+    def _create_task(self):
+        response = research_task_service.create_research_task(
+            ResearchTaskCreateRequest(question="验证实验结论是否充分", pdfId="paper-1", paperSkeleton={}),
+            start_async=False,
+        )
+        return response["task"]["taskId"]
+
+    def _insufficient_judge(self, call_count_list):
+        call_count_list.append(True)
+        if len(call_count_list) == 1:
+            return {
+                "verdict": "INCORRECT", "judgeScore": 20,
+                "coverage": {"score": 0.1, "matchedAspects": 0, "totalAspects": 2, "evidenceCount": 1, "sourceTypes": ["current_paper"]},
+                "missingAspects": ["消融实验"], "retryReason": "", "shouldRetry": False,
+            }
+        if len(call_count_list) == 2:
+            return {
+                "verdict": "INCORRECT", "judgeScore": 30,
+                "coverage": {"score": 0.2, "matchedAspects": 0, "totalAspects": 2, "evidenceCount": 2, "sourceTypes": ["current_paper", "library"]},
+                "missingAspects": ["消融实验", "关键指标"], "retryReason": "", "shouldRetry": False,
+            }
+        return {
+            "verdict": "CORRECT", "judgeScore": 85,
+            "coverage": {"score": 0.85, "matchedAspects": 2, "totalAspects": 2, "evidenceCount": 4, "sourceTypes": ["current_paper", "library", "external_academic"]},
+            "missingAspects": [], "retryReason": "", "shouldRetry": False,
+        }
+
+    def test_external_search_disabled_by_default_no_change(self):
+        task_id = self._create_task()
+        judge_calls = []
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一"])),
+            patch.object(research_executor, "retrieve_current_paper_evidence", return_value=[{"sourceId": "cp-1", "text": "paper evidence", "sourceType": "current_paper"}]),
+            patch.object(research_executor, "retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library evidence", "sourceType": "library"}]),
+            patch.object(research_executor, "judge_research_evidence", side_effect=lambda q, e, **kw: self._insufficient_judge(judge_calls)),
+            patch.object(research_executor, "retrieve_external_academic_evidence", return_value={"status": "disabled", "items": [], "degradation": "disabled"}),
+        ):
+            task = research_task_service.run_research_task_now(task_id)
+
+        finding = task["findings"][0]
+        self.assertEqual(finding.get("externalSearchDegradation"), "disabled")
+        self.assertEqual(finding["verdict"], "INCORRECT")
+        source_ids = finding.get("sourceIds") or []
+        self.assertNotIn("external-doi-", "\n".join(source_ids))
+        self.assertEqual(task["status"], "awaiting_final_review")
+
+    def test_external_search_with_success_adds_evidence_and_rejudges(self):
+        task_id = self._create_task()
+        judge_calls = []
+        external_items = [
+            {"sourceId": "external-doi-abc123", "text": "external ablation study results",
+             "sourceType": "external_academic", "title": "Ablation Study X", "year": 2024},
+        ]
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一"])),
+            patch.object(research_executor, "retrieve_current_paper_evidence", return_value=[{"sourceId": "cp-1", "text": "paper evidence", "sourceType": "current_paper"}]),
+            patch.object(research_executor, "retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library evidence", "sourceType": "library"}]),
+            patch.object(research_executor, "judge_research_evidence", side_effect=lambda q, e, **kw: self._insufficient_judge(judge_calls)),
+            patch.object(research_executor, "retrieve_external_academic_evidence", return_value={"status": "success", "items": external_items, "degradation": ""}),
+        ):
+            task = research_task_service.run_research_task_now(task_id)
+
+        finding = task["findings"][0]
+        self.assertEqual(finding.get("externalSearchDegradation") or "", "")
+        self.assertEqual(finding["verdict"], "CORRECT")
+        source_ids = finding.get("sourceIds") or []
+        self.assertIn("external-doi-abc123", source_ids)
+        self.assertIn("外部学术检索", task["report"])
+
+    def test_external_search_budget_exceeded_degrades_gracefully(self):
+        task_id = self._create_task()
+        judge_calls = []
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一"])),
+            patch.object(research_executor, "retrieve_current_paper_evidence", return_value=[{"sourceId": "cp-1", "text": "paper evidence", "sourceType": "current_paper"}]),
+            patch.object(research_executor, "retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library evidence", "sourceType": "library"}]),
+            patch.object(research_executor, "judge_research_evidence", side_effect=lambda q, e, **kw: self._insufficient_judge(judge_calls)),
+            patch.object(research_executor, "retrieve_external_academic_evidence", return_value={"status": "budget_exceeded", "items": [], "degradation": "External academic search call budget exceeded."}),
+        ):
+            task = research_task_service.run_research_task_now(task_id)
+
+        finding = task["findings"][0]
+        self.assertEqual(finding["externalSearchDegradation"], "External academic search call budget exceeded.")
+        self.assertEqual(finding["verdict"], "INCORRECT")
+        self.assertEqual(task["status"], "awaiting_final_review")
+        self.assertIn("外部检索降级", task["report"])
+
+    def test_external_search_provider_failure_degrades_gracefully(self):
+        task_id = self._create_task()
+        judge_calls = []
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一"])),
+            patch.object(research_executor, "retrieve_current_paper_evidence", return_value=[{"sourceId": "cp-1", "text": "paper evidence", "sourceType": "current_paper"}]),
+            patch.object(research_executor, "retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library evidence", "sourceType": "library"}]),
+            patch.object(research_executor, "judge_research_evidence", side_effect=lambda q, e, **kw: self._insufficient_judge(judge_calls)),
+            patch.object(research_executor, "retrieve_external_academic_evidence", return_value={"status": "failed", "items": [], "degradation": "External academic provider failed."}),
+        ):
+            task = research_task_service.run_research_task_now(task_id)
+
+        finding = task["findings"][0]
+        self.assertEqual(finding["externalSearchDegradation"], "External academic provider failed.")
+        self.assertEqual(finding["verdict"], "INCORRECT")
+        self.assertEqual(task["status"], "awaiting_final_review")
+
+    def test_external_evidence_participates_in_conflict_detection(self):
+        task_id = self._create_task()
+        judge_calls = []
+        external_items = [
+            {"sourceId": "external-doi-abc", "text": "accuracy 91.2% on benchmark",
+             "sourceType": "external_academic", "title": "External Paper A", "year": 2024},
+        ]
+
+        def fake_judge(_q, evidence, **_kw):
+            judge_calls.append(True)
+            if len(judge_calls) == 1:
+                return {"verdict": "INCORRECT", "judgeScore": 25, "coverage": {}, "missingAspects": ["消融实验"], "retryReason": "", "shouldRetry": False}
+            if len(judge_calls) == 2:
+                return {"verdict": "INCORRECT", "judgeScore": 30, "coverage": {}, "missingAspects": ["消融实验"], "retryReason": "", "shouldRetry": False}
+            return {"verdict": "CORRECT", "judgeScore": 85, "coverage": {}, "missingAspects": [], "retryReason": "", "shouldRetry": False}
+
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper accuracy 87.5% on benchmark"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一"])),
+            patch.object(research_executor, "retrieve_current_paper_evidence", return_value=[{"sourceId": "cp-1", "text": "paper accuracy 87.5% on benchmark", "sourceType": "current_paper"}]),
+            patch.object(research_executor, "retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library result", "sourceType": "library"}]),
+            patch.object(research_executor, "judge_research_evidence", side_effect=fake_judge),
+            patch.object(research_executor, "retrieve_external_academic_evidence", return_value={"status": "success", "items": external_items, "degradation": ""}),
+        ):
+            task = research_task_service.run_research_task_now(task_id)
+
+        conflicts = task.get("conflicts") or []
+        self.assertGreater(len(conflicts), 0)
+        conflict_source_ids = "\n".join(
+            str(sid) for conflict in conflicts for sid in (conflict.get("sourceIds") or [])
+        )
+        self.assertIn("external-doi-abc", conflict_source_ids)
+
+    def test_correct_verdict_skips_external_search(self):
+        task_id = self._create_task()
+        judge_calls = []
+
+        def fake_judge_correct(_q, _evidence, **_kw):
+            judge_calls.append(True)
+            return {"verdict": "CORRECT", "judgeScore": 90, "coverage": {}, "missingAspects": [], "retryReason": "", "shouldRetry": False}
+
+        external_called = []
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一"])),
+            patch.object(research_executor, "retrieve_current_paper_evidence", return_value=[{"sourceId": "cp-1", "text": "paper evidence", "sourceType": "current_paper"}]),
+            patch.object(research_executor, "retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library evidence", "sourceType": "library"}]),
+            patch.object(research_executor, "judge_research_evidence", side_effect=fake_judge_correct),
+            patch.object(research_executor, "retrieve_external_academic_evidence", side_effect=lambda **kw: external_called.append(True) or {"status": "success", "items": [], "degradation": ""}),
+        ):
+            task = research_task_service.run_research_task_now(task_id)
+
+        self.assertEqual(len(external_called), 0)
+        finding = task["findings"][0]
+        self.assertEqual(finding.get("externalSearchDegradation") or "", "")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,7 @@ import copy
 from typing import Any, Dict, List
 
 from services.evidence_service import format_evidence_context, normalize_evidence_items
+from services.external_query_planner import build_external_academic_queries
 from services.query_service import build_retrieval_queries
 from services.safety_service import MAX_RETRIEVAL_RETRIES
 from services.trace_service import record_counter, sanitize_text, trace_step
@@ -68,6 +69,41 @@ def research_sub_question(
             step["outputSize"] = len(judge.get("missingAspects") or [])
             annotate_judge_step(step, judge, "stop")
 
+    external_degradation = ""
+    if should_try_external(judge):
+        missing = normalize_missing_aspects(judge.get("missingAspects"))
+        with trace_step(
+            "research_external_search",
+            input_size=len(missing),
+            meta={"missingAspects": missing},
+        ) as ext_step:
+            external_result = retrieve_external_academic_evidence(
+                research_question=question,
+                sub_question=sub_question,
+                missing_aspects=missing,
+            )
+            external_evidence = external_result.get("items") or []
+            external_degradation = external_result.get("degradation") or ""
+            ext_step["outputSize"] = len(external_evidence)
+            ext_step["meta"] = {
+                **ext_step.get("meta", {}),
+                "status": external_result.get("status"),
+                "degradation": external_degradation,
+            }
+            if external_evidence:
+                combined_evidence = merge_evidence_lists(combined_evidence, external_evidence)
+                with trace_step("research_judge_external", input_size=len(combined_evidence)) as judge_step:
+                    judge = judge_research_evidence(
+                        sub_question,
+                        combined_evidence,
+                        keywords=[
+                            *(query_plan.get("keywords") or []),
+                            *(judge.get("missingAspects") or []),
+                        ],
+                    )
+                    judge_step["outputSize"] = len(judge.get("missingAspects") or [])
+                    annotate_judge_step(judge_step, judge, "stop")
+
     summary = build_finding_summary(sub_question, combined_evidence, judge)
     return {
         "subQuestion": sub_question,
@@ -77,6 +113,7 @@ def research_sub_question(
         "coverage": normalize_judge_coverage(judge.get("coverage")),
         "missingAspects": normalize_missing_aspects(judge.get("missingAspects")),
         "retryReason": retry_reason,
+        "externalSearchDegradation": external_degradation,
         "sourceIds": [str(item.get("sourceId")) for item in combined_evidence if item.get("sourceId")][:6],
         "sources": combined_evidence[:6],
     }
@@ -243,6 +280,57 @@ def should_retry(judge_result: Dict[str, Any]) -> bool:
     return MAX_RETRIEVAL_RETRIES > 0 and bool(judge_result.get("shouldRetry")) and (
         str(judge_result.get("verdict") or "") != "CORRECT" or float(judge_result.get("confidence") or 0) < 0.68
     )
+
+
+def should_try_external(judge_result: Dict[str, Any]) -> bool:
+    if str(judge_result.get("verdict") or "") == "CORRECT":
+        return False
+    return bool(normalize_missing_aspects(judge_result.get("missingAspects")))
+
+
+def retrieve_external_academic_evidence(
+    research_question: str,
+    sub_question: str,
+    missing_aspects: list,
+    limit_per_query: int = 3,
+) -> Dict[str, Any]:
+    queries = build_external_academic_queries(
+        research_question=research_question,
+        planner_sub_questions=[sub_question],
+        missing_aspects=missing_aspects,
+    )
+    if not queries:
+        return {"status": "no_queries", "items": [], "degradation": ""}
+
+    all_items: list = []
+    final_status = "success"
+    degradation = ""
+
+    for query in queries:
+        try:
+            response = invoke_tool(
+                "retrieve_external_academic",
+                {"query": query, "limit": limit_per_query},
+            )
+        except Exception:
+            final_status = "failed"
+            degradation = "tool_invocation_error"
+            break
+
+        status = str(response.get("status") or "failed")
+        if status == "success":
+            items = list(response.get("items") or [])
+            all_items.extend(items)
+        else:
+            final_status = status
+            degradation = str(response.get("reason") or status)
+            break
+
+    return {
+        "status": final_status,
+        "items": all_items,
+        "degradation": degradation,
+    }
 
 
 def normalize_judge_score(value: Any) -> int:

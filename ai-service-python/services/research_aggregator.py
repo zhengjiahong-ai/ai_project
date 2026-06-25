@@ -27,7 +27,7 @@ def build_research_report(
             f"### {index}. {finding.get('subQuestion')}",
             f"- 结论：{finding.get('summary')}",
             f"- 证据判断：{finding.get('verdict')}",
-            f"- 证据来源：{', '.join(finding.get('sourceIds') or []) or '未检索到稳定证据来源'}",
+            f"- 证据来源：{_format_source_line(finding)}",
         ])
         if finding.get("missingAspects"):
             lines.append(f"- 缺失点：{', '.join(finding.get('missingAspects') or [])}")
@@ -132,6 +132,7 @@ def build_judge_trace_summary(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
         "averageJudgeScore": round(sum(scores) / len(scores), 1) if scores else None,
         "retryFindingCount": sum(1 for item in findings if clean_text(item.get("retryReason"))),
         "insufficientFindingCount": sum(1 for item in findings if str(item.get("verdict") or "") == "INCORRECT"),
+        "externalSearchDegradationCount": sum(1 for item in findings if clean_text(item.get("externalSearchDegradation"))),
     }
 
 
@@ -286,10 +287,12 @@ def overall_assessment(question: str, findings: List[Dict[str, Any]], planned_co
     supported = [item for item in findings if str(item.get("verdict") or "") == "CORRECT"]
     partial = [item for item in findings if str(item.get("verdict") or "") == "AMBIGUOUS"]
     insufficient = [item for item in findings if str(item.get("verdict") or "") == "INCORRECT"]
+    has_external = _any_external_source(findings)
+    external_clause = "，并在证据不足时参考了外部学术来源补充线索" if has_external else ""
     return (
-        f"围绕“{question}”，本次任务共规划 {planned_count} 个子问题，"
-        f"其中证据充足 {len(supported)} 项，部分相关 {len(partial)} 项，证据不足 {len(insufficient)} 项。"
-        " 当前结论优先依据当前论文，必要时参考了内部文献库补充线索；对证据不足的部分不应当作论文已经证明的事实。"
+        "围绕"" + question + ""，本次任务共规划 " + str(planned_count) + " 个子问题，"
+        "其中证据充足 " + str(len(supported)) + " 项，部分相关 " + str(len(partial)) + " 项，证据不足 " + str(len(insufficient)) + " 项。"
+        " 当前结论优先依据当前论文，必要时参考了内部文献库补充线索" + external_clause + "；对证据不足的部分不应当作论文已经证明的事实。"
     )
 
 
@@ -297,9 +300,11 @@ def next_steps(findings: List[Dict[str, Any]]) -> str:
     missing_lines = []
     for finding in findings:
         missing = normalize_missing_aspects(finding.get("missingAspects"))
-        if not missing:
-            continue
-        missing_lines.append(f"- {finding.get('subQuestion')}：优先补查 {', '.join(missing[:3])}")
+        if missing:
+            missing_lines.append(f"- {finding.get('subQuestion')}：优先补查 {', '.join(missing[:3])}")
+
+    if any(finding.get("externalSearchDegradation") for finding in findings):
+        missing_lines.append("- 外部学术补查在本次任务中受限或降级，证据缺口以内部来源为准。")
 
     if not missing_lines:
         return "- 当前主要子问题都已形成可追溯结论；后续可在模块 8B 中直接展示这些 findings 与报告。"
@@ -336,3 +341,25 @@ def coerce_float(value: Any, fallback: float = 0.0) -> float:
 
 def clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
+
+
+def _format_source_line(finding: Dict[str, Any]) -> str:
+    base = ", ".join(finding.get("sourceIds") or []) or "未检索到稳定证据来源"
+    has_external = any(
+        isinstance(src, dict) and str(src.get("sourceType") or "") == "external_academic"
+        for src in (finding.get("sources") or [])
+    )
+    if has_external:
+        base += "（含外部学术检索）"
+    degradation = finding.get("externalSearchDegradation")
+    if degradation:
+        base += f" [外部检索降级: {degradation}]"
+    return base
+
+
+def _any_external_source(findings: List[Dict[str, Any]]) -> bool:
+    return any(
+        isinstance(src, dict) and str(src.get("sourceType") or "") == "external_academic"
+        for finding in findings
+        for src in (finding.get("sources") or [])
+    )
