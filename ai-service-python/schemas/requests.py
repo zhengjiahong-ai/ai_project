@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TermExplainRequest(BaseModel):
@@ -79,6 +79,7 @@ class ResearchTaskCreateRequest(BaseModel):
     paperSkeleton: Optional[Dict[str, Any]] = None
     userConstraints: Optional[str] = ""
     briefPreview: Optional[Dict[str, Any]] = None
+    allowExternalSearch: bool = Field(default=False)
 
 
 class ResearchTaskBriefPreviewRequest(BaseModel):
@@ -124,12 +125,14 @@ class AgentTaskCreateRequest(BaseModel):
     focusedPaperIds: Optional[List[str]] = None
     constraints: Optional[str] = ""
     context: Optional[Dict[str, Any]] = None
+    allowExternalSearch: bool = Field(default=False)
 
 
 class AgentPlanItemRequest(BaseModel):
     id: Optional[str] = ""
     label: str
     detail: Optional[str] = ""
+    allowExternalSearch: Optional[bool] = Field(default=False)
 
 
 class AgentPlanReviewRequest(BaseModel):

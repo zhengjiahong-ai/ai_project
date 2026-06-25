@@ -639,5 +639,34 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         self.assertIn("External Academic Evidence", restored["draftReport"])
 
 
+    def test_external_search_config_survives_sqlite_roundtrip(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        agent_project_service._update_task(
+            task["taskId"],
+            externalSearchConfig={
+                "allowExternalSearch": True,
+                "provider": "crossref",
+                "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 2, "evidenceUsed": 8},
+                "status": "success",
+                "degradation": "",
+            },
+        )
+        agent_project_service.reload_agent_state_from_storage()
+        restored = agent_project_service.get_agent_task(task["taskId"])["task"]
+        config = restored.get("externalSearchConfig") or {}
+        self.assertTrue(config.get("allowExternalSearch"))
+        self.assertEqual(config["provider"], "crossref")
+        self.assertEqual(config["status"], "success")
+
+    def test_external_search_config_default_when_disabled(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        config = task.get("externalSearchConfig") or {}
+        self.assertFalse(config.get("allowExternalSearch"))
+        self.assertEqual(config.get("provider"), "disabled")
+        self.assertEqual(config.get("status"), "disabled")
+
+
 if __name__ == "__main__":
     unittest.main()

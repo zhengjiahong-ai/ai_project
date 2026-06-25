@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from routes import api
 from schemas.requests import (
+    AgentPlanItemRequest,
     AgentProjectCreateRequest,
     AgentTaskCreateRequest,
     BackgroundKnowledgeRequest,
@@ -138,6 +139,28 @@ class ApiContractSmokeTests(unittest.TestCase):
                 payload = json.loads(response.body)
                 self.assertEqual(response.status_code, fixture["statusCode"])
                 _assert_contract(payload, fixture["pythonResponseContract"])
+
+
+    def test_research_task_create_request_allow_external_search_defaults_false(self):
+        req = ResearchTaskCreateRequest(question="测试", pdfId="paper-1")
+        self.assertFalse(req.allowExternalSearch)
+
+        req_enabled = ResearchTaskCreateRequest(question="测试", pdfId="paper-1", allowExternalSearch=True)
+        self.assertTrue(req_enabled.allowExternalSearch)
+
+    def test_agent_task_create_request_allow_external_search_defaults_false(self):
+        req = AgentTaskCreateRequest(prompt="测试")
+        self.assertFalse(req.allowExternalSearch)
+
+        req_enabled = AgentTaskCreateRequest(prompt="测试", allowExternalSearch=True)
+        self.assertTrue(req_enabled.allowExternalSearch)
+
+    def test_agent_plan_item_allow_external_search_defaults_false(self):
+        item = AgentPlanItemRequest(label="测试")
+        self.assertFalse(item.allowExternalSearch)
+
+        item_enabled = AgentPlanItemRequest(label="测试", allowExternalSearch=True)
+        self.assertTrue(item_enabled.allowExternalSearch)
 
 
 if __name__ == "__main__":

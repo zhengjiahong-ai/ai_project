@@ -104,6 +104,13 @@ def create_research_task(
         "reviewRisks": [],
         "humanReview": {"plan": {"status": "pending", "reviewNotes": "", "reviewedAt": ""}, "final": {"status": "pending", "reviewNotes": "", "reviewedAt": "", "riskReviews": []}},
         "traceSummary": {},
+        "externalSearchConfig": {
+            "allowExternalSearch": bool(getattr(request, "allowExternalSearch", False)),
+            "provider": "disabled",
+            "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0},
+            "status": "disabled",
+            "degradation": "",
+        },
         "report": "",
         "error": "",
         "createdAt": created_at,
@@ -1621,6 +1628,8 @@ def _initialize_storage_locked() -> None:
             connection.execute("ALTER TABLE research_tasks ADD COLUMN humanReview TEXT NOT NULL DEFAULT '{}'")
         if "context" not in columns:
             connection.execute("ALTER TABLE research_tasks ADD COLUMN context TEXT NOT NULL DEFAULT '{}'")
+        if "externalSearchConfig" not in columns:
+            connection.execute("ALTER TABLE research_tasks ADD COLUMN externalSearchConfig TEXT NOT NULL DEFAULT '{}'")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_research_tasks_pdf_updated ON research_tasks (pdfId, updatedAt)")
         connection.commit()
 
@@ -1643,8 +1652,8 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
             """
             INSERT INTO research_tasks (
                 taskId, traceId, status, stage, progress, question, pdfId,
-                plan, findings, conflicts, reviewRisks, humanReview, context, traceSummary, report, error, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                plan, findings, conflicts, reviewRisks, humanReview, context, traceSummary, externalSearchConfig, report, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(taskId) DO UPDATE SET
                 traceId=excluded.traceId,
                 status=excluded.status,
@@ -1659,6 +1668,7 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 humanReview=excluded.humanReview,
                 context=excluded.context,
                 traceSummary=excluded.traceSummary,
+                externalSearchConfig=excluded.externalSearchConfig,
                 report=excluded.report,
                 error=excluded.error,
                 createdAt=excluded.createdAt,
@@ -1679,6 +1689,7 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 json.dumps(snapshot["humanReview"], ensure_ascii=False),
                 json.dumps(_TASK_CONTEXTS.get(snapshot["taskId"]) or {}, ensure_ascii=False),
                 json.dumps(snapshot["traceSummary"], ensure_ascii=False),
+                json.dumps(snapshot.get("externalSearchConfig") or {}, ensure_ascii=False),
                 snapshot["report"],
                 snapshot["error"],
                 snapshot["createdAt"],
@@ -1713,6 +1724,7 @@ def _task_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
         "humanReview": _safe_json_dict(row["humanReview"]) if "humanReview" in row.keys() else {},
         "_context": _safe_json_dict(row["context"]) if "context" in row.keys() else {},
         "traceSummary": _safe_json_dict(row["traceSummary"]) if "traceSummary" in row.keys() else {},
+        "externalSearchConfig": _safe_json_dict(row["externalSearchConfig"]) if "externalSearchConfig" in row.keys() else {},
         "report": str(row["report"] or ""),
         "error": str(row["error"] or ""),
         "createdAt": created_at,
@@ -1738,6 +1750,7 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
         "reviewRisks": list(task.get("reviewRisks") or []),
         "humanReview": dict(task.get("humanReview") or {}),
         "traceSummary": dict(task.get("traceSummary") or {}),
+        "externalSearchConfig": dict(task.get("externalSearchConfig") or {}),
         "report": str(task.get("report") or ""),
         "error": str(task.get("error") or ""),
         "createdAt": created_at,

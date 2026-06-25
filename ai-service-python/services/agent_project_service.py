@@ -206,6 +206,13 @@ def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[
         "reviewRisks": [],
         "humanReview": {"plan": {"status": "pending", "reviewNotes": "", "reviewedAt": ""}, "final": {"status": "pending", "reviewNotes": "", "reviewedAt": "", "riskReviews": []}},
         "traceSummary": {},
+        "externalSearchConfig": {
+            "allowExternalSearch": bool(getattr(request, "allowExternalSearch", False)),
+            "provider": "disabled",
+            "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0},
+            "status": "disabled",
+            "degradation": "",
+        },
         "openQuestions": [],
         "draftReport": "",
         "error": "",
@@ -1209,6 +1216,8 @@ def _initialize_storage_locked() -> None:
             connection.execute("ALTER TABLE agent_tasks ADD COLUMN humanReview TEXT NOT NULL DEFAULT '{}'")
         if "traceSummary" not in columns:
             connection.execute("ALTER TABLE agent_tasks ADD COLUMN traceSummary TEXT NOT NULL DEFAULT '{}'")
+        if "externalSearchConfig" not in columns:
+            connection.execute("ALTER TABLE agent_tasks ADD COLUMN externalSearchConfig TEXT NOT NULL DEFAULT '{}'")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_projects_updated ON agent_projects (updatedAt)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_tasks_project_updated ON agent_tasks (projectId, updatedAt)")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_task_events_task_time ON agent_task_events (taskId, timestamp)")
@@ -1280,8 +1289,8 @@ def _persist_task_locked(task: Dict[str, Any]) -> None:
                 taskId, projectId, traceId, status, stage, progress, prompt,
                 focusedPaperIds, constraints, context, planItems, toolCalls,
                 evidenceItems, findings, comparisonTable, conflicts, openQuestions,
-                reviewRisks, humanReview, traceSummary, draftReport, error, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                reviewRisks, humanReview, traceSummary, externalSearchConfig, draftReport, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(taskId) DO UPDATE SET
                 projectId=excluded.projectId,
                 traceId=excluded.traceId,
@@ -1302,6 +1311,7 @@ def _persist_task_locked(task: Dict[str, Any]) -> None:
                 reviewRisks=excluded.reviewRisks,
                 humanReview=excluded.humanReview,
                 traceSummary=excluded.traceSummary,
+                externalSearchConfig=excluded.externalSearchConfig,
                 draftReport=excluded.draftReport,
                 error=excluded.error,
                 createdAt=excluded.createdAt,
@@ -1328,6 +1338,7 @@ def _persist_task_locked(task: Dict[str, Any]) -> None:
                 json.dumps(snapshot["reviewRisks"], ensure_ascii=False),
                 json.dumps(snapshot["humanReview"], ensure_ascii=False),
                 json.dumps(snapshot["traceSummary"], ensure_ascii=False),
+                json.dumps(snapshot.get("externalSearchConfig") or {}, ensure_ascii=False),
                 snapshot["draftReport"],
                 snapshot["error"],
                 snapshot["createdAt"],
@@ -1419,6 +1430,7 @@ def _task_from_storage_row(row: sqlite3.Row, events: List[Dict[str, Any]]) -> Di
         "reviewRisks": _safe_json_list(row["reviewRisks"]) if "reviewRisks" in row.keys() else [],
         "humanReview": _safe_json_dict(row["humanReview"]) if "humanReview" in row.keys() else {},
         "traceSummary": _safe_json_dict(row["traceSummary"]) if "traceSummary" in row.keys() else {},
+        "externalSearchConfig": _safe_json_dict(row["externalSearchConfig"]) if "externalSearchConfig" in row.keys() else {},
         "draftReport": str(row["draftReport"] or ""),
         "error": str(row["error"] or ""),
         "createdAt": created_at,
@@ -1479,6 +1491,7 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
         "reviewRisks": list(task.get("reviewRisks") or []),
         "humanReview": dict(task.get("humanReview") or {}),
         "traceSummary": dict(task.get("traceSummary") or {}),
+        "externalSearchConfig": dict(task.get("externalSearchConfig") or {}),
         "draftReport": str(task.get("draftReport") or ""),
         "error": _clean_text(task.get("error")),
         "createdAt": created_at,

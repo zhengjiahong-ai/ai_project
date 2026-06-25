@@ -533,9 +533,9 @@ class ResearchTaskExternalSearchTests(unittest.TestCase):
             os.environ["RESEARCH_TASK_DB_PATH"] = self.previous_db_path
         self.temp_dir.cleanup()
 
-    def _create_task(self):
+    def _create_task(self, allow_external_search=False):
         response = research_task_service.create_research_task(
-            ResearchTaskCreateRequest(question="验证实验结论是否充分", pdfId="paper-1", paperSkeleton={}),
+            ResearchTaskCreateRequest(question="验证实验结论是否充分", pdfId="paper-1", paperSkeleton={}, allowExternalSearch=allow_external_search),
             start_async=False,
         )
         return response["task"]["taskId"]
@@ -696,6 +696,33 @@ class ResearchTaskExternalSearchTests(unittest.TestCase):
         self.assertEqual(len(external_called), 0)
         finding = task["findings"][0]
         self.assertEqual(finding.get("externalSearchDegradation") or "", "")
+
+
+    def test_external_search_config_survives_sqlite_roundtrip(self):
+        task_id = self._create_task(allow_external_search=True)
+        task_before = research_task_service.get_research_task(task_id)["task"]
+        config_before = task_before.get("externalSearchConfig") or {}
+        self.assertTrue(config_before.get("allowExternalSearch"))
+        self.assertEqual(config_before.get("provider"), "disabled")
+        self.assertEqual(config_before.get("budget", {}).get("callLimit"), 3)
+        self.assertEqual(config_before.get("status"), "disabled")
+
+        research_task_service.reload_research_tasks_from_storage()
+        task_after = research_task_service.get_research_task(task_id)["task"]
+        config_after = task_after.get("externalSearchConfig") or {}
+        self.assertTrue(config_after.get("allowExternalSearch"))
+        self.assertEqual(config_after.get("budget"), config_before.get("budget"))
+
+    def test_legacy_research_snapshot_without_external_search_config_loads(self):
+        task_id = self._create_task()
+        research_task_service._update_task_snapshot(task_id, externalSearchConfig={"allowExternalSearch": True, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 2, "evidenceUsed": 10}, "status": "success", "degradation": ""})
+        task_before = research_task_service.get_research_task(task_id)["task"]
+        self.assertEqual(task_before["externalSearchConfig"]["provider"], "crossref")
+
+        research_task_service.reload_research_tasks_from_storage()
+        task_after = research_task_service.get_research_task(task_id)["task"]
+        self.assertEqual(task_after["externalSearchConfig"]["provider"], "crossref")
+        self.assertEqual(task_after["externalSearchConfig"]["status"], "success")
 
 
 if __name__ == "__main__":

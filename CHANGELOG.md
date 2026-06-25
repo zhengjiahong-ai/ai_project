@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-25 v0.1.60
+
+1. **扩展请求契约：新增 `allowExternalSearch` 字段**：`ResearchTaskCreateRequest`、`AgentTaskCreateRequest` 和 `AgentPlanItemRequest` 新增显式 `allowExternalSearch` 字段，默认 `false`，旧请求无需修改即可正常使用。
+2. **任务快照新增 `externalSearchConfig` 列**：Deep Research 和 Agent 的 SQLite 表新增 `externalSearchConfig` 列，保存配置开关、Provider、预算、使用状态和降级原因，旧快照自动使用空默认值。
+3. **同步更新合约 fixture**：`api-contract-smoke.json` 的 research 和 agent-tasks 操作新增 `allowExternalSearch` 请求字段和 `externalSearchConfig` 响应字段，三端 contract smoke 测试自动验证字段类型。
+
 ### 2026-06-25 v0.1.59
 
 1. **接入多论文 Agent 外部学术补查**：Agent 在 focused papers 和内部文献库证据不足时，可通过计划中的显式开关 `allowExternalSearch` 授权使用同一只读外部学术检索工具补充证据。
