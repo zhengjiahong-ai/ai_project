@@ -426,9 +426,13 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 )
                 _agent_step_delay()
 
+            allow_external_search = any(
+                bool(item.get("allowExternalSearch")) for item in approved_plan
+            )
             paper_contexts, tool_calls, evidence_items = agent_orchestrator.collect_project_evidence(
                 execution_prompt,
                 paper_ids,
+                allow_external_search=allow_external_search,
                 should_cancel=lambda: _is_task_cancelled(task_id),
                 on_progress=update_retrieval_progress,
             )

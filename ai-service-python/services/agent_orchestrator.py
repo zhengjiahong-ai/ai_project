@@ -3,6 +3,8 @@ import re
 from typing import Any, Callable, Dict, List, Tuple
 
 from services.evidence_service import normalize_evidence_items
+from services.external_evidence import EXTERNAL_SOURCE_TYPE, normalize_external_evidence_items
+from services.external_query_planner import build_external_academic_queries
 from services.knowledge_graph_store import enrich_conflicts_with_graph_context
 from services.tool_registry import get_tool_registry
 from services.trace_service import record_counter, sanitize_text, trace_step
@@ -41,6 +43,7 @@ def build_review_plan_items(prompt: str, paper_ids: List[str], constraints: str 
         {"id": "evidence", "label": "Collect claim-level evidence", "detail": f"Retrieve evidence for: {clean_text(prompt)}"},
         {"id": "compare", "label": "Compare focused papers", "detail": f"Compare methods and results across {len(paper_ids)} papers."},
         {"id": "risks", "label": "Review conflicts and gaps", "detail": clean_text(constraints) or "Surface conflicts and missing evidence before finalization."},
+        {"id": "external", "label": "External academic search", "detail": "When enabled, supplement sparse evidence with read-only external academic metadata from whitelisted academic providers.", "allowExternalSearch": False},
     ])
 
 
@@ -50,7 +53,15 @@ def normalize_review_plan_items(items: List[Dict[str, Any]]) -> List[Dict[str, A
         label = clean_text(item.get("label"))
         if not label:
             continue
-        normalized.append({"id": clean_text(item.get("id")) or f"plan-{index}", "label": label[:120], "detail": clean_text(item.get("detail"))[:300], "status": "pending"})
+        plan_item = {
+            "id": clean_text(item.get("id")) or f"plan-{index}",
+            "label": label[:120],
+            "detail": clean_text(item.get("detail"))[:300],
+            "status": "pending",
+        }
+        if "allowExternalSearch" in item:
+            plan_item["allowExternalSearch"] = bool(item.get("allowExternalSearch"))
+        normalized.append(plan_item)
         if len(normalized) >= 8:
             break
     return normalized
@@ -79,10 +90,115 @@ def build_planning_context(project: Dict[str, Any], paper_ids: List[str], constr
     return "\n".join(parts)
 
 
+def should_try_external_search(
+    paper_contexts: List[Dict[str, Any]],
+    allow_external_search: bool,
+) -> bool:
+    if not allow_external_search:
+        return False
+    if not paper_contexts:
+        return False
+    any_sparse = any(int(item.get("evidenceCount") or 0) <= 1 for item in paper_contexts)
+    any_fallback = any(str(item.get("status") or "") == "fallback" for item in paper_contexts)
+    return any_sparse or any_fallback
+
+
+def build_external_search_queries(
+    prompt: str,
+    paper_contexts: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+) -> List[str]:
+    sparse_papers = [
+        item for item in paper_contexts
+        if int(item.get("evidenceCount") or 0) <= 1 or str(item.get("status") or "") == "fallback"
+    ]
+    if not sparse_papers:
+        return []
+
+    missing_aspects = []
+    for item in sparse_papers:
+        pdf_id = clean_text(item.get("pdfId")) or "unknown-paper"
+        missing_aspects.append(f"evidence gap for {pdf_id}")
+
+    sub_questions = []
+    seen_ids = set()
+    for item in paper_contexts:
+        pdf_id = clean_text(item.get("pdfId"))
+        if pdf_id and pdf_id not in seen_ids:
+            seen_ids.add(pdf_id)
+            sub_questions.append(pdf_id)
+
+    return build_external_academic_queries(
+        research_question=prompt,
+        planner_sub_questions=sub_questions,
+        missing_aspects=missing_aspects,
+    )
+
+
+def retrieve_external_agent_evidence(
+    queries: List[str],
+    limit_per_query: int = 3,
+) -> Dict[str, Any]:
+    if not queries:
+        return {"status": "no_queries", "provider": "disabled", "items": [], "degradation": "", "external_tool_calls": []}
+
+    all_items: list = []
+    final_status = "success"
+    provider = "disabled"
+    degradation = ""
+    external_tool_calls: list = []
+
+    for query_index, query in enumerate(queries):
+        try:
+            result, tool_call = invoke_agent_tool(
+                "retrieve_external_academic",
+                {"query": query, "limit": limit_per_query},
+                fallback={"status": "failed", "provider": "disabled", "items": []},
+            )
+        except Exception:
+            final_status = "failed"
+            degradation = "tool_invocation_error"
+            break
+
+        external_tool_calls.append({
+            "id": f"retrieve-external-academic-{query_index + 1}",
+            **tool_call,
+        })
+
+        status = str(result.get("status") or "failed")
+        if status == "success":
+            provider = str(result.get("provider") or "unknown")
+            items = list(result.get("items") or [])
+            all_items.extend(items)
+        elif status == "disabled":
+            final_status = "disabled"
+            degradation = "External academic search is not enabled."
+            break
+        elif status == "budget_exceeded":
+            final_status = "budget_exceeded"
+            degradation = str(result.get("reason") or status)
+            break
+        else:
+            final_status = status
+            degradation = str(result.get("reason") or status)
+            break
+
+    normalized_items = normalize_external_evidence_items(all_items, limit=12)
+
+    return {
+        "status": final_status,
+        "provider": provider,
+        "items": normalized_items,
+        "degradation": degradation,
+        "external_tool_calls": external_tool_calls,
+    }
+
+
 def collect_project_evidence(
     prompt: str,
     paper_ids: List[str],
     *,
+    allow_external_search: bool = False,
     should_cancel: CancelCheck | None = None,
     on_progress: ProgressCallback | None = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -146,6 +262,40 @@ def collect_project_evidence(
                 pdf_id,
             )
 
+    if should_try_external_search(paper_contexts, allow_external_search):
+        if not (should_cancel and should_cancel()):
+            with trace_step(
+                "agent_external_search",
+                input_size=len(prompt),
+                meta={"sparsePaperCount": sum(1 for item in paper_contexts if int(item.get("evidenceCount") or 0) <= 1)},
+            ) as ext_step:
+                queries = build_external_search_queries(prompt, paper_contexts, evidence_items)
+                ext_result = retrieve_external_agent_evidence(queries)
+                external_evidence = ext_result.get("items") or []
+                external_tool_calls = ext_result.get("external_tool_calls") or []
+                ext_step["outputSize"] = len(external_evidence)
+                ext_step["meta"] = {
+                    **ext_step.get("meta", {}),
+                    "status": ext_result.get("status"),
+                    "provider": ext_result.get("provider"),
+                    "degradation": ext_result.get("degradation"),
+                }
+
+                if external_evidence:
+                    evidence_items.extend(external_evidence)
+                    evidence_items = evidence_items[:24]
+                if external_tool_calls:
+                    tool_calls.extend(external_tool_calls)
+
+                if on_progress:
+                    on_progress(
+                        copy.deepcopy(tool_calls),
+                        copy.deepcopy(evidence_items[:12]),
+                        copy.deepcopy(paper_contexts),
+                        0.69,
+                        "external_academic",
+                    )
+
     return paper_contexts, tool_calls, evidence_items[:12]
 
 
@@ -156,12 +306,17 @@ def build_agent_outputs(
 ) -> Tuple[Dict[str, Any], Dict[str, Any], List[Dict[str, Any]], List[str]]:
     source_ids = [item.get("sourceId") for item in evidence_items if item.get("sourceId")]
     paper_ids = [item.get("pdfId") for item in paper_contexts if item.get("pdfId")]
+    external_evidence_count = sum(
+        1 for item in evidence_items
+        if str(item.get("sourceType") or "") == EXTERNAL_SOURCE_TYPE
+    )
 
     finding = {
         "id": "project-synthesis-1",
         "summary": build_finding_summary(prompt, paper_contexts, evidence_items),
         "sourceIds": source_ids[:8],
         "status": "draft",
+        "externalEvidenceCount": external_evidence_count,
     }
     comparison_table = {
         "columns": ["paperId", "evidenceCount", "retrievalStatus", "judgement", "evidencePreview"],
@@ -240,6 +395,15 @@ def build_minimal_report(
     conclusion_lines = "\n".join(build_conclusion_lines(prompt, paper_contexts, evidence_items))
     question_lines = "\n".join(f"- {item}" for item in open_questions[:4]) or "- None"
     conflict_lines = "\n".join(build_conflict_lines(conflicts)) or "- No strong conflict candidates detected in this pass"
+    external_lines = _build_external_evidence_section_lines(evidence_items) or ""
+
+    external_section = ""
+    if external_lines:
+        external_section = (
+            "## External Academic Evidence\n"
+            f"{external_lines}\n\n"
+        )
+
     return (
         "# Agent Research Draft\n\n"
         f"## Task\n{prompt}\n\n"
@@ -247,6 +411,7 @@ def build_minimal_report(
         f"## Scope\n{paper_lines}\n\n"
         "## Evidence Snapshot\n"
         f"{evidence_lines}\n\n"
+        f"{external_section}"
         "## Current Conclusion\n"
         f"{conclusion_lines}\n\n"
         "## Conflict Candidates\n"
@@ -320,11 +485,42 @@ def build_scope_lines(paper_contexts: List[Dict[str, Any]]) -> List[str]:
 def build_evidence_snapshot_lines(evidence_items: List[Dict[str, Any]]) -> List[str]:
     lines = []
     for item in evidence_items[:6]:
-        pdf_id = clean_text(item.get("pdfId")) or "unknown-paper"
-        section_id = clean_text(item.get("sectionId")) or "unknown-section"
-        text = clean_text(item.get("text"))[:160]
-        lines.append(f"- `{pdf_id}` / `{section_id}`: {text}")
+        source_type = str(item.get("sourceType") or "")
+        if source_type == EXTERNAL_SOURCE_TYPE:
+            pdf_id = clean_text(item.get("provider")) or "external"
+            section_id = str(item.get("year") or "unknown")
+            external_label = "（含外部学术检索）"
+            text = clean_text(item.get("title") or item.get("text"))[:140]
+            lines.append(f"- `{pdf_id}` ({section_id}){external_label}: {text}")
+        else:
+            pdf_id = clean_text(item.get("pdfId")) or "unknown-paper"
+            section_id = clean_text(item.get("sectionId")) or "unknown-section"
+            text = clean_text(item.get("text"))[:160]
+            lines.append(f"- `{pdf_id}` / `{section_id}`: {text}")
     return lines
+
+
+def _build_external_evidence_section_lines(evidence_items: List[Dict[str, Any]]) -> str:
+    external_items = [
+        item for item in evidence_items
+        if str(item.get("sourceType") or "") == EXTERNAL_SOURCE_TYPE
+    ]
+    if not external_items:
+        return ""
+    lines = []
+    for item in external_items[:6]:
+        provider = clean_text(item.get("provider")) or "unknown"
+        title = clean_text(item.get("title")) or "Untitled"
+        year = item.get("year") or "unknown"
+        doi = clean_text(item.get("doi"))
+        url = clean_text(item.get("url"))
+        doi_url = f" https://doi.org/{doi}" if doi else (f" {url}" if url else "")
+        retrieved = clean_text(item.get("retrievedAt")) or ""
+        lines.append(
+            f"- [{provider}] {title} ({year}){doi_url}"
+            + (f" (retrieved {retrieved})" if retrieved else "")
+        )
+    return "\n".join(lines)
 
 
 def build_paper_support_profiles(
@@ -492,6 +688,26 @@ def detect_conflicts(paper_contexts: List[Dict[str, Any]], evidence_items: List[
                 "summary": "Some papers have strong evidence coverage while others are sparse, so the comparison should separate evidence strength from actual methodological differences.",
                 "sourceIds": [item.get("sourceId") for item in evidence_items[:6] if item.get("sourceId")],
                 "resolutionHint": "Retrieve additional method, experiment, and limitation sections for sparse papers before making a high-confidence claim.",
+            }
+        )
+
+    has_external = any(
+        str(item.get("sourceType") or "") == EXTERNAL_SOURCE_TYPE
+        for item in evidence_items
+    )
+    if has_external:
+        conflicts.append(
+            {
+                "id": "external-evidence-coverage",
+                "severity": "medium",
+                "claim": "External academic evidence was used to supplement evidence gaps, but it should not be treated as equally reliable as indexed paper evidence.",
+                "papers": [item.get("pdfId") for item in paper_contexts[:4] if item.get("pdfId")],
+                "summary": "External academic search provided supplementary evidence for evidence gaps, but it has not been reviewed alongside the full paper text and should only be used as supplementary clues.",
+                "sourceIds": [
+                    item.get("sourceId") for item in evidence_items
+                    if str(item.get("sourceType") or "") == EXTERNAL_SOURCE_TYPE
+                ][:6],
+                "resolutionHint": "Use external academic evidence only to identify additional clues, not to override or replace indexed paper conclusions.",
             }
         )
 

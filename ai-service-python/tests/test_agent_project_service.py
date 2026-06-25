@@ -316,5 +316,328 @@ class AgentProjectPersistenceTests(unittest.TestCase):
             agent_project_service.get_agent_task(task["taskId"])
 
 
+    def test_external_search_disabled_by_default_in_plan(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        with patch.object(agent_project_service, "_start_agent_worker"):
+            planned = agent_project_service.prepare_agent_task_now(task["taskId"])
+        plan_items = planned.get("planItems", [])
+        external_items = [pi for pi in plan_items if pi.get("id") == "external"]
+        self.assertEqual(len(external_items), 1)
+        self.assertFalse(external_items[0].get("allowExternalSearch", True))
+
+    def test_external_search_enabled_in_plan_produces_external_evidence(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+
+        paper_contexts = [
+            {"pdfId": "paper-a", "evidenceCount": 3, "sourceIds": ["a-1"], "preview": "method evidence", "status": "succeeded"},
+            {"pdfId": "paper-b", "evidenceCount": 1, "sourceIds": ["b-1"], "preview": "", "status": "succeeded"},
+        ]
+        internal_tool_calls = [
+            {
+                "id": "retrieve-current-paper-1",
+                "name": "retrieve_current_paper",
+                "version": "1.0.0",
+                "safetyScope": {"access": "read_only", "dataScopes": ["current_paper_index"], "networkAccess": False, "sideEffects": False, "sensitiveOutput": True},
+                "status": "succeeded",
+                "target": "paper-a",
+                "result": "Collected 1 evidence items for paper-a.",
+            }
+        ]
+        evidence_items = [
+            {"sourceId": "a-1", "text": "method evidence", "pdfId": "paper-a", "sectionId": "method"},
+            {"sourceId": "b-1", "text": "result evidence", "pdfId": "paper-b", "sectionId": "results"},
+            {
+                "sourceId": "external-doi-abc123",
+                "sourceType": "external_academic",
+                "provider": "crossref",
+                "title": "External Evidence Paper",
+                "authors": ["Author One"],
+                "year": 2024,
+                "doi": "10.1234/abc123",
+                "url": "https://doi.org/10.1234/abc123",
+                "retrievedAt": "2025-01-01T00:00:00Z",
+                "query": "compare methods",
+            },
+        ]
+        combined_tool_calls = internal_tool_calls + [
+            {
+                "id": "retrieve-external-academic-1",
+                "name": "retrieve_external_academic",
+                "version": "1.0.0",
+                "safetyScope": {"access": "read_only", "dataScopes": ["external_academic_metadata"], "networkAccess": True, "sideEffects": False, "sensitiveOutput": True},
+                "status": "succeeded",
+                "meta": {},
+            }
+        ]
+
+        with (
+            patch.object(agent_project_service, "_agent_step_delay", return_value=None),
+            patch.object(
+                agent_project_service.agent_orchestrator,
+                "collect_project_evidence",
+                return_value=(paper_contexts, combined_tool_calls, evidence_items),
+            ),
+        ):
+            agent_project_service._run_minimal_agent_task(task["taskId"])
+
+        completed = agent_project_service.get_agent_task(task["taskId"])["task"]
+        external_sources = [ei for ei in completed.get("evidenceItems", []) if ei.get("sourceType") == "external_academic"]
+        self.assertGreater(len(external_sources), 0)
+        self.assertEqual(external_sources[0]["doi"], "10.1234/abc123")
+        self.assertIn("External Academic Evidence", completed["draftReport"])
+        self.assertIn("externalEvidenceCount", completed["findings"][0])
+
+    def test_external_search_tool_calls_record_version_and_safety_scope(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+
+        paper_contexts = [
+            {"pdfId": "paper-a", "evidenceCount": 2, "sourceIds": ["a-1"], "preview": "method", "status": "succeeded"},
+        ]
+        tool_calls = [
+            {
+                "id": "retrieve-current-paper-1",
+                "name": "retrieve_current_paper",
+                "version": "1.0.0",
+                "safetyScope": {"access": "read_only", "dataScopes": ["current_paper_index"], "networkAccess": False, "sideEffects": False, "sensitiveOutput": True},
+                "status": "succeeded",
+                "target": "paper-a",
+                "result": "Collected evidence.",
+            },
+            {
+                "id": "retrieve-external-academic-1",
+                "name": "retrieve_external_academic",
+                "version": "1.0.0",
+                "safetyScope": {"access": "read_only", "dataScopes": ["external_academic_metadata"], "networkAccess": True, "sideEffects": False, "sensitiveOutput": True},
+                "status": "succeeded",
+                "meta": {},
+            },
+        ]
+        evidence_items = [
+            {"sourceId": "a-1", "text": "method evidence", "pdfId": "paper-a", "sectionId": "method"},
+        ]
+
+        with (
+            patch.object(agent_project_service, "_agent_step_delay", return_value=None),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+        ):
+            agent_project_service._run_minimal_agent_task(task["taskId"])
+
+        completed = agent_project_service.get_agent_task(task["taskId"])["task"]
+        external_tool_call = [tc for tc in completed.get("toolCalls", []) if tc.get("name") == "retrieve_external_academic"]
+        self.assertEqual(len(external_tool_call), 1)
+        self.assertEqual(external_tool_call[0]["version"], "1.0.0")
+        self.assertEqual(external_tool_call[0]["safetyScope"]["access"], "read_only")
+        self.assertEqual(external_tool_call[0]["safetyScope"]["dataScopes"], ["external_academic_metadata"])
+        self.assertTrue(external_tool_call[0]["safetyScope"]["networkAccess"])
+
+    def test_external_search_events_recorded_in_task_lifecycle(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+
+        paper_contexts = [
+            {"pdfId": "paper-a", "evidenceCount": 3, "sourceIds": ["a-1"], "preview": "method evidence", "status": "succeeded"},
+            {"pdfId": "paper-b", "evidenceCount": 1, "sourceIds": ["b-1"], "preview": "", "status": "succeeded"},
+        ]
+        tool_calls = [
+            {
+                "id": "retrieve-current-paper-1",
+                "name": "retrieve_current_paper",
+                "version": "1.0.0",
+                "safetyScope": {"access": "read_only", "dataScopes": ["current_paper_index"], "networkAccess": False, "sideEffects": False, "sensitiveOutput": True},
+                "status": "succeeded",
+                "target": "paper-a",
+                "result": "Collected evidence.",
+            },
+        ]
+        evidence_items = [
+            {"sourceId": "a-1", "text": "method evidence", "pdfId": "paper-a", "sectionId": "method"},
+            {"sourceId": "b-1", "text": "result evidence", "pdfId": "paper-b", "sectionId": "results"},
+        ]
+
+        with (
+            patch.object(agent_project_service, "_agent_step_delay", return_value=None),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+        ):
+            agent_project_service._run_minimal_agent_task(task["taskId"])
+
+        completed = agent_project_service.get_agent_task(task["taskId"])["task"]
+        events = completed.get("events", [])
+        event_types = [e["type"] for e in events]
+        self.assertIn("tool_completed", event_types)
+        self.assertIn("judgement_completed", event_types)
+
+        agent_project_service.reload_agent_state_from_storage()
+        restored = agent_project_service.get_agent_task(task["taskId"])["task"]
+        self.assertEqual(restored["status"], completed["status"])
+        self.assertEqual(len(restored["events"]), len(completed["events"]))
+
+    def test_external_search_degradation_preserved_in_snapshot(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+
+        paper_contexts = [
+            {"pdfId": "paper-a", "evidenceCount": 1, "sourceIds": ["a-1"], "preview": "sparse", "status": "succeeded"},
+        ]
+        degradation_tool_call = {
+            "id": "retrieve-external-academic-1",
+            "name": "retrieve_external_academic",
+            "version": "1.0.0",
+            "safetyScope": {"access": "read_only", "dataScopes": ["external_academic_metadata"], "networkAccess": True, "sideEffects": False, "sensitiveOutput": True},
+            "status": "failed",
+            "meta": {"reason": "External search degradation."},
+        }
+        tool_calls = [
+            {
+                "id": "retrieve-current-paper-1",
+                "name": "retrieve_current_paper",
+                "version": "1.0.0",
+                "safetyScope": {"access": "read_only", "dataScopes": ["current_paper_index"], "networkAccess": False, "sideEffects": False, "sensitiveOutput": True},
+                "status": "fallback",
+                "target": "paper-a",
+                "result": "Collected fallback evidence.",
+                "meta": {},
+            },
+            degradation_tool_call,
+        ]
+        evidence_items = [
+            {"sourceId": "a-1", "text": "fallback evidence", "pdfId": "paper-a", "sectionId": "unknown", "metadata": {"fallback": True}},
+        ]
+
+        with (
+            patch.object(agent_project_service, "_agent_step_delay", return_value=None),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+        ):
+            agent_project_service._run_minimal_agent_task(task["taskId"])
+
+        agent_project_service.reload_agent_state_from_storage()
+        restored = agent_project_service.get_agent_task(task["taskId"])["task"]
+        restored_tool_calls = restored.get("toolCalls", [])
+        external_tc = [tc for tc in restored_tool_calls if tc.get("name") == "retrieve_external_academic"]
+        self.assertEqual(len(external_tc), 1)
+        self.assertEqual(external_tc[0]["status"], "failed")
+
+    def test_legacy_snapshot_without_external_evidence_still_loads(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        legacy_evidence = [
+            {"sourceId": "a-1", "text": "method evidence", "pdfId": "paper-a", "sectionId": "method"},
+            {"sourceId": "b-1", "text": "result evidence", "pdfId": "paper-b", "sectionId": "results"},
+        ]
+        legacy_tool_calls = [
+            {"name": "retrieve_current_paper", "status": "succeeded"},
+        ]
+        legacy_findings = [{"id": "synth-1", "summary": "legacy", "sourceIds": ["a-1"], "status": "draft"}]
+        agent_project_service._update_task(
+            task["taskId"],
+            evidenceItems=legacy_evidence,
+            toolCalls=legacy_tool_calls,
+            findings=legacy_findings,
+            status="succeeded",
+            stage="done",
+            progress=1.0,
+        )
+
+        agent_project_service.reload_agent_state_from_storage()
+
+        restored = agent_project_service.get_agent_task(task["taskId"])["task"]
+        self.assertEqual(restored["status"], "succeeded")
+        self.assertEqual(restored["evidenceItems"], legacy_evidence)
+        self.assertEqual(restored["toolCalls"], legacy_tool_calls)
+        self.assertEqual(restored["findings"], legacy_findings)
+
+    def test_cancel_during_external_search_preserves_partial_results(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+
+        cancelled = agent_project_service.cancel_agent_task(task["taskId"])["task"]
+        self.assertEqual(cancelled["status"], "cancelled")
+
+        paper_contexts = [
+            {"pdfId": "paper-a", "evidenceCount": 1, "sourceIds": ["a-1"], "preview": "sparse", "status": "succeeded"},
+        ]
+        partial_tool_calls = [
+            {
+                "id": "retrieve-current-paper-1",
+                "name": "retrieve_current_paper",
+                "version": "1.0.0",
+                "safetyScope": {"access": "read_only", "dataScopes": ["current_paper_index"], "networkAccess": False, "sideEffects": False, "sensitiveOutput": True},
+                "status": "succeeded",
+                "target": "paper-a",
+                "result": "Collected evidence.",
+            },
+        ]
+        partial_evidence = [
+            {"sourceId": "a-1", "text": "partial evidence", "pdfId": "paper-a", "sectionId": "method"},
+        ]
+        agent_project_service._update_task(
+            task["taskId"],
+            toolCalls=partial_tool_calls,
+            evidenceItems=partial_evidence,
+            status="cancelled",
+        )
+
+        agent_project_service.reload_agent_state_from_storage()
+        restored = agent_project_service.get_agent_task(task["taskId"])["task"]
+        self.assertEqual(restored["status"], "cancelled")
+        self.assertEqual(restored["toolCalls"], partial_tool_calls)
+        self.assertEqual(restored["evidenceItems"], partial_evidence)
+
+    def test_restart_after_external_search_recovers_state(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+
+        paper_contexts = [
+            {"pdfId": "paper-a", "evidenceCount": 3, "sourceIds": ["a-1"], "preview": "method", "status": "succeeded"},
+            {"pdfId": "paper-b", "evidenceCount": 1, "sourceIds": ["b-1"], "preview": "", "status": "succeeded"},
+        ]
+        tool_calls = [
+            {
+                "id": "retrieve-current-paper-1",
+                "name": "retrieve_current_paper",
+                "version": "1.0.0",
+                "safetyScope": {"access": "read_only", "dataScopes": ["current_paper_index"], "networkAccess": False, "sideEffects": False, "sensitiveOutput": True},
+                "status": "succeeded",
+                "target": "paper-a",
+                "result": "Collected evidence.",
+            },
+            {
+                "id": "retrieve-external-academic-1",
+                "name": "retrieve_external_academic",
+                "version": "1.0.0",
+                "safetyScope": {"access": "read_only", "dataScopes": ["external_academic_metadata"], "networkAccess": True, "sideEffects": False, "sensitiveOutput": True},
+                "status": "succeeded",
+                "meta": {},
+            },
+        ]
+        evidence_items = [
+            {"sourceId": "a-1", "text": "method evidence", "pdfId": "paper-a", "sectionId": "method"},
+            {
+                "sourceId": "external-doi-abc123",
+                "sourceType": "external_academic",
+                "provider": "crossref",
+                "title": "External Paper",
+                "authors": ["Author One"],
+                "year": 2024,
+                "doi": "10.1234/abc123",
+            },
+        ]
+
+        with (
+            patch.object(agent_project_service, "_agent_step_delay", return_value=None),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+        ):
+            agent_project_service._run_minimal_agent_task(task["taskId"])
+
+        trace_service.clear_traces()
+        agent_project_service.reload_agent_state_from_storage()
+        restored = agent_project_service.get_agent_task(task["taskId"])["task"]
+        self.assertEqual(restored["status"], "awaiting_final_review")
+        self.assertEqual(len(restored["evidenceItems"]), 2)
+        self.assertIn("External Academic Evidence", restored["draftReport"])
+
+
 if __name__ == "__main__":
     unittest.main()

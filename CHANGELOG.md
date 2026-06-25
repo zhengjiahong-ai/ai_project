@@ -2,6 +2,15 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-25 v0.1.59
+
+1. **接入多论文 Agent 外部学术补查**：Agent 在 focused papers 和内部文献库证据不足时，可通过计划中的显式开关 `allowExternalSearch` 授权使用同一只读外部学术检索工具补充证据。
+2. **Agent 计划新增外部检索授权项**：`build_review_plan_items` 生成第 4 项 `external` 计划项，默认 `allowExternalSearch: false`；`normalize_review_plan_items` 保留该字段，用户审批后可开启。
+3. **报告区分当前论文、内部库与外部学术证据**：Agent 报告中新增 "External Academic Evidence" 区块，外部来源标注 Provider、年份、DOI/URL 和检索时间，证据快照中显式标注"（含外部学术检索）"。
+4. **外部证据参与 Agent 冲突检测**：新增 `external-evidence-coverage` 冲突类型，标记外部补充证据不应被视为与索引论文同等可靠。
+5. **保持 SQLite 旧快照兼容**：外部证据和工具调用存储在现有 JSON 列中，无需模式迁移；旧快照无 `external_academic` 来源类型时正常加载。
+6. **保持取消、失败与重启恢复语义不变**：外部检索阶段尊重取消检查，失败时降级继续使用内部证据，重启后状态可恢复。
+
 ### 2026-06-25 v0.1.58
 
 1. **接入 Deep Research 外部学术补查**：当内部检索（当前论文 + 内部文献库 + 重试）后 JUDGE 仍发现证据缺口时，自动执行一次受预算约束的外部学术检索，并按"当前论文 → 内部文献库 → 外部学术来源"顺序合并证据。
