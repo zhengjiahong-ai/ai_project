@@ -101,6 +101,7 @@ const run = async () => {
     question: '研究问题',
     pdfId: 'paper-1',
     paperSkeleton: { abstract: 'summary' },
+    allowExternalSearch: false,
   });
 
   await createResearchService.previewResearchBrief('研究问题', 'paper-1', { abstract: 'summary' }, '重点看实验');

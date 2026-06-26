@@ -141,16 +141,54 @@ const AgentPlanReviewForm = ({ currentTask, activeProject, onReviewPlan }) => {
   const [paperIds, setPaperIds] = useState(() => currentTask?.focusedPaperIds || activeProject?.paperIds || []);
   const [constraints, setConstraints] = useState(() => currentTask?.constraints || '');
   const [reviewNotes, setReviewNotes] = useState('');
+  const [allowExternalSearch, setAllowExternalSearch] = useState(false);
+  const extConfig = currentTask?.externalSearchConfig;
   if (currentTask?.status !== 'awaiting_plan_review') return null;
   return (
     <div className="mx-4 mb-4 space-y-3 border-t border-[color:var(--border)] pt-4">
       <div className="agent-title text-xs font-semibold">确认论文范围、约束和研究指令后才会执行</div>
       <div className="flex flex-wrap gap-2">{(activeProject?.paperIds || []).map((paperId) => <label key={paperId} className="agent-card-soft rounded-lg px-2 py-1 text-xs"><input type="checkbox" checked={paperIds.includes(paperId)} onChange={() => setPaperIds((prev) => prev.includes(paperId) ? prev.filter((id) => id !== paperId) : [...prev, paperId])} /> {paperId}</label>)}</div>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setAllowExternalSearch((prev) => !prev)}
+          className={`relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none ${
+            allowExternalSearch ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--border)]'
+          }`}
+          role="switch"
+          aria-checked={allowExternalSearch}
+          aria-label="授权外部学术检索"
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              allowExternalSearch ? 'translate-x-5' : 'translate-x-1'
+            }`}
+          />
+        </button>
+        <div>
+          <div className="text-xs font-semibold text-[color:var(--foreground)]">授权外部学术检索</div>
+          <div className="text-[10px] leading-5 text-[color:var(--muted)]">仅访问白名单学术来源 · 默认关闭</div>
+        </div>
+      </div>
+
+      {allowExternalSearch && extConfig?.allowExternalSearch && (
+        <div className="agent-card-soft rounded-xl border border-indigo-400/25 px-4 py-3 text-xs leading-6 text-indigo-400">
+          <div className="font-semibold">外部学术检索已授权</div>
+          <div className="mt-1 opacity-80">
+            Provider: {extConfig.provider || '未知'}
+            {' · '}Budget: 调用 {extConfig.budget?.callsUsed || 0}/{extConfig.budget?.callLimit || 0} 次
+            {' · '}证据 {extConfig.budget?.evidenceUsed || 0}/{extConfig.budget?.evidenceLimit || 0} 条
+          </div>
+          {extConfig.degradation && <div className="mt-1 text-amber-400">⚠ {extConfig.degradation}</div>}
+        </div>
+      )}
+
       {items.map((item, index) => <div key={item.id || index} className="agent-card grid gap-2 rounded-xl p-3"><input value={item.label || ''} onChange={(event) => setItems((prev) => prev.map((value, i) => i === index ? { ...value, label: event.target.value } : value))} className="agent-body rounded-lg bg-transparent px-2 py-1" /><textarea value={item.detail || ''} onChange={(event) => setItems((prev) => prev.map((value, i) => i === index ? { ...value, detail: event.target.value } : value))} className="agent-body rounded-lg bg-transparent px-2 py-1" /><button type="button" className="agent-secondary-button rounded-lg px-2 py-1 text-xs" onClick={() => setItems((prev) => prev.filter((_, i) => i !== index))}>删除</button></div>)}
       <button type="button" className="agent-secondary-button rounded-lg px-3 py-1 text-xs" onClick={() => setItems((prev) => [...prev, { id: `plan-${prev.length + 1}`, label: '', detail: '' }])}>新增计划项</button>
       <textarea value={constraints} onChange={(event) => setConstraints(event.target.value)} className="agent-card agent-body min-h-16 w-full rounded-xl p-3" placeholder="执行约束" />
       <textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="agent-card agent-body min-h-16 w-full rounded-xl p-3" placeholder="审查备注（可选）" />
-      <button type="button" className="agent-primary-button rounded-xl px-4 py-2 text-xs font-semibold" onClick={() => onReviewPlan?.({ planItems: items.filter((item) => item.label?.trim()), focusedPaperIds: paperIds, constraints, reviewNotes })}>确认计划并执行</button>
+      <button type="button" className="agent-primary-button rounded-xl px-4 py-2 text-xs font-semibold" onClick={() => onReviewPlan?.({ planItems: items.filter((item) => item.label?.trim()), focusedPaperIds: paperIds, constraints, reviewNotes, allowExternalSearch })}>确认计划并执行</button>
     </div>
   );
 };

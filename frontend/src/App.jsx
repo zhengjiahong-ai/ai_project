@@ -1512,6 +1512,7 @@ export default function App() {
         deconstructData?.paper_skeleton || null,
         useBriefPreview ? currentState.briefConstraintsDraft || '' : '',
         useBriefPreview ? currentState.briefPreview : null,
+        Boolean(currentState.allowExternalSearch),
       );
       const nextTask = normalizeResearchTask(response?.task);
       if (response?.status !== 'success' || !nextTask) {
@@ -3165,11 +3166,13 @@ export default function App() {
                         traceError={currentDeepResearchState.traceError}
                         isTraceLoading={currentDeepResearchState.isTraceLoading}
                         isTracePanelEnabled={Boolean(import.meta.env?.DEV)}
+                        allowExternalSearch={Boolean(currentDeepResearchState.allowExternalSearch)}
                         onQuestionChange={handleDeepResearchQuestionChange}
                         onStart={handleStartResearchTask}
                         onPreviewBrief={handlePreviewResearchBrief}
                         onBriefConstraintsChange={handleDeepResearchBriefConstraintsChange}
                         onAcceptBrief={() => handleStartResearchTask({ useBriefPreview: true })}
+                        onAllowExternalSearchChange={(value) => setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, allowExternalSearch: Boolean(value) }))}
                         onRefresh={handleRefreshResearchTask}
                         onCancel={handleCancelResearchTask}
                         onReviewPlan={handleReviewResearchPlan}

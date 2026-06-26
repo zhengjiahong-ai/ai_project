@@ -107,6 +107,8 @@ export const normalizeAgentTask = (value) => {
       : normalizeEvidenceSources(conflict?.sources),
   }));
   const reportSourceIds = findings.flatMap((finding) => Array.isArray(finding?.sourceIds) ? finding.sourceIds : []);
+  const extConfig = task.externalSearchConfig && typeof task.externalSearchConfig === 'object' ? task.externalSearchConfig : {};
+  const extBudget = extConfig.budget && typeof extConfig.budget === 'object' ? extConfig.budget : {};
   return {
     taskId: `${task.taskId ?? ''}`.trim(),
     projectId: `${task.projectId ?? ''}`.trim(),
@@ -132,6 +134,18 @@ export const normalizeAgentTask = (value) => {
     error: `${task.error ?? ''}`,
     createdAt: `${task.createdAt ?? ''}`.trim(),
     updatedAt: `${task.updatedAt ?? ''}`.trim(),
+    externalSearchConfig: {
+      allowExternalSearch: Boolean(extConfig.allowExternalSearch),
+      provider: `${extConfig.provider ?? ''}`.trim() || 'disabled',
+      budget: {
+        callLimit: Number.isFinite(Number(extBudget.callLimit)) ? Number(extBudget.callLimit) : 0,
+        evidenceLimit: Number.isFinite(Number(extBudget.evidenceLimit)) ? Number(extBudget.evidenceLimit) : 0,
+        callsUsed: Number.isFinite(Number(extBudget.callsUsed)) ? Number(extBudget.callsUsed) : 0,
+        evidenceUsed: Number.isFinite(Number(extBudget.evidenceUsed)) ? Number(extBudget.evidenceUsed) : 0,
+      },
+      status: `${extConfig.status ?? ''}`.trim() || 'disabled',
+      degradation: `${extConfig.degradation ?? ''}`,
+    },
   };
 };
 

@@ -58,7 +58,7 @@ export const AgentResponseCard = ({ currentTask, currentStageLabel, children }) 
   </div>
 );
 
-const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask }) => (
+const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask, allowExternalSearch = false, onAllowExternalSearchChange }) => (
   <div className="agent-composer border-t px-5 py-4 backdrop-blur">
     <div className="mb-3 flex flex-wrap gap-2">
       {QUICK_PROMPTS.map((item) => (
@@ -79,11 +79,31 @@ const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPromp
         className="agent-body min-h-[74px] w-full resize-none bg-transparent text-sm leading-7 outline-none"
         placeholder="让 Agent 比较这些论文的研究问题、方法设计、实验指标与局限性，并返回可追踪证据。"
       />
-      <div className="flex items-end">
+      <div className="flex flex-col gap-2">
         <div className="agent-card-soft w-full rounded-2xl px-3 py-2 text-xs leading-6">
           <div className="font-semibold">当前模式</div>
           <div>多论文研究</div>
           <div className="agent-muted">{(activeProject?.paperIds || []).length || 0} papers</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onAllowExternalSearchChange?.(!allowExternalSearch)}
+            className={`relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none ${
+              allowExternalSearch ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--border)]'
+            }`}
+            role="switch"
+            aria-checked={allowExternalSearch}
+            aria-label="授权外部学术检索"
+            title="授权外部学术检索 · 仅白名单来源"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                allowExternalSearch ? 'translate-x-5' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <span className="text-[10px] leading-4 text-[color:var(--muted)]">外部检索</span>
         </div>
       </div>
       <button

@@ -249,6 +249,7 @@ export const createEmptyDeepResearchState = () => ({
   briefConstraintsDraft: '',
   isPreviewingBrief: false,
   briefError: '',
+  allowExternalSearch: false,
 });
 
 export const clampResearchProgress = (value) => {
@@ -282,6 +283,31 @@ export const buildResearchContextHint = (paperStructure) => {
   }
 
   return normalizeText(paperStructure.core_hypothesis);
+};
+
+const normalizeExternalSearchConfig = (config) => {
+  if (!config || typeof config !== 'object') {
+    return {
+      allowExternalSearch: false,
+      provider: 'disabled',
+      budget: { callLimit: 0, evidenceLimit: 0, callsUsed: 0, evidenceUsed: 0 },
+      status: 'disabled',
+      degradation: '',
+    };
+  }
+  const budget = config.budget && typeof config.budget === 'object' ? config.budget : {};
+  return {
+    allowExternalSearch: Boolean(config.allowExternalSearch),
+    provider: normalizeText(config.provider) || 'disabled',
+    budget: {
+      callLimit: normalizeInteger(budget.callLimit) || 0,
+      evidenceLimit: normalizeInteger(budget.evidenceLimit) || 0,
+      callsUsed: normalizeInteger(budget.callsUsed) || 0,
+      evidenceUsed: normalizeInteger(budget.evidenceUsed) || 0,
+    },
+    status: normalizeText(config.status) || 'disabled',
+    degradation: normalizeText(config.degradation),
+  };
 };
 
 export const normalizeResearchTask = (task) => {
@@ -341,6 +367,7 @@ export const normalizeResearchTask = (task) => {
     error: normalizeText(task.error),
     createdAt: normalizeText(task.createdAt),
     updatedAt: normalizeText(task.updatedAt),
+    externalSearchConfig: normalizeExternalSearchConfig(task.externalSearchConfig),
   };
 };
 

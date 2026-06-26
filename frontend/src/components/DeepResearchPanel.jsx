@@ -45,7 +45,21 @@ const formatTraceMeta = (value) => {
 const ResearchPlanReviewForm = ({ task, onReviewPlan }) => {
   const [planDraft, setPlanDraft] = useState(() => (task.planItems || []).map((item) => item.question).join('\n'));
   const [reviewNotes, setReviewNotes] = useState('');
-  return <div className="mt-4 space-y-3 border-t theme-border pt-4"><div className="theme-text-primary text-sm font-semibold">人工确认后才会开始检索</div><textarea value={planDraft} onChange={(event) => setPlanDraft(event.target.value)} className="theme-input min-h-36 w-full rounded-xl p-3 text-sm" aria-label="研究子问题，每行一个" /><textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="theme-input min-h-20 w-full rounded-xl p-3 text-sm" placeholder="计划审查备注（可选）" /><button type="button" className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => onReviewPlan?.({ subQuestions: planDraft.split(/\r?\n/).map((item) => item.trim()).filter(Boolean), reviewNotes })}>确认计划并执行</button></div>;
+  const extConfig = task?.externalSearchConfig;
+  return <div className="mt-4 space-y-3 border-t theme-border pt-4"><div className="theme-text-primary text-sm font-semibold">人工确认后才会开始检索</div>
+    {extConfig?.allowExternalSearch && (
+      <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-3 text-xs leading-6 text-indigo-400">
+        <div className="font-semibold">外部学术检索已授权</div>
+        <div className="mt-1 opacity-80">
+          Provider: {extConfig.provider || '未知'}
+          {' · '}Budget: 调用 {extConfig.budget?.callsUsed || 0}/{extConfig.budget?.callLimit || 0} 次
+          {' · '}证据 {extConfig.budget?.evidenceUsed || 0}/{extConfig.budget?.evidenceLimit || 0} 条
+        </div>
+        {extConfig.degradation && <div className="mt-1 text-amber-400">⚠ {extConfig.degradation}</div>}
+        <div className="mt-1 opacity-60">仅访问白名单学术来源，外部证据不自动覆盖内部判断。</div>
+      </div>
+    )}
+    <textarea value={planDraft} onChange={(event) => setPlanDraft(event.target.value)} className="theme-input min-h-36 w-full rounded-xl p-3 text-sm" aria-label="研究子问题，每行一个" /><textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="theme-input min-h-20 w-full rounded-xl p-3 text-sm" placeholder="计划审查备注（可选）" /><button type="button" className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => onReviewPlan?.({ subQuestions: planDraft.split(/\r?\n/).map((item) => item.trim()).filter(Boolean), reviewNotes })}>确认计划并执行</button></div>;
 };
 
 const ResearchFinalReviewForm = ({ task, onReviewFinal }) => {
@@ -131,11 +145,13 @@ const DeepResearchPanel = ({
   isCreating = false,
   isCancelling = false,
   isPreviewingBrief = false,
+  allowExternalSearch = false,
   onQuestionChange,
   onStart,
   onPreviewBrief,
   onBriefConstraintsChange,
   onAcceptBrief,
+  onAllowExternalSearchChange,
   onRefresh,
   onCancel,
   onReviewPlan,
@@ -269,6 +285,32 @@ const DeepResearchPanel = ({
             className="theme-input w-full rounded-xl p-3 text-sm outline-none transition"
             placeholder="例如：这篇论文的实验设计是否足以支撑其核心结论？哪些结论仍然缺少直接证据？"
           />
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onAllowExternalSearchChange?.(!allowExternalSearch)}
+              disabled={isCreating || isCancelling || isRunningTask}
+              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+                allowExternalSearch ? 'bg-pixiu' : 'bg-slate-600'
+              }`}
+              role="switch"
+              aria-checked={allowExternalSearch}
+              aria-label="授权外部学术检索"
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                  allowExternalSearch ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <div>
+              <div className="theme-text-primary text-xs font-semibold">授权外部学术检索</div>
+              <div className="theme-text-muted text-[11px] leading-5">
+                仅访问白名单学术来源（Crossref、Semantic Scholar）· 默认关闭
+              </div>
+            </div>
+          </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
@@ -445,6 +487,27 @@ const DeepResearchPanel = ({
               <div className="theme-card-soft h-3 overflow-hidden rounded-full">
                 <div className="h-full rounded-full bg-pixiu transition-all duration-300" style={{ width: `${progressPercent}%` }} />
               </div>
+
+              {normalizedTask?.externalSearchConfig?.allowExternalSearch && (
+                <div className={`mt-3 rounded-xl border px-4 py-2.5 text-xs leading-6 ${
+                  normalizedTask.externalSearchConfig.status === 'degraded'
+                    ? 'border-amber-400/25 bg-amber-500/10 text-amber-400'
+                    : 'border-indigo-400/25 bg-indigo-500/10 text-indigo-400'
+                }`}>
+                  <span className="font-semibold">
+                    外部检索：{normalizedTask.externalSearchConfig.provider}
+                  </span>
+                  <span className="opacity-75">
+                    {' '}· 已调用 {normalizedTask.externalSearchConfig.budget.callsUsed}/{normalizedTask.externalSearchConfig.budget.callLimit} 次
+                    · 已收集 {normalizedTask.externalSearchConfig.budget.evidenceUsed}/{normalizedTask.externalSearchConfig.budget.evidenceLimit} 条
+                  </span>
+                  {normalizedTask.externalSearchConfig.status === 'degraded' && normalizedTask.externalSearchConfig.degradation && (
+                    <span className="block mt-1">
+                      ⚠ 已降级：{normalizedTask.externalSearchConfig.degradation}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="theme-text-muted mt-3 text-xs">
                 Task ID: {normalizedTask.taskId || '未知'} | Trace ID: {normalizedTask.traceId || '未知'} | 状态：{statusMeta.label}

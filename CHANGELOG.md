@@ -2,6 +2,15 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-26 v0.1.61
+
+1. **新增前端外部学术检索授权开关**：Deep Research 面板和 Agent 任务组合器新增 pill 样式开关，默认关闭并说明仅访问白名单学术来源（Crossref、Semantic Scholar）；开启后 `allowExternalSearch` 随任务创建请求发送到后端。
+2. **计划审查阶段展示 Provider 与预算**：`ResearchPlanReviewForm` 和 `AgentPlanReviewForm` 在外部检索开启时显示 Provider 名称、调用次数/上限、证据数量/上限和降级原因。
+3. **任务执行中显示外部调用状态**：Deep Research 任务进度卡片在执行阶段展示外部检索 Provider、已调用次数、已收集证据数量，降级时以琥珀色高亮降级原因，不再仅限 DEV trace 面板可见。
+4. **外部证据来源可视化区分**：`SourceChip` 和 `SourceList` 对外部学术来源使用 Globe 图标和靛蓝色调渲染，标签显示"外部来源 · Provider · 年份"，展开卡片展示完整元数据（标题、作者、DOI、URL、检索时间、许可和摘要）。
+5. **安全降级无伪链接**：当外部来源缺失 URL 且无可解析 DOI 时，`canJumpToSource` 为 `false`，保留元数据而不生成虚假链接。
+6. **任务模型归一化外部搜索配置**：`deepResearchPanelModel` 和 `agentWorkspaceModel` 新增 `externalSearchConfig` 归一化，含安全默认值；`createEmptyDeepResearchState` 新增 `allowExternalSearch` 字段。
+
 ### 2026-06-25 v0.1.60
 
 1. **扩展请求契约：新增 `allowExternalSearch` 字段**：`ResearchTaskCreateRequest`、`AgentTaskCreateRequest` 和 `AgentPlanItemRequest` 新增显式 `allowExternalSearch` 字段，默认 `false`，旧请求无需修改即可正常使用。

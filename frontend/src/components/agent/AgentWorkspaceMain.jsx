@@ -32,6 +32,8 @@ const AgentWorkspaceMain = ({
   activePaperId,
   onCaptureArtifact,
   onJumpToSource,
+  allowExternalSearch,
+  onAllowExternalSearchChange,
 }) => (
   <main className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[26px]">
     <AgentWorkspaceHeader
@@ -86,6 +88,8 @@ const AgentWorkspaceMain = ({
         onPromptChange={onPromptChange}
         onQuickPrompt={onQuickPrompt}
         onCreateTask={onCreateTask}
+        allowExternalSearch={allowExternalSearch}
+        onAllowExternalSearchChange={onAllowExternalSearchChange}
       />
     </div>
   </main>

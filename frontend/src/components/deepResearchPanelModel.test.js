@@ -32,6 +32,7 @@ const run = async () => {
     briefConstraintsDraft: '',
     isPreviewingBrief: false,
     briefError: '',
+    allowExternalSearch: false,
   });
 
   assert.equal(clampResearchProgress(-1), 0);

@@ -19,6 +19,16 @@ const truncate = (value, maxLength = 180) => {
   return `${text.slice(0, maxLength).trimEnd()}...`;
 };
 
+const EXTERNAL_SOURCE_TYPE = 'external_academic';
+
+const isExternalSource = (source) => {
+  const sourceType = normalizeText(source?.sourceType ?? source?.metadata?.sourceType);
+  if (sourceType === EXTERNAL_SOURCE_TYPE) {
+    return true;
+  }
+  return Boolean(normalizeText(source?.provider) || normalizeText(source?.doi));
+};
+
 export const normalizeSourceLocation = (source) => {
   const metadata = source?.metadata && typeof source.metadata === 'object' ? source.metadata : {};
   const pageIndex = normalizeInteger(source?.pageIndex ?? source?.sourcePageIndex ?? metadata.pageIndex);
@@ -32,6 +42,25 @@ export const normalizeSourceLocation = (source) => {
   };
 };
 
+const normalizeExternalSourceLocation = (source) => {
+  const provider = normalizeText(source?.provider ?? source?.metadata?.provider);
+  const year = normalizeInteger(source?.year ?? source?.metadata?.year);
+  const doi = normalizeText(source?.doi ?? source?.metadata?.doi);
+  const url = normalizeText(source?.url ?? source?.metadata?.url);
+  const hasUrl = Boolean(url);
+  const hasDoi = Boolean(doi);
+  const hasLink = hasUrl || hasDoi;
+  return {
+    provider: provider || 'unknown',
+    year,
+    doi: doi || '',
+    url: url || '',
+    canJumpToSource: hasLink,
+    locationLabel: [provider, year ? String(year) : ''].filter(Boolean).join(' · ') || '外部来源',
+    externalUrl: hasUrl ? url : (hasDoi ? `https://doi.org/${doi}` : ''),
+  };
+};
+
 export const normalizeEvidenceSource = (source, index = 0) => {
   if (!source || typeof source !== 'object') {
     return null;
@@ -39,7 +68,50 @@ export const normalizeEvidenceSource = (source, index = 0) => {
 
   const metadata = source.metadata && typeof source.metadata === 'object' ? source.metadata : {};
   const sourceId = normalizeText(source.sourceId) || normalizeText(source.id) || `source-${index + 1}`;
+  const sourceType = normalizeText(source.sourceType ?? metadata.sourceType) || 'unknown';
   const text = normalizeText(source.text) || normalizeText(source.content) || normalizeText(source.preview);
+  const external = isExternalSource(source);
+
+  if (external) {
+    const extLocation = normalizeExternalSourceLocation(source);
+    const title = normalizeText(source?.title ?? metadata?.title);
+    const abstract = normalizeText(source?.abstract ?? metadata?.abstract);
+    const authors = Array.isArray(source?.authors ?? metadata?.authors)
+      ? (source?.authors ?? metadata?.authors).map((author) => normalizeText(author)).filter(Boolean)
+      : [];
+    const retrievedAt = normalizeText(source?.retrievedAt ?? metadata?.retrievedAt);
+    const license = normalizeText(source?.license ?? metadata?.license);
+
+    if (!text && !title && !extLocation.doi && !extLocation.url && authors.length === 0) {
+      return null;
+    }
+
+    return {
+      sourceId,
+      sourceType: EXTERNAL_SOURCE_TYPE,
+      text,
+      preview: truncate(text || title),
+      chunkIndex: null,
+      pageIndex: null,
+      sectionId: null,
+      pdfId: null,
+      isExternal: true,
+      provider: extLocation.provider,
+      providerId: normalizeText(source?.providerId ?? metadata?.providerId),
+      title,
+      authors,
+      year: extLocation.year,
+      doi: extLocation.doi,
+      url: extLocation.url,
+      externalUrl: extLocation.externalUrl,
+      retrievedAt,
+      license,
+      abstract,
+      canJumpToSource: extLocation.canJumpToSource,
+      locationLabel: extLocation.locationLabel,
+    };
+  }
+
   const location = normalizeSourceLocation(source);
   if (!text && !Number.isInteger(location.pageIndex) && !location.sectionId) {
     return null;
@@ -47,10 +119,11 @@ export const normalizeEvidenceSource = (source, index = 0) => {
 
   return {
     sourceId,
-    sourceType: normalizeText(source.sourceType ?? metadata.sourceType) || 'unknown',
+    sourceType,
     text,
     preview: truncate(text),
     chunkIndex: normalizeInteger(source.chunkIndex ?? metadata.chunkIndex),
+    isExternal: false,
     ...location,
   };
 };
