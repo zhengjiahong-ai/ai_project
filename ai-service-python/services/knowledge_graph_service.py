@@ -2,6 +2,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from llm.client import get_llm
+from services.external_evidence import normalize_external_evidence
 from services.external_search_provider import ExternalSearchProvider, create_external_search_provider
 from services.safety_service import build_guarded_messages, wrap_untrusted_context
 from services.trace_service import trace_step
@@ -69,6 +70,7 @@ def generate_current_paper_graph(
         allowed_source_ids=allowed_source_ids,
         has_current_paper=bool(pdf_id),
     )
+    concepts = _enrich_concepts_external(concepts, provider, paper_topic)
 
     root_node = {
         "id": ROOT_NODE_ID,
@@ -110,6 +112,7 @@ def generate_current_paper_graph(
                 allowed_source_ids=allowed_source_ids,
                 has_current_paper=bool(pdf_id),
             )
+            edges = _enrich_edges_external(edges, concepts)
         except Exception as error:
             resolver_failed = True
             warnings.append(f"前置关系判断失败，已保留概念节点：{str(error)[:160]}")
@@ -151,6 +154,96 @@ def build_provenance_summary(graph: Dict[str, Any]) -> Dict[str, Any]:
         "nodes": _provenance_counts(nodes),
         "edges": _provenance_counts(edges),
     }
+
+
+def _enrich_concepts_external(
+    concepts: List[Dict[str, Any]],
+    provider: ExternalSearchProvider,
+    paper_topic: str,
+) -> List[Dict[str, Any]]:
+    if not provider or not getattr(provider, "enabled", False):
+        return concepts
+
+    enriched: List[Dict[str, Any]] = []
+    for concept in concepts:
+        if concept.get("provenanceStatus") != PROVENANCE_MODEL:
+            enriched.append(concept)
+            continue
+
+        search_queries = concept.get("searchQueries")
+        query_candidates = [q for q in (search_queries if isinstance(search_queries, list) else []) if isinstance(q, str) and q.strip()]
+        if not query_candidates:
+            query_candidates = [concept.get("label", "")]
+        primary_query = query_candidates[0] if query_candidates else concept.get("label", "")
+
+        try:
+            raw_results = provider.search(primary_query, limit=3)
+            if not raw_results or not isinstance(raw_results, list) or len(raw_results) == 0:
+                enriched.append(concept)
+                continue
+
+            external_items = [normalize_external_evidence(item) for item in raw_results[:3]]
+            external_items = [item for item in external_items if item and item.get("sourceId")]
+            if not external_items:
+                enriched.append(concept)
+                continue
+
+            external_source_ids = [item["sourceId"] for item in external_items]
+            combined_source_ids = list(dict.fromkeys(concept.get("sourceIds", []) + external_source_ids))
+            enriched.append({
+                **concept,
+                "sourceIds": combined_source_ids,
+                "provenanceStatus": PROVENANCE_EXTERNAL,
+                "confidence": CONFIDENCE_CAPS[PROVENANCE_EXTERNAL],
+                "confidenceReason": (
+                    f"外部学术来源（{provider.name}）检索到 {len(external_items)} 条相关证据，"
+                    f"补充了该概念的学术依据。"
+                ),
+            })
+        except Exception:
+            enriched.append(concept)
+
+    return enriched
+
+
+def _enrich_edges_external(
+    edges: List[Dict[str, Any]],
+    concepts: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    concept_map = {node["id"]: node for node in concepts}
+    enriched: List[Dict[str, Any]] = []
+    for edge in edges:
+        if edge.get("provenanceStatus") != PROVENANCE_MODEL:
+            enriched.append(edge)
+            continue
+
+        source_node = concept_map.get(edge.get("source"))
+        target_node = concept_map.get(edge.get("target"))
+        source_prov = source_node.get("provenanceStatus") if source_node else None
+        target_prov = target_node.get("provenanceStatus") if target_node else None
+        both_supported = (
+            source_prov in (PROVENANCE_CURRENT_PAPER, PROVENANCE_EXTERNAL)
+            and target_prov in (PROVENANCE_CURRENT_PAPER, PROVENANCE_EXTERNAL)
+        )
+        if not both_supported:
+            enriched.append(edge)
+            continue
+
+        external_source_ids = [
+            sid for node in (source_node, target_node) if node
+            for sid in (node.get("sourceIds") or [])
+            if isinstance(sid, str) and sid.startswith("external-")
+        ]
+        combined_source_ids = list(dict.fromkeys(edge.get("sourceIds", []) + external_source_ids))
+        enriched.append({
+            **edge,
+            "sourceIds": combined_source_ids,
+            "provenanceStatus": PROVENANCE_EXTERNAL,
+            "confidence": CONFIDENCE_CAPS[PROVENANCE_EXTERNAL],
+            "confidenceReason": "关联概念已由外部学术来源佐证，前置关系可信度提升。",
+        })
+
+    return enriched
 
 
 def _provenance_counts(items: List[Dict[str, Any]]) -> Dict[str, Any]:

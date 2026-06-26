@@ -427,16 +427,18 @@ const BackgroundKnowledgePanel = ({
                   summary={formatPercent(provenanceSummary.nodes.supportedRatio) || '0%'}
                   keyPoints={[
                     `当前论文支持 ${provenanceSummary.nodes.currentPaperSupported}/${provenanceSummary.nodes.total}`,
+                    provenanceSummary.nodes.externalSupported > 0 ? `外部证据支持 ${provenanceSummary.nodes.externalSupported} 项` : '',
                     `模型推断 ${provenanceSummary.nodes.modelInference} 项`,
-                  ]}
+                  ].filter(Boolean)}
                 />
                 <InsightCard
                   title="前置关系证据覆盖"
                   summary={formatPercent(provenanceSummary.edges.supportedRatio) || '0%'}
                   keyPoints={[
                     `当前论文支持 ${provenanceSummary.edges.currentPaperSupported}/${provenanceSummary.edges.total}`,
+                    provenanceSummary.edges.externalSupported > 0 ? `外部证据支持 ${provenanceSummary.edges.externalSupported} 条` : '',
                     `模型推断 ${provenanceSummary.edges.modelInference} 条`,
-                  ]}
+                  ].filter(Boolean)}
                 />
               </div>
             )}
@@ -444,7 +446,9 @@ const BackgroundKnowledgePanel = ({
             <div className="theme-card-soft theme-text-secondary rounded-2xl p-4 text-sm leading-6">
               {data?.externalKnowledge?.enabled
                 ? data.externalKnowledge.message || '已启用受控外部学术来源。'
-                : '当前未使用外部学术来源；无当前论文依据的节点和关系均标记为模型推断。'}
+                : (provenanceSummary?.nodes?.externalSupported > 0 || provenanceSummary?.edges?.externalSupported > 0)
+                  ? `已通过外部学术来源补充 ${provenanceSummary.nodes.externalSupported + provenanceSummary.edges.externalSupported} 项证据。`
+                  : '当前未使用外部学术来源；无当前论文依据的节点和关系均标记为模型推断。'}
             </div>
 
             {Array.isArray(data?.warnings) && data.warnings.length > 0 && (
