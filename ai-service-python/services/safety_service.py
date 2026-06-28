@@ -339,6 +339,24 @@ def sanitize_external_academic_query_text(value: Any, *, max_chars: int) -> str:
     return " ".join(safe_segments)[:max_chars].rstrip()
 
 
+def external_search_degradation_reason(status: Any, reason: Any = "") -> str:
+    normalized_status = " ".join(str(status or "failed").strip().lower().split())
+    normalized_reason = " ".join(str(reason or "").strip().split())
+    if normalized_status in {"success", "no_queries"}:
+        return ""
+    if normalized_status == "disabled":
+        return "External academic search is not enabled."
+    if normalized_status == "budget_exceeded":
+        allowed_reasons = {
+            "External academic search call budget exceeded.",
+            "External academic search evidence budget exceeded.",
+        }
+        if normalized_reason in allowed_reasons:
+            return normalized_reason
+        return "External academic search budget exceeded."
+    return "External academic provider failed."
+
+
 def _iter_results(results: Iterable[Any]) -> Iterable[Any]:
     for item in results:
         if isinstance(item, (list, tuple)):

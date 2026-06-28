@@ -6,6 +6,7 @@ from services.evidence_service import normalize_evidence_items
 from services.external_evidence import EXTERNAL_SOURCE_TYPE, normalize_external_evidence_items
 from services.external_query_planner import build_external_academic_queries
 from services.knowledge_graph_store import enrich_conflicts_with_graph_context
+from services.safety_service import external_search_degradation_reason
 from services.tool_registry import get_tool_registry
 from services.trace_service import record_counter, sanitize_text, trace_step
 
@@ -157,8 +158,12 @@ def retrieve_external_agent_evidence(
             )
         except Exception:
             final_status = "failed"
-            degradation = "tool_invocation_error"
+            degradation = external_search_degradation_reason(final_status)
             break
+
+        if tool_call.get("status") == "fallback":
+            tool_call = copy.deepcopy(tool_call)
+            tool_call["meta"] = {**(tool_call.get("meta") or {}), "reason": "tool_invocation_error"}
 
         external_tool_calls.append({
             "id": f"retrieve-external-academic-{query_index + 1}",
@@ -172,15 +177,15 @@ def retrieve_external_agent_evidence(
             all_items.extend(items)
         elif status == "disabled":
             final_status = "disabled"
-            degradation = "External academic search is not enabled."
+            degradation = external_search_degradation_reason(status, result.get("reason"))
             break
         elif status == "budget_exceeded":
             final_status = "budget_exceeded"
-            degradation = str(result.get("reason") or status)
+            degradation = external_search_degradation_reason(status, result.get("reason"))
             break
         else:
             final_status = status
-            degradation = str(result.get("reason") or status)
+            degradation = external_search_degradation_reason(status, result.get("reason"))
             break
 
     normalized_items = normalize_external_evidence_items(all_items, limit=12)

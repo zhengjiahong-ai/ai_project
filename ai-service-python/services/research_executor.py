@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.external_query_planner import build_external_academic_queries
 from services.query_service import build_retrieval_queries
-from services.safety_service import MAX_RETRIEVAL_RETRIES
+from services.safety_service import MAX_RETRIEVAL_RETRIES, external_search_degradation_reason
 from services.trace_service import record_counter, sanitize_text, trace_step
 from services.tool_registry import get_tool_registry
 
@@ -314,7 +314,7 @@ def retrieve_external_academic_evidence(
             )
         except Exception:
             final_status = "failed"
-            degradation = "tool_invocation_error"
+            degradation = external_search_degradation_reason(final_status)
             break
 
         status = str(response.get("status") or "failed")
@@ -323,7 +323,7 @@ def retrieve_external_academic_evidence(
             all_items.extend(items)
         else:
             final_status = status
-            degradation = str(response.get("reason") or status)
+            degradation = external_search_degradation_reason(status, response.get("reason"))
             break
 
     return {

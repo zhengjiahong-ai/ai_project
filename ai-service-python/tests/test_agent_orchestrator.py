@@ -1,4 +1,6 @@
+import json
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from services import trace_service
@@ -10,6 +12,11 @@ from services.agent_orchestrator import (
     collect_project_evidence,
     retrieve_external_agent_evidence,
     should_try_external_search,
+)
+
+
+ADVERSARIAL_FIXTURE = json.loads(
+    (Path(__file__).parent / "fixtures" / "external_search_adversarial.json").read_text(encoding="utf-8")
 )
 
 
@@ -218,7 +225,7 @@ class AgentOrchestratorTests(unittest.TestCase):
 
         with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
             paper_contexts, tool_calls, evidence_items = collect_project_evidence(
-                prompt="compare methods",
+                prompt=ADVERSARIAL_FIXTURE["queryCases"][0]["input"],
                 paper_ids=["paper-a"],
                 allow_external_search=False,
             )
@@ -228,6 +235,34 @@ class AgentOrchestratorTests(unittest.TestCase):
         self.assertEqual(paper_contexts[0]["status"], "succeeded")
         tool_names = [tc["name"] for tc in tool_calls]
         self.assertNotIn("retrieve_external_academic", tool_names)
+
+    def test_external_tool_failure_is_sanitized_and_preserves_safety_scope(self):
+        secret = ADVERSARIAL_FIXTURE["secretToken"]
+        fake_registry = Mock()
+        fake_registry.get.return_value.version = "1.0.0"
+        fake_registry.get.return_value.safetyScope = {
+            "access": "read_only",
+            "dataScopes": ["external_academic_metadata"],
+            "networkAccess": True,
+            "sideEffects": False,
+            "sensitiveOutput": True,
+        }
+        fake_registry.invoke.side_effect = RuntimeError(
+            f"provider response contained credential {secret}"
+        )
+
+        with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
+            result = retrieve_external_agent_evidence(["retrieval robustness"])
+
+        serialized = json.dumps(result, ensure_ascii=False)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["degradation"], "External academic provider failed.")
+        self.assertNotIn(secret, serialized)
+        self.assertEqual(result["external_tool_calls"][0]["version"], "1.0.0")
+        self.assertEqual(
+            result["external_tool_calls"][0]["safetyScope"]["dataScopes"],
+            ["external_academic_metadata"],
+        )
 
     def test_collect_project_evidence_includes_external_when_allowed_with_sparse_evidence(self):
         trace_service.start_trace("agent_research")

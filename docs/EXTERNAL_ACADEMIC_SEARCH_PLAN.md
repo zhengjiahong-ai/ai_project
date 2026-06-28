@@ -103,6 +103,14 @@ P3-06 已在 Crossref 客户端内部增加 1 小时 TTL 的版本化 JSON 缓�
 
 查询清洗按独立文本片段剥离 URL、提示覆盖、命令执行、联网、工具调用以及修改 Provider、host、endpoint、预算、权限或安全范围的指令，只保留 Unicode 字母数字、空白和有限学术符号，以保留主题、方法、指标和年份。接口没有论文正文、Provider、host、预算、权限或安全范围参数，也不调用 LLM、Provider、网络或文件系统；因此论文正文和恶意片段不能通过查询规划改变控制面。本阶段仍不注册工具、不接入 Deep Research/Agent，也不授予任何联网能力。
 
+## P3-15 对抗验证状态
+
+固定恶意 fixture 覆盖提示覆盖、凭据索取、Provider/host/预算/权限篡改、私网重定向、超大响应、畸形 JSON、429、5xx、连接与读取超时和断网。测试只使用 mock response，不访问真实 Provider 或 LLM。Crossref 始终只请求代码内固定的 `https://api.crossref.org/works`，禁用重定向，响应中的 `Location`、DOI、URL 和 HTML 链接均不能触发后续网络请求。
+
+Crossref 标题、作者和 JATS/HTML 摘要在统一证据归一化前按不可信文本处理。检测到的提示覆盖、凭据泄漏或命令式片段替换为安全占位文本；同字段的正常学术内容仍被保留，并继续受原字段长度限制。外部 query 仍只能由受限查询规划器生成，任务文本和外部响应不能修改启用开关、Provider、host、预算、工具版本或 `safetyScope`。
+
+Deep Research 和 Agent 仅传播 `success/no_queries/disabled/budget_exceeded/failed` 对应的固定降级说明。Provider 原始 `reason`、异常消息、响应体和凭据不得进入 finding、Agent 工具调用摘要、trace 或 SQLite 快照；外部失败继续保留当前论文和内部文献库证据，不把缺口标记为已解决。
+
 ## P3-01 非目标
 
 本任务不实现 Provider 客户端、Provider 工厂、统一外部证据模型、缓存、限流、重试、去重、任务预算、查询规划、工具注册、API、持久化、UI、MCP 暴露或真实网络验证。这些能力必须按 P3-02 至 P3-17 的顺序逐项实现和验证。

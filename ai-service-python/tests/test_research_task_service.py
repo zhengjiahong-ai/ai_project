@@ -1,13 +1,20 @@
+import json
 import os
 import sqlite3
 import tempfile
 import unittest
 from contextlib import closing
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from llm.client import DeepSeekLLM
 from schemas.requests import ResearchFinalReviewRequest, ResearchPlanReviewRequest, ResearchTaskCreateRequest
 from services import research_executor, research_task_service, trace_service
+
+
+ADVERSARIAL_FIXTURE = json.loads(
+    (Path(__file__).parent / "fixtures" / "external_search_adversarial.json").read_text(encoding="utf-8")
+)
 
 
 class DeepSeekLLMTraceCounterTests(unittest.TestCase):
@@ -640,6 +647,28 @@ class ResearchTaskExternalSearchTests(unittest.TestCase):
         self.assertEqual(finding["externalSearchDegradation"], "External academic provider failed.")
         self.assertEqual(finding["verdict"], "INCORRECT")
         self.assertEqual(task["status"], "awaiting_final_review")
+
+    def test_external_tool_failure_reason_cannot_leak_credentials(self):
+        secret = ADVERSARIAL_FIXTURE["secretToken"]
+        with patch.object(
+            research_executor,
+            "invoke_tool",
+            return_value={
+                "status": "failed",
+                "provider": "crossref",
+                "items": [],
+                "reason": f"provider response contained credential {secret}",
+            },
+        ):
+            result = research_executor.retrieve_external_academic_evidence(
+                research_question="retrieval robustness",
+                sub_question="compare methods",
+                missing_aspects=["adversarial evaluation"],
+            )
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["degradation"], "External academic provider failed.")
+        self.assertNotIn(secret, json.dumps(result, ensure_ascii=False))
 
     def test_external_evidence_participates_in_conflict_detection(self):
         task_id = self._create_task()

@@ -46,6 +46,9 @@
 - Crossref 客户端注册和缓存重试能力不等于业务链路已获联网授权：默认关闭行为不变，当前 Deep Research、Agent、前端、公开 API 和 MCP 均不得调用它。
 - P3-09 为内部外部检索工具增加任务级审计与预算计数。public trace summary 必须包含 `externalSearchCalls/externalSearchCacheHits/externalSearchFailures/externalEvidenceCount/externalSearchLatencyMs/externalSearchBudgetBlocks`；外部检索 step 只允许记录 Provider、预算状态、结果数量和 `queryHash/queryLength/tokenCount`，不得记录完整 query、完整摘要、完整响应、headers 或密钥。
 - 外部检索默认任务预算为最多 3 次 Provider 调用和最多 15 条外部证据结果。预算耗尽时必须在调用 Provider 前停止，返回 `budget_exceeded` 与脱敏原因，并计入 `externalSearchBudgetBlocks`；Provider 失败必须返回 `failed` 与脱敏原因并计入 `externalSearchFailures`。
+- P3-15 固化对抗边界：Crossref 标题、作者和 HTML/JATS 摘要中的提示覆盖、凭据索取等指令式片段必须替换为安全占位文本，同时保留同字段中的正常学术内容和既有长度上限。
+- 外部检索失败只允许向 Deep Research、Agent、trace 和持久化快照传播状态白名单对应的固定降级原因；Provider 原始异常、响应体、query 和凭据不得进入工具调用摘要。工具版本、预算和 `safetyScope` 不得由失败响应修改。
+- SSRF 与故障边界必须由离线 fixture 持续验证：请求目标固定为 Crossref HTTPS endpoint 且 `allow_redirects=false`，私网或非白名单 `Location` 不得产生第二次请求；超大响应、畸形 JSON、429、5xx、超时和断网均按既有有界策略封闭失败。
 - P3-04 benchmark 结论见 [`external_search_benchmark.md`](external_search_benchmark.md)。2026-06-21 匿名采样中 Crossref 成功 6/6，Semantic Scholar 因 6 次 HTTP 429 被判定为匿名运维不可用；项目不要求配置 Semantic Scholar API key，P3-05 唯一实现目标为 Crossref。
 - benchmark 只评估无需凭据的匿名可用性。至少一个候选必须成功完成 5/6 case；对全部 case 均因匿名 429 失败的候选允许标记为运维不适用并排除，但不得把其他超时、畸形响应或部分失败伪装为排除条件。
 - benchmark 网络代码仅允许在 `ai-service-python/benchmarks/external_search/` 中显式 `--live` 运行，不得复用为生产客户端。默认离线评分不得联网，失败结果不得通过降低门槛、切换来源或扩大白名单绕过。

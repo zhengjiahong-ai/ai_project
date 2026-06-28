@@ -83,6 +83,11 @@ class _FakeTime:
 
 
 class CrossrefProviderTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        fixture_path = Path(__file__).parent / "fixtures" / "external_search_adversarial.json"
+        cls.adversarial_fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+
     def _provider(self, response=None, error=None):
         from services.providers.crossref import CrossrefProvider
 
@@ -224,6 +229,40 @@ class CrossrefProviderTests(unittest.TestCase):
         self.assertLessEqual(len(item["url"]), 2048)
         self.assertLessEqual(len(item["license"]), 2048)
         self.assertLessEqual(len(item["query"]), 1000)
+
+    def test_search_sanitizes_prompt_injection_in_external_metadata(self):
+        response = _FakeResponse(payload={
+            "message": {"items": [self.adversarial_fixture["crossrefItem"]]}
+        })
+        provider, _session = self._provider(response=response)
+
+        item = provider.search("retrieval security", limit=1)[0]
+        serialized = json.dumps(item, ensure_ascii=False)
+
+        self.assertIn("Secure Retrieval Study", item["title"])
+        self.assertIn("Ada Lovelace", item["authors"][0])
+        self.assertIn("Evaluation results remain academic evidence.", item["abstract"])
+        self.assertIn("[SANITIZED INJECTION-LIKE CONTENT:", serialized)
+        self.assertNotIn(self.adversarial_fixture["secretToken"], serialized)
+        self.assertNotIn("Ignore previous instructions", serialized)
+
+    def test_redirect_to_private_host_is_not_followed(self):
+        response = _FakeResponse(
+            status_code=302,
+            headers={"Location": self.adversarial_fixture["redirectLocation"]},
+            body=b"redirect body with sk-fixture-secret-12345",
+        )
+        provider, session = self._provider(response=response)
+
+        with self.assertRaises(Exception) as context:
+            provider.search("retrieval security", limit=1)
+
+        self.assertEqual(getattr(context.exception, "code", ""), "http_error")
+        self.assertEqual(len(session.calls), 1)
+        requested_url, options = session.calls[0]
+        self.assertEqual(requested_url, "https://api.crossref.org/works")
+        self.assertFalse(options["allow_redirects"])
+        self.assertNotIn(self.adversarial_fixture["secretToken"], str(context.exception))
 
     def test_http_and_transport_failures_use_stable_sanitized_codes(self):
         from services.providers.crossref import CrossrefProviderError

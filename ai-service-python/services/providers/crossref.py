@@ -17,6 +17,7 @@ from services.external_search_cache import (
     default_external_search_cache_path,
     normalize_external_search_query,
 )
+from services.safety_service import sanitize_untrusted_text
 from services.trace_service import record_counter
 
 
@@ -273,9 +274,9 @@ def _authors(value: Any) -> List[str]:
     for author in value[:MAX_AUTHOR_COUNT]:
         if not isinstance(author, dict):
             continue
-        name = _bounded_text(author.get("name"), MAX_AUTHOR_CHARS)
+        name = _sanitize_untrusted_metadata(author.get("name"), MAX_AUTHOR_CHARS)
         if not name:
-            name = _bounded_text(
+            name = _sanitize_untrusted_metadata(
                 " ".join(
                     part for part in (
                         _clean_text(author.get("given")),
@@ -311,8 +312,8 @@ def _abstract(value: Any) -> str:
     raw = _clean_text(value)
     if not raw:
         return ""
-    text = BeautifulSoup(raw, "html.parser").get_text(" ", strip=True)
-    return _bounded_text(text, MAX_ABSTRACT_CHARS)
+    text = BeautifulSoup(raw, "html.parser").get_text("\n", strip=True)
+    return _sanitize_untrusted_metadata(text, MAX_ABSTRACT_CHARS)
 
 
 def _license(value: Any) -> str:
@@ -324,7 +325,12 @@ def _license(value: Any) -> str:
 def _first_bounded(value: Any, limit: int) -> str:
     if isinstance(value, list):
         value = value[0] if value else ""
-    return _bounded_text(value, limit)
+    return _sanitize_untrusted_metadata(value, limit)
+
+
+def _sanitize_untrusted_metadata(value: Any, limit: int) -> str:
+    sanitized = sanitize_untrusted_text(value, max_tokens=max(1, (limit + 3) // 4))
+    return _bounded_text(sanitized.get("text"), limit)
 
 
 def _clean_text(value: Any) -> str:
