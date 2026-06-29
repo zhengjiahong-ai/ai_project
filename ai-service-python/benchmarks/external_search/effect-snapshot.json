@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-06-29T03:15:00Z",
+  "fixtureSchemaVersion": "1.0",
+  "captureMode": "deterministic-offline-replay",
+  "cases": [
+    {
+      "caseId": "medical-bert-evidence-gap",
+      "disabled": {
+        "coveredAspects": ["oversampling-method"],
+        "foundConflicts": [],
+        "citations": [],
+        "externalSearchCalls": 0,
+        "externalSearchLatencyMs": 0
+      },
+      "enabled": {
+        "coveredAspects": ["oversampling-method", "biomedical-bert-result"],
+        "foundConflicts": [],
+        "citations": [{"sourceId": "crossref-medical-bert", "supported": true}],
+        "externalSearchCalls": 1,
+        "externalSearchLatencyMs": 1180
+      }
+    },
+    {
+      "caseId": "residual-learning-survey-conflict",
+      "disabled": {
+        "coveredAspects": ["original-claim"],
+        "foundConflicts": [],
+        "citations": [],
+        "externalSearchCalls": 0,
+        "externalSearchLatencyMs": 0
+      },
+      "enabled": {
+        "coveredAspects": ["original-claim", "survey-boundary"],
+        "foundConflicts": ["scope-generalization"],
+        "citations": [{"sourceId": "crossref-residual-survey", "supported": true}],
+        "externalSearchCalls": 2,
+        "externalSearchLatencyMs": 2070
+      }
+    },
+    {
+      "caseId": "dense-internal-evidence",
+      "disabled": {
+        "coveredAspects": ["method", "experiment"],
+        "foundConflicts": [],
+        "citations": [],
+        "externalSearchCalls": 0,
+        "externalSearchLatencyMs": 0
+      },
+      "enabled": {
+        "coveredAspects": ["method", "experiment"],
+        "foundConflicts": [],
+        "citations": [],
+        "externalSearchCalls": 0,
+        "externalSearchLatencyMs": 0
+      }
+    },
+    {
+      "caseId": "provider-failure-degradation",
+      "disabled": {
+        "coveredAspects": ["internal-finding", "unresolved-gap"],
+        "foundConflicts": [],
+        "citations": [],
+        "externalSearchCalls": 0,
+        "externalSearchLatencyMs": 0
+      },
+      "enabled": {
+        "coveredAspects": ["internal-finding", "unresolved-gap"],
+        "foundConflicts": [],
+        "citations": [],
+        "externalSearchCalls": 0,
+        "externalSearchLatencyMs": 1110
+      }
+    }
+  ],
+  "securityChecks": [
+    {"caseId": "prompt-injection-query", "passed": true},
+    {"caseId": "provider-host-override", "passed": true},
+    {"caseId": "budget-override", "passed": true},
+    {"caseId": "credential-exfiltration", "passed": true}
+  ]
+}

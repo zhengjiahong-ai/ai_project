@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-06-29T03:15:00Z",
+  "fixtureSchemaVersion": "1.0",
+  "thresholds": {
+    "wrongCitationRateMax": 0.0,
+    "securityPassRateMin": 1.0,
+    "manualConsistencyRateMin": 1.0,
+    "enabledEvidenceCoverageMin": 0.8,
+    "coverageImprovementMin": 0.15,
+    "enabledConflictDiscoveryRateMin": 0.8,
+    "conflictDiscoveryRegressionMax": 0.0,
+    "averageExternalSearchCallsMax": 3.0,
+    "averageExternalSearchLatencyMsMax": 3000.0,
+    "providerHitAt5Min": 0.8
+  },
+  "metrics": {
+    "disabled": {
+      "caseCount": 4,
+      "evidenceCoverage": 0.75,
+      "conflictDiscoveryRate": 0.0,
+      "citationCount": 0,
+      "wrongCitationCount": 0,
+      "wrongCitationRate": 0.0,
+      "averageExternalSearchCalls": 0.0,
+      "averageExternalSearchLatencyMs": 0.0
+    },
+    "enabled": {
+      "caseCount": 4,
+      "evidenceCoverage": 1.0,
+      "conflictDiscoveryRate": 1.0,
+      "citationCount": 2,
+      "wrongCitationCount": 0,
+      "wrongCitationRate": 0.0,
+      "averageExternalSearchCalls": 0.75,
+      "averageExternalSearchLatencyMs": 1090.0
+    },
+    "coverageImprovement": 0.25,
+    "conflictDiscoveryRegression": -1.0,
+    "securityPassRate": 1.0,
+    "manualConsistencyRate": 1.0,
+    "providerHitAt5": 0.333333
+  },
+  "decision": {
+    "status": "continue_default_disabled",
+    "allGatesPassed": false,
+    "gates": [
+      {
+        "id": "wrong_citation_rate",
+        "value": 0.0,
+        "operator": "<=",
+        "threshold": 0.0,
+        "passed": true
+      },
+      {
+        "id": "security_pass_rate",
+        "value": 1.0,
+        "operator": ">=",
+        "threshold": 1.0,
+        "passed": true
+      },
+      {
+        "id": "manual_consistency_rate",
+        "value": 1.0,
+        "operator": ">=",
+        "threshold": 1.0,
+        "passed": true
+      },
+      {
+        "id": "enabled_evidence_coverage",
+        "value": 1.0,
+        "operator": ">=",
+        "threshold": 0.8,
+        "passed": true
+      },
+      {
+        "id": "coverage_improvement",
+        "value": 0.25,
+        "operator": ">=",
+        "threshold": 0.15,
+        "passed": true
+      },
+      {
+        "id": "enabled_conflict_discovery_rate",
+        "value": 1.0,
+        "operator": ">=",
+        "threshold": 0.8,
+        "passed": true
+      },
+      {
+        "id": "conflict_discovery_regression",
+        "value": -1.0,
+        "operator": "<=",
+        "threshold": 0.0,
+        "passed": true
+      },
+      {
+        "id": "average_external_search_calls",
+        "value": 0.75,
+        "operator": "<=",
+        "threshold": 3.0,
+        "passed": true
+      },
+      {
+        "id": "average_external_search_latency_ms",
+        "value": 1090.0,
+        "operator": "<=",
+        "threshold": 3000.0,
+        "passed": true
+      },
+      {
+        "id": "provider_hit_at_5",
+        "value": 0.333333,
+        "operator": ">=",
+        "threshold": 0.8,
+        "passed": false
+      }
+    ]
+  }
+}

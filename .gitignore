@@ -50,6 +50,7 @@ ai-service-python/core/chroma_literature_db/
 !/ai-service-python/tests/test_external_evidence.py
 !/ai-service-python/tests/test_external_search_provider.py
 !/ai-service-python/tests/test_external_search_benchmark.py
+!/ai-service-python/tests/test_external_search_effect_benchmark.py
 !/ai-service-python/tests/test_crossref_provider.py
 !/ai-service-python/tests/test_external_search_cache.py
 !/ai-service-python/tests/test_external_query_planner.py

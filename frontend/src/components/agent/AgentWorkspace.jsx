@@ -7,6 +7,7 @@ import AgentWorkspaceSidebar, { AgentWorkspaceLeftRail } from './AgentWorkspaceS
 import {
   addSelectedAgentPaperId,
   buildAgentProjectPayload,
+  buildAgentPlanReviewPayload,
   appendAgentTaskForProject,
   createEmptyAgentWorkspaceState,
   getProjectTasks,
@@ -475,7 +476,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
   const handleReviewPlan = async (payload) => {
     if (!currentTask?.taskId) return;
     try {
-      const response = await apiService.reviewAgentPlan(currentTask.taskId, payload);
+      const response = await apiService.reviewAgentPlan(currentTask.taskId, buildAgentPlanReviewPayload(payload));
       cacheTask(normalizeAgentTaskResponse(response).task, true);
       setState((prev) => ({ ...prev, error: '' }));
     } catch (error) {

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   addSelectedAgentPaperId,
   appendAgentTaskForProject,
+  buildAgentPlanReviewPayload,
   buildAgentProjectPayload,
   createEmptyAgentWorkspaceState,
   getProjectTasks,
@@ -14,6 +15,28 @@ import {
   removeAgentProjectFromState,
   resolveInitialAgentPaperSelection,
 } from './agentWorkspaceModel.js';
+
+assert.deepEqual(
+  buildAgentPlanReviewPayload({
+    planItems: [
+      { id: 'methods', label: 'Compare methods', allowExternalSearch: true },
+      { id: 'external', label: 'External academic search', allowExternalSearch: false },
+    ],
+    focusedPaperIds: ['paper-1'],
+    constraints: 'Evidence first',
+    reviewNotes: 'Approved',
+    allowExternalSearch: true,
+  }),
+  {
+    planItems: [
+      { id: 'methods', label: 'Compare methods', allowExternalSearch: false },
+      { id: 'external', label: 'External academic search', allowExternalSearch: true },
+    ],
+    focusedPaperIds: ['paper-1'],
+    constraints: 'Evidence first',
+    reviewNotes: 'Approved',
+  },
+);
 
 assert.deepEqual(getAgentArtifactSaveState({ activePdfId: '', content: '报告' }), {
   canSave: false,

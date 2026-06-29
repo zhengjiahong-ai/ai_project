@@ -51,7 +51,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         )
         return response["project"]
 
-    def _create_task_without_worker(self, project_id):
+    def _create_task_without_worker(self, project_id, allow_external_search=False):
         with patch("services.agent_project_service.threading.Thread", _NoopThread):
             response = agent_project_service.create_agent_task(
                 project_id,
@@ -60,6 +60,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
                     focusedPaperIds=["paper-a", "paper-b"],
                     constraints="Use evidence first.",
                     context={"activePaperId": "paper-a"},
+                    allowExternalSearch=allow_external_search,
                 ),
             )
         return response["task"]
@@ -388,6 +389,77 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         self.assertEqual(external_sources[0]["doi"], "10.1234/abc123")
         self.assertIn("External Academic Evidence", completed["draftReport"])
         self.assertIn("externalEvidenceCount", completed["findings"][0])
+
+    def test_authorized_external_search_survives_plan_execution_restore_and_final_review(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"], allow_external_search=True)
+        with patch.object(agent_project_service, "_start_agent_worker"):
+            planned = agent_project_service.prepare_agent_task_now(task["taskId"])
+            approved = agent_project_service.review_agent_plan(
+                task["taskId"],
+                AgentPlanReviewRequest(
+                    planItems=[
+                        {"id": "methods", "label": "Compare methods", "detail": "Read internal evidence"},
+                        {"id": "external", "label": "External academic search", "detail": "Fill evidence gaps", "allowExternalSearch": True},
+                    ],
+                    focusedPaperIds=["paper-a", "paper-b"],
+                    constraints="Use external search only for evidence gaps.",
+                    reviewNotes="Allow Crossref metadata lookup.",
+                ),
+            )["task"]
+
+        self.assertEqual(planned["status"], "awaiting_plan_review")
+        self.assertTrue(approved["externalSearchConfig"]["allowExternalSearch"])
+        self.assertEqual(approved["humanReview"]["plan"]["status"], "approved")
+
+        paper_contexts = [
+            {"pdfId": "paper-a", "evidenceCount": 1, "sourceIds": ["a-1"], "preview": "sparse", "status": "succeeded"},
+            {"pdfId": "paper-b", "evidenceCount": 1, "sourceIds": ["b-1"], "preview": "sparse", "status": "succeeded"},
+        ]
+        tool_calls = [{
+            "id": "retrieve-external-academic-lifecycle",
+            "name": "retrieve_external_academic",
+            "version": "1.0.0",
+            "safetyScope": {"access": "read_only", "dataScopes": ["external_academic_metadata"], "networkAccess": True, "sideEffects": False, "sensitiveOutput": True},
+            "status": "succeeded",
+            "meta": {},
+        }]
+        evidence_items = [
+            {"sourceId": "a-1", "text": "internal method evidence", "pdfId": "paper-a", "sectionId": "method"},
+            {"sourceId": "b-1", "text": "internal result evidence", "pdfId": "paper-b", "sectionId": "results"},
+            {
+                "sourceId": "external-doi-lifecycle",
+                "sourceType": "external_academic",
+                "provider": "crossref",
+                "title": "Deep Residual Learning for Image Recognition: A Survey",
+                "year": 2022,
+                "doi": "10.3390/app12188972",
+                "url": "https://doi.org/10.3390/app12188972",
+                "retrievedAt": "2026-06-29T00:00:00Z",
+                "text": "External survey evidence.",
+            },
+        ]
+        with (
+            patch.object(agent_project_service, "_agent_step_delay", return_value=None),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+        ):
+            agent_project_service._run_minimal_agent_task(task["taskId"])
+
+        awaiting_review = agent_project_service.get_agent_task(task["taskId"])["task"]
+        self.assertEqual(awaiting_review["status"], "awaiting_final_review")
+        self.assertIn("External Academic Evidence", awaiting_review["draftReport"])
+        self.assertIn("external-doi-lifecycle", [item["sourceId"] for item in awaiting_review["evidenceItems"]])
+
+        agent_project_service.reload_agent_state_from_storage()
+        restored = agent_project_service.get_agent_task(task["taskId"])["task"]
+        self.assertIn("external-doi-lifecycle", [item["sourceId"] for item in restored["evidenceItems"]])
+
+        completed = agent_project_service.review_agent_final(
+            task["taskId"],
+            AgentFinalReviewRequest(reviewNotes="External DOI checked.", riskReviews=[]),
+        )["task"]
+        self.assertEqual(completed["status"], "succeeded")
+        self.assertEqual(completed["humanReview"]["final"]["status"], "approved")
 
     def test_external_search_tool_calls_record_version_and_safety_scope(self):
         project = self._create_project()

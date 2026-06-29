@@ -111,6 +111,18 @@ Crossref 标题、作者和 JATS/HTML 摘要在统一证据归一化前按不可
 
 Deep Research 和 Agent 仅传播 `success/no_queries/disabled/budget_exceeded/failed` 对应的固定降级说明。Provider 原始 `reason`、异常消息、响应体和凭据不得进入 finding、Agent 工具调用摘要、trace 或 SQLite 快照；外部失败继续保留当前论文和内部文献库证据，不把缺口标记为已解决。
 
+## P3-16 跨服务验证状态
+
+共享 contract 已覆盖 Deep Research 和 Agent 的任务创建、计划审查、任务查询及最终审查，并验证 `allowExternalSearch`、外部证据、Provider、预算和降级字段经 Python `/api` 与 Java `/api` 网关保持一致。Python 生命周期测试使用固定论文、固定工具结果和临时 SQLite，不访问真实 Provider 或 LLM；验证显式授权、证据不足触发、报告引用、故障降级、快照恢复和最终人工审查。
+
+Playwright 使用独立外部 Provider route fixture，验证前端开关默认关闭、创建与计划审查两次授权、Crossref 来源 DOI/URL/摘要展示、Provider 失败后的内部证据保留、页面刷新恢复和终稿确认。Agent 计划审查授权必须落在 `planItems[id=external].allowExternalSearch`，不得只发送 Python 请求模型不会读取的顶层字段。
+
+## P3-17 启用决策
+
+固定配对任务离线比较关闭/开启模式。开启模式证据覆盖率为 `1.0`，相对关闭模式提升 `0.25`；冲突发现率为 `1.0`，错误引用率为 `0`，平均外部调用数为 `0.75`，平均外部耗时为 `1090ms`，安全检查和人工 DOI/URL/摘要一致性均为 `100%`。两条人工抽查来源通过官方 Crossref `/works` 元数据核验，落盘记录不包含完整摘要。
+
+严格门槛还要求 Provider `hitAt5 >= 0.8`。P3-04 固定样本的 Crossref `hitAt5=0.333333`、摘要覆盖率 `0.1`，因此唯一失败门槛为 Provider 相关性，自动决策是 `continue_default_disabled`。不得通过降低门槛、扩大白名单或要求新凭据绕过该结论；正式启用前必须以同一固定任务和门槛重新评测。
+
 ## P3-01 非目标
 
 本任务不实现 Provider 客户端、Provider 工厂、统一外部证据模型、缓存、限流、重试、去重、任务预算、查询规划、工具注册、API、持久化、UI、MCP 暴露或真实网络验证。这些能力必须按 P3-02 至 P3-17 的顺序逐项实现和验证。

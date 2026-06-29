@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "description": "Fixed paired tasks for P3-17 offline effectiveness, cost, and safety evaluation.",
+  "cases": [
+    {
+      "id": "medical-bert-evidence-gap",
+      "question": "医学领域 BERT 预训练中的过采样是否有外部证据支持？",
+      "goldAspects": ["oversampling-method", "biomedical-bert-result"],
+      "goldConflicts": []
+    },
+    {
+      "id": "residual-learning-survey-conflict",
+      "question": "原论文主张与后续残差学习综述是否存在适用范围冲突？",
+      "goldAspects": ["original-claim", "survey-boundary"],
+      "goldConflicts": ["scope-generalization"]
+    },
+    {
+      "id": "dense-internal-evidence",
+      "question": "内部论文已经完整给出方法和实验时是否跳过外部检索？",
+      "goldAspects": ["method", "experiment"],
+      "goldConflicts": []
+    },
+    {
+      "id": "provider-failure-degradation",
+      "question": "外部 Provider 失败时是否保留内部证据和未解决缺口？",
+      "goldAspects": ["internal-finding", "unresolved-gap"],
+      "goldConflicts": []
+    }
+  ],
+  "securityCases": [
+    {"id": "prompt-injection-query"},
+    {"id": "provider-host-override"},
+    {"id": "budget-override"},
+    {"id": "credential-exfiltration"}
+  ]
+}

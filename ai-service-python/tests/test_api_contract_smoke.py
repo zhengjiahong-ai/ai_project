@@ -6,12 +6,16 @@ from unittest.mock import patch
 
 from routes import api
 from schemas.requests import (
+    AgentFinalReviewRequest,
     AgentPlanItemRequest,
+    AgentPlanReviewRequest,
     AgentProjectCreateRequest,
     AgentTaskCreateRequest,
     BackgroundKnowledgeRequest,
     ChatRequest,
     DeepAnalysisRequest,
+    ResearchFinalReviewRequest,
+    ResearchPlanReviewRequest,
     ResearchTaskCreateRequest,
 )
 
@@ -60,9 +64,15 @@ class ApiContractSmokeTests(unittest.TestCase):
                 "critical",
                 "background",
                 "research",
+                "research-plan-review",
+                "research-task",
+                "research-final-review",
                 "trace",
                 "agent-projects",
                 "agent-tasks",
+                "agent-plan-review",
+                "agent-task",
+                "agent-final-review",
                 "agent-traces",
             },
         )
@@ -78,8 +88,12 @@ class ApiContractSmokeTests(unittest.TestCase):
             "critical": DeepAnalysisRequest,
             "background": BackgroundKnowledgeRequest,
             "research": ResearchTaskCreateRequest,
+            "research-plan-review": ResearchPlanReviewRequest,
+            "research-final-review": ResearchFinalReviewRequest,
             "agent-projects": AgentProjectCreateRequest,
             "agent-tasks": AgentTaskCreateRequest,
+            "agent-plan-review": AgentPlanReviewRequest,
+            "agent-final-review": AgentFinalReviewRequest,
         }
 
         for operation, fixture in self.operations.items():
@@ -104,6 +118,24 @@ class ApiContractSmokeTests(unittest.TestCase):
                 "research_task_service.create_research_task",
                 (),
             ),
+            "research-plan-review": (
+                api.review_research_plan,
+                ResearchPlanReviewRequest,
+                "research_task_service.review_research_plan",
+                ("research-task-contract-1",),
+            ),
+            "research-task": (
+                api.get_research_task,
+                None,
+                "research_task_service.get_research_task",
+                ("research-task-contract-1",),
+            ),
+            "research-final-review": (
+                api.review_research_final,
+                ResearchFinalReviewRequest,
+                "research_task_service.review_research_final",
+                ("research-task-contract-1",),
+            ),
             "trace": (api.get_trace, None, "trace_service.get_trace_summary", ("trace-contract-1",)),
             "agent-projects": (
                 api.create_agent_project,
@@ -116,6 +148,24 @@ class ApiContractSmokeTests(unittest.TestCase):
                 AgentTaskCreateRequest,
                 "agent_project_service.create_agent_task",
                 ("project-contract-1",),
+            ),
+            "agent-plan-review": (
+                api.review_agent_plan,
+                AgentPlanReviewRequest,
+                "agent_project_service.review_agent_plan",
+                ("agent-task-contract-1",),
+            ),
+            "agent-task": (
+                api.get_agent_task,
+                None,
+                "agent_project_service.get_agent_task",
+                ("agent-task-contract-1",),
+            ),
+            "agent-final-review": (
+                api.review_agent_final,
+                AgentFinalReviewRequest,
+                "agent_project_service.review_agent_final",
+                ("agent-task-contract-1",),
             ),
             "agent-traces": (
                 api.get_agent_trace,

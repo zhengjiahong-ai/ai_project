@@ -45,13 +45,19 @@ const run = async () => {
     sharedContract.operations.map((operation) => [operation.operation, operation]),
   );
   assert.deepEqual(Object.keys(contractOperations).sort(), [
+    'agent-final-review',
+    'agent-plan-review',
     'agent-projects',
+    'agent-task',
     'agent-tasks',
     'agent-traces',
     'background',
     'chat',
     'critical',
     'research',
+    'research-final-review',
+    'research-plan-review',
+    'research-task',
     'trace',
   ]);
 
@@ -103,6 +109,9 @@ const run = async () => {
     paperSkeleton: { abstract: 'summary' },
     allowExternalSearch: false,
   });
+
+  await createResearchService.createResearchTask('研究问题', 'paper-1', null, '', null, true);
+  assert.equal(createResearchPayload.allowExternalSearch, true);
 
   await createResearchService.previewResearchBrief('研究问题', 'paper-1', { abstract: 'summary' }, '重点看实验');
   assert.equal(createResearchUrl, '/research-tasks/brief-preview');
@@ -181,6 +190,9 @@ const run = async () => {
   await agentService.createAgentTask('project 1', { prompt: 'compare' });
   assert.equal(agentUrl, '/agent-projects/project%201/tasks');
   assert.deepEqual(agentPayload, { prompt: 'compare' });
+
+  await agentService.createAgentTask('project 1', { prompt: 'compare', allowExternalSearch: true });
+  assert.equal(agentPayload.allowExternalSearch, true);
 
   await agentService.getLatestAgentTask('project 1');
   assert.equal(agentUrl, '/agent-projects/project%201/tasks/latest');
@@ -470,6 +482,38 @@ const run = async () => {
   });
   assertContract(researchResponse, researchContract.pythonResponseContract);
 
+  const researchPlanContract = contractOperations['research-plan-review'];
+  const researchPlanResponse = await contractService.reviewResearchPlan(
+    'research-task-contract-1',
+    researchPlanContract.frontendRequest,
+  );
+  assert.deepEqual(readerCalls.at(-1), {
+    method: researchPlanContract.method,
+    url: researchPlanContract.frontendPath,
+    body: researchPlanContract.frontendRequest,
+  });
+  assertContract(researchPlanResponse, researchPlanContract.pythonResponseContract);
+
+  const researchTaskContract = contractOperations['research-task'];
+  const researchTaskResponse = await contractService.getResearchTask('research-task-contract-1');
+  assert.deepEqual(readerCalls.at(-1), {
+    method: researchTaskContract.method,
+    url: researchTaskContract.frontendPath,
+  });
+  assertContract(researchTaskResponse, researchTaskContract.pythonResponseContract);
+
+  const researchFinalContract = contractOperations['research-final-review'];
+  const researchFinalResponse = await contractService.reviewResearchFinal(
+    'research-task-contract-1',
+    researchFinalContract.frontendRequest,
+  );
+  assert.deepEqual(readerCalls.at(-1), {
+    method: researchFinalContract.method,
+    url: researchFinalContract.frontendPath,
+    body: researchFinalContract.frontendRequest,
+  });
+  assertContract(researchFinalResponse, researchFinalContract.pythonResponseContract);
+
   const traceContract = contractOperations.trace;
   const traceResponse = await contractService.getTrace('trace-contract-1');
   assert.deepEqual(readerCalls.at(-1), { method: traceContract.method, url: traceContract.frontendPath });
@@ -492,6 +536,38 @@ const run = async () => {
     body: taskContract.frontendRequest,
   });
   assertContract(taskResponse, taskContract.pythonResponseContract);
+
+  const agentPlanContract = contractOperations['agent-plan-review'];
+  const agentPlanResponse = await contractService.reviewAgentPlan(
+    'agent-task-contract-1',
+    agentPlanContract.frontendRequest,
+  );
+  assert.deepEqual(agentCalls.at(-1), {
+    method: agentPlanContract.method,
+    url: agentPlanContract.frontendPath,
+    body: agentPlanContract.frontendRequest,
+  });
+  assertContract(agentPlanResponse, agentPlanContract.pythonResponseContract);
+
+  const agentTaskContract = contractOperations['agent-task'];
+  const agentTaskResponse = await contractService.getAgentTask('agent-task-contract-1');
+  assert.deepEqual(agentCalls.at(-1), {
+    method: agentTaskContract.method,
+    url: agentTaskContract.frontendPath,
+  });
+  assertContract(agentTaskResponse, agentTaskContract.pythonResponseContract);
+
+  const agentFinalContract = contractOperations['agent-final-review'];
+  const agentFinalResponse = await contractService.reviewAgentFinal(
+    'agent-task-contract-1',
+    agentFinalContract.frontendRequest,
+  );
+  assert.deepEqual(agentCalls.at(-1), {
+    method: agentFinalContract.method,
+    url: agentFinalContract.frontendPath,
+    body: agentFinalContract.frontendRequest,
+  });
+  assertContract(agentFinalResponse, agentFinalContract.pythonResponseContract);
 
   const agentTraceContract = contractOperations['agent-traces'];
   const agentTraceResponse = await contractService.getAgentTrace('agent-trace-contract-1');

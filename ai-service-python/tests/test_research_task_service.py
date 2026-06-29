@@ -587,6 +587,56 @@ class ResearchTaskExternalSearchTests(unittest.TestCase):
         self.assertNotIn("external-doi-", "\n".join(source_ids))
         self.assertEqual(task["status"], "awaiting_final_review")
 
+    def test_authorized_external_search_survives_review_execution_restore_and_final_review(self):
+        task_id = self._create_task(allow_external_search=True)
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["核查外部复现实验"])),
+        ):
+            planned = research_task_service.prepare_research_task_now(task_id)
+
+        self.assertTrue(planned["externalSearchConfig"]["allowExternalSearch"])
+        with patch.object(research_task_service._TASK_EXECUTOR, "submit"):
+            approved = research_task_service.review_research_plan(
+                task_id,
+                ResearchPlanReviewRequest(subQuestions=["核查外部复现实验"], reviewNotes="允许 Crossref 补查"),
+            )["task"]
+        self.assertEqual(approved["humanReview"]["plan"]["status"], "approved")
+
+        judge_calls = []
+        external_items = [{
+            "sourceId": "external-doi-lifecycle",
+            "text": "external replication evidence",
+            "sourceType": "external_academic",
+            "provider": "crossref",
+            "title": "External Replication Study",
+            "doi": "10.3390/app12188972",
+            "url": "https://doi.org/10.3390/app12188972",
+        }]
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_executor, "retrieve_current_paper_evidence", return_value=[{"sourceId": "cp-1", "text": "paper evidence", "sourceType": "current_paper"}]),
+            patch.object(research_executor, "retrieve_library_evidence", return_value=[{"sourceId": "lib-1", "text": "library evidence", "sourceType": "library"}]),
+            patch.object(research_executor, "judge_research_evidence", side_effect=lambda q, e, **kw: self._insufficient_judge(judge_calls)),
+            patch.object(research_executor, "retrieve_external_academic_evidence", return_value={"status": "success", "items": external_items, "degradation": ""}),
+        ):
+            awaiting_review = research_task_service.run_research_task_now(task_id)
+
+        self.assertEqual(awaiting_review["status"], "awaiting_final_review")
+        self.assertIn("external-doi-lifecycle", awaiting_review["findings"][0]["sourceIds"])
+        self.assertIn("外部学术检索", awaiting_review["report"])
+
+        research_task_service.reload_research_tasks_from_storage()
+        restored = research_task_service.get_research_task(task_id)["task"]
+        self.assertIn("external-doi-lifecycle", restored["findings"][0]["sourceIds"])
+
+        completed = research_task_service.review_research_final(
+            task_id,
+            ResearchFinalReviewRequest(reviewNotes="已核验外部 DOI", riskReviews=[]),
+        )["task"]
+        self.assertEqual(completed["status"], "succeeded")
+        self.assertEqual(completed["humanReview"]["final"]["status"], "approved")
+
     def test_external_search_with_success_adds_evidence_and_rejudges(self):
         task_id = self._create_task()
         judge_calls = []

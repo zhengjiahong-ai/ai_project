@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "reviewedAt": "2026-06-29",
+  "method": "Official Crossref /works metadata was checked against the stored DOI, URL, title, and abstract-presence summary. Full abstracts were not persisted.",
+  "reviews": [
+    {
+      "sourceId": "crossref-medical-bert",
+      "doi": "10.2196/preprints.40992",
+      "url": "https://doi.org/10.2196/preprints.40992",
+      "title": "Over-Sampling Effect in Pre-Training for Bidirectional Encoder Representations from Transformers (BERT) to Localize Medical BERT and Enhance Biomedical BERT (Preprint)",
+      "abstractPresent": true,
+      "doiMatches": true,
+      "urlMatches": true,
+      "abstractMatches": true
+    },
+    {
+      "sourceId": "crossref-residual-survey",
+      "doi": "10.3390/app12188972",
+      "url": "https://doi.org/10.3390/app12188972",
+      "title": "Deep Residual Learning for Image Recognition: A Survey",
+      "abstractPresent": true,
+      "doiMatches": true,
+      "urlMatches": true,
+      "abstractMatches": true
+    }
+  ]
+}

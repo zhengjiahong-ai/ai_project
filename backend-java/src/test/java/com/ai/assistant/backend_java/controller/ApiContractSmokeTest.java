@@ -88,6 +88,29 @@ class ApiContractSmokeTest {
                 .content(MAPPER.writeValueAsString(request)), research);
         verify(aiService).createResearchTask(eq(request));
 
+        JsonNode planReview = operation("research-plan-review");
+        Map<String, Object> planReviewRequest = asMap(planReview.path("frontendRequest"));
+        when(aiService.reviewResearchPlan(eq("research-task-contract-1"), anyMap()))
+                .thenReturn(ResponseEntity.ok(asMap(planReview.path("gatewayResponse"))));
+        assertResponse(post(planReview.path("javaPath").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(MAPPER.writeValueAsString(planReviewRequest)), planReview);
+        verify(aiService).reviewResearchPlan("research-task-contract-1", planReviewRequest);
+
+        JsonNode researchTask = operation("research-task");
+        when(aiService.getResearchTask("research-task-contract-1"))
+                .thenReturn(ResponseEntity.ok(asMap(researchTask.path("gatewayResponse"))));
+        assertResponse(get(researchTask.path("javaPath").asText()), researchTask);
+
+        JsonNode finalReview = operation("research-final-review");
+        Map<String, Object> finalReviewRequest = asMap(finalReview.path("frontendRequest"));
+        when(aiService.reviewResearchFinal(eq("research-task-contract-1"), anyMap()))
+                .thenReturn(ResponseEntity.ok(asMap(finalReview.path("gatewayResponse"))));
+        assertResponse(post(finalReview.path("javaPath").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(MAPPER.writeValueAsString(finalReviewRequest)), finalReview);
+        verify(aiService).reviewResearchFinal("research-task-contract-1", finalReviewRequest);
+
         JsonNode trace = operation("trace");
         when(aiService.getTrace("trace-contract-1"))
                 .thenReturn(ResponseEntity.ok(asMap(trace.path("gatewayResponse"))));
@@ -113,6 +136,29 @@ class ApiContractSmokeTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(MAPPER.writeValueAsString(taskRequest)), task);
         verify(aiService).createAgentTask("project-contract-1", taskRequest);
+
+        JsonNode planReview = operation("agent-plan-review");
+        Map<String, Object> planReviewRequest = asMap(planReview.path("frontendRequest"));
+        when(aiService.reviewAgentPlan(eq("agent-task-contract-1"), anyMap()))
+                .thenReturn(ResponseEntity.ok(asMap(planReview.path("gatewayResponse"))));
+        assertResponse(post(planReview.path("javaPath").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(MAPPER.writeValueAsString(planReviewRequest)), planReview);
+        verify(aiService).reviewAgentPlan("agent-task-contract-1", planReviewRequest);
+
+        JsonNode agentTask = operation("agent-task");
+        when(aiService.getAgentTask("agent-task-contract-1"))
+                .thenReturn(ResponseEntity.ok(asMap(agentTask.path("gatewayResponse"))));
+        assertResponse(get(agentTask.path("javaPath").asText()), agentTask);
+
+        JsonNode finalReview = operation("agent-final-review");
+        Map<String, Object> finalReviewRequest = asMap(finalReview.path("frontendRequest"));
+        when(aiService.reviewAgentFinal(eq("agent-task-contract-1"), anyMap()))
+                .thenReturn(ResponseEntity.ok(asMap(finalReview.path("gatewayResponse"))));
+        assertResponse(post(finalReview.path("javaPath").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(MAPPER.writeValueAsString(finalReviewRequest)), finalReview);
+        verify(aiService).reviewAgentFinal("agent-task-contract-1", finalReviewRequest);
 
         JsonNode trace = operation("agent-traces");
         when(aiService.getAgentTrace("agent-trace-contract-1"))

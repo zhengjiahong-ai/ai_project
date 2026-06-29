@@ -1,7 +1,22 @@
 import { expect, test } from '@playwright/test';
 
 import { installMockApi } from '../fixtures/mockApi.js';
+import { installExternalProviderRoute } from '../fixtures/externalProviderRoute.js';
 import { createSmokePdfBuffer } from '../fixtures/smokePdf.js';
+
+const openExternalAgentWorkspace = async (page) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'external-search-paper.pdf',
+    mimeType: 'application/pdf',
+    buffer: createSmokePdfBuffer(),
+  });
+  await page.getByRole('button', { name: 'Agent 研究', exact: true }).click();
+  await page.getByPlaceholder('项目标题').fill('外部检索验证项目');
+  await page.getByPlaceholder('项目目标').fill('验证授权、来源和降级恢复');
+  await page.getByTitle('创建项目').click();
+  await expect(page.getByRole('heading', { name: '外部检索验证项目' })).toBeVisible();
+};
 
 test('阅读 IDE 与 Agent 研究完成同一浏览器 smoke 主流程', async ({ page }) => {
   const mockState = await installMockApi(page);
@@ -70,4 +85,59 @@ test('阅读 IDE 与 Agent 研究完成同一浏览器 smoke 主流程', async (
   expect(mockState.taskPollCount).toBeGreaterThanOrEqual(2);
   expect(mockState.planReviewPayload.focusedPaperIds).toEqual(['paper-smoke-1']);
   expect(mockState.finalReviewPayload.riskReviews).toEqual([{ riskId: 'open:1', reviewStatus: 'reviewed' }]);
+});
+
+test('Agent 外部检索从显式授权到报告引用和终稿审查', async ({ page }) => {
+  const mockState = await installExternalProviderRoute(page, { scenario: 'success' });
+  await openExternalAgentWorkspace(page);
+
+  const composerSwitch = page.getByRole('switch', { name: '授权外部学术检索' }).first();
+  await expect(composerSwitch).toHaveAttribute('aria-checked', 'false');
+  await composerSwitch.click();
+  await expect(composerSwitch).toHaveAttribute('aria-checked', 'true');
+
+  await page.getByPlaceholder(/让 Agent 比较/).fill('核查证据缺口并补充外部复现实验');
+  await page.getByTitle('启动 Agent 任务').click();
+  await expect(page.getByText('确认论文范围、约束和研究指令后才会执行')).toBeVisible();
+
+  const planSwitch = page.getByRole('switch', { name: '授权外部学术检索' }).first();
+  await planSwitch.click();
+  await expect(page.getByText('外部学术检索已授权')).toBeVisible();
+  await expect(page.getByText(/Provider: crossref/)).toBeVisible();
+  await page.getByRole('button', { name: '确认计划并执行' }).click();
+
+  await expect(page.getByText('终稿人工审查')).toBeVisible({ timeout: 10_000 });
+  const evidencePanel = page.locator('aside').filter({ hasText: 'Tools & Evidence' });
+  await expect(evidencePanel.getByText('2 items')).toBeVisible();
+  await expect(evidencePanel.getByText('外部来源 · crossref · 2022')).toBeVisible();
+  await evidencePanel.getByRole('button', { name: '查看详情' }).click();
+  await expect(evidencePanel.getByText('DOI: 10.3390/app12188972')).toBeVisible();
+  await expect(page.getByRole('paragraph').filter({ hasText: '外部综述证据补充了适用范围边界。' })).toBeVisible();
+
+  await page.getByRole('button', { name: '确认终稿' }).click();
+  await expect(page.getByText('研究任务已完成')).toBeVisible();
+  expect(mockState.taskPayload.allowExternalSearch).toBe(true);
+  expect(mockState.planReviewPayload.planItems.find((item) => item.id === 'external')?.allowExternalSearch).toBe(true);
+  expect(mockState.finalReviewPayload.riskReviews).toEqual([{ riskId: 'external:1', reviewStatus: 'reviewed' }]);
+});
+
+test('Agent Provider 故障降级后可刷新恢复并完成人工审查', async ({ page }) => {
+  const mockState = await installExternalProviderRoute(page, { scenario: 'failure' });
+  await openExternalAgentWorkspace(page);
+
+  await page.getByRole('switch', { name: '授权外部学术检索' }).first().click();
+  await page.getByPlaceholder(/让 Agent 比较/).fill('验证 Provider 故障降级');
+  await page.getByTitle('启动 Agent 任务').click();
+  await page.getByRole('switch', { name: '授权外部学术检索' }).first().click();
+  await page.getByRole('button', { name: '确认计划并执行' }).click();
+
+  await expect(page.getByText('终稿人工审查')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('External academic provider failed. 内部证据与未解决缺口均已保留。', { exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Agent 研究', exact: true }).click();
+  await expect(page.getByText('终稿人工审查')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('External academic provider failed. 内部证据与未解决缺口均已保留。', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '确认终稿' }).click();
+  await expect(page.getByText('研究任务已完成')).toBeVisible();
+  expect(mockState.taskPollCount).toBeGreaterThanOrEqual(2);
 });

@@ -51,6 +51,8 @@ Agent 工作区已经不再只是静态原型壳。当前已经具备第一版�
 - Agent 工具调用会记录内部工具版本和结构化安全范围；内部注册层在执行前后严格校验输入与输出，非法参数不会进入 handler。
 - 服务端按项目返回 Agent 任务历史，刷新、换浏览器或服务重启后可恢复项目历史。
 - Agent 终态任务会保存脱敏 trace summary，服务重启后仍可按 `traceId` 恢复关键调用、预算和耗时计数。
+- Deep Research 和 Agent 都支持在任务创建及计划审查阶段显式授权只读外部学术检索；只有内部证据不足时才会调用白名单 Crossref，并在来源卡和报告引用中区分外部证据。
+- 外部 Provider 失败、超时或预算耗尽时任务会保留内部证据和未解决缺口，以脱敏原因降级，并继续进入最终人工审查。
 - 前端快照仍按项目保存任务历史，作为旧接口或临时失败时的 fallback。
 - Agent 报告草稿、跨论文对比表和单条关键证据可以加入工作台；报告与对比表归入进入 Agent 时的当前论文，证据卡同时保留来源论文、页码、章节、项目和任务标识。未打开当前论文时保存入口会禁用。
 
@@ -61,7 +63,7 @@ Agent 工作区已经不再只是静态原型壳。当前已经具备第一版�
 - Deep Research 和 Agent 的后端编排边界已经拆出 planner/executor/aggregator/orchestrator 模块，现有使用流程不变，但后续接入 LangGraph 或 Deep Orchestrator 时可以优先替换这些内部层。
 - 已提供默认关闭的只读 MCP adapter 原型；它仅以本机 `stdio` 独立启动，不挂载 FastAPI，也不新增网络监听或 Java 转发。
 - 背景知识图谱只使用当前论文、论文骨架和显式主题，不读取论文库中的其他论文，也不会自行联网；无当前论文片段支持的知识和关系会明确标记为模型推断。
-- 只读外部学术检索仍默认关闭，且尚未接入 Deep Research 或 Agent 证据不足分支；内部工具已具备 trace 审计、缓存命中、失败和预算阻止计数。
+- 只读外部学术检索已接入 Deep Research 和 Agent 的证据不足分支，但生产默认仍关闭。P3-17 严格评测因 Crossref `hitAt5=0.333333` 未达到 `0.8` 门槛，当前不进入常规启用或灰度。
 
 ## 运行链路
 
@@ -285,7 +287,7 @@ npm.cmd run test:e2e
 npm.cmd run build
 ```
 
-`test:e2e` 使用 Playwright Chromium 和测试内 route mock，覆盖 PDF 上传、论文库、阅读面板、研读工作台，以及 Agent 项目创建、任务轮询、任务历史和证据展示；无需启动 Java、Python、Docker 或真实模型服务。首次运行需安装 Chromium。
+`test:e2e` 使用 Playwright Chromium 和测试内 route mock，覆盖 PDF 上传、论文库、阅读面板、研读工作台，以及 Agent 项目创建、外部检索显式授权、外部来源展示、Provider 故障降级、刷新恢复和最终人工审查；无需启动 Java、Python、Docker、真实 Provider 或真实模型服务。首次运行需安装 Chromium。
 
 Java：
 
@@ -299,6 +301,13 @@ Python：
 ```bash
 cd ai-service-python
 python -m pytest tests -q
+```
+
+外部检索评测默认离线读取固定 snapshot，不访问 Provider 或 LLM：
+
+```powershell
+python -m benchmarks.external_search.provider_benchmark
+python -m benchmarks.external_search.effect_benchmark
 ```
 
 Python 测试也支持完全离线的固定 LLM 响应，不需要 `DEEPSEEK_API_KEY`，且不会请求 DeepSeek：

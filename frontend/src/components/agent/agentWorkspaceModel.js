@@ -81,6 +81,19 @@ export const buildAgentProjectPayload = ({
   ),
 });
 
+export const buildAgentPlanReviewPayload = (payload = {}) => {
+  const allowExternalSearch = Boolean(payload.allowExternalSearch);
+  return {
+    planItems: (Array.isArray(payload.planItems) ? payload.planItems : []).map((item) => ({
+      ...item,
+      allowExternalSearch: item?.id === 'external' ? allowExternalSearch : false,
+    })),
+    focusedPaperIds: Array.isArray(payload.focusedPaperIds) ? payload.focusedPaperIds : [],
+    constraints: `${payload.constraints ?? ''}`,
+    reviewNotes: `${payload.reviewNotes ?? ''}`,
+  };
+};
+
 export const normalizeAgentProject = (value) => {
   const project = value && typeof value === 'object' ? value : {};
   return {

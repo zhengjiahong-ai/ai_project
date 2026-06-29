@@ -139,6 +139,45 @@
       "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "traceId", "status", "stage", "progress", "question", "pdfId", "plan", "findings", "conflicts", "report", "humanReview", "reviewRisks", "traceSummary", "error", "externalSearchConfig"], "properties": {"status": {"type": "string", "enum": ["pending", "planning", "awaiting_plan_review", "running", "awaiting_final_review", "succeeded", "failed", "cancelled"]}, "stage": {"type": "string"}, "plan": {"type": "array"}, "findings": {"type": "array"}, "conflicts": {"type": "array"}, "humanReview": {"type": "object"}}}}}
     },
     {
+      "operation": "research-plan-review",
+      "method": "POST",
+      "frontendPath": "/research-tasks/research-task-contract-1/plan-review",
+      "javaPath": "/api/research-tasks/research-task-contract-1/plan-review",
+      "pythonPath": "/api/research-tasks/{task_id}/plan-review",
+      "statusCode": 200,
+      "frontendRequest": {"subQuestions": ["实验是否支持方法主张？"], "reviewNotes": "允许外部学术补查"},
+      "pythonRequest": {"subQuestions": ["实验是否支持方法主张？"], "reviewNotes": "允许外部学术补查"},
+      "pythonResponse": {"status": "success", "task": {"taskId": "research-task-contract-1", "status": "running", "humanReview": {"planStatus": "approved", "finalStatus": "not_started"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0}, "status": "ready", "degradation": ""}}},
+      "gatewayResponse": {"status": "success", "task": {"taskId": "research-task-contract-1", "status": "running", "humanReview": {"planStatus": "approved", "finalStatus": "not_started"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0}, "status": "ready", "degradation": ""}}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "status", "humanReview", "externalSearchConfig"], "properties": {"status": {"type": "string", "enum": ["running"]}, "humanReview": {"type": "object"}, "externalSearchConfig": {"type": "object", "required": ["allowExternalSearch", "provider", "budget", "status", "degradation"], "properties": {"allowExternalSearch": {"type": "boolean"}, "provider": {"type": "string"}, "budget": {"type": "object"}, "status": {"type": "string"}, "degradation": {"type": "string"}}}}}}}
+    },
+    {
+      "operation": "research-task",
+      "method": "GET",
+      "frontendPath": "/research-tasks/research-task-contract-1",
+      "javaPath": "/api/research-tasks/research-task-contract-1",
+      "pythonPath": "/api/research-tasks/{task_id}",
+      "statusCode": 200,
+      "frontendRequest": null,
+      "pythonRequest": null,
+      "pythonResponse": {"status": "success", "task": {"taskId": "research-task-contract-1", "status": "awaiting_final_review", "findings": [{"id": "finding-external-1", "sourceIds": ["external-crossref-1"], "sources": [{"sourceId": "external-crossref-1", "sourceType": "external_academic", "provider": "crossref", "title": "External validation study", "doi": "10.3390/app12188972", "url": "https://doi.org/10.3390/app12188972", "abstract": "A bounded external metadata summary."}]}], "report": "External validation [external-crossref-1]", "humanReview": {"planStatus": "approved", "finalStatus": "pending"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 1, "evidenceUsed": 1}, "status": "success", "degradation": ""}}},
+      "gatewayResponse": {"status": "success", "task": {"taskId": "research-task-contract-1", "status": "awaiting_final_review", "findings": [{"id": "finding-external-1", "sourceIds": ["external-crossref-1"], "sources": [{"sourceId": "external-crossref-1", "sourceType": "external_academic", "provider": "crossref", "title": "External validation study", "doi": "10.3390/app12188972", "url": "https://doi.org/10.3390/app12188972", "abstract": "A bounded external metadata summary."}]}], "report": "External validation [external-crossref-1]", "humanReview": {"planStatus": "approved", "finalStatus": "pending"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 1, "evidenceUsed": 1}, "status": "success", "degradation": ""}}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "status", "findings", "report", "humanReview", "externalSearchConfig"], "properties": {"status": {"type": "string", "enum": ["awaiting_final_review"]}, "findings": {"type": "array", "items": {"type": "object", "required": ["sourceIds", "sources"]}}, "report": {"type": "string"}, "humanReview": {"type": "object"}, "externalSearchConfig": {"type": "object", "required": ["allowExternalSearch", "provider", "budget", "status", "degradation"]}}}}}
+    },
+    {
+      "operation": "research-final-review",
+      "method": "POST",
+      "frontendPath": "/research-tasks/research-task-contract-1/final-review",
+      "javaPath": "/api/research-tasks/research-task-contract-1/final-review",
+      "pythonPath": "/api/research-tasks/{task_id}/final-review",
+      "statusCode": 200,
+      "frontendRequest": {"reviewNotes": "已核验 DOI 与摘要", "riskReviews": []},
+      "pythonRequest": {"reviewNotes": "已核验 DOI 与摘要", "riskReviews": []},
+      "pythonResponse": {"status": "success", "task": {"taskId": "research-task-contract-1", "status": "succeeded", "report": "External validation [external-crossref-1]", "humanReview": {"planStatus": "approved", "finalStatus": "approved"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 1, "evidenceUsed": 1}, "status": "success", "degradation": ""}}},
+      "gatewayResponse": {"status": "success", "task": {"taskId": "research-task-contract-1", "status": "succeeded", "report": "External validation [external-crossref-1]", "humanReview": {"planStatus": "approved", "finalStatus": "approved"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 1, "evidenceUsed": 1}, "status": "success", "degradation": ""}}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "status", "report", "humanReview", "externalSearchConfig"], "properties": {"status": {"type": "string", "enum": ["succeeded"]}, "report": {"type": "string"}, "humanReview": {"type": "object"}, "externalSearchConfig": {"type": "object"}}}}}
+    },
+    {
       "operation": "trace",
       "method": "GET",
       "frontendPath": "/traces/trace-contract-1",
@@ -173,11 +212,50 @@
       "statusCode": 200,
       "frontendRequest": {"prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "context": {"source": "contract-smoke"}, "allowExternalSearch": false},
       "pythonRequest": {"prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "context": {"source": "contract-smoke"}, "allowExternalSearch": false},
-      "pythonResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "projectId": "project-contract-1", "traceId": "agent-trace-contract-1", "status": "awaiting_plan_review", "stage": "plan_review", "progress": 0.15, "prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "planItems": [{"id": "agent-plan-1", "label": "比较方法", "detail": "提取共同点与差异", "status": "pending"}], "events": [], "toolCalls": [], "evidence": [], "comparisonTable": {"columns": ["维度", "论文一", "论文二"], "rows": []}, "conflicts": [], "openQuestions": [], "reportDraft": "", "humanReview": {"planStatus": "pending", "finalStatus": "not_started"}, "reviewRisks": [], "traceSummary": {}, "error": "",
+      "pythonResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "projectId": "project-contract-1", "traceId": "agent-trace-contract-1", "status": "awaiting_plan_review", "stage": "plan_review", "progress": 0.15, "prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "planItems": [{"id": "agent-plan-1", "label": "比较方法", "detail": "提取共同点与差异", "status": "pending"}], "events": [], "toolCalls": [], "evidenceItems": [], "comparisonTable": {"columns": ["维度", "论文一", "论文二"], "rows": []}, "conflicts": [], "openQuestions": [], "reportDraft": "", "humanReview": {"planStatus": "pending", "finalStatus": "not_started"}, "reviewRisks": [], "traceSummary": {}, "error": "",
           "externalSearchConfig": {"allowExternalSearch": false, "provider": "disabled", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0}, "status": "disabled", "degradation": ""}
         }},
-      "gatewayResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "projectId": "project-contract-1", "traceId": "agent-trace-contract-1", "status": "awaiting_plan_review", "stage": "plan_review", "progress": 0.15, "prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "planItems": [{"id": "agent-plan-1", "label": "比较方法", "detail": "提取共同点与差异", "status": "pending"}], "events": [], "toolCalls": [], "evidence": [], "comparisonTable": {"columns": ["维度", "论文一", "论文二"], "rows": []}, "conflicts": [], "openQuestions": [], "reportDraft": "", "humanReview": {"planStatus": "pending", "finalStatus": "not_started"}, "reviewRisks": [], "traceSummary": {}, "error": "", "externalSearchConfig": {"allowExternalSearch": false, "provider": "disabled", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0}, "status": "disabled", "degradation": ""}}},
-      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "projectId", "traceId", "status", "stage", "progress", "prompt", "focusedPaperIds", "constraints", "planItems", "events", "toolCalls", "evidence", "comparisonTable", "conflicts", "openQuestions", "reportDraft", "humanReview", "reviewRisks", "traceSummary", "error", "externalSearchConfig"], "properties": {"status": {"type": "string", "enum": ["pending", "planning", "awaiting_plan_review", "running", "awaiting_final_review", "succeeded", "failed", "cancelled", "expired"]}, "focusedPaperIds": {"type": "array"}, "planItems": {"type": "array"}, "events": {"type": "array"}, "toolCalls": {"type": "array"}, "evidence": {"type": "array"}, "comparisonTable": {"type": "object"}, "conflicts": {"type": "array"}, "openQuestions": {"type": "array"}, "humanReview": {"type": "object"}}}}}
+      "gatewayResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "projectId": "project-contract-1", "traceId": "agent-trace-contract-1", "status": "awaiting_plan_review", "stage": "plan_review", "progress": 0.15, "prompt": "比较方法设计与实验支持", "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅使用项目论文", "planItems": [{"id": "agent-plan-1", "label": "比较方法", "detail": "提取共同点与差异", "status": "pending"}], "events": [], "toolCalls": [], "evidenceItems": [], "comparisonTable": {"columns": ["维度", "论文一", "论文二"], "rows": []}, "conflicts": [], "openQuestions": [], "reportDraft": "", "humanReview": {"planStatus": "pending", "finalStatus": "not_started"}, "reviewRisks": [], "traceSummary": {}, "error": "", "externalSearchConfig": {"allowExternalSearch": false, "provider": "disabled", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0}, "status": "disabled", "degradation": ""}}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "projectId", "traceId", "status", "stage", "progress", "prompt", "focusedPaperIds", "constraints", "planItems", "events", "toolCalls", "evidenceItems", "comparisonTable", "conflicts", "openQuestions", "reportDraft", "humanReview", "reviewRisks", "traceSummary", "error", "externalSearchConfig"], "properties": {"status": {"type": "string", "enum": ["pending", "planning", "awaiting_plan_review", "running", "awaiting_final_review", "succeeded", "failed", "cancelled", "expired"]}, "focusedPaperIds": {"type": "array"}, "planItems": {"type": "array"}, "events": {"type": "array"}, "toolCalls": {"type": "array"}, "evidenceItems": {"type": "array"}, "comparisonTable": {"type": "object"}, "conflicts": {"type": "array"}, "openQuestions": {"type": "array"}, "humanReview": {"type": "object"}}}}}
+    },
+    {
+      "operation": "agent-plan-review",
+      "method": "POST",
+      "frontendPath": "/agent-tasks/agent-task-contract-1/plan-review",
+      "javaPath": "/api/agent-tasks/agent-task-contract-1/plan-review",
+      "pythonPath": "/api/agent-tasks/{task_id}/plan-review",
+      "statusCode": 200,
+      "frontendRequest": {"planItems": [{"id": "external", "label": "External academic search", "detail": "补充证据缺口", "allowExternalSearch": true}], "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅在证据不足时补查", "reviewNotes": "同意白名单 Provider"},
+      "pythonRequest": {"planItems": [{"id": "external", "label": "External academic search", "detail": "补充证据缺口", "allowExternalSearch": true}], "focusedPaperIds": ["paper-contract-1", "paper-contract-2"], "constraints": "仅在证据不足时补查", "reviewNotes": "同意白名单 Provider"},
+      "pythonResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "status": "running", "humanReview": {"planStatus": "approved", "finalStatus": "not_started"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0}, "status": "ready", "degradation": ""}}},
+      "gatewayResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "status": "running", "humanReview": {"planStatus": "approved", "finalStatus": "not_started"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0}, "status": "ready", "degradation": ""}}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "status", "humanReview", "externalSearchConfig"], "properties": {"status": {"type": "string", "enum": ["running"]}, "humanReview": {"type": "object"}, "externalSearchConfig": {"type": "object", "required": ["allowExternalSearch", "provider", "budget", "status", "degradation"]}}}}}
+    },
+    {
+      "operation": "agent-task",
+      "method": "GET",
+      "frontendPath": "/agent-tasks/agent-task-contract-1",
+      "javaPath": "/api/agent-tasks/agent-task-contract-1",
+      "pythonPath": "/api/agent-tasks/{task_id}",
+      "statusCode": 200,
+      "frontendRequest": null,
+      "pythonRequest": null,
+      "pythonResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "status": "awaiting_final_review", "evidenceItems": [{"sourceId": "external-crossref-1", "sourceType": "external_academic", "provider": "crossref", "title": "External validation study", "year": 2022, "doi": "10.3390/app12188972", "url": "https://doi.org/10.3390/app12188972", "retrievedAt": "2026-06-29T00:00:00Z", "text": "External evidence supports a bounded comparison."}], "draftReport": "External validation [external-crossref-1]", "humanReview": {"planStatus": "approved", "finalStatus": "pending"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 1, "evidenceUsed": 1}, "status": "success", "degradation": ""}}},
+      "gatewayResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "status": "awaiting_final_review", "evidenceItems": [{"sourceId": "external-crossref-1", "sourceType": "external_academic", "provider": "crossref", "title": "External validation study", "year": 2022, "doi": "10.3390/app12188972", "url": "https://doi.org/10.3390/app12188972", "retrievedAt": "2026-06-29T00:00:00Z", "text": "External evidence supports a bounded comparison."}], "draftReport": "External validation [external-crossref-1]", "humanReview": {"planStatus": "approved", "finalStatus": "pending"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 1, "evidenceUsed": 1}, "status": "success", "degradation": ""}}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "status", "evidenceItems", "draftReport", "humanReview", "externalSearchConfig"], "properties": {"status": {"type": "string", "enum": ["awaiting_final_review"]}, "evidenceItems": {"type": "array", "items": {"type": "object", "required": ["sourceId", "sourceType", "provider", "title", "doi", "url", "retrievedAt"]}}, "draftReport": {"type": "string"}, "humanReview": {"type": "object"}, "externalSearchConfig": {"type": "object", "required": ["allowExternalSearch", "provider", "budget", "status", "degradation"]}}}}}
+    },
+    {
+      "operation": "agent-final-review",
+      "method": "POST",
+      "frontendPath": "/agent-tasks/agent-task-contract-1/final-review",
+      "javaPath": "/api/agent-tasks/agent-task-contract-1/final-review",
+      "pythonPath": "/api/agent-tasks/{task_id}/final-review",
+      "statusCode": 200,
+      "frontendRequest": {"reviewNotes": "外部来源已核验", "riskReviews": []},
+      "pythonRequest": {"reviewNotes": "外部来源已核验", "riskReviews": []},
+      "pythonResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "status": "succeeded", "draftReport": "External validation [external-crossref-1]", "humanReview": {"planStatus": "approved", "finalStatus": "approved"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 1, "evidenceUsed": 1}, "status": "success", "degradation": ""}}},
+      "gatewayResponse": {"status": "success", "task": {"taskId": "agent-task-contract-1", "status": "succeeded", "draftReport": "External validation [external-crossref-1]", "humanReview": {"planStatus": "approved", "finalStatus": "approved"}, "externalSearchConfig": {"allowExternalSearch": true, "provider": "crossref", "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 1, "evidenceUsed": 1}, "status": "success", "degradation": ""}}},
+      "pythonResponseContract": {"type": "object", "required": ["status", "task"], "properties": {"status": {"type": "string", "enum": ["success"]}, "task": {"type": "object", "required": ["taskId", "status", "draftReport", "humanReview", "externalSearchConfig"], "properties": {"status": {"type": "string", "enum": ["succeeded"]}, "draftReport": {"type": "string"}, "humanReview": {"type": "object"}, "externalSearchConfig": {"type": "object"}}}}}
     },
     {
       "operation": "agent-traces",
