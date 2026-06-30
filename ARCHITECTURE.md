@@ -337,6 +337,12 @@ P4-08 对照评测后已移除 Council 的 Deep Research 生产接入：不再�
 
 `safetyScope` 固定描述只读访问、数据范围、模型网络访问、外部副作用和敏感输出。Agent 成功或 fallback 的 `toolCalls` 都会记录工具版本与安全范围；旧 SQLite 快照缺少这些字段时继续兼容。
 
+#### 受限 code-native 可行性边界
+
+P5-01 只定义安全设计，不提供代码执行能力。唯一候选场景是对用户确认的一份带表头 UTF-8 CSV，使用不可修改的 Python 3 标准库模板生成有界描述统计 JSON。输入数据和模型输出不能成为代码、表达式、路径、模块或运行参数；现有前端 artifact 卡片不自动具有执行资格。
+
+禁止 Shell、子进程、动态 import、`eval/exec`、第三方分析库、包安装、任意网络、宿主文件系统、环境变量、凭据和长期进程。详细威胁模型与停止条件见 `docs/CODE_EXECUTION_SECURITY_PLAN.md`。P5-02 若不能实测证明进程隔离、无网络、只读输入、临时输出、资源限制和可靠清理，必须停止 P5-03 及后续接入，不得注册 Worker、API 或工具。
+
 #### `mcp_adapter/`
 
 只读 MCP adapter 是与 FastAPI 并列的独立本机进程入口。MCP 客户端仅在设置 `PIXIU_MCP_ENABLED=true` 后通过 `python -m mcp_adapter` 拉起 `stdio` server；默认应用启动和 Docker Compose 不会创建 MCP 监听。
