@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { installMockApi } from '../fixtures/mockApi.js';
 import { installExternalProviderRoute } from '../fixtures/externalProviderRoute.js';
 import { createSmokePdfBuffer } from '../fixtures/smokePdf.js';
+import { installCouncilResearchRoute } from '../fixtures/councilResearchRoute.js';
 
 const openExternalAgentWorkspace = async (page) => {
   await page.goto('/');
@@ -140,4 +141,29 @@ test('Agent Provider 故障降级后可刷新恢复并完成人工审查', async
   await page.getByRole('button', { name: '确认终稿' }).click();
   await expect(page.getByText('研究任务已完成')).toBeVisible();
   expect(mockState.taskPollCount).toBeGreaterThanOrEqual(2);
+});
+
+test('Deep Research 展示 Council 分歧、成本和终稿核查状态', async ({ page }) => {
+  await installMockApi(page);
+  const councilState = await installCouncilResearchRoute(page);
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles({ name: 'council-paper.pdf', mimeType: 'application/pdf', buffer: createSmokePdfBuffer() });
+  await page.getByRole('button', { name: '收起工作台' }).click();
+  const workspaceNavigation = page.locator('.workspace-top-panels');
+  await workspaceNavigation.hover();
+  await page.getByRole('button', { name: '深度探究' }).click();
+  await workspaceNavigation.hover();
+  await page.getByRole('button', { name: '功能导航' }).click();
+  await page.getByRole('button', { name: '深度研究', exact: true }).click();
+
+  await expect(page.getByText('Council 独立审查')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('2 次 Reviewer 调用 · 30 tokens')).toBeVisible();
+  await expect(page.getByText('Reviewer 结论不同，需要人工核查。')).toBeVisible();
+  await expect(page.getByText('弃权：provider_unavailable')).toBeVisible();
+  const confirm = page.getByRole('button', { name: '确认终稿' });
+  await expect(confirm).toBeDisabled();
+  await page.getByLabel('Council 核查状态 finding-1').selectOption('retained');
+  await confirm.focus();
+  await page.keyboard.press('Enter');
+  expect(councilState.finalReviewPayload.councilReviews).toEqual([{ targetType: 'finding', targetId: 'finding-1', reviewStatus: 'retained' }]);
 });

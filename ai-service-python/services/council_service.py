@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any, Dict, List, Optional
 
 from llm.client import get_llm
 from llm.provider import LLMProvider, LLMRequest, LLMResult, LLMUsage
 from services.evidence_service import normalize_evidence_items
+from services.trace_service import record_counter, trace_step
 from services.utils import parse_json_from_llm
 
 
@@ -34,13 +36,33 @@ def run_council(
     selected_provider = provider or get_llm()
     opinions = []
     for reviewer_id, role, marker in REVIEWERS:
-        try:
-            result = selected_provider.invoke(
-                LLMRequest(prompt=_build_reviewer_prompt(question, evidence, role, marker))
-            )
-        except Exception:
-            opinions.append(_abstention(reviewer_id, role, "provider_unavailable"))
-            continue
+        started_at = time.perf_counter()
+        with trace_step("council_reviewer", meta={"reviewerId": reviewer_id, "role": role}) as step:
+            record_counter("councilCalls")
+            try:
+                result = selected_provider.invoke(
+                    LLMRequest(prompt=_build_reviewer_prompt(question, evidence, role, marker))
+                )
+            except Exception:
+                record_counter("councilFailures")
+                record_counter("councilLatencyMs", int((time.perf_counter() - started_at) * 1000))
+                step["meta"] = {"reviewerId": reviewer_id, "role": role, "status": "failed"}
+                opinions.append(_abstention(reviewer_id, role, "provider_unavailable"))
+                continue
+            latency_ms = int((time.perf_counter() - started_at) * 1000)
+            usage = _usage_payload(result.usage)
+            record_counter("councilLatencyMs", latency_ms)
+            record_counter("councilInputTokens", usage["inputTokens"])
+            record_counter("councilOutputTokens", usage["outputTokens"])
+            record_counter("councilTotalTokens", usage["totalTokens"])
+            step["meta"] = {
+                "reviewerId": reviewer_id,
+                "role": role,
+                "provider": str(result.provider or "unknown"),
+                "model": str(result.model or "unknown"),
+                "status": "completed",
+                "usage": usage,
+            }
         opinions.append(
             _normalize_opinion(
                 result,

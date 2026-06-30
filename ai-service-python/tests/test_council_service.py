@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from llm import client as llm_client
 from llm.provider import LLMRequest, LLMResult, LLMUsage
+from services import trace_service
 from services.council_service import run_council
 from services.research_aggregator import select_council_targets
 
@@ -61,6 +62,42 @@ def evidence_items():
 class CouncilServiceTests(unittest.TestCase):
     def tearDown(self):
         llm_client._llm = None
+        trace_service.clear_traces()
+
+    def test_reviewer_calls_record_council_trace_costs(self):
+        trace_id = trace_service.start_trace("council_test")
+        provider = FakeProvider(
+            [
+                llm_result(opinion_payload(source_ids=["s1"])),
+                llm_result(opinion_payload(source_ids=["s2"])),
+            ]
+        )
+
+        run_council("Question", evidence_items(), provider=provider)
+
+        counters = trace_service.get_trace_snapshot(trace_id)["counters"]
+        self.assertEqual(counters["councilCalls"], 2)
+        self.assertEqual(counters["councilFailures"], 0)
+        self.assertGreaterEqual(counters["councilLatencyMs"], 0)
+        self.assertEqual(counters["councilInputTokens"], 40)
+        self.assertEqual(counters["councilOutputTokens"], 20)
+        self.assertEqual(counters["councilTotalTokens"], 60)
+
+    def test_provider_failure_records_council_failure_without_leaking_error(self):
+        trace_id = trace_service.start_trace("council_test")
+        provider = FakeProvider(
+            [
+                RuntimeError("secret-token"),
+                llm_result(opinion_payload(source_ids=["s2"])),
+            ]
+        )
+
+        run_council("Question", evidence_items(), provider=provider)
+
+        snapshot = trace_service.get_trace_snapshot(trace_id)
+        self.assertEqual(snapshot["counters"]["councilCalls"], 2)
+        self.assertEqual(snapshot["counters"]["councilFailures"], 1)
+        self.assertNotIn("secret-token", json.dumps(snapshot, ensure_ascii=False))
 
     def test_reviewers_use_independent_role_prompts_with_the_same_provider(self):
         provider = FakeProvider(

@@ -98,6 +98,12 @@ def start_trace(
             "externalEvidenceCount": 0,
             "externalSearchLatencyMs": 0,
             "externalSearchBudgetBlocks": 0,
+            "councilCalls": 0,
+            "councilFailures": 0,
+            "councilLatencyMs": 0,
+            "councilInputTokens": 0,
+            "councilOutputTokens": 0,
+            "councilTotalTokens": 0,
         },
         "steps": [],
     }

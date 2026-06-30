@@ -145,6 +145,21 @@ def _default_council_state(allow_council: bool = False) -> Dict[str, Any]:
     }
 
 
+def _normalize_council_state(value: Any, allow_council: bool = False) -> Dict[str, Any]:
+    raw = value if isinstance(value, dict) else {}
+    state = {
+        **_default_council_state(bool(raw.get("allowCouncil", allow_council))),
+        **raw,
+    }
+    state["reviews"] = [
+        {**item, "reviewStatus": str(item.get("reviewStatus") or "pending")}
+        for item in (raw.get("reviews") or [])
+        if isinstance(item, dict)
+    ]
+    state["reviewCount"] = len(state["reviews"])
+    return state
+
+
 def preview_research_brief(request: ResearchTaskBriefPreviewRequest) -> Dict[str, Any]:
     question = _clean_text(request.question)
     pdf_id = _clean_text(request.pdfId)
@@ -332,11 +347,27 @@ def review_research_final(task_id: str, request: ResearchFinalReviewRequest) -> 
     if task.get("status") != "awaiting_final_review":
         raise ResearchReviewConflictError("Research task is not awaiting final review.")
     risk_reviews = _validate_risk_reviews(task.get("reviewRisks") or [], request.riskReviews or [])
+    council = _normalize_council_state(task.get("council"))
+    council_reviews = _validate_council_reviews(council.get("reviews") or [], request.councilReviews or [])
+    council_status_by_target = {
+        (item["targetType"], item["targetId"]): item["reviewStatus"] for item in council_reviews
+    }
+    reviewed_council_items = [
+        {
+            **item,
+            "reviewStatus": council_status_by_target.get(
+                (str(item.get("targetType") or ""), str(item.get("targetId") or "")),
+                str(item.get("reviewStatus") or "pending"),
+            ),
+        }
+        for item in council.get("reviews") or []
+    ]
+    council = {**council, "reviews": reviewed_council_items, "reviewCount": len(reviewed_council_items)}
     human_review = copy.deepcopy(task.get("humanReview") or {})
-    human_review["final"] = {"status": "approved", "reviewNotes": _clean_text(request.reviewNotes), "reviewedAt": _utc_now(), "riskReviews": risk_reviews}
+    human_review["final"] = {"status": "approved", "reviewNotes": _clean_text(request.reviewNotes), "reviewedAt": _utc_now(), "riskReviews": risk_reviews, "councilReviews": council_reviews}
     status_by_id = {item["riskId"]: item["reviewStatus"] for item in risk_reviews}
     reviewed_risks = [{**item, "reviewStatus": status_by_id.get(str(item.get("riskId") or ""), item.get("reviewStatus") or "pending")} for item in task.get("reviewRisks") or []]
-    updated = _update_task_snapshot(task_id, status="succeeded", stage=DONE_STAGE, progress=1.0, humanReview=human_review, reviewRisks=reviewed_risks)
+    updated = _update_task_snapshot(task_id, status="succeeded", stage=DONE_STAGE, progress=1.0, humanReview=human_review, reviewRisks=reviewed_risks, council=council)
     with use_trace(str(task.get("traceId") or "")):
         trace_snapshot = finalize_trace("success", response_meta={"taskId": task_id, "stage": DONE_STAGE})
         _persist_trace_summary(task_id, trace_snapshot)
@@ -539,11 +570,17 @@ def _run_council_pilot(
     reviews = []
     degradation = ""
     for target in targets:
-        try:
-            result = council_service.run_council(target["question"], target["evidenceItems"])
-        except Exception:
-            degradation = "council_unavailable"
-            break
+        with trace_step(
+            "research_council_review",
+            meta={"targetType": target["targetType"], "targetId": target["targetId"]},
+        ) as step:
+            try:
+                result = council_service.run_council(target["question"], target["evidenceItems"])
+            except Exception:
+                step["meta"] = {"targetType": target["targetType"], "targetId": target["targetId"], "status": "failed"}
+                degradation = "council_unavailable"
+                break
+            step["meta"] = {"targetType": target["targetType"], "targetId": target["targetId"], "status": "completed"}
         reviews.append(
             {
                 "targetType": target["targetType"],
@@ -551,6 +588,7 @@ def _run_council_pilot(
                 "question": target["question"],
                 "sourceIds": list(target.get("sourceIds") or []),
                 "result": result,
+                "reviewStatus": "pending",
             }
         )
         if result.get("abstentions"):
@@ -1596,6 +1634,27 @@ def _validate_risk_reviews(risks: List[Dict[str, Any]], reviews: List[Any]) -> L
     return normalized
 
 
+def _validate_council_reviews(council_reviews: List[Dict[str, Any]], reviews: List[Any]) -> List[Dict[str, Any]]:
+    allowed = {
+        (str(item.get("targetType") or ""), str(item.get("targetId") or ""))
+        for item in council_reviews
+    }
+    normalized = []
+    seen = set()
+    for item in reviews:
+        target_type = _clean_text(getattr(item, "targetType", ""))
+        target_id = _clean_text(getattr(item, "targetId", ""))
+        status = _clean_text(getattr(item, "reviewStatus", ""))
+        target = (target_type, target_id)
+        if target not in allowed or target in seen or status not in {"reviewed", "retained"}:
+            raise ResearchReviewConflictError("Invalid Council review.")
+        seen.add(target)
+        normalized.append({"targetType": target_type, "targetId": target_id, "reviewStatus": status})
+    if seen != allowed:
+        raise ResearchReviewConflictError("All Council reviews must be resolved before final approval.")
+    return normalized
+
+
 def _persist_trace_summary(task_id: str, trace_snapshot: Dict[str, Any] | None) -> None:
     if not trace_snapshot:
         return
@@ -1789,7 +1848,7 @@ def _task_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
         "_context": _safe_json_dict(row["context"]) if "context" in row.keys() else {},
         "traceSummary": _safe_json_dict(row["traceSummary"]) if "traceSummary" in row.keys() else {},
         "externalSearchConfig": _safe_json_dict(row["externalSearchConfig"]) if "externalSearchConfig" in row.keys() else {},
-        "council": (_safe_json_dict(row["council"]) or _default_council_state(False)) if "council" in row.keys() else _default_council_state(False),
+        "council": _normalize_council_state(_safe_json_dict(row["council"])) if "council" in row.keys() else _default_council_state(False),
         "report": str(row["report"] or ""),
         "error": str(row["error"] or ""),
         "createdAt": created_at,

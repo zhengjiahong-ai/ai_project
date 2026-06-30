@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-30 v0.1.68
+
+1. **展示 Council 独立意见与分歧**：Deep Research 终稿区展示 Reviewer 的 provider/model、结论、引用、弃权、分歧和 token 成本，并保留安全降级状态。
+2. **增加 Council 人工核查闭环**：终稿请求新增结构化 `councilReviews`，逐项保存“已核查”或“保留分歧”，旧快照缺失状态时兼容为待核查。
+3. **细分 Council trace 成本**：public trace 新增 Council 调用、失败、延迟和输入/输出/总 token 计数，同时继续隐藏 prompt、证据正文和隐藏推理。
+
 ### 2026-06-30 v0.1.67
 
 1. **加入默认关闭的 Deep Research Council Pilot**：创建任务可显式设置 `allowCouncil`，在报告综合前按风险优先审查最多 3 个 conflict/finding；关闭时不产生额外模型调用。

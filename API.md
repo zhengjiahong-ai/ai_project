@@ -280,7 +280,7 @@ P2-3 来源与生成约束：
 }
 ```
 
-`status` 仅为 `disabled/pending/running/completed/degraded/skipped`。每个 review 包含 `targetType/targetId/question/sourceIds/result`，其中 `result` 复用下述 Council 内部模型。Council 失败时 `degradation` 固定为安全错误码（例如 `council_unavailable`），不会阻断报告生成或绕过终稿人工审查。
+`status` 仅为 `disabled/pending/running/completed/degraded/skipped`。每个 review 包含 `targetType/targetId/question/sourceIds/result/reviewStatus`，其中 `result` 复用下述 Council 内部模型，`reviewStatus` 为 `pending/reviewed/retained`。旧快照缺少该字段时按 `pending` 读取。Council 失败时 `degradation` 固定为安全错误码（例如 `council_unavailable`），不会阻断报告生成或绕过终稿人工审查。
 
 ### `GET /api/research-tasks/latest?pdfId=...`
 
@@ -299,13 +299,15 @@ P2-3 来源与生成约束：
 ### Deep Research 人工审查接口
 
 - `POST /api/research-tasks/{taskId}/plan-review`：提交 `{ "subQuestions": ["..."], "reviewNotes": "..." }`，子问题必须为 1–5 个合法非空项；成功后任务从 `awaiting_plan_review` 进入 `running`。
-- `POST /api/research-tasks/{taskId}/final-review`：提交 `{ "reviewNotes": "...", "riskReviews": [{ "riskId": "...", "reviewStatus": "reviewed|needs_follow_up" }] }`；成功后任务从 `awaiting_final_review` 进入 `succeeded`。
+- `POST /api/research-tasks/{taskId}/final-review`：提交 `{ "reviewNotes": "...", "riskReviews": [{ "riskId": "...", "reviewStatus": "reviewed|needs_follow_up" }], "councilReviews": [{ "targetType": "finding|conflict", "targetId": "...", "reviewStatus": "reviewed|retained" }] }`。有 Council review 时必须无重复地覆盖全部 target；`retained` 表示保留未解决分歧但不阻止完成审查。成功后任务从 `awaiting_final_review` 进入 `succeeded`。
 - 创建任务只启动 Planner。Planner 快照包含 `plan/humanReview/reviewRisks`；等待审查期间可取消，并且服务重启后保持等待状态。
 - 非法字段返回 `422`，不允许的状态转换返回 `409`；已进入后续阶段的重复审批返回当前快照。
 
 ### `GET /api/traces/{traceId}`
 
 读取脱敏 public trace summary。
+
+Council Pilot 额外记录 `councilCalls/councilFailures/councilLatencyMs/councilInputTokens/councilOutputTokens/councilTotalTokens`。Reviewer step 只公开角色、provider/model、状态和 usage，不包含 prompt、证据正文、原始 Provider 错误或隐藏推理。
 
 说明：
 

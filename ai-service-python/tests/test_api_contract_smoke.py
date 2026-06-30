@@ -216,6 +216,14 @@ class ApiContractSmokeTests(unittest.TestCase):
         self.assertIn("council", task_fixture["pythonResponse"]["task"])
         self.assertIn("council", task_fixture["gatewayResponse"]["task"])
 
+        final_review_fixture = self.operations["research-final-review"]
+        self.assertEqual(
+            final_review_fixture["frontendRequest"]["councilReviews"],
+            [{"targetType": "finding", "targetId": "finding-external-1", "reviewStatus": "reviewed"}],
+        )
+        request = ResearchFinalReviewRequest(**final_review_fixture["pythonRequest"])
+        self.assertEqual(request.councilReviews[0].targetId, "finding-external-1")
+
     def test_agent_task_create_request_allow_external_search_defaults_false(self):
         req = AgentTaskCreateRequest(prompt="测试")
         self.assertFalse(req.allowExternalSearch)

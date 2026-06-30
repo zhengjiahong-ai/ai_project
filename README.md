@@ -320,7 +320,7 @@ python -m benchmarks.council.baseline_benchmark
 
 详细数据集、评分口径与脱敏边界见 `docs/council_benchmark.md`。未完成真实采样时不得提交或宣称基线指标。
 
-Deep Research 可在创建任务请求中显式设置 `allowCouncil: true`，在报告综合前对最多 3 个高风险 conflict/finding 运行同一 DeepSeek Provider 的双 Reviewer Pilot。该字段默认 `false`，当前没有 Council UI；关闭时不会产生额外模型调用。Council 失败只记录脱敏降级状态，不会阻断报告生成，终稿人工审查仍然强制执行。项目不配置或使用 DashScope/第二付费 Provider；未来增加第二 Provider 必须另行授权。
+Deep Research 可在创建任务请求中显式设置 `allowCouncil: true`，在报告综合前对最多 3 个高风险 conflict/finding 运行同一 DeepSeek Provider 的双 Reviewer Pilot。该字段默认 `false`，关闭时不会产生额外模型调用。启用后终稿区展示每个 Reviewer 的 provider/model、结构化结论、引用、分歧、弃权及 token 成本；用户必须逐项标记“已核查”或“保留分歧”。Council trace 单独统计调用、失败、延迟和 token，且不展示完整 prompt 或隐藏推理。Council 失败不会阻断报告生成，终稿人工审查仍然强制执行。项目不配置或使用 DashScope/第二付费 Provider；未来增加第二 Provider 必须另行授权。
 
 Python 测试也支持完全离线的固定 LLM 响应，不需要 `DEEPSEEK_API_KEY`，且不会请求 DeepSeek：
 

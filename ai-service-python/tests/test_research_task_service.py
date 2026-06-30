@@ -687,7 +687,54 @@ class ResearchTaskCouncilPilotTests(unittest.TestCase):
         )
         self.assertEqual(task["council"]["reviewCount"], 3)
         self.assertEqual(task["council"]["status"], "completed")
+        self.assertTrue(all(item["reviewStatus"] == "pending" for item in task["council"]["reviews"]))
         self.assertEqual(task["status"], "awaiting_final_review")
+
+    def test_final_review_persists_independent_council_review_statuses(self):
+        task, _run_council = self._run_task(
+            allow_council=True,
+            findings=[self._finding("source-1", coverage=0.2)],
+            council_side_effect=self._council_result(),
+        )
+
+        completed = research_task_service.review_research_final(
+            task["taskId"],
+            ResearchFinalReviewRequest(
+                councilReviews=[
+                    {
+                        "targetType": task["council"]["reviews"][0]["targetType"],
+                        "targetId": task["council"]["reviews"][0]["targetId"],
+                        "reviewStatus": "retained",
+                    }
+                ]
+            ),
+        )["task"]
+
+        self.assertEqual(completed["council"]["reviews"][0]["reviewStatus"], "retained")
+        self.assertEqual(completed["humanReview"]["final"]["councilReviews"][0]["reviewStatus"], "retained")
+
+    def test_final_review_rejects_missing_duplicate_unknown_and_invalid_council_reviews(self):
+        task, _run_council = self._run_task(
+            allow_council=True,
+            findings=[self._finding("source-1", coverage=0.2)],
+            council_side_effect=self._council_result(),
+        )
+        target = task["council"]["reviews"][0]
+        valid = {"targetType": target["targetType"], "targetId": target["targetId"], "reviewStatus": "reviewed"}
+
+        invalid_payloads = [
+            [],
+            [valid, valid],
+            [{**valid, "targetId": "unknown"}],
+            [{**valid, "reviewStatus": "pending"}],
+        ]
+        for council_reviews in invalid_payloads:
+            with self.subTest(council_reviews=council_reviews):
+                with self.assertRaises(research_task_service.ResearchReviewConflictError):
+                    research_task_service.review_research_final(
+                        task["taskId"],
+                        ResearchFinalReviewRequest(councilReviews=council_reviews),
+                    )
 
     def test_reviewer_abstention_degrades_but_preserves_review(self):
         task, _run_council = self._run_task(
@@ -723,7 +770,7 @@ class ResearchTaskCouncilPilotTests(unittest.TestCase):
             "status": "completed",
             "maxReviews": 3,
             "reviewCount": 1,
-            "reviews": [{"targetType": "finding", "targetId": "finding-1", "question": "Q", "sourceIds": ["s1"], "result": self._council_result()}],
+            "reviews": [{"targetType": "finding", "targetId": "finding-1", "question": "Q", "sourceIds": ["s1"], "result": self._council_result(), "reviewStatus": "pending"}],
             "degradation": "",
         }
         research_task_service._update_task_snapshot(task_id, council=expected)

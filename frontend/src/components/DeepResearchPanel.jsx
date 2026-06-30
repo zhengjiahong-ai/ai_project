@@ -62,10 +62,47 @@ const ResearchPlanReviewForm = ({ task, onReviewPlan }) => {
     <textarea value={planDraft} onChange={(event) => setPlanDraft(event.target.value)} className="theme-input min-h-36 w-full rounded-xl p-3 text-sm" aria-label="研究子问题，每行一个" /><textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="theme-input min-h-20 w-full rounded-xl p-3 text-sm" placeholder="计划审查备注（可选）" /><button type="button" className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => onReviewPlan?.({ subQuestions: planDraft.split(/\r?\n/).map((item) => item.trim()).filter(Boolean), reviewNotes })}>确认计划并执行</button></div>;
 };
 
-const ResearchFinalReviewForm = ({ task, onReviewFinal }) => {
+const councilVerdictLabel = (verdict) => ({ supported: '支持', conflict: '存在冲突', abstain: '弃权', insufficient: '证据不足' }[verdict] || verdict || '未知');
+const councilActionLabel = (action) => ({ manual_review_required: '需要人工核查', collect_more_evidence: '建议补充证据', accept_with_caution: '可谨慎采纳' }[action] || action || '未给出建议');
+
+const CouncilReviewPanel = ({ council, onJumpToSource, reviewStatuses = null, onReviewStatusChange }) => {
+  if (!council?.reviews?.length) return null;
+  const opinions = council.reviews.flatMap((review) => review.result.opinions || []);
+  const totalTokens = opinions.reduce((sum, opinion) => sum + (opinion.usage?.totalTokens || 0), 0);
+  return <div className="rounded-2xl border border-violet-400/25 bg-violet-500/10 p-4">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div><div className="theme-text-primary text-sm font-bold">Council 独立审查</div><div className="theme-text-secondary mt-1 text-xs">{council.reviews.length} 个目标 · {opinions.length} 次 Reviewer 调用 · {totalTokens.toLocaleString('en-US')} tokens</div></div>
+      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${council.status === 'degraded' ? 'border-amber-400/30 text-amber-400' : 'border-emerald-400/30 text-emerald-400'}`}>{council.status}</span>
+    </div>
+    {council.degradation && <div className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-400">已降级：{council.degradation}</div>}
+    <div className="mt-4 space-y-4">{council.reviews.map((review) => <div key={`${review.targetType}:${review.targetId}`} className="theme-card-soft rounded-xl p-4">
+      <div className="theme-text-primary text-sm font-semibold">{review.targetType === 'conflict' ? '冲突' : 'Finding'} · {review.targetId}</div>
+      {review.question && <div className="theme-text-secondary mt-1 text-xs leading-6">{review.question}</div>}
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">{review.result.opinions.map((opinion) => {
+        const citedSources = review.sources.filter((source) => opinion.sourceIds.includes(source.sourceId));
+        return <div key={opinion.reviewerId} className="rounded-xl border theme-border p-3 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2"><span className="theme-text-primary font-semibold">{opinion.role || opinion.reviewerId}</span><span className={opinion.abstain ? 'text-amber-400' : opinion.verdict === 'conflict' ? 'text-rose-400' : 'text-emerald-400'}>{councilVerdictLabel(opinion.verdict)}</span></div>
+          <div className="theme-text-muted mt-1">{opinion.provider}/{opinion.model} · {opinion.usage.totalTokens} tokens{opinion.usage.estimated ? '（估算）' : ''}</div>
+          {opinion.abstain ? <div className="mt-2 text-amber-400">弃权：{opinion.abstainReason || '未提供原因'}</div> : <><div className="theme-text-secondary mt-2 leading-6">{opinion.conclusion}</div>{opinion.reason && <div className="theme-text-muted mt-1 leading-5">理由：{opinion.reason}</div>}<div className="theme-text-muted mt-1">置信度：{opinion.confidence === null ? '未知' : `${Math.round(opinion.confidence * 100)}%`}</div></>}
+          {citedSources.length > 0 && <div className="mt-2"><SourceList sources={citedSources} onJumpToSource={onJumpToSource} /></div>}
+        </div>;
+      })}</div>
+      {review.result.disagreements.length > 0 && <div className="mt-3 space-y-2">{review.result.disagreements.map((item, index) => <div key={`${item.type}-${index}`} className={`rounded-xl border px-3 py-2 text-xs leading-6 ${item.highRisk ? 'border-rose-400/25 bg-rose-500/10 text-rose-400' : 'border-amber-400/25 bg-amber-500/10 text-amber-400'}`}><span className="font-semibold">分歧 · {item.type}</span><div>{item.reason}</div></div>)}</div>}
+      {review.result.abstentions.length > 0 && <div className="mt-3 text-xs text-amber-400">弃权：{review.result.abstentions.map((item) => `${item.role || item.reviewerId} (${item.reason})`).join('；')}</div>}
+      <div className="theme-text-secondary mt-3 text-xs">建议：{councilActionLabel(review.result.recommendedAction)}</div>
+      {reviewStatuses && <select aria-label={`Council 核查状态 ${review.targetId}`} value={reviewStatuses[`${review.targetType}:${review.targetId}`] || ''} onChange={(event) => onReviewStatusChange?.(review, event.target.value)} className="theme-input mt-3 rounded-lg px-2 py-1 text-xs"><option value="" disabled>请选择核查结果</option><option value="reviewed">已核查</option><option value="retained">保留分歧</option></select>}
+      {!reviewStatuses && review.reviewStatus !== 'pending' && <div className="theme-text-muted mt-3 text-xs">人工状态：{review.reviewStatus === 'retained' ? '保留分歧' : '已核查'}</div>}
+    </div>)}</div>
+    <div className="theme-text-muted mt-3 text-[11px]">仅展示结构化意见与引用，不包含完整 prompt 或隐藏推理。</div>
+  </div>;
+};
+
+const ResearchFinalReviewForm = ({ task, onReviewFinal, onJumpToSource }) => {
   const [reviewNotes, setReviewNotes] = useState('');
   const [riskReviews, setRiskReviews] = useState(() => Object.fromEntries((task.reviewRisks || []).map((risk) => [risk.riskId, 'reviewed'])));
-  return <div className="theme-card rounded-2xl p-5"><div className="theme-text-primary mb-3 text-sm font-bold">终稿人工审查</div><div className="space-y-3">{task.reviewRisks.map((risk) => <div key={risk.riskId} className="theme-card-soft rounded-xl p-3"><div className="theme-text-primary text-sm font-semibold">{risk.label}</div><div className="theme-text-secondary mt-1 text-xs leading-6">{risk.detail}</div><select value={riskReviews[risk.riskId] || 'reviewed'} onChange={(event) => setRiskReviews((prev) => ({ ...prev, [risk.riskId]: event.target.value }))} className="theme-input mt-2 rounded-lg px-2 py-1 text-xs"><option value="reviewed">已核查</option><option value="needs_follow_up">仍需跟进</option></select></div>)}<textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="theme-input min-h-20 w-full rounded-xl p-3 text-sm" placeholder="终稿审查备注（可选）" /><button type="button" className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => onReviewFinal?.({ reviewNotes, riskReviews: task.reviewRisks.map((risk) => ({ riskId: risk.riskId, reviewStatus: riskReviews[risk.riskId] || 'reviewed' })) })}>确认终稿</button></div></div>;
+  const [councilReviews, setCouncilReviews] = useState(() => Object.fromEntries((task.council?.reviews || []).map((review) => [`${review.targetType}:${review.targetId}`, ['reviewed', 'retained'].includes(review.reviewStatus) ? review.reviewStatus : ''])));
+  const councilResolved = (task.council?.reviews || []).every((review) => councilReviews[`${review.targetType}:${review.targetId}`]);
+  return <div className="theme-card rounded-2xl p-5"><div className="theme-text-primary mb-3 text-sm font-bold">终稿人工审查</div><div className="space-y-3"><CouncilReviewPanel council={task.council} onJumpToSource={onJumpToSource} reviewStatuses={councilReviews} onReviewStatusChange={(review, value) => setCouncilReviews((prev) => ({ ...prev, [`${review.targetType}:${review.targetId}`]: value }))} />{task.reviewRisks.map((risk) => <div key={risk.riskId} className="theme-card-soft rounded-xl p-3"><div className="theme-text-primary text-sm font-semibold">{risk.label}</div><div className="theme-text-secondary mt-1 text-xs leading-6">{risk.detail}</div><select value={riskReviews[risk.riskId] || 'reviewed'} onChange={(event) => setRiskReviews((prev) => ({ ...prev, [risk.riskId]: event.target.value }))} className="theme-input mt-2 rounded-lg px-2 py-1 text-xs"><option value="reviewed">已核查</option><option value="needs_follow_up">仍需跟进</option></select></div>)}<textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="theme-input min-h-20 w-full rounded-xl p-3 text-sm" placeholder="终稿审查备注（可选）" /><button type="button" disabled={!councilResolved} className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50" onClick={() => onReviewFinal?.({ reviewNotes, riskReviews: task.reviewRisks.map((risk) => ({ riskId: risk.riskId, reviewStatus: riskReviews[risk.riskId] || 'reviewed' })), councilReviews: (task.council?.reviews || []).map((review) => ({ targetType: review.targetType, targetId: review.targetId, reviewStatus: councilReviews[`${review.targetType}:${review.targetId}`] })) })}>确认终稿</button>{!councilResolved && <div className="text-xs text-amber-400">请先逐项选择 Council 核查结果。</div>}</div></div>;
 };
 
 const TRACE_COUNTER_ITEMS = [
@@ -81,6 +118,12 @@ const TRACE_COUNTER_ITEMS = [
   { key: 'externalEvidenceCount', label: 'External evidence' },
   { key: 'externalSearchLatencyMs', label: 'External latency ms' },
   { key: 'externalSearchBudgetBlocks', label: 'External blocks' },
+  { key: 'councilCalls', label: 'Council calls' },
+  { key: 'councilFailures', label: 'Council failures' },
+  { key: 'councilLatencyMs', label: 'Council latency ms' },
+  { key: 'councilInputTokens', label: 'Council input tokens' },
+  { key: 'councilOutputTokens', label: 'Council output tokens' },
+  { key: 'councilTotalTokens', label: 'Council total tokens' },
 ];
 
 const formatCounterValue = (value) => Number(value || 0).toLocaleString('en-US');
@@ -790,7 +833,8 @@ const DeepResearchPanel = ({
               )}
             </div>
 
-            {normalizedTask.status === 'awaiting_final_review' && <ResearchFinalReviewForm key={normalizedTask.taskId} task={normalizedTask} onReviewFinal={onReviewFinal} />}
+            {normalizedTask.status === 'awaiting_final_review' && <ResearchFinalReviewForm key={normalizedTask.taskId} task={normalizedTask} onReviewFinal={onReviewFinal} onJumpToSource={onJumpToSource} />}
+            {normalizedTask.status !== 'awaiting_final_review' && normalizedTask.council.reviews.length > 0 && <CouncilReviewPanel council={normalizedTask.council} onJumpToSource={onJumpToSource} />}
 
             <div className="theme-card rounded-2xl p-5">
               <div className="theme-text-primary mb-3 text-sm font-bold">证据冲突/需人工核查</div>
