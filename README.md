@@ -310,6 +310,16 @@ python -m benchmarks.external_search.provider_benchmark
 python -m benchmarks.external_search.effect_benchmark
 ```
 
+Council 单模型基线首次采样需要显式配置 `DEEPSEEK_API_KEY` 并执行 live 命令；已有真实 snapshot 后，去掉 `--live` 即可离线复算：
+
+```powershell
+cd ai-service-python
+python -m benchmarks.council.baseline_benchmark --live
+python -m benchmarks.council.baseline_benchmark
+```
+
+详细数据集、评分口径与脱敏边界见 `docs/council_benchmark.md`。未完成真实采样时不得提交或宣称基线指标。
+
 Python 测试也支持完全离线的固定 LLM 响应，不需要 `DEEPSEEK_API_KEY`，且不会请求 DeepSeek：
 
 ```powershell
@@ -319,7 +329,7 @@ $env:PIXIU_LLM_FIXTURE_PATH = (Resolve-Path ".\tests\fixtures\llm_responses.json
 python -m pytest tests/test_offline_llm.py tests/test_offline_core_paths.py -q
 ```
 
-CI 使用同名环境变量即可。fixture 文件采用 `schemaVersion: 1`，每个响应包含唯一 `id`、`client`（`default` 或 `translation`）、非空 `promptContains`，以及二选一的 `output` 或 `outputJson`。所有 marker 都匹配且仅匹配一个响应时才返回固定结果；未匹配、重复匹配或 schema 非法会直接失败，不会回退到真实 API。该模式只用于自动化测试。
+CI 使用同名环境变量即可。fixture 文件采用 `schemaVersion: 1`，每个响应包含唯一 `id`、`client`（`default` 或 `translation`）、非空 `promptContains`，以及二选一的 `output` 或 `outputJson`；可选 `usage` 固定 `inputTokens/outputTokens/totalTokens`，缺省时会生成带 `estimated=true` 的确定性估算。所有 marker 都匹配且仅匹配一个响应时才返回固定结果；未匹配、重复匹配或 schema 非法会直接失败，不会回退到真实 API。该模式只用于自动化测试。
 
 ## 已知问题
 

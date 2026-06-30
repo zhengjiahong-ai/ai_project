@@ -7,6 +7,14 @@
 - 前端新增后端调用时集中维护在 `frontend/src/services/api.js`。
 - 新增或变更接口字段时，同步更新 `API.md`、本文件和相关测试。
 
+## LLM Provider 与 Council benchmark 边界
+
+- Python LLM Provider 统一通过 `LLMRequest -> LLMResult` 调用；结果必须包含 `provider/model/content/usage`，usage 统一为输入、输出、总 token 和是否估算。DeepSeek 与离线 fixture 必须实现同一协议。
+- 现有 `_call(...) -> str` 是兼容层，必须委托统一协议并只返回 `content`；默认 DeepSeek 模型、翻译模型、温度、thinking/reasoning 配置和 fixture 默认/翻译分流保持兼容。未知 `PIXIU_LLM_MODE` 必须严格失败。
+- Provider HTTP 错误、网络错误和畸形响应统一为脱敏异常，不得包含响应体、认证 header、密钥或完整 prompt。DeepSeek 缺少原生 usage 时允许使用现有 token 估算，但必须标记 `estimated=true`。
+- Council 基线只允许在 `ai-service-python/benchmarks/council/` 中通过显式 `--live` 调用当前配置的 LLM。默认命令只能读取已提交的脱敏 snapshot 并离线复算，不得联网。
+- Council snapshot 禁止保存 prompt、messages、隐藏推理、headers、Authorization 或 API key。没有真实 Provider 采样时不得手工伪造 snapshot、指标或把 P4-01 标记完成。
+
 ## PDF 低文本诊断边界
 
 - `POST /api/upload` 成功响应必须返回机器字段 `parseStatus`，兼容值为 `parsed` 和 `scanned_or_low_text`；Java 网关继续透明透传。

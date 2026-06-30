@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 import requests
 from dotenv import load_dotenv
 
+from llm.provider import LLMProviderError, LLMRequest, LLMResult, LLMUsage
 from services.safety_service import estimate_tokens
 from services.trace_service import record_counter, trace_step
 
@@ -34,6 +35,59 @@ def _resolve_messages(
     return resolved_messages
 
 
+def _normalize_usage(
+    value: Any,
+    *,
+    estimated_input_tokens: int,
+    estimated_output_tokens: int,
+) -> LLMUsage:
+    if isinstance(value, dict):
+        fields = (
+            value.get("prompt_tokens"),
+            value.get("completion_tokens"),
+            value.get("total_tokens"),
+        )
+        if all(isinstance(item, int) and item >= 0 for item in fields):
+            return LLMUsage(fields[0], fields[1], fields[2], estimated=False)
+    return LLMUsage(
+        estimated_input_tokens,
+        estimated_output_tokens,
+        estimated_input_tokens + estimated_output_tokens,
+        estimated=True,
+    )
+
+
+def _validate_fixture_usage(fixture_id: str, value: Any) -> None:
+    if not isinstance(value, dict):
+        raise ValueError(f"LLM fixture {fixture_id} usage must be an object")
+    fields = (value.get("inputTokens"), value.get("outputTokens"), value.get("totalTokens"))
+    if not all(isinstance(item, int) and item >= 0 for item in fields):
+        raise ValueError(f"LLM fixture {fixture_id} usage token fields must be non-negative integers")
+    if fields[2] != fields[0] + fields[1]:
+        raise ValueError(f"LLM fixture {fixture_id} usage totalTokens must equal inputTokens + outputTokens")
+
+
+def _fixture_usage(
+    value: Any,
+    *,
+    estimated_input_tokens: int,
+    estimated_output_tokens: int,
+) -> LLMUsage:
+    if isinstance(value, dict):
+        return LLMUsage(
+            value["inputTokens"],
+            value["outputTokens"],
+            value["totalTokens"],
+            estimated=False,
+        )
+    return LLMUsage(
+        estimated_input_tokens,
+        estimated_output_tokens,
+        estimated_input_tokens + estimated_output_tokens,
+        estimated=True,
+    )
+
+
 class DeepSeekLLM:
     def __init__(
         self,
@@ -51,19 +105,16 @@ class DeepSeekLLM:
         self.thinking_type = thinking_type
         self.reasoning_effort = reasoning_effort
 
-    def _call(
-        self,
-        prompt: str = "",
-        stop: Optional[List[str]] = None,
-        run_manager: Optional[Any] = None,
-        messages: Optional[List[Dict[str, str]]] = None,
-        **kwargs: Any,
-    ) -> str:
+    def invoke(self, request: LLMRequest) -> LLMResult:
         api_key = self.api_key or os.environ.get("DEEPSEEK_API_KEY")
         if not api_key:
-            raise ValueError("Missing DEEPSEEK_API_KEY")
+            raise LLMProviderError(
+                "DeepSeek credentials are not configured.",
+                provider="deepseek",
+                model=self.model,
+            )
 
-        resolved_messages = _resolve_messages(prompt, messages)
+        resolved_messages = _resolve_messages(request.prompt, request.messages)
 
         payload: Dict[str, Any] = {
             "model": self.model,
@@ -72,16 +123,15 @@ class DeepSeekLLM:
             "stream": False,
         }
 
-        if stop:
-            payload["stop"] = stop
+        if request.stop:
+            payload["stop"] = request.stop
         if self.thinking_type:
             payload["thinking"] = {"type": self.thinking_type}
         if self.reasoning_effort:
             payload["reasoning_effort"] = self.reasoning_effort
 
-        extra_body = kwargs.get("extra_body")
-        if isinstance(extra_body, dict):
-            payload.update(extra_body)
+        if request.extra_body:
+            payload.update(request.extra_body)
 
         timeout = float(os.environ.get("DEEPSEEK_TIMEOUT_SECONDS", "120"))
         input_size = sum(len(str(item.get("content") or "")) for item in resolved_messages)
@@ -93,28 +143,76 @@ class DeepSeekLLM:
         ) as step:
             record_counter("llmCalls")
             record_counter("estimatedInputTokens", estimated_input_tokens)
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=timeout,
-            )
+            try:
+                response = requests.post(
+                    f"{self.base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                    timeout=timeout,
+                )
+            except requests.RequestException as error:
+                raise LLMProviderError(
+                    "DeepSeek request failed.",
+                    provider="deepseek",
+                    model=self.model,
+                    retryable=True,
+                ) from error
 
             if response.status_code >= 400:
-                raise RuntimeError(f"DeepSeek request failed: {response.status_code} - {response.text}")
+                raise LLMProviderError(
+                    f"DeepSeek request failed with HTTP {response.status_code}.",
+                    provider="deepseek",
+                    model=self.model,
+                    retryable=response.status_code == 429 or response.status_code >= 500,
+                    status_code=response.status_code,
+                )
 
-            data = response.json()
-            content = (
-                data.get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "")
+            try:
+                data = response.json()
+                content = data["choices"][0]["message"]["content"]
+            except (ValueError, KeyError, IndexError, TypeError) as error:
+                raise LLMProviderError(
+                    "DeepSeek returned an invalid response.",
+                    provider="deepseek",
+                    model=self.model,
+                ) from error
+            if not isinstance(content, str):
+                raise LLMProviderError(
+                    "DeepSeek returned an invalid response.",
+                    provider="deepseek",
+                    model=self.model,
+                )
+
+            usage = _normalize_usage(
+                data.get("usage") if isinstance(data, dict) else None,
+                estimated_input_tokens=estimated_input_tokens,
+                estimated_output_tokens=estimate_tokens(content),
             )
-            step["outputSize"] = len(str(content or ""))
+            step["outputSize"] = len(content)
             record_counter("estimatedOutputTokens", estimate_tokens(content))
-            return str(content or "")
+            return LLMResult("deepseek", self.model, content, usage)
+
+    def _call(
+        self,
+        prompt: str = "",
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[Any] = None,
+        messages: Optional[List[Dict[str, str]]] = None,
+        **kwargs: Any,
+    ) -> str:
+        del run_manager
+        extra_body = kwargs.get("extra_body")
+        return self.invoke(
+            LLMRequest(
+                prompt=prompt,
+                messages=messages,
+                stop=stop,
+                extra_body=extra_body if isinstance(extra_body, dict) else {},
+            )
+        ).content
 
 
 class FixtureLLM:
@@ -162,19 +260,13 @@ class FixtureLLM:
                 raise ValueError(f"LLM fixture {fixture_id} must define exactly one of output or outputJson")
             if "output" in response and not isinstance(response["output"], str):
                 raise ValueError(f"LLM fixture {fixture_id} output must be a string")
+            if "usage" in response:
+                _validate_fixture_usage(fixture_id, response["usage"])
 
         return responses
 
-    def _call(
-        self,
-        prompt: str = "",
-        stop: Optional[List[str]] = None,
-        run_manager: Optional[Any] = None,
-        messages: Optional[List[Dict[str, str]]] = None,
-        **kwargs: Any,
-    ) -> str:
-        del stop, run_manager, kwargs
-        resolved_messages = _resolve_messages(prompt, messages)
+    def invoke(self, request: LLMRequest) -> LLMResult:
+        resolved_messages = _resolve_messages(request.prompt, request.messages)
         searchable_prompt = "\n".join(item["content"] for item in resolved_messages)
         matches = [
             response
@@ -199,6 +291,11 @@ class FixtureLLM:
         )
         input_size = sum(len(item["content"]) for item in resolved_messages)
         estimated_input_tokens = sum(estimate_tokens(item["content"]) for item in resolved_messages)
+        usage = _fixture_usage(
+            match.get("usage"),
+            estimated_input_tokens=estimated_input_tokens,
+            estimated_output_tokens=estimate_tokens(content),
+        )
         with trace_step(
             "llm_call",
             input_size=input_size,
@@ -208,7 +305,26 @@ class FixtureLLM:
             record_counter("estimatedInputTokens", estimated_input_tokens)
             step["outputSize"] = len(content)
             record_counter("estimatedOutputTokens", estimate_tokens(content))
-        return content
+        return LLMResult("fixture", str(match["id"]), content, usage)
+
+    def _call(
+        self,
+        prompt: str = "",
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[Any] = None,
+        messages: Optional[List[Dict[str, str]]] = None,
+        **kwargs: Any,
+    ) -> str:
+        del run_manager
+        extra_body = kwargs.get("extra_body")
+        return self.invoke(
+            LLMRequest(
+                prompt=prompt,
+                messages=messages,
+                stop=stop,
+                extra_body=extra_body if isinstance(extra_body, dict) else {},
+            )
+        ).content
 
 
 _llm: Optional[Any] = None

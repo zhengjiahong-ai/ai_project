@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-30 v0.1.65
+
+1. **抽出 Provider 中立 LLM 契约**：DeepSeek 与离线 fixture 统一实现结构化请求、`provider/model/content/usage` 结果和脱敏错误模型，保留现有 `_call()` 字符串兼容层。
+2. **补齐真实与估算 usage**：DeepSeek 优先读取 API token usage，fixture 支持固定 usage；缺失时使用确定性估算并显式标记，不改变现有 trace 计数和翻译模型配置。
+3. **完成 Council 单模型基线**：新增五类固定审查用例、显式 live 采样入口、脱敏 snapshot 校验及离线评分器；首次 `deepseek-v4-pro` 采样的准确率、引用正确率、冲突召回率和提示注入通过率均为 `1.0`，平均延迟 `2886.237 ms`。
+4. **同步更新版本号**：`frontend/VERSION` 同步到 `0.1.65`。
+
 ### 2026-06-29 v0.1.64
 
 1. **完成外部检索跨服务验证**：共享 contract 扩展到 Deep Research 和 Agent 的创建、计划审查、任务查询及终稿审查，覆盖外部证据、Provider、预算和降级状态。

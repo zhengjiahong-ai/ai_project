@@ -3,9 +3,11 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from llm import client as llm_client
+from llm.provider import LLMProviderError, LLMRequest, LLMResult, LLMUsage
+from services.safety_service import estimate_tokens
 from services import trace_service
 
 
@@ -178,6 +180,122 @@ class OfflineLlmTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "invalid-output.*output must be a string"):
             llm_client.get_llm()
+
+    def test_fixture_invoke_returns_provider_neutral_result_with_declared_usage(self):
+        self._write_fixture(
+            [
+                {
+                    "id": "structured",
+                    "client": "default",
+                    "promptContains": ["structured marker"],
+                    "output": "structured answer",
+                    "usage": {"inputTokens": 11, "outputTokens": 7, "totalTokens": 18},
+                }
+            ]
+        )
+
+        trace_id = trace_service.start_trace("declared_usage")
+        result = llm_client.get_llm().invoke(LLMRequest(prompt="structured marker"))
+
+        self.assertEqual(
+            result,
+            LLMResult(
+                provider="fixture",
+                model="structured",
+                content="structured answer",
+                usage=LLMUsage(input_tokens=11, output_tokens=7, total_tokens=18, estimated=False),
+            ),
+        )
+        trace = trace_service.get_trace_snapshot(trace_id)
+        self.assertEqual(trace["counters"]["estimatedInputTokens"], estimate_tokens("structured marker"))
+        self.assertEqual(trace["counters"]["estimatedOutputTokens"], estimate_tokens("structured answer"))
+
+    def test_fixture_invoke_estimates_usage_when_fixture_omits_it(self):
+        self._write_fixture(
+            [
+                {
+                    "id": "estimated",
+                    "client": "default",
+                    "promptContains": ["estimate marker"],
+                    "output": "estimated answer",
+                }
+            ]
+        )
+
+        result = llm_client.get_llm().invoke(LLMRequest(prompt="estimate marker"))
+
+        self.assertTrue(result.usage.estimated)
+        self.assertGreater(result.usage.input_tokens, 0)
+        self.assertGreater(result.usage.output_tokens, 0)
+        self.assertEqual(
+            result.usage.total_tokens,
+            result.usage.input_tokens + result.usage.output_tokens,
+        )
+
+    def test_deepseek_invoke_normalizes_response_and_usage(self):
+        response = Mock(status_code=200)
+        response.json.return_value = {
+            "choices": [{"message": {"content": "deepseek answer"}}],
+            "usage": {"prompt_tokens": 13, "completion_tokens": 5, "total_tokens": 18},
+        }
+
+        with patch("llm.client.requests.post", return_value=response):
+            result = llm_client.DeepSeekLLM(model="deepseek-test", api_key="test-key").invoke(
+                LLMRequest(prompt="deepseek marker")
+            )
+
+        self.assertEqual(result.provider, "deepseek")
+        self.assertEqual(result.model, "deepseek-test")
+        self.assertEqual(result.content, "deepseek answer")
+        self.assertEqual(result.usage, LLMUsage(13, 5, 18, estimated=False))
+
+    def test_deepseek_invoke_estimates_missing_usage(self):
+        response = Mock(status_code=200)
+        response.json.return_value = {
+            "choices": [{"message": {"content": "answer without usage"}}],
+        }
+
+        with patch("llm.client.requests.post", return_value=response):
+            result = llm_client.DeepSeekLLM(api_key="test-key").invoke(
+                LLMRequest(prompt="usage fallback marker")
+            )
+
+        self.assertTrue(result.usage.estimated)
+        self.assertEqual(result.usage.total_tokens, result.usage.input_tokens + result.usage.output_tokens)
+
+    def test_deepseek_errors_are_normalized_without_response_body(self):
+        response = Mock(status_code=429, text="secret upstream body")
+
+        with patch("llm.client.requests.post", return_value=response):
+            with self.assertRaises(LLMProviderError) as captured:
+                llm_client.DeepSeekLLM(api_key="test-key").invoke(LLMRequest(prompt="rate limit"))
+
+        self.assertEqual(captured.exception.provider, "deepseek")
+        self.assertEqual(captured.exception.status_code, 429)
+        self.assertTrue(captured.exception.retryable)
+        self.assertNotIn("secret upstream body", str(captured.exception))
+
+    def test_deepseek_rejects_malformed_response(self):
+        response = Mock(status_code=200)
+        response.json.return_value = {"choices": []}
+
+        with patch("llm.client.requests.post", return_value=response):
+            with self.assertRaisesRegex(LLMProviderError, "invalid response"):
+                llm_client.DeepSeekLLM(api_key="test-key").invoke(LLMRequest(prompt="malformed"))
+
+    def test_default_and_translation_models_remain_unchanged(self):
+        with patch.dict(
+            os.environ,
+            {"PIXIU_LLM_MODE": "deepseek", "DEEPSEEK_API_KEY": "test-key"},
+            clear=False,
+        ):
+            llm_client._llm = None
+            llm_client._translation_llm = None
+            self.assertEqual(llm_client.get_llm().model, llm_client.DEFAULT_DEEPSEEK_MODEL)
+            self.assertEqual(
+                llm_client.get_translation_llm().model,
+                llm_client.DEFAULT_DEEPSEEK_TRANSLATION_MODEL,
+            )
 
 
 if __name__ == "__main__":
