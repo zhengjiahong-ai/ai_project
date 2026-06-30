@@ -321,6 +321,12 @@ Deep Research 和 Agent 均在现有任务生命周期内实现两个人工 gate
 - 后端已经提供项目级任务历史接口，按 `updatedAt` 倒序返回完整任务快照。
 - Python 服务重启后会恢复终态 Agent 任务；重启前仍在运行的任务会标记为 `failed` 并记录 `task_expired` 事件。
 
+#### `council_service.py`
+
+这是 P4-03/P4-04 的隔离 Council 实验边界，当前不属于 Deep Research 或 Agent 生产编排。服务复用 Provider 中立的 `LLMProvider`，以两个互不可见的请求分别生成 evidence reviewer 与 contradiction reviewer 意见；证据最多 8 条、每条最多 900 字符，Reviewer 只能引用本次输入中的 `sourceId`。
+
+结构化意见随后进入不调用 LLM 的确定性聚合器。只有 verdict 一致且存在共同来源时才形成强 agreement；无共同证据、弃权和分歧会原样保留，高风险分歧及 conflict 意见只能建议人工核查。当前服务不注册路由、不持久化、不改变任务快照，也不提前实现 P4-05 第二 Provider 或 P4-06 生产开关。
+
 #### `tool_registry.py`
 
 内部工具注册层为 Python 能力编排提供稳定边界。

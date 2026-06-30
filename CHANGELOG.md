@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-30 v0.1.66
+
+1. **新增同模型独立 Reviewer 实验**：Council 使用同一 Provider 的两个独立上下文生成 evidence reviewer 与 contradiction reviewer 结构化意见，严格限制可引用的输入 `sourceId`。
+2. **增加安全弃权语义**：空证据、证据不足、Provider 或解析失败、非法 verdict 和未知来源统一转为脱敏 abstention，同时保留其他有效 Reviewer 意见。
+3. **定义保守 Council 聚合模型**：结果显式保留 agreements、disagreements、abstentions 和 evidenceCoverage；无共同证据不形成强共识，高风险分歧和 conflict 意见仅建议人工核查。
+4. **保持生产隔离**：Council 当前不注册公开接口、不持久化，也不接入 Deep Research、Agent、Java 或前端。
+
 ### 2026-06-30 v0.1.65
 
 1. **抽出 Provider 中立 LLM 契约**：DeepSeek 与离线 fixture 统一实现结构化请求、`provider/model/content/usage` 结果和脱敏错误模型，保留现有 `_call()` 字符串兼容层。

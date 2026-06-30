@@ -647,6 +647,26 @@ Java 网关源码中已经暴露以下 Agent 路由，并转发到 Python：
 
 ## 关键数据结构
 
+### Council 内部模型（非 `/api` 接口）
+
+P4-03/P4-04 的 `services/council_service.py` 是隔离实验服务，不注册 FastAPI 路由，也不进入 Deep Research、Agent、Java 或前端契约。内部入口为 `run_council(question, evidence_items, provider=None)`，同一 Provider 分别接收 evidence reviewer 与 contradiction reviewer 的独立请求；任一请求不得包含另一 Reviewer 的输出。
+
+```json
+{
+  "opinions": [{"reviewerId": "evidence-reviewer", "role": "evidence_reviewer", "provider": "fixture", "model": "offline-council-evidence-reviewer", "verdict": "supported", "conclusion": "证据支持该结论。", "reason": "给定来源提供直接支持。", "sourceIds": ["source-1"], "confidence": 0.82, "abstain": false, "abstainReason": "", "usage": {"inputTokens": 20, "outputTokens": 10, "totalTokens": 30, "estimated": false}}],
+  "agreements": [],
+  "disagreements": [],
+  "abstentions": [],
+  "evidenceCoverage": {"allowedSourceCount": 1, "citedSourceCount": 1, "sharedSourceIds": ["source-1"], "uncitedSourceIds": [], "ratio": 1.0},
+  "recommendedAction": "accept_with_caution"
+}
+```
+
+- opinion `verdict` 兼容值为 `supported/insufficient/conflict/abstain`；证据不足、解析失败、Provider 失败或非法引用最终归一为 `abstain`。
+- 强 agreement 必须由两份非弃权意见在相同 verdict 下共享至少一个 `sourceId`；相同 verdict 但引用不相交时输出 `evidence_basis_disagreement`，不得伪装成共识。
+- 不同 verdict 输出 `verdict_disagreement`，保存双方 `positions/sourceIds/reason` 并标记 `highRisk=true`。聚合器不选择获胜意见或自动裁决冲突。
+- `recommendedAction` 仅为 `manual_review_required`、`collect_more_evidence` 或 `accept_with_caution`。
+
 ### Evidence Item
 
 `rag_sources`、`sources` 和 Agent evidence 中常见字段：

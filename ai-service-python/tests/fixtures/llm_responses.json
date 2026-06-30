@@ -69,6 +69,30 @@
           }
         ]
       }
+    },
+    {
+      "id": "offline-council-evidence-reviewer",
+      "client": "default",
+      "promptContains": ["COUNCIL_ROLE_EVIDENCE_REVIEWER", "OFFLINE_COUNCIL_MARKER"],
+      "outputJson": {
+        "verdict": "supported",
+        "conclusion": "固定证据支持该结论。",
+        "reason": "输入证据直接提供了支持。",
+        "sourceIds": ["source-1"],
+        "confidence": 0.82
+      }
+    },
+    {
+      "id": "offline-council-contradiction-reviewer",
+      "client": "default",
+      "promptContains": ["COUNCIL_ROLE_CONTRADICTION_REVIEWER", "OFFLINE_COUNCIL_MARKER"],
+      "outputJson": {
+        "verdict": "supported",
+        "conclusion": "固定证据中未发现相互矛盾的结论。",
+        "reason": "当前仅有一条一致的证据。",
+        "sourceIds": ["source-1"],
+        "confidence": 0.76
+      }
     }
   ]
 }

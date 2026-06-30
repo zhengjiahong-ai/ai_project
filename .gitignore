@@ -46,6 +46,7 @@ ai-service-python/core/chroma_literature_db/
 !/ai-service-python/tests/test_research_task_service.py
 !/ai-service-python/tests/test_offline_llm.py
 !/ai-service-python/tests/test_offline_core_paths.py
+!/ai-service-python/tests/test_council_service.py
 !/ai-service-python/tests/test_api_contract_smoke.py
 !/ai-service-python/tests/test_external_evidence.py
 !/ai-service-python/tests/test_external_search_provider.py
