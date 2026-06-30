@@ -316,11 +316,11 @@ Council 单模型基线首次采样需要显式配置 `DEEPSEEK_API_KEY` 并执�
 cd ai-service-python
 python -m benchmarks.council.baseline_benchmark --live
 python -m benchmarks.council.baseline_benchmark
+python -m benchmarks.council.comparison_benchmark --live
+python -m benchmarks.council.comparison_benchmark
 ```
 
-详细数据集、评分口径与脱敏边界见 `docs/council_benchmark.md`。未完成真实采样时不得提交或宣称基线指标。
-
-Deep Research 可在创建任务请求中显式设置 `allowCouncil: true`，在报告综合前对最多 3 个高风险 conflict/finding 运行同一 DeepSeek Provider 的双 Reviewer Pilot。该字段默认 `false`，关闭时不会产生额外模型调用。启用后终稿区展示每个 Reviewer 的 provider/model、结构化结论、引用、分歧、弃权及 token 成本；用户必须逐项标记“已核查”或“保留分歧”。Council trace 单独统计调用、失败、延迟和 token，且不展示完整 prompt 或隐藏推理。Council 失败不会阻断报告生成，终稿人工审查仍然强制执行。项目不配置或使用 DashScope/第二付费 Provider；未来增加第二 Provider 必须另行授权。
+详细数据集、评分口径与脱敏边界见 `docs/council_benchmark.md`。P4-08 真实对照中双 Reviewer 的质量和效用门槛全部通过，但平均延迟为基线 `2.79183x`、平均 token 为 `2.512443x`，超过预设的 `2.5x` 上限，因此已移除 Deep Research 的 Council 生产接入。`council_service.py` 与 benchmark 结论继续保留；项目不配置或使用第二付费 Provider，未来恢复任何生产接入或第二 Provider 都必须另立任务并重新授权。
 
 Python 测试也支持完全离线的固定 LLM 响应，不需要 `DEEPSEEK_API_KEY`，且不会请求 DeepSeek：
 

@@ -198,32 +198,6 @@ class ApiContractSmokeTests(unittest.TestCase):
         req_enabled = ResearchTaskCreateRequest(question="测试", pdfId="paper-1", allowExternalSearch=True)
         self.assertTrue(req_enabled.allowExternalSearch)
 
-    def test_research_task_create_request_allow_council_defaults_false(self):
-        req = ResearchTaskCreateRequest(question="测试", pdfId="paper-1")
-        self.assertFalse(req.allowCouncil)
-
-        req_enabled = ResearchTaskCreateRequest(question="测试", pdfId="paper-1", allowCouncil=True)
-        self.assertTrue(req_enabled.allowCouncil)
-
-    def test_shared_contract_carries_allow_council_and_council_snapshot(self):
-        create_fixture = self.operations["research"]
-        self.assertFalse(create_fixture["frontendRequest"]["allowCouncil"])
-        self.assertFalse(create_fixture["pythonRequest"]["allowCouncil"])
-        self.assertIn("council", create_fixture["pythonResponse"]["task"])
-        self.assertIn("council", create_fixture["gatewayResponse"]["task"])
-
-        task_fixture = self.operations["research-task"]
-        self.assertIn("council", task_fixture["pythonResponse"]["task"])
-        self.assertIn("council", task_fixture["gatewayResponse"]["task"])
-
-        final_review_fixture = self.operations["research-final-review"]
-        self.assertEqual(
-            final_review_fixture["frontendRequest"]["councilReviews"],
-            [{"targetType": "finding", "targetId": "finding-external-1", "reviewStatus": "reviewed"}],
-        )
-        request = ResearchFinalReviewRequest(**final_review_fixture["pythonRequest"])
-        self.assertEqual(request.councilReviews[0].targetId, "finding-external-1")
-
     def test_agent_task_create_request_allow_external_search_defaults_false(self):
         req = AgentTaskCreateRequest(prompt="测试")
         self.assertFalse(req.allowExternalSearch)

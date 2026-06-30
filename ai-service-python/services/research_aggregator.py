@@ -6,8 +6,6 @@ from services.knowledge_graph_store import enrich_conflicts_with_graph_context
 
 
 MAX_RESEARCH_CONFLICTS = 5
-MAX_COUNCIL_PILOT_REVIEWS = 3
-COUNCIL_CONFLICT_TYPES = {"numeric_mismatch", "opposing_conclusion"}
 
 
 def build_research_report(
@@ -135,81 +133,6 @@ def build_judge_trace_summary(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
         "retryFindingCount": sum(1 for item in findings if clean_text(item.get("retryReason"))),
         "insufficientFindingCount": sum(1 for item in findings if str(item.get("verdict") or "") == "INCORRECT"),
         "externalSearchDegradationCount": sum(1 for item in findings if clean_text(item.get("externalSearchDegradation"))),
-    }
-
-
-def select_council_targets(
-    findings: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]],
-    max_reviews: int = MAX_COUNCIL_PILOT_REVIEWS,
-) -> List[Dict[str, Any]]:
-    limit = max(0, int(max_reviews))
-    if limit == 0:
-        return []
-
-    severity_order = {"high": 0, "medium": 1, "low": 2}
-    eligible_conflicts = [
-        (index, item)
-        for index, item in enumerate(conflicts or [], 1)
-        if isinstance(item, dict) and str(item.get("conflictType") or "") in COUNCIL_CONFLICT_TYPES
-    ]
-    eligible_conflicts.sort(
-        key=lambda pair: (severity_order.get(str(pair[1].get("severity") or "").lower(), 3), pair[0])
-    )
-
-    targets: List[Dict[str, Any]] = []
-    seen = set()
-    for index, conflict in eligible_conflicts:
-        target = _council_target("conflict", conflict, index)
-        key = (target["targetType"], target["targetId"])
-        if key in seen:
-            continue
-        seen.add(key)
-        targets.append(target)
-        if len(targets) >= limit:
-            return targets
-
-    for index, finding in enumerate(findings or [], 1):
-        if not isinstance(finding, dict) or not _is_high_risk_finding(finding):
-            continue
-        target = _council_target("finding", finding, index)
-        key = (target["targetType"], target["targetId"])
-        if key in seen:
-            continue
-        seen.add(key)
-        targets.append(target)
-        if len(targets) >= limit:
-            break
-    return targets
-
-
-def _is_high_risk_finding(finding: Dict[str, Any]) -> bool:
-    coverage = finding.get("coverage") if isinstance(finding.get("coverage"), dict) else {}
-    coverage_score = coverage.get("score")
-    low_coverage = isinstance(coverage_score, (int, float)) and not isinstance(coverage_score, bool) and coverage_score < 0.6
-    judge_score = finding.get("judgeScore")
-    low_judge_score = isinstance(judge_score, (int, float)) and not isinstance(judge_score, bool) and judge_score < 60
-    risky_verdict = str(finding.get("verdict") or "").upper() in {"AMBIGUOUS", "INCORRECT"}
-    return low_coverage or low_judge_score or risky_verdict
-
-
-def _council_target(target_type: str, item: Dict[str, Any], index: int) -> Dict[str, Any]:
-    sources = [source for source in (item.get("sources") or []) if isinstance(source, dict)]
-    source_ids = [str(source_id) for source_id in (item.get("sourceIds") or []) if str(source_id)]
-    if not source_ids:
-        source_ids = list(dict.fromkeys(str(source.get("sourceId") or "") for source in sources if source.get("sourceId")))
-    if target_type == "conflict":
-        target_id = str(item.get("id") or f"conflict-{index}")
-        question = str(item.get("claim") or item.get("summary") or item.get("topic") or "Evidence conflict")
-    else:
-        target_id = str(item.get("id") or f"finding-{index}")
-        question = str(item.get("subQuestion") or item.get("question") or item.get("summary") or "High-risk finding")
-    return {
-        "targetType": target_type,
-        "targetId": target_id,
-        "question": " ".join(question.strip().split())[:500],
-        "sourceIds": list(dict.fromkeys(source_ids)),
-        "evidenceItems": sources,
     }
 
 

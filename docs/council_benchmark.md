@@ -1,4 +1,4 @@
-# Council Mode 单模型基线 benchmark
+# Council Mode 基线与双 Reviewer 对照 benchmark
 
 ## 目的与状态
 
@@ -48,3 +48,17 @@ python -m benchmarks.council.baseline_benchmark
 ```
 
 提交真实结果前必须确认 live 与离线复算指标一致，并人工检查 snapshot 不含敏感字段。
+
+## P4-08 对照阈值与结论
+
+对照评测在真实采样前固定以下硬门槛：单模型基线的准确率、引用正确率、冲突召回率和提示注入通过率均不得回退；两个冲突 case 的人工复核率与证据不足 case 的升级率必须为 `1.0`；Reviewer 失败率必须为 `0`；平均延迟和平均 token 均不得超过单模型基线的 `2.5x`。任一门槛失败即输出 `remove_production_integration`，全部通过才允许保留显式开启且默认关闭的 Pilot。
+
+2026-06-30 使用相同 `deepseek-v4-pro` 和相同 5 个 fixture 完成真实双 Reviewer 采样。准确率、引用正确率、冲突召回率、提示注入通过率、冲突人工复核率和证据不足升级率均为 `1.0`，Reviewer 失败率为 `0`；平均延迟 `8057.884 ms`（基线 `2.79183x`），每 case 平均总 token `989.4`（基线 `2.512443x`）。延迟与 token 两项超过 `2.5x` 门槛，因此最终决策为 `remove_production_integration`。
+
+Deep Research 的 `allowCouncil` 请求字段、Council SQLite 快照、public trace、前端展示和人工核查流程已移除。`council_service.py`、固定 fixture、脱敏 `comparison-snapshot.json` 和确定性 `comparison-results.json` 保留，用于离线复算与后续研究。该小样本结论不代表生产总体质量；未来恢复生产接入或增加第二 Provider 必须另立任务、预先固定新门槛并重新授权。
+
+```powershell
+cd ai-service-python
+python -m benchmarks.council.comparison_benchmark --live
+python -m benchmarks.council.comparison_benchmark
+```

@@ -17,9 +17,8 @@
 - Council Reviewer 不注册独立 `/api`。evidence reviewer 与 contradiction reviewer 必须使用同一 Provider 的两个独立请求，任一请求不得读取或包含另一意见。
 - Council 输入最多保留 8 条证据、单条最多 900 字符；Reviewer 输出只能引用本次允许的 `sourceId`。空证据、Provider/解析失败、非法 verdict、未知来源或证据不足必须归一为脱敏 abstention，并保留其他有效意见。
 - 强共识必须同时满足两份非弃权意见 verdict 一致且共享至少一个来源。无共同证据不得生成 agreement；冲突和高风险分歧必须绑定双方立场、理由与来源，并返回 `manual_review_required`，聚合器不得多数投票或自动裁决。
-- Deep Research Council Pilot 只允许通过创建任务时显式 `allowCouncil=true` 启用，默认 `false` 时不得产生额外 LLM 调用；单任务最多处理 3 个高风险 conflict/finding，且只能使用当前默认 DeepSeek，不允许读取或配置 DashScope 密钥。
-- `task.council` 必须包含 `allowCouncil/status/maxReviews/reviewCount/reviews/degradation` 并持久化到 SQLite；每个 review 的 `reviewStatus` 仅允许 `pending/reviewed/retained`，旧快照缺失时恢复为 `pending`。终稿请求的 `councilReviews` 必须完整且无重复地覆盖所有 review target。Council 结果不得写入报告或 `reviewRisks`，Reviewer 弃权或整体异常只能降级，不能阻断任务进入 `awaiting_final_review`。
-- Council public trace 必须单独记录调用、失败、延迟和输入/输出/总 token；Reviewer step 仅允许角色、provider/model、状态和 usage，禁止保存 prompt、证据正文、Provider 原始错误或隐藏推理。
+- P4-08 对照评测未通过成本门槛后，Council 不得接入 Deep Research 或其他生产路径；不得暴露 `allowCouncil`、`task.council`、`councilReviews` 或 Council public trace 字段。内部 `council_service.py` 与脱敏 benchmark 仅用于离线复算和后续研究。
+- Council 对照 benchmark 必须复用固定五类 fixture；四项基线质量不得回退，冲突人工复核率和证据不足升级率必须为 `1.0`，Reviewer 失败率必须为 `0`，平均延迟和 token 倍数均不得超过 `2.5x`。
 - P4-05 第二付费 Provider 已因安全决策取消。未来恢复任何第二 Provider 必须另立任务，明确凭据来源、预算与授权，不得复用未知密钥。
 
 ## PDF 低文本诊断边界

@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-30 v0.1.69
+
+1. **完成 Council 对照评测**：固定质量、效用、失败率、延迟和 token 门槛，新增真实双 Reviewer 脱敏 snapshot、确定性离线评分和自动去留决策。
+2. **作出移除生产接入决策**：双 Reviewer 质量与效用门槛全部通过，但平均延迟 `2.79183x`、平均 token `2.512443x` 超过 `2.5x` 上限，因此移除 Deep Research 的 Council 请求、快照、trace、前端展示和人工核查流程。
+3. **保留可复现实验边界**：继续保留 `council_service.py`、固定 fixture 和 benchmark 结论；第二 Provider 仍不在范围内，未来恢复必须另立任务并重新授权。
+
 ### 2026-06-30 v0.1.68
 
 1. **展示 Council 独立意见与分歧**：Deep Research 终稿区展示 Reviewer 的 provider/model、结论、引用、弃权、分歧和 token 成本，并保留安全降级状态。

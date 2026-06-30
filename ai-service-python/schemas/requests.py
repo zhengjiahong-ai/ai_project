@@ -80,7 +80,6 @@ class ResearchTaskCreateRequest(BaseModel):
     userConstraints: Optional[str] = ""
     briefPreview: Optional[Dict[str, Any]] = None
     allowExternalSearch: bool = Field(default=False)
-    allowCouncil: bool = Field(default=False)
 
 
 class ResearchTaskBriefPreviewRequest(BaseModel):
@@ -95,12 +94,6 @@ class RiskReviewItem(BaseModel):
     reviewStatus: str
 
 
-class CouncilReviewItem(BaseModel):
-    targetType: str
-    targetId: str
-    reviewStatus: str
-
-
 class ResearchPlanReviewRequest(BaseModel):
     subQuestions: List[str]
     reviewNotes: Optional[str] = ""
@@ -109,7 +102,6 @@ class ResearchPlanReviewRequest(BaseModel):
 class ResearchFinalReviewRequest(BaseModel):
     reviewNotes: Optional[str] = ""
     riskReviews: Optional[List[RiskReviewItem]] = None
-    councilReviews: Optional[List[CouncilReviewItem]] = None
 
 
 class AgentProjectCreateRequest(BaseModel):

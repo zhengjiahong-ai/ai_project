@@ -327,7 +327,7 @@ Deep Research 和 Agent 均在现有任务生命周期内实现两个人工 gate
 
 结构化意见随后进入不调用 LLM 的确定性聚合器。只有 verdict 一致且存在共同来源时才形成强 agreement；无共同证据、弃权和分歧会原样保留，高风险分歧及 conflict 意见只能建议人工核查。
 
-P4-06 通过默认关闭的 `allowCouncil` 接入 Deep Research：findings/conflicts 已生成且报告尚未综合时，先处理按严重度排序的 `numeric_mismatch/opposing_conclusion`，再处理低覆盖、低 judge 分或 `AMBIGUOUS/INCORRECT` finding，最多 3 项。结果存入任务 SQLite 的 `council` 快照，但不写入报告、不修改 `reviewRisks`，任何异常都降级为 `council_unavailable` 并继续进入强制终稿人工审查。当前唯一付费 Provider 仍为默认 DeepSeek；P4-05 第二 Provider 已因安全决策取消。
+P4-08 对照评测后已移除 Council 的 Deep Research 生产接入：不再提供 `allowCouncil`、Council 任务快照、public trace 或前端审查流程。`council_service.py` 仅作为内部实验边界和可复现 benchmark 保留；当前唯一付费 Provider 仍为默认 DeepSeek，P4-05 第二 Provider 已因安全决策取消。
 
 #### `tool_registry.py`
 

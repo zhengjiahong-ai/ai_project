@@ -310,107 +310,6 @@ const normalizeExternalSearchConfig = (config) => {
   };
 };
 
-const normalizeCouncilText = (value, limit = 500) => normalizeText(value).slice(0, limit);
-
-const normalizeCouncilUsage = (usage) => {
-  const raw = usage && typeof usage === 'object' ? usage : {};
-  const inputTokens = Math.max(0, normalizeInteger(raw.inputTokens) || 0);
-  const outputTokens = Math.max(0, normalizeInteger(raw.outputTokens) || 0);
-  return {
-    inputTokens,
-    outputTokens,
-    totalTokens: Math.max(0, normalizeInteger(raw.totalTokens) ?? inputTokens + outputTokens),
-    estimated: Boolean(raw.estimated),
-  };
-};
-
-const normalizeCouncilState = (council, sourceIndex) => {
-  if (!council || typeof council !== 'object') {
-    return { allowCouncil: false, status: 'disabled', maxReviews: 3, reviewCount: 0, reviews: [], degradation: '' };
-  }
-  const allowedStatuses = new Set(['disabled', 'pending', 'running', 'completed', 'degraded', 'skipped']);
-  const allowedReviewStatuses = new Set(['pending', 'reviewed', 'retained']);
-  const filterSourceIds = (items) => normalizeTextList(items, 8).filter((sourceId) => sourceIndex.has(sourceId));
-  const reviews = (Array.isArray(council.reviews) ? council.reviews : []).slice(0, 3).map((review, index) => {
-    const result = review?.result && typeof review.result === 'object' ? review.result : {};
-    const sourceIds = filterSourceIds(review?.sourceIds);
-    const opinions = (Array.isArray(result.opinions) ? result.opinions : []).slice(0, 2).map((opinion, opinionIndex) => {
-      const abstain = Boolean(opinion?.abstain);
-      return {
-        reviewerId: normalizeCouncilText(opinion?.reviewerId, 80) || `reviewer-${opinionIndex + 1}`,
-        role: normalizeCouncilText(opinion?.role, 80),
-        provider: normalizeCouncilText(opinion?.provider, 80) || 'unknown',
-        model: normalizeCouncilText(opinion?.model, 120) || 'unknown',
-        verdict: normalizeCouncilText(opinion?.verdict, 40) || 'abstain',
-        conclusion: normalizeCouncilText(opinion?.conclusion, 1000),
-        reason: normalizeCouncilText(opinion?.reason, 500),
-        sourceIds: filterSourceIds(opinion?.sourceIds),
-        confidence: normalizeNumber(opinion?.confidence),
-        abstain,
-        abstainReason: normalizeCouncilText(opinion?.abstainReason, 120),
-        usage: normalizeCouncilUsage(opinion?.usage),
-      };
-    });
-    const disagreements = (Array.isArray(result.disagreements) ? result.disagreements : []).slice(0, 4).map((item) => ({
-      type: normalizeCouncilText(item?.type, 80),
-      reviewerIds: normalizeTextList(item?.reviewerIds, 2),
-      sourceIds: filterSourceIds(item?.sourceIds),
-      reason: normalizeCouncilText(item?.reason, 500),
-      highRisk: Boolean(item?.highRisk),
-      positions: (Array.isArray(item?.positions) ? item.positions : []).slice(0, 2).map((position) => ({
-        reviewerId: normalizeCouncilText(position?.reviewerId, 80),
-        verdict: normalizeCouncilText(position?.verdict, 40),
-        conclusion: normalizeCouncilText(position?.conclusion, 1000),
-        reason: normalizeCouncilText(position?.reason, 500),
-        sourceIds: filterSourceIds(position?.sourceIds),
-      })),
-    }));
-    const agreements = (Array.isArray(result.agreements) ? result.agreements : []).slice(0, 4).map((item) => ({
-      type: normalizeCouncilText(item?.type, 80),
-      verdict: normalizeCouncilText(item?.verdict, 40),
-      reviewerIds: normalizeTextList(item?.reviewerIds, 2),
-      sourceIds: filterSourceIds(item?.sourceIds),
-      reason: normalizeCouncilText(item?.reason, 500),
-    }));
-    const abstentions = (Array.isArray(result.abstentions) ? result.abstentions : []).slice(0, 2).map((item) => ({
-      reviewerId: normalizeCouncilText(item?.reviewerId, 80),
-      role: normalizeCouncilText(item?.role, 80),
-      reason: normalizeCouncilText(item?.reason, 120),
-    }));
-    return {
-      targetType: ['finding', 'conflict'].includes(normalizeText(review?.targetType)) ? normalizeText(review.targetType) : 'finding',
-      targetId: normalizeCouncilText(review?.targetId, 120) || `council-target-${index + 1}`,
-      question: normalizeCouncilText(review?.question, 1000),
-      sourceIds,
-      sources: sourceIds.map((sourceId) => sourceIndex.get(sourceId)).filter(Boolean),
-      reviewStatus: allowedReviewStatuses.has(normalizeText(review?.reviewStatus)) ? normalizeText(review.reviewStatus) : 'pending',
-      result: {
-        opinions,
-        agreements,
-        disagreements,
-        abstentions,
-        evidenceCoverage: result.evidenceCoverage && typeof result.evidenceCoverage === 'object' ? {
-          allowedSourceCount: Math.max(0, normalizeInteger(result.evidenceCoverage.allowedSourceCount) || 0),
-          citedSourceCount: Math.max(0, normalizeInteger(result.evidenceCoverage.citedSourceCount) || 0),
-          sharedSourceIds: filterSourceIds(result.evidenceCoverage.sharedSourceIds),
-          uncitedSourceIds: filterSourceIds(result.evidenceCoverage.uncitedSourceIds),
-          ratio: normalizeNumber(result.evidenceCoverage.ratio),
-        } : { allowedSourceCount: 0, citedSourceCount: 0, sharedSourceIds: [], uncitedSourceIds: [], ratio: null },
-        recommendedAction: normalizeCouncilText(result.recommendedAction, 80),
-      },
-    };
-  });
-  const status = normalizeText(council.status);
-  return {
-    allowCouncil: Boolean(council.allowCouncil),
-    status: allowedStatuses.has(status) ? status : 'disabled',
-    maxReviews: Math.max(0, normalizeInteger(council.maxReviews) || 3),
-    reviewCount: reviews.length,
-    reviews,
-    degradation: normalizeCouncilText(council.degradation, 160),
-  };
-};
-
 export const normalizeResearchTask = (task) => {
   if (!task || typeof task !== 'object') {
     return null;
@@ -426,27 +325,6 @@ export const normalizeResearchTask = (task) => {
     return TERMINAL_RESEARCH_STATUSES.includes(normalizedStatus) ? 'done' : 'planning';
   })();
   const planItems = normalizeResearchPlanItems(task.plan);
-  const findings = (Array.isArray(task.findings) ? task.findings : []).map((finding, index) => {
-    const verdict = normalizeText(finding?.verdict).toUpperCase();
-    const sourceIds = normalizeTextList(finding?.sourceIds, 6);
-    return {
-      id: normalizeText(finding?.id) || `finding-${index + 1}`,
-      subQuestion: normalizeText(finding?.subQuestion) || `子问题 ${index + 1}`,
-      summary: normalizeText(finding?.summary) || '暂无结论摘要。',
-      verdict: VERDICT_META[verdict] ? verdict : 'INCORRECT',
-      missingAspects: normalizeTextList(finding?.missingAspects, 6),
-      judgeScore: normalizeJudgeScore(finding?.judgeScore),
-      coverage: normalizeCoverage(finding?.coverage),
-      retryReason: normalizeText(finding?.retryReason),
-      isFollowUp: Boolean(finding?.isFollowUp),
-      followUpOf: normalizeText(finding?.followUpOf),
-      sourceMissingAspects: normalizeTextList(finding?.sourceMissingAspects, 6),
-      sourceIds,
-      sources: normalizeEvidenceSources(finding?.sources, sourceIds),
-    };
-  });
-  const conflicts = normalizeResearchConflicts(task.conflicts);
-  const sourceIndex = new Map([...findings, ...conflicts].flatMap((item) => item.sources || []).map((source) => [source.sourceId, source]));
 
   return {
     taskId: normalizeText(task.taskId),
@@ -458,8 +336,26 @@ export const normalizeResearchTask = (task) => {
     pdfId: normalizeText(task.pdfId),
     plan: planItems.map((item) => item.question),
     planItems,
-    findings,
-    conflicts,
+    findings: (Array.isArray(task.findings) ? task.findings : []).map((finding, index) => {
+      const verdict = normalizeText(finding?.verdict).toUpperCase();
+      const sourceIds = normalizeTextList(finding?.sourceIds, 6);
+      return {
+        id: normalizeText(finding?.id) || `finding-${index + 1}`,
+        subQuestion: normalizeText(finding?.subQuestion) || `子问题 ${index + 1}`,
+        summary: normalizeText(finding?.summary) || '暂无结论摘要。',
+        verdict: VERDICT_META[verdict] ? verdict : 'INCORRECT',
+        missingAspects: normalizeTextList(finding?.missingAspects, 6),
+        judgeScore: normalizeJudgeScore(finding?.judgeScore),
+        coverage: normalizeCoverage(finding?.coverage),
+        retryReason: normalizeText(finding?.retryReason),
+        isFollowUp: Boolean(finding?.isFollowUp),
+        followUpOf: normalizeText(finding?.followUpOf),
+        sourceMissingAspects: normalizeTextList(finding?.sourceMissingAspects, 6),
+        sourceIds,
+        sources: normalizeEvidenceSources(finding?.sources, sourceIds),
+      };
+    }),
+    conflicts: normalizeResearchConflicts(task.conflicts),
     reviewRisks: (Array.isArray(task.reviewRisks) ? task.reviewRisks : []).map((risk, index) => ({
       riskId: normalizeText(risk?.riskId) || `risk-${index + 1}`,
       type: normalizeText(risk?.type), label: normalizeText(risk?.label) || '待核查项',
@@ -472,7 +368,6 @@ export const normalizeResearchTask = (task) => {
     createdAt: normalizeText(task.createdAt),
     updatedAt: normalizeText(task.updatedAt),
     externalSearchConfig: normalizeExternalSearchConfig(task.externalSearchConfig),
-    council: normalizeCouncilState(task.council, sourceIndex),
   };
 };
 
@@ -517,12 +412,6 @@ const TRACE_COUNTER_KEYS = [
   'externalEvidenceCount',
   'externalSearchLatencyMs',
   'externalSearchBudgetBlocks',
-  'councilCalls',
-  'councilFailures',
-  'councilLatencyMs',
-  'councilInputTokens',
-  'councilOutputTokens',
-  'councilTotalTokens',
 ];
 
 const normalizeCounterValue = (value) => {

@@ -190,57 +190,6 @@ const run = async () => {
   assert.equal(normalizedRunningTask.updatedAt, '2026-06-01T10:02:00Z');
 
   assert.deepEqual(normalizeResearchTask({ taskId: 'legacy-task' }).conflicts, []);
-  assert.deepEqual(normalizeResearchTask({ taskId: 'legacy-task' }).council, {
-    allowCouncil: false,
-    status: 'disabled',
-    maxReviews: 3,
-    reviewCount: 0,
-    reviews: [],
-    degradation: '',
-  });
-
-  const normalizedCouncilTask = normalizeResearchTask({
-    taskId: 'council-task',
-    findings: [{ id: 'finding-1', sourceIds: ['s1'], sources: [{ sourceId: 's1', text: '允许展示的证据。', pageIndex: 2 }] }],
-    council: {
-      allowCouncil: true,
-      status: 'degraded',
-      maxReviews: 3,
-      reviewCount: 1,
-      degradation: 'reviewer_abstained',
-      reviews: [{
-        targetType: 'finding',
-        targetId: 'finding-1',
-        question: '证据是否充分？',
-        sourceIds: ['s1', 'invented-source'],
-        reviewStatus: 'pending',
-        result: {
-          opinions: [{
-            reviewerId: 'evidence-reviewer', role: 'evidence_reviewer', provider: 'fixture', model: 'fixture-council',
-            verdict: 'supported', conclusion: '证据支持有限结论。', reason: '引用了允许来源。', sourceIds: ['s1', 'invented-source'],
-            confidence: 0.8, abstain: false, abstainReason: '', usage: { inputTokens: 20, outputTokens: 10, totalTokens: 30, estimated: false },
-          }, {
-            reviewerId: 'contradiction-reviewer', role: 'contradiction_reviewer', provider: 'fixture', model: 'fixture-council',
-            verdict: 'abstain', conclusion: '', reason: '', sourceIds: [], confidence: 0, abstain: true,
-            abstainReason: 'provider_unavailable', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, estimated: true },
-          }],
-          agreements: [],
-          disagreements: [{ type: 'verdict_disagreement', reviewerIds: ['evidence-reviewer'], sourceIds: ['s1', 'invented-source'], reason: '需要人工核查。', highRisk: true, positions: [] }],
-          abstentions: [{ reviewerId: 'contradiction-reviewer', role: 'contradiction_reviewer', reason: 'provider_unavailable' }],
-          evidenceCoverage: { allowedSourceCount: 1, citedSourceCount: 1, sharedSourceIds: [], uncitedSourceIds: [], ratio: 1 },
-          recommendedAction: 'manual_review_required',
-        },
-      }],
-    },
-  });
-  assert.equal(normalizedCouncilTask.council.status, 'degraded');
-  assert.equal(normalizedCouncilTask.council.reviews[0].reviewStatus, 'pending');
-  assert.deepEqual(normalizedCouncilTask.council.reviews[0].sourceIds, ['s1']);
-  assert.equal(normalizedCouncilTask.council.reviews[0].sources[0].locationLabel, 'p.3');
-  assert.deepEqual(normalizedCouncilTask.council.reviews[0].result.opinions[0].sourceIds, ['s1']);
-  assert.equal(normalizedCouncilTask.council.reviews[0].result.opinions[0].usage.totalTokens, 30);
-  assert.equal(normalizedCouncilTask.council.reviews[0].result.abstentions[0].reason, 'provider_unavailable');
-  assert.equal(normalizedCouncilTask.council.reviews[0].result.disagreements[0].highRisk, true);
 
   const snapshot = createDeepResearchSnapshot({
     pdfFileName: 'paper.pdf',
@@ -315,12 +264,6 @@ const run = async () => {
       externalEvidenceCount: 12,
       externalSearchLatencyMs: 245.9,
       externalSearchBudgetBlocks: '1',
-      councilCalls: 2,
-      councilFailures: 1,
-      councilLatencyMs: 345.8,
-      councilInputTokens: 40,
-      councilOutputTokens: 20,
-      councilTotalTokens: 60,
       extraCounter: 99,
     },
     steps: Array.from({ length: 20 }, (_, index) => ({
@@ -351,12 +294,6 @@ const run = async () => {
     externalEvidenceCount: 12,
     externalSearchLatencyMs: 245,
     externalSearchBudgetBlocks: 1,
-    councilCalls: 2,
-    councilFailures: 1,
-    councilLatencyMs: 345,
-    councilInputTokens: 40,
-    councilOutputTokens: 20,
-    councilTotalTokens: 60,
   });
   assert.deepEqual(normalizedTrace.rawCounters, {
     llmCalls: 2,
@@ -371,12 +308,6 @@ const run = async () => {
     externalEvidenceCount: 12,
     externalSearchLatencyMs: 245.9,
     externalSearchBudgetBlocks: '1',
-    councilCalls: 2,
-    councilFailures: 1,
-    councilLatencyMs: 345.8,
-    councilInputTokens: 40,
-    councilOutputTokens: 20,
-    councilTotalTokens: 60,
     extraCounter: 99,
   });
   assert.equal(normalizedTrace.steps.length, 12);
@@ -400,12 +331,6 @@ const run = async () => {
     externalEvidenceCount: 0,
     externalSearchLatencyMs: 0,
     externalSearchBudgetBlocks: 0,
-    councilCalls: 0,
-    councilFailures: 0,
-    councilLatencyMs: 0,
-    councilInputTokens: 0,
-    councilOutputTokens: 0,
-    councilTotalTokens: 0,
   });
   assert.deepEqual(fallbackTrace.rawCounters, {});
 
@@ -422,12 +347,6 @@ const run = async () => {
     externalEvidenceCount: 0,
     externalSearchLatencyMs: 0,
     externalSearchBudgetBlocks: 0,
-    councilCalls: 0,
-    councilFailures: 0,
-    councilLatencyMs: 0,
-    councilInputTokens: 0,
-    councilOutputTokens: 0,
-    councilTotalTokens: 0,
   });
 
   const normalizedPreview = normalizeResearchBriefPreview({

@@ -108,12 +108,10 @@ const run = async () => {
     pdfId: 'paper-1',
     paperSkeleton: { abstract: 'summary' },
     allowExternalSearch: false,
-    allowCouncil: false,
   });
 
-  await createResearchService.createResearchTask('研究问题', 'paper-1', null, '', null, true, true);
+  await createResearchService.createResearchTask('研究问题', 'paper-1', null, '', null, true);
   assert.equal(createResearchPayload.allowExternalSearch, true);
-  assert.equal(createResearchPayload.allowCouncil, true);
 
   await createResearchService.previewResearchBrief('研究问题', 'paper-1', { abstract: 'summary' }, '重点看实验');
   assert.equal(createResearchUrl, '/research-tasks/brief-preview');
