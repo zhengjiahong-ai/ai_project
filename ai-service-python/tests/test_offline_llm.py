@@ -297,6 +297,20 @@ class OfflineLlmTests(unittest.TestCase):
                 llm_client.DEFAULT_DEEPSEEK_TRANSLATION_MODEL,
             )
 
+    def test_trace_does_not_read_dashscope_key_but_redacts_labeled_text(self):
+        environment_reads = []
+        original_get = os.environ.get
+
+        def read_environment(name, default=None):
+            environment_reads.append(name)
+            return original_get(name, default)
+
+        with patch("services.trace_service.os.environ.get", side_effect=read_environment):
+            sanitized = trace_service.sanitize_text("DASHSCOPE_API_KEY=legacy-secret")
+
+        self.assertNotIn("DASHSCOPE_API_KEY", environment_reads)
+        self.assertEqual(sanitized, "DASHSCOPE_API_KEY=[REDACTED]")
+
 
 if __name__ == "__main__":
     unittest.main()

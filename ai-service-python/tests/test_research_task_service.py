@@ -73,6 +73,24 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         )
         return response["task"]["taskId"]
 
+    def test_council_defaults_disabled_in_new_task_snapshot(self):
+        task = research_task_service.create_research_task(
+            ResearchTaskCreateRequest(question="验证实验结论是否充分", pdfId="paper-1"),
+            start_async=False,
+        )["task"]
+
+        self.assertEqual(
+            task["council"],
+            {
+                "allowCouncil": False,
+                "status": "disabled",
+                "maxReviews": 3,
+                "reviewCount": 0,
+                "reviews": [],
+                "degradation": "",
+            },
+        )
+
     def test_plan_and_final_review_gate_task_execution(self):
         task_id = self._create_task()
         with (
@@ -519,9 +537,201 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         restored = research_task_service.get_research_task("old-task")["task"]
 
         self.assertEqual(restored["traceSummary"], {})
+        self.assertEqual(restored["council"], research_task_service._default_council_state(False))
         with closing(sqlite3.connect(db_path)) as connection:
             columns = {row[1] for row in connection.execute("PRAGMA table_info(research_tasks)").fetchall()}
         self.assertIn("traceSummary", columns)
+        self.assertIn("council", columns)
+
+
+class ResearchTaskCouncilPilotTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.previous_db_path = os.environ.get("RESEARCH_TASK_DB_PATH")
+        os.environ["RESEARCH_TASK_DB_PATH"] = os.path.join(self.temp_dir.name, "research_tasks.sqlite3")
+        research_task_service.clear_research_tasks(clear_storage=True)
+
+    def tearDown(self):
+        trace_service.clear_traces()
+        research_task_service.clear_research_tasks(clear_storage=True)
+        if self.previous_db_path is None:
+            os.environ.pop("RESEARCH_TASK_DB_PATH", None)
+        else:
+            os.environ["RESEARCH_TASK_DB_PATH"] = self.previous_db_path
+        self.temp_dir.cleanup()
+
+    @staticmethod
+    def _council_result(*, abstained=False):
+        opinion = {
+            "reviewerId": "evidence-reviewer",
+            "role": "evidence_reviewer",
+            "provider": "fixture",
+            "model": "fixture-council",
+            "verdict": "abstain" if abstained else "supported",
+            "conclusion": "" if abstained else "supported",
+            "reason": "" if abstained else "bounded evidence",
+            "sourceIds": [] if abstained else ["source-1"],
+            "confidence": 0.0 if abstained else 0.8,
+            "abstain": abstained,
+            "abstainReason": "provider_unavailable" if abstained else "",
+            "usage": {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2, "estimated": False},
+        }
+        return {
+            "opinions": [opinion],
+            "agreements": [],
+            "disagreements": [],
+            "abstentions": ([{"reviewerId": "evidence-reviewer", "role": "evidence_reviewer", "reason": "provider_unavailable"}] if abstained else []),
+            "evidenceCoverage": {"allowedSourceCount": 1, "citedSourceCount": 0 if abstained else 1, "sharedSourceIds": [], "uncitedSourceIds": [], "ratio": 0.0 if abstained else 1.0},
+            "recommendedAction": "collect_more_evidence" if abstained else "accept_with_caution",
+        }
+
+    def _run_task(self, *, allow_council, findings, conflicts=None, council_side_effect=None):
+        task_id = research_task_service.create_research_task(
+            ResearchTaskCreateRequest(
+                question="Council pilot test",
+                pdfId="paper-1",
+                allowCouncil=allow_council,
+            ),
+            start_async=False,
+        )["task"]["taskId"]
+        finding_iter = iter(findings)
+
+        def fake_research_sub_question(sub_question, **_kwargs):
+            return {**next(finding_iter), "subQuestion": sub_question}
+
+        council_patch = (
+            patch.object(research_task_service.council_service, "run_council", return_value=council_side_effect)
+            if isinstance(council_side_effect, dict)
+            else patch.object(research_task_service.council_service, "run_council", side_effect=council_side_effect)
+        )
+
+        with (
+            patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
+            patch.object(research_task_service, "_build_research_plan", return_value=("brief", [f"子问题 {index}" for index in range(1, len(findings) + 1)])),
+            patch.object(research_task_service, "_research_sub_question", side_effect=fake_research_sub_question),
+            patch.object(research_task_service, "_detect_research_conflicts", return_value=conflicts or []),
+            council_patch as run_council,
+        ):
+            task = research_task_service.run_research_task_now(task_id)
+        return task, run_council
+
+    @staticmethod
+    def _finding(source_id, *, coverage=0.9, judge_score=90, verdict="CORRECT"):
+        return {
+            "id": f"finding-{source_id}",
+            "summary": f"finding {source_id}",
+            "verdict": verdict,
+            "judgeScore": judge_score,
+            "coverage": {"score": coverage},
+            "missingAspects": [],
+            "retryReason": "",
+            "sourceIds": [source_id],
+            "sources": [{"sourceId": source_id, "text": f"evidence {source_id}", "sourceType": "current_paper"}],
+        }
+
+    @staticmethod
+    def _conflict(conflict_id, severity, source_id):
+        return {
+            "id": conflict_id,
+            "conflictType": "numeric_mismatch",
+            "severity": severity,
+            "claim": f"conflict {conflict_id}",
+            "sourceIds": [source_id],
+            "sources": [{"sourceId": source_id, "text": f"conflict evidence {source_id}", "sourceType": "current_paper"}],
+        }
+
+    def test_disabled_pilot_never_calls_council(self):
+        task, run_council = self._run_task(
+            allow_council=False,
+            findings=[self._finding("source-1", coverage=0.2)],
+            council_side_effect=self._council_result(),
+        )
+
+        run_council.assert_not_called()
+        self.assertEqual(task["council"]["status"], "disabled")
+        self.assertEqual(task["status"], "awaiting_final_review")
+
+    def test_enabled_pilot_without_candidates_is_skipped(self):
+        task, run_council = self._run_task(
+            allow_council=True,
+            findings=[self._finding("source-1")],
+            council_side_effect=self._council_result(),
+        )
+
+        run_council.assert_not_called()
+        self.assertEqual(task["council"]["status"], "skipped")
+        self.assertEqual(task["council"]["reviews"], [])
+
+    def test_enabled_pilot_reviews_conflicts_first_and_caps_three_targets(self):
+        findings = [
+            self._finding("finding-1", coverage=0.2),
+            self._finding("finding-2", judge_score=50),
+            self._finding("finding-3", verdict="AMBIGUOUS"),
+        ]
+        conflicts = [
+            self._conflict("medium-conflict", "medium", "conflict-medium"),
+            self._conflict("high-conflict", "high", "conflict-high"),
+        ]
+
+        task, run_council = self._run_task(
+            allow_council=True,
+            findings=findings,
+            conflicts=conflicts,
+            council_side_effect=[self._council_result(), self._council_result(), self._council_result()],
+        )
+
+        self.assertEqual(run_council.call_count, 3)
+        self.assertEqual(
+            [item["targetId"] for item in task["council"]["reviews"]],
+            ["high-conflict", "medium-conflict", "finding-finding-1"],
+        )
+        self.assertEqual(task["council"]["reviewCount"], 3)
+        self.assertEqual(task["council"]["status"], "completed")
+        self.assertEqual(task["status"], "awaiting_final_review")
+
+    def test_reviewer_abstention_degrades_but_preserves_review(self):
+        task, _run_council = self._run_task(
+            allow_council=True,
+            findings=[self._finding("source-1", coverage=0.2)],
+            council_side_effect=self._council_result(abstained=True),
+        )
+
+        self.assertEqual(task["council"]["status"], "degraded")
+        self.assertEqual(task["council"]["degradation"], "reviewer_abstained")
+        self.assertEqual(len(task["council"]["reviews"]), 1)
+        self.assertEqual(task["status"], "awaiting_final_review")
+
+    def test_council_exception_degrades_without_failing_research(self):
+        task, _run_council = self._run_task(
+            allow_council=True,
+            findings=[self._finding("source-1", coverage=0.2)],
+            council_side_effect=RuntimeError("secret-provider-error"),
+        )
+
+        self.assertEqual(task["council"]["status"], "degraded")
+        self.assertEqual(task["council"]["degradation"], "council_unavailable")
+        self.assertNotIn("secret-provider-error", json.dumps(task, ensure_ascii=False))
+        self.assertEqual(task["status"], "awaiting_final_review")
+
+    def test_council_snapshot_survives_sqlite_roundtrip(self):
+        task_id = research_task_service.create_research_task(
+            ResearchTaskCreateRequest(question="Council persistence", pdfId="paper-1", allowCouncil=True),
+            start_async=False,
+        )["task"]["taskId"]
+        expected = {
+            "allowCouncil": True,
+            "status": "completed",
+            "maxReviews": 3,
+            "reviewCount": 1,
+            "reviews": [{"targetType": "finding", "targetId": "finding-1", "question": "Q", "sourceIds": ["s1"], "result": self._council_result()}],
+            "degradation": "",
+        }
+        research_task_service._update_task_snapshot(task_id, council=expected)
+
+        research_task_service.reload_research_tasks_from_storage()
+        restored = research_task_service.get_research_task(task_id)["task"]
+
+        self.assertEqual(restored["council"], expected)
 
 
 class ResearchTaskExternalSearchTests(unittest.TestCase):

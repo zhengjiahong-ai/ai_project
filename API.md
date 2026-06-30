@@ -265,6 +265,23 @@ P2-3 来源与生成约束：
 
 创建单论文 Deep Research 任务。
 
+请求兼容新增末尾布尔字段 `allowCouncil`，默认 `false`。只有显式设为 `true` 时，任务才会在 findings/conflicts 生成后、报告综合前运行同模型双 Reviewer Council Pilot；单任务最多审查 3 个高风险 target。
+
+任务快照兼容新增 `council`：
+
+```json
+{
+  "allowCouncil": false,
+  "status": "disabled",
+  "maxReviews": 3,
+  "reviewCount": 0,
+  "reviews": [],
+  "degradation": ""
+}
+```
+
+`status` 仅为 `disabled/pending/running/completed/degraded/skipped`。每个 review 包含 `targetType/targetId/question/sourceIds/result`，其中 `result` 复用下述 Council 内部模型。Council 失败时 `degradation` 固定为安全错误码（例如 `council_unavailable`），不会阻断报告生成或绕过终稿人工审查。
+
 ### `GET /api/research-tasks/latest?pdfId=...`
 
 恢复某篇论文最近一次 Deep Research 任务快照。
@@ -647,9 +664,9 @@ Java 网关源码中已经暴露以下 Agent 路由，并转发到 Python：
 
 ## 关键数据结构
 
-### Council 内部模型（非 `/api` 接口）
+### Council 内部模型
 
-P4-03/P4-04 的 `services/council_service.py` 是隔离实验服务，不注册 FastAPI 路由，也不进入 Deep Research、Agent、Java 或前端契约。内部入口为 `run_council(question, evidence_items, provider=None)`，同一 Provider 分别接收 evidence reviewer 与 contradiction reviewer 的独立请求；任一请求不得包含另一 Reviewer 的输出。
+`services/council_service.py` 不注册独立 FastAPI 路由。内部入口为 `run_council(question, evidence_items, provider=None)`，同一 Provider 分别接收 evidence reviewer 与 contradiction reviewer 的独立请求；任一请求不得包含另一 Reviewer 的输出。P4-06 仅通过上述默认关闭的 Deep Research Pilot 调用该内部入口，不增加 Council UI 或独立 `/api`。
 
 ```json
 {

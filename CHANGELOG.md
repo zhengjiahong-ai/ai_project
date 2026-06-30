@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-06-30 v0.1.67
+
+1. **加入默认关闭的 Deep Research Council Pilot**：创建任务可显式设置 `allowCouncil`，在报告综合前按风险优先审查最多 3 个 conflict/finding；关闭时不产生额外模型调用。
+2. **持久化 Council 审查快照**：SQLite 与三端共享契约新增 `task.council`，保存 target 来源绑定、双 Reviewer 结果、状态和脱敏降级原因，并兼容旧快照。
+3. **保持人工审查与安全降级边界**：Reviewer 弃权保留其他意见，Council 整体异常不阻断报告，结果不写入报告或 `reviewRisks`，任务仍必须进入终稿人工审查。
+4. **取消第二付费 Provider 计划**：移除未知来源的 DashScope 密钥配置与运行时读取，P4-05 按安全决策取消；后续评测只比较单模型与同模型双 Reviewer。
+
 ### 2026-06-30 v0.1.66
 
 1. **新增同模型独立 Reviewer 实验**：Council 使用同一 Provider 的两个独立上下文生成 evidence reviewer 与 contradiction reviewer 结构化意见，严格限制可引用的输入 `sourceId`。

@@ -80,6 +80,7 @@ class ResearchTaskCreateRequest(BaseModel):
     userConstraints: Optional[str] = ""
     briefPreview: Optional[Dict[str, Any]] = None
     allowExternalSearch: bool = Field(default=False)
+    allowCouncil: bool = Field(default=False)
 
 
 class ResearchTaskBriefPreviewRequest(BaseModel):

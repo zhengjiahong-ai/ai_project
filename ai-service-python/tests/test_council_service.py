@@ -7,6 +7,7 @@ from unittest.mock import patch
 from llm import client as llm_client
 from llm.provider import LLMRequest, LLMResult, LLMUsage
 from services.council_service import run_council
+from services.research_aggregator import select_council_targets
 
 
 class FakeProvider:
@@ -245,6 +246,36 @@ class CouncilServiceTests(unittest.TestCase):
         self.assertEqual(len(result["opinions"]), 2)
         self.assertTrue(all(not item["abstain"] for item in result["opinions"]))
         self.assertEqual(result["agreements"][0]["sourceIds"], ["source-1"])
+
+
+class CouncilPilotTargetSelectionTests(unittest.TestCase):
+    def test_conflicts_are_prioritized_by_severity_and_capped(self):
+        conflicts = [
+            {"id": "low", "conflictType": "numeric_mismatch", "severity": "low", "claim": "low", "sourceIds": ["s-low"], "sources": [{"sourceId": "s-low", "text": "low"}]},
+            {"id": "ignored", "conflictType": "other", "severity": "high", "claim": "ignored", "sourceIds": ["s-x"], "sources": [{"sourceId": "s-x", "text": "ignored"}]},
+            {"id": "high", "conflictType": "opposing_conclusion", "severity": "high", "claim": "high", "sourceIds": ["s-high"], "sources": [{"sourceId": "s-high", "text": "high"}]},
+            {"id": "medium", "conflictType": "numeric_mismatch", "severity": "medium", "claim": "medium", "sourceIds": ["s-medium"], "sources": [{"sourceId": "s-medium", "text": "medium"}]},
+        ]
+
+        targets = select_council_targets([], conflicts, max_reviews=3)
+
+        self.assertEqual([item["targetId"] for item in targets], ["high", "medium", "low"])
+        self.assertTrue(all(item["targetType"] == "conflict" for item in targets))
+
+    def test_low_coverage_score_and_verdict_select_findings_in_original_order(self):
+        findings = [
+            {"id": "strong", "subQuestion": "strong", "verdict": "CORRECT", "judgeScore": 90, "coverage": {"score": 0.9}, "sourceIds": ["s0"], "sources": [{"sourceId": "s0", "text": "strong"}]},
+            {"id": "coverage", "subQuestion": "coverage", "verdict": "CORRECT", "judgeScore": 80, "coverage": {"score": 0.5}, "sourceIds": ["s1"], "sources": [{"sourceId": "s1", "text": "coverage"}]},
+            {"id": "score", "subQuestion": "score", "verdict": "CORRECT", "judgeScore": 59, "coverage": {"score": 0.8}, "sourceIds": ["s2"], "sources": [{"sourceId": "s2", "text": "score"}]},
+            {"id": "ambiguous", "subQuestion": "ambiguous", "verdict": "AMBIGUOUS", "judgeScore": 75, "coverage": {"score": 0.8}, "sourceIds": ["s3"], "sources": [{"sourceId": "s3", "text": "ambiguous"}]},
+            {"id": "fourth", "subQuestion": "fourth", "verdict": "INCORRECT", "judgeScore": 20, "coverage": {"score": 0.1}, "sourceIds": ["s4"], "sources": [{"sourceId": "s4", "text": "fourth"}]},
+        ]
+
+        targets = select_council_targets(findings, [], max_reviews=3)
+
+        self.assertEqual([item["targetId"] for item in targets], ["coverage", "score", "ambiguous"])
+        self.assertTrue(all(item["targetType"] == "finding" for item in targets))
+        self.assertEqual(targets[0]["sourceIds"], ["s1"])
 
 
 if __name__ == "__main__":

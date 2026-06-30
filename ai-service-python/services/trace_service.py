@@ -48,7 +48,7 @@ def sanitize_text(value: Any, max_chars: int = 240) -> str:
     if not text:
         return ""
 
-    for env_name in ("DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY"):
+    for env_name in ("DEEPSEEK_API_KEY",):
         api_key = os.environ.get(env_name)
         if api_key:
             text = text.replace(api_key, "[REDACTED]")

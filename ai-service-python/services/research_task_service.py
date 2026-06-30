@@ -15,7 +15,7 @@ from llm.client import get_llm
 from schemas.requests import ResearchFinalReviewRequest, ResearchPlanReviewRequest, ResearchTaskBriefPreviewRequest, ResearchTaskCreateRequest
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.query_service import build_retrieval_queries
-from services import research_aggregator, research_executor, research_planner
+from services import council_service, research_aggregator, research_executor, research_planner
 from services.safety_service import (
     MAX_RESEARCH_SUB_QUESTIONS,
     MAX_RETRIEVAL_RETRIES,
@@ -111,6 +111,7 @@ def create_research_task(
             "status": "disabled",
             "degradation": "",
         },
+        "council": _default_council_state(bool(getattr(request, "allowCouncil", False))),
         "report": "",
         "error": "",
         "createdAt": created_at,
@@ -131,6 +132,17 @@ def create_research_task(
         _TASK_EXECUTOR.submit(prepare_research_task_now, task_id)
 
     return {"status": "success", "task": _copy_task_snapshot(task_id)}
+
+
+def _default_council_state(allow_council: bool = False) -> Dict[str, Any]:
+    return {
+        "allowCouncil": bool(allow_council),
+        "status": "pending" if allow_council else "disabled",
+        "maxReviews": research_aggregator.MAX_COUNCIL_PILOT_REVIEWS,
+        "reviewCount": 0,
+        "reviews": [],
+        "degradation": "",
+    }
 
 
 def preview_research_brief(request: ResearchTaskBriefPreviewRequest) -> Dict[str, Any]:
@@ -469,6 +481,11 @@ def _run_research_task(
             findings=copy.deepcopy(findings),
             conflicts=copy.deepcopy(conflicts),
         )
+        council_state = copy.deepcopy(_copy_task_snapshot(task_id).get("council") or _default_council_state())
+        if council_state.get("allowCouncil"):
+            _update_task_snapshot(task_id, council={**council_state, "status": "running"})
+            council_state = _run_council_pilot(findings, conflicts)
+            _update_task_snapshot(task_id, stage=SYNTHESIZING_STAGE, progress=0.93, council=copy.deepcopy(council_state))
         with trace_step("research_report_synthesis", input_size=len(findings)) as step:
             report = _build_research_report(research_question, brief, plan_items, findings, conflicts)
             step["outputSize"] = len(str(report or ""))
@@ -504,6 +521,48 @@ def _run_research_task(
         _fail_task(task_id, str(error))
         trace_snapshot = finalize_trace("error", error=error, response_meta={"taskId": task_id, "stage": DONE_STAGE})
         _persist_trace_summary(task_id, trace_snapshot)
+
+
+def _run_council_pilot(
+    findings: List[Dict[str, Any]],
+    conflicts: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    state = _default_council_state(True)
+    targets = research_aggregator.select_council_targets(
+        findings,
+        conflicts,
+        max_reviews=state["maxReviews"],
+    )
+    if not targets:
+        return {**state, "status": "skipped"}
+
+    reviews = []
+    degradation = ""
+    for target in targets:
+        try:
+            result = council_service.run_council(target["question"], target["evidenceItems"])
+        except Exception:
+            degradation = "council_unavailable"
+            break
+        reviews.append(
+            {
+                "targetType": target["targetType"],
+                "targetId": target["targetId"],
+                "question": target["question"],
+                "sourceIds": list(target.get("sourceIds") or []),
+                "result": result,
+            }
+        )
+        if result.get("abstentions"):
+            degradation = "reviewer_abstained"
+
+    return {
+        **state,
+        "status": "degraded" if degradation else "completed",
+        "reviewCount": len(reviews),
+        "reviews": reviews,
+        "degradation": degradation,
+    }
 
 
 def _research_sub_question(
@@ -1610,6 +1669,7 @@ def _initialize_storage_locked() -> None:
                 humanReview TEXT NOT NULL DEFAULT '{}',
                 context TEXT NOT NULL DEFAULT '{}',
                 traceSummary TEXT NOT NULL DEFAULT '{}',
+                council TEXT NOT NULL DEFAULT '{}',
                 report TEXT NOT NULL,
                 error TEXT NOT NULL,
                 createdAt TEXT NOT NULL,
@@ -1630,6 +1690,8 @@ def _initialize_storage_locked() -> None:
             connection.execute("ALTER TABLE research_tasks ADD COLUMN context TEXT NOT NULL DEFAULT '{}'")
         if "externalSearchConfig" not in columns:
             connection.execute("ALTER TABLE research_tasks ADD COLUMN externalSearchConfig TEXT NOT NULL DEFAULT '{}'")
+        if "council" not in columns:
+            connection.execute("ALTER TABLE research_tasks ADD COLUMN council TEXT NOT NULL DEFAULT '{}'")
         connection.execute("CREATE INDEX IF NOT EXISTS idx_research_tasks_pdf_updated ON research_tasks (pdfId, updatedAt)")
         connection.commit()
 
@@ -1652,8 +1714,8 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
             """
             INSERT INTO research_tasks (
                 taskId, traceId, status, stage, progress, question, pdfId,
-                plan, findings, conflicts, reviewRisks, humanReview, context, traceSummary, externalSearchConfig, report, error, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                plan, findings, conflicts, reviewRisks, humanReview, context, traceSummary, externalSearchConfig, council, report, error, createdAt, updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(taskId) DO UPDATE SET
                 traceId=excluded.traceId,
                 status=excluded.status,
@@ -1669,6 +1731,7 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 context=excluded.context,
                 traceSummary=excluded.traceSummary,
                 externalSearchConfig=excluded.externalSearchConfig,
+                council=excluded.council,
                 report=excluded.report,
                 error=excluded.error,
                 createdAt=excluded.createdAt,
@@ -1690,6 +1753,7 @@ def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
                 json.dumps(_TASK_CONTEXTS.get(snapshot["taskId"]) or {}, ensure_ascii=False),
                 json.dumps(snapshot["traceSummary"], ensure_ascii=False),
                 json.dumps(snapshot.get("externalSearchConfig") or {}, ensure_ascii=False),
+                json.dumps(snapshot.get("council") or _default_council_state(False), ensure_ascii=False),
                 snapshot["report"],
                 snapshot["error"],
                 snapshot["createdAt"],
@@ -1725,6 +1789,7 @@ def _task_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
         "_context": _safe_json_dict(row["context"]) if "context" in row.keys() else {},
         "traceSummary": _safe_json_dict(row["traceSummary"]) if "traceSummary" in row.keys() else {},
         "externalSearchConfig": _safe_json_dict(row["externalSearchConfig"]) if "externalSearchConfig" in row.keys() else {},
+        "council": (_safe_json_dict(row["council"]) or _default_council_state(False)) if "council" in row.keys() else _default_council_state(False),
         "report": str(row["report"] or ""),
         "error": str(row["error"] or ""),
         "createdAt": created_at,
@@ -1751,6 +1816,7 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
         "humanReview": dict(task.get("humanReview") or {}),
         "traceSummary": dict(task.get("traceSummary") or {}),
         "externalSearchConfig": dict(task.get("externalSearchConfig") or {}),
+        "council": dict(task.get("council") or _default_council_state(False)),
         "report": str(task.get("report") or ""),
         "error": str(task.get("error") or ""),
         "createdAt": created_at,

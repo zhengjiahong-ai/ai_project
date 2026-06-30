@@ -14,9 +14,12 @@
 - Provider HTTP 错误、网络错误和畸形响应统一为脱敏异常，不得包含响应体、认证 header、密钥或完整 prompt。DeepSeek 缺少原生 usage 时允许使用现有 token 估算，但必须标记 `estimated=true`。
 - Council 基线只允许在 `ai-service-python/benchmarks/council/` 中通过显式 `--live` 调用当前配置的 LLM。默认命令只能读取已提交的脱敏 snapshot 并离线复算，不得联网。
 - Council snapshot 禁止保存 prompt、messages、隐藏推理、headers、Authorization 或 API key。没有真实 Provider 采样时不得手工伪造 snapshot、指标或把 P4-01 标记完成。
-- P4-03/P4-04 Council 仅为 Python 内部隔离实验，不注册 `/api`、不写 SQLite、不接入 Deep Research/Agent/前端。evidence reviewer 与 contradiction reviewer 必须使用同一 Provider 的两个独立请求，任一请求不得读取或包含另一意见。
+- Council Reviewer 不注册独立 `/api`。evidence reviewer 与 contradiction reviewer 必须使用同一 Provider 的两个独立请求，任一请求不得读取或包含另一意见。
 - Council 输入最多保留 8 条证据、单条最多 900 字符；Reviewer 输出只能引用本次允许的 `sourceId`。空证据、Provider/解析失败、非法 verdict、未知来源或证据不足必须归一为脱敏 abstention，并保留其他有效意见。
 - 强共识必须同时满足两份非弃权意见 verdict 一致且共享至少一个来源。无共同证据不得生成 agreement；冲突和高风险分歧必须绑定双方立场、理由与来源，并返回 `manual_review_required`，聚合器不得多数投票或自动裁决。
+- Deep Research Council Pilot 只允许通过创建任务时显式 `allowCouncil=true` 启用，默认 `false` 时不得产生额外 LLM 调用；单任务最多处理 3 个高风险 conflict/finding，且只能使用当前默认 DeepSeek，不允许读取或配置 DashScope 密钥。
+- `task.council` 必须包含 `allowCouncil/status/maxReviews/reviewCount/reviews/degradation` 并持久化到 SQLite；旧快照缺失该列时恢复为 disabled。Council 结果不得写入报告或 `reviewRisks`，Reviewer 弃权或整体异常只能降级，不能阻断任务进入 `awaiting_final_review`。
+- P4-05 第二付费 Provider 已因安全决策取消。未来恢复任何第二 Provider 必须另立任务，明确凭据来源、预算与授权，不得复用未知密钥。
 
 ## PDF 低文本诊断边界
 

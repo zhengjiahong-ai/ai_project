@@ -323,9 +323,11 @@ Deep Research 和 Agent 均在现有任务生命周期内实现两个人工 gate
 
 #### `council_service.py`
 
-这是 P4-03/P4-04 的隔离 Council 实验边界，当前不属于 Deep Research 或 Agent 生产编排。服务复用 Provider 中立的 `LLMProvider`，以两个互不可见的请求分别生成 evidence reviewer 与 contradiction reviewer 意见；证据最多 8 条、每条最多 900 字符，Reviewer 只能引用本次输入中的 `sourceId`。
+这是 Council Reviewer 的内部边界。服务复用 Provider 中立的 `LLMProvider`，以两个互不可见的请求分别生成 evidence reviewer 与 contradiction reviewer 意见；证据最多 8 条、每条最多 900 字符，Reviewer 只能引用本次输入中的 `sourceId`。
 
-结构化意见随后进入不调用 LLM 的确定性聚合器。只有 verdict 一致且存在共同来源时才形成强 agreement；无共同证据、弃权和分歧会原样保留，高风险分歧及 conflict 意见只能建议人工核查。当前服务不注册路由、不持久化、不改变任务快照，也不提前实现 P4-05 第二 Provider 或 P4-06 生产开关。
+结构化意见随后进入不调用 LLM 的确定性聚合器。只有 verdict 一致且存在共同来源时才形成强 agreement；无共同证据、弃权和分歧会原样保留，高风险分歧及 conflict 意见只能建议人工核查。
+
+P4-06 通过默认关闭的 `allowCouncil` 接入 Deep Research：findings/conflicts 已生成且报告尚未综合时，先处理按严重度排序的 `numeric_mismatch/opposing_conclusion`，再处理低覆盖、低 judge 分或 `AMBIGUOUS/INCORRECT` finding，最多 3 项。结果存入任务 SQLite 的 `council` 快照，但不写入报告、不修改 `reviewRisks`，任何异常都降级为 `council_unavailable` 并继续进入强制终稿人工审查。当前唯一付费 Provider 仍为默认 DeepSeek；P4-05 第二 Provider 已因安全决策取消。
 
 #### `tool_registry.py`
 
