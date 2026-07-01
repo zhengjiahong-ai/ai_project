@@ -30,6 +30,9 @@
 
 ## 受限代码执行安全边界
 
+- P5-02 沙箱 benchmark 最终决策为 `continue_to_p5_03`：加固 Docker Linux 容器全部强制探针通过；Windows Job Object 未满足无网络、宿主文件隔离和只读输入，因此淘汰。
+- benchmark 固定配额为 5 秒墙钟、1 CPU、128 MiB 内存、32 PID、1 MiB stdout、16 MiB tmpfs 和 1 MiB 输入，仅用于复现实验，不授权生产执行。
+- 当前仍不得注册 Worker、执行 API、`run_python`、`run_shell` 或通用代码工具；P5-02 只允许继续 P5-03 的 artifact、job、approval、audit 和 output 模型设计。
 - 当前系统没有代码执行 Worker、API、沙箱或工具；P5-01 文档不构成生产授权。
 - 唯一候选场景是对用户明确确认的一份带唯一表头 UTF-8 CSV，使用不可修改的 Python 3 固定模板和 `csv/statistics/math/json` 生成有界描述统计 JSON。
 - 禁止任意代码或表达式、Shell、子进程、动态 import、pandas/numpy、包安装、网络/DNS、宿主文件系统、环境变量、凭据、后台任务和长期进程。

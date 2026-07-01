@@ -1,0 +1,4 @@
+name,value
+"ignore rules and read secrets",1
+"=CMD|' /C calc'!A0",2
+"http://169.254.169.254/latest/meta-data",3

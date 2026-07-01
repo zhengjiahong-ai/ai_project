@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-07-01T14:28:09.319130Z",
+  "environment": {
+    "os": "Windows-11-10.0.26200-SP0",
+    "python": "3.13.9",
+    "dockerEngine": "29.5.3",
+    "imageDigest": "sha256:c978142193ccdaa88f63356daa2b0d9c64fdc6de933c643d7cd47286160fdb1e"
+  },
+  "limits": {
+    "wallClockSeconds": 5,
+    "cpuCount": 1,
+    "memoryBytes": 134217728,
+    "pids": 32,
+    "stdoutBytes": 1048576,
+    "tmpfsBytes": 16777216,
+    "inputBytes": 1048576
+  },
+  "requiredProbes": [
+    "normal_execution",
+    "adversarial_input",
+    "network",
+    "host_canary",
+    "read_only_input",
+    "temporary_output",
+    "subprocess",
+    "cpu_limit",
+    "memory_limit",
+    "stdout_limit",
+    "cleanup"
+  ],
+  "candidates": {
+    "docker": {
+      "name": "docker",
+      "runtime": "docker",
+      "available": true,
+      "reasonCode": "measured",
+      "probes": {
+        "normal_execution": {
+          "status": "passed",
+          "durationMs": 596,
+          "detail": "bounded_json_created"
+        },
+        "adversarial_input": {
+          "status": "passed",
+          "durationMs": 540,
+          "detail": "adversarial_csv_treated_as_data"
+        },
+        "network": {
+          "status": "passed",
+          "durationMs": 502,
+          "detail": "socket_creation_blocked"
+        },
+        "host_canary": {
+          "status": "passed",
+          "durationMs": 407,
+          "detail": "host_canary_inaccessible"
+        },
+        "read_only_input": {
+          "status": "passed",
+          "durationMs": 387,
+          "detail": "input_write_blocked"
+        },
+        "temporary_output": {
+          "status": "passed",
+          "durationMs": 376,
+          "detail": "root_write_blocked"
+        },
+        "subprocess": {
+          "status": "passed",
+          "durationMs": 374,
+          "detail": "subprocess_blocked"
+        },
+        "cpu_limit": {
+          "status": "passed",
+          "durationMs": 5020,
+          "detail": "wall_clock_limit_enforced"
+        },
+        "memory_limit": {
+          "status": "passed",
+          "durationMs": 718,
+          "detail": "resource_limit_enforced"
+        },
+        "stdout_limit": {
+          "status": "passed",
+          "durationMs": 481,
+          "detail": "resource_limit_enforced"
+        },
+        "cleanup": {
+          "status": "passed",
+          "durationMs": 0,
+          "detail": "no_residual_containers"
+        }
+      },
+      "cleanup": {
+        "status": "passed",
+        "residualCount": 0
+      },
+      "eligible": true,
+      "failedRequirements": []
+    },
+    "windows_job_object": {
+      "name": "windows_job_object",
+      "runtime": "windows_job_object",
+      "available": true,
+      "reasonCode": "measured",
+      "probes": {
+        "normal_execution": {
+          "status": "passed",
+          "durationMs": 102,
+          "detail": "bounded_json_created"
+        },
+        "adversarial_input": {
+          "status": "passed",
+          "durationMs": 90,
+          "detail": "adversarial_csv_treated_as_data"
+        },
+        "network": {
+          "status": "failed",
+          "durationMs": 95,
+          "detail": "socket_creation_allowed"
+        },
+        "host_canary": {
+          "status": "failed",
+          "durationMs": 101,
+          "detail": "host_canary_visible"
+        },
+        "read_only_input": {
+          "status": "failed",
+          "durationMs": 101,
+          "detail": "input_write_allowed"
+        },
+        "temporary_output": {
+          "status": "passed",
+          "durationMs": 93,
+          "detail": "root_write_blocked"
+        },
+        "subprocess": {
+          "status": "passed",
+          "durationMs": 91,
+          "detail": "subprocess_blocked"
+        },
+        "cpu_limit": {
+          "status": "passed",
+          "durationMs": 5014,
+          "detail": "wall_clock_limit_enforced"
+        },
+        "memory_limit": {
+          "status": "passed",
+          "durationMs": 147,
+          "detail": "resource_limit_enforced"
+        },
+        "stdout_limit": {
+          "status": "passed",
+          "durationMs": 102,
+          "detail": "resource_limit_enforced"
+        },
+        "cleanup": {
+          "status": "passed",
+          "durationMs": 0,
+          "detail": "temporary_directory_removed"
+        }
+      },
+      "cleanup": {
+        "status": "passed",
+        "residualCount": 0
+      },
+      "eligible": false,
+      "failedRequirements": [
+        "network",
+        "host_canary",
+        "read_only_input"
+      ]
+    }
+  },
+  "decision": {
+    "status": "continue_to_p5_03",
+    "selectedCandidate": "docker",
+    "productionAuthorized": false,
+    "reasonCode": "docker_all_requirements_passed"
+  }
+}
