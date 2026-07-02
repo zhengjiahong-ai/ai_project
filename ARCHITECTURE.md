@@ -339,9 +339,9 @@ P4-08 对照评测后已移除 Council 的 Deep Research 生产接入：不再�
 
 #### 受限 code-native 可行性边界
 
-`ai-service-python/code_worker/` 是 P5-04 的内部隔离原型，不挂载 FastAPI 路由，也不注册 Agent/MCP 工具。入口 `run_job(job, input_path)` 只接受已经审批、输入大小与 SHA-256 匹配、脚本与固定模板完全一致的任务；宿主 `input_path` 不来自模型、CSV 或任务 wire 字段。
+`ai-service-python/code_worker/` 是 P5-04/P5-05 的内部隔离原型，不挂载 FastAPI 路由，也不注册 Agent/MCP 工具。同步入口 `run_job(job, input_path)` 只接受已经审批、输入大小与 SHA-256 匹配、脚本与固定模板完全一致的任务；内部 `start_job(job, input_path)` 返回仅供进程内使用的可取消执行句柄。宿主 `input_path` 不来自模型、CSV 或任务 wire 字段。
 
-Worker 通过 Docker CLI 按不可变镜像 ID运行 Python 3.13.9 固定模板：根文件系统只读，输入单文件只读挂载，输出仅写入每任务临时目录，网络为 `none`，capabilities 清空，启用 `no-new-privileges` 与固定 seccomp，进程以 UID/GID `10001` 运行且环境由 `env -i` 收紧到固定 `PATH`。结果只返回稳定状态、原因码、退出码和有界输出元数据，不回传 Docker stderr 或宿主路径。P5-05 仍需补齐超限强制终止、取消和清理可观测性；在此之前不得新增 API、UI 或工具接入。
+Worker 通过 Docker CLI 按不可变镜像 ID 运行 Python 3.13.9 固定模板：根文件系统只读，输入单文件只读挂载，输出仅写入每任务唯一临时目录，网络为 `none`，capabilities 清空，启用 `no-new-privileges` 与固定 seccomp，进程以 UID/GID `10001` 运行且环境由 `env -i` 收紧到固定 `PATH`。Docker 同时限制 CPU 速率与累计时间、墙钟、内存、swap、PID、输入、stdout/stderr 总量、tmpfs、输出字节和文件数。超限、超时或取消统一强制终止容器，并执行 `kill → rm -f → 残留核验 → 临时目录清理`；清理失败返回有界 `cleanup_failed` 摘要且污染资源不复用。结果不回传 Docker stderr、宿主路径或原始 CSV。P5-07 前仍不得新增 API、UI 或工具接入。
 
 #### `mcp_adapter/`
 

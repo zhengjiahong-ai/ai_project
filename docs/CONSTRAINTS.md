@@ -32,14 +32,15 @@
 
 - P5-02 沙箱 benchmark 最终决策为 `continue_to_p5_03`：加固 Docker Linux 容器全部强制探针通过；Windows Job Object 未满足无网络、宿主文件隔离和只读输入，因此淘汰。
 - benchmark 固定配额为 5 秒墙钟、1 CPU、128 MiB 内存、32 PID、1 MiB stdout、16 MiB tmpfs 和 1 MiB 输入，仅用于复现实验，不授权生产执行。
-- P5-04 仅提供内部 `code_worker.run_job(job, input_path)` 原型；不得挂载执行 API、审批 UI、Agent/MCP 工具、`run_python`、`run_shell` 或通用代码能力。
+- P5-04/P5-05 仅提供内部 `code_worker.run_job(job, input_path)` 和进程内可取消执行句柄；不得挂载执行 API、审批 UI、Agent/MCP 工具、`run_python`、`run_shell` 或通用代码能力。
 - Worker 只运行固定 Python 3.13.9 标准库模板；任务必须已审批，脚本、镜像、输入大小与 SHA-256 必须完全匹配，否则在启动 Docker 前封闭失败。
 - 容器必须使用不可变镜像 ID、无网络、非 root、只读根文件系统、只读单文件输入、每任务临时输出目录、清空 capabilities、`no-new-privileges`、固定 seccomp 和最小环境。
 - 唯一候选场景是对用户明确确认的一份带唯一表头 UTF-8 CSV，使用不可修改的 Python 3 固定模板和 `csv/statistics/math/json` 生成有界描述统计 JSON。
 - 禁止任意代码或表达式、Shell、子进程、动态 import、pandas/numpy、包安装、网络/DNS、宿主文件系统、环境变量、凭据、后台任务和长期进程。
 - 输入只能通过已批准 artifact ID 解析为隔离层提供的只读普通文件；不得接受路径、URL、XLSX、压缩包、多文件、符号链接或特殊文件。现有前端研究卡片不自动成为可执行输入。
 - CSV 单元格是完全不可信数据，不得解释为提示、公式、路径、URL、代码或配置；输出不得包含原始行、脚本、HTML、图表或任意文件。
-- CPU、内存、墙钟、输入、输出和进程参数沿用 P5-02 实测值；完整超限终止、取消、文件数限制和清理可观测性属于 P5-05，在其完成前 Worker 不能接入生产流程。
+- CPU、内存、墙钟、输入、输出和进程参数沿用 P5-02 实测值；CPU 同时设置 Docker rate limit 与 5 秒 hard limit，stdout/stderr 共享 1 MiB 预算，输出只允许一个不超过 1 MiB 的普通 JSON 文件。
+- 超限、超时或取消必须强制终止并删除容器、核验无残留、清理每任务唯一临时目录；清理失败返回脱敏 `cleanup_failed` 摘要，污染容器或目录不得复用。P5-07 前 Worker 仍不能接入生产流程。
 - 不得注册 `run_shell`、`run_python` 或通用代码执行工具；未来任何范围扩展都必须另立任务并重新进行安全评审。
 
 ## 背景知识图谱来源边界

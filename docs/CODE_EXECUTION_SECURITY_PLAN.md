@@ -59,7 +59,7 @@
 
 - 编码、CSV 结构、表头、列类型、输入身份、大小或任何资源限制校验失败时不得开始或继续分析。
 - Provider、模型、论文正文和 CSV 内容不能改变模板、运行时、预算、挂载、网络策略或权限。
-- P5-04 Worker 沿用 P5-02 的 5 秒墙钟、1 CPU、128 MiB 内存、32 PID、1 MiB 输入/输出和 16 MiB tmpfs 上限；P5-05 负责补齐超限强制终止、取消和可靠清理观测。
+- P5-04 Worker 沿用 P5-02 的 5 秒墙钟、1 CPU、128 MiB 内存、32 PID、1 MiB 输入/输出和 16 MiB tmpfs 上限；P5-05 已增加 CPU hard limit、共享 stdout/stderr 预算、单输出文件限制、超限原因码、进程内取消句柄和可靠清理观测。
 - P5-02 若不能在 Windows/Docker 开发环境证明进程隔离、无网络、只读输入、临时输出、资源限制和可靠清理，则停止 P5-03 及后续生产接入。
 - P5-02 已确认 Windows Job Object 无法阻止 socket、宿主 canary 和输入改写，因此淘汰；加固 Docker 候选全部强制探针通过，可继续 P5-03 建模，但生产执行仍未授权。
 - 即使后续实现通过技术 benchmark，执行前审批、结果发布审批、审计模型和对抗测试仍是强制门槛，不能由 Agent 自行批准。
@@ -70,3 +70,4 @@
 - P5-03 定义 artifact、job、approval、audit 和 output 的正式模型；本文不预设其 wire schema。
 - P5-04 仅提供内部 `run_job(job, input_path)`：输入只读挂载到 `/input/data.csv`，输出只允许写入任务临时目录的 `/output/statistics.json`；容器无网络、非 root、根文件系统只读、无 capabilities、启用 `no-new-privileges` 与固定 seccomp，环境仅保留固定 `PATH`。
 - P5-04 及后续只能运行固定描述统计模板，不能扩展为任意 Python 或通用工具。
+- P5-05 的同步 `run_job` 兼容入口由内部 `start_job` 执行句柄封装；取消、墙钟或资源超限时执行容器强杀、强制删除、残留核验和临时目录清理。清理失败只暴露阶段与残留数量，不暴露宿主路径或 Docker 原始错误，污染资源不得进入后续任务。

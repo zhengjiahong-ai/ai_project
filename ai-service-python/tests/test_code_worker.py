@@ -6,7 +6,9 @@ from unittest.mock import patch
 
 from services.code_execution_models import approve_code_execution_job, create_code_execution_job
 
-from code_worker import FIXED_TEMPLATE_TEXT, run_job
+from code_worker import FIXED_TEMPLATE_TEXT, run_job, start_job
+from code_worker.models import WorkerCleanup, WorkerOutput, WorkerResult
+from code_worker.runner import _ExecutionContext, _container_command
 from code_worker.fixed_template import analyze_csv
 from services.code_execution_models import WORKER_IMAGE_DIGEST
 
@@ -77,6 +79,7 @@ def test_rejects_unapproved_job_without_starting_docker(tmp_path):
         "reasonCode": "job_not_approved",
         "exitCode": None,
         "outputs": [],
+        "cleanup": {"status": "passed", "stage": "completed", "residualCount": 0},
     }
     run.assert_not_called()
 
@@ -131,22 +134,23 @@ def test_rejects_same_size_digest_mismatch_and_non_fixed_script(tmp_path):
 def test_runs_hardened_container_and_returns_bounded_output_metadata(tmp_path):
     input_path = _input(tmp_path)
     job = _job(input_path)
+    context = _ExecutionContext("test-container", tmp_path / "output", __import__("threading").Event())
+    command = _container_command(job, input_path, context)
+    assert command[:2] == ["docker", "run"]
+    assert command[command.index("--network") + 1] == "none"
+    assert "--read-only" in command
+    assert command[command.index("--cap-drop"):command.index("--cap-drop") + 2] == ["--cap-drop", "ALL"]
+    assert "no-new-privileges=true" in command
+    assert command[command.index("--memory-swap") + 1] == str(job.limits.memory_bytes)
+    assert command[command.index("--pids-limit") + 1] == str(job.limits.pids)
+    assert command[command.index("--ulimit") + 1] == "cpu=5:5"
+    assert not any("docker.sock" in part for part in command)
 
-    def fake_run(command, **kwargs):
-        assert command[:2] == ["docker", "run"]
-        assert "--network" in command and command[command.index("--network") + 1] == "none"
-        assert "--read-only" in command
-        assert ["--cap-drop", "ALL"] == command[command.index("--cap-drop"):command.index("--cap-drop") + 2]
-        assert "no-new-privileges=true" in command
-        assert not any("docker.sock" in part for part in command)
-        assert not any(str(Path.home()) == part for part in command)
-        output_mount = next(part for part in command if "dst=/output" in part)
-        output_dir = Path(output_mount.split("src=", 1)[1].split(",dst=", 1)[0])
-        payload = {"schemaVersion": "1.0", "rowCount": 3, "columns": {}}
-        (output_dir / "statistics.json").write_text(json.dumps(payload), encoding="utf-8")
-        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
-
-    with patch("code_worker.runner.subprocess.run", side_effect=fake_run):
+    completed = WorkerResult(
+        status="succeeded", reasonCode="completed", exitCode=0,
+        outputs=[WorkerOutput(sizeBytes=10, digest="0" * 64)],
+    )
+    with patch("code_worker.runner._execute_job", return_value=completed):
         result = run_job(job, input_path)
 
     assert result.status == "succeeded"
@@ -163,12 +167,9 @@ def test_docker_failures_are_stable_and_do_not_leak_paths_or_stderr(tmp_path):
     input_path = _input(tmp_path)
     job = _job(input_path)
 
-    with patch("code_worker.runner.subprocess.run", side_effect=OSError(str(Path.home()) + " secret")):
+    with patch("code_worker.runner.subprocess.Popen", side_effect=OSError(str(Path.home()) + " secret")):
         unavailable = run_job(job, input_path)
-    with patch(
-        "code_worker.runner.subprocess.run",
-        return_value=subprocess.CompletedProcess([], 17, stdout="", stderr="API_KEY=secret " + str(input_path)),
-    ):
+    with patch("code_worker.runner._execute_job", return_value=WorkerResult(status="failed", reasonCode="container_failed", exitCode=17)):
         failed = run_job(job, input_path)
 
     assert unavailable.reason_code == "docker_unavailable"
@@ -182,14 +183,60 @@ def test_docker_failures_are_stable_and_do_not_leak_paths_or_stderr(tmp_path):
 
 def test_container_timeout_has_a_distinct_stable_reason(tmp_path):
     input_path = _input(tmp_path)
-    timeout = subprocess.TimeoutExpired(["docker", "run", "sensitive-path"], 5)
-
-    with patch("code_worker.runner.subprocess.run", side_effect=timeout):
+    with patch("code_worker.runner._execute_job", return_value=WorkerResult(status="failed", reasonCode="wall_clock_limit_exceeded")):
         result = run_job(_job(input_path), input_path)
 
-    assert result.reason_code == "container_timeout"
+    assert result.reason_code == "wall_clock_limit_exceeded"
     assert result.exit_code is None
     assert "sensitive" not in json.dumps(result.model_dump(by_alias=True))
+
+
+def test_worker_result_exposes_bounded_cleanup_and_cancelled_status():
+    result = WorkerResult(
+        status="cancelled",
+        reasonCode="cancelled",
+        cleanup=WorkerCleanup(status="passed", stage="completed", residualCount=0),
+    )
+
+    assert result.model_dump(by_alias=True) == {
+        "status": "cancelled",
+        "reasonCode": "cancelled",
+        "exitCode": None,
+        "outputs": [],
+        "cleanup": {"status": "passed", "stage": "completed", "residualCount": 0},
+    }
+
+
+def test_start_job_returns_cancellable_execution_handle_without_changing_run_job_contract(tmp_path):
+    input_path = _input(tmp_path)
+
+    with patch("code_worker.runner._execute_job") as execute:
+        execute.return_value = WorkerResult(status="failed", reasonCode="docker_unavailable")
+        execution = start_job(_job(input_path), input_path)
+        result = execution.wait()
+
+    assert execution.cancel() is False
+    assert result.reason_code == "docker_unavailable"
+
+
+def test_cleanup_failure_overrides_execution_result_without_leaking_directory(tmp_path):
+    input_path = _input(tmp_path)
+    completed = WorkerResult(status="succeeded", reasonCode="completed", exitCode=0)
+    isolated_output = tmp_path / "isolated-output"
+
+    with patch("code_worker.runner.tempfile.mkdtemp", return_value=str(isolated_output)), patch(
+        "code_worker.runner._execute_job", return_value=completed
+    ), patch(
+        "code_worker.runner._cleanup_execution", return_value=WorkerCleanup(
+            status="failed", stage="temporary_directory", residualCount=1
+        )
+    ):
+        result = start_job(_job(input_path), input_path).wait()
+
+    assert result.status == "failed"
+    assert result.reason_code == "cleanup_failed"
+    assert result.cleanup.stage == "temporary_directory"
+    assert str(tmp_path) not in json.dumps(result.model_dump(by_alias=True))
 
 
 def test_live_fixed_worker_image_executes_when_available(tmp_path):

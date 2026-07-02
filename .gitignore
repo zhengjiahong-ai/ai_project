@@ -29,6 +29,7 @@ ai-service-python/core/chroma_literature_db/
 /test/
 /docs/test/
 /ai-service-python/tests/*
+!/ai-service-python/tests/test_code_worker_resource_limits.py
 !/ai-service-python/tests/test_citation_responses.py
 !/ai-service-python/tests/test_evidence_service.py
 !/ai-service-python/tests/test_tool_registry.py
