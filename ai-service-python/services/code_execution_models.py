@@ -10,7 +10,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 
 SCHEMA_VERSION = "1.0"
-BENCHMARK_IMAGE_DIGEST = "sha256:c978142193ccdaa88f63356daa2b0d9c64fdc6de933c643d7cd47286160fdb1e"
+WORKER_IMAGE_DIGEST = "sha256:a86ea9eda049b10d4958ee67d7c6284d07ecbcab3a50d5778c44809318b6e237"
+# Compatibility alias for P5-03 snapshots and imports. New code must use the Worker name.
+BENCHMARK_IMAGE_DIGEST = WORKER_IMAGE_DIGEST
 BENCHMARK_RUNTIME_NAME = "python"
 BENCHMARK_RUNTIME_VERSION = "3.13.9"
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -128,7 +130,7 @@ class CodeExecutionJob(_ExecutionModel):
     script_text: str = Field(alias="scriptText", min_length=1, max_length=256 * 1024)
     script_digest: str = Field(alias="scriptDigest")
     runtime: RuntimeSpec = Field(default_factory=RuntimeSpec)
-    image: Literal[BENCHMARK_IMAGE_DIGEST] = BENCHMARK_IMAGE_DIGEST
+    image: Literal[WORKER_IMAGE_DIGEST] = WORKER_IMAGE_DIGEST
     limits: ResourceLimits = Field(default_factory=ResourceLimits)
     network_policy: Literal["none"] = Field(default="none", alias="networkPolicy")
     expected_outputs: List[ExpectedOutput] = Field(
@@ -187,7 +189,7 @@ def create_code_execution_job(
     artifact_size_bytes: int = 1,
     runtime_name: str = BENCHMARK_RUNTIME_NAME,
     runtime_version: str = BENCHMARK_RUNTIME_VERSION,
-    image: str = BENCHMARK_IMAGE_DIGEST,
+    image: str = WORKER_IMAGE_DIGEST,
     network_policy: str = "none",
     limits: Optional[Dict[str, Any]] = None,
     expected_output_format: str = "json",

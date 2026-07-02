@@ -322,7 +322,7 @@ python -m benchmarks.council.comparison_benchmark
 
 详细数据集、评分口径与脱敏边界见 `docs/council_benchmark.md`。P4-08 真实对照中双 Reviewer 的质量和效用门槛全部通过，但平均延迟为基线 `2.79183x`、平均 token 为 `2.512443x`，超过预设的 `2.5x` 上限，因此已移除 Deep Research 的 Council 生产接入。`council_service.py` 与 benchmark 结论继续保留；项目不配置或使用第二付费 Provider，未来恢复任何生产接入或第二 Provider 都必须另立任务并重新授权。
 
-受限 code-native 能力目前只有安全设计，尚未实现 Worker、沙箱、执行 API、审批 UI 或内部工具。唯一候选场景被限定为：对用户确认的一份带表头 UTF-8 CSV，使用不可修改的 Python 3 标准库模板生成有界描述统计 JSON；不支持任意 Python、Shell、联网、第三方分析库、图表或多文件处理。P5-02 若不能实测证明隔离、资源限制和可靠清理，将停止后续接入。完整边界见 `docs/CODE_EXECUTION_SECURITY_PLAN.md`。
+受限 code-native 能力目前只有不挂载路由的内部 Worker 原型，尚无执行 API、审批 UI、Agent 工具或 MCP 能力。原型仅接受已批准且 digest 匹配的单个 UTF-8 CSV，在固定 Python 3.13.9 Docker 镜像中运行不可修改的标准库模板并返回有界描述统计 JSON 元数据；输入只读、输出目录独立临时挂载，容器无网络、非 root、只读根文件系统且不能访问源码、用户目录或 Docker socket。不支持任意 Python、Shell、联网、第三方分析库、图表或多文件处理。完整边界与后续强制终止、清理门槛见 `docs/CODE_EXECUTION_SECURITY_PLAN.md`。
 
 Python 测试也支持完全离线的固定 LLM 响应，不需要 `DEEPSEEK_API_KEY`，且不会请求 DeepSeek：
 

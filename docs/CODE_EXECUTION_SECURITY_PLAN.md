@@ -2,7 +2,7 @@
 
 ## 状态与目的
 
-本文固定 P5 阶段的唯一允许场景和安全非目标。当前项目**没有**代码执行 Worker、沙箱、执行 API、审批流程或可调用工具；本文不授权生产代码执行。P5-02 实测选择加固 Docker Linux 容器作为后续建模候选，决策为 `continue_to_p5_03`；该决策只允许继续定义任务模型，不授权生产接入。详见 [`code_sandbox_benchmark.md`](code_sandbox_benchmark.md)。
+本文固定 P5 阶段的唯一允许场景和安全非目标。P5-04 已增加不挂载路由的内部 Docker Worker 原型，但当前项目仍没有执行 API、审批 UI、Agent/MCP 工具或生产代码执行入口。P5-02 实测选择的加固 Docker Linux 容器继续作为隔离边界，详见 [`code_sandbox_benchmark.md`](code_sandbox_benchmark.md)。
 
 唯一允许场景是：对用户明确确认的一份 CSV artifact，使用不可修改的 Python 3 固定模板生成描述统计。系统不是通用编程代理，用户输入、论文内容和模型输出都不能成为代码、表达式、模块名、文件路径或运行参数。
 
@@ -18,7 +18,7 @@
 
 ### 运行时与库
 
-- 语言固定为受控镜像或等价隔离环境中的 Python 3；准确版本和镜像 digest 由后续 benchmark 与任务模型固定。
+- 语言固定为 Python 3.13.9；基础镜像按 registry digest 固定，Worker 任务按本地不可变镜像 ID 固定，镜像变化会改变任务审批摘要。
 - 分析模板只允许使用 Python 标准库 `csv`、`statistics`、`math` 和 `json`。
 - 用户、模型和 Agent 不能提交、生成、拼接或修改脚本；模板变化属于代码发布，必须重新测试并使既有审批失效。
 - 不允许 pandas、numpy、第三方插件、动态 import、反射式模块加载或运行时依赖下载。
@@ -59,7 +59,7 @@
 
 - 编码、CSV 结构、表头、列类型、输入身份、大小或任何资源限制校验失败时不得开始或继续分析。
 - Provider、模型、论文正文和 CSV 内容不能改变模板、运行时、预算、挂载、网络策略或权限。
-- 具体 CPU、内存、墙钟、文件大小、行列数和输出数值上限必须由 P5-02 benchmark 实测决定；在这些配额和可靠清理方案确定前不得新增执行 API、Worker 或工具注册。
+- P5-04 Worker 沿用 P5-02 的 5 秒墙钟、1 CPU、128 MiB 内存、32 PID、1 MiB 输入/输出和 16 MiB tmpfs 上限；P5-05 负责补齐超限强制终止、取消和可靠清理观测。
 - P5-02 若不能在 Windows/Docker 开发环境证明进程隔离、无网络、只读输入、临时输出、资源限制和可靠清理，则停止 P5-03 及后续生产接入。
 - P5-02 已确认 Windows Job Object 无法阻止 socket、宿主 canary 和输入改写，因此淘汰；加固 Docker 候选全部强制探针通过，可继续 P5-03 建模，但生产执行仍未授权。
 - 即使后续实现通过技术 benchmark，执行前审批、结果发布审批、审计模型和对抗测试仍是强制门槛，不能由 Agent 自行批准。
@@ -68,4 +68,5 @@
 
 - P5-02 只比较沙箱方案并确定可验证配额，不挂载生产路由。
 - P5-03 定义 artifact、job、approval、audit 和 output 的正式模型；本文不预设其 wire schema。
+- P5-04 仅提供内部 `run_job(job, input_path)`：输入只读挂载到 `/input/data.csv`，输出只允许写入任务临时目录的 `/output/statistics.json`；容器无网络、非 root、根文件系统只读、无 capabilities、启用 `no-new-privileges` 与固定 seccomp，环境仅保留固定 `PATH`。
 - P5-04 及后续只能运行固定描述统计模板，不能扩展为任意 Python 或通用工具。
