@@ -645,6 +645,46 @@ Java 网关源码中已经暴露以下 Agent 路由，并转发到 Python：
 
 直接调用 Python 侧检索。
 
+## 受限代码执行内部模型（P5-03）
+
+`services/code_execution_models.py` 只定义可持久化的内部任务、审批和产物描述，不注册 FastAPI 路由，不创建 SQLite 数据库，也不授权执行代码。当前系统、旧 SQLite 快照、Java 网关和前端行为均不受影响。
+
+任务快照使用 `schemaVersion=1.0` 和稳定 camelCase 字段：
+
+```json
+{
+  "schemaVersion": "1.0",
+  "jobId": "job-001",
+  "status": "awaiting_approval",
+  "inputArtifacts": [{"artifactId": "artifact-001", "digest": "<sha256>", "mediaType": "text/csv", "sizeBytes": 1024}],
+  "scriptText": "<fixed template text>",
+  "scriptDigest": "<sha256>",
+  "runtime": {"name": "python", "version": "3.13.9", "templateId": "descriptive-statistics-v1"},
+  "image": "sha256:c978142193ccdaa88f63356daa2b0d9c64fdc6de933c643d7cd47286160fdb1e",
+  "limits": {"wallClockSeconds": 5, "cpuCount": 1, "memoryBytes": 134217728, "pids": 32, "stdoutBytes": 1048576, "tmpfsBytes": 16777216, "inputBytes": 1048576},
+  "networkPolicy": "none",
+  "expectedOutputs": [{"name": "statistics", "format": "json", "mediaType": "application/json", "maxBytes": 1048576}],
+  "approval": {"decision": "pending", "approvedBy": null, "approvedAt": null, "approvedTaskDigest": null},
+  "auditSummary": {"createdAt": "", "updatedAt": "", "event": "code_execution_job_created", "warnings": []},
+  "taskDigest": "<canonical task sha256>"
+}
+```
+
+- `status` 预留 `draft/awaiting_approval/approved/queued/running/succeeded/failed/cancelled`；P5-03 helper 只能创建 `awaiting_approval` 任务、批准为 `approved`，或在执行描述变化后退回 `awaiting_approval`。
+- `scriptDigest` 是 `scriptText` UTF-8 字节的 SHA-256；两者必须匹配，但未来持久化时分开存储。
+- `taskDigest` 对规范化 JSON 执行 SHA-256，覆盖 `schemaVersion/jobId/inputArtifacts/scriptDigest/runtime/image/limits/networkPolicy/expectedOutputs`，不覆盖脚本文本、状态、审批人、审批时间或审计时间。
+- `approval.approvedTaskDigest` 必须等于当前 `taskDigest`。脚本、输入、模板、镜像、配额、网络策略或预期产物发生任何有效变化时清除旧审批；超出固定安全范围的变化直接拒绝。
+- 审计摘要只允许有界元数据和警告，不保存 CSV 行、脚本文本、凭据或无限 stdout/stderr。
+
+未来 SQLite 规划使用两个独立表，不在 P5-03 创建：
+
+| 表 | 规划字段 | 边界 |
+| --- | --- | --- |
+| `code_execution_jobs` | `job_id` 主键、`schema_version`、`status`、`task_digest`、`snapshot_json`、`created_at`、`updated_at` | `snapshot_json` 保存除 `scriptText` 外的完整 camelCase 快照；读取后必须重新校验模型与 digest。 |
+| `code_execution_scripts` | `job_id` 主键/外键、`script_text`、`script_digest` | 脚本文本与摘要分列；读取时重新计算 SHA-256，不允许 Worker 修改。 |
+
+后续引入存储层时应在单个事务中写入两表，禁止只恢复其中一部分；旧系统不需要迁移或预建表。
+
 ## 关键数据结构
 
 ### Council 内部模型
