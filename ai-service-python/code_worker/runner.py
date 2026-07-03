@@ -103,7 +103,7 @@ def run_job(job: CodeExecutionJob, input_path: Path) -> WorkerResult:
 
 
 def _validate_job(job: CodeExecutionJob, path: Path) -> Optional[WorkerResult]:
-    if job.status != "approved" or job.approval.decision != "approved":
+    if job.status not in {"approved", "running"} or job.approval.decision != "approved":
         return failed("job_not_approved")
     if job.script_text != _fixed_template_text():
         return failed("template_mismatch")

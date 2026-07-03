@@ -88,6 +88,13 @@ class ExecutionApproval(_ExecutionModel):
     approved_at: Optional[str] = Field(default=None, alias="approvedAt", max_length=40)
     approved_task_digest: Optional[str] = Field(default=None, alias="approvedTaskDigest")
 
+    @field_validator("approved_by")
+    @classmethod
+    def validate_approved_by(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and not IDENTIFIER_PATTERN.fullmatch(value):
+            raise ValueError("approvedBy must be a bounded opaque identifier.")
+        return value
+
     @model_validator(mode="after")
     def validate_decision_fields(self) -> "ExecutionApproval":
         bound = (self.approved_by, self.approved_at, self.approved_task_digest)
@@ -159,8 +166,8 @@ class CodeExecutionJob(_ExecutionModel):
         if self.approval.decision == "approved":
             if self.approval.approved_task_digest != calculated:
                 raise ValueError("approval does not match taskDigest.")
-            if self.status != "approved":
-                raise ValueError("approved approval requires approved job status.")
+            if self.status not in {"approved", "queued", "running", "succeeded", "failed", "cancelled"}:
+                raise ValueError("approved approval requires an approved execution status.")
         elif self.status == "approved":
             raise ValueError("approved job status requires approved approval.")
         return self
@@ -247,6 +254,19 @@ def update_code_execution_job(job: CodeExecutionJob, changes: Dict[str, Any]) ->
     snapshot["status"] = job.status
     snapshot["approval"] = job.approval.model_dump(mode="json", by_alias=True)
     snapshot["taskDigest"] = job.task_digest
+    return CodeExecutionJob.model_validate(snapshot)
+
+
+def transition_code_execution_job(job: CodeExecutionJob, status: str) -> CodeExecutionJob:
+    allowed = {
+        "approved": {"queued", "running", "cancelled"},
+        "queued": {"running", "cancelled"},
+        "running": {"succeeded", "failed", "cancelled"},
+    }
+    if status not in allowed.get(job.status, set()):
+        raise ValueError(f"Invalid code execution status transition: {job.status} -> {status}.")
+    snapshot = job.model_dump(mode="json", by_alias=True)
+    snapshot["status"] = status
     return CodeExecutionJob.model_validate(snapshot)
 
 

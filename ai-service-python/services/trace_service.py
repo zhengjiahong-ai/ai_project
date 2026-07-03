@@ -36,6 +36,13 @@ _PUBLIC_SENSITIVE_KEYS = {
     "full_text",
     "documenttext",
     "document_text",
+    "script",
+    "scripttext",
+    "script_text",
+    "stdout",
+    "stderr",
+    "rawdata",
+    "raw_data",
 }
 
 
@@ -98,6 +105,9 @@ def start_trace(
             "externalEvidenceCount": 0,
             "externalSearchLatencyMs": 0,
             "externalSearchBudgetBlocks": 0,
+            "codeExecutionCalls": 0,
+            "codeExecutionFailures": 0,
+            "codeExecutionOutputCount": 0,
         },
         "steps": [],
     }

@@ -2,7 +2,7 @@
 
 ## 状态与目的
 
-本文固定 P5 阶段的唯一允许场景和安全非目标。P5-04 已增加不挂载路由的内部 Docker Worker 原型，但当前项目仍没有执行 API、审批 UI、Agent/MCP 工具或生产代码执行入口。P5-02 实测选择的加固 Docker Linux 容器继续作为隔离边界，详见 [`code_sandbox_benchmark.md`](code_sandbox_benchmark.md)。
+本文固定 P5 阶段的唯一允许场景和安全非目标。P5-04 已增加不挂载路由的内部 Docker Worker 原型，P5-06 已增加宿主侧脱敏防篡改审计，但当前项目仍没有执行 API、审批 UI、Agent/MCP 工具或生产代码执行入口。P5-02 实测选择的加固 Docker Linux 容器继续作为隔离边界，详见 [`code_sandbox_benchmark.md`](code_sandbox_benchmark.md)。
 
 唯一允许场景是：对用户明确确认的一份 CSV artifact，使用不可修改的 Python 3 固定模板生成描述统计。系统不是通用编程代理，用户输入、论文内容和模型输出都不能成为代码、表达式、模块名、文件路径或运行参数。
 
@@ -71,3 +71,5 @@
 - P5-04 仅提供内部 `run_job(job, input_path)`：输入只读挂载到 `/input/data.csv`，输出只允许写入任务临时目录的 `/output/statistics.json`；容器无网络、非 root、根文件系统只读、无 capabilities、启用 `no-new-privileges` 与固定 seccomp，环境仅保留固定 `PATH`。
 - P5-04 及后续只能运行固定描述统计模板，不能扩展为任意 Python 或通用工具。
 - P5-05 的同步 `run_job` 兼容入口由内部 `start_job` 执行句柄封装；取消、墙钟或资源超限时执行容器强杀、强制删除、残留核验和临时目录清理。清理失败只暴露阶段与残留数量，不暴露宿主路径或 Docker 原始错误，污染资源不得进入后续任务。
+- P5-06 的 `code_execution_store` 是宿主信任边界：任务快照、独立脚本文本和审计事件单事务写入 SQLite，事件按序号、canonical payload 和前序 digest 形成 SHA-256 链。恢复或更新前验证完整链、链头、事件数、任务与脚本摘要，失败时不返回部分记录。
+- 审计事件只记录创建、审批、执行开始和执行结束的有界元数据。容器不挂载审计数据库；CSV、脚本文本、stdout/stderr、宿主路径、环境变量和凭据均不进入事件或 public trace。该方案用于发现宿主存储篡改，不替代数字签名或外部可信时间戳。

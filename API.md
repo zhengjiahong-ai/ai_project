@@ -645,7 +645,7 @@ Java 网关源码中已经暴露以下 Agent 路由，并转发到 Python：
 
 直接调用 Python 侧检索。
 
-## 受限代码执行内部模型（P5-03）
+## 受限代码执行内部模型与审计（P5-03/P5-06）
 
 `services/code_execution_models.py` 只定义可持久化的内部任务、审批和产物描述，不注册 FastAPI 路由，不创建 SQLite 数据库，也不授权执行代码。当前系统、旧 SQLite 快照、Java 网关和前端行为均不受影响。
 
@@ -670,20 +670,21 @@ Java 网关源码中已经暴露以下 Agent 路由，并转发到 Python：
 }
 ```
 
-- `status` 预留 `draft/awaiting_approval/approved/queued/running/succeeded/failed/cancelled`；P5-03 helper 只能创建 `awaiting_approval` 任务、批准为 `approved`，或在执行描述变化后退回 `awaiting_approval`。
+- `status` 使用 `draft/awaiting_approval/approved/queued/running/succeeded/failed/cancelled`；已审批任务只能按受控转换进入 `queued/running` 和终态，终态不能被旧快照覆盖。
 - `scriptDigest` 是 `scriptText` UTF-8 字节的 SHA-256；两者必须匹配，但未来持久化时分开存储。
 - `taskDigest` 对规范化 JSON 执行 SHA-256，覆盖 `schemaVersion/jobId/inputArtifacts/scriptDigest/runtime/image/limits/networkPolicy/expectedOutputs`，不覆盖脚本文本、状态、审批人、审批时间或审计时间。
 - `approval.approvedTaskDigest` 必须等于当前 `taskDigest`。脚本、输入、模板、镜像、配额、网络策略或预期产物发生任何有效变化时清除旧审批；超出固定安全范围的变化直接拒绝。
 - 审计摘要只允许有界元数据和警告，不保存 CSV 行、脚本文本、凭据或无限 stdout/stderr。
 
-未来 SQLite 规划使用两个独立表，不在 P5-03 创建：
+P5-06 的宿主侧 SQLite 使用三个表，默认路径为 `ai-service-python/data/code_execution.sqlite3`，测试或隔离运行可通过 `CODE_EXECUTION_DB_PATH` 覆盖：
 
 | 表 | 规划字段 | 边界 |
 | --- | --- | --- |
-| `code_execution_jobs` | `job_id` 主键、`schema_version`、`status`、`task_digest`、`snapshot_json`、`created_at`、`updated_at` | `snapshot_json` 保存除 `scriptText` 外的完整 camelCase 快照；读取后必须重新校验模型与 digest。 |
+| `code_execution_jobs` | `job_id` 主键、`schema_version`、`status`、`task_digest`、`snapshot_json`、审计事件数量/链头、时间 | `snapshot_json` 保存除 `scriptText` 外的完整 camelCase 快照；读取后必须重新校验模型、任务摘要和链头。 |
 | `code_execution_scripts` | `job_id` 主键/外键、`script_text`、`script_digest` | 脚本文本与摘要分列；读取时重新计算 SHA-256，不允许 Worker 修改。 |
+| `code_execution_audit_events` | `job_id/sequence` 联合主键、事件类型/时间、`payload_json`、前序/当前 digest | 只追加宿主生成的脱敏事件；canonical JSON 与前序 digest 共同计算 SHA-256 链。 |
 
-后续引入存储层时应在单个事务中写入两表，禁止只恢复其中一部分；旧系统不需要迁移或预建表。
+任务、脚本和事件在单个事务内写入。恢复和再次保存前均验证脚本摘要、任务摘要、事件顺序、前序 digest、事件 digest、事件数量和链头；任一不一致均封闭抛出 `AuditIntegrityError`，不返回部分可信快照。`execute_audited_job` 由宿主记录创建、审批、执行开始和执行结束，Worker 容器不挂载数据库。事件仅包含审批绑定、运行时/镜像、输入输出 digest、资源限制、退出状态和清理摘要，不保存 CSV、脚本文本、宿主路径、密钥或 stdout/stderr 内容。
 
 ## 关键数据结构
 

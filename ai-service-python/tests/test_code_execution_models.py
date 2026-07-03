@@ -157,3 +157,12 @@ def test_audit_summary_is_bounded_and_rejects_sensitive_or_raw_content():
     snapshot["auditSummary"]["warnings"] = ["x" * 501]
     with pytest.raises(ValidationError, match="warnings"):
         CodeExecutionJob.model_validate(snapshot)
+
+
+def test_approval_actor_is_a_bounded_opaque_identifier():
+    with pytest.raises(ValidationError, match="approvedBy"):
+        approve_code_execution_job(
+            _job(),
+            approved_by="DEEPSEEK_API_KEY=secret-value",
+            approved_at="2026-07-03T10:00:00Z",
+        )

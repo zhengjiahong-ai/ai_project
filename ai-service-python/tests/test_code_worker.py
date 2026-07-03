@@ -4,11 +4,15 @@ import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
-from services.code_execution_models import approve_code_execution_job, create_code_execution_job
+from services.code_execution_models import (
+    approve_code_execution_job,
+    create_code_execution_job,
+    transition_code_execution_job,
+)
 
 from code_worker import FIXED_TEMPLATE_TEXT, run_job, start_job
 from code_worker.models import WorkerCleanup, WorkerOutput, WorkerResult
-from code_worker.runner import _ExecutionContext, _container_command
+from code_worker.runner import _ExecutionContext, _container_command, _validate_job
 from code_worker.fixed_template import analyze_csv
 from services.code_execution_models import WORKER_IMAGE_DIGEST
 
@@ -84,6 +88,13 @@ def test_rejects_unapproved_job_without_starting_docker(tmp_path):
     run.assert_not_called()
 
 
+def test_accepts_host_persisted_running_job_with_bound_approval(tmp_path):
+    input_path = _input(tmp_path)
+    running = transition_code_execution_job(_job(input_path), "running")
+
+    assert _validate_job(running, input_path) is None
+
+
 def test_rejects_non_file_digest_and_size_mismatches_before_docker(tmp_path):
     input_path = _input(tmp_path)
     job = _job(input_path)
@@ -145,6 +156,7 @@ def test_runs_hardened_container_and_returns_bounded_output_metadata(tmp_path):
     assert command[command.index("--pids-limit") + 1] == str(job.limits.pids)
     assert command[command.index("--ulimit") + 1] == "cpu=5:5"
     assert not any("docker.sock" in part for part in command)
+    assert not any("code_execution" in part or ".sqlite" in part for part in command)
 
     completed = WorkerResult(
         status="succeeded", reasonCode="completed", exitCode=0,
