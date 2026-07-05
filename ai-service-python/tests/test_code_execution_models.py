@@ -9,7 +9,10 @@ from services.code_execution_models import (
     BENCHMARK_IMAGE_DIGEST,
     CodeExecutionJob,
     approve_code_execution_job,
+    attach_execution_result,
     create_code_execution_job,
+    review_code_execution_publication,
+    reject_code_execution_job,
     update_code_execution_job,
 )
 
@@ -166,3 +169,75 @@ def test_approval_actor_is_a_bounded_opaque_identifier():
             approved_by="DEEPSEEK_API_KEY=secret-value",
             approved_at="2026-07-03T10:00:00Z",
         )
+
+
+def test_rejecting_execution_is_terminal_and_auditable():
+    rejected = reject_code_execution_job(
+        _job(), rejected_by="local-user", rejected_at="2026-07-05T10:00:00Z", reason="不执行"
+    )
+
+    assert rejected.status == "rejected"
+    assert rejected.approval.decision == "rejected"
+    assert rejected.approval.approved_by == "local-user"
+    assert rejected.approval.reason == "不执行"
+
+
+def test_successful_result_requires_publication_approval_bound_to_digest():
+    approved = approve_code_execution_job(
+        _job(), approved_by="local-user", approved_at="2026-07-05T10:00:00Z"
+    )
+    result = {
+        "status": "succeeded",
+        "reasonCode": "completed",
+        "exitCode": 0,
+        "outputs": [{"name": "statistics", "mediaType": "application/json", "sizeBytes": 42, "digest": "b" * 64}],
+        "cleanup": {"status": "passed", "stage": "completed", "residualCount": 0},
+    }
+
+    completed = attach_execution_result(approved, result, audit_head_digest="c" * 64)
+    published = review_code_execution_publication(
+        completed,
+        decision="approved",
+        reviewed_by="local-user",
+        reviewed_at="2026-07-05T10:01:00Z",
+        expected_publication_digest=completed.publication_digest,
+    )
+
+    assert completed.publication_digest
+    assert completed.publication_approval.decision == "pending"
+    assert published.publication_approval.approved_publication_digest == completed.publication_digest
+    assert published.publishable is True
+
+
+def test_failed_result_cannot_be_published():
+    approved = approve_code_execution_job(
+        _job(), approved_by="local-user", approved_at="2026-07-05T10:00:00Z"
+    )
+    failed = attach_execution_result(
+        approved,
+        {"status": "failed", "reasonCode": "timeout", "outputs": [], "cleanup": {}},
+        audit_head_digest="c" * 64,
+    )
+
+    with pytest.raises(ValueError, match="successful"):
+        review_code_execution_publication(
+            failed,
+            decision="approved",
+            reviewed_by="local-user",
+            reviewed_at="2026-07-05T10:01:00Z",
+            expected_publication_digest=failed.publication_digest,
+        )
+
+
+def test_legacy_snapshot_defaults_to_no_result_and_pending_publication():
+    snapshot = _job().model_dump(mode="json", by_alias=True)
+    snapshot.pop("executionResult", None)
+    snapshot.pop("publicationDigest", None)
+    snapshot.pop("publicationApproval", None)
+
+    restored = CodeExecutionJob.model_validate(snapshot)
+
+    assert restored.execution_result is None
+    assert restored.publication_digest is None
+    assert restored.publication_approval.decision == "pending"
+    assert restored.publishable is False

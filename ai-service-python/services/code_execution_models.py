@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
+
 SCHEMA_VERSION = "1.0"
 WORKER_IMAGE_DIGEST = "sha256:a86ea9eda049b10d4958ee67d7c6284d07ecbcab3a50d5778c44809318b6e237"
 # Compatibility alias for P5-03 snapshots and imports. New code must use the Worker name.
@@ -82,11 +83,40 @@ class ExpectedOutput(_ExecutionModel):
         return value
 
 
+class ExecutionOutput(_ExecutionModel):
+    name: Literal["statistics"] = "statistics"
+    media_type: Literal["application/json"] = Field(default="application/json", alias="mediaType")
+    size_bytes: int = Field(alias="sizeBytes", ge=1, le=1024 * 1024)
+    digest: str
+
+    @field_validator("digest")
+    @classmethod
+    def validate_output_digest(cls, value: str) -> str:
+        if not SHA256_PATTERN.fullmatch(value):
+            raise ValueError("output digest must be a lowercase SHA-256 hex value.")
+        return value
+
+
+class ExecutionCleanup(_ExecutionModel):
+    status: Literal["passed", "failed"] = "passed"
+    stage: Literal["not_started", "container", "temporary_directory", "completed"] = "not_started"
+    residual_count: int = Field(default=0, alias="residualCount", ge=0, le=1000)
+
+
+class ExecutionResult(_ExecutionModel):
+    status: Literal["succeeded", "failed", "cancelled"]
+    reason_code: str = Field(alias="reasonCode", pattern=r"^[a-z][a-z0-9_]{0,63}$")
+    exit_code: Optional[int] = Field(default=None, alias="exitCode")
+    outputs: List[ExecutionOutput] = Field(default_factory=list, max_length=1)
+    cleanup: ExecutionCleanup = Field(default_factory=ExecutionCleanup)
+
+
 class ExecutionApproval(_ExecutionModel):
     decision: Literal["pending", "approved", "rejected"] = "pending"
     approved_by: Optional[str] = Field(default=None, alias="approvedBy", max_length=128)
     approved_at: Optional[str] = Field(default=None, alias="approvedAt", max_length=40)
     approved_task_digest: Optional[str] = Field(default=None, alias="approvedTaskDigest")
+    reason: Optional[str] = Field(default=None, max_length=500)
 
     @field_validator("approved_by")
     @classmethod
@@ -101,8 +131,41 @@ class ExecutionApproval(_ExecutionModel):
         if self.decision == "approved":
             if not all(bound) or not SHA256_PATTERN.fullmatch(self.approved_task_digest or ""):
                 raise ValueError("approved approval requires approvedBy, approvedAt and approvedTaskDigest.")
+            if self.reason is not None:
+                raise ValueError("approved approval cannot contain a rejection reason.")
+        elif self.decision == "rejected":
+            if not self.approved_by or not self.approved_at or self.approved_task_digest is not None:
+                raise ValueError("rejected approval requires actor and time without task binding.")
         elif any(value is not None for value in bound):
             raise ValueError("non-approved approval cannot retain approval binding fields.")
+        return self
+
+
+class PublicationApproval(_ExecutionModel):
+    decision: Literal["pending", "approved", "rejected"] = "pending"
+    reviewed_by: Optional[str] = Field(default=None, alias="reviewedBy", max_length=128)
+    reviewed_at: Optional[str] = Field(default=None, alias="reviewedAt", max_length=40)
+    approved_publication_digest: Optional[str] = Field(default=None, alias="approvedPublicationDigest")
+    reason: Optional[str] = Field(default=None, max_length=500)
+
+    @field_validator("reviewed_by")
+    @classmethod
+    def validate_reviewer(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and not IDENTIFIER_PATTERN.fullmatch(value):
+            raise ValueError("reviewedBy must be a bounded opaque identifier.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_binding(self) -> "PublicationApproval":
+        if self.decision == "pending":
+            if any((self.reviewed_by, self.reviewed_at, self.approved_publication_digest, self.reason)):
+                raise ValueError("pending publication approval cannot retain review fields.")
+        elif not self.reviewed_by or not self.reviewed_at:
+            raise ValueError("publication review requires reviewer and time.")
+        elif self.decision == "approved" and not SHA256_PATTERN.fullmatch(self.approved_publication_digest or ""):
+            raise ValueError("approved publication requires a publication digest binding.")
+        elif self.decision == "rejected" and self.approved_publication_digest is not None:
+            raise ValueError("rejected publication cannot retain a digest binding.")
         return self
 
 
@@ -111,6 +174,7 @@ class AuditSummary(_ExecutionModel):
     updated_at: str = Field(default="", alias="updatedAt", max_length=40)
     event: Literal["code_execution_job_created"] = "code_execution_job_created"
     warnings: List[str] = Field(default_factory=list, max_length=20)
+    audit_head_digest: Optional[str] = Field(default=None, alias="auditHeadDigest")
 
     @field_validator("warnings")
     @classmethod
@@ -132,6 +196,7 @@ class CodeExecutionJob(_ExecutionModel):
         "succeeded",
         "failed",
         "cancelled",
+        "rejected",
     ] = "awaiting_approval"
     input_artifacts: List[InputArtifact] = Field(alias="inputArtifacts", min_length=1, max_length=1)
     script_text: str = Field(alias="scriptText", min_length=1, max_length=256 * 1024)
@@ -146,6 +211,9 @@ class CodeExecutionJob(_ExecutionModel):
     approval: ExecutionApproval = Field(default_factory=ExecutionApproval)
     audit_summary: AuditSummary = Field(default_factory=AuditSummary, alias="auditSummary")
     task_digest: str = Field(default="", alias="taskDigest")
+    execution_result: Optional[ExecutionResult] = Field(default=None, alias="executionResult")
+    publication_digest: Optional[str] = Field(default=None, alias="publicationDigest")
+    publication_approval: PublicationApproval = Field(default_factory=PublicationApproval, alias="publicationApproval")
 
     @field_validator("job_id")
     @classmethod
@@ -170,7 +238,35 @@ class CodeExecutionJob(_ExecutionModel):
                 raise ValueError("approved approval requires an approved execution status.")
         elif self.status == "approved":
             raise ValueError("approved job status requires approved approval.")
+        if self.execution_result is not None:
+            publication_payload = {
+                "jobId": self.job_id,
+                "taskDigest": self.task_digest,
+                "executionResult": self.execution_result.model_dump(mode="json", by_alias=True),
+                "warnings": self.audit_summary.warnings,
+                "auditHeadDigest": self.audit_summary.audit_head_digest,
+            }
+            publication_digest = _canonical_digest(publication_payload)
+            if self.publication_digest and self.publication_digest != publication_digest:
+                raise ValueError("publicationDigest does not match the execution result.")
+            object.__setattr__(self, "publication_digest", publication_digest)
+        elif self.publication_digest is not None:
+            raise ValueError("publicationDigest requires an execution result.")
+        if self.publication_approval.decision == "approved" and (
+            self.publication_approval.approved_publication_digest != self.publication_digest
+        ):
+            raise ValueError("publication approval does not match publicationDigest.")
         return self
+
+    @property
+    def publishable(self) -> bool:
+        return bool(
+            self.status == "succeeded"
+            and self.execution_result is not None
+            and self.execution_result.status == "succeeded"
+            and self.publication_approval.decision == "approved"
+            and self.publication_approval.approved_publication_digest == self.publication_digest
+        )
 
     def approval_payload(self) -> Dict[str, Any]:
         return {
@@ -240,6 +336,63 @@ def approve_code_execution_job(
     return CodeExecutionJob.model_validate(snapshot)
 
 
+def reject_code_execution_job(
+    job: CodeExecutionJob, *, rejected_by: str, rejected_at: str, reason: Optional[str] = None
+) -> CodeExecutionJob:
+    if job.status != "awaiting_approval" or job.approval.decision != "pending":
+        raise ValueError("Only a pending awaiting_approval job can be rejected.")
+    snapshot = job.model_dump(mode="json", by_alias=True)
+    snapshot["status"] = "rejected"
+    snapshot["approval"] = {
+        "decision": "rejected", "approvedBy": rejected_by, "approvedAt": rejected_at, "reason": reason,
+    }
+    return CodeExecutionJob.model_validate(snapshot)
+
+
+def attach_execution_result(
+    job: CodeExecutionJob, result: Any, *, audit_head_digest: str
+) -> CodeExecutionJob:
+    if job.approval.decision != "approved" or job.status not in {"approved", "running"}:
+        raise ValueError("Execution result requires an approved job.")
+    if not SHA256_PATTERN.fullmatch(audit_head_digest):
+        raise ValueError("auditHeadDigest must be a lowercase SHA-256 hex value.")
+    raw_result = result.model_dump(mode="json", by_alias=True) if hasattr(result, "model_dump") else result
+    parsed = ExecutionResult.model_validate(raw_result)
+    snapshot = job.model_dump(mode="json", by_alias=True)
+    snapshot["status"] = parsed.status
+    snapshot["executionResult"] = parsed.model_dump(mode="json", by_alias=True)
+    snapshot["auditSummary"]["auditHeadDigest"] = audit_head_digest
+    snapshot["publicationApproval"] = {"decision": "pending"}
+    snapshot.pop("publicationDigest", None)
+    return CodeExecutionJob.model_validate(snapshot)
+
+
+def review_code_execution_publication(
+    job: CodeExecutionJob,
+    *,
+    decision: Literal["approved", "rejected"],
+    reviewed_by: str,
+    reviewed_at: str,
+    expected_publication_digest: str,
+    reason: Optional[str] = None,
+) -> CodeExecutionJob:
+    if job.status != "succeeded" or job.execution_result is None or job.execution_result.status != "succeeded":
+        raise ValueError("Publication approval requires a successful execution result.")
+    if expected_publication_digest != job.publication_digest:
+        raise ValueError("Publication digest conflict.")
+    if job.publication_approval.decision != "pending":
+        raise ValueError("Publication has already been reviewed.")
+    snapshot = job.model_dump(mode="json", by_alias=True)
+    snapshot["publicationApproval"] = {
+        "decision": decision,
+        "reviewedBy": reviewed_by,
+        "reviewedAt": reviewed_at,
+        "approvedPublicationDigest": expected_publication_digest if decision == "approved" else None,
+        "reason": reason,
+    }
+    return CodeExecutionJob.model_validate(snapshot)
+
+
 def update_code_execution_job(job: CodeExecutionJob, changes: Dict[str, Any]) -> CodeExecutionJob:
     snapshot = job.model_dump(mode="json", by_alias=True)
     _deep_update(snapshot, deepcopy(changes))
@@ -248,6 +401,9 @@ def update_code_execution_job(job: CodeExecutionJob, changes: Dict[str, Any]) ->
     snapshot.pop("taskDigest", None)
     snapshot["status"] = "awaiting_approval"
     snapshot["approval"] = {"decision": "pending"}
+    snapshot["executionResult"] = None
+    snapshot["publicationDigest"] = None
+    snapshot["publicationApproval"] = {"decision": "pending"}
     candidate = CodeExecutionJob.model_validate(snapshot)
     if candidate.task_digest != job.task_digest:
         return candidate

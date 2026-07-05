@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -145,3 +145,19 @@ class AgentPlanReviewRequest(BaseModel):
 class AgentFinalReviewRequest(BaseModel):
     reviewNotes: Optional[str] = ""
     riskReviews: Optional[List[RiskReviewItem]] = None
+
+
+class CodeExecutionJobCreateRequest(BaseModel):
+    artifactId: str = Field(pattern=r"^artifact-[a-z0-9-]{1,120}$")
+
+
+class CodeExecutionReviewRequest(BaseModel):
+    decision: Literal["approved", "rejected"]
+    expectedTaskDigest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reason: Optional[str] = Field(default=None, max_length=500)
+
+
+class CodePublicationReviewRequest(BaseModel):
+    decision: Literal["approved", "rejected"]
+    expectedPublicationDigest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reason: Optional[str] = Field(default=None, max_length=500)

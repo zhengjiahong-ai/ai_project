@@ -26,6 +26,38 @@ public class AcademicController {
     @Autowired
     private AiService aiService;
 
+    @PostMapping("/code-execution-artifacts")
+    public ResponseEntity<Map<String, Object>> uploadCodeExecutionArtifact(@RequestParam("file") MultipartFile file) {
+        return aiService.uploadCodeExecutionArtifact(file);
+    }
+
+    @PostMapping("/code-execution-jobs")
+    public ResponseEntity<Map<String, Object>> createCodeExecutionJob(@RequestBody Map<String, Object> request) {
+        return aiService.createCodeExecutionJob(request);
+    }
+
+    @GetMapping("/code-execution-jobs")
+    public ResponseEntity<Map<String, Object>> listCodeExecutionJobs() {
+        return aiService.listCodeExecutionJobs();
+    }
+
+    @GetMapping("/code-execution-jobs/{jobId}")
+    public ResponseEntity<Map<String, Object>> getCodeExecutionJob(@PathVariable String jobId) {
+        return aiService.getCodeExecutionJob(jobId);
+    }
+
+    @PostMapping("/code-execution-jobs/{jobId}/execution-review")
+    public ResponseEntity<Map<String, Object>> reviewCodeExecution(
+            @PathVariable String jobId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewCodeExecution(jobId, request);
+    }
+
+    @PostMapping("/code-execution-jobs/{jobId}/publication-review")
+    public ResponseEntity<Map<String, Object>> reviewCodePublication(
+            @PathVariable String jobId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewCodePublication(jobId, request);
+    }
+
     @PostMapping("/upload")
     public Map<String, Object> uploadPdf(@RequestParam("file") MultipartFile file) {
         return aiService.analyzePdf(file);

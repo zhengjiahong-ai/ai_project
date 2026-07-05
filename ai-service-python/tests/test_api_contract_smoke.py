@@ -74,6 +74,7 @@ class ApiContractSmokeTests(unittest.TestCase):
                 "agent-task",
                 "agent-final-review",
                 "agent-traces",
+                "code-execution-jobs",
             },
         )
 
@@ -172,6 +173,12 @@ class ApiContractSmokeTests(unittest.TestCase):
                 None,
                 "trace_service.get_trace_summary",
                 ("agent-trace-contract-1",),
+            ),
+            "code-execution-jobs": (
+                api.list_code_execution_jobs,
+                None,
+                "code_execution_service.list_jobs",
+                (),
             ),
         }
 

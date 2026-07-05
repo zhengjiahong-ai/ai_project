@@ -63,6 +63,29 @@ export const createApiService = (client, agentFallbackClient = null, options = {
     });
   },
 
+  uploadCodeExecutionArtifact: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return client.post('/code-execution-artifacts', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  createCodeExecutionJob: async (artifactId) => client.post('/code-execution-jobs', { artifactId }),
+  listCodeExecutionJobs: async () => client.get('/code-execution-jobs'),
+  getCodeExecutionJob: async (jobId) => client.get(`/code-execution-jobs/${encodeURIComponent(jobId)}`),
+  reviewCodeExecution: async (jobId, decision, expectedTaskDigest, reason = undefined) =>
+    client.post(`/code-execution-jobs/${encodeURIComponent(jobId)}/execution-review`, {
+      decision,
+      expectedTaskDigest,
+      ...(reason ? { reason } : {}),
+    }),
+  reviewCodePublication: async (jobId, decision, expectedPublicationDigest, reason = undefined) =>
+    client.post(`/code-execution-jobs/${encodeURIComponent(jobId)}/publication-review`, {
+      decision,
+      expectedPublicationDigest,
+      ...(reason ? { reason } : {}),
+    }),
+
   sendMessage: async (message, pdfId = null, history = [], paperSkeleton = null, signal = null) =>
     client.post(
       '/chat',

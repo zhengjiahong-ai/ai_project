@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { createApiService, resolveAgentApiBaseUrl, resolveApiBaseUrl } from './api.js';
+import { canReviewExecution, canReviewPublication, groupCodeExecutionJobs } from '../components/codeExecutionApprovalModel.js';
 
 
 const assertContract = (value, schema, path = 'response') => {
@@ -37,6 +38,11 @@ const assertContract = (value, schema, path = 'response') => {
 
 
 const run = async () => {
+  const pendingExecution = { jobId: 'job-1', status: 'awaiting_approval', approval: { decision: 'pending' } };
+  const pendingPublication = { jobId: 'job-2', status: 'succeeded', executionResult: { status: 'succeeded' }, publicationDigest: 'a'.repeat(64), publicationApproval: { decision: 'pending' } };
+  assert.equal(canReviewExecution(pendingExecution), true);
+  assert.equal(canReviewPublication(pendingPublication), true);
+  assert.deepEqual(groupCodeExecutionJobs([pendingExecution, pendingPublication]).map((group) => group.jobs.length), [1, 1, 0]);
   const sharedContract = JSON.parse(
     readFileSync(new URL('../../../contracts/api-contract-smoke.json', import.meta.url), 'utf8'),
   );
@@ -53,6 +59,7 @@ const run = async () => {
     'agent-traces',
     'background',
     'chat',
+    'code-execution-jobs',
     'critical',
     'research',
     'research-final-review',
@@ -77,6 +84,22 @@ const run = async () => {
   assert.equal(uploadCall.url, '/upload');
   assert.ok(uploadCall.body instanceof FormData);
   assert.equal(uploadCall.config.headers['Content-Type'], 'multipart/form-data');
+
+  await uploadService.uploadCodeExecutionArtifact(new Blob(['a,b\n1,2\n'], { type: 'text/csv' }));
+  assert.equal(uploadCall.url, '/code-execution-artifacts');
+  assert.ok(uploadCall.body instanceof FormData);
+
+  await uploadService.createCodeExecutionJob('artifact-1');
+  assert.equal(uploadCall.url, '/code-execution-jobs');
+  assert.deepEqual(uploadCall.body, { artifactId: 'artifact-1' });
+
+  await uploadService.reviewCodeExecution('job/1', 'approved', 'task-digest');
+  assert.equal(uploadCall.url, '/code-execution-jobs/job%2F1/execution-review');
+  assert.deepEqual(uploadCall.body, { decision: 'approved', expectedTaskDigest: 'task-digest' });
+
+  await uploadService.reviewCodePublication('job/1', 'approved', 'publication-digest');
+  assert.equal(uploadCall.url, '/code-execution-jobs/job%2F1/publication-review');
+  assert.deepEqual(uploadCall.body, { decision: 'approved', expectedPublicationDigest: 'publication-digest' });
 
   let historyUrl = '';
   const historyService = createApiService({

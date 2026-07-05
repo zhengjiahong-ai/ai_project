@@ -26,6 +26,7 @@ import {
 } from './components/backgroundKnowledgePanelModel.js';
 import ChatPanel from './components/ChatPanel';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel';
+import CodeExecutionApprovalCenter from './components/CodeExecutionApprovalCenter.jsx';
 import DeepResearchPanel from './components/DeepResearchPanel.jsx';
 import LibrarySidebar from './components/LibrarySidebar';
 import Navbar from './components/Navbar';
@@ -2536,6 +2537,7 @@ export default function App() {
 
   return (
     <>
+      <CodeExecutionApprovalCenter />
       <LibrarySidebar
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}

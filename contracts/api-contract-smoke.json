@@ -269,6 +269,19 @@
       "pythonResponse": {"status": "success", "trace": {"traceId": "agent-trace-contract-1", "taskType": "agent_research", "status": "awaiting_review", "startedAt": "2026-06-21T00:00:00Z", "finishedAt": null, "durationMs": 180, "requestMeta": {"projectId": "project-contract-1"}, "responseMeta": {"taskId": "agent-task-contract-1"}, "counters": {"llmCalls": 2, "retrievalCalls": 4, "retryCount": 0, "truncationCount": 0, "estimatedInputTokens": 900, "estimatedOutputTokens": 350, "externalSearchCalls": 0, "externalSearchCacheHits": 0, "externalSearchFailures": 0, "externalEvidenceCount": 0, "externalSearchLatencyMs": 0, "externalSearchBudgetBlocks": 0}, "steps": [{"name": "agent_plan", "durationMs": 30, "status": "success", "inputSize": 2, "outputSize": 1, "error": ""}]}},
       "gatewayResponse": {"status": "success", "trace": {"traceId": "agent-trace-contract-1", "taskType": "agent_research", "status": "awaiting_review", "startedAt": "2026-06-21T00:00:00Z", "finishedAt": null, "durationMs": 180, "requestMeta": {"projectId": "project-contract-1"}, "responseMeta": {"taskId": "agent-task-contract-1"}, "counters": {"llmCalls": 2, "retrievalCalls": 4, "retryCount": 0, "truncationCount": 0, "estimatedInputTokens": 900, "estimatedOutputTokens": 350, "externalSearchCalls": 0, "externalSearchCacheHits": 0, "externalSearchFailures": 0, "externalEvidenceCount": 0, "externalSearchLatencyMs": 0, "externalSearchBudgetBlocks": 0}, "steps": [{"name": "agent_plan", "durationMs": 30, "status": "success", "inputSize": 2, "outputSize": 1, "error": ""}]}},
       "pythonResponseContract": {"type": "object", "required": ["status", "trace"], "properties": {"status": {"type": "string", "enum": ["success"]}, "trace": {"type": "object", "required": ["traceId", "taskType", "status", "startedAt", "finishedAt", "durationMs", "requestMeta", "responseMeta", "counters", "steps"], "properties": {"taskType": {"type": "string", "enum": ["agent_research"]}, "counters": {"type": "object", "required": ["llmCalls", "retrievalCalls", "retryCount", "truncationCount", "estimatedInputTokens", "estimatedOutputTokens", "externalSearchCalls", "externalSearchCacheHits", "externalSearchFailures", "externalEvidenceCount", "externalSearchLatencyMs", "externalSearchBudgetBlocks"]}, "steps": {"type": "array"}}}}}
+    },
+    {
+      "operation": "code-execution-jobs",
+      "method": "GET",
+      "frontendPath": "/code-execution-jobs",
+      "javaPath": "/api/code-execution-jobs",
+      "pythonPath": "/api/code-execution-jobs",
+      "statusCode": 200,
+      "frontendRequest": null,
+      "pythonRequest": null,
+      "pythonResponse": {"status": "success", "jobs": [{"jobId": "job-contract-1", "status": "awaiting_approval", "taskDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "publishable": false}]},
+      "gatewayResponse": {"status": "success", "jobs": [{"jobId": "job-contract-1", "status": "awaiting_approval", "taskDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "publishable": false}]},
+      "pythonResponseContract": {"type": "object", "required": ["status", "jobs"], "properties": {"status": {"type": "string", "enum": ["success"]}, "jobs": {"type": "array", "items": {"type": "object", "required": ["jobId", "status", "taskDigest", "publishable"], "properties": {"jobId": {"type": "string"}, "status": {"type": "string"}, "taskDigest": {"type": "string"}, "publishable": {"type": "boolean"}}}}}}
     }
   ]
 }

@@ -149,6 +149,30 @@ def list_code_execution_audit_events(job_id: str) -> List[Dict[str, Any]]:
         return [_public_event(row) for row in rows]
 
 
+def list_code_execution_jobs() -> List[CodeExecutionJob]:
+    database = _database_path()
+    if not database.exists():
+        return []
+    with closing(sqlite3.connect(database)) as connection:
+        _initialize(connection)
+        job_ids = [row[0] for row in connection.execute(
+            "SELECT job_id FROM code_execution_jobs ORDER BY updated_at DESC"
+        ).fetchall()]
+    return [load_code_execution_job(job_id) for job_id in job_ids]
+
+
+def get_code_execution_audit_head(job_id: str) -> str:
+    database = _database_path()
+    with closing(sqlite3.connect(database)) as connection:
+        _initialize(connection)
+        row = connection.execute(
+            "SELECT audit_head_digest FROM code_execution_jobs WHERE job_id = ?", (job_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(f"Code execution job not found: {job_id}")
+        return str(row[0])
+
+
 def execute_audited_job(
     job: CodeExecutionJob,
     input_path: Path,
@@ -235,7 +259,10 @@ def _append_event(
     result: Optional[WorkerResult],
     occurred_at: str,
 ) -> None:
-    allowed = {"job_created", "job_approved", "execution_started", "execution_finished"}
+    allowed = {
+        "job_created", "job_approved", "job_rejected", "execution_started", "execution_finished",
+        "publication_approved", "publication_rejected",
+    }
     if event_type not in allowed:
         raise ValueError(f"Unsupported code execution audit event: {event_type}")
     current = connection.execute(
@@ -283,6 +310,12 @@ def _validate_persisted_transition(
         "succeeded", "failed", "cancelled"
     }:
         return
+    if event_type == "job_approved" and existing_status == "awaiting_approval" and new_status == "approved":
+        return
+    if event_type == "job_rejected" and existing_status == "awaiting_approval" and new_status == "rejected":
+        return
+    if event_type in {"publication_approved", "publication_rejected"} and existing_status == new_status == "succeeded":
+        return
     raise ValueError(
         f"Invalid persisted code execution transition: {existing_status} -> {new_status}."
     )
@@ -309,6 +342,20 @@ def _event_payload(
             "approvedTaskDigest": job.approval.approved_task_digest,
             "taskDigest": job.task_digest,
             "scriptDigest": job.script_digest,
+        }
+    if event_type == "job_rejected":
+        return {
+            "decision": "rejected", "reviewedBy": job.approval.approved_by,
+            "reviewedAt": job.approval.approved_at, "reason": job.approval.reason,
+            "taskDigest": job.task_digest,
+        }
+    if event_type in {"publication_approved", "publication_rejected"}:
+        return {
+            "decision": job.publication_approval.decision,
+            "reviewedBy": job.publication_approval.reviewed_by,
+            "reviewedAt": job.publication_approval.reviewed_at,
+            "publicationDigest": job.publication_digest,
+            "reason": job.publication_approval.reason,
         }
     if event_type == "execution_started":
         return {**common, "status": "running"}

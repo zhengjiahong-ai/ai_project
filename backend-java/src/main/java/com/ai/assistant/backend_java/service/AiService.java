@@ -208,6 +208,41 @@ public class AiService {
         return restTemplate.postForObject(PYTHON_SERVICE_URL + "/background-knowledge", request, Map.class);
     }
 
+    public ResponseEntity<Map<String, Object>> uploadCodeExecutionArtifact(MultipartFile file) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", toNamedPdfResource(file));
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    PYTHON_SERVICE_URL + "/code-execution-artifacts", HttpMethod.POST,
+                    new HttpEntity<>(body, headers), Map.class);
+            return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
+        } catch (HttpStatusCodeException error) {
+            return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));
+        }
+    }
+
+    public ResponseEntity<Map<String, Object>> createCodeExecutionJob(Map<String, Object> request) {
+        return forwardCodeExecution(HttpMethod.POST, "/code-execution-jobs", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> listCodeExecutionJobs() {
+        return forwardCodeExecution(HttpMethod.GET, "/code-execution-jobs", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> getCodeExecutionJob(String jobId) {
+        return forwardCodeExecution(HttpMethod.GET, "/code-execution-jobs/" + encode(jobId), null);
+    }
+
+    public ResponseEntity<Map<String, Object>> reviewCodeExecution(String jobId, Map<String, Object> request) {
+        return forwardCodeExecution(HttpMethod.POST, "/code-execution-jobs/" + encode(jobId) + "/execution-review", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> reviewCodePublication(String jobId, Map<String, Object> request) {
+        return forwardCodeExecution(HttpMethod.POST, "/code-execution-jobs/" + encode(jobId) + "/publication-review", request);
+    }
+
     public ResponseEntity<Map<String, Object>> createResearchTask(Map<String, Object> request) {
         return forwardResearchTask(HttpMethod.POST, "/research-tasks", request);
     }
@@ -386,6 +421,15 @@ public class AiService {
         } catch (HttpStatusCodeException error) {
             return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));
         }
+    }
+
+    private ResponseEntity<Map<String, Object>> forwardCodeExecution(
+            HttpMethod method, String path, Map<String, Object> payload) {
+        return forwardAgentRequest(method, path, payload);
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(String.valueOf(value), StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private Map<String, Object> normalizeResearchTaskBody(Map<?, ?> body) {

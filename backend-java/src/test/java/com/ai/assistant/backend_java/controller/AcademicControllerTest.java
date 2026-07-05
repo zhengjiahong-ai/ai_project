@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 
 import com.ai.assistant.backend_java.service.AiService;
 
@@ -32,6 +34,36 @@ class AcademicControllerTest {
 
     @MockBean
     private AiService aiService;
+
+    @Test
+    void forwardsCodeExecutionApprovalEndpoints() throws Exception {
+        Map<String, Object> success = Map.of("status", "success", "job", Map.of("jobId", "job-1"));
+        when(aiService.uploadCodeExecutionArtifact(org.mockito.ArgumentMatchers.any())).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success", "artifact", Map.of("artifactId", "artifact-1"))));
+        when(aiService.createCodeExecutionJob(eq(Map.of("artifactId", "artifact-1")))).thenReturn(ResponseEntity.ok(success));
+        when(aiService.listCodeExecutionJobs()).thenReturn(ResponseEntity.ok(Map.of("status", "success", "jobs", List.of())));
+        when(aiService.getCodeExecutionJob("job-1")).thenReturn(ResponseEntity.ok(success));
+        when(aiService.reviewCodeExecution(eq("job-1"), anyMap())).thenReturn(ResponseEntity.ok(success));
+        when(aiService.reviewCodePublication(eq("job-1"), anyMap())).thenReturn(ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "status", "error", "message", "stale")));
+
+        mockMvc.perform(multipart("/api/code-execution-artifacts")
+                .file(new MockMultipartFile("file", "study.csv", "text/csv", "a,b\n1,2\n".getBytes())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.artifact.artifactId").value("artifact-1"));
+        mockMvc.perform(post("/api/code-execution-jobs").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"artifactId\":\"artifact-1\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/code-execution-jobs")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/code-execution-jobs/job-1")).andExpect(status().isOk());
+        mockMvc.perform(post("/api/code-execution-jobs/job-1/execution-review").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"decision\":\"approved\",\"expectedTaskDigest\":\"digest\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/code-execution-jobs/job-1/publication-review").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"decision\":\"approved\",\"expectedPublicationDigest\":\"digest\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("stale"));
+    }
 
     @Test
     void getChatHistoryReturnsHistoryPayload() throws Exception {

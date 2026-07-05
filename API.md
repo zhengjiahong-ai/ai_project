@@ -771,6 +771,18 @@ Agent 时间线使用以下事件对象：
 - 默认项目标题使用本地快照中的 `nextProjectNumber` 单调递增；旧快照缺少该字段时，会按现有 `Agent 项目 N` 标题最大值和项目数量推导。
 - 删除项目不会重排已有项目标题编号，也不会降低 `nextProjectNumber`。
 
+## 受限代码执行审批 API
+
+浏览器经 Java 网关访问以下 `/api` 路由，Java 原样转发到 Python：
+
+- `POST /api/code-execution-artifacts`：multipart 字段 `file`，仅接受 1 Byte～1 MiB 的 UTF-8 `.csv`；返回服务端生成的 `artifactId/digest/sizeBytes`。
+- `POST /api/code-execution-jobs`：请求 `{ "artifactId": "..." }`，只创建 `descriptive-statistics-v1` 固定模板任务。
+- `GET /api/code-execution-jobs` 与 `GET /api/code-execution-jobs/{jobId}`：返回任务、脚本、执行结果、审批、`publishable` 和脱敏审计事件。
+- `POST /api/code-execution-jobs/{jobId}/execution-review`：请求 `decision/expectedTaskDigest/reason?`；批准后同步启动 audited Worker。
+- `POST /api/code-execution-jobs/{jobId}/publication-review`：请求 `decision/expectedPublicationDigest/reason?`；只允许成功结果进入发布审查。
+
+审批主体由服务端固定为 `local-user`。过期 digest 或状态冲突返回 `409`，缺失资源返回 `404`，非法上传/请求返回 `422`。仅当前发布审批为 approved 且绑定摘要未漂移时 `publishable=true`。
+
 ## 错误处理建议
 
 - 同时读取 HTTP 状态码和响应体中的 `status/message`。
