@@ -35,6 +35,14 @@ class AgentStateRepository:
             )
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS agent_final_reviews_v2 (
+                    run_id TEXT PRIMARY KEY,
+                    payload TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS agent_run_artifacts_v2 (
                     run_id TEXT PRIMARY KEY,
                     payload TEXT NOT NULL
@@ -72,6 +80,14 @@ class AgentStateRepository:
             review,
         )
 
+    def save_final_review(self, review: dict):
+        self._save_payload(
+            "agent_final_reviews_v2",
+            "run_id",
+            review.get("runId"),
+            review,
+        )
+
     def save_artifacts(self, artifacts: dict):
         self._save_payload(
             "agent_run_artifacts_v2",
@@ -98,8 +114,17 @@ class AgentStateRepository:
     def get_run(self, run_id: str) -> dict:
         return self._get_payload("agent_runs_v2", "run_id", run_id)
 
+    def get_project(self, project_id: str) -> dict:
+        return self._get_payload("agent_projects_v2", "project_id", project_id)
+
     def get_plan_review(self, run_id: str) -> dict:
         return self._get_payload("agent_plan_reviews_v2", "run_id", run_id)
+
+    def get_final_review(self, run_id: str) -> dict:
+        return self._get_payload("agent_final_reviews_v2", "run_id", run_id)
+
+    def get_artifacts(self, run_id: str) -> dict:
+        return self._get_payload("agent_run_artifacts_v2", "run_id", run_id)
 
     def list_timeline(self, run_id: str) -> list[dict]:
         with closing(sqlite3.connect(self.db_path)) as connection:
@@ -107,11 +132,68 @@ class AgentStateRepository:
                 """
                 SELECT payload FROM agent_run_timeline_entries_v2
                 WHERE run_id = ?
-                ORDER BY entry_id ASC
+                ORDER BY rowid ASC
                 """,
                 (run_id,),
             ).fetchall()
         return [json.loads(row[0]) for row in rows]
+
+    def list_projects(self) -> list[dict]:
+        return self._list_payloads("agent_projects_v2")
+
+    def list_runs(self, project_id: str | None = None) -> list[dict]:
+        runs = self._list_payloads("agent_runs_v2")
+        if not project_id:
+            return runs
+        normalized_project_id = str(project_id or "").strip()
+        return [
+            item for item in runs
+            if str(item.get("projectId") or "").strip() == normalized_project_id
+        ]
+
+    def delete_project(self, project_id: str) -> None:
+        normalized_project_id = str(project_id or "").strip()
+        run_ids = [
+            str(item.get("runId") or "").strip()
+            for item in self.list_runs(normalized_project_id)
+        ]
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            connection.execute(
+                "DELETE FROM agent_projects_v2 WHERE project_id = ?",
+                (normalized_project_id,),
+            )
+            for run_id in run_ids:
+                connection.execute(
+                    "DELETE FROM agent_runs_v2 WHERE run_id = ?",
+                    (run_id,),
+                )
+                connection.execute(
+                    "DELETE FROM agent_plan_reviews_v2 WHERE run_id = ?",
+                    (run_id,),
+                )
+                connection.execute(
+                    "DELETE FROM agent_final_reviews_v2 WHERE run_id = ?",
+                    (run_id,),
+                )
+                connection.execute(
+                    "DELETE FROM agent_run_artifacts_v2 WHERE run_id = ?",
+                    (run_id,),
+                )
+                connection.execute(
+                    "DELETE FROM agent_run_timeline_entries_v2 WHERE run_id = ?",
+                    (run_id,),
+                )
+            connection.commit()
+
+    def clear(self) -> None:
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            connection.execute("DELETE FROM agent_projects_v2")
+            connection.execute("DELETE FROM agent_runs_v2")
+            connection.execute("DELETE FROM agent_plan_reviews_v2")
+            connection.execute("DELETE FROM agent_final_reviews_v2")
+            connection.execute("DELETE FROM agent_run_artifacts_v2")
+            connection.execute("DELETE FROM agent_run_timeline_entries_v2")
+            connection.commit()
 
     def _save_payload(self, table_name: str, id_column: str, item_id: str, payload: dict):
         normalized_id = str(item_id or "").strip()
@@ -133,3 +215,10 @@ class AgentStateRepository:
         if row is None:
             raise KeyError(f"{table_name}:{item_id} not found")
         return json.loads(row[0])
+
+    def _list_payloads(self, table_name: str) -> list[dict]:
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            rows = connection.execute(
+                f"SELECT payload FROM {table_name} ORDER BY rowid ASC"
+            ).fetchall()
+        return [json.loads(row[0]) for row in rows]

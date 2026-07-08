@@ -22,3 +22,9 @@ def build_artifacts_record(
         "externalEvidenceSummary": {},
         "graphContextSummary": {},
     }
+
+
+def get_artifacts(run_id: str):
+    from services import agent_project_service
+
+    return agent_project_service.get_agent_run_artifacts(run_id)

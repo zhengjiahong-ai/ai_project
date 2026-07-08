@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-08 v0.1.77
+
+1. **完成 Agent 公开资源化迁移**：Python、Java 与共享契约新增 `workspace`、`runs`、`run`、`plan-review`、`final-review`、`artifacts` 和 `timeline` 资源接口，Agent 对外主写路径转向 `agent-projects/{projectId}/runs`，主读路径转向 `agent-projects/{projectId}/workspace`。
+2. **切换前端 Agent 工作区主链路**：进入项目、刷新、轮询、计划审查与终稿审查优先走 `workspace + runs` 聚合资源，新增 run/workspace 归一化模型与浏览器 mock；本地 `tasksByProjectId` 和旧 task API 继续保留为离线、旧后端或临时失败 fallback。
+3. **收口旧 task 为兼容适配层**：`agent-projects/{id}/tasks*` 与 `agent-tasks/*` 仍保持可用，但内部创建、审查、读取与恢复都改为从 run/review/artifacts/timeline 资源映射回旧 task snapshot，不再直接写入旧 task-shaped 持久化真相。
+
 ### 2026-07-05 v0.1.76
 
 1. **增加双重人工审批闭环**：新增受限 CSV 暂存、固定任务创建、执行前审批与产物发布前审批 API，并以任务和发布摘要阻止过期审批。

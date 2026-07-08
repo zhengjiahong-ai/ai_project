@@ -1,8 +1,59 @@
 import asyncio
 import json
+import sys
+import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
+if "fastapi" not in sys.modules:
+    fastapi_stub = types.ModuleType("fastapi")
+    responses_stub = types.ModuleType("fastapi.responses")
+
+    class UploadFile:
+        filename = ""
+
+        async def read(self, *_args, **_kwargs):
+            return b""
+
+    class JSONResponse:
+        def __init__(self, content, status_code=200):
+            self.status_code = status_code
+            self.body = json.dumps(content, ensure_ascii=False).encode("utf-8")
+
+    class _Route:
+        def __init__(self, path, methods):
+            self.path = path
+            self.methods = methods
+
+    class APIRouter:
+        def __init__(self, prefix=""):
+            self.prefix = prefix
+            self.routes = []
+
+        def _register(self, path, method, func):
+            self.routes.append(_Route(f"{self.prefix}{path}", {method}))
+            return func
+
+        def post(self, path):
+            return lambda func: self._register(path, "POST", func)
+
+        def get(self, path):
+            return lambda func: self._register(path, "GET", func)
+
+        def patch(self, path):
+            return lambda func: self._register(path, "PATCH", func)
+
+        def delete(self, path):
+            return lambda func: self._register(path, "DELETE", func)
+
+    fastapi_stub.APIRouter = APIRouter
+    fastapi_stub.Body = lambda default=None: default
+    fastapi_stub.File = lambda default=None: default
+    fastapi_stub.UploadFile = UploadFile
+    responses_stub.JSONResponse = JSONResponse
+    sys.modules["fastapi"] = fastapi_stub
+    sys.modules["fastapi.responses"] = responses_stub
 
 from routes import api
 from schemas.requests import (
@@ -10,6 +61,9 @@ from schemas.requests import (
     AgentPlanItemRequest,
     AgentPlanReviewRequest,
     AgentProjectCreateRequest,
+    AgentRunCreateRequest,
+    AgentRunFinalReviewRequest,
+    AgentRunPlanReviewRequest,
     AgentTaskCreateRequest,
     BackgroundKnowledgeRequest,
     ChatRequest,
@@ -69,6 +123,13 @@ class ApiContractSmokeTests(unittest.TestCase):
                 "research-final-review",
                 "trace",
                 "agent-projects",
+                "agent-workspace",
+                "agent-runs",
+                "agent-run",
+                "agent-run-plan-review",
+                "agent-run-final-review",
+                "agent-run-artifacts",
+                "agent-run-timeline",
                 "agent-tasks",
                 "agent-plan-review",
                 "agent-task",
@@ -92,6 +153,9 @@ class ApiContractSmokeTests(unittest.TestCase):
             "research-plan-review": ResearchPlanReviewRequest,
             "research-final-review": ResearchFinalReviewRequest,
             "agent-projects": AgentProjectCreateRequest,
+            "agent-runs": AgentRunCreateRequest,
+            "agent-run-plan-review": AgentRunPlanReviewRequest,
+            "agent-run-final-review": AgentRunFinalReviewRequest,
             "agent-tasks": AgentTaskCreateRequest,
             "agent-plan-review": AgentPlanReviewRequest,
             "agent-final-review": AgentFinalReviewRequest,
@@ -143,6 +207,48 @@ class ApiContractSmokeTests(unittest.TestCase):
                 AgentProjectCreateRequest,
                 "agent_project_service.create_agent_project",
                 (),
+            ),
+            "agent-workspace": (
+                api.get_agent_workspace,
+                None,
+                "agent_workspace_service.get_workspace",
+                ("project-contract-1",),
+            ),
+            "agent-runs": (
+                api.create_agent_run,
+                AgentRunCreateRequest,
+                "agent_run_service.create_run",
+                ("project-contract-1",),
+            ),
+            "agent-run": (
+                api.get_agent_run,
+                None,
+                "agent_run_service.get_run",
+                ("agent-run-contract-1",),
+            ),
+            "agent-run-plan-review": (
+                api.review_agent_run_plan,
+                AgentRunPlanReviewRequest,
+                "agent_review_service.review_plan",
+                ("agent-run-contract-1",),
+            ),
+            "agent-run-final-review": (
+                api.review_agent_run_final,
+                AgentRunFinalReviewRequest,
+                "agent_review_service.review_final",
+                ("agent-run-contract-1",),
+            ),
+            "agent-run-artifacts": (
+                api.get_agent_run_artifacts,
+                None,
+                "agent_artifact_service.get_artifacts",
+                ("agent-run-contract-1",),
+            ),
+            "agent-run-timeline": (
+                api.get_agent_run_timeline,
+                None,
+                "agent_timeline_service.get_timeline",
+                ("agent-run-contract-1",),
             ),
             "agent-tasks": (
                 api.create_agent_task,
@@ -210,6 +316,13 @@ class ApiContractSmokeTests(unittest.TestCase):
         self.assertFalse(req.allowExternalSearch)
 
         req_enabled = AgentTaskCreateRequest(prompt="测试", allowExternalSearch=True)
+        self.assertTrue(req_enabled.allowExternalSearch)
+
+    def test_agent_run_create_request_allow_external_search_defaults_false(self):
+        req = AgentRunCreateRequest(prompt="run-test")
+        self.assertFalse(req.allowExternalSearch)
+
+        req_enabled = AgentRunCreateRequest(prompt="run-test", allowExternalSearch=True)
         self.assertTrue(req_enabled.allowExternalSearch)
 
     def test_agent_plan_item_allow_external_search_defaults_false(self):

@@ -652,6 +652,38 @@ class AiServiceTest {
     }
 
     @Test
+    void createAgentRunForwardsPostRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project-1/runs"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "run", Map.of("runId", "agent-run-1"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.createAgentRun("project-1", Map.of("prompt", "Compare methods"));
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
+    void getAgentWorkspaceForwardsGetRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-projects/project%201/workspace"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "workspace", Map.of("project", Map.of("projectId", "project 1")))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getAgentWorkspace("project 1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
     void getLatestAgentTaskForwardsGetRequest() {
         when(restTemplate.exchange(
                 eq("http://python/api/agent-projects/project%201/tasks/latest"),
@@ -721,6 +753,56 @@ class AiServiceTest {
     }
 
     @Test
+    void getAgentRunForwardsGetRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-runs/agent-run-1"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "run", Map.of("runId", "agent-run-1"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getAgentRun("agent-run-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("agent-run-1", ((Map<?, ?>) response.getBody().get("run")).get("runId"));
+    }
+
+    @Test
+    void getAgentRunArtifactsForwardsGetRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-runs/agent-run-1/artifacts"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "artifacts", Map.of("runId", "agent-run-1"))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getAgentRunArtifacts("agent-run-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("agent-run-1", ((Map<?, ?>) response.getBody().get("artifacts")).get("runId"));
+    }
+
+    @Test
+    void getAgentRunTimelineForwardsGetRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-runs/agent-run-1/timeline"),
+                eq(HttpMethod.GET),
+                eq(HttpEntity.EMPTY),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of(
+                        "status", "success",
+                        "timeline", List.of(Map.of("id", "entry-1")))));
+
+        ResponseEntity<Map<String, Object>> response = aiService.getAgentRunTimeline("agent-run-1");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> timeline = (List<Map<String, Object>>) response.getBody().get("timeline");
+        assertEquals("entry-1", timeline.get(0).get("id"));
+    }
+
+    @Test
     void cancelAgentTaskForwardsPostRequest() {
         when(restTemplate.exchange(
                 eq("http://python/api/agent-tasks/agent-task-1/cancel"),
@@ -734,6 +816,34 @@ class AiServiceTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("cancelled", ((Map<?, ?>) response.getBody().get("task")).get("status"));
+    }
+
+    @Test
+    void reviewAgentRunPlanForwardsPostRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-runs/run%201/plan-review"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of("status", "success")));
+
+        ResponseEntity<Map<String, Object>> response = aiService.reviewAgentRunPlan("run 1", Map.of("focusedPaperIds", List.of()));
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
+    }
+
+    @Test
+    void reviewAgentRunFinalForwardsPostRequest() {
+        when(restTemplate.exchange(
+                eq("http://python/api/agent-runs/run%201/final-review"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class))).thenReturn(ResponseEntity.ok(Map.of("status", "success")));
+
+        ResponseEntity<Map<String, Object>> response = aiService.reviewAgentRunFinal("run 1", Map.of("riskReviews", List.of()));
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("success", response.getBody().get("status"));
     }
 
     @Test

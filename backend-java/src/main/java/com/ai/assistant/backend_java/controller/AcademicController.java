@@ -196,6 +196,18 @@ public class AcademicController {
         return aiService.createAgentTask(projectId, request);
     }
 
+    @PostMapping("/agent-projects/{projectId}/runs")
+    public ResponseEntity<Map<String, Object>> createAgentRun(
+            @PathVariable String projectId,
+            @RequestBody Map<String, Object> request) {
+        return aiService.createAgentRun(projectId, request);
+    }
+
+    @GetMapping("/agent-projects/{projectId}/workspace")
+    public ResponseEntity<Map<String, Object>> getAgentWorkspace(@PathVariable String projectId) {
+        return aiService.getAgentWorkspace(projectId);
+    }
+
     @GetMapping("/agent-projects/{projectId}/tasks/latest")
     public ResponseEntity<Map<String, Object>> getLatestAgentTask(@PathVariable String projectId) {
         return aiService.getLatestAgentTask(projectId);
@@ -213,14 +225,39 @@ public class AcademicController {
         return aiService.getAgentTask(taskId);
     }
 
+    @GetMapping("/agent-runs/{runId}")
+    public ResponseEntity<Map<String, Object>> getAgentRun(@PathVariable String runId) {
+        return aiService.getAgentRun(runId);
+    }
+
+    @GetMapping("/agent-runs/{runId}/artifacts")
+    public ResponseEntity<Map<String, Object>> getAgentRunArtifacts(@PathVariable String runId) {
+        return aiService.getAgentRunArtifacts(runId);
+    }
+
+    @GetMapping("/agent-runs/{runId}/timeline")
+    public ResponseEntity<Map<String, Object>> getAgentRunTimeline(@PathVariable String runId) {
+        return aiService.getAgentRunTimeline(runId);
+    }
+
     @PostMapping("/agent-tasks/{taskId}/cancel")
     public ResponseEntity<Map<String, Object>> cancelAgentTask(@PathVariable String taskId) {
         return aiService.cancelAgentTask(taskId);
     }
 
+    @PostMapping("/agent-runs/{runId}/plan-review")
+    public ResponseEntity<Map<String, Object>> reviewAgentRunPlan(@PathVariable String runId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewAgentRunPlan(runId, request);
+    }
+
     @PostMapping("/agent-tasks/{taskId}/plan-review")
     public ResponseEntity<Map<String, Object>> reviewAgentPlan(@PathVariable String taskId, @RequestBody Map<String, Object> request) {
         return aiService.reviewAgentPlan(taskId, request);
+    }
+
+    @PostMapping("/agent-runs/{runId}/final-review")
+    public ResponseEntity<Map<String, Object>> reviewAgentRunFinal(@PathVariable String runId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewAgentRunFinal(runId, request);
     }
 
     @PostMapping("/agent-tasks/{taskId}/final-review")

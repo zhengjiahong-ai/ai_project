@@ -128,6 +128,53 @@ class ApiContractSmokeTest {
                 .content(MAPPER.writeValueAsString(projectRequest)), project);
         verify(aiService).createAgentProject(eq(projectRequest));
 
+        JsonNode workspace = operation("agent-workspace");
+        when(aiService.getAgentWorkspace("project-contract-1"))
+                .thenReturn(ResponseEntity.ok(asMap(workspace.path("gatewayResponse"))));
+        assertResponse(get(workspace.path("javaPath").asText()), workspace);
+
+        JsonNode run = operation("agent-runs");
+        Map<String, Object> runRequest = asMap(run.path("frontendRequest"));
+        when(aiService.createAgentRun(eq("project-contract-1"), anyMap()))
+                .thenReturn(ResponseEntity.ok(asMap(run.path("gatewayResponse"))));
+        assertResponse(post(run.path("javaPath").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(MAPPER.writeValueAsString(runRequest)), run);
+        verify(aiService).createAgentRun("project-contract-1", runRequest);
+
+        JsonNode getRun = operation("agent-run");
+        when(aiService.getAgentRun("agent-run-contract-1"))
+                .thenReturn(ResponseEntity.ok(asMap(getRun.path("gatewayResponse"))));
+        assertResponse(get(getRun.path("javaPath").asText()), getRun);
+
+        JsonNode runPlanReview = operation("agent-run-plan-review");
+        Map<String, Object> runPlanReviewRequest = asMap(runPlanReview.path("frontendRequest"));
+        when(aiService.reviewAgentRunPlan(eq("agent-run-contract-1"), anyMap()))
+                .thenReturn(ResponseEntity.ok(asMap(runPlanReview.path("gatewayResponse"))));
+        assertResponse(post(runPlanReview.path("javaPath").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(MAPPER.writeValueAsString(runPlanReviewRequest)), runPlanReview);
+        verify(aiService).reviewAgentRunPlan("agent-run-contract-1", runPlanReviewRequest);
+
+        JsonNode runArtifacts = operation("agent-run-artifacts");
+        when(aiService.getAgentRunArtifacts("agent-run-contract-1"))
+                .thenReturn(ResponseEntity.ok(asMap(runArtifacts.path("gatewayResponse"))));
+        assertResponse(get(runArtifacts.path("javaPath").asText()), runArtifacts);
+
+        JsonNode runTimeline = operation("agent-run-timeline");
+        when(aiService.getAgentRunTimeline("agent-run-contract-1"))
+                .thenReturn(ResponseEntity.ok(asMap(runTimeline.path("gatewayResponse"))));
+        assertResponse(get(runTimeline.path("javaPath").asText()), runTimeline);
+
+        JsonNode runFinalReview = operation("agent-run-final-review");
+        Map<String, Object> runFinalReviewRequest = asMap(runFinalReview.path("frontendRequest"));
+        when(aiService.reviewAgentRunFinal(eq("agent-run-contract-1"), anyMap()))
+                .thenReturn(ResponseEntity.ok(asMap(runFinalReview.path("gatewayResponse"))));
+        assertResponse(post(runFinalReview.path("javaPath").asText())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(MAPPER.writeValueAsString(runFinalReviewRequest)), runFinalReview);
+        verify(aiService).reviewAgentRunFinal("agent-run-contract-1", runFinalReviewRequest);
+
         JsonNode task = operation("agent-tasks");
         Map<String, Object> taskRequest = asMap(task.path("frontendRequest"));
         when(aiService.createAgentTask(eq("project-contract-1"), anyMap()))

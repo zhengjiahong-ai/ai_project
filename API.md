@@ -39,7 +39,14 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 
 ## 跨服务契约 Smoke
 
-`contracts/api-contract-smoke.json` 是阅读 IDE 与 Agent 研究关键接口的共享测试契约，当前覆盖 `chat`、`critical`、`background`、`research`、`trace`、`agent-projects`、`agent-tasks` 和 `agent-traces`。Python、Java 和前端测试读取同一份 request/response fixture，分别验证 FastAPI 请求模型与路由、Java `/api` 网关转发，以及前端请求路径和请求体。
+2026-07-08 起，Agent 共享契约同时覆盖两组公开资源：
+
+- 主资源：`agent-workspace`、`agent-runs`、`agent-run`、`agent-run-plan-review`、`agent-run-final-review`、`agent-run-artifacts`、`agent-run-timeline`
+- 兼容资源：`agent-projects/{id}/tasks*`、`agent-tasks/*`
+
+前端主读取链路已优先使用 `workspace + runs`。旧 `agent-tasks` 路径仍保留，但仅作为 compatibility adapter；新实现不得再把 task-shaped snapshot 当成内部写入真相。
+
+`contracts/api-contract-smoke.json` 是阅读 IDE 与 Agent 研究关键接口的共享测试契约，当前覆盖 `chat`、`critical`、`background`、`research`、`trace`、`agent-projects`、`agent-workspace`、`agent-runs`、`agent-run`、`agent-run-plan-review`、`agent-run-final-review`、`agent-run-artifacts`、`agent-run-timeline`、`agent-tasks` 和 `agent-traces`。Python、Java 和前端测试读取同一份 request/response fixture，分别验证 FastAPI 请求模型与路由、Java `/api` 网关转发，以及前端请求路径和请求体。
 
 契约采用向后兼容规则：`pythonResponseContract` 中声明的必需字段、JSON 类型和枚举值不可删除或改变；响应可以增加未声明的可选字段。任何相关接口字段变化都必须同步更新共享 fixture、三层 contract smoke 和本文件。
 
@@ -303,17 +310,17 @@ P2-3 来源与生成约束：
 
 以下接口已经实现，并被当前 Agent 工作区使用。它们不再只是规划中的接口草案。
 
-2026-07-08 的内部重构说明：
+2026-07-08 的资源化迁移说明：
 
-- 当前对外契约仍以 `agent-projects/*` 与 `agent-tasks/*` 为主，前端现网行为没有切到新的 run 资源路径。
-- Python 内部已经开始按 `project / run / review / artifacts / timeline / workspace` 资源形态拆分服务与持久化。
-- 现有 `agent-tasks` 响应形态应视为兼容适配层，而不是后续实现继续扩展的唯一内部真相。
+- 新主路径已经切到 `agent-projects/{projectId}/workspace` 与 `agent-runs/*`。
+- Python 内部按 `project / run / review / artifacts / timeline / workspace` 资源形态拆分服务与持久化。
+- `agent-projects/{projectId}/tasks*` 与 `agent-tasks/*` 继续保留，但仅作为 compatibility adapter；旧 task-shaped snapshot 不再是新的内部写入真相。
 
 当前前端行为：
 
 - Agent 面板可以创建和列出项目级研究工作区。
 - Agent 面板可以删除项目，删除会移除该项目及其任务历史。
-- Agent 任务是异步执行的，需要轮询。
+- Agent 运行单元是异步执行的；前端优先轮询 `workspace` 聚合视图，必要时再回退到旧 `task` 路径。
 - Python 侧会把 Agent 项目、任务和事件摘要写入 SQLite 快照，服务重启后可恢复项目、latest task 和终态任务输出。
 - 后端提供项目级任务历史接口，前端进入或切换项目时优先从服务端恢复任务历史。
 - 前端仍会在本地快照中保存每个项目的任务历史，作为旧接口、离线或临时失败时的 fallback。
@@ -414,9 +421,53 @@ P2-3 来源与生成约束：
 
 从项目中移除论文。
 
+### `GET /api/agent-projects/{projectId}/workspace`
+
+读取 Agent 工作区的聚合视图。这是前端进入项目、刷新项目和轮询当前运行状态时的主读取入口。
+
+返回对象会聚合：
+
+- `project`
+- `activeRun`
+- `pendingReview`
+- `latestArtifacts`
+- `recentRuns`
+- `timeline`
+- `uiHints`
+
+### `POST /api/agent-projects/{projectId}/runs`
+
+为项目创建一个新的 Agent run。请求体与旧 `POST /api/agent-projects/{projectId}/tasks` 保持相同语义：`prompt`、`focusedPaperIds`、`constraints`、`allowExternalSearch` 和可选 `context`。
+
+### `GET /api/agent-runs/{runId}`
+
+读取单个 run 的主状态对象。
+
+### `GET /api/agent-runs/{runId}/artifacts`
+
+读取单个 run 的证据、工具摘要、冲突、开放问题、对比表和草稿报告。
+
+### `GET /api/agent-runs/{runId}/timeline`
+
+读取单个 run 的时间线条目。
+
+### `POST /api/agent-runs/{runId}/plan-review`
+
+提交计划审查。成功后返回更新后的 `run`，并可附带最新 `pendingReview`。
+
+### `POST /api/agent-runs/{runId}/final-review`
+
+提交终稿审查。成功后返回更新后的 `run`，并可附带最新 `artifacts`。
+
 ### `POST /api/agent-projects/{projectId}/tasks`
 
 为项目创建一个异步 Agent 任务。
+
+兼容性说明：
+
+- 该路径仍可用，但现在只是对 `POST /api/agent-projects/{projectId}/runs` 的兼容写适配。
+- 返回值仍是旧的 task snapshot 形态，字段来自 run/review/artifacts/timeline 资源聚合映射。
+- 新功能应优先接入 `workspace + runs` 资源，而不是继续扩展旧 task 路径。
 
 请求示例：
 
@@ -482,6 +533,8 @@ P2-3 来源与生成约束：
 
 读取某项目的 Agent 任务历史。
 
+兼容性说明：该历史列表现在由新的 run 资源回组装得到，用于本地快照 fallback、旧客户端恢复和任务历史展示缓存。
+
 查询参数：
 
 - `limit`：可选，默认 `20`，Python 侧会约束到 `1..100`；非法或小于等于 0 时回退为 `20`。
@@ -521,6 +574,8 @@ P2-3 来源与生成约束：
 ### `GET /api/agent-tasks/{taskId}`
 
 轮询单个 Agent 任务快照。
+
+兼容性说明：该接口仍返回 task-shaped 快照，但内部读取已经来自 run/review/artifacts/timeline 资源，而不是独立的旧 task 持久化真相。
 
 重要任务字段：
 

@@ -13,7 +13,7 @@
 - 已完成 Task 1：新增 `agent_domain_models.py` 与 `agent_run_service.py`，建立 run 状态机与基础测试。
 - 已完成 Task 2：新增 review / artifact / timeline / workspace 服务及对应测试。
 - 已完成 Task 3：新增 `agent_state_repository.py`，为旧 `agent_project_service.py` 加入兼容适配职责，并让 `agent_orchestrator.py` 提供更纯粹的 `execute_run(...)` 执行结果。
-- 待完成 Task 4-7：对外 run/workspace API、Java 网关、前端消费层和最终兼容层收尾迁移。
+- 已完成 Task 4-7：对外 run/workspace API、Java 网关、前端消费层和最终兼容层迁移已经收口；旧 `agent-tasks` 路径降级为 compatibility adapter。
 
 ---
 

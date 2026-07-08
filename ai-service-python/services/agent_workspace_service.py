@@ -15,3 +15,9 @@ def build_workspace_view(
         "timeline": list(timeline),
         "uiHints": {},
     }
+
+
+def get_workspace(project_id: str):
+    from services import agent_project_service
+
+    return agent_project_service.get_agent_workspace(project_id)

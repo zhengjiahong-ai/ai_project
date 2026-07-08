@@ -4,6 +4,7 @@ export const createEmptyAgentWorkspaceState = () => ({
   projects: [],
   activeProjectId: '',
   activeProject: null,
+  activeWorkspace: null,
   latestTask: null,
   currentTask: null,
   tasksByProjectId: {},
@@ -158,6 +159,132 @@ export const normalizeAgentTask = (value) => {
       },
       status: `${extConfig.status ?? ''}`.trim() || 'disabled',
       degradation: `${extConfig.degradation ?? ''}`,
+    },
+  };
+};
+
+export const normalizeAgentRun = (value) => {
+  const run = value && typeof value === 'object' ? value : {};
+  const extConfig = run.externalSearchConfig && typeof run.externalSearchConfig === 'object' ? run.externalSearchConfig : {};
+  const extBudget = extConfig.budget && typeof extConfig.budget === 'object' ? extConfig.budget : {};
+  return {
+    runId: `${run.runId ?? ''}`.trim(),
+    taskId: `${run.runId ?? ''}`.trim(),
+    projectId: `${run.projectId ?? ''}`.trim(),
+    traceId: `${run.traceId ?? ''}`.trim(),
+    status: `${run.status ?? ''}`.trim() || 'pending',
+    executionPhase: `${run.executionPhase ?? ''}`.trim() || 'planning',
+    stage: `${run.executionPhase ?? ''}`.trim() || 'planning',
+    progress: Number.isFinite(Number(run.progress)) ? Number(run.progress) : 0,
+    prompt: `${run.prompt ?? ''}`.trim(),
+    focusedPaperIds: Array.isArray(run.focusedPaperIds) ? run.focusedPaperIds.map((item) => `${item ?? ''}`.trim()).filter(Boolean) : [],
+    constraints: `${run.constraints ?? ''}`.trim(),
+    context: run.context && typeof run.context === 'object' ? run.context : {},
+    humanReview: run.humanReview && typeof run.humanReview === 'object' ? run.humanReview : {},
+    reviewRisks: Array.isArray(run.reviewRisks) ? run.reviewRisks : [],
+    traceSummary: run.traceSummary && typeof run.traceSummary === 'object' ? run.traceSummary : {},
+    externalSearchConfig: {
+      allowExternalSearch: Boolean(extConfig.allowExternalSearch),
+      provider: `${extConfig.provider ?? ''}`.trim() || 'disabled',
+      budget: {
+        callLimit: Number.isFinite(Number(extBudget.callLimit)) ? Number(extBudget.callLimit) : 0,
+        evidenceLimit: Number.isFinite(Number(extBudget.evidenceLimit)) ? Number(extBudget.evidenceLimit) : 0,
+        callsUsed: Number.isFinite(Number(extBudget.callsUsed)) ? Number(extBudget.callsUsed) : 0,
+        evidenceUsed: Number.isFinite(Number(extBudget.evidenceUsed)) ? Number(extBudget.evidenceUsed) : 0,
+      },
+      status: `${extConfig.status ?? ''}`.trim() || 'disabled',
+      degradation: `${extConfig.degradation ?? ''}`,
+    },
+    error: `${run.error ?? ''}`.trim(),
+    createdAt: `${run.createdAt ?? ''}`.trim(),
+    updatedAt: `${run.updatedAt ?? ''}`.trim(),
+  };
+};
+
+export const normalizeAgentArtifactsResponse = (response) => ({
+  status: `${response?.status ?? ''}`.trim() || 'error',
+  artifacts: {
+    runId: `${response?.artifacts?.runId ?? ''}`.trim(),
+    evidenceItems: normalizeEvidenceSources(response?.artifacts?.evidenceItems),
+    toolCallSummary: Array.isArray(response?.artifacts?.toolCallSummary) ? response.artifacts.toolCallSummary : [],
+    findings: Array.isArray(response?.artifacts?.findings) ? response.artifacts.findings : [],
+    comparisonTable: response?.artifacts?.comparisonTable && typeof response.artifacts.comparisonTable === 'object'
+      ? response.artifacts.comparisonTable
+      : { columns: [], rows: [] },
+    conflicts: Array.isArray(response?.artifacts?.conflicts) ? response.artifacts.conflicts : [],
+    openQuestions: Array.isArray(response?.artifacts?.openQuestions) ? response.artifacts.openQuestions : [],
+    draftReport: `${response?.artifacts?.draftReport ?? ''}`,
+  },
+});
+
+export const normalizeAgentTimelineResponse = (response) => ({
+  status: `${response?.status ?? ''}`.trim() || 'error',
+  timeline: Array.isArray(response?.timeline) ? response.timeline : [],
+});
+
+export const buildTaskFromRunWorkspace = ({ run = null, pendingReview = null, latestArtifacts = null, timeline = [] } = {}) => {
+  if (!run) return null;
+  const normalizedRun = normalizeAgentRun(run);
+  const artifacts = normalizeAgentArtifactsResponse({ status: 'success', artifacts: latestArtifacts || {} }).artifacts;
+  const evidenceItems = artifacts.evidenceItems;
+  const findings = artifacts.findings;
+  const conflicts = (Array.isArray(artifacts.conflicts) ? artifacts.conflicts : []).map((conflict) => ({
+    ...conflict,
+    sources: Array.isArray(conflict?.sourceIds)
+      ? collectSourcesByIds(conflict.sourceIds, evidenceItems)
+      : normalizeEvidenceSources(conflict?.sources),
+  }));
+  const reportSourceIds = findings.flatMap((finding) => Array.isArray(finding?.sourceIds) ? finding.sourceIds : []);
+  return {
+    taskId: normalizedRun.taskId,
+    runId: normalizedRun.runId,
+    projectId: normalizedRun.projectId,
+    traceId: normalizedRun.traceId,
+    status: normalizedRun.status,
+    stage: normalizedRun.stage,
+    progress: normalizedRun.progress,
+    prompt: normalizedRun.prompt,
+    focusedPaperIds: normalizedRun.focusedPaperIds,
+    constraints: normalizedRun.constraints,
+    planItems: Array.isArray(pendingReview?.planItems) ? pendingReview.planItems : [],
+    events: Array.isArray(timeline) ? timeline.map((entry) => ({
+      eventId: `${entry?.id ?? ''}`.trim(),
+      type: `${entry?.type ?? ''}`.trim(),
+      timestamp: `${entry?.timestamp ?? ''}`.trim(),
+      taskId: normalizedRun.taskId,
+      stage: `${entry?.phase ?? ''}`.trim(),
+      summary: `${entry?.detail ?? entry?.title ?? ''}`.trim(),
+      meta: entry?.meta && typeof entry.meta === 'object' ? entry.meta : {},
+    })) : [],
+    toolCalls: artifacts.toolCallSummary,
+    evidenceItems,
+    findings,
+    comparisonTable: artifacts.comparisonTable,
+    conflicts,
+    reportSources: collectSourcesByIds(reportSourceIds, evidenceItems),
+    openQuestions: artifacts.openQuestions,
+    reviewRisks: normalizedRun.reviewRisks,
+    humanReview: normalizedRun.humanReview,
+    draftReport: artifacts.draftReport,
+    error: normalizedRun.error,
+    createdAt: normalizedRun.createdAt,
+    updatedAt: normalizedRun.updatedAt,
+    externalSearchConfig: normalizedRun.externalSearchConfig,
+  };
+};
+
+export const normalizeAgentWorkspaceResponse = (response) => {
+  const workspace = response?.workspace && typeof response.workspace === 'object' ? response.workspace : {};
+  return {
+    status: `${response?.status ?? ''}`.trim() || 'error',
+    workspace: {
+      project: normalizeAgentProject(workspace.project),
+      activeRun: workspace.activeRun ? normalizeAgentRun(workspace.activeRun) : null,
+      pendingReview: workspace.pendingReview && typeof workspace.pendingReview === 'object' ? workspace.pendingReview : null,
+      latestArtifacts: workspace.latestArtifacts && typeof workspace.latestArtifacts === 'object' ? workspace.latestArtifacts : null,
+      recentRuns: Array.isArray(workspace.recentRuns) ? workspace.recentRuns.map(normalizeAgentRun) : [],
+      timeline: Array.isArray(workspace.timeline) ? workspace.timeline : [],
+      uiHints: workspace.uiHints && typeof workspace.uiHints === 'object' ? workspace.uiHints : {},
     },
   };
 };

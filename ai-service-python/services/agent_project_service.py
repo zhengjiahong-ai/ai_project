@@ -17,9 +17,17 @@ from schemas.requests import (
     AgentProjectCreateRequest,
     AgentProjectPapersRequest,
     AgentProjectUpdateRequest,
+    AgentRunCreateRequest,
+    AgentRunFinalReviewRequest,
+    AgentRunPlanReviewRequest,
     AgentTaskCreateRequest,
 )
 from services import agent_orchestrator
+from services.agent_artifact_service import build_artifacts_record
+from services.agent_review_service import build_final_review_packet, build_plan_review_packet
+from services.agent_state_repository import AgentStateRepository
+from services.agent_timeline_service import build_timeline_entry
+from services.agent_workspace_service import build_workspace_view
 from services.evidence_service import normalize_evidence_items
 from services.trace_service import (
     build_public_trace_summary,
@@ -51,6 +59,12 @@ def get_tool_registry():
     from services.tool_registry import get_tool_registry as _get_tool_registry
 
     return _get_tool_registry()
+
+
+def _get_agent_state_repository() -> AgentStateRepository:
+    repository = AgentStateRepository(str(_agent_state_db_path()))
+    repository.initialize()
+    return repository
 
 
 class AgentProjectNotFoundError(Exception):
@@ -171,13 +185,14 @@ def remove_project_paper(project_id: str, pdf_id: str) -> Dict[str, Any]:
     return {"status": "success", "project": _copy_project(project_id)}
 
 
-def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[str, Any]:
+def create_agent_run(project_id: str, request: AgentRunCreateRequest | Dict[str, Any]) -> Dict[str, Any]:
     _ensure_storage_loaded()
     project = _copy_project(project_id)
-    prompt = _clean_text(request.prompt)
+    normalized_request = _normalize_run_request(request)
+    prompt = _clean_text(normalized_request.prompt)
     if not prompt:
         raise ValueError("Prompt cannot be empty.")
-    focused_paper_ids = _normalize_id_list(request.focusedPaperIds) or list(project.get("paperIds") or [])
+    focused_paper_ids = _normalize_id_list(normalized_request.focusedPaperIds) or list(project.get("paperIds") or [])
     trace_id = start_trace(
         "agent_research",
         request_meta={
@@ -199,8 +214,8 @@ def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[
         "progress": 0.1,
         "prompt": prompt,
         "focusedPaperIds": focused_paper_ids,
-        "constraints": _clean_text(request.constraints),
-        "context": dict(request.context or {}),
+        "constraints": _clean_text(normalized_request.constraints),
+        "context": dict(normalized_request.context or {}),
         "planItems": [],
         "events": [_event("task_created", task_id, PLANNING_STAGE, "Created an Agent research task.")],
         "toolCalls": [],
@@ -212,7 +227,7 @@ def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[
         "humanReview": {"plan": {"status": "pending", "reviewNotes": "", "reviewedAt": ""}, "final": {"status": "pending", "reviewNotes": "", "reviewedAt": "", "riskReviews": []}},
         "traceSummary": {},
         "externalSearchConfig": {
-            "allowExternalSearch": bool(getattr(request, "allowExternalSearch", False)),
+            "allowExternalSearch": bool(getattr(normalized_request, "allowExternalSearch", False)),
             "provider": "disabled",
             "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0},
             "status": "disabled",
@@ -232,7 +247,12 @@ def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[
         _persist_project_locked(_PROJECTS[project_id])
 
     _start_agent_worker(prepare_agent_task_now, task_id)
-    return {"status": "success", "task": _copy_task(task_id)}
+    return {"status": "success", "run": _build_run_record(_copy_task(task_id))}
+
+
+def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[str, Any]:
+    created = create_agent_run(project_id, request)
+    return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(created["run"]["runId"])}
 
 
 def _start_agent_worker(target, task_id: str) -> None:
@@ -249,10 +269,16 @@ def prepare_agent_task_now(task_id: str) -> Dict[str, Any]:
 
 
 def review_agent_plan(task_id: str, request: AgentPlanReviewRequest) -> Dict[str, Any]:
+    reviewed = review_agent_run_plan(task_id, request)
+    return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(reviewed["run"]["runId"])}
+
+
+def review_agent_run_plan(run_id: str, request: AgentRunPlanReviewRequest | AgentPlanReviewRequest) -> Dict[str, Any]:
+    task_id = _clean_text(run_id)
     task = _copy_task(task_id)
     if task.get("status") != "awaiting_plan_review":
         if task.get("status") in {"running", "awaiting_final_review", "succeeded"}:
-            return {"status": "success", "task": task}
+            return {"status": "success", "run": _build_run_record(task)}
         raise AgentReviewConflictError("Agent task is not awaiting plan review.")
     project = _copy_project(str(task.get("projectId") or ""))
     paper_ids = _normalize_id_list(request.focusedPaperIds)
@@ -265,13 +291,19 @@ def review_agent_plan(task_id: str, request: AgentPlanReviewRequest) -> Dict[str
     human_review["plan"] = {"status": "approved", "reviewNotes": _clean_text(request.reviewNotes), "reviewedAt": _utc_now()}
     updated = _update_task(task_id, status="running", focusedPaperIds=paper_ids, constraints=_clean_text(request.constraints), planItems=plan_items, humanReview=human_review)
     _start_agent_worker(_run_minimal_agent_task, task_id)
-    return {"status": "success", "task": updated}
+    return {"status": "success", "run": _build_run_record(updated), "pendingReview": _build_pending_review_record(updated)}
 
 
 def review_agent_final(task_id: str, request: AgentFinalReviewRequest) -> Dict[str, Any]:
+    reviewed = review_agent_run_final(task_id, request)
+    return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(reviewed["run"]["runId"])}
+
+
+def review_agent_run_final(run_id: str, request: AgentRunFinalReviewRequest | AgentFinalReviewRequest) -> Dict[str, Any]:
+    task_id = _clean_text(run_id)
     task = _copy_task(task_id)
     if task.get("status") == "succeeded":
-        return {"status": "success", "task": task}
+        return {"status": "success", "run": _build_run_record(task)}
     if task.get("status") != "awaiting_final_review":
         raise AgentReviewConflictError("Agent task is not awaiting final review.")
     risk_reviews = _validate_agent_risk_reviews(task.get("reviewRisks") or [], request.riskReviews or [])
@@ -284,7 +316,8 @@ def review_agent_final(task_id: str, request: AgentFinalReviewRequest) -> Dict[s
     with use_trace(str(task.get("traceId") or "")):
         trace_snapshot = finalize_trace("success", response_meta={"taskId": task_id, "projectId": task.get("projectId")})
         _persist_trace_summary(task_id, trace_snapshot)
-    return {"status": "success", "task": _copy_task(task_id)}
+    finalized_task = _copy_task(task_id)
+    return {"status": "success", "run": _build_run_record(finalized_task), "artifacts": _build_artifacts_resource(finalized_task)}
 
 
 def get_latest_agent_task(project_id: str) -> Dict[str, Any]:
@@ -292,7 +325,7 @@ def get_latest_agent_task(project_id: str) -> Dict[str, Any]:
     task_id = _clean_text(project.get("latestTaskId"))
     if not task_id:
         raise AgentTaskNotFoundError("Agent task not found.")
-    return {"status": "success", "task": _copy_task(task_id)}
+    return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(task_id)}
 
 
 def list_agent_project_tasks(project_id: str, limit: Any = 20) -> Dict[str, Any]:
@@ -300,11 +333,16 @@ def list_agent_project_tasks(project_id: str, limit: Any = 20) -> Dict[str, Any]
     normalized_project_id = _clean_text(project.get("projectId"))
     normalized_limit = _normalize_history_limit(limit)
     with _LOCK:
-        tasks = [
-            copy.deepcopy(task)
+        run_ids = [
+            _clean_text(task.get("taskId"))
             for task in _TASKS.values()
             if _clean_text(task.get("projectId")) == normalized_project_id
         ]
+    tasks = [
+        _build_legacy_task_snapshot_from_run_id(run_id)
+        for run_id in run_ids
+        if run_id
+    ]
     tasks.sort(key=lambda item: str(item.get("updatedAt") or item.get("createdAt") or ""), reverse=True)
     return {
         "status": "success",
@@ -315,7 +353,37 @@ def list_agent_project_tasks(project_id: str, limit: Any = 20) -> Dict[str, Any]
 
 
 def get_agent_task(task_id: str) -> Dict[str, Any]:
-    return {"status": "success", "task": _copy_task(task_id)}
+    return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(task_id)}
+
+
+def get_agent_run(run_id: str) -> Dict[str, Any]:
+    task = _copy_task(_clean_text(run_id))
+    return {"status": "success", "run": _build_run_record(task)}
+
+
+def get_agent_run_artifacts(run_id: str) -> Dict[str, Any]:
+    task = _copy_task(_clean_text(run_id))
+    return {"status": "success", "artifacts": _build_artifacts_resource(task)}
+
+
+def get_agent_run_timeline(run_id: str) -> Dict[str, Any]:
+    task = _copy_task(_clean_text(run_id))
+    return {"status": "success", "timeline": _build_timeline_resource(task)}
+
+
+def get_agent_workspace(project_id: str) -> Dict[str, Any]:
+    project = _copy_project(project_id)
+    recent_tasks = _list_project_tasks(project_id)
+    active_task = recent_tasks[0] if recent_tasks else None
+    workspace = build_workspace_view(
+        project=copy.deepcopy(project),
+        active_run=_build_run_record(active_task) if active_task else None,
+        pending_review=_build_pending_review_record(active_task) if active_task else None,
+        latest_artifacts=_build_artifacts_resource(active_task) if active_task else None,
+        recent_runs=[_build_run_record(task) for task in recent_tasks[:20]],
+        timeline=_build_timeline_resource(active_task) if active_task else [],
+    )
+    return {"status": "success", "workspace": workspace}
 
 
 def get_persisted_trace_summary(trace_id: str) -> Dict[str, Any] | None:
@@ -719,6 +787,155 @@ def _copy_task(task_id: str) -> Dict[str, Any]:
         return copy.deepcopy(task)
 
 
+def _list_project_tasks(project_id: str) -> List[Dict[str, Any]]:
+    normalized_project_id = _clean_text(project_id)
+    with _LOCK:
+        tasks = [
+            copy.deepcopy(task)
+            for task in _TASKS.values()
+            if _clean_text(task.get("projectId")) == normalized_project_id
+        ]
+    tasks.sort(
+        key=lambda item: str(item.get("updatedAt") or item.get("createdAt") or ""),
+        reverse=True,
+    )
+    return tasks
+
+
+def _build_legacy_task_snapshot_from_run_id(run_id: str) -> Dict[str, Any]:
+    task = _copy_task(_clean_text(run_id))
+    project = _copy_project(str(task.get("projectId") or ""))
+    return _build_legacy_task_snapshot(
+        project=project,
+        run=_build_run_record(task),
+        pending_review=_build_pending_review_record(task),
+        artifacts=_build_artifacts_resource(task),
+        timeline=_build_timeline_resource(task),
+    )
+
+
+def _build_run_record(task: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "runId": str(task.get("taskId") or ""),
+        "projectId": str(task.get("projectId") or ""),
+        "traceId": str(task.get("traceId") or ""),
+        "status": str(task.get("status") or ""),
+        "executionPhase": str(task.get("stage") or ""),
+        "progress": float(task.get("progress") or 0.0),
+        "prompt": str(task.get("prompt") or ""),
+        "focusedPaperIds": list(task.get("focusedPaperIds") or []),
+        "constraints": str(task.get("constraints") or ""),
+        "context": dict(task.get("context") or {}),
+        "humanReview": copy.deepcopy(task.get("humanReview") or {}),
+        "reviewRisks": list(task.get("reviewRisks") or []),
+        "traceSummary": copy.deepcopy(task.get("traceSummary") or {}),
+        "externalSearchConfig": copy.deepcopy(task.get("externalSearchConfig") or {}),
+        "error": str(task.get("error") or ""),
+        "createdAt": str(task.get("createdAt") or ""),
+        "updatedAt": str(task.get("updatedAt") or ""),
+    }
+
+
+def _build_pending_review_record(task: Dict[str, Any]) -> Dict[str, Any] | None:
+    if task.get("status") == "awaiting_plan_review":
+        return build_plan_review_packet(
+            run={"runId": str(task.get("taskId") or "")},
+            plan_items=task.get("planItems") or [],
+            focused_paper_ids=task.get("focusedPaperIds") or [],
+            constraints=str(task.get("constraints") or ""),
+            allow_external_search=bool(
+                (task.get("externalSearchConfig") or {}).get("allowExternalSearch")
+            ),
+        )
+    if task.get("status") == "awaiting_final_review":
+        return build_final_review_packet(
+            run={"runId": str(task.get("taskId") or "")},
+            artifacts=_build_artifacts_resource(task),
+        )
+    return None
+
+
+def _build_artifacts_resource(task: Dict[str, Any]) -> Dict[str, Any]:
+    return build_artifacts_record(
+        str(task.get("taskId") or ""),
+        evidence_items=task.get("evidenceItems") or [],
+        tool_call_summary=task.get("toolCalls") or [],
+        findings=task.get("findings") or [],
+        comparison_table=task.get("comparisonTable") or {"columns": [], "rows": []},
+        conflicts=task.get("conflicts") or [],
+        open_questions=task.get("openQuestions") or [],
+        draft_report=str(task.get("draftReport") or ""),
+    )
+
+
+def _build_timeline_resource(task: Dict[str, Any]) -> List[Dict[str, Any]]:
+    entries = []
+    for event in list(task.get("events") or []):
+        if "id" in event and "eventId" not in event:
+            current = copy.deepcopy(event)
+            current["timestamp"] = str(current.get("timestamp") or "")
+            entries.append(current)
+            continue
+        entry = build_timeline_entry(
+            entry_id=str(event.get("eventId") or ""),
+            entry_type=str(event.get("type") or ""),
+            title=str(event.get("summary") or ""),
+            detail=str(event.get("summary") or ""),
+            phase=str(event.get("stage") or ""),
+            meta={
+                **dict(event.get("meta") or {}),
+                "timestamp": str(event.get("timestamp") or ""),
+                "taskId": str(event.get("taskId") or ""),
+            },
+        )
+        entry["timestamp"] = str(event.get("timestamp") or "")
+        entries.append(entry)
+    return entries
+
+
+def _build_legacy_events_from_timeline(timeline: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    events = []
+    for entry in list(timeline or []):
+        meta = dict(entry.get("meta") or {})
+        events.append(
+            {
+                "eventId": str(entry.get("id") or ""),
+                "type": str(entry.get("type") or ""),
+                "timestamp": str(entry.get("timestamp") or meta.get("timestamp") or ""),
+                "taskId": str(meta.get("taskId") or ""),
+                "stage": str(entry.get("phase") or ""),
+                "summary": str(entry.get("detail") or entry.get("title") or ""),
+                "meta": meta,
+            }
+        )
+    return events
+
+
+def _build_task_snapshot_from_resources(
+    project: Dict[str, Any],
+    run: Dict[str, Any],
+    plan_review: Dict[str, Any] | None,
+    final_review: Dict[str, Any] | None,
+    artifacts: Dict[str, Any] | None,
+    timeline: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    pending_review = None
+    if str(run.get("status") or "") == "awaiting_plan_review":
+        pending_review = plan_review or {}
+    elif str(run.get("status") or "") == "awaiting_final_review":
+        pending_review = final_review or {}
+    snapshot = _build_legacy_task_snapshot(
+        project=project,
+        run=run,
+        pending_review=pending_review,
+        artifacts=artifacts or {},
+        timeline=_build_legacy_events_from_timeline(timeline),
+    )
+    snapshot["reviewRisks"] = list(run.get("reviewRisks") or [])
+    snapshot["traceSummary"] = copy.deepcopy(run.get("traceSummary") or {})
+    return snapshot
+
+
 def _build_legacy_task_snapshot(
     project: Dict[str, Any],
     run: Dict[str, Any],
@@ -731,12 +948,27 @@ def _build_legacy_task_snapshot(
         "projectId": str(project.get("projectId") or ""),
         "status": str(run.get("status") or ""),
         "stage": str(run.get("executionPhase") or ""),
+        "traceId": str(run.get("traceId") or ""),
+        "progress": float(run.get("progress") or 0.0),
         "prompt": str(run.get("prompt") or ""),
+        "focusedPaperIds": list(run.get("focusedPaperIds") or []),
+        "constraints": str(run.get("constraints") or ""),
         "planItems": list((pending_review or {}).get("planItems") or []),
+        "toolCalls": list((artifacts or {}).get("toolCallSummary") or []),
+        "evidenceItems": list((artifacts or {}).get("evidenceItems") or []),
         "findings": list((artifacts or {}).get("findings") or []),
+        "comparisonTable": copy.deepcopy((artifacts or {}).get("comparisonTable") or {"columns": [], "rows": []}),
         "conflicts": list((artifacts or {}).get("conflicts") or []),
         "openQuestions": list((artifacts or {}).get("openQuestions") or []),
         "events": list(timeline or []),
+        "draftReport": str((artifacts or {}).get("draftReport") or ""),
+        "humanReview": copy.deepcopy(run.get("humanReview") or {}),
+        "reviewRisks": list(run.get("reviewRisks") or []),
+        "traceSummary": copy.deepcopy(run.get("traceSummary") or {}),
+        "externalSearchConfig": copy.deepcopy(run.get("externalSearchConfig") or {}),
+        "error": str(run.get("error") or ""),
+        "createdAt": str(run.get("createdAt") or ""),
+        "updatedAt": str(run.get("updatedAt") or ""),
     }
 
 
@@ -1097,6 +1329,21 @@ def _normalize_history_limit(value: Any) -> int:
     return min(limit, 100)
 
 
+def _normalize_run_request(value: AgentRunCreateRequest | AgentTaskCreateRequest | Dict[str, Any]) -> AgentRunCreateRequest:
+    if isinstance(value, AgentRunCreateRequest):
+        return value
+    if isinstance(value, AgentTaskCreateRequest):
+        return AgentRunCreateRequest(
+            prompt=value.prompt,
+            focusedPaperIds=value.focusedPaperIds,
+            constraints=value.constraints,
+            context=value.context,
+            allowExternalSearch=value.allowExternalSearch,
+        )
+    payload = value if isinstance(value, dict) else {}
+    return AgentRunCreateRequest.model_validate(payload)
+
+
 def _clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
 
@@ -1174,243 +1421,79 @@ def _persist_trace_summary(task_id: str, trace_snapshot: Dict[str, Any] | None) 
 
 
 def _initialize_storage_locked() -> None:
-    db_path = _agent_state_db_path()
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    with closing(sqlite3.connect(db_path)) as connection:
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS agent_projects (
-                projectId TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                goal TEXT NOT NULL,
-                paperIds TEXT NOT NULL,
-                papers TEXT NOT NULL,
-                latestTaskId TEXT NOT NULL,
-                defaultConstraints TEXT NOT NULL,
-                createdAt TEXT NOT NULL,
-                updatedAt TEXT NOT NULL
-            )
-            """
-        )
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS agent_tasks (
-                taskId TEXT PRIMARY KEY,
-                projectId TEXT NOT NULL,
-                traceId TEXT NOT NULL,
-                status TEXT NOT NULL,
-                stage TEXT NOT NULL,
-                progress REAL NOT NULL,
-                prompt TEXT NOT NULL,
-                focusedPaperIds TEXT NOT NULL,
-                constraints TEXT NOT NULL,
-                context TEXT NOT NULL,
-                planItems TEXT NOT NULL,
-                toolCalls TEXT NOT NULL,
-                evidenceItems TEXT NOT NULL,
-                findings TEXT NOT NULL,
-                comparisonTable TEXT NOT NULL,
-                conflicts TEXT NOT NULL,
-                openQuestions TEXT NOT NULL,
-                reviewRisks TEXT NOT NULL DEFAULT '[]',
-                humanReview TEXT NOT NULL DEFAULT '{}',
-                traceSummary TEXT NOT NULL DEFAULT '{}',
-                draftReport TEXT NOT NULL,
-                error TEXT NOT NULL,
-                createdAt TEXT NOT NULL,
-                updatedAt TEXT NOT NULL
-            )
-            """
-        )
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS agent_task_events (
-                eventId TEXT PRIMARY KEY,
-                taskId TEXT NOT NULL,
-                type TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                stage TEXT NOT NULL,
-                summary TEXT NOT NULL,
-                meta TEXT NOT NULL
-            )
-            """
-        )
-        columns = {row[1] for row in connection.execute("PRAGMA table_info(agent_tasks)").fetchall()}
-        if "reviewRisks" not in columns:
-            connection.execute("ALTER TABLE agent_tasks ADD COLUMN reviewRisks TEXT NOT NULL DEFAULT '[]'")
-        if "humanReview" not in columns:
-            connection.execute("ALTER TABLE agent_tasks ADD COLUMN humanReview TEXT NOT NULL DEFAULT '{}'")
-        if "traceSummary" not in columns:
-            connection.execute("ALTER TABLE agent_tasks ADD COLUMN traceSummary TEXT NOT NULL DEFAULT '{}'")
-        if "externalSearchConfig" not in columns:
-            connection.execute("ALTER TABLE agent_tasks ADD COLUMN externalSearchConfig TEXT NOT NULL DEFAULT '{}'")
-        connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_projects_updated ON agent_projects (updatedAt)")
-        connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_tasks_project_updated ON agent_tasks (projectId, updatedAt)")
-        connection.execute("CREATE INDEX IF NOT EXISTS idx_agent_task_events_task_time ON agent_task_events (taskId, timestamp)")
-        connection.commit()
+    _get_agent_state_repository()
 
 
 def _load_persisted_state_locked() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    db_path = _agent_state_db_path()
-    if not db_path.exists():
-        return [], []
-    with closing(sqlite3.connect(db_path)) as connection:
-        connection.row_factory = sqlite3.Row
-        project_rows = connection.execute("SELECT * FROM agent_projects ORDER BY createdAt ASC").fetchall()
-        task_rows = connection.execute("SELECT * FROM agent_tasks ORDER BY createdAt ASC").fetchall()
-        event_rows = connection.execute("SELECT * FROM agent_task_events ORDER BY timestamp ASC").fetchall()
-
-    events_by_task: Dict[str, List[Dict[str, Any]]] = {}
-    for row in event_rows:
-        event = _event_from_storage_row(row)
-        events_by_task.setdefault(event["taskId"], []).append(event)
-
-    projects = [_project_from_storage_row(row) for row in project_rows]
-    tasks = [_task_from_storage_row(row, events_by_task.get(str(row["taskId"] or ""), [])) for row in task_rows]
+    repository = _get_agent_state_repository()
+    projects = repository.list_projects()
+    tasks = []
+    for project in projects:
+        project_id = _clean_text(project.get("projectId"))
+        for run in repository.list_runs(project_id):
+            run_id = _clean_text(run.get("runId"))
+            try:
+                plan_review = repository.get_plan_review(run_id)
+            except KeyError:
+                plan_review = None
+            try:
+                final_review = repository.get_final_review(run_id)
+            except KeyError:
+                final_review = None
+            try:
+                artifacts = repository.get_artifacts(run_id)
+            except KeyError:
+                artifacts = None
+            timeline = repository.list_timeline(run_id)
+            tasks.append(
+                _build_task_snapshot_from_resources(
+                    project=project,
+                    run=run,
+                    plan_review=plan_review,
+                    final_review=final_review,
+                    artifacts=artifacts,
+                    timeline=timeline,
+                )
+            )
     return projects, tasks
 
 
 def _persist_project_locked(project: Dict[str, Any]) -> None:
-    _initialize_storage_locked()
-    snapshot = _normalize_project_for_storage(project)
-    with closing(sqlite3.connect(_agent_state_db_path())) as connection:
-        connection.execute(
-            """
-            INSERT INTO agent_projects (
-                projectId, title, goal, paperIds, papers, latestTaskId,
-                defaultConstraints, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(projectId) DO UPDATE SET
-                title=excluded.title,
-                goal=excluded.goal,
-                paperIds=excluded.paperIds,
-                papers=excluded.papers,
-                latestTaskId=excluded.latestTaskId,
-                defaultConstraints=excluded.defaultConstraints,
-                createdAt=excluded.createdAt,
-                updatedAt=excluded.updatedAt
-            """,
-            (
-                snapshot["projectId"],
-                snapshot["title"],
-                snapshot["goal"],
-                json.dumps(snapshot["paperIds"], ensure_ascii=False),
-                json.dumps(snapshot["papers"], ensure_ascii=False),
-                snapshot["latestTaskId"],
-                snapshot["defaultConstraints"],
-                snapshot["createdAt"],
-                snapshot["updatedAt"],
-            ),
-        )
-        connection.commit()
+    repository = _get_agent_state_repository()
+    repository.save_project(_normalize_project_for_storage(project))
 
 
 def _persist_task_locked(task: Dict[str, Any]) -> None:
-    _initialize_storage_locked()
-    snapshot = _normalize_task_for_storage(task)
-    with closing(sqlite3.connect(_agent_state_db_path())) as connection:
-        connection.execute(
-            """
-            INSERT INTO agent_tasks (
-                taskId, projectId, traceId, status, stage, progress, prompt,
-                focusedPaperIds, constraints, context, planItems, toolCalls,
-                evidenceItems, findings, comparisonTable, conflicts, openQuestions,
-                reviewRisks, humanReview, traceSummary, externalSearchConfig, draftReport, error, createdAt, updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(taskId) DO UPDATE SET
-                projectId=excluded.projectId,
-                traceId=excluded.traceId,
-                status=excluded.status,
-                stage=excluded.stage,
-                progress=excluded.progress,
-                prompt=excluded.prompt,
-                focusedPaperIds=excluded.focusedPaperIds,
-                constraints=excluded.constraints,
-                context=excluded.context,
-                planItems=excluded.planItems,
-                toolCalls=excluded.toolCalls,
-                evidenceItems=excluded.evidenceItems,
-                findings=excluded.findings,
-                comparisonTable=excluded.comparisonTable,
-                conflicts=excluded.conflicts,
-                openQuestions=excluded.openQuestions,
-                reviewRisks=excluded.reviewRisks,
-                humanReview=excluded.humanReview,
-                traceSummary=excluded.traceSummary,
-                externalSearchConfig=excluded.externalSearchConfig,
-                draftReport=excluded.draftReport,
-                error=excluded.error,
-                createdAt=excluded.createdAt,
-                updatedAt=excluded.updatedAt
-            """,
-            (
-                snapshot["taskId"],
-                snapshot["projectId"],
-                snapshot["traceId"],
-                snapshot["status"],
-                snapshot["stage"],
-                snapshot["progress"],
-                snapshot["prompt"],
-                json.dumps(snapshot["focusedPaperIds"], ensure_ascii=False),
-                snapshot["constraints"],
-                json.dumps(snapshot["context"], ensure_ascii=False),
-                json.dumps(snapshot["planItems"], ensure_ascii=False),
-                json.dumps(snapshot["toolCalls"], ensure_ascii=False),
-                json.dumps(snapshot["evidenceItems"], ensure_ascii=False),
-                json.dumps(snapshot["findings"], ensure_ascii=False),
-                json.dumps(snapshot["comparisonTable"], ensure_ascii=False),
-                json.dumps(snapshot["conflicts"], ensure_ascii=False),
-                json.dumps(snapshot["openQuestions"], ensure_ascii=False),
-                json.dumps(snapshot["reviewRisks"], ensure_ascii=False),
-                json.dumps(snapshot["humanReview"], ensure_ascii=False),
-                json.dumps(snapshot["traceSummary"], ensure_ascii=False),
-                json.dumps(snapshot.get("externalSearchConfig") or {}, ensure_ascii=False),
-                snapshot["draftReport"],
-                snapshot["error"],
-                snapshot["createdAt"],
-                snapshot["updatedAt"],
-            ),
+    repository = _get_agent_state_repository()
+    run_record = _build_run_record(task)
+    repository.save_run(run_record)
+    repository.save_artifacts(_build_artifacts_resource(task))
+    timeline_entries = _build_timeline_resource(task)
+    for entry in timeline_entries:
+        repository.append_timeline_entry(
+            {
+                "runId": run_record["runId"],
+                **entry,
+            }
         )
-        connection.execute("DELETE FROM agent_task_events WHERE taskId = ?", (snapshot["taskId"],))
-        for event in snapshot["events"]:
-            connection.execute(
-                """
-                INSERT INTO agent_task_events (
-                    eventId, taskId, type, timestamp, stage, summary, meta
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    event["eventId"],
-                    event["taskId"],
-                    event["type"],
-                    event["timestamp"],
-                    event["stage"],
-                    event["summary"],
-                    json.dumps(event["meta"], ensure_ascii=False),
-                ),
-            )
-        connection.commit()
+    if task.get("status") == "awaiting_plan_review":
+        repository.save_plan_review(_build_pending_review_record(task) or {"runId": run_record["runId"]})
+    else:
+        repository.save_plan_review({"runId": run_record["runId"], "status": "approved", "planItems": list(task.get("planItems") or []), "focusedPaperIds": list(task.get("focusedPaperIds") or []), "constraints": str(task.get("constraints") or ""), "reviewNotes": str(((task.get("humanReview") or {}).get("plan") or {}).get("reviewNotes") or ""), "reviewedAt": str(((task.get("humanReview") or {}).get("plan") or {}).get("reviewedAt") or ""), "version": 1})
+    if task.get("status") == "awaiting_final_review":
+        repository.save_final_review(_build_pending_review_record(task) or {"runId": run_record["runId"]})
+    else:
+        repository.save_final_review({"runId": run_record["runId"], "status": str(((task.get("humanReview") or {}).get("final") or {}).get("status") or "pending"), "summary": str(task.get("draftReport") or ""), "riskItems": list(task.get("reviewRisks") or []), "reviewNotes": str(((task.get("humanReview") or {}).get("final") or {}).get("reviewNotes") or ""), "reviewedAt": str(((task.get("humanReview") or {}).get("final") or {}).get("reviewedAt") or ""), "version": 1})
 
 
 def _delete_persisted_project_locked(project_id: str) -> None:
-    _initialize_storage_locked()
-    with closing(sqlite3.connect(_agent_state_db_path())) as connection:
-        task_rows = connection.execute("SELECT taskId FROM agent_tasks WHERE projectId = ?", (project_id,)).fetchall()
-        task_ids = [str(row[0] or "") for row in task_rows]
-        for task_id in task_ids:
-            connection.execute("DELETE FROM agent_task_events WHERE taskId = ?", (task_id,))
-        connection.execute("DELETE FROM agent_tasks WHERE projectId = ?", (project_id,))
-        connection.execute("DELETE FROM agent_projects WHERE projectId = ?", (project_id,))
-        connection.commit()
+    repository = _get_agent_state_repository()
+    repository.delete_project(project_id)
 
 
 def _delete_persisted_state_locked() -> None:
-    _initialize_storage_locked()
-    with closing(sqlite3.connect(_agent_state_db_path())) as connection:
-        connection.execute("DELETE FROM agent_task_events")
-        connection.execute("DELETE FROM agent_tasks")
-        connection.execute("DELETE FROM agent_projects")
-        connection.commit()
+    repository = _get_agent_state_repository()
+    repository.clear()
 
 
 def _project_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:

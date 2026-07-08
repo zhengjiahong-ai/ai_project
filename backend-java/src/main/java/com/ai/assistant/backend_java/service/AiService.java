@@ -318,6 +318,16 @@ public class AiService {
         return forwardAgentRequest(HttpMethod.POST, "/agent-projects/" + encodedProjectId + "/tasks", request);
     }
 
+    public ResponseEntity<Map<String, Object>> createAgentRun(String projectId, Map<String, Object> request) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.POST, "/agent-projects/" + encodedProjectId + "/runs", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> getAgentWorkspace(String projectId) {
+        String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/agent-projects/" + encodedProjectId + "/workspace", null);
+    }
+
     public ResponseEntity<Map<String, Object>> getLatestAgentTask(String projectId) {
         String encodedProjectId = URLEncoder.encode(String.valueOf(projectId), StandardCharsets.UTF_8).replace("+", "%20");
         return forwardAgentRequest(HttpMethod.GET, "/agent-projects/" + encodedProjectId + "/tasks/latest", null);
@@ -337,14 +347,39 @@ public class AiService {
         return forwardAgentRequest(HttpMethod.GET, "/agent-tasks/" + encodedTaskId, null);
     }
 
+    public ResponseEntity<Map<String, Object>> getAgentRun(String runId) {
+        String encodedRunId = URLEncoder.encode(String.valueOf(runId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/agent-runs/" + encodedRunId, null);
+    }
+
+    public ResponseEntity<Map<String, Object>> getAgentRunArtifacts(String runId) {
+        String encodedRunId = URLEncoder.encode(String.valueOf(runId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/agent-runs/" + encodedRunId + "/artifacts", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> getAgentRunTimeline(String runId) {
+        String encodedRunId = URLEncoder.encode(String.valueOf(runId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/agent-runs/" + encodedRunId + "/timeline", null);
+    }
+
     public ResponseEntity<Map<String, Object>> cancelAgentTask(String taskId) {
         String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
         return forwardAgentRequest(HttpMethod.POST, "/agent-tasks/" + encodedTaskId + "/cancel", null);
     }
 
+    public ResponseEntity<Map<String, Object>> reviewAgentRunPlan(String runId, Map<String, Object> request) {
+        String encodedRunId = URLEncoder.encode(String.valueOf(runId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.POST, "/agent-runs/" + encodedRunId + "/plan-review", request);
+    }
+
     public ResponseEntity<Map<String, Object>> reviewAgentPlan(String taskId, Map<String, Object> request) {
         String encodedTaskId = URLEncoder.encode(String.valueOf(taskId), StandardCharsets.UTF_8).replace("+", "%20");
         return forwardAgentRequest(HttpMethod.POST, "/agent-tasks/" + encodedTaskId + "/plan-review", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> reviewAgentRunFinal(String runId, Map<String, Object> request) {
+        String encodedRunId = URLEncoder.encode(String.valueOf(runId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.POST, "/agent-runs/" + encodedRunId + "/final-review", request);
     }
 
     public ResponseEntity<Map<String, Object>> reviewAgentFinal(String taskId, Map<String, Object> request) {

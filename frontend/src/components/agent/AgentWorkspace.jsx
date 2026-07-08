@@ -9,6 +9,7 @@ import {
   buildAgentProjectPayload,
   buildAgentPlanReviewPayload,
   appendAgentTaskForProject,
+  buildTaskFromRunWorkspace,
   createEmptyAgentWorkspaceState,
   getProjectTasks,
   normalizeAgentProject,
@@ -17,6 +18,7 @@ import {
   normalizeAgentTask,
   normalizeAgentTaskListResponse,
   normalizeAgentTaskResponse,
+  normalizeAgentWorkspaceResponse,
   removeAgentProjectFromState,
   removeSelectedAgentPaperId,
   resolveInitialAgentPaperSelection,
@@ -60,6 +62,7 @@ const resolveInitialState = () => {
     ...(snapshot || {}),
     projects,
     activeProject: snapshot?.activeProject ? normalizeAgentProject(snapshot.activeProject) : null,
+    activeWorkspace: snapshot?.activeWorkspace ?? null,
     latestTask: snapshot?.latestTask ? normalizeAgentTask(snapshot.latestTask) : null,
     currentTask: snapshot?.currentTask ? normalizeAgentTask(snapshot.currentTask) : null,
     tasksByProjectId,
@@ -92,6 +95,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
       projects: state.projects,
       activeProjectId: state.activeProjectId,
       activeProject: state.activeProject,
+      activeWorkspace: state.activeWorkspace,
       latestTask: state.latestTask,
       currentTask: state.currentTask,
       tasksByProjectId: state.tasksByProjectId,
@@ -130,6 +134,48 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
         tasksByProjectId: appendAgentTaskForProject(prev.tasksByProjectId, task),
       };
     });
+  };
+
+  const applyWorkspaceState = (workspaceResponse, preferredTaskId = '') => {
+    const normalized = normalizeAgentWorkspaceResponse(workspaceResponse);
+    const workspace = normalized.workspace;
+    const activeTask = buildTaskFromRunWorkspace({
+      run: workspace.activeRun,
+      pendingReview: workspace.pendingReview,
+      latestArtifacts: workspace.latestArtifacts,
+      timeline: workspace.timeline,
+    });
+    const recentTasks = (workspace.recentRuns || []).map((run) =>
+      buildTaskFromRunWorkspace({
+        run,
+        pendingReview: run.runId === workspace.activeRun?.runId ? workspace.pendingReview : null,
+        latestArtifacts: run.runId === workspace.activeRun?.runId ? workspace.latestArtifacts : null,
+        timeline: run.runId === workspace.activeRun?.runId ? workspace.timeline : [],
+      }),
+    ).filter(Boolean);
+
+    setState((prev) => {
+      const selectedTask = recentTasks.find((task) => task.taskId === preferredTaskId) || activeTask || recentTasks[0] || null;
+      return {
+        ...prev,
+        activeWorkspace: workspace,
+        activeProject: workspace.project?.projectId ? workspace.project : prev.activeProject,
+        currentTask: selectedTask,
+        latestTask: activeTask || selectedTask || prev.latestTask,
+        tasksByProjectId: workspace.project?.projectId
+          ? replaceProjectTasks(prev.tasksByProjectId, workspace.project.projectId, recentTasks)
+          : prev.tasksByProjectId,
+        error: '',
+      };
+    });
+
+    return { workspace, activeTask, recentTasks };
+  };
+
+  const loadWorkspace = async (projectId, preferredTaskId = '') => {
+    if (!projectId) return null;
+    const workspaceResponse = await apiService.getAgentWorkspace(projectId);
+    return applyWorkspaceState(workspaceResponse, preferredTaskId);
   };
 
   const loadProjectTaskHistory = async (projectId, preferredTaskId = '') => {
@@ -201,9 +247,13 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
 
         if (nextProject?.projectId) {
           try {
-            await loadProjectTaskHistory(nextProject.projectId, cachedTasks[0]?.taskId || '');
+            await loadWorkspace(nextProject.projectId, cachedTasks[0]?.taskId || '');
           } catch {
-            // Keep the local snapshot as a fallback when the project task-history endpoint is unavailable.
+            try {
+              await loadProjectTaskHistory(nextProject.projectId, cachedTasks[0]?.taskId || '');
+            } catch {
+              // Keep the local snapshot as a fallback when the project task-history endpoint is unavailable.
+            }
           }
         }
       } catch (error) {
@@ -242,6 +292,13 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
         }));
 
         try {
+          await loadWorkspace(project.projectId);
+          return;
+        } catch {
+          // Fall back to legacy task-shaped reads for older backends or offline snapshots.
+        }
+
+        try {
           await loadProjectTaskHistory(project.projectId);
           return;
         } catch {
@@ -275,22 +332,35 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
   }, [state.activeProjectId]);
 
   useEffect(() => {
-    const taskId = currentTask?.taskId;
-    if (!taskId || TERMINAL_AGENT_STATUSES.has(currentTask?.status) || PAUSED_AGENT_STATUSES.has(currentTask?.status)) return undefined;
+    const projectId = activeProject?.projectId || state.activeProjectId;
+    if (
+      !projectId ||
+      !currentTask?.taskId ||
+      TERMINAL_AGENT_STATUSES.has(currentTask?.status) ||
+      PAUSED_AGENT_STATUSES.has(currentTask?.status)
+    ) {
+      return undefined;
+    }
 
     let stopped = false;
 
     const pollTask = async () => {
       try {
-        const response = await apiService.getAgentTask(taskId);
+        const workspaceResponse = await apiService.getAgentWorkspace(projectId);
         if (stopped) return;
-        cacheTask(normalizeAgentTaskResponse(response).task, true);
-      } catch (error) {
-        if (stopped || error?.response?.status === 404) return;
-        setState((prev) => ({
-          ...prev,
-          error: error?.response?.data?.message || error?.message || '轮询 Agent 任务失败',
-        }));
+        applyWorkspaceState(workspaceResponse, currentTask.taskId);
+      } catch (_workspaceError) {
+        try {
+          const response = await apiService.getAgentTask(currentTask.taskId);
+          if (stopped) return;
+          cacheTask(normalizeAgentTaskResponse(response).task, true);
+        } catch (error) {
+          if (stopped || error?.response?.status === 404) return;
+          setState((prev) => ({
+            ...prev,
+            error: error?.response?.data?.message || error?.message || '轮询 Agent 任务失败',
+          }));
+        }
       }
     };
 
@@ -301,7 +371,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
       stopped = true;
       clearInterval(intervalId);
     };
-  }, [currentTask?.taskId, currentTask?.status]);
+  }, [activeProject?.projectId, state.activeProjectId, currentTask?.taskId, currentTask?.status]);
 
   const projectOptions = useMemo(() => state.projects, [state.projects]);
   const taskCountsByProjectId = useMemo(
@@ -333,7 +403,9 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
         ),
         activeProjectId: project.projectId,
         activeProject: project,
+        activeWorkspace: null,
         currentTask: null,
+        latestTask: null,
         error: '',
       }));
       setProjectTitle('');
@@ -372,7 +444,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
     if (!activeProject?.projectId || !nextPrompt) return;
 
     try {
-      const response = await apiService.createAgentTask(activeProject.projectId, {
+      const runPayload = {
         prompt: nextPrompt,
         focusedPaperIds: activeProject.paperIds,
         constraints: activeProject.defaultConstraints || '',
@@ -380,9 +452,15 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
         context: {
           activePaperId,
         },
-      });
-      const task = normalizeAgentTaskResponse(response).task;
-      cacheTask(task, true);
+      };
+      await apiService.createAgentRun(activeProject.projectId, runPayload);
+      try {
+        await loadWorkspace(activeProject.projectId);
+      } catch {
+        const response = await apiService.createAgentTask(activeProject.projectId, runPayload);
+        const task = normalizeAgentTaskResponse(response).task;
+        cacheTask(task, true);
+      }
       setPrompt('');
       setState((prev) => ({ ...prev, error: '' }));
     } catch (error) {
@@ -403,8 +481,22 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
         ...prev,
         activeProject: project,
         projects: upsertProject(prev.projects, project),
-          error: '',
+        error: '',
+      }));
+
+      if (!project.latestTaskId) {
+        setState((prev) => ({
+          ...prev,
+          activeWorkspace: prev.activeWorkspace?.project?.projectId === project.projectId ? prev.activeWorkspace : null,
         }));
+      }
+
+      try {
+        await loadWorkspace(project.projectId, currentTask?.taskId || '');
+        return;
+      } catch {
+        // Older Java/Python runtimes may not expose the workspace endpoint yet.
+      }
 
       try {
         await loadProjectTaskHistory(project.projectId, currentTask?.taskId || '');
@@ -458,6 +550,8 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
         ...prev,
         activeProjectId: normalizedProject.projectId,
         activeProject: normalizedProject,
+        activeWorkspace:
+          prev.activeWorkspace?.project?.projectId === normalizedProject.projectId ? prev.activeWorkspace : null,
         currentTask: nextTasks[0] || null,
         latestTask: nextTasks[0] || prev.latestTask,
         error: '',
@@ -476,8 +570,15 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
   const handleReviewPlan = async (payload) => {
     if (!currentTask?.taskId) return;
     try {
-      const response = await apiService.reviewAgentPlan(currentTask.taskId, buildAgentPlanReviewPayload(payload));
-      cacheTask(normalizeAgentTaskResponse(response).task, true);
+      const reviewPayload = buildAgentPlanReviewPayload(payload);
+      const runId = currentTask.runId || currentTask.taskId;
+      try {
+        await apiService.reviewAgentRunPlan(runId, reviewPayload);
+        await loadWorkspace(currentTask.projectId, currentTask.taskId);
+      } catch {
+        const response = await apiService.reviewAgentPlan(currentTask.taskId, reviewPayload);
+        cacheTask(normalizeAgentTaskResponse(response).task, true);
+      }
       setState((prev) => ({ ...prev, error: '' }));
     } catch (error) {
       setState((prev) => ({ ...prev, error: error?.response?.data?.message || error?.message || 'Agent 计划确认失败' }));
@@ -487,8 +588,14 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
   const handleReviewFinal = async (payload) => {
     if (!currentTask?.taskId) return;
     try {
-      const response = await apiService.reviewAgentFinal(currentTask.taskId, payload);
-      cacheTask(normalizeAgentTaskResponse(response).task, true);
+      const runId = currentTask.runId || currentTask.taskId;
+      try {
+        await apiService.reviewAgentRunFinal(runId, payload);
+        await loadWorkspace(currentTask.projectId, currentTask.taskId);
+      } catch {
+        const response = await apiService.reviewAgentFinal(currentTask.taskId, payload);
+        cacheTask(normalizeAgentTaskResponse(response).task, true);
+      }
       setState((prev) => ({ ...prev, error: '' }));
     } catch (error) {
       setState((prev) => ({ ...prev, error: error?.response?.data?.message || error?.message || 'Agent 终稿确认失败' }));

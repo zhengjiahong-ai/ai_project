@@ -5,11 +5,13 @@ import {
   appendAgentTaskForProject,
   buildAgentPlanReviewPayload,
   buildAgentProjectPayload,
+  buildTaskFromRunWorkspace,
   createEmptyAgentWorkspaceState,
   getProjectTasks,
   getAgentArtifactSaveState,
   normalizeAgentTask,
   normalizeAgentTaskListResponse,
+  normalizeAgentWorkspaceResponse,
   resolveNextAgentProjectNumber,
   removeSelectedAgentPaperId,
   removeAgentProjectFromState,
@@ -204,5 +206,65 @@ assert.deepEqual(getProjectTasks(sortedTasksByProject, 'project-1').map((task) =
   'task-new',
   'task-old',
 ]);
+
+const workspaceResponse = normalizeAgentWorkspaceResponse({
+  status: 'success',
+  workspace: {
+    project: { projectId: 'project-1', title: 'Agent 项目 1' },
+    activeRun: {
+      runId: 'run-1',
+      projectId: 'project-1',
+      status: 'awaiting_final_review',
+      executionPhase: 'synthesizing',
+      progress: 0.9,
+      prompt: 'Compare methods',
+      focusedPaperIds: ['paper-1'],
+      constraints: 'Only project papers',
+      reviewRisks: [{ riskId: 'risk-1', reviewStatus: 'pending' }],
+      humanReview: { finalStatus: 'pending' },
+      externalSearchConfig: { allowExternalSearch: true, provider: 'crossref', budget: { callLimit: 3, evidenceLimit: 15, callsUsed: 1, evidenceUsed: 1 }, status: 'success', degradation: '' },
+      createdAt: '2026-07-08T00:00:00Z',
+      updatedAt: '2026-07-08T00:01:00Z',
+    },
+    pendingReview: {
+      runId: 'run-1',
+      planItems: [{ id: 'external', label: 'External search', allowExternalSearch: true }],
+    },
+    latestArtifacts: {
+      runId: 'run-1',
+      evidenceItems: [{ sourceId: 'source-1', text: 'Evidence', pdfId: 'paper-1', pageIndex: 1 }],
+      toolCallSummary: [{ id: 'tool-1', name: 'retrieve_external_academic', status: 'succeeded' }],
+      findings: [{ id: 'finding-1', sourceIds: ['source-1'] }],
+      comparisonTable: { columns: ['A'], rows: [['B']] },
+      conflicts: [{ id: 'conflict-1', sourceIds: ['source-1'] }],
+      openQuestions: ['Need another benchmark'],
+      draftReport: 'Draft',
+    },
+    recentRuns: [{ runId: 'run-1', projectId: 'project-1', status: 'awaiting_final_review', executionPhase: 'synthesizing' }],
+    timeline: [{ id: 'entry-1', type: 'plan_prepared', phase: 'planning', detail: 'Plan ready', timestamp: '2026-07-08T00:00:00Z' }],
+    uiHints: { primaryAction: 'review_final' },
+  },
+});
+
+assert.equal(workspaceResponse.workspace.project.projectId, 'project-1');
+assert.equal(workspaceResponse.workspace.activeRun.runId, 'run-1');
+assert.equal(workspaceResponse.workspace.recentRuns[0].taskId, 'run-1');
+
+const workspaceTask = buildTaskFromRunWorkspace({
+  run: workspaceResponse.workspace.activeRun,
+  pendingReview: workspaceResponse.workspace.pendingReview,
+  latestArtifacts: workspaceResponse.workspace.latestArtifacts,
+  timeline: workspaceResponse.workspace.timeline,
+});
+
+assert.equal(workspaceTask.taskId, 'run-1');
+assert.equal(workspaceTask.runId, 'run-1');
+assert.equal(workspaceTask.stage, 'synthesizing');
+assert.deepEqual(workspaceTask.planItems, [{ id: 'external', label: 'External search', allowExternalSearch: true }]);
+assert.deepEqual(workspaceTask.reportSources.map((source) => source.sourceId), ['source-1']);
+assert.deepEqual(workspaceTask.conflicts[0].sources.map((source) => source.sourceId), ['source-1']);
+assert.equal(workspaceTask.events[0].eventId, 'entry-1');
+assert.equal(workspaceTask.toolCalls[0].name, 'retrieve_external_academic');
+assert.equal(workspaceTask.draftReport, 'Draft');
 
 console.log('agentWorkspaceModel tests passed');

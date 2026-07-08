@@ -16,6 +16,64 @@ const externalConfig = (scenario, status = 'ready') => ({
   degradation: scenario === 'failure' && status !== 'ready' ? 'External academic provider failed.' : '',
 });
 
+const toRun = (task) => ({
+  runId: task.taskId,
+  projectId: task.projectId,
+  traceId: task.traceId,
+  status: task.status,
+  executionPhase: task.stage,
+  progress: task.progress,
+  prompt: task.prompt,
+  focusedPaperIds: task.focusedPaperIds,
+  constraints: task.constraints || '',
+  context: {},
+  humanReview: task.humanReview || {},
+  reviewRisks: task.reviewRisks || [],
+  traceSummary: task.traceSummary || {},
+  externalSearchConfig: task.externalSearchConfig,
+  error: task.error || '',
+  createdAt: task.createdAt,
+  updatedAt: task.updatedAt,
+});
+
+const toPendingReview = (task) => ({
+  runId: task.taskId,
+  status: task.status === 'awaiting_plan_review' ? 'pending' : task.status === 'running' ? 'approved' : task.status === 'awaiting_final_review' ? 'final_pending' : 'completed',
+  planItems: task.planItems || [],
+});
+
+const toArtifacts = (task) => ({
+  runId: task.taskId,
+  evidenceItems: task.evidenceItems || [],
+  toolCallSummary: task.toolCalls || [],
+  findings: task.findings || [],
+  comparisonTable: task.comparisonTable || { columns: [], rows: [] },
+  conflicts: task.conflicts || [],
+  openQuestions: task.openQuestions || [],
+  draftReport: task.draftReport || '',
+});
+
+const toTimeline = (task) =>
+  (task.events || []).map((event, index) => ({
+    id: event.eventId || `entry-${index + 1}`,
+    type: event.type || 'status_changed',
+    title: event.summary || event.type || 'Event',
+    detail: event.summary || '',
+    phase: event.stage || task.stage || 'planning',
+    meta: event.meta || {},
+    timestamp: task.updatedAt || now,
+  }));
+
+const toWorkspace = (project, task) => ({
+  project,
+  activeRun: task ? toRun(task) : null,
+  pendingReview: task ? toPendingReview(task) : null,
+  latestArtifacts: task ? toArtifacts(task) : null,
+  recentRuns: task ? [toRun(task)] : [],
+  timeline: task ? toTimeline(task) : [],
+  uiHints: {},
+});
+
 const buildTaskStates = (scenario) => {
   const base = {
     taskId: 'task-external-1',
@@ -106,7 +164,7 @@ const buildTaskStates = (scenario) => {
     }],
     draftReport: failed
       ? '## Degraded Result\nExternal academic provider failed. 内部证据与未解决缺口均已保留。'
-      : '## External Validation\n外部综述证据补充了适用范围边界。 [source-external-crossref-1]',
+      : '## External Validation\n外部综述证据补充了适用范围边界。[source-external-crossref-1]',
     reviewRisks: [{
       riskId: 'external:1',
       type: failed ? 'external_degradation' : 'external_source',
@@ -176,8 +234,25 @@ export const installExternalProviderRoute = async (page, { scenario = 'success' 
       await json(route, { status: 'success', project: state.project });
       return;
     }
+    if (request.method() === 'GET' && path === '/api/agent-projects/project-external-1/workspace') {
+      if (state.task?.status === 'running') {
+        state.taskPollCount += 1;
+        state.task = state.taskPollCount >= 2
+          ? { ...states.draft, prompt: state.taskPayload.prompt, planItems: state.planReviewPayload.planItems }
+          : { ...states.running, prompt: state.taskPayload.prompt, planItems: state.planReviewPayload.planItems };
+      }
+      await json(route, { status: 'success', workspace: toWorkspace(state.project, state.task) });
+      return;
+    }
     if (request.method() === 'GET' && path === '/api/agent-projects/project-external-1/tasks') {
       await json(route, { status: 'success', projectId: 'project-external-1', tasks: state.task ? [state.task] : [], limit: 20 });
+      return;
+    }
+    if (request.method() === 'POST' && path === '/api/agent-projects/project-external-1/runs') {
+      state.taskPayload = request.postDataJSON();
+      state.task = { ...states.planned, prompt: state.taskPayload.prompt };
+      state.project = { ...state.project, latestTaskId: state.task.taskId, updatedAt: now };
+      await json(route, { status: 'success', run: toRun(state.task) });
       return;
     }
     if (request.method() === 'POST' && path === '/api/agent-projects/project-external-1/tasks') {
@@ -185,6 +260,25 @@ export const installExternalProviderRoute = async (page, { scenario = 'success' 
       state.task = { ...states.planned, prompt: state.taskPayload.prompt };
       state.project = { ...state.project, latestTaskId: state.task.taskId, updatedAt: now };
       await json(route, { status: 'success', task: state.task });
+      return;
+    }
+    if (request.method() === 'GET' && path === '/api/agent-runs/task-external-1') {
+      await json(route, { status: 'success', run: toRun(state.task || states.planned) });
+      return;
+    }
+    if (request.method() === 'GET' && path === '/api/agent-runs/task-external-1/artifacts') {
+      await json(route, { status: 'success', artifacts: toArtifacts(state.task || states.planned) });
+      return;
+    }
+    if (request.method() === 'GET' && path === '/api/agent-runs/task-external-1/timeline') {
+      await json(route, { status: 'success', timeline: toTimeline(state.task || states.planned) });
+      return;
+    }
+    if (request.method() === 'POST' && path === '/api/agent-runs/task-external-1/plan-review') {
+      state.planReviewPayload = request.postDataJSON();
+      state.task = { ...states.running, prompt: state.taskPayload.prompt, planItems: state.planReviewPayload.planItems };
+      state.taskPollCount = 0;
+      await json(route, { status: 'success', run: toRun(state.task), pendingReview: toPendingReview(state.task) });
       return;
     }
     if (request.method() === 'POST' && path === '/api/agent-tasks/task-external-1/plan-review') {
@@ -200,6 +294,12 @@ export const installExternalProviderRoute = async (page, { scenario = 'success' 
         ? { ...states.draft, prompt: state.taskPayload.prompt }
         : { ...states.running, prompt: state.taskPayload.prompt, planItems: state.planReviewPayload.planItems };
       await json(route, { status: 'success', task: state.task });
+      return;
+    }
+    if (request.method() === 'POST' && path === '/api/agent-runs/task-external-1/final-review') {
+      state.finalReviewPayload = request.postDataJSON();
+      state.task = { ...states.completed, prompt: state.taskPayload.prompt };
+      await json(route, { status: 'success', run: toRun(state.task), artifacts: toArtifacts(state.task) });
       return;
     }
     if (request.method() === 'POST' && path === '/api/agent-tasks/task-external-1/final-review') {

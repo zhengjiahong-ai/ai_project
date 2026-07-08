@@ -394,6 +394,32 @@ class AcademicControllerTest {
     }
 
     @Test
+    void createAgentRunReturnsForwardedPayload() throws Exception {
+        when(aiService.createAgentRun(eq("project-1"), eq(Map.of("prompt", "Compare methods")))).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "run", Map.of("runId", "agent-run-1", "status", "running"))));
+
+        mockMvc.perform(post("/api/agent-projects/project-1/runs")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"prompt":"Compare methods"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.run.runId").value("agent-run-1"));
+    }
+
+    @Test
+    void getAgentWorkspaceReturnsForwardedPayload() throws Exception {
+        when(aiService.getAgentWorkspace("project-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "workspace", Map.of("project", Map.of("projectId", "project-1")))));
+
+        mockMvc.perform(get("/api/agent-projects/project-1/workspace"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.workspace.project.projectId").value("project-1"));
+    }
+
+    @Test
     void listAgentProjectTasksReturnsForwardedPayload() throws Exception {
         when(aiService.listAgentProjectTasks("project-1", 10)).thenReturn(ResponseEntity.ok(Map.of(
                 "status", "success",
@@ -440,6 +466,39 @@ class AcademicControllerTest {
     }
 
     @Test
+    void getAgentRunReturnsForwardedPayload() throws Exception {
+        when(aiService.getAgentRun("agent-run-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "run", Map.of("runId", "agent-run-1", "status", "running"))));
+
+        mockMvc.perform(get("/api/agent-runs/agent-run-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.run.runId").value("agent-run-1"));
+    }
+
+    @Test
+    void getAgentRunArtifactsReturnsForwardedPayload() throws Exception {
+        when(aiService.getAgentRunArtifacts("agent-run-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "artifacts", Map.of("runId", "agent-run-1"))));
+
+        mockMvc.perform(get("/api/agent-runs/agent-run-1/artifacts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.artifacts.runId").value("agent-run-1"));
+    }
+
+    @Test
+    void getAgentRunTimelineReturnsForwardedPayload() throws Exception {
+        when(aiService.getAgentRunTimeline("agent-run-1")).thenReturn(ResponseEntity.ok(Map.of(
+                "status", "success",
+                "timeline", List.of(Map.of("id", "entry-1")))));
+
+        mockMvc.perform(get("/api/agent-runs/agent-run-1/timeline"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.timeline[0].id").value("entry-1"));
+    }
+
+    @Test
     void getAgentTraceReturnsForwardedPayload() throws Exception {
         when(aiService.getAgentTrace("trace-1")).thenReturn(ResponseEntity.ok(Map.of(
                 "status", "success",
@@ -466,6 +525,16 @@ class AcademicControllerTest {
         mockMvc.perform(post("/api/agent-tasks/task-1/plan-review").contentType(MediaType.APPLICATION_JSON).content("{\"planItems\":[],\"focusedPaperIds\":[]}"))
                 .andExpect(status().isOk());
         mockMvc.perform(post("/api/agent-tasks/task-1/final-review").contentType(MediaType.APPLICATION_JSON).content("{\"riskReviews\":[]}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void forwardsAgentRunReviewEndpoints() throws Exception {
+        when(aiService.reviewAgentRunPlan(eq("run-1"), anyMap())).thenReturn(ResponseEntity.ok(Map.of("status", "success")));
+        when(aiService.reviewAgentRunFinal(eq("run-1"), anyMap())).thenReturn(ResponseEntity.ok(Map.of("status", "success")));
+        mockMvc.perform(post("/api/agent-runs/run-1/plan-review").contentType(MediaType.APPLICATION_JSON).content("{\"planItems\":[],\"focusedPaperIds\":[],\"allowExternalSearch\":false}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/agent-runs/run-1/final-review").contentType(MediaType.APPLICATION_JSON).content("{\"riskReviews\":[]}"))
                 .andExpect(status().isOk());
     }
 }

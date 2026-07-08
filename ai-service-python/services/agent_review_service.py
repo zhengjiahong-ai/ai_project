@@ -55,3 +55,15 @@ def build_final_review_packet(run, artifacts):
         "reviewedBy": "",
         "reviewedAt": "",
     }
+
+
+def review_plan(run_id, request):
+    from services import agent_project_service
+
+    return agent_project_service.review_agent_run_plan(run_id, request)
+
+
+def review_final(run_id, request):
+    from services import agent_project_service
+
+    return agent_project_service.review_agent_run_final(run_id, request)

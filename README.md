@@ -47,7 +47,7 @@ Agent 工作区已经不再只是静态原型壳。当前已经具备第一版�
 - 从阅读 IDE 的推荐下一步进入 Agent 时，当前打开论文会作为 Agent 新项目草稿的默认已选论文。
 - 向项目挂载多篇论文。
 - 创建异步 Agent 任务。
-- Python 侧已完成第一阶段资源化重构：内部状态开始按 `project / run / review / artifacts / timeline` 拆分建模与持久化，旧 `agent-tasks` 形态暂时保留为兼容适配层。
+- Python 侧已完成 Agent 资源化迁移：公开主路径切到 `workspace + runs`，内部状态按 `project / run / review / artifacts / timeline / workspace` 拆分建模与持久化，旧 `agent-tasks` 形态仅保留为兼容适配层。
 - 轮询任务进度和阶段状态。
 - 展示时间线事件、工具调用、证据片段、对比表、冲突候选、开放问题和报告草稿。
 - Agent 工具调用会记录内部工具版本和结构化安全范围；内部注册层在执行前后严格校验输入与输出，非法参数不会进入 handler。
@@ -225,7 +225,7 @@ docker compose up -d grobid
 - 更完整的右侧 Agent 工作区展示，而不是简单 mock 面板。
 - 拆分后的前端子组件，便于后续维护。
 - 基于服务端 `GET /api/agent-projects/{projectId}/tasks` 的项目级任务历史。
-- 切换项目时优先从服务端恢复历史任务，本地 `tasksByProjectId` 只作为 fallback。
+- 切换项目时优先读取 `GET /api/agent-projects/{projectId}/workspace`，再按需回退到服务端历史任务；本地 `tasksByProjectId` 只作为 fallback。
 - 项目卡片支持确认后删除，删除不会重排已有项目标题编号，后续默认编号继续单调递增。
 - Python 侧会把 Agent 项目、任务和事件摘要写入 SQLite 快照，服务重启后可恢复项目、latest task 和终态任务输出。
 - 完整显示 `draftReport`，不再只截断展示前几个段落。
@@ -276,7 +276,7 @@ Python 保存：
 - 背景知识图谱 SQLite 快照，默认位置为 `ai-service-python/data/knowledge_graph.sqlite3` 或 `KNOWLEDGE_GRAPH_DB_PATH`；配置 Neo4j 时仍会同时写入可选镜像。
 - 进程内 public trace summary；Deep Research 和 Agent 终态 trace summary 会随 SQLite 任务快照保存。trace counters 包含 LLM、内部检索、重试、截断和外部学术检索调用/缓存/失败/证据/延迟/预算阻止计数；外部检索 query 只保存 hash、长度和 token 数摘要。
 
-Python AI 服务内部已经将单论文 Deep Research 拆为 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，并将多论文 Agent 研究的计划、工具调用摘要、证据聚合和报告综合拆到 `agent_orchestrator.py`。2026-07-08 起，Agent 内部又新增 `agent_run_service.py`、`agent_review_service.py`、`agent_artifact_service.py`、`agent_timeline_service.py`、`agent_workspace_service.py` 和 `agent_state_repository.py`，用于把执行状态机、审查包、产物、时间线和聚合视图从旧的大型 task snapshot 中拆出来；当前公开接口仍以项目与 `agent-tasks` 兼容层为主。Deep Research 和 Agent 的真实冲突会读取已有背景图谱的一跳邻域，补充来源覆盖说明；无图谱时自动降级，报告仍要求人工核查且不会自动裁决。需要隔离 Agent 或图谱状态库时可设置 `AGENT_STATE_DB_PATH`、`KNOWLEDGE_GRAPH_DB_PATH`。
+Python AI 服务内部已经将单论文 Deep Research 拆为 `research_planner.py`、`research_executor.py`、`research_aggregator.py`，并将多论文 Agent 研究的计划、工具调用摘要、证据聚合和报告综合拆到 `agent_orchestrator.py`。2026-07-08 起，Agent 内部又新增 `agent_run_service.py`、`agent_review_service.py`、`agent_artifact_service.py`、`agent_timeline_service.py`、`agent_workspace_service.py` 和 `agent_state_repository.py`，把执行状态机、审查包、产物、时间线和聚合视图从旧的大型 task snapshot 中拆出来；当前对外主接口已切到 `GET /api/agent-projects/{projectId}/workspace` 与 `agent-runs/*`，旧 `agent-tasks/*` 仅作为 compatibility adapter。Deep Research 和 Agent 的真实冲突会读取已有背景图谱的一跳邻域，补充来源覆盖说明；无图谱时自动降级，报告仍要求人工核查且不会自动裁决。需要隔离 Agent 或图谱状态库时可设置 `AGENT_STATE_DB_PATH`、`KNOWLEDGE_GRAPH_DB_PATH`。
 
 ## 验证命令
 

@@ -128,6 +128,14 @@ class AgentTaskCreateRequest(BaseModel):
     allowExternalSearch: bool = Field(default=False)
 
 
+class AgentRunCreateRequest(BaseModel):
+    prompt: str
+    focusedPaperIds: Optional[List[str]] = None
+    constraints: Optional[str] = ""
+    context: Optional[Dict[str, Any]] = None
+    allowExternalSearch: bool = Field(default=False)
+
+
 class AgentPlanItemRequest(BaseModel):
     id: Optional[str] = ""
     label: str
@@ -142,7 +150,20 @@ class AgentPlanReviewRequest(BaseModel):
     reviewNotes: Optional[str] = ""
 
 
+class AgentRunPlanReviewRequest(BaseModel):
+    planItems: List[AgentPlanItemRequest]
+    focusedPaperIds: List[str]
+    constraints: Optional[str] = ""
+    reviewNotes: Optional[str] = ""
+    allowExternalSearch: bool = Field(default=False)
+
+
 class AgentFinalReviewRequest(BaseModel):
+    reviewNotes: Optional[str] = ""
+    riskReviews: Optional[List[RiskReviewItem]] = None
+
+
+class AgentRunFinalReviewRequest(BaseModel):
     reviewNotes: Optional[str] = ""
     riskReviews: Optional[List[RiskReviewItem]] = None
 

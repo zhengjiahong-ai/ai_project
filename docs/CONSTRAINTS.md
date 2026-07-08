@@ -166,13 +166,13 @@
 
 - Agent 项目、任务和事件摘要保存到 Python SQLite，默认位置为 `ai-service-python/data/agent_state.sqlite3`，测试或隔离运行可通过 `AGENT_STATE_DB_PATH` 覆盖。
 - Agent 终态任务会把脱敏 public trace summary 写入 `task.traceSummary` 并随 SQLite 快照保存；进程内 trace 丢失或服务重启后，`GET /api/agent-traces/{traceId}` 可按 `traceId` 从任务快照恢复。旧快照没有 `traceSummary` 时按空对象兼容。
-- `/api/agent-projects*` 和 `/api/agent-tasks*` 的请求/响应字段保持不变；持久化只改变服务重启后的恢复能力。
+- `GET /api/agent-projects/{projectId}/workspace` 与 `agent-runs/*` 是新的公开主资源；`/api/agent-projects*` 与 `/api/agent-tasks*` 兼容路径必须继续可用，但不得再作为新的内部写入真相。
 - 服务重启前已经进入 `succeeded`、`failed` 或 `cancelled` 的任务按快照恢复。
 - 服务重启前仍处于 `running` 或 `pending` 的任务恢复为 `failed`、`stage=done`、`progress=1.0`，`error` 固定为 `Agent task was interrupted by service restart.`，并追加 `task_expired` 事件。
 - 项目级任务历史列表接口已补齐：`GET /api/agent-projects/{projectId}/tasks` 由 Java `/api` 透传到 Python `/api`。
 - 任务历史成功响应保持 `{ "status": "success", "projectId": "...", "tasks": [], "limit": 20 }`，`tasks` 复用完整 Agent task 快照并按 `updatedAt` 倒序返回。
 - `limit` 默认 `20`，Python 侧约束到 `1..100`；项目存在但没有任务时返回空数组，项目不存在时返回 `404 Agent project not found.`。
-- 前端进入、切换或刷新 Agent 项目时优先读取服务端任务历史；本地 `tasksByProjectId` 只作为旧接口、离线或临时失败 fallback。
+- 前端进入、切换、刷新或轮询 Agent 项目时优先读取 `workspace` 聚合视图；本地 `tasksByProjectId` 只作为旧接口、离线或临时失败 fallback。
 
 ## 人机审查边界
 

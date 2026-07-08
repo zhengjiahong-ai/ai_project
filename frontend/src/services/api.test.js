@@ -54,9 +54,16 @@ const run = async () => {
     'agent-final-review',
     'agent-plan-review',
     'agent-projects',
+    'agent-run',
+    'agent-run-artifacts',
+    'agent-run-final-review',
+    'agent-run-plan-review',
+    'agent-run-timeline',
+    'agent-runs',
     'agent-task',
     'agent-tasks',
     'agent-traces',
+    'agent-workspace',
     'background',
     'chat',
     'code-execution-jobs',
@@ -217,6 +224,13 @@ const run = async () => {
   await agentService.createAgentTask('project 1', { prompt: 'compare', allowExternalSearch: true });
   assert.equal(agentPayload.allowExternalSearch, true);
 
+  await agentService.createAgentRun('project 1', { prompt: 'compare' });
+  assert.equal(agentUrl, '/agent-projects/project%201/runs');
+  assert.deepEqual(agentPayload, { prompt: 'compare' });
+
+  await agentService.getAgentWorkspace('project 1');
+  assert.equal(agentUrl, '/agent-projects/project%201/workspace');
+
   await agentService.getLatestAgentTask('project 1');
   assert.equal(agentUrl, '/agent-projects/project%201/tasks/latest');
 
@@ -226,8 +240,25 @@ const run = async () => {
   await agentService.getAgentTask('task 1');
   assert.equal(agentUrl, '/agent-tasks/task%201');
 
+  await agentService.getAgentRun('task 1');
+  assert.equal(agentUrl, '/agent-runs/task%201');
+
+  await agentService.getAgentRunArtifacts('task 1');
+  assert.equal(agentUrl, '/agent-runs/task%201/artifacts');
+
+  await agentService.getAgentRunTimeline('task 1');
+  assert.equal(agentUrl, '/agent-runs/task%201/timeline');
+
   await agentService.cancelAgentTask('task 1');
   assert.equal(agentUrl, '/agent-tasks/task%201/cancel');
+
+  await agentService.reviewAgentRunPlan('task 1', { planItems: [] });
+  assert.equal(agentUrl, '/agent-runs/task%201/plan-review');
+  assert.deepEqual(agentPayload, { planItems: [] });
+
+  await agentService.reviewAgentRunFinal('task 1', { riskReviews: [] });
+  assert.equal(agentUrl, '/agent-runs/task%201/final-review');
+  assert.deepEqual(agentPayload, { riskReviews: [] });
 
   await agentService.getAgentTrace('trace 1');
   assert.equal(agentUrl, '/agent-traces/trace%201');
@@ -277,6 +308,13 @@ const run = async () => {
   assert.deepEqual(agentFallbackCalls, [
     'primary:/agent-projects/project%201/tasks?limit=20',
     'fallback:/agent-projects/project%201/tasks?limit=20',
+  ]);
+  agentFallbackCalls.length = 0;
+
+  await agentFallbackService.getAgentWorkspace('project 1');
+  assert.deepEqual(agentFallbackCalls, [
+    'primary:/agent-projects/project%201/workspace',
+    'fallback:/agent-projects/project%201/workspace',
   ]);
 
   let cancelResearchUrl = '';
@@ -560,6 +598,23 @@ const run = async () => {
   });
   assertContract(taskResponse, taskContract.pythonResponseContract);
 
+  const workspaceContract = contractOperations['agent-workspace'];
+  const workspaceResponse = await contractService.getAgentWorkspace('project-contract-1');
+  assert.deepEqual(agentCalls.at(-1), {
+    method: workspaceContract.method,
+    url: workspaceContract.frontendPath,
+  });
+  assertContract(workspaceResponse, workspaceContract.pythonResponseContract);
+
+  const runsContract = contractOperations['agent-runs'];
+  const runsResponse = await contractService.createAgentRun('project-contract-1', runsContract.frontendRequest);
+  assert.deepEqual(agentCalls.at(-1), {
+    method: runsContract.method,
+    url: runsContract.frontendPath,
+    body: runsContract.frontendRequest,
+  });
+  assertContract(runsResponse, runsContract.pythonResponseContract);
+
   const agentPlanContract = contractOperations['agent-plan-review'];
   const agentPlanResponse = await contractService.reviewAgentPlan(
     'agent-task-contract-1',
@@ -580,6 +635,14 @@ const run = async () => {
   });
   assertContract(agentTaskResponse, agentTaskContract.pythonResponseContract);
 
+  const agentRunContract = contractOperations['agent-run'];
+  const agentRunResponse = await contractService.getAgentRun('agent-run-contract-1');
+  assert.deepEqual(agentCalls.at(-1), {
+    method: agentRunContract.method,
+    url: agentRunContract.frontendPath,
+  });
+  assertContract(agentRunResponse, agentRunContract.pythonResponseContract);
+
   const agentFinalContract = contractOperations['agent-final-review'];
   const agentFinalResponse = await contractService.reviewAgentFinal(
     'agent-task-contract-1',
@@ -591,6 +654,46 @@ const run = async () => {
     body: agentFinalContract.frontendRequest,
   });
   assertContract(agentFinalResponse, agentFinalContract.pythonResponseContract);
+
+  const agentRunPlanContract = contractOperations['agent-run-plan-review'];
+  const agentRunPlanResponse = await contractService.reviewAgentRunPlan(
+    'agent-run-contract-1',
+    agentRunPlanContract.frontendRequest,
+  );
+  assert.deepEqual(agentCalls.at(-1), {
+    method: agentRunPlanContract.method,
+    url: agentRunPlanContract.frontendPath,
+    body: agentRunPlanContract.frontendRequest,
+  });
+  assertContract(agentRunPlanResponse, agentRunPlanContract.pythonResponseContract);
+
+  const agentRunFinalContract = contractOperations['agent-run-final-review'];
+  const agentRunFinalResponse = await contractService.reviewAgentRunFinal(
+    'agent-run-contract-1',
+    agentRunFinalContract.frontendRequest,
+  );
+  assert.deepEqual(agentCalls.at(-1), {
+    method: agentRunFinalContract.method,
+    url: agentRunFinalContract.frontendPath,
+    body: agentRunFinalContract.frontendRequest,
+  });
+  assertContract(agentRunFinalResponse, agentRunFinalContract.pythonResponseContract);
+
+  const agentRunArtifactsContract = contractOperations['agent-run-artifacts'];
+  const agentRunArtifactsResponse = await contractService.getAgentRunArtifacts('agent-run-contract-1');
+  assert.deepEqual(agentCalls.at(-1), {
+    method: agentRunArtifactsContract.method,
+    url: agentRunArtifactsContract.frontendPath,
+  });
+  assertContract(agentRunArtifactsResponse, agentRunArtifactsContract.pythonResponseContract);
+
+  const agentRunTimelineContract = contractOperations['agent-run-timeline'];
+  const agentRunTimelineResponse = await contractService.getAgentRunTimeline('agent-run-contract-1');
+  assert.deepEqual(agentCalls.at(-1), {
+    method: agentRunTimelineContract.method,
+    url: agentRunTimelineContract.frontendPath,
+  });
+  assertContract(agentRunTimelineResponse, agentRunTimelineContract.pythonResponseContract);
 
   const agentTraceContract = contractOperations['agent-traces'];
   const agentTraceResponse = await contractService.getAgentTrace('agent-trace-contract-1');

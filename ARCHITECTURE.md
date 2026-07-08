@@ -128,14 +128,14 @@ Agent 工作区现在维护项目级任务历史：
 - `currentTask`
 - `tasksByProjectId`
 
-`tasksByProjectId` 是当前新增的关键状态。它支持：
+`tasksByProjectId` 是当前保留下来的兼容缓存状态。它支持：
 
 - 每个项目保存多个任务。
 - 切换项目时恢复对应任务。
 - 在旧任务和新任务之间切换。
 - 服务端任务历史接口不可用时通过快照恢复。
 
-正常路径下，Agent 工作区进入或切换项目会优先调用 `GET /api/agent-projects/{projectId}/tasks` 从 Python SQLite 快照恢复服务端任务历史；`tasksByProjectId` 只保留为旧接口、离线或临时失败时的 fallback。
+正常路径下，Agent 工作区进入、切换、刷新和轮询会优先调用 `GET /api/agent-projects/{projectId}/workspace` 读取聚合视图；`tasksByProjectId` 只保留为旧接口、离线或临时失败时的 fallback 和历史展示缓存。
 
 阅读 IDE 的推荐下一步现在由前端模型统一生成，按当前面板、解析状态、Deep Research 状态和工作台沉淀数量给出 2-3 个动作。Agent 动作只切换到 `agent` 模式，并沿用 `activePaperId` 将当前论文带入 Agent 新项目草稿；不会自动创建项目或启动任务。
 
@@ -190,7 +190,14 @@ Java 源码中已经包含 Agent 转发路由：
 - `/api/agent-projects/{projectId}/tasks`
 - `/api/agent-projects/{projectId}/tasks` GET 历史列表
 - `/api/agent-projects/{projectId}/tasks/latest`
-- `/api/agent-tasks/{taskId}`
+- `/api/agent-projects/{projectId}/workspace`
+- `/api/agent-projects/{projectId}/runs`
+- `/api/agent-runs/{runId}`
+- `/api/agent-runs/{runId}/artifacts`
+- `/api/agent-runs/{runId}/timeline`
+- `/api/agent-runs/{runId}/plan-review`
+- `/api/agent-runs/{runId}/final-review`
+- `/api/agent-tasks/{taskId}` compatibility adapter
 - `/api/agent-tasks/{taskId}/cancel`
 - `/api/agent-traces/{traceId}`
 
@@ -292,7 +299,7 @@ Deep Research 和 Agent 均在现有任务生命周期内实现两个人工 gate
 
 2026-07-08 起，这个模块还承担“兼容适配层”职责：
 
-- 对外仍暴露当前项目接口和 `agent-tasks` 形态，避免三层接口一次性切换。
+- 对外已经暴露 `workspace + runs` 主资源，同时继续保留 `agent-tasks` 兼容路径，避免旧调用方一次性失效。
 - 对内开始复用拆分后的 run / review / artifact / timeline / workspace 边界，而不是继续把所有状态都堆在单个 task snapshot 上。
 - `_build_legacy_task_snapshot(...)` 明确用于把新资源形态适配回旧任务快照，方便前端与 Java 网关在迁移完成前继续读取。
 
@@ -324,7 +331,7 @@ Deep Research 和 Agent 均在现有任务生命周期内实现两个人工 gate
 - `agent_workspace_service.py`：负责把项目、活动 run、待处理审查、最新产物与时间线聚合成工作区视图。
 - `agent_state_repository.py`：提供新的 SQLite 资源持久化入口，单独保存 project/run/plan review/artifacts/timeline，而不再只依赖旧 `agent_tasks` 表形态。
 
-这意味着当前 Agent 的“内部真相”已经开始从 task-shaped snapshot 迁移到 resource-shaped records；公开 API 仍保持旧契约，直到后续 run/workspace 资源接口完成三层迁移。
+这意味着当前 Agent 的“内部真相”已经从 task-shaped snapshot 迁移到 resource-shaped records；公开 API 以 run/workspace 资源为主，旧 `agent-tasks` 只负责兼容映射。
 
 当前 AI 结论行为：
 

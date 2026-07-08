@@ -7,6 +7,9 @@ from schemas.requests import (
     AgentProjectCreateRequest,
     AgentProjectPapersRequest,
     AgentProjectUpdateRequest,
+    AgentRunCreateRequest,
+    AgentRunFinalReviewRequest,
+    AgentRunPlanReviewRequest,
     AgentTaskCreateRequest,
     AgentFinalReviewRequest,
     AgentPlanReviewRequest,
@@ -336,6 +339,70 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         self.assertEqual(adapted["projectId"], "project-1")
         self.assertEqual(adapted["status"], "awaiting_plan_review")
         self.assertEqual(adapted["planItems"][0]["id"], "evidence")
+
+    def test_create_agent_run_returns_run_shape_and_legacy_task_reads_same_resource(self):
+        project = self._create_project()
+        with patch("services.agent_project_service.threading.Thread", _NoopThread):
+            run_response = agent_project_service.create_agent_run(
+                project["projectId"],
+                AgentRunCreateRequest(
+                    prompt="Compare methods and evidence.",
+                    focusedPaperIds=["paper-a", "paper-b"],
+                    constraints="Use evidence first.",
+                    context={"activePaperId": "paper-a"},
+                    allowExternalSearch=False,
+                ),
+            )
+
+        run = run_response["run"]
+        legacy_task = agent_project_service.get_agent_task(run["runId"])["task"]
+        self.assertEqual(run["runId"], legacy_task["taskId"])
+        self.assertEqual(run["projectId"], legacy_task["projectId"])
+        self.assertEqual(run["prompt"], legacy_task["prompt"])
+
+    def test_get_agent_workspace_aggregates_project_run_review_artifacts_and_timeline(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        with patch.object(agent_project_service, "_start_agent_worker"):
+            planned = agent_project_service.prepare_agent_task_now(task["taskId"])
+
+        workspace = agent_project_service.get_agent_workspace(project["projectId"])["workspace"]
+        self.assertEqual(workspace["project"]["projectId"], project["projectId"])
+        self.assertEqual(workspace["activeRun"]["runId"], planned["taskId"])
+        self.assertEqual(workspace["pendingReview"]["runId"], planned["taskId"])
+        self.assertTrue(isinstance(workspace["latestArtifacts"], dict))
+        self.assertTrue(isinstance(workspace["timeline"], list))
+
+    def test_run_review_paths_return_run_resources(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        with patch.object(agent_project_service, "_start_agent_worker"):
+            planned = agent_project_service.prepare_agent_task_now(task["taskId"])
+            reviewed = agent_project_service.review_agent_run_plan(
+                planned["taskId"],
+                AgentRunPlanReviewRequest(
+                    planItems=[{"id": "methods", "label": "Compare methods", "detail": "Compare training methods"}],
+                    focusedPaperIds=["paper-a"],
+                    constraints="Only methods",
+                    reviewNotes="approved",
+                    allowExternalSearch=False,
+                ),
+            )
+
+        self.assertEqual(reviewed["run"]["runId"], planned["taskId"])
+        self.assertEqual(reviewed["run"]["status"], "running")
+
+        agent_project_service._update_task(
+            planned["taskId"],
+            status="awaiting_final_review",
+            reviewRisks=[{"riskId": "open:1", "type": "open_question", "label": "Open", "detail": "more evidence", "sourceIds": [], "reviewStatus": "pending"}],
+        )
+        finalized = agent_project_service.review_agent_run_final(
+            planned["taskId"],
+            AgentRunFinalReviewRequest(reviewNotes="done", riskReviews=[{"riskId": "open:1", "reviewStatus": "reviewed"}]),
+        )
+        self.assertEqual(finalized["run"]["status"], "succeeded")
+        self.assertEqual(finalized["artifacts"]["runId"], planned["taskId"])
 
 
     def test_external_search_disabled_by_default_in_plan(self):

@@ -30,3 +30,15 @@ def transition_run_status(run: dict, next_status: str, execution_phase: str = ""
     updated["status"] = next_status
     updated["executionPhase"] = execution_phase if next_status == "running" else ""
     return updated
+
+
+def create_run(project_id, request):
+    from services import agent_project_service
+
+    return agent_project_service.create_agent_run(project_id, request)
+
+
+def get_run(run_id):
+    from services import agent_project_service
+
+    return agent_project_service.get_agent_run(run_id)

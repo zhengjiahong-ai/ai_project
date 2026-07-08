@@ -10,7 +10,7 @@ const completedTask = {
   status: 'succeeded',
   stage: 'done',
   progress: 1,
-  prompt: '比较论文的方法、证据与局限性',
+  prompt: '比较论文的方法、证据与局限',
   focusedPaperIds: ['paper-smoke-1'],
   planItems: [
     { id: 'retrieve', label: '检索论文证据', detail: '读取方法与结论章节', status: 'done' },
@@ -71,8 +71,81 @@ const draftTask = {
   status: 'awaiting_final_review',
   stage: 'synthesizing',
   progress: 0.95,
-  reviewRisks: [{ riskId: 'open:1', type: 'open_question', label: '开放问题', detail: '真实多论文结果仍需全栈验证。', sourceIds: [], reviewStatus: 'pending' }],
+  reviewRisks: [
+    {
+      riskId: 'open:1',
+      type: 'open_question',
+      label: '开放问题',
+      detail: '真实多论文结果仍需全栈验证。',
+      sourceIds: [],
+      reviewStatus: 'pending',
+    },
+  ],
 };
+
+const toRun = (task) => ({
+  runId: task.taskId,
+  projectId: task.projectId,
+  traceId: task.traceId,
+  status: task.status,
+  executionPhase: task.stage,
+  progress: task.progress,
+  prompt: task.prompt,
+  focusedPaperIds: task.focusedPaperIds,
+  constraints: '',
+  context: {},
+  humanReview: task.humanReview || {},
+  reviewRisks: task.reviewRisks || [],
+  traceSummary: {},
+  externalSearchConfig: task.externalSearchConfig || {
+    allowExternalSearch: false,
+    provider: 'disabled',
+    budget: { callLimit: 3, evidenceLimit: 15, callsUsed: 0, evidenceUsed: 0 },
+    status: 'disabled',
+    degradation: '',
+  },
+  error: task.error || '',
+  createdAt: task.createdAt,
+  updatedAt: task.updatedAt,
+});
+
+const toPendingReview = (task) => ({
+  runId: task.taskId,
+  status: task.status === 'awaiting_plan_review' ? 'pending' : task.status === 'running' ? 'approved' : task.status === 'awaiting_final_review' ? 'final_pending' : 'completed',
+  planItems: task.planItems || [],
+});
+
+const toArtifacts = (task) => ({
+  runId: task.taskId,
+  evidenceItems: task.evidenceItems || [],
+  toolCallSummary: task.toolCalls || [],
+  findings: task.findings || [],
+  comparisonTable: task.comparisonTable || { columns: [], rows: [] },
+  conflicts: task.conflicts || [],
+  openQuestions: task.openQuestions || [],
+  draftReport: task.draftReport || '',
+});
+
+const toTimeline = (task) =>
+  (task.events || []).map((event, index) => ({
+    id: event.eventId || `entry-${index + 1}`,
+    type: event.type || 'status_changed',
+    title: event.summary || event.type || 'Event',
+    detail: event.summary || '',
+    phase: event.stage || task.stage || 'planning',
+    meta: {},
+    timestamp: task.updatedAt || now,
+  }));
+
+const toWorkspace = (project, task) => ({
+  project,
+  activeRun: task ? toRun(task) : null,
+  pendingReview: task ? toPendingReview(task) : null,
+  latestArtifacts: task ? toArtifacts(task) : null,
+  recentRuns: task ? [toRun(task)] : [],
+  timeline: task ? toTimeline(task) : [],
+  uiHints: {},
+});
 
 export const installMockApi = async (page) => {
   const state = {
@@ -81,6 +154,8 @@ export const installMockApi = async (page) => {
     taskPollCount: 0,
     projectPayload: null,
     taskPayload: null,
+    planReviewPayload: null,
+    finalReviewPayload: null,
   };
 
   await page.route('http://localhost:8081/api/**', async (route) => {
@@ -140,6 +215,11 @@ export const installMockApi = async (page) => {
       return;
     }
 
+    if (request.method() === 'GET' && path === '/api/agent-projects/project-smoke-1/workspace') {
+      await json(route, { status: 'success', workspace: toWorkspace(state.project, state.task) });
+      return;
+    }
+
     if (request.method() === 'GET' && path === '/api/agent-projects/project-smoke-1/tasks') {
       await json(route, {
         status: 'success',
@@ -150,11 +230,42 @@ export const installMockApi = async (page) => {
       return;
     }
 
+    if (request.method() === 'POST' && path === '/api/agent-projects/project-smoke-1/runs') {
+      state.taskPayload = request.postDataJSON();
+      state.task = { ...plannedTask, prompt: state.taskPayload.prompt };
+      state.project = { ...state.project, latestTaskId: state.task.taskId, updatedAt: now };
+      await json(route, { status: 'success', run: toRun(state.task) });
+      return;
+    }
+
     if (request.method() === 'POST' && path === '/api/agent-projects/project-smoke-1/tasks') {
       state.taskPayload = request.postDataJSON();
       state.task = { ...plannedTask, prompt: state.taskPayload.prompt };
       state.project = { ...state.project, latestTaskId: state.task.taskId, updatedAt: now };
       await json(route, { status: 'success', task: state.task });
+      return;
+    }
+
+    if (request.method() === 'GET' && path === '/api/agent-runs/task-smoke-1') {
+      await json(route, { status: 'success', run: toRun(state.task || plannedTask) });
+      return;
+    }
+
+    if (request.method() === 'GET' && path === '/api/agent-runs/task-smoke-1/artifacts') {
+      await json(route, { status: 'success', artifacts: toArtifacts(state.task || plannedTask) });
+      return;
+    }
+
+    if (request.method() === 'GET' && path === '/api/agent-runs/task-smoke-1/timeline') {
+      await json(route, { status: 'success', timeline: toTimeline(state.task || plannedTask) });
+      return;
+    }
+
+    if (request.method() === 'POST' && path === '/api/agent-runs/task-smoke-1/plan-review') {
+      state.planReviewPayload = request.postDataJSON();
+      state.task = { ...runningTask, prompt: state.taskPayload.prompt, planItems: state.planReviewPayload.planItems };
+      state.taskPollCount = 0;
+      await json(route, { status: 'success', run: toRun(state.task), pendingReview: toPendingReview(state.task) });
       return;
     }
 
@@ -175,9 +286,24 @@ export const installMockApi = async (page) => {
       return;
     }
 
+    if (request.method() === 'POST' && path === '/api/agent-runs/task-smoke-1/final-review') {
+      state.finalReviewPayload = request.postDataJSON();
+      state.task = {
+        ...completedTask,
+        prompt: state.taskPayload.prompt,
+        reviewRisks: draftTask.reviewRisks.map((risk) => ({ ...risk, reviewStatus: 'reviewed' })),
+      };
+      await json(route, { status: 'success', run: toRun(state.task), artifacts: toArtifacts(state.task) });
+      return;
+    }
+
     if (request.method() === 'POST' && path === '/api/agent-tasks/task-smoke-1/final-review') {
       state.finalReviewPayload = request.postDataJSON();
-      state.task = { ...completedTask, prompt: state.taskPayload.prompt, reviewRisks: draftTask.reviewRisks.map((risk) => ({ ...risk, reviewStatus: 'reviewed' })) };
+      state.task = {
+        ...completedTask,
+        prompt: state.taskPayload.prompt,
+        reviewRisks: draftTask.reviewRisks.map((risk) => ({ ...risk, reviewStatus: 'reviewed' })),
+      };
       await json(route, { status: 'success', task: state.task });
       return;
     }
