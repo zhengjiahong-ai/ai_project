@@ -303,6 +303,12 @@ P2-3 来源与生成约束：
 
 以下接口已经实现，并被当前 Agent 工作区使用。它们不再只是规划中的接口草案。
 
+2026-07-08 的内部重构说明：
+
+- 当前对外契约仍以 `agent-projects/*` 与 `agent-tasks/*` 为主，前端现网行为没有切到新的 run 资源路径。
+- Python 内部已经开始按 `project / run / review / artifacts / timeline / workspace` 资源形态拆分服务与持久化。
+- 现有 `agent-tasks` 响应形态应视为兼容适配层，而不是后续实现继续扩展的唯一内部真相。
+
 当前前端行为：
 
 - Agent 面板可以创建和列出项目级研究工作区。
@@ -469,7 +475,7 @@ P2-3 来源与生成约束：
 - 接口会立即创建任务并返回 `status=running`。
 - 当前阶段流转为 `planning -> retrieving -> synthesizing -> done`。
 - 前端应通过 `GET /api/agent-tasks/{taskId}` 轮询更新。
-- Agent 任务的 API 契约保持不变；Python 内部已将计划项生成、工具调用摘要、证据聚合、对比/冲突/开放问题和报告草稿综合拆到 `agent_orchestrator.py`。
+- Agent 任务的 API 契约保持不变；Python 内部已将计划项生成、工具调用摘要、证据聚合、对比/冲突/开放问题和报告草稿综合拆到 `agent_orchestrator.py`，并新增 `agent_state_repository.py` 与 run/review/artifact/timeline/workspace 服务来承接后续资源化迁移。
 - 服务重启后会从 Agent SQLite 快照恢复任务；重启前仍处于 `running` 或 `pending` 的任务会恢复为 `failed`、`stage=done`、`progress=1.0`，`error` 为 `Agent task was interrupted by service restart.`，并追加 `task_expired` 事件。
 
 ### `GET /api/agent-projects/{projectId}/tasks`

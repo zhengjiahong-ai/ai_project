@@ -290,6 +290,12 @@ Deep Research 和 Agent 均在现有任务生命周期内实现两个人工 gate
 - 查询 Agent 任务。
 - 取消 Agent 任务。
 
+2026-07-08 起，这个模块还承担“兼容适配层”职责：
+
+- 对外仍暴露当前项目接口和 `agent-tasks` 形态，避免三层接口一次性切换。
+- 对内开始复用拆分后的 run / review / artifact / timeline / workspace 边界，而不是继续把所有状态都堆在单个 task snapshot 上。
+- `_build_legacy_task_snapshot(...)` 明确用于把新资源形态适配回旧任务快照，方便前端与 Java 网关在迁移完成前继续读取。
+
 当前 Agent 任务阶段：
 
 - `planning`
@@ -308,6 +314,17 @@ Deep Research 和 Agent 均在现有任务生命周期内实现两个人工 gate
 - 生成报告草稿。
 
 任务生命周期仍由 `agent_project_service.py` 管理；计划项生成、检索工具调用摘要、证据聚合、对比表、冲突候选、开放问题和草稿报告综合已拆到 `agent_orchestrator.py`，后续可以在该边界内替换更强的 Agent 执行策略。
+
+第一阶段资源化重构已经落地的内部边界：
+
+- `agent_run_service.py`：维护 Agent run 状态机，主状态为 `draft / awaiting_plan_review / queued / running / awaiting_final_review / completed / failed / cancelled`，`executionPhase` 只作为运行中的附加阶段信息。
+- `agent_review_service.py`：生成并维护计划审查与终稿审查 packet。
+- `agent_artifact_service.py`：承载 findings、conflicts、open questions、draft report 等运行产物。
+- `agent_timeline_service.py`：负责 run 时间线条目的追加与读取。
+- `agent_workspace_service.py`：负责把项目、活动 run、待处理审查、最新产物与时间线聚合成工作区视图。
+- `agent_state_repository.py`：提供新的 SQLite 资源持久化入口，单独保存 project/run/plan review/artifacts/timeline，而不再只依赖旧 `agent_tasks` 表形态。
+
+这意味着当前 Agent 的“内部真相”已经开始从 task-shaped snapshot 迁移到 resource-shaped records；公开 API 仍保持旧契约，直到后续 run/workspace 资源接口完成三层迁移。
 
 当前 AI 结论行为：
 

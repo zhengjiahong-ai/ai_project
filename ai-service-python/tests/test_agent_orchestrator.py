@@ -10,6 +10,7 @@ from services.agent_orchestrator import (
     build_minimal_report,
     build_plan_items,
     collect_project_evidence,
+    execute_run,
     retrieve_external_agent_evidence,
     should_try_external_search,
 )
@@ -160,6 +161,38 @@ class AgentOrchestratorTests(unittest.TestCase):
         self.assertIn("Graph context", report)
         self.assertIn("not automatically adjudicated", report)
         self.assertIn("paper-a", report)
+
+    def test_execute_run_returns_execution_result_shape(self):
+        paper_contexts = [
+            {
+                "pdfId": "paper-a",
+                "evidenceCount": 2,
+                "sourceIds": ["a-1"],
+                "preview": "method evidence",
+                "status": "succeeded",
+            }
+        ]
+        tool_calls = [{"name": "retrieve_current_paper", "status": "succeeded"}]
+        evidence_items = [
+            {
+                "sourceId": "a-1",
+                "text": "Method evidence for paper-a.",
+                "pdfId": "paper-a",
+                "sectionId": "method",
+            }
+        ]
+
+        with patch(
+            "services.agent_orchestrator.collect_project_evidence",
+            return_value=(paper_contexts, tool_calls, evidence_items),
+        ):
+            result = execute_run("compare methods", ["paper-a"])
+
+        self.assertEqual(result["paperContexts"], paper_contexts)
+        self.assertEqual(result["toolCalls"], tool_calls)
+        self.assertEqual(result["artifacts"]["evidenceItems"], evidence_items)
+        self.assertTrue(result["artifacts"]["findings"])
+        self.assertIn("# Agent Research Draft", result["artifacts"]["draftReport"])
 
 
     def test_should_try_external_search_returns_false_when_disabled(self):

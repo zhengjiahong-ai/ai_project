@@ -21,7 +21,6 @@ from schemas.requests import (
 )
 from services import agent_orchestrator
 from services.evidence_service import normalize_evidence_items
-from services.tool_registry import get_tool_registry
 from services.trace_service import (
     build_public_trace_summary,
     finalize_trace,
@@ -46,6 +45,12 @@ _LOCK = threading.RLock()
 _PROJECTS: Dict[str, Dict[str, Any]] = {}
 _TASKS: Dict[str, Dict[str, Any]] = {}
 _STORAGE_LOADED = False
+
+
+def get_tool_registry():
+    from services.tool_registry import get_tool_registry as _get_tool_registry
+
+    return _get_tool_registry()
 
 
 class AgentProjectNotFoundError(Exception):
@@ -712,6 +717,27 @@ def _copy_task(task_id: str) -> Dict[str, Any]:
         if task is None:
             raise AgentTaskNotFoundError("Agent task not found.")
         return copy.deepcopy(task)
+
+
+def _build_legacy_task_snapshot(
+    project: Dict[str, Any],
+    run: Dict[str, Any],
+    pending_review: Dict[str, Any] | None,
+    artifacts: Dict[str, Any] | None,
+    timeline: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    return {
+        "taskId": str(run.get("runId") or ""),
+        "projectId": str(project.get("projectId") or ""),
+        "status": str(run.get("status") or ""),
+        "stage": str(run.get("executionPhase") or ""),
+        "prompt": str(run.get("prompt") or ""),
+        "planItems": list((pending_review or {}).get("planItems") or []),
+        "findings": list((artifacts or {}).get("findings") or []),
+        "conflicts": list((artifacts or {}).get("conflicts") or []),
+        "openQuestions": list((artifacts or {}).get("openQuestions") or []),
+        "events": list(timeline or []),
+    }
 
 
 def _update_task(task_id: str, **updates: Any) -> Dict[str, Any]:

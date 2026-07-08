@@ -316,6 +316,27 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         with self.assertRaises(agent_project_service.AgentTaskNotFoundError):
             agent_project_service.get_agent_task(task["taskId"])
 
+    def test_legacy_project_service_returns_task_shaped_adapter_for_old_callers(self):
+        project = {"projectId": "project-1", "title": "Project", "paperIds": ["paper-a"]}
+        run = {
+            "runId": "run-1",
+            "projectId": "project-1",
+            "status": "awaiting_plan_review",
+            "prompt": "Compare methods.",
+        }
+        review = {
+            "runId": "run-1",
+            "status": "pending",
+            "planItems": [{"id": "evidence", "label": "Collect evidence"}],
+        }
+
+        adapted = agent_project_service._build_legacy_task_snapshot(project, run, review, None, [])
+
+        self.assertEqual(adapted["taskId"], "run-1")
+        self.assertEqual(adapted["projectId"], "project-1")
+        self.assertEqual(adapted["status"], "awaiting_plan_review")
+        self.assertEqual(adapted["planItems"][0]["id"], "evidence")
+
 
     def test_external_search_disabled_by_default_in_plan(self):
         project = self._create_project()

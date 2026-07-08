@@ -4,7 +4,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:
+    def load_dotenv(*_args, **_kwargs):
+        return False
 
 from llm.provider import LLMProviderError, LLMRequest, LLMResult, LLMUsage
 from services.safety_service import estimate_tokens

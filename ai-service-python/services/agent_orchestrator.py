@@ -7,12 +7,17 @@ from services.external_evidence import EXTERNAL_SOURCE_TYPE, normalize_external_
 from services.external_query_planner import build_external_academic_queries
 from services.knowledge_graph_store import enrich_conflicts_with_graph_context
 from services.safety_service import external_search_degradation_reason
-from services.tool_registry import get_tool_registry
 from services.trace_service import record_counter, sanitize_text, trace_step
 
 
 ProgressCallback = Callable[[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], float, str], None]
 CancelCheck = Callable[[], bool]
+
+
+def get_tool_registry():
+    from services.tool_registry import get_tool_registry as _get_tool_registry
+
+    return _get_tool_registry()
 
 
 def build_plan_items(paper_ids: List[str], active_step: str = "scope") -> List[Dict[str, Any]]:
@@ -743,6 +748,43 @@ def detect_conflicts(paper_contexts: List[Dict[str, Any]], evidence_items: List[
         )
 
     return conflicts[:4]
+
+
+def execute_run(
+    prompt: str,
+    paper_ids: List[str],
+    allow_external_search: bool = False,
+) -> Dict[str, Any]:
+    paper_contexts, tool_calls, evidence_items = collect_project_evidence(
+        prompt,
+        paper_ids,
+        allow_external_search=allow_external_search,
+    )
+    finding, comparison_table, conflicts, open_questions = build_agent_outputs(
+        prompt,
+        paper_contexts,
+        evidence_items,
+    )
+    draft_report = build_minimal_report(
+        prompt,
+        {"title": "Project"},
+        paper_contexts,
+        evidence_items,
+        conflicts,
+        open_questions,
+    )
+    return {
+        "paperContexts": paper_contexts,
+        "toolCalls": tool_calls,
+        "artifacts": {
+            "evidenceItems": evidence_items,
+            "findings": [finding],
+            "comparisonTable": comparison_table,
+            "conflicts": conflicts,
+            "openQuestions": open_questions,
+            "draftReport": draft_report,
+        },
+    }
 
 
 def clean_text(value: Any) -> str:
