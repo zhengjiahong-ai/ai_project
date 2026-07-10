@@ -126,6 +126,7 @@ class AgentTaskCreateRequest(BaseModel):
     constraints: Optional[str] = ""
     context: Optional[Dict[str, Any]] = None
     allowExternalSearch: bool = Field(default=False)
+    allowCodeExecution: bool = Field(default=False)
 
 
 class AgentRunCreateRequest(BaseModel):
@@ -134,6 +135,7 @@ class AgentRunCreateRequest(BaseModel):
     constraints: Optional[str] = ""
     context: Optional[Dict[str, Any]] = None
     allowExternalSearch: bool = Field(default=False)
+    allowCodeExecution: bool = Field(default=False)
 
 
 class AgentPlanItemRequest(BaseModel):
@@ -141,6 +143,7 @@ class AgentPlanItemRequest(BaseModel):
     label: str
     detail: Optional[str] = ""
     allowExternalSearch: Optional[bool] = Field(default=False)
+    allowCodeExecution: Optional[bool] = Field(default=False)
 
 
 class AgentPlanReviewRequest(BaseModel):
@@ -156,6 +159,7 @@ class AgentRunPlanReviewRequest(BaseModel):
     constraints: Optional[str] = ""
     reviewNotes: Optional[str] = ""
     allowExternalSearch: bool = Field(default=False)
+    allowCodeExecution: bool = Field(default=False)
 
 
 class AgentFinalReviewRequest(BaseModel):

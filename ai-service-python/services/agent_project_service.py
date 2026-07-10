@@ -233,6 +233,14 @@ def create_agent_run(project_id: str, request: AgentRunCreateRequest | Dict[str,
             "status": "disabled",
             "degradation": "",
         },
+        "codeExecutionConfig": {
+            "allowCodeExecution": bool(getattr(normalized_request, "allowCodeExecution", False)),
+            "proposal": None,
+            "jobId": None,
+            "jobStatus": None,
+            "publishable": False,
+            "degradation": "",
+        },
         "openQuestions": [],
         "draftReport": "",
         "error": "",
@@ -287,9 +295,12 @@ def review_agent_run_plan(run_id: str, request: AgentRunPlanReviewRequest | Agen
     plan_items = agent_orchestrator.normalize_review_plan_items([item.model_dump() if hasattr(item, "model_dump") else item.dict() for item in request.planItems])
     if not plan_items:
         raise ValueError("At least one valid Agent plan item is required.")
+    allow_code_execution = bool(getattr(request, "allowCodeExecution", False))
+    code_execution_config = copy.deepcopy(task.get("codeExecutionConfig") or {})
+    code_execution_config["allowCodeExecution"] = allow_code_execution
     human_review = copy.deepcopy(task.get("humanReview") or {})
     human_review["plan"] = {"status": "approved", "reviewNotes": _clean_text(request.reviewNotes), "reviewedAt": _utc_now()}
-    updated = _update_task(task_id, status="running", focusedPaperIds=paper_ids, constraints=_clean_text(request.constraints), planItems=plan_items, humanReview=human_review)
+    updated = _update_task(task_id, status="running", focusedPaperIds=paper_ids, constraints=_clean_text(request.constraints), planItems=plan_items, humanReview=human_review, codeExecutionConfig=code_execution_config)
     _start_agent_worker(_run_minimal_agent_task, task_id)
     return {"status": "success", "run": _build_run_record(updated), "pendingReview": _build_pending_review_record(updated)}
 
@@ -830,6 +841,7 @@ def _build_run_record(task: Dict[str, Any]) -> Dict[str, Any]:
         "reviewRisks": list(task.get("reviewRisks") or []),
         "traceSummary": copy.deepcopy(task.get("traceSummary") or {}),
         "externalSearchConfig": copy.deepcopy(task.get("externalSearchConfig") or {}),
+        "codeExecutionConfig": copy.deepcopy(task.get("codeExecutionConfig") or {}),
         "error": str(task.get("error") or ""),
         "createdAt": str(task.get("createdAt") or ""),
         "updatedAt": str(task.get("updatedAt") or ""),
@@ -966,6 +978,7 @@ def _build_legacy_task_snapshot(
         "reviewRisks": list(run.get("reviewRisks") or []),
         "traceSummary": copy.deepcopy(run.get("traceSummary") or {}),
         "externalSearchConfig": copy.deepcopy(run.get("externalSearchConfig") or {}),
+        "codeExecutionConfig": copy.deepcopy(run.get("codeExecutionConfig") or {}),
         "error": str(run.get("error") or ""),
         "createdAt": str(run.get("createdAt") or ""),
         "updatedAt": str(run.get("updatedAt") or ""),
@@ -1339,6 +1352,7 @@ def _normalize_run_request(value: AgentRunCreateRequest | AgentTaskCreateRequest
             constraints=value.constraints,
             context=value.context,
             allowExternalSearch=value.allowExternalSearch,
+            allowCodeExecution=getattr(value, "allowCodeExecution", False),
         )
     payload = value if isinstance(value, dict) else {}
     return AgentRunCreateRequest.model_validate(payload)
@@ -1373,7 +1387,7 @@ def _ensure_storage_loaded() -> None:
 
 def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
     status = _clean_text(task.get("status"))
-    if status in TERMINAL_STATUSES or status in {"awaiting_plan_review", "awaiting_final_review"}:
+    if status in TERMINAL_STATUSES or status in {"awaiting_plan_review", "awaiting_final_review", "awaiting_tool_approval"}:
         return task
     task_id = _clean_text(task.get("taskId"))
     events = list(task.get("events") or [])
@@ -1540,6 +1554,7 @@ def _task_from_storage_row(row: sqlite3.Row, events: List[Dict[str, Any]]) -> Di
         "humanReview": _safe_json_dict(row["humanReview"]) if "humanReview" in row.keys() else {},
         "traceSummary": _safe_json_dict(row["traceSummary"]) if "traceSummary" in row.keys() else {},
         "externalSearchConfig": _safe_json_dict(row["externalSearchConfig"]) if "externalSearchConfig" in row.keys() else {},
+        "codeExecutionConfig": _safe_json_dict(row["codeExecutionConfig"]) if "codeExecutionConfig" in row.keys() else {},
         "draftReport": str(row["draftReport"] or ""),
         "error": str(row["error"] or ""),
         "createdAt": created_at,
@@ -1601,6 +1616,7 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
         "humanReview": dict(task.get("humanReview") or {}),
         "traceSummary": dict(task.get("traceSummary") or {}),
         "externalSearchConfig": dict(task.get("externalSearchConfig") or {}),
+        "codeExecutionConfig": dict(task.get("codeExecutionConfig") or {}),
         "draftReport": str(task.get("draftReport") or ""),
         "error": _clean_text(task.get("error")),
         "createdAt": created_at,

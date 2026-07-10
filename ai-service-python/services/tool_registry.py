@@ -24,6 +24,9 @@ from services.trace_service import (
     trace_step,
 )
 
+from services.code_execution_models import IDENTIFIER_PATTERN, create_code_execution_job
+from code_worker import FIXED_TEMPLATE_TEXT
+
 
 Handler = Callable[[Dict[str, Any]], Any]
 
@@ -143,12 +146,19 @@ def reset_tool_registry() -> None:
     _DEFAULT_EXTERNAL_SEARCH_PROVIDER = None
 
 
-def _safety_scope(data_scopes: List[str], *, network_access: bool, sensitive_output: bool) -> Dict[str, Any]:
+def _safety_scope(
+    data_scopes: List[str],
+    *,
+    network_access: bool,
+    sensitive_output: bool,
+    access: str = "read_only",
+    side_effects: bool = False,
+) -> Dict[str, Any]:
     return {
-        "access": "read_only",
+        "access": access,
         "dataScopes": data_scopes,
         "networkAccess": network_access,
-        "sideEffects": False,
+        "sideEffects": side_effects,
         "sensitiveOutput": sensitive_output,
     }
 
@@ -438,6 +448,46 @@ def _build_default_tool_registry() -> ToolRegistry:
             },
         ),
         safety_scope=_safety_scope(["knowledge_graph_snapshots"], network_access=False, sensitive_output=True),
+    )
+    registry.register(
+        "run_descriptive_statistics",
+        "Create a sandboxed descriptive-statistics job for an approved CSV artifact. "
+        "Execution requires human approval and runs without network access.",
+        {
+            "type": "object",
+            "required": ["artifactId"],
+            "properties": {
+                "artifactId": {"type": "string", "minLength": 1, "maxLength": 128},
+            },
+            "additionalProperties": False,
+        },
+        _run_descriptive_statistics_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "jobId", "artifactId", "templateId"],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "awaiting_approval", "approved", "queued", "running",
+                        "succeeded", "failed", "cancelled", "rejected",
+                    ],
+                },
+                "jobId": {"type": "string", "minLength": 1},
+                "artifactId": {"type": "string", "minLength": 1},
+                "templateId": {"type": "string"},
+                "statistics": {"type": "object"},
+                "message": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["code_execution_artifact"],
+            network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
     )
     return registry
 
@@ -735,6 +785,36 @@ def _translate_page_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return response
 
 
+def _run_descriptive_statistics_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    artifact_id = _clean_text(payload.get("artifactId"))
+    if not artifact_id:
+        raise ToolValidationError("run_descriptive_statistics requires a non-empty artifactId.")
+    if not IDENTIFIER_PATTERN.fullmatch(artifact_id):
+        raise ToolValidationError(
+            "run_descriptive_statistics artifactId must be an opaque identifier, not a path or URI."
+        )
+    if len(artifact_id) > 128:
+        raise ToolValidationError("run_descriptive_statistics artifactId exceeds maximum length.")
+
+    script_text = FIXED_TEMPLATE_TEXT
+
+    with trace_step("tool_run_descriptive_statistics", input_size=len(artifact_id)) as step:
+        job = create_code_execution_job(
+            job_id=f"job-{artifact_id}",
+            artifact_id=artifact_id,
+            artifact_digest="0" * 64,
+            script_text=script_text,
+        )
+        step["outputSize"] = 1
+        return {
+            "status": job.status,
+            "jobId": job.job_id,
+            "artifactId": artifact_id,
+            "templateId": job.runtime.template_id,
+            "message": "Job created. Requires execution approval before the sandbox runs.",
+        }
+
+
 def _normalize_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if payload is None:
         return {}
@@ -811,15 +891,23 @@ def _validate_safety_scope(tool_name: str, safety_scope: Optional[Dict[str, Any]
     unknown = sorted(set(scope) - _SAFETY_SCOPE_FIELDS)
     if unknown:
         raise ToolValidationError(f"Tool '{tool_name}' safetyScope has unknown field '{unknown[0]}'.")
-    if scope["access"] != "read_only":
-        raise ToolValidationError(f"Tool '{tool_name}' safetyScope.access must be 'read_only'.")
+    if scope["access"] not in ("read_only", "restricted"):
+        raise ToolValidationError(
+            f"Tool '{tool_name}' safetyScope.access has unknown access level '{scope['access']}'."
+        )
     if not isinstance(scope["dataScopes"], list) or any(not _clean_text(item) for item in scope["dataScopes"]):
         raise ToolValidationError(f"Tool '{tool_name}' safetyScope.dataScopes must be a list of non-empty strings.")
     for field in ("networkAccess", "sideEffects", "sensitiveOutput"):
         if not isinstance(scope[field], bool):
             raise ToolValidationError(f"Tool '{tool_name}' safetyScope.{field} must be boolean.")
-    if scope["sideEffects"]:
-        raise ToolValidationError(f"Tool '{tool_name}' safetyScope.sideEffects must be false.")
+    if scope["sideEffects"] and scope["access"] != "restricted":
+        raise ToolValidationError(
+            f"Tool '{tool_name}' safetyScope.sideEffects must be false for '{scope['access']}' access."
+        )
+    if scope["access"] == "restricted" and not scope["sideEffects"]:
+        raise ToolValidationError(
+            f"Tool '{tool_name}' safetyScope.sideEffects must be true for restricted access."
+        )
     return scope
 
 

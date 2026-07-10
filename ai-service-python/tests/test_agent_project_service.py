@@ -827,6 +827,148 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         self.assertEqual(config.get("provider"), "disabled")
         self.assertEqual(config.get("status"), "disabled")
 
+    def test_code_execution_config_initialized_in_new_task(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        config = task.get("codeExecutionConfig") or {}
+        self.assertIn("allowCodeExecution", config)
+        self.assertFalse(config.get("allowCodeExecution"))
+        self.assertIsNone(config.get("proposal"))
+        self.assertIsNone(config.get("jobId"))
+        self.assertIsNone(config.get("jobStatus"))
+        self.assertFalse(config.get("publishable"))
+        self.assertEqual(config.get("degradation"), "")
+
+    def test_allow_code_execution_survives_plan_review(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        task_id = task["taskId"]
+
+        with patch.object(agent_project_service, "_start_agent_worker"):
+            planned = agent_project_service.prepare_agent_task_now(task_id)
+        self.assertEqual(planned["status"], "awaiting_plan_review")
+
+        with patch("services.agent_project_service.threading.Thread", _NoopThread):
+            reviewed = agent_project_service.review_agent_run_plan(
+                task_id,
+                AgentRunPlanReviewRequest(
+                    focusedPaperIds=["paper-a", "paper-b"],
+                    planItems=[
+                        {"id": "evidence", "label": "Collect", "detail": "Collect evidence", "allowExternalSearch": False},
+                        {"id": "experiment", "label": "Code execution", "detail": "Run stats", "allowCodeExecution": True},
+                    ],
+                    allowCodeExecution=True,
+                ),
+            )
+
+        self.assertIn("run", reviewed)
+        updated = agent_project_service.get_agent_task(task_id)["task"]
+        config = updated.get("codeExecutionConfig") or {}
+        self.assertTrue(config.get("allowCodeExecution"))
+
+    def test_agent_task_pauses_with_awaiting_tool_approval(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        task_id = task["taskId"]
+
+        agent_project_service._update_task(task_id,
+            status="awaiting_tool_approval",
+            codeExecutionConfig={
+                "allowCodeExecution": True,
+                "proposal": {"artifactId": "artifact-test", "templateId": "descriptive-statistics-v1", "description": "test", "createdAt": "2026-01-01T00:00:00Z"},
+                "jobId": None,
+                "jobStatus": None,
+                "publishable": False,
+                "degradation": "",
+            },
+            events=[*task.get("events", []), {"eventId": "evt-proposal", "type": "code_execution_proposed", "timestamp": "2026-01-01T00:00:00Z", "taskId": task_id, "stage": "synthesizing", "summary": "Proposed code execution.", "meta": {}}],
+        )
+
+        paused = agent_project_service.get_agent_task(task_id)["task"]
+        self.assertEqual(paused["status"], "awaiting_tool_approval")
+        config = paused.get("codeExecutionConfig") or {}
+        self.assertTrue(config.get("allowCodeExecution"))
+        self.assertIsNotNone(config.get("proposal"))
+        self.assertEqual(config["proposal"]["artifactId"], "artifact-test")
+
+    def test_code_execution_proposal_rejection_clears_proposal(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        task_id = task["taskId"]
+
+        agent_project_service._update_task(task_id,
+            status="awaiting_tool_approval",
+            codeExecutionConfig={
+                "allowCodeExecution": True,
+                "proposal": {"artifactId": "artifact-test", "templateId": "descriptive-statistics-v1"},
+                "jobId": None, "jobStatus": None, "publishable": False, "degradation": "",
+            },
+        )
+
+        agent_project_service._update_task(task_id,
+            status="running",
+            codeExecutionConfig={
+                "allowCodeExecution": False,
+                "proposal": None,
+                "jobId": None, "jobStatus": None, "publishable": False, "degradation": "User rejected proposal.",
+            },
+        )
+
+        updated = agent_project_service.get_agent_task(task_id)["task"]
+        self.assertEqual(updated["status"], "running")
+        config = updated.get("codeExecutionConfig") or {}
+        self.assertIsNone(config.get("proposal"))
+        self.assertEqual(config.get("degradation"), "User rejected proposal.")
+
+    def test_code_execution_config_survives_sqlite_roundtrip(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        task_id = task["taskId"]
+
+        agent_project_service._update_task(task_id,
+            codeExecutionConfig={
+                "allowCodeExecution": True,
+                "proposal": {"artifactId": "artifact-xyz", "templateId": "descriptive-statistics-v1", "description": "Analyze CSV", "createdAt": "2026-06-01T00:00:00Z"},
+                "jobId": "job-abc123",
+                "jobStatus": "awaiting_approval",
+                "publishable": False,
+                "degradation": "",
+            },
+        )
+
+        trace_service.clear_traces()
+        agent_project_service.reload_agent_state_from_storage()
+
+        restored = agent_project_service.get_agent_task(task_id)["task"]
+        config = restored.get("codeExecutionConfig") or {}
+        self.assertTrue(config.get("allowCodeExecution"))
+        self.assertEqual(config.get("jobId"), "job-abc123")
+        self.assertEqual(config.get("jobStatus"), "awaiting_approval")
+        self.assertEqual(config["proposal"]["artifactId"], "artifact-xyz")
+
+    def test_awaiting_tool_approval_survives_restart(self):
+        project = self._create_project()
+        task = self._create_task_without_worker(project["projectId"])
+        task_id = task["taskId"]
+
+        agent_project_service._update_task(task_id,
+            status="awaiting_tool_approval",
+            codeExecutionConfig={
+                "allowCodeExecution": True,
+                "proposal": {"artifactId": "artifact-r", "templateId": "descriptive-statistics-v1"},
+                "jobId": None, "jobStatus": None, "publishable": False, "degradation": "",
+            },
+        )
+
+        trace_service.clear_traces()
+        agent_project_service.reload_agent_state_from_storage()
+
+        restored = agent_project_service.get_agent_task(task_id)["task"]
+        self.assertEqual(restored["status"], "awaiting_tool_approval")
+        self.assertNotEqual(restored["status"], "failed")
+        config = restored.get("codeExecutionConfig") or {}
+        self.assertTrue(config.get("allowCodeExecution"))
+
 
 if __name__ == "__main__":
     unittest.main()

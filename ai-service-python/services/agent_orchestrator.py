@@ -1,6 +1,6 @@
 import copy
 import re
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from services.evidence_service import normalize_evidence_items
 from services.external_evidence import EXTERNAL_SOURCE_TYPE, normalize_external_evidence_items
@@ -50,6 +50,7 @@ def build_review_plan_items(prompt: str, paper_ids: List[str], constraints: str 
         {"id": "compare", "label": "Compare focused papers", "detail": f"Compare methods and results across {len(paper_ids)} papers."},
         {"id": "risks", "label": "Review conflicts and gaps", "detail": clean_text(constraints) or "Surface conflicts and missing evidence before finalization."},
         {"id": "external", "label": "External academic search", "detail": "When enabled, supplement sparse evidence with read-only external academic metadata from whitelisted academic providers.", "allowExternalSearch": False},
+        {"id": "experiment", "label": "Code execution experiment", "detail": "When enabled, the Agent may propose descriptive statistics on approved CSV artifacts. Execution requires human approval and runs without network access.", "allowCodeExecution": False},
     ])
 
 
@@ -67,6 +68,8 @@ def normalize_review_plan_items(items: List[Dict[str, Any]]) -> List[Dict[str, A
         }
         if "allowExternalSearch" in item:
             plan_item["allowExternalSearch"] = bool(item.get("allowExternalSearch"))
+        if "allowCodeExecution" in item:
+            plan_item["allowCodeExecution"] = bool(item.get("allowCodeExecution"))
         normalized.append(plan_item)
         if len(normalized) >= 8:
             break
@@ -399,6 +402,7 @@ def build_minimal_report(
     evidence_items: List[Dict[str, Any]],
     conflicts: List[Dict[str, Any]],
     open_questions: List[str],
+    code_execution_results: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     paper_lines = "\n".join(build_scope_lines(paper_contexts)) or "- No project papers selected"
     evidence_lines = "\n".join(build_evidence_snapshot_lines(evidence_items)) or "- No evidence snippets yet"
@@ -414,6 +418,15 @@ def build_minimal_report(
             f"{external_lines}\n\n"
         )
 
+    code_section = ""
+    if code_execution_results:
+        code_lines = _build_code_execution_section_lines(code_execution_results)
+        if code_lines:
+            code_section = (
+                "## Code-Computed Artifacts\n"
+                f"{code_lines}\n\n"
+            )
+
     return (
         "# Agent Research Draft\n\n"
         f"## Task\n{prompt}\n\n"
@@ -422,6 +435,7 @@ def build_minimal_report(
         "## Evidence Snapshot\n"
         f"{evidence_lines}\n\n"
         f"{external_section}"
+        f"{code_section}"
         "## Current Conclusion\n"
         f"{conclusion_lines}\n\n"
         "## Conflict Candidates\n"
@@ -529,6 +543,23 @@ def _build_external_evidence_section_lines(evidence_items: List[Dict[str, Any]])
         lines.append(
             f"- [{provider}] {title} ({year}){doi_url}"
             + (f" (retrieved {retrieved})" if retrieved else "")
+        )
+    return "\n".join(lines)
+
+
+def _build_code_execution_section_lines(results: List[Dict[str, Any]]) -> str:
+    if not results:
+        return ""
+    lines = []
+    for result in results:
+        artifact_id = clean_text(result.get("artifactId")) or "unknown"
+        job_id = clean_text(result.get("jobId")) or "unknown"
+        row_count = result.get("rowCount")
+        column_count = result.get("columns")
+        lines.append(
+            f"- [{job_id}] Descriptive statistics for `{artifact_id}`"
+            + (f" ({row_count} rows, {column_count} columns)" if row_count is not None else "")
+            + " — code-computed artifact, not original paper evidence."
         )
     return "\n".join(lines)
 
@@ -748,6 +779,25 @@ def detect_conflicts(paper_contexts: List[Dict[str, Any]], evidence_items: List[
         )
 
     return conflicts[:4]
+
+
+def build_code_execution_proposal(
+    artifact_id: str,
+    description: str = "",
+) -> Dict[str, Any]:
+    """Generate a structured code execution proposal for Agent review."""
+    return {
+        "artifactId": clean_text(artifact_id),
+        "description": clean_text(description)[:300],
+        "templateId": "descriptive-statistics-v1",
+        "createdAt": _utc_now(),
+    }
+
+
+def _utc_now() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def execute_run(

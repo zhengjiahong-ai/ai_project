@@ -6,9 +6,11 @@ from unittest.mock import Mock, patch
 from services import trace_service
 from services.agent_orchestrator import (
     build_agent_outputs,
+    build_code_execution_proposal,
     build_external_search_queries,
     build_minimal_report,
     build_plan_items,
+    build_review_plan_items,
     collect_project_evidence,
     execute_run,
     retrieve_external_agent_evidence,
@@ -434,6 +436,86 @@ class AgentOrchestratorTests(unittest.TestCase):
         self.assertIn("externalEvidenceCount", finding)
         self.assertEqual(finding["externalEvidenceCount"], 1)
         self.assertIn("external-doi-abc123", finding["sourceIds"])
+
+    def test_build_code_execution_proposal_produces_valid_structure(self):
+        proposal = build_code_execution_proposal("artifact-abc123", "Test analysis of CSV data.")
+
+        self.assertIn("artifactId", proposal)
+        self.assertEqual(proposal["artifactId"], "artifact-abc123")
+        self.assertIn("description", proposal)
+        self.assertEqual(proposal["templateId"], "descriptive-statistics-v1")
+        self.assertIn("createdAt", proposal)
+        self.assertEqual(proposal["description"], "Test analysis of CSV data.")
+
+    def test_build_code_execution_proposal_truncates_long_description(self):
+        proposal = build_code_execution_proposal("artifact-x", "a" * 500)
+
+        self.assertEqual(proposal["artifactId"], "artifact-x")
+        self.assertLessEqual(len(proposal["description"]), 300)
+
+    def test_build_review_plan_items_includes_code_execution_field(self):
+        items = build_review_plan_items("compare methods", ["paper-a", "paper-b"])
+
+        experiment_items = [item for item in items if item.get("id") == "experiment"]
+        self.assertEqual(len(experiment_items), 1)
+        experiment = experiment_items[0]
+        self.assertIn("allowCodeExecution", experiment)
+        self.assertFalse(experiment["allowCodeExecution"])
+        self.assertEqual(experiment["label"], "Code execution experiment")
+
+    def test_build_minimal_report_includes_code_artifacts_section(self):
+        paper_contexts = [
+            {"pdfId": "paper-a", "evidenceCount": 2, "sourceIds": ["a-1"], "preview": "method", "status": "succeeded"},
+        ]
+        evidence_items = [
+            {"sourceId": "a-1", "text": "method evidence", "pdfId": "paper-a", "sectionId": "method"},
+        ]
+        conflicts = [
+            {"id": "no-major-conflict", "severity": "low", "claim": "No conflict.",
+             "papers": ["paper-a"], "summary": "No conflict.", "sourceIds": ["a-1"], "resolutionHint": "Continue."}
+        ]
+        open_questions = ["Need more evidence."]
+        code_execution_results = [
+            {"artifactId": "artifact-abc", "jobId": "job-test", "rowCount": 150, "columns": 8}
+        ]
+
+        report = build_minimal_report(
+            prompt="compare methods",
+            project={"title": "Project A"},
+            paper_contexts=paper_contexts,
+            evidence_items=evidence_items,
+            conflicts=conflicts,
+            open_questions=open_questions,
+            code_execution_results=code_execution_results,
+        )
+
+        self.assertIn("## Code-Computed Artifacts", report)
+        self.assertIn("artifact-abc", report)
+        self.assertIn("job-test", report)
+
+    def test_build_minimal_report_no_code_section_when_no_results(self):
+        paper_contexts = [
+            {"pdfId": "paper-a", "evidenceCount": 2, "sourceIds": ["a-1"], "preview": "method", "status": "succeeded"},
+        ]
+        evidence_items = [
+            {"sourceId": "a-1", "text": "method evidence", "pdfId": "paper-a", "sectionId": "method"},
+        ]
+        conflicts = [
+            {"id": "no-major-conflict", "severity": "low", "claim": "No conflict.",
+             "papers": ["paper-a"], "summary": "No conflict.", "sourceIds": ["a-1"], "resolutionHint": "Continue."}
+        ]
+        open_questions = ["Need more evidence."]
+
+        report = build_minimal_report(
+            prompt="compare methods",
+            project={"title": "Project A"},
+            paper_contexts=paper_contexts,
+            evidence_items=evidence_items,
+            conflicts=conflicts,
+            open_questions=open_questions,
+        )
+
+        self.assertNotIn("## Code-Computed Artifacts", report)
 
 
 if __name__ == "__main__":

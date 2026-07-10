@@ -91,7 +91,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         contracts = registry.list_tools()
 
         self.assertEqual(registry.schemaVersion, "1.0")
-        self.assertEqual(len(contracts), 9)
+        self.assertEqual(len(contracts), 10)
         self.assertEqual(
             set(contracts[0]),
             {"name", "version", "description", "inputSchema", "outputSchema", "safetyScope"},
@@ -352,6 +352,129 @@ class ToolRegistryContractTests(unittest.TestCase):
         self.assertEqual(captured["payload"]["query"], "changed")
         self.assertEqual(handler_output["items"][0]["text"], "result")
         self.assertEqual(definition.version, "1.0.0")
+
+
+    def test_descriptive_statistics_tool_has_restricted_versioned_contract(self):
+        registry = get_tool_registry()
+        contract = next(item for item in registry.list_tools() if item["name"] == "run_descriptive_statistics")
+
+        self.assertEqual(contract["version"], "1.0.0")
+        self.assertEqual(contract["inputSchema"], {
+            "type": "object",
+            "required": ["artifactId"],
+            "properties": {
+                "artifactId": {"type": "string", "minLength": 1, "maxLength": 128},
+            },
+            "additionalProperties": False,
+        })
+        self.assertEqual(contract["safetyScope"], {
+            "access": "restricted",
+            "dataScopes": ["code_execution_artifact"],
+            "networkAccess": False,
+            "sideEffects": True,
+            "sensitiveOutput": True,
+        })
+        self.assertEqual(contract["outputSchema"]["required"], ["status", "jobId", "artifactId", "templateId"])
+        self.assertFalse(contract["outputSchema"]["additionalProperties"])
+
+    def test_descriptive_statistics_tool_input_validation_rejects_unsafe_inputs(self):
+        registry = get_tool_registry()
+        invalid_cases = [
+            ({}, "required field is missing"),
+            ({"artifactId": ""}, "length must be at least 1"),
+            ({"artifactId": "a" * 129}, "maxLength"),
+            ({"artifactId": "valid-id", "scriptText": "print(1)"}, "unknown field"),
+            ({"artifactId": "valid-id", "templateId": "evil"}, "unknown field"),
+        ]
+        for payload, pattern in invalid_cases:
+            with self.subTest(payload=payload):
+                with self.assertRaisesRegex(ToolValidationError, pattern):
+                    registry.invoke("run_descriptive_statistics", payload)
+
+    def test_descriptive_statistics_tool_rejects_invalid_artifact_ids(self):
+        registry = get_tool_registry()
+        malicious_ids = [
+            "../../../etc/passwd",
+            "/absolute/path/to/file",
+            "C:\\Windows\\System32",
+            "$(whoami)",
+            "`rm -rf /`",
+            "artifact; ls",
+        ]
+        for artifact_id in malicious_ids:
+            with self.subTest(artifactId=artifact_id):
+                with self.assertRaises(ToolValidationError):
+                    registry.invoke("run_descriptive_statistics", {"artifactId": artifact_id})
+
+    def test_descriptive_statistics_tool_creates_job_reference_with_fixed_template(self):
+        import hashlib
+        from code_worker import FIXED_TEMPLATE_TEXT
+
+        registry = get_tool_registry()
+        result = registry.invoke("run_descriptive_statistics", {"artifactId": "artifact-00000000000000000000000000000000"})
+
+        self.assertEqual(result["status"], "awaiting_approval")
+        self.assertTrue(result["jobId"])
+        self.assertEqual(result["artifactId"], "artifact-00000000000000000000000000000000")
+        self.assertEqual(result["templateId"], "descriptive-statistics-v1")
+        self.assertIn("message", result)
+        self.assertNotIn("scriptText", result)
+        self.assertNotIn("scriptDigest", result)
+        self.assertNotIn(FIXED_TEMPLATE_TEXT[:40], str(result))
+
+    def test_descriptive_statistics_tool_never_accepts_script_text_from_payload(self):
+        registry = get_tool_registry()
+        for malicious_script in ["print('hello')", "import os; os.system('ls')", "", " " * 10]:
+            with self.subTest(script=malicious_script[:40]):
+                with self.assertRaises(ToolValidationError):
+                    registry.invoke("run_descriptive_statistics", {
+                        "artifactId": "artifact-test",
+                        "scriptText": malicious_script,
+                    })
+
+    def test_descriptive_statistics_tool_is_not_exposed_through_mcp(self):
+        registry = get_tool_registry()
+        contract = next(item for item in registry.list_tools() if item["name"] == "run_descriptive_statistics")
+
+        self.assertNotEqual(contract["safetyScope"]["access"], "read_only")
+        self.assertTrue(contract["safetyScope"]["sideEffects"])
+
+    def test_restricted_safety_scope_enforces_access_sideeffects_consistency(self):
+        registry = ToolRegistry()
+        inconsistent_cases = [
+            ({"access": "restricted", "dataScopes": ["test"], "networkAccess": False, "sideEffects": False, "sensitiveOutput": True},
+             r"sideEffects must be true"),
+            ({"access": "read_only", "dataScopes": ["test"], "networkAccess": False, "sideEffects": True, "sensitiveOutput": True},
+             r"sideEffects must be false"),
+            ({"access": "execute", "dataScopes": ["test"], "networkAccess": False, "sideEffects": True, "sensitiveOutput": True},
+             "unknown access"),
+        ]
+        for scope_dict, expected_pattern in inconsistent_cases:
+            with self.subTest(scope=scope_dict):
+                with self.assertRaisesRegex(ToolValidationError, expected_pattern):
+                    registry.register(
+                        name="inconsistent_tool",
+                        version="1.0.0",
+                        description="Should be rejected.",
+                        input_schema=VALID_INPUT_SCHEMA,
+                        handler=lambda p: {"items": []},
+                        output_schema=VALID_OUTPUT_SCHEMA,
+                        safety_scope=scope_dict,
+                    )
+
+    def test_existing_tools_keep_read_only_safety_scopes(self):
+        registry = get_tool_registry()
+        for contract in registry.list_tools():
+            if contract["name"] == "run_descriptive_statistics":
+                continue
+            self.assertEqual(
+                contract["safetyScope"]["access"], "read_only",
+                f"{contract['name']} must remain read_only",
+            )
+            self.assertFalse(
+                contract["safetyScope"]["sideEffects"],
+                f"{contract['name']} must remain sideEffects=false",
+            )
 
 
 if __name__ == "__main__":

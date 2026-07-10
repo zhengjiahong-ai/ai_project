@@ -26,7 +26,15 @@
 
 - 内部注册表包含版本 `1.0.0` 的 `retrieve_external_academic`，用于后续 Deep Research 和 Agent 通过统一工具契约访问受控学术 Provider；默认配置下只返回结构化禁用状态。
 - 该工具声明 `networkAccess=true` 和 `dataScopes=["external_academic_metadata"]`，因此不满足 MCP 的封闭网络与数据范围策略；`MCP_ALLOWED_TOOL_NAMES` 仍严格只有 `read_paper_skeleton`、`retrieve_current_paper`、`retrieve_library`。
-- 本阶段不修改 MCP `tools/list`、调用 allowlist 或运行时预算。通过 MCP 调用 `retrieve_external_academic` 必须继续返回“不可用”错误，不能绕过内部工具的启用、Provider 或安全边界。
+- 本阶段不修改 MCP `tools/list`、调用 allowlist 或运行时预算。通过 MCP 调用 `retrieve_external_academic` 必须继续返回”不可用”错误，不能绕过内部工具的启用、Provider 或安全边界。
+
+## 代码执行工具边界
+
+- 内部注册表包含版本 `1.0.0` 的 `run_descriptive_statistics`，用于让 Deep Research 和 Agent 通过统一工具契约提议创建代码执行任务；该工具只接受已批准的 artifact ID，不能提交任意脚本或修改固定模板。
+- 该工具声明 `access=”restricted”`、`sideEffects=true` 和 `dataScopes=[“code_execution_artifact”]`，因此不满足 MCP 的只读、无副作用策略；`MCP_ALLOWED_TOOL_NAMES` 仍严格只有 `read_paper_skeleton`、`retrieve_current_paper`、`retrieve_library`，不包含 `run_descriptive_statistics`。
+- `_is_safe_contract()` 过滤逻辑已拒绝 `access≠read_only` 或 `sideEffects≠false` 的工具，因此即使不修改 MCP allowlist，该工具也无法通过 MCP 暴露。
+- 通过该工具创建的任务仍需要经过 P5-07 的双重人工审批（执行审批和发布审批）才能在沙箱中运行，Agent 不能自行批准或直接执行。
+- 本阶段不修改 MCP `tools/list`、调用 allowlist 或运行时预算。通过 MCP 调用 `run_descriptive_statistics` 必须返回”不可用”错误。
 
 ## 非目标
 

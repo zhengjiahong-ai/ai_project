@@ -2,6 +2,14 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-10 v0.1.78
+
+1. **注册单一受限数据分析工具**：内部工具注册表新增 `run_descriptive_statistics`，只接受已批准的 artifact ID，使用不可修改的固定模板创建代码执行任务；Agent 无法注入脚本或绕过审批。
+2. **扩展安全范围验证**：`safetyScope` 新增 `restricted` 访问级别，与 `sideEffects=true` 强绑定；已有 9 个工具的 `read_only` 安全范围保持不变。
+3. **接入 Agent 显式实验工作流**：Agent 任务新增 `codeExecutionConfig` 字段和 `awaiting_tool_approval` 暂停状态；计划审查支持授权代码执行实验，Agent 产出 proposal 后暂停等待用户审批。
+4. **报告区分三类证据来源**：Agent 报告新增"代码计算产物"章节，清晰区分论文证据、外部学术证据和代码计算产物。
+5. **补齐持久化与恢复语义**：`codeExecutionConfig` 通过 SQLite 持久化，`awaiting_tool_approval` 状态在服务重启后保持不变；旧快照缺少新字段时自动兼容为空默认值。
+
 ### 2026-07-08 v0.1.77
 
 1. **完成 Agent 公开资源化迁移**：Python、Java 与共享契约新增 `workspace`、`runs`、`run`、`plan-review`、`final-review`、`artifacts` 和 `timeline` 资源接口，Agent 对外主写路径转向 `agent-projects/{projectId}/runs`，主读路径转向 `agent-projects/{projectId}/workspace`。
