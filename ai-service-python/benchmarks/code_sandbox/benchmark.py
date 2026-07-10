@@ -21,8 +21,20 @@ REQUIRED_PROBES = (
     "cpu_limit",
     "memory_limit",
     "stdout_limit",
+    "path_traversal",
+    "symlink_escape",
+    "env_leak",
+    "dns_resolution",
+    "docker_socket",
+    "fork_bomb",
+    "formula_injection",
     "cleanup",
 )
+
+ADVERSARIAL_PROBES = {
+    "path_traversal", "symlink_escape", "env_leak", "dns_resolution",
+    "docker_socket", "fork_bomb", "formula_injection",
+}
 ENVIRONMENT_FIELDS = ("os", "python", "dockerEngine", "imageDigest")
 
 
@@ -47,10 +59,15 @@ def _score_candidate(candidate):
     cleanup = candidate.get("cleanup") or {}
     if cleanup.get("status") != "passed" and "cleanup" not in failed:
         failed.append("cleanup")
+    escape_vectors = [
+        name for name in failed
+        if name in ADVERSARIAL_PROBES
+    ]
     return {
         **candidate,
         "eligible": bool(candidate.get("available")) and not failed,
         "failedRequirements": failed,
+        "escapeVectorsFound": escape_vectors,
     }
 
 
@@ -58,18 +75,39 @@ def build_benchmark_result(environment, candidates, generated_at=None):
     scored = {item["name"]: _score_candidate(item) for item in candidates}
     docker = scored.get("docker") or {}
     docker_passed = docker.get("eligible") is True
+    escape_vectors = docker.get("escapeVectorsFound") or []
+    no_escapes = docker_passed and not escape_vectors
     return {
         "schemaVersion": "1.0",
         "generatedAt": generated_at or _utc_now(),
         "environment": sanitize_environment(environment),
         "limits": dict(LIMITS),
         "requiredProbes": list(REQUIRED_PROBES),
+        "adversarialProbes": sorted(ADVERSARIAL_PROBES),
         "candidates": scored,
         "decision": {
-            "status": "continue_to_p5_03" if docker_passed else "stop_p5",
+            "status": "continue_limited" if no_escapes else ("stop_p5" if not docker_passed else "continue_to_p5_03"),
             "selectedCandidate": "docker" if docker_passed else None,
             "productionAuthorized": False,
-            "reasonCode": "docker_all_requirements_passed" if docker_passed else "no_eligible_sandbox",
+            "reasonCode": (
+                "all_probes_passed_no_escapes_limited_open" if no_escapes
+                else "escape_vectors_found" if escape_vectors
+                else "docker_all_requirements_passed" if docker_passed
+                else "no_eligible_sandbox"
+            ),
+            "escapeVectorsFound": escape_vectors,
+            "authorizedCapabilities": ["descriptive_statistics_on_approved_csv"] if no_escapes else [],
+            "permanentlyForbidden": [
+                "run_shell", "run_python", "arbitrary_code", "network_access",
+                "package_install", "filesystem_write",
+            ],
+            "conditions": [
+                "Dual human approval required before execution",
+                "Dual human approval required before publication",
+                "Only fixed template scripts allowed",
+                "Network always disabled in sandbox",
+                "All adversarial probes must pass before any demo",
+            ] if no_escapes else [],
         },
     }
 

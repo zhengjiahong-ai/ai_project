@@ -1,0 +1,9 @@
+name,value
+=cmd|'calc'!A0,1
++shell:explorer,2
+-shutdown -r now,3
+@SUM(1+2),4
+=DDE("cmd","/c notepad","",5
++system("rm -rf /"),6
+-malicious & command,7
+@CONCATENATE("A","B"),8

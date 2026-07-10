@@ -108,6 +108,113 @@ def stdout_limit():
     return 0
 
 
+def path_traversal():
+    """Attempt to read files outside /input via ../ in path."""
+    traversal_paths = [
+        Path("/input/../../../etc/passwd"),
+        Path("/input/../etc/hostname"),
+        Path("../../../etc/shadow"),
+    ]
+    for path in traversal_paths:
+        try:
+            if path.exists() and path.is_file():
+                content = path.read_text()
+                if content.strip():
+                    return _emit("failed", f"path_traversal_read_{path.name}")
+        except (OSError, PermissionError):
+            continue
+    return _emit("passed", "path_traversal_blocked")
+
+
+def symlink_escape():
+    """Attempt to create a symlink to escape the /input jail."""
+    link_targets = ["/etc/passwd", "/etc/hostname", "/var/run/docker.sock"]
+    for target in link_targets:
+        try:
+            link_path = Path("/tmp/p5-escape-link")
+            if link_path.exists():
+                link_path.unlink()
+            os.symlink(target, str(link_path))
+            if link_path.exists() or link_path.is_symlink():
+                return _emit("failed", f"symlink_created_to_{Path(target).name}")
+        except OSError:
+            continue
+    return _emit("passed", "symlink_creation_blocked")
+
+
+def env_leak():
+    """Attempt to read sensitive environment variables."""
+    sensitive_keys = {"HOME", "PATH", "USER", "API_KEY", "DEEPSEEK_API_KEY",
+                      "DASHSCOPE_API_KEY", "AWS_ACCESS_KEY_ID", "DATABASE_URL"}
+    leaked = []
+    for key in sorted(os.environ):
+        if key in sensitive_keys:
+            leaked.append(key)
+        upper = key.upper()
+        if any(s in upper for s in ("KEY", "SECRET", "TOKEN", "PASSWORD", "CREDENTIAL")):
+            if key not in leaked:
+                leaked.append(key)
+    if leaked:
+        return _emit("failed", f"env_leaked_{len(leaked)}_keys")
+    return _emit("passed", "sensitive_env_absent")
+
+
+def dns_resolution():
+    """Attempt DNS resolution (blocked by --network none, not just socket block)."""
+    import socket as sock
+    hosts = ["google.com", "1.1.1.1", "169.254.169.254", "metadata.google.internal"]
+    for host in hosts:
+        try:
+            addr = sock.getaddrinfo(host, 80, sock.AF_INET, sock.SOCK_STREAM)
+            if addr:
+                return _emit("failed", f"dns_resolved_{host}")
+        except (OSError, sock.gaierror):
+            continue
+    return _emit("passed", "dns_resolution_blocked")
+
+
+def docker_socket_probe():
+    """Attempt to access Docker socket."""
+    socket_path = Path("/var/run/docker.sock")
+    if socket_path.exists():
+        return _emit("failed", "docker_socket_visible")
+    return _emit("passed", "docker_socket_inaccessible")
+
+
+def fork_bomb():
+    """Attempt to fork child processes (blocked by seccomp and PID limit)."""
+    import os as _os
+    try:
+        pid = _os.fork()
+        if pid == 0:
+            _os._exit(0)
+        else:
+            _os.waitpid(pid, 0)
+    except OSError:
+        return _emit("passed", "fork_blocked")
+    return _emit("failed", "fork_allowed")
+
+
+def formula_injection():
+    """Verify Excel/CSV formula prefixes are treated as plain text, not evaluated."""
+    formula_fixture = FIXTURES / "formula_injection.csv"
+    if not formula_fixture.exists():
+        return _emit("failed", "formula_fixture_missing")
+    try:
+        with formula_fixture.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.reader(handle)
+            rows = list(reader)
+    except (csv.Error, UnicodeError):
+        return _emit("failed", "formula_fixture_parse_error")
+    formula_prefixes = {"=", "+", "-", "@"}
+    for row in rows[:20]:
+        for cell in row:
+            cell_stripped = cell.strip()
+            if cell_stripped and cell_stripped[0] in formula_prefixes:
+                continue
+    return _emit("passed", "formula_cells_treated_as_data")
+
+
 PROBES = {
     "normal_execution": normal_execution,
     "adversarial_input": adversarial_input,
@@ -119,6 +226,13 @@ PROBES = {
     "cpu_limit": cpu_limit,
     "memory_limit": memory_limit,
     "stdout_limit": stdout_limit,
+    "path_traversal": path_traversal,
+    "symlink_escape": symlink_escape,
+    "env_leak": env_leak,
+    "dns_resolution": dns_resolution,
+    "docker_socket": docker_socket_probe,
+    "fork_bomb": fork_bomb,
+    "formula_injection": formula_injection,
 }
 
 

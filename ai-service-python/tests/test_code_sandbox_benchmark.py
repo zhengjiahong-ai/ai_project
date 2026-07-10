@@ -34,16 +34,18 @@ def _candidate(name="docker", *, failed_probe=None):
 
 
 class CodeSandboxScoringTests(unittest.TestCase):
-    def test_all_required_docker_probes_allow_only_p5_03_planning(self):
+    def test_all_required_docker_probes_allow_limited_open_with_no_escapes(self):
         result = build_benchmark_result(
             environment={"os": "Windows", "python": "3.13.9"},
             candidates=[_candidate("docker"), _candidate("windows_job_object", failed_probe="network")],
         )
 
         self.assertEqual(result["schemaVersion"], "1.0")
-        self.assertEqual(result["decision"]["status"], "continue_to_p5_03")
+        self.assertEqual(result["decision"]["status"], "continue_limited")
         self.assertEqual(result["decision"]["selectedCandidate"], "docker")
         self.assertFalse(result["decision"]["productionAuthorized"])
+        self.assertEqual(result["decision"]["authorizedCapabilities"], ["descriptive_statistics_on_approved_csv"])
+        self.assertEqual(result["decision"]["escapeVectorsFound"], [])
         self.assertTrue(result["candidates"]["docker"]["eligible"])
         self.assertFalse(result["candidates"]["windows_job_object"]["eligible"])
 

@@ -24,13 +24,25 @@ LIMITS = {
 PROBE_NAMES = (
     "normal_execution", "adversarial_input", "network", "host_canary", "read_only_input",
     "temporary_output", "subprocess", "cpu_limit", "memory_limit", "stdout_limit",
+    "path_traversal", "symlink_escape", "env_leak", "dns_resolution", "docker_socket",
+    "fork_bomb", "formula_injection",
 )
 RESOURCE_PROBES = {"cpu_limit", "memory_limit", "stdout_limit"}
 LABEL = "pixiu.p5_02=benchmark"
 
 
 def _safe_detail(value):
-    allowed = {"bounded_json_created", "adversarial_csv_treated_as_data", "adversarial_fixture_validation_failed", "socket_creation_blocked", "socket_creation_allowed", "host_canary_inaccessible", "host_canary_visible", "input_write_blocked", "input_write_allowed", "root_write_blocked", "root_write_allowed", "subprocess_blocked"}
+    allowed = {
+        "bounded_json_created", "adversarial_csv_treated_as_data",
+        "adversarial_fixture_validation_failed", "socket_creation_blocked",
+        "socket_creation_allowed", "host_canary_inaccessible", "host_canary_visible",
+        "input_write_blocked", "input_write_allowed", "root_write_blocked",
+        "root_write_allowed", "subprocess_blocked",
+        "path_traversal_blocked", "symlink_creation_blocked",
+        "sensitive_env_absent", "dns_resolution_blocked",
+        "docker_socket_inaccessible", "fork_blocked",
+        "formula_cells_treated_as_data",
+    }
     if value in allowed or str(value).startswith("subprocess_allowed_"):
         return str(value)
     return "bounded_failure"

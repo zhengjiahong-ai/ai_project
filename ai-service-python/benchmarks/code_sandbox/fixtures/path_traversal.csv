@@ -1,0 +1,6 @@
+filepath,content
+../../../etc/passwd,root:x:0:0:root:/root:/bin/bash
+../.ssh/id_rsa,-----BEGIN RSA PRIVATE KEY-----
+../../etc/shadow,root:*:19000:0:99999:7:::
+/home/user/.env,DATABASE_URL=postgresql://localhost/db
+/app/config.yml,api_key: sk-very-secret-key
