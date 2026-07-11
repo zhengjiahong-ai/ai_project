@@ -5,8 +5,9 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Protocol, runti
 
 EXTERNAL_SEARCH_ENABLED_ENV = "PIXIU_EXTERNAL_SEARCH_ENABLED"
 EXTERNAL_SEARCH_PROVIDER_ENV = "PIXIU_EXTERNAL_SEARCH_PROVIDER"
+EXTERNAL_SEARCH_PROVIDERS_ENV = "PIXIU_EXTERNAL_SEARCH_PROVIDERS"
 ENABLED_VALUES = {"1", "true", "yes", "on"}
-SUPPORTED_PROVIDERS = {"crossref", "semantic_scholar"}
+SUPPORTED_PROVIDERS = {"crossref", "semantic_scholar", "arxiv"}
 
 
 class ExternalSearchConfigurationError(ValueError):
@@ -17,6 +18,8 @@ class ExternalSearchConfigurationError(ValueError):
 class ExternalSearchProvider(Protocol):
     name: str
     enabled: bool
+    supports_web_search: bool
+    supports_page_fetch: bool
 
     def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         ...
@@ -28,6 +31,8 @@ class ExternalSearchProvider(Protocol):
 class DisabledExternalSearchProvider:
     name = "disabled"
     enabled = False
+    supports_web_search = False
+    supports_page_fetch = False
 
     def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         return []
@@ -49,6 +54,12 @@ def _build_crossref_provider(config: Mapping[str, str]) -> ExternalSearchProvide
     return build_crossref_provider(config)
 
 
+def _build_arxiv_provider(config: Mapping[str, str]) -> ExternalSearchProvider:
+    from services.providers.arxiv_provider import build_arxiv_provider
+
+    return build_arxiv_provider(config)
+
+
 def create_external_search_provider(
     environ: Optional[Mapping[str, str]] = None,
     builders: Optional[Mapping[str, ProviderBuilder]] = None,
@@ -58,17 +69,22 @@ def create_external_search_provider(
     if not enabled:
         return DisabledExternalSearchProvider()
 
+    providers_env = str(source.get(EXTERNAL_SEARCH_PROVIDERS_ENV, "")).strip()
+    if providers_env:
+        return _create_multi_provider(providers_env, source, builders)
+
     provider_name = str(source.get(EXTERNAL_SEARCH_PROVIDER_ENV, "")).strip().lower()
     if not provider_name:
         raise ExternalSearchConfigurationError(
-            "PIXIU_EXTERNAL_SEARCH_PROVIDER is required when external search is enabled."
+            "PIXIU_EXTERNAL_SEARCH_PROVIDER is required when external search is enabled "
+            "(or set PIXIU_EXTERNAL_SEARCH_PROVIDERS for multi-provider mode)."
         )
     if provider_name not in SUPPORTED_PROVIDERS:
         raise ExternalSearchConfigurationError(
             "PIXIU_EXTERNAL_SEARCH_PROVIDER must be one of: crossref, semantic_scholar."
         )
 
-    registry = {"crossref": _build_crossref_provider} if builders is None else builders
+    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider} if builders is None else builders
     builder = registry.get(provider_name)
     if builder is None:
         raise ExternalSearchConfigurationError(
@@ -92,3 +108,61 @@ def create_external_search_provider(
             "External search provider builder returned an invalid provider."
         )
     return provider
+
+
+def _create_multi_provider(
+    providers_env: str,
+    source: Mapping[str, str],
+    builders: Optional[Mapping[str, ProviderBuilder]] = None,
+) -> ExternalSearchProvider:
+    from services.external_search_registry import ExternalSearchProviderRegistry
+
+    requested = [
+        name.strip().lower()
+        for name in providers_env.split(",")
+        if name.strip()
+    ]
+    if not requested:
+        return DisabledExternalSearchProvider()
+
+    seen = set()
+    unique_names = []
+    for name in requested:
+        if name not in seen:
+            seen.add(name)
+            unique_names.append(name)
+
+    unknown = [name for name in unique_names if name not in SUPPORTED_PROVIDERS]
+    if unknown:
+        raise ExternalSearchConfigurationError(
+            f"PIXIU_EXTERNAL_SEARCH_PROVIDERS contains unknown provider(s): {', '.join(sorted(unknown))}. "
+            f"Supported: {', '.join(sorted(SUPPORTED_PROVIDERS))}."
+        )
+
+    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider} if builders is None else builders
+    unimplemented = [name for name in unique_names if name not in registry]
+    if unimplemented:
+        raise ExternalSearchConfigurationError(
+            f"External search provider client(s) not implemented: {', '.join(sorted(unimplemented))}."
+        )
+
+    config = MappingProxyType(dict(source))
+    instances: Dict[str, ExternalSearchProvider] = {}
+    for name in unique_names:
+        try:
+            provider = registry[name](config)
+        except Exception:
+            raise ExternalSearchConfigurationError(
+                f"External search provider '{name}' could not be created."
+            ) from None
+        if (
+            not isinstance(provider, ExternalSearchProvider)
+            or provider.enabled is not True
+            or str(provider.name).strip().lower() != name
+        ):
+            raise ExternalSearchConfigurationError(
+                f"External search provider builder for '{name}' returned an invalid provider."
+            )
+        instances[name] = provider
+
+    return ExternalSearchProviderRegistry(instances)

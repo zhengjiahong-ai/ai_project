@@ -10,9 +10,11 @@ from services.external_search_provider import (
 class _EnabledProvider:
     name = "crossref"
     enabled = True
+    supports_web_search = False
+    supports_page_fetch = False
 
     def search(self, query, limit=5):
-        return [{"query": query, "limit": limit}]
+        return [{"query": query, "limit": limit, "provider": self.name, "title": f"Result for {query}", "doi": f"10.1000/test-{hash(query) % 100000}"}]
 
     def status(self):
         return {"enabled": True, "status": "ready", "provider": self.name}

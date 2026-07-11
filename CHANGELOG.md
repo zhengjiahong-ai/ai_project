@@ -2,6 +2,14 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-11 v0.1.80
+
+1. **新增多 Provider 注册中心**：`ExternalSearchProviderRegistry` 支持通过 `PIXIU_EXTERNAL_SEARCH_PROVIDERS=crossref,arxiv` 逗号分隔同时启用多个 Provider；`search_all(query, limit)` 使用线程池并发搜索并去重合并；Protocol 新增 `supports_web_search` 和 `supports_page_fetch` 能力标记；向后兼容单 `PIXIU_EXTERNAL_SEARCH_PROVIDER` 配置。
+2. **实现 ArXiv API Provider**：新增 `ArxivProvider`，通过 `https://export.arxiv.org/api/query` 免费检索论文元数据（无需 API Key）；Atom XML 响应解析后归一化为统一外部证据模型，支持标题/作者/年份/摘要/DOI/URL/许可；HTTP 超时、重试、速率限制和缓存与 Crossref 一致。
+3. **修复 ArXiv 摘要解析**：使用 `itertext()` 正确处理包含子元素（如 `<em>`）的摘要文本；引入 BeautifulSoup 清洗 HTML 标签。
+4. **更新工具注册层**：`_retrieve_external_academic_tool` 新增 `_resolve_provider_display_name()` 和 `_resolve_provider_names_list()`，Registry 模式下 trace 记录所有子 Provider 名称。
+5. **补齐 gitignore 白名单**：新增 `test_arxiv_provider.py` 和 `test_external_search_registry.py` 到 Git 跟踪范围。
+
 ### 2026-07-10 v0.1.79
 
 1. **完成沙箱逃逸对抗测试**：新增 7 项攻击探针覆盖路径穿越、符号链接、环境变量泄露、DNS 解析、Docker socket、fork 炸弹和 CSV 公式注入，Docker 沙箱全部 18 项探针通过，无可利用逃逸向量。

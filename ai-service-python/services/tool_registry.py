@@ -594,7 +594,7 @@ def _retrieve_external_academic_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ToolValidationError("retrieve_external_academic yearFrom must not exceed yearTo.")
 
     provider = _get_external_search_provider()
-    provider_name = _clean_text(provider.name).lower() or "unknown"
+    provider_name = _resolve_provider_display_name(provider)
     query_summary = summarize_external_search_query(query)
     with trace_step(
         "tool_retrieve_external_academic",
@@ -669,6 +669,7 @@ def _retrieve_external_academic_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
             **step.get("meta", {}),
             "status": "success",
             "latencyMs": elapsed_ms,
+            "providers": _resolve_provider_names_list(provider),
             "budget": _external_search_budget_snapshot(),
         }
         return {
@@ -683,6 +684,28 @@ def _get_external_search_provider() -> Any:
     if _DEFAULT_EXTERNAL_SEARCH_PROVIDER is None:
         _DEFAULT_EXTERNAL_SEARCH_PROVIDER = create_external_search_provider()
     return _DEFAULT_EXTERNAL_SEARCH_PROVIDER
+
+
+def _resolve_provider_display_name(provider: Any) -> str:
+    """Resolve a human-readable provider name for trace/log output.
+
+    For a single provider, returns its name. For a registry, returns a
+    comma-separated list of sub-provider names.
+    """
+    raw_name = _clean_text(getattr(provider, "name", "")) or "unknown"
+    if raw_name == "multi":
+        names = _resolve_provider_names_list(provider)
+        if names:
+            return ", ".join(names)
+    return raw_name
+
+
+def _resolve_provider_names_list(provider: Any) -> list:
+    """Return the sorted list of individual provider names, or empty list."""
+    try:
+        return provider.provider_names
+    except AttributeError:
+        return []
 
 
 def _external_search_budget_snapshot() -> Dict[str, int]:
