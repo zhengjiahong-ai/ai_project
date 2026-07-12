@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.89
+
+1. **LLM 驱动的动态查询提炼**：`external_query_planner.py` 新增 `refine_search_queries()`，基于前轮搜索结果使用 flash LLM（deepseek-v4-flash, temp 0.3）动态生成 1-3 条精炼查询；LLM 失败时自动降级为确定性 `build_web_search_queries()`；已集成到 `agentic_search_loop.py` 的迭代搜索（从第二轮起优先使用）。
+
 ### 2026-07-12 v0.1.88
 
 1. **实现多轮搜索编排器**：新增 `agentic_search_loop.py`，`run_agentic_search_loop()` 支持搜索→抓取→评估→再搜索的迭代循环；URL 选取基于信任度（high>medium>low>unknown）+ 关键词重叠 + 描述长度；终止条件含 verdict 满足、coverage 停滞、最大轮数（默认 3，环境变量 `PIXIU_AGENTIC_MAX_ITERATIONS`）、取消信号；已集成到 research_executor 的 web search 阶段（`allowIterativeSearch=true` 时启用）。
