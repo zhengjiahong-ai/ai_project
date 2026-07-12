@@ -1,19 +1,19 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "generatedAt": "2026-06-21T08:20:45.432193Z",
-  "fixtureSchemaVersion": "1.0",
+  "fixtureSchemaVersion": "1.1",
   "qualityFormula": "0.35*hitAt5 + 0.25*meanReciprocalRank + 0.20*abstractCoverage + 0.20*doiCoverage",
   "providers": {
     "crossref": {
       "authMode": "anonymous",
-      "caseCount": 6,
-      "successfulCases": 6,
+      "caseCount": 12,
+      "successfulCases": 12,
       "successRate": 1.0,
       "doiCoverage": 1.0,
-      "abstractCoverage": 0.1,
-      "hitAt5": 0.333333,
-      "meanReciprocalRank": 0.25,
-      "medianLatencyMs": 552,
+      "abstractCoverage": 0.25,
+      "hitAt5": 0.666667,
+      "meanReciprocalRank": 0.625,
+      "medianLatencyMs": 549,
       "p95LatencyMs": 2079,
       "failureCounts": {
         "rateLimited429": 0,
@@ -22,11 +22,11 @@
         "authentication": 0,
         "invalidResponse": 0
       },
-      "qualityScore": 0.399167
+      "qualityScore": 0.639583
     },
     "semantic_scholar": {
       "authMode": "anonymous",
-      "caseCount": 6,
+      "caseCount": 12,
       "successfulCases": 0,
       "successRate": 0.0,
       "doiCoverage": 0.0,
@@ -36,21 +36,45 @@
       "medianLatencyMs": null,
       "p95LatencyMs": null,
       "failureCounts": {
-        "rateLimited429": 6,
+        "rateLimited429": 12,
         "server5xx": 0,
         "timeout": 0,
         "authentication": 0,
         "invalidResponse": 0
       },
       "qualityScore": 0.0
+    },
+    "arxiv": {
+      "authMode": "anonymous",
+      "caseCount": 12,
+      "successfulCases": 12,
+      "successRate": 1.0,
+      "doiCoverage": 1.0,
+      "abstractCoverage": 1.0,
+      "hitAt5": 0.583333,
+      "meanReciprocalRank": 0.583333,
+      "medianLatencyMs": 875,
+      "p95LatencyMs": 1300,
+      "failureCounts": {
+        "rateLimited429": 0,
+        "server5xx": 0,
+        "timeout": 0,
+        "authentication": 0,
+        "invalidResponse": 0
+      },
+      "qualityScore": 0.75
     }
   },
   "selection": {
     "status": "complete",
-    "selectedProvider": "crossref",
+    "recommendedCombination": [
+      "arxiv",
+      "crossref"
+    ],
     "excludedProviders": [
       "semantic_scholar"
     ],
-    "reason": "anonymous_access_unavailable"
+    "productionConfig": "arxiv,crossref",
+    "reason": "semantic_scholar excluded: anonymous 429 rate-limiting (needs API key)"
   }
 }

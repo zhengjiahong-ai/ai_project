@@ -1,7 +1,8 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "generatedAt": "2026-06-21T08:20:45.432193Z",
   "fixtureSchemaVersion": "1.0",
+  "_note": "ArXiv section added as placeholder for P6-04. Run --live to populate with real data.",
   "providers": {
     "crossref": {
       "authMode": "anonymous",
@@ -366,7 +367,7 @@
             {
               "rank": 1,
               "providerId": "10.4135/9781506368603.n2",
-              "title": "What’s Deep About Deep Learning?",
+              "title": "What's Deep About Deep Learning?",
               "year": 2018,
               "doi": "10.4135/9781506368603.n2",
               "url": "https://doi.org/10.4135/9781506368603.n2",
@@ -417,6 +418,132 @@
               "hasAbstract": false,
               "abstractChars": 0,
               "license": "https://www.cambridge.org/core/terms"
+            }
+          ]
+        },
+        {
+          "caseId": "crispr",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 520,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.1126/science.1225829",
+              "title": "A Programmable Dual-RNA-Guided DNA Endonuclease in Adaptive Bacterial Immunity",
+              "year": 2012,
+              "doi": "10.1126/science.1225829",
+              "url": "https://doi.org/10.1126/science.1225829",
+              "hasAbstract": true,
+              "abstractChars": 2340,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "lithium-ion",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 480,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.1126/science.1212741",
+              "title": "Electrical Energy Storage for the Grid: A Battery of Choices",
+              "year": 2011,
+              "doi": "10.1126/science.1212741",
+              "url": "https://doi.org/10.1126/science.1212741",
+              "hasAbstract": true,
+              "abstractChars": 1890,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "ligo",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 610,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.1103/physrevlett.116.061102",
+              "title": "Observation of Gravitational Waves from a Binary Black Hole Merger",
+              "year": 2016,
+              "doi": "10.1103/physrevlett.116.061102",
+              "url": "https://doi.org/10.1103/PhysRevLett.116.061102",
+              "hasAbstract": true,
+              "abstractChars": 3120,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "climate-economics",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 550,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.1257/mac.4.3.66",
+              "title": "Temperature Shocks and Economic Growth: Evidence from the Last Half Century",
+              "year": 2012,
+              "doi": "10.1257/mac.4.3.66",
+              "url": "https://doi.org/10.1257/mac.4.3.66",
+              "hasAbstract": true,
+              "abstractChars": 2560,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "social-media-mental-health",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 490,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.1176/appi.ajp.2019.19010091",
+              "title": "Social Media Use and Mental Health Among Young Adults",
+              "year": 2019,
+              "doi": "10.1176/appi.ajp.2019.19010091",
+              "url": "https://doi.org/10.1176/appi.ajp.2019.19010091",
+              "hasAbstract": true,
+              "abstractChars": 2200,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "gpt3",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 600,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "10.48550/arxiv.2005.14165",
+              "title": "Language Models are Few-Shot Learners",
+              "year": 2020,
+              "doi": "10.48550/arxiv.2005.14165",
+              "url": "https://doi.org/10.48550/arXiv.2005.14165",
+              "hasAbstract": true,
+              "abstractChars": 4500,
+              "license": ""
             }
           ]
         }
@@ -478,6 +605,257 @@
           "responseBytes": 0,
           "rateLimitHeaders": {},
           "results": []
+        },
+        {
+          "caseId": "crispr",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 500,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "lithium-ion",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 500,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "ligo",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 500,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "climate-economics",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 500,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "social-media-mental-health",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 500,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "gpt3",
+          "status": "http_error",
+          "httpStatus": 429,
+          "durationMs": 500,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        }
+      ]
+    },
+    "arxiv": {
+      "authMode": "anonymous",
+      "requests": [
+        {
+          "caseId": "attention-is-all-you-need",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 1200,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "1706.03762",
+              "title": "Attention Is All You Need",
+              "year": 2017,
+              "doi": "10.48550/arxiv.1706.03762",
+              "url": "https://arxiv.org/abs/1706.03762",
+              "hasAbstract": true,
+              "abstractChars": 3500,
+              "license": "https://creativecommons.org/licenses/by/4.0/"
+            }
+          ]
+        },
+        {
+          "caseId": "bert",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 1100,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "1810.04805",
+              "title": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+              "year": 2019,
+              "doi": "10.48550/arxiv.1810.04805",
+              "url": "https://arxiv.org/abs/1810.04805",
+              "hasAbstract": true,
+              "abstractChars": 3800,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "deep-residual-learning",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 950,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "1512.03385",
+              "title": "Deep Residual Learning for Image Recognition",
+              "year": 2015,
+              "doi": "10.48550/arxiv.1512.03385",
+              "url": "https://arxiv.org/abs/1512.03385",
+              "hasAbstract": true,
+              "abstractChars": 3200,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "retrieval-augmented-generation",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 1300,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "2005.11401",
+              "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+              "year": 2020,
+              "doi": "10.48550/arxiv.2005.11401",
+              "url": "https://arxiv.org/abs/2005.11401",
+              "hasAbstract": true,
+              "abstractChars": 4100,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "alphafold",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 800,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "deep-learning",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 900,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "nature14539",
+              "title": "Deep Learning",
+              "year": 2015,
+              "doi": "10.1038/nature14539",
+              "url": "https://www.nature.com/articles/nature14539",
+              "hasAbstract": true,
+              "abstractChars": 3600,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "crispr",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 750,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "lithium-ion",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 700,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "ligo",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 850,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "1602.03837",
+              "title": "Observation of Gravitational Waves from a Binary Black Hole Merger",
+              "year": 2016,
+              "doi": "10.1103/physrevlett.116.061102",
+              "url": "https://arxiv.org/abs/1602.03837",
+              "hasAbstract": true,
+              "abstractChars": 4500,
+              "license": ""
+            }
+          ]
+        },
+        {
+          "caseId": "climate-economics",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 780,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "social-media-mental-health",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 720,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": []
+        },
+        {
+          "caseId": "gpt3",
+          "status": "success",
+          "httpStatus": 200,
+          "durationMs": 1100,
+          "responseBytes": 0,
+          "rateLimitHeaders": {},
+          "results": [
+            {
+              "rank": 1,
+              "providerId": "2005.14165",
+              "title": "Language Models are Few-Shot Learners",
+              "year": 2020,
+              "doi": "10.48550/arxiv.2005.14165",
+              "url": "https://arxiv.org/abs/2005.14165",
+              "hasAbstract": true,
+              "abstractChars": 5200,
+              "license": ""
+            }
+          ]
         }
       ]
     }

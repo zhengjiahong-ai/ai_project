@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.81
+
+1. **实现 Semantic Scholar Provider（带 Key 认证）**：新增 `SemanticScholarProvider`，通过 `https://api.semanticscholar.org/graph/v1/paper/search` 检索论文元数据；支持可选 `SEMANTIC_SCHOLAR_API_KEY` 通过 `x-api-key` header 认证以突破匿名 429 限流；JSON 响应解析后归一化为统一外部证据模型，字段筛选 `title,authors,year,abstract,externalIds,url,publicationVenue`；HTTP 超时、重试、速率限制和缓存与 Crossref/ArXiv 一致。
+2. **完成三 Provider 基准评测与选型决策**：扩展 `provider_benchmark.py` 至 3 Provider × 12 跨学科 query（新增医学/化学/物理学/经济学/社会科学）；新增 ArXiv Atom XML 响应解析与离线评分；`select_provider` 升级为 `select_providers`，输出推荐 Provider 组合和 `productionConfig`；离线 snapshot 确定性评分产出选型结论：推荐组合 `arxiv,crossref`，Semantic Scholar 因匿名 429 限流标记为 excluded。
+3. **补充 Provider 选型文档**：新增 `docs/p6_provider_selection.md`，记录评测方法、12 个跨学科 query、Provider 特性对比、离线评测结果和推荐生产配置。
+
 ### 2026-07-11 v0.1.80
 
 1. **新增多 Provider 注册中心**：`ExternalSearchProviderRegistry` 支持通过 `PIXIU_EXTERNAL_SEARCH_PROVIDERS=crossref,arxiv` 逗号分隔同时启用多个 Provider；`search_all(query, limit)` 使用线程池并发搜索并去重合并；Protocol 新增 `supports_web_search` 和 `supports_page_fetch` 能力标记；向后兼容单 `PIXIU_EXTERNAL_SEARCH_PROVIDER` 配置。

@@ -96,32 +96,29 @@ class ExternalSearchProviderTests(unittest.TestCase):
         self.assertIn("semantic_scholar", str(context.exception))
 
     def test_known_provider_without_client_fails_strictly(self):
+        # Use a custom builder registry where only "crossref" exists to simulate
+        # a provider that is in SUPPORTED_PROVIDERS but has no registered builder.
         with self.assertRaisesRegex(ExternalSearchConfigurationError, "not implemented"):
             create_external_search_provider(
                 environ={
                     "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
-                    "PIXIU_EXTERNAL_SEARCH_PROVIDER": "semantic_scholar",
+                    "PIXIU_EXTERNAL_SEARCH_PROVIDER": "arxiv",
                 },
+                builders={"crossref": lambda c: _EnabledProvider()},
             )
 
-    def test_default_registry_creates_only_crossref(self):
-        provider = create_external_search_provider(
-            environ={
-                "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
-                "PIXIU_EXTERNAL_SEARCH_PROVIDER": "crossref",
-            },
-        )
-
-        self.assertEqual(provider.name, "crossref")
-        self.assertTrue(provider.enabled)
-
-        with self.assertRaisesRegex(ExternalSearchConfigurationError, "not implemented"):
-            create_external_search_provider(
-                environ={
-                    "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
-                    "PIXIU_EXTERNAL_SEARCH_PROVIDER": "semantic_scholar",
-                },
-            )
+    def test_default_registry_creates_all_academic_providers(self):
+        # All three academic providers are now implemented.
+        for provider_name in ("crossref", "arxiv", "semantic_scholar"):
+            with self.subTest(provider=provider_name):
+                provider = create_external_search_provider(
+                    environ={
+                        "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
+                        "PIXIU_EXTERNAL_SEARCH_PROVIDER": provider_name,
+                    },
+                )
+                self.assertEqual(provider.name, provider_name)
+                self.assertTrue(provider.enabled)
 
     def test_builder_failure_is_wrapped_without_leaking_error_text(self):
         def failing_builder(_config):
@@ -139,6 +136,19 @@ class ExternalSearchProviderTests(unittest.TestCase):
         self.assertNotIn("secret-token", str(context.exception))
         self.assertIn("could not be created", str(context.exception))
         self.assertIsNone(context.exception.__cause__)
+
+    def test_semantic_scholar_with_api_key_environ(self):
+        provider = create_external_search_provider(
+            environ={
+                "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
+                "PIXIU_EXTERNAL_SEARCH_PROVIDER": "semantic_scholar",
+                "SEMANTIC_SCHOLAR_API_KEY": "test-key-from-environ",
+            },
+        )
+        self.assertEqual(provider.name, "semantic_scholar")
+        self.assertTrue(provider.enabled)
+        self.assertFalse(provider.supports_web_search)
+        self.assertFalse(provider.supports_page_fetch)
 
     def test_builder_must_return_enabled_provider_contract(self):
         invalid_values = [object(), DisabledExternalSearchProvider()]

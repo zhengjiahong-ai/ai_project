@@ -60,6 +60,12 @@ def _build_arxiv_provider(config: Mapping[str, str]) -> ExternalSearchProvider:
     return build_arxiv_provider(config)
 
 
+def _build_semantic_scholar_provider(config: Mapping[str, str]) -> ExternalSearchProvider:
+    from services.providers.semantic_scholar_provider import build_semantic_scholar_provider
+
+    return build_semantic_scholar_provider(config)
+
+
 def create_external_search_provider(
     environ: Optional[Mapping[str, str]] = None,
     builders: Optional[Mapping[str, ProviderBuilder]] = None,
@@ -81,10 +87,10 @@ def create_external_search_provider(
         )
     if provider_name not in SUPPORTED_PROVIDERS:
         raise ExternalSearchConfigurationError(
-            "PIXIU_EXTERNAL_SEARCH_PROVIDER must be one of: crossref, semantic_scholar."
+            "PIXIU_EXTERNAL_SEARCH_PROVIDER must be one of: crossref, semantic_scholar, arxiv."
         )
 
-    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider} if builders is None else builders
+    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider, "semantic_scholar": _build_semantic_scholar_provider} if builders is None else builders
     builder = registry.get(provider_name)
     if builder is None:
         raise ExternalSearchConfigurationError(
@@ -139,7 +145,7 @@ def _create_multi_provider(
             f"Supported: {', '.join(sorted(SUPPORTED_PROVIDERS))}."
         )
 
-    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider} if builders is None else builders
+    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider, "semantic_scholar": _build_semantic_scholar_provider} if builders is None else builders
     unimplemented = [name for name in unique_names if name not in registry]
     if unimplemented:
         raise ExternalSearchConfigurationError(

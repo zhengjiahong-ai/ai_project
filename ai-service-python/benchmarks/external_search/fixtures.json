@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "cases": [
     {
       "id": "attention-is-all-you-need",
@@ -41,6 +41,48 @@
       "query": "Deep Learning",
       "expectedTitle": "Deep learning",
       "expectedDoi": "10.1038/nature14539",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "crispr",
+      "query": "A programmable dual-RNA-guided DNA endonuclease in adaptive bacterial immunity",
+      "expectedTitle": "A programmable dual-RNA-guided DNA endonuclease in adaptive bacterial immunity",
+      "expectedDoi": "10.1126/science.1225829",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "lithium-ion",
+      "query": "Electrical energy storage for the grid a battery of choices",
+      "expectedTitle": "Electrical energy storage for the grid: a battery of choices",
+      "expectedDoi": "10.1126/science.1212741",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "ligo",
+      "query": "Observation of Gravitational Waves from a Binary Black Hole Merger",
+      "expectedTitle": "Observation of Gravitational Waves from a Binary Black Hole Merger",
+      "expectedDoi": "10.1103/PhysRevLett.116.061102",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "climate-economics",
+      "query": "Temperature shocks and economic growth Evidence from the last half century",
+      "expectedTitle": "Temperature shocks and economic growth: Evidence from the last half century",
+      "expectedDoi": "10.1257/mac.4.3.66",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "social-media-mental-health",
+      "query": "Social media use and mental health among young adults",
+      "expectedTitle": "Social media use and mental health among young adults",
+      "expectedDoi": "10.1176/appi.ajp.2019.19010091",
+      "titleSimilarityThreshold": 0.75
+    },
+    {
+      "id": "gpt3",
+      "query": "Language Models are Few-Shot Learners",
+      "expectedTitle": "Language Models are Few-Shot Learners",
+      "expectedDoi": "10.48550/arXiv.2005.14165",
       "titleSimilarityThreshold": 0.75
     }
   ]

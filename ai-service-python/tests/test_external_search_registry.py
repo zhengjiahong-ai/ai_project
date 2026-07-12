@@ -221,12 +221,14 @@ class ExternalSearchMultiProviderFactoryTests(unittest.TestCase):
             )
 
     def test_multi_provider_unimplemented_fails(self):
+        # Use a custom builder registry where "arxiv" is not implemented.
         with self.assertRaisesRegex(ExternalSearchConfigurationError, "not implemented"):
             create_external_search_provider(
                 environ={
                     "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
-                    "PIXIU_EXTERNAL_SEARCH_PROVIDERS": "semantic_scholar",
+                    "PIXIU_EXTERNAL_SEARCH_PROVIDERS": "crossref,arxiv",
                 },
+                builders={"crossref": lambda c: _EnabledProvider("crossref")},
             )
 
     def test_multi_provider_empty_list_returns_disabled(self):
