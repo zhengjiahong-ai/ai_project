@@ -127,3 +127,116 @@ def _normalize_web_aspects(value: Any, max_chars: int) -> List[str]:
         seen.add(key)
         normalized.append(text)
     return normalized
+
+
+def refine_search_queries(
+    research_question: str,
+    previous_results: list,
+    missing_aspects: list,
+    *,
+    temperature: float = 0.3,
+) -> List[str]:
+    """Use LLM (flash model) to generate refined web search queries.
+
+    Based on previous round results and remaining missing aspects,
+    the LLM generates 1-3 precise search queries prioritizing academic
+    terminology and keyword combinations.
+
+    On LLM failure, falls back to deterministic build_web_search_queries().
+
+    Args:
+        research_question: The main research question.
+        previous_results: List of {title, description/abstract} from prior searches.
+        missing_aspects: Aspects still uncovered.
+        temperature: LLM temperature (default 0.3).
+
+    Returns:
+        List of 1-3 sanitized, deduplicated queries, each ≤300 chars.
+    """
+    from services.safety_service import sanitize_web_search_query_text
+
+    if not previous_results:
+        return build_web_search_queries(
+            research_question=research_question,
+            missing_aspects=missing_aspects,
+        )
+
+    # Build a summary of previous results for the LLM
+    result_lines = []
+    for i, item in enumerate(previous_results[:5]):
+        title = str(item.get("title") or "")[:200]
+        desc = str(item.get("description") or item.get("abstract") or "")[:200]
+        if title:
+            result_lines.append(f"{i + 1}. {title}")
+            if desc:
+                result_lines.append(f"   Description: {desc}")
+
+    missing_text = ", ".join(missing_aspects[:5]) if missing_aspects else "none specified"
+
+    prompt = (
+        f"You are a research query optimizer. Based on previous web search results "
+        f"and remaining knowledge gaps, generate 1-3 refined search queries.\n\n"
+        f"Research question: {research_question[:200]}\n\n"
+        f"Previous search results:\n{chr(10).join(result_lines)}\n\n"
+        f"Remaining missing aspects: {missing_text}\n\n"
+        f"Instructions:\n"
+        f"- Generate 1-3 queries, one per line\n"
+        f"- Prioritize academic terms and precise keyword combinations\n"
+        f"- Each query must be ≤300 characters\n"
+        f"- Focus on filling the specific knowledge gaps\n"
+        f"- Do not include URLs or special characters\n"
+        f"- Output only the queries, no numbering or explanation"
+    )
+
+    raw_output = ""
+    try:
+        from llm.client import DeepSeekLLM
+        llm = DeepSeekLLM(model="deepseek-v4-flash", temperature=temperature)
+        raw_output = llm._call(prompt)
+    except Exception:
+        return build_web_search_queries(
+            research_question=research_question,
+            missing_aspects=missing_aspects,
+        )
+
+    if not raw_output or not raw_output.strip():
+        return build_web_search_queries(
+            research_question=research_question,
+            missing_aspects=missing_aspects,
+        )
+
+    # Parse response: one query per line, strip numbering/bullets
+    queries = []
+    seen = set()
+    for line in raw_output.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        # Strip leading numbering like "1.", "1)", "-", "*"
+        while line and (line[0].isdigit() or line[0] in ".-*#) "):
+            if line[0] in ".) ":
+                line = line[1:].strip()
+                break
+            line = line[1:].strip()
+        if not line:
+            continue
+
+        # Sanitize and truncate
+        query = sanitize_web_search_query_text(line, max_chars=300)
+        if not query:
+            continue
+        key = query.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        queries.append(query)
+        if len(queries) >= 3:
+            break
+
+    if not queries:
+        return build_web_search_queries(
+            research_question=research_question,
+            missing_aspects=missing_aspects,
+        )
+
+    return queries

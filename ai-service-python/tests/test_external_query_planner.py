@@ -185,5 +185,36 @@ class WebSearchQueryPlannerTests(unittest.TestCase):
         self.assertNotIn("curl", joined)
 
 
+class RefineSearchQueriesTests(unittest.TestCase):
+    def test_falls_back_when_no_previous_results(self):
+        from services.external_query_planner import refine_search_queries
+
+        result = refine_search_queries(
+            research_question="transformer attention",
+            previous_results=[],
+            missing_aspects=["computational complexity"],
+        )
+        self.assertGreaterEqual(len(result), 1)
+        for q in result:
+            self.assertLessEqual(len(q), 300)
+
+    def test_refine_returns_sanitized_queries(self):
+        from services.external_query_planner import refine_search_queries
+
+        # With previous results, triggers LLM path (will fail offline → fallback)
+        result = refine_search_queries(
+            research_question="transformer architecture",
+            previous_results=[
+                {"title": "Attention Is All You Need", "description": "Proposes the Transformer architecture."},
+            ],
+            missing_aspects=["training efficiency"],
+        )
+        self.assertGreaterEqual(len(result), 1)
+        self.assertLessEqual(len(result), 3)
+        for q in result:
+            self.assertLessEqual(len(q), 300)
+            self.assertGreater(len(q), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

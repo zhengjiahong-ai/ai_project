@@ -89,11 +89,21 @@ def run_agentic_search_loop(
         if should_cancel and should_cancel():
             break
 
-        # Step 1: Generate web search queries from remaining missing aspects
-        queries = build_web_search_queries(
-            research_question=question,
-            missing_aspects=missing_aspects,
-        )
+        # Step 1: Generate web search queries.
+        # From round 2+, use LLM-driven refinement if we have previous results.
+        if all_web_items:
+            from services.external_query_planner import refine_search_queries
+
+            queries = refine_search_queries(
+                research_question=question,
+                previous_results=all_web_items[-10:],
+                missing_aspects=missing_aspects,
+            )
+        else:
+            queries = build_web_search_queries(
+                research_question=question,
+                missing_aspects=missing_aspects,
+            )
         if not queries:
             break
 
