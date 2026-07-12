@@ -107,8 +107,8 @@ class ExternalSearchProviderTests(unittest.TestCase):
                 builders={"crossref": lambda c: _EnabledProvider()},
             )
 
-    def test_default_registry_creates_all_academic_providers(self):
-        # All three academic providers are now implemented.
+    def test_default_registry_creates_all_providers(self):
+        # Academic providers (no API key needed)
         for provider_name in ("crossref", "arxiv", "semantic_scholar"):
             with self.subTest(provider=provider_name):
                 provider = create_external_search_provider(
@@ -117,6 +117,17 @@ class ExternalSearchProviderTests(unittest.TestCase):
                         "PIXIU_EXTERNAL_SEARCH_PROVIDER": provider_name,
                     },
                 )
+                self.assertEqual(provider.name, provider_name)
+                self.assertTrue(provider.enabled)
+        # Brave and Tavily require API key
+        for provider_name, env_key in (("brave", "BRAVE_SEARCH_API_KEY"), ("tavily", "TAVILY_API_KEY")):
+            with self.subTest(provider=provider_name):
+                environ = {
+                    "PIXIU_EXTERNAL_SEARCH_ENABLED": "true",
+                    "PIXIU_EXTERNAL_SEARCH_PROVIDER": provider_name,
+                    env_key: f"test-{provider_name}-key",
+                }
+                provider = create_external_search_provider(environ=environ)
                 self.assertEqual(provider.name, provider_name)
                 self.assertTrue(provider.enabled)
 

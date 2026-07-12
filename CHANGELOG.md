@@ -2,6 +2,15 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.82
+
+1. **定义 Web 搜索安全模型**：新增 `url_whitelist.py`，按 6 类别（学术出版商/政府/组织/新闻/百科/代码仓库）组织 70+ 域名白名单；实现 `validate_fetch_url(url)` 10 步验证链（HTTPS 强制 → 白名单匹配 → DNS 解析 → 内部 IP 拒绝）；新增 `docs/P6_WEB_SEARCH_SECURITY_PLAN.md` 定义完整威胁模型、安全边界和审计要求。
+2. **放松研究子问题 blocklist**：`_RESEARCH_SUBQUESTION_BLOCKLIST` 移除 `web search|browse|internet|online` 及中文对等词拦截，保留 `tool|plugin|mcp|agent|execute command` 危险指令检测。
+3. **实现 Brave Search API Provider**：新增 `BraveSearchProvider`，通过 `https://api.search.brave.com/res/v1/web/search` 进行通用 Web 搜索；`BRAVE_SEARCH_API_KEY` 必填，`X-Subscription-Token` header 认证；结果归一化为 `sourceType="web_search"`，字段为 title/url/description；`supports_web_search=True`，缓存 TTL=30 分钟。
+4. **实现 Tavily Search API Provider**：新增 `TavilyProvider`，通过 POST 请求 `https://api.tavily.com/search` 进行 AI-optimized Web 搜索；`TAVILY_API_KEY` 必填，`search_depth="advanced"`；Tavily `answer` 字段以 JSON `{"ai_generated_summary": true}` 存入 license 字段，不冒充原始内容；`supports_web_search=True`，缓存 TTL=30 分钟。
+5. **扩展外部证据模型**：`external_evidence.py` 新增 `WEB_SEARCH_SOURCE_TYPE = "web_search"`；`normalize_external_evidence()` 新增 `source_type` 参数以支持 Web 搜索和学术搜索两种来源类型。
+6. **注册 Web 搜索 Provider**：`SUPPORTED_PROVIDERS` 新增 `brave` 和 `tavily`；Provider Registry 的 `supports_web_search` 能力标记现在可反映 Web 搜索 Provider 的存在。
+
 ### 2026-07-12 v0.1.81
 
 1. **实现 Semantic Scholar Provider（带 Key 认证）**：新增 `SemanticScholarProvider`，通过 `https://api.semanticscholar.org/graph/v1/paper/search` 检索论文元数据；支持可选 `SEMANTIC_SCHOLAR_API_KEY` 通过 `x-api-key` header 认证以突破匿名 429 限流；JSON 响应解析后归一化为统一外部证据模型，字段筛选 `title,authors,year,abstract,externalIds,url,publicationVenue`；HTTP 超时、重试、速率限制和缓存与 Crossref/ArXiv 一致。

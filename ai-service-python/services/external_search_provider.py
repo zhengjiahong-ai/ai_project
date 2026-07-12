@@ -7,7 +7,7 @@ EXTERNAL_SEARCH_ENABLED_ENV = "PIXIU_EXTERNAL_SEARCH_ENABLED"
 EXTERNAL_SEARCH_PROVIDER_ENV = "PIXIU_EXTERNAL_SEARCH_PROVIDER"
 EXTERNAL_SEARCH_PROVIDERS_ENV = "PIXIU_EXTERNAL_SEARCH_PROVIDERS"
 ENABLED_VALUES = {"1", "true", "yes", "on"}
-SUPPORTED_PROVIDERS = {"crossref", "semantic_scholar", "arxiv"}
+SUPPORTED_PROVIDERS = {"crossref", "semantic_scholar", "arxiv", "brave", "tavily"}
 
 
 class ExternalSearchConfigurationError(ValueError):
@@ -66,6 +66,18 @@ def _build_semantic_scholar_provider(config: Mapping[str, str]) -> ExternalSearc
     return build_semantic_scholar_provider(config)
 
 
+def _build_brave_search_provider(config: Mapping[str, str]) -> ExternalSearchProvider:
+    from services.providers.brave_search_provider import build_brave_search_provider
+
+    return build_brave_search_provider(config)
+
+
+def _build_tavily_search_provider(config: Mapping[str, str]) -> ExternalSearchProvider:
+    from services.providers.tavily_provider import build_tavily_provider
+
+    return build_tavily_provider(config)
+
+
 def create_external_search_provider(
     environ: Optional[Mapping[str, str]] = None,
     builders: Optional[Mapping[str, ProviderBuilder]] = None,
@@ -87,10 +99,10 @@ def create_external_search_provider(
         )
     if provider_name not in SUPPORTED_PROVIDERS:
         raise ExternalSearchConfigurationError(
-            "PIXIU_EXTERNAL_SEARCH_PROVIDER must be one of: crossref, semantic_scholar, arxiv."
+            "PIXIU_EXTERNAL_SEARCH_PROVIDER must be one of: crossref, semantic_scholar, arxiv, brave, tavily."
         )
 
-    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider, "semantic_scholar": _build_semantic_scholar_provider} if builders is None else builders
+    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider, "semantic_scholar": _build_semantic_scholar_provider, "brave": _build_brave_search_provider, "tavily": _build_tavily_search_provider} if builders is None else builders
     builder = registry.get(provider_name)
     if builder is None:
         raise ExternalSearchConfigurationError(
@@ -145,7 +157,7 @@ def _create_multi_provider(
             f"Supported: {', '.join(sorted(SUPPORTED_PROVIDERS))}."
         )
 
-    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider, "semantic_scholar": _build_semantic_scholar_provider} if builders is None else builders
+    registry = {"crossref": _build_crossref_provider, "arxiv": _build_arxiv_provider, "semantic_scholar": _build_semantic_scholar_provider, "brave": _build_brave_search_provider, "tavily": _build_tavily_search_provider} if builders is None else builders
     unimplemented = [name for name in unique_names if name not in registry]
     if unimplemented:
         raise ExternalSearchConfigurationError(

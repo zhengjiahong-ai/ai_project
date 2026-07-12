@@ -5,6 +5,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 EXTERNAL_SOURCE_TYPE = "external_academic"
+WEB_SEARCH_SOURCE_TYPE = "web_search"
 
 
 def build_external_source_id(item: Any) -> str:
@@ -38,7 +39,7 @@ def build_external_source_id(item: Any) -> str:
     return f"external-{identity_type}-{digest}"
 
 
-def normalize_external_evidence(item: Any) -> Dict[str, Any]:
+def normalize_external_evidence(item: Any, *, source_type: str = EXTERNAL_SOURCE_TYPE) -> Dict[str, Any]:
     raw = _require_mapping(item)
     provider = _normalize_provider(raw.get("provider"))
     if not provider:
@@ -46,7 +47,7 @@ def normalize_external_evidence(item: Any) -> Dict[str, Any]:
 
     normalized = {
         "sourceId": build_external_source_id(raw),
-        "sourceType": EXTERNAL_SOURCE_TYPE,
+        "sourceType": str(source_type or EXTERNAL_SOURCE_TYPE),
         "provider": provider,
         "providerId": _clean_string(raw.get("providerId")),
         "title": _normalize_title(raw.get("title")),

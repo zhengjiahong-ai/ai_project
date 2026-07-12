@@ -90,8 +90,8 @@ _INJECTION_PATTERNS = (
     ),
 )
 _RESEARCH_SUBQUESTION_BLOCKLIST = re.compile(
-    r"(web\s*search|browse|internet|online|tool|plugin|mcp|agent|execute\s+command|"
-    r"联网|上网|浏览网页|访问互联网|调用工具|调用插件|调用MCP|执行命令)",
+    r"(tool|plugin|mcp|agent|execute\s+command|"
+    r"调用工具|调用插件|调用MCP|执行命令)",
     re.IGNORECASE,
 )
 _EXTERNAL_QUERY_URL_PATTERN = re.compile(
