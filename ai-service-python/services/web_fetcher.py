@@ -261,11 +261,17 @@ def _perform_fetch(
 
             text = text[:max_chars]
 
+            # Content safety validation
+            from services.content_safety import sanitize_fetched_web_content
+
+            safety = sanitize_fetched_web_content(text, url=url)
+            safe_text = safety["text"] if safety["grade"] != "blocked" else ""
+
             elapsed_ms = int((clock() - fetch_started) * 1000)
             return FetchResult(
                 status="success",
                 url=hostname,
-                content=text,
+                content=safe_text,
                 content_type=content_type[:200],
                 content_length=total_bytes,
                 fetched_at=_now_iso(),
