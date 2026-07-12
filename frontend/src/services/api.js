@@ -100,12 +100,13 @@ export const createApiService = (client, agentFallbackClient = null, options = {
 
   getChatHistory: async (sessionId) => client.get(`/chat/history/${encodeURIComponent(sessionId)}`),
 
-  createResearchTask: async (question, pdfId, paperSkeleton = null, userConstraints = '', briefPreview = null, allowExternalSearch = false) => {
+  createResearchTask: async (question, pdfId, paperSkeleton = null, userConstraints = '', briefPreview = null, allowExternalSearch = false, allowWebSearch = false) => {
     const payload = {
       question,
       pdfId,
       paperSkeleton,
       allowExternalSearch,
+      allowWebSearch,
     };
     if (`${userConstraints || ''}`.trim()) {
       payload.userConstraints = userConstraints;

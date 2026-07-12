@@ -34,6 +34,8 @@ _DEFAULT_TOOL_REGISTRY = None
 _DEFAULT_EXTERNAL_SEARCH_PROVIDER = None
 EXTERNAL_SEARCH_CALL_BUDGET = 3
 EXTERNAL_SEARCH_EVIDENCE_BUDGET = 15
+WEB_SEARCH_CALL_BUDGET = 5
+WEB_SEARCH_RESULT_BUDGET = 20
 
 
 class ToolNotFoundError(KeyError):
@@ -489,6 +491,43 @@ def _build_default_tool_registry() -> ToolRegistry:
             side_effects=True,
         ),
     )
+    registry.register(
+        "search_web",
+        "Search the web for supplementary evidence. "
+        "Only available when allowWebSearch is authorized and a web-capable provider is configured.",
+        {
+            "type": "object",
+            "required": ["query"],
+            "properties": {
+                "query": {"type": "string", "minLength": 1, "maxLength": 300},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 10},
+                "searchType": {
+                    "type": "string",
+                    "enum": ["general", "academic", "news"],
+                },
+            },
+            "additionalProperties": False,
+        },
+        _search_web_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "provider", "items"],
+            "properties": {
+                "status": {"type": "string", "enum": ["disabled", "success", "budget_exceeded", "failed"]},
+                "provider": {"type": "string", "minLength": 1},
+                "items": {"type": "array", "items": _external_evidence_schema()},
+                "reason": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["web_search_results"],
+            network_access=True,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
     return registry
 
 
@@ -679,6 +718,101 @@ def _retrieve_external_academic_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
+def _search_web_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    from services.safety_service import sanitize_web_search_query_text
+
+    query = _clean_text(payload.get("query"))
+    safe_query = sanitize_web_search_query_text(query, max_chars=300)
+    if not query or safe_query != query:
+        raise ToolValidationError(
+            "search_web requires a safe query produced by the bounded query planner."
+        )
+
+    limit = int(payload.get("limit") or 5)
+    search_type = _clean_text(payload.get("searchType") or "general")
+    if search_type not in ("general", "academic", "news"):
+        search_type = "general"
+
+    provider = _get_external_search_provider()
+    provider_name = _resolve_provider_display_name(provider)
+    query_summary = summarize_external_search_query(query)
+    with trace_step(
+        "tool_search_web",
+        input_size=len(query),
+        meta={
+            "provider": provider_name if provider.enabled is True else "disabled",
+            "querySummary": query_summary,
+            "limit": limit,
+            "searchType": search_type,
+            "budget": _web_search_budget_snapshot(),
+        },
+    ) as step:
+        if provider.enabled is not True:
+            step["meta"] = {**step.get("meta", {}), "status": "disabled", "reason": "web_search_disabled"}
+            return {"status": "disabled", "provider": "disabled", "items": []}
+
+        web_capable = bool(getattr(provider, "supports_web_search", False))
+        if not web_capable:
+            step["meta"] = {**step.get("meta", {}), "status": "disabled", "reason": "no_web_capable_provider"}
+            return {
+                "status": "disabled",
+                "provider": provider_name,
+                "items": [],
+                "reason": "No web-capable provider configured.",
+            }
+
+        budget_reason = _web_search_budget_block_reason(limit)
+        if budget_reason:
+            record_counter("webSearchBudgetBlocks")
+            step["meta"] = {
+                **step.get("meta", {}),
+                "status": "budget_exceeded",
+                "reason": budget_reason,
+                "budget": _web_search_budget_snapshot(),
+            }
+            return {
+                "status": "budget_exceeded",
+                "provider": provider_name,
+                "items": [],
+                "reason": budget_reason,
+            }
+
+        started_at = time.perf_counter()
+        try:
+            raw_items = provider.search(query, limit)
+        except Exception:
+            record_counter("webSearchFailures")
+            elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+            record_counter("webSearchLatencyMs", elapsed_ms)
+            step["meta"] = {**step.get("meta", {}), "status": "failed", "reason": "provider_failure", "latencyMs": elapsed_ms}
+            return {
+                "status": "failed",
+                "provider": provider_name,
+                "items": [],
+                "reason": "Web search provider failed.",
+            }
+
+        elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+        record_counter("webSearchCalls")
+        record_counter("webSearchLatencyMs", elapsed_ms)
+        items = normalize_external_evidence_items(raw_items)
+        items = items[:limit]
+        record_counter("webSearchResults", len(items))
+        step["outputSize"] = len(items)
+        step["meta"] = {
+            **step.get("meta", {}),
+            "status": "success",
+            "latencyMs": elapsed_ms,
+            "providers": _resolve_provider_names_list(provider),
+            "budget": _web_search_budget_snapshot(),
+        }
+        return {
+            "status": "success",
+            "provider": provider_name,
+            "items": items,
+        }
+
+
 def _get_external_search_provider() -> Any:
     global _DEFAULT_EXTERNAL_SEARCH_PROVIDER
     if _DEFAULT_EXTERNAL_SEARCH_PROVIDER is None:
@@ -723,6 +857,24 @@ def _external_search_budget_block_reason(requested_limit: int) -> str:
         return "External academic search call budget exceeded."
     if snapshot["evidenceUsed"] + max(0, int(requested_limit or 0)) > snapshot["evidenceLimit"]:
         return "External academic search evidence budget exceeded."
+    return ""
+
+
+def _web_search_budget_snapshot() -> Dict[str, int]:
+    return {
+        "callLimit": WEB_SEARCH_CALL_BUDGET,
+        "callsUsed": _trace_counter_value("webSearchCalls"),
+        "resultLimit": WEB_SEARCH_RESULT_BUDGET,
+        "resultsUsed": _trace_counter_value("webSearchResults"),
+    }
+
+
+def _web_search_budget_block_reason(requested_limit: int) -> str:
+    snapshot = _web_search_budget_snapshot()
+    if snapshot["callsUsed"] >= snapshot["callLimit"]:
+        return "Web search call budget exceeded (max 5 per task)."
+    if snapshot["resultsUsed"] + max(0, int(requested_limit or 0)) > snapshot["resultLimit"]:
+        return "Web search result budget exceeded (max 20 per task)."
     return ""
 
 

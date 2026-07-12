@@ -512,6 +512,8 @@ def _research_sub_question(
     pdf_id: str,
     paper_skeleton: Dict[str, Any],
     documents: List[Dict[str, Any]],
+    *,
+    allow_web_search: bool = False,
 ) -> Dict[str, Any]:
     research_context = _build_planning_context(question, paper_skeleton, documents)
     with trace_step(
@@ -575,6 +577,7 @@ def _research_sub_question(
         "coverage": _normalize_judge_coverage(judge.get("coverage")),
         "missingAspects": _normalize_missing_aspects(judge.get("missingAspects")),
         "retryReason": retry_reason,
+        "webSearchUsed": False,
         "sourceIds": [str(item.get("sourceId")) for item in combined_evidence if item.get("sourceId")][:6],
         "sources": combined_evidence[:6],
     }

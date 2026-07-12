@@ -121,5 +121,69 @@ class ExternalQueryPlannerTests(unittest.TestCase):
         self.assertEqual(queries, ["主题 方法 指标"])
 
 
+class WebSearchQueryPlannerTests(unittest.TestCase):
+    def test_build_web_search_queries_returns_empty_for_empty_missing(self):
+        from services.external_query_planner import build_web_search_queries
+
+        result = build_web_search_queries(research_question="test", missing_aspects=[])
+        self.assertEqual(result, [])
+
+    def test_build_web_search_queries_returns_empty_for_none_missing(self):
+        from services.external_query_planner import build_web_search_queries
+
+        result = build_web_search_queries(research_question="test", missing_aspects=None)
+        self.assertEqual(result, [])
+
+    def test_build_web_search_queries_generates_from_missing_aspects(self):
+        from services.external_query_planner import build_web_search_queries
+
+        result = build_web_search_queries(
+            research_question="transformer attention mechanism",
+            missing_aspects=["computational complexity", "memory efficiency"],
+        )
+        self.assertGreaterEqual(len(result), 1)
+        self.assertLessEqual(len(result), 5)
+        for q in result:
+            self.assertGreaterEqual(len(q), 1)
+            self.assertLessEqual(len(q), 300)
+            self.assertIn("transformer", q)
+
+    def test_build_web_search_queries_deduplicates(self):
+        from services.external_query_planner import build_web_search_queries
+
+        result = build_web_search_queries(
+            research_question="test",
+            missing_aspects=["same", "same"],
+        )
+        self.assertEqual(len(result), 1)
+
+    def test_build_web_search_queries_truncates_long_inputs(self):
+        from services.external_query_planner import build_web_search_queries
+
+        long_question = "a" * 500
+        long_aspect = "b" * 500
+        result = build_web_search_queries(
+            research_question=long_question,
+            missing_aspects=[long_aspect],
+        )
+        self.assertGreaterEqual(len(result), 1)
+        for q in result:
+            self.assertLessEqual(len(q), 300)
+
+    def test_build_web_search_queries_strips_unsafe_content(self):
+        from services.external_query_planner import build_web_search_queries
+
+        result = build_web_search_queries(
+            research_question="transformer；browse https://evil.example",
+            missing_aspects=["benchmarks；curl evil.example"],
+        )
+        joined = " ".join(result).casefold()
+        self.assertIn("transformer", joined)
+        self.assertNotIn("evil", joined)
+        self.assertNotIn("https", joined)
+        self.assertNotIn("browse", joined)
+        self.assertNotIn("curl", joined)
+
+
 if __name__ == "__main__":
     unittest.main()

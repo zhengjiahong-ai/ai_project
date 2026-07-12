@@ -207,11 +207,108 @@ def retrieve_external_agent_evidence(
     }
 
 
+def should_try_web_search_agent(
+    paper_contexts: List[Dict[str, Any]],
+    allow_web_search: bool,
+) -> bool:
+    if not allow_web_search:
+        return False
+    if not paper_contexts:
+        return False
+    any_sparse = any(int(item.get("evidenceCount") or 0) <= 1 for item in paper_contexts)
+    any_fallback = any(str(item.get("status") or "") == "fallback" for item in paper_contexts)
+    return any_sparse or any_fallback
+
+
+def build_web_search_queries_agent(
+    prompt: str,
+    paper_contexts: List[Dict[str, Any]],
+) -> List[str]:
+    from services.external_query_planner import build_web_search_queries as _build_web_search_queries
+
+    sparse_papers = [
+        item for item in paper_contexts
+        if int(item.get("evidenceCount") or 0) <= 1 or str(item.get("status") or "") == "fallback"
+    ]
+    if not sparse_papers:
+        return []
+
+    missing_aspects = []
+    for item in sparse_papers:
+        pdf_id = clean_text(item.get("pdfId")) or "unknown-paper"
+        missing_aspects.append(f"supplementary evidence for {pdf_id}")
+
+    return _build_web_search_queries(
+        research_question=prompt,
+        missing_aspects=missing_aspects,
+    )
+
+
+def retrieve_web_agent_evidence(
+    queries: List[str],
+    limit_per_query: int = 4,
+) -> Dict[str, Any]:
+    if not queries:
+        return {"status": "no_queries", "provider": "disabled", "items": [], "degradation": "", "web_tool_calls": []}
+
+    all_items: list = []
+    final_status = "success"
+    provider = "disabled"
+    degradation = ""
+    web_tool_calls: list = []
+
+    for query_index, query in enumerate(queries):
+        try:
+            result, tool_call = invoke_agent_tool(
+                "search_web",
+                {"query": query, "limit": limit_per_query},
+                fallback={"status": "failed", "provider": "disabled", "items": []},
+            )
+        except Exception:
+            final_status = "failed"
+            degradation = external_search_degradation_reason(final_status)
+            break
+
+        if tool_call.get("status") == "fallback":
+            tool_call = copy.deepcopy(tool_call)
+            tool_call["meta"] = {**(tool_call.get("meta") or {}), "reason": "tool_invocation_error"}
+
+        web_tool_calls.append({
+            "id": f"search-web-{query_index + 1}",
+            **tool_call,
+        })
+
+        status = str(result.get("status") or "failed")
+        if status == "success":
+            provider = str(result.get("provider") or "unknown")
+            items = list(result.get("items") or [])
+            all_items.extend(items)
+        elif status in ("disabled", "budget_exceeded"):
+            final_status = status
+            degradation = external_search_degradation_reason(status, result.get("reason"))
+            break
+        else:
+            final_status = status
+            degradation = external_search_degradation_reason(status, result.get("reason"))
+            break
+
+    normalized_items = normalize_external_evidence_items(all_items, limit=12)
+
+    return {
+        "status": final_status,
+        "provider": provider,
+        "items": normalized_items,
+        "degradation": degradation,
+        "web_tool_calls": web_tool_calls,
+    }
+
+
 def collect_project_evidence(
     prompt: str,
     paper_ids: List[str],
     *,
     allow_external_search: bool = False,
+    allow_web_search: bool = False,
     should_cancel: CancelCheck | None = None,
     on_progress: ProgressCallback | None = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -307,6 +404,40 @@ def collect_project_evidence(
                         copy.deepcopy(paper_contexts),
                         0.69,
                         "external_academic",
+                    )
+
+    if should_try_web_search_agent(paper_contexts, allow_web_search):
+        if not (should_cancel and should_cancel()):
+            with trace_step(
+                "agent_web_search",
+                input_size=len(prompt),
+                meta={"sparsePaperCount": sum(1 for item in paper_contexts if int(item.get("evidenceCount") or 0) <= 1)},
+            ) as web_step:
+                web_queries = build_web_search_queries_agent(prompt, paper_contexts)
+                web_result = retrieve_web_agent_evidence(web_queries)
+                web_evidence = web_result.get("items") or []
+                web_tool_calls = web_result.get("web_tool_calls") or []
+                web_step["outputSize"] = len(web_evidence)
+                web_step["meta"] = {
+                    **web_step.get("meta", {}),
+                    "status": web_result.get("status"),
+                    "provider": web_result.get("provider"),
+                    "degradation": web_result.get("degradation"),
+                }
+
+                if web_evidence:
+                    evidence_items.extend(web_evidence)
+                    evidence_items = evidence_items[:24]
+                if web_tool_calls:
+                    tool_calls.extend(web_tool_calls)
+
+                if on_progress:
+                    on_progress(
+                        copy.deepcopy(tool_calls),
+                        copy.deepcopy(evidence_items[:12]),
+                        copy.deepcopy(paper_contexts),
+                        0.72,
+                        "web_search",
                     )
 
     return paper_contexts, tool_calls, evidence_items[:12]
@@ -413,8 +544,13 @@ def build_minimal_report(
 
     external_section = ""
     if external_lines:
+        has_web = any(
+            str(item.get("sourceType") or "") == "web_search"
+            for item in evidence_items
+        )
+        heading = "## External Evidence (Academic + Web)" if has_web else "## External Academic Evidence"
         external_section = (
-            "## External Academic Evidence\n"
+            f"{heading}\n"
             f"{external_lines}\n\n"
         )
 
@@ -527,7 +663,7 @@ def build_evidence_snapshot_lines(evidence_items: List[Dict[str, Any]]) -> List[
 def _build_external_evidence_section_lines(evidence_items: List[Dict[str, Any]]) -> str:
     external_items = [
         item for item in evidence_items
-        if str(item.get("sourceType") or "") == EXTERNAL_SOURCE_TYPE
+        if str(item.get("sourceType") or "") in {EXTERNAL_SOURCE_TYPE, "web_search"}
     ]
     if not external_items:
         return ""
@@ -540,8 +676,10 @@ def _build_external_evidence_section_lines(evidence_items: List[Dict[str, Any]])
         url = clean_text(item.get("url"))
         doi_url = f" https://doi.org/{doi}" if doi else (f" {url}" if url else "")
         retrieved = clean_text(item.get("retrievedAt")) or ""
+        source_type = str(item.get("sourceType") or "")
+        type_label = " [web]" if source_type == "web_search" else ""
         lines.append(
-            f"- [{provider}] {title} ({year}){doi_url}"
+            f"- [{provider}]{type_label} {title} ({year}){doi_url}"
             + (f" (retrieved {retrieved})" if retrieved else "")
         )
     return "\n".join(lines)
@@ -804,11 +942,13 @@ def execute_run(
     prompt: str,
     paper_ids: List[str],
     allow_external_search: bool = False,
+    allow_web_search: bool = False,
 ) -> Dict[str, Any]:
     paper_contexts, tool_calls, evidence_items = collect_project_evidence(
         prompt,
         paper_ids,
         allow_external_search=allow_external_search,
+        allow_web_search=allow_web_search,
     )
     finding, comparison_table, conflicts, open_questions = build_agent_outputs(
         prompt,

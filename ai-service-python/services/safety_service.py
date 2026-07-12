@@ -339,6 +339,43 @@ def sanitize_external_academic_query_text(value: Any, *, max_chars: int) -> str:
     return " ".join(safe_segments)[:max_chars].rstrip()
 
 
+def sanitize_web_search_query_text(value: Any, *, max_chars: int = 300) -> str:
+    """Sanitize a web search query: strip URLs, control chars, prompt injection patterns.
+
+    Web search queries allow slightly longer input than academic queries (300 vs 256 chars)
+    and apply the same safety sanitization rules.
+    """
+    if not isinstance(max_chars, int) or isinstance(max_chars, bool) or max_chars <= 0:
+        raise ValueError("Web search query max_chars must be a positive integer.")
+
+    text = str(value or "")
+    safe_segments = []
+    for raw_segment in _EXTERNAL_QUERY_SEGMENT_SPLIT_PATTERN.split(text):
+        if _EXTERNAL_QUERY_DIRECTIVE_PATTERN.search(raw_segment):
+            continue
+        segment = _EXTERNAL_QUERY_URL_PATTERN.sub(" ", raw_segment).strip()
+        if not segment:
+            continue
+        if detect_prompt_injection(segment).get("flags"):
+            continue
+        if _EXTERNAL_QUERY_CONTROL_PATTERN.search(segment):
+            continue
+
+        cleaned = "".join(
+            (
+                character
+                if character.isalnum() or character.isspace() or character in {"_", "-", "+", "%"}
+                else "" if character == "@" else " "
+            )
+            for character in segment
+        )
+        normalized = " ".join(cleaned.split())
+        if normalized:
+            safe_segments.append(normalized)
+
+    return " ".join(safe_segments)[:max_chars].rstrip()
+
+
 def external_search_degradation_reason(status: Any, reason: Any = "") -> str:
     normalized_status = " ".join(str(status or "failed").strip().lower().split())
     normalized_reason = " ".join(str(reason or "").strip().split())

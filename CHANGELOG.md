@@ -2,6 +2,15 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.83
+
+1. **注册 search_web 工具并接入 Agent/Research**：在 ToolRegistry 注册 `search_web` 工具（`safetyScope.access="restricted"`），输入 query(1-300 chars)/limit(1-10)/searchType(general/academic/news)，预算每任务 5 次调用/20 条结果；仅在学术检索+外部学术都不足且 `allowWebSearch` 授权时触发。
+2. **新增 Web 搜索查询规划器**：`external_query_planner.py` 新增 `build_web_search_queries()` 函数，从 missingAspects 生成 Web 搜索 query（300 chars 上限，最多 5 个）。
+3. **集成 Web 搜索到研究执行器**：`research_executor.py` 新增 `should_try_web_search()` 门控和 `retrieve_web_search_evidence()` 检索函数；`agent_orchestrator.py` 新增 Agent 路径的 Web 搜索阶段。
+4. **新增 allowWebSearch 请求字段**：`schemas/requests.py` 中 5 个 Pydantic models 新增 `allowWebSearch: bool` 字段；`agent_project_service.py` 的 `externalSearchConfig` 包含 `allowWebSearch`。
+5. **新增 Web 搜索查询安全清洗**：`safety_service.py` 新增 `sanitize_web_search_query_text()` 函数，对 Web 搜索 query 执行 URL 去除、注入检测和控制字符过滤。
+6. **前端新增 Web 搜索授权开关**：AgentWorkspace 创建任务和计划审查表单中新增"授权网页搜索"开关；DeepResearchPanel 新增网页搜索开关；`agentWorkspaceModel.js` 的 `buildAgentPlanReviewPayload` 映射 `allowWebSearch`。
+
 ### 2026-07-12 v0.1.82
 
 1. **定义 Web 搜索安全模型**：新增 `url_whitelist.py`，按 6 类别（学术出版商/政府/组织/新闻/百科/代码仓库）组织 70+ 域名白名单；实现 `validate_fetch_url(url)` 10 步验证链（HTTPS 强制 → 白名单匹配 → DNS 解析 → 内部 IP 拒绝）；新增 `docs/P6_WEB_SEARCH_SECURITY_PLAN.md` 定义完整威胁模型、安全边界和审计要求。

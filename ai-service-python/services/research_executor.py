@@ -15,6 +15,8 @@ def research_sub_question(
     pdf_id: str,
     paper_skeleton: Dict[str, Any],
     documents: List[Dict[str, Any]],
+    *,
+    allow_web_search: bool = False,
 ) -> Dict[str, Any]:
     research_context = build_planning_context(question, paper_skeleton, documents)
     with trace_step(
@@ -104,6 +106,41 @@ def research_sub_question(
                     judge_step["outputSize"] = len(judge.get("missingAspects") or [])
                     annotate_judge_step(judge_step, judge, "stop")
 
+    web_search_used = False
+    if should_try_web_search(judge, allow_web_search=allow_web_search):
+        missing = normalize_missing_aspects(judge.get("missingAspects"))
+        with trace_step(
+            "research_web_search",
+            input_size=len(missing),
+            meta={"missingAspects": missing},
+        ) as web_step:
+            web_result = retrieve_web_search_evidence(
+                research_question=question,
+                missing_aspects=missing,
+            )
+            web_evidence = web_result.get("items") or []
+            web_degradation = web_result.get("degradation") or ""
+            web_step["outputSize"] = len(web_evidence)
+            web_step["meta"] = {
+                **web_step.get("meta", {}),
+                "status": web_result.get("status"),
+                "degradation": web_degradation,
+            }
+            if web_evidence:
+                combined_evidence = merge_evidence_lists(combined_evidence, web_evidence)
+                web_search_used = True
+                with trace_step("research_judge_web", input_size=len(combined_evidence)) as judge_step:
+                    judge = judge_research_evidence(
+                        sub_question,
+                        combined_evidence,
+                        keywords=[
+                            *(query_plan.get("keywords") or []),
+                            *(judge.get("missingAspects") or []),
+                        ],
+                    )
+                    judge_step["outputSize"] = len(judge.get("missingAspects") or [])
+                    annotate_judge_step(judge_step, judge, "stop")
+
     summary = build_finding_summary(sub_question, combined_evidence, judge)
     return {
         "subQuestion": sub_question,
@@ -114,6 +151,7 @@ def research_sub_question(
         "missingAspects": normalize_missing_aspects(judge.get("missingAspects")),
         "retryReason": retry_reason,
         "externalSearchDegradation": external_degradation,
+        "webSearchUsed": web_search_used,
         "sourceIds": [str(item.get("sourceId")) for item in combined_evidence if item.get("sourceId")][:6],
         "sources": combined_evidence[:6],
     }
@@ -286,6 +324,60 @@ def should_try_external(judge_result: Dict[str, Any]) -> bool:
     if str(judge_result.get("verdict") or "") == "CORRECT":
         return False
     return bool(normalize_missing_aspects(judge_result.get("missingAspects")))
+
+
+def should_try_web_search(judge_result: Dict[str, Any], *, allow_web_search: bool = False) -> bool:
+    """Web search triggers only when academic+external is insufficient."""
+    if not allow_web_search:
+        return False
+    if str(judge_result.get("verdict") or "") == "CORRECT":
+        return False
+    return bool(normalize_missing_aspects(judge_result.get("missingAspects")))
+
+
+def retrieve_web_search_evidence(
+    research_question: str,
+    missing_aspects: list,
+    limit_per_query: int = 4,
+) -> Dict[str, Any]:
+    from services.external_query_planner import build_web_search_queries
+
+    queries = build_web_search_queries(
+        research_question=research_question,
+        missing_aspects=missing_aspects,
+    )
+    if not queries:
+        return {"status": "no_queries", "items": [], "degradation": ""}
+
+    all_items: list = []
+    final_status = "success"
+    degradation = ""
+
+    for query in queries:
+        try:
+            response = invoke_tool(
+                "search_web",
+                {"query": query, "limit": limit_per_query},
+            )
+        except Exception:
+            final_status = "failed"
+            degradation = external_search_degradation_reason(final_status)
+            break
+
+        status = str(response.get("status") or "failed")
+        if status == "success":
+            items = list(response.get("items") or [])
+            all_items.extend(items)
+        else:
+            final_status = status
+            degradation = external_search_degradation_reason(status, response.get("reason"))
+            break
+
+    return {
+        "status": final_status,
+        "items": all_items,
+        "degradation": degradation,
+    }
 
 
 def retrieve_external_academic_evidence(

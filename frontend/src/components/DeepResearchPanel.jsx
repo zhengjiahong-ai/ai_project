@@ -146,12 +146,14 @@ const DeepResearchPanel = ({
   isCancelling = false,
   isPreviewingBrief = false,
   allowExternalSearch = false,
+  allowWebSearch = false,
   onQuestionChange,
   onStart,
   onPreviewBrief,
   onBriefConstraintsChange,
   onAcceptBrief,
   onAllowExternalSearchChange,
+  onAllowWebSearchChange,
   onRefresh,
   onCancel,
   onReviewPlan,
@@ -308,6 +310,32 @@ const DeepResearchPanel = ({
               <div className="theme-text-primary text-xs font-semibold">授权外部学术检索</div>
               <div className="theme-text-muted text-[11px] leading-5">
                 仅访问白名单学术来源（Crossref、Semantic Scholar）· 默认关闭
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onAllowWebSearchChange?.(!allowWebSearch)}
+              disabled={isCreating || isCancelling || isRunningTask}
+              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+                allowWebSearch ? 'bg-pixiu' : 'bg-slate-600'
+              }`}
+              role="switch"
+              aria-checked={allowWebSearch}
+              aria-label="授权网页搜索"
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                  allowWebSearch ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <div>
+              <div className="theme-text-primary text-xs font-semibold">授权网页搜索</div>
+              <div className="theme-text-muted text-[11px] leading-5">
+                Brave + Tavily · 仅授权后启用 · 默认关闭
               </div>
             </div>
           </div>

@@ -58,7 +58,7 @@ export const AgentResponseCard = ({ currentTask, currentStageLabel, children }) 
   </div>
 );
 
-const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask, allowExternalSearch = false, onAllowExternalSearchChange }) => (
+const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask, allowExternalSearch = false, onAllowExternalSearchChange, allowWebSearch = false, onAllowWebSearchChange }) => (
   <div className="agent-composer border-t px-5 py-4 backdrop-blur">
     <div className="mb-3 flex flex-wrap gap-2">
       {QUICK_PROMPTS.map((item) => (
@@ -104,6 +104,26 @@ const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPromp
             />
           </button>
           <span className="text-[10px] leading-4 text-[color:var(--muted)]">外部检索</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onAllowWebSearchChange?.(!allowWebSearch)}
+            className={`relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none ${
+              allowWebSearch ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--border)]'
+            }`}
+            role="switch"
+            aria-checked={allowWebSearch}
+            aria-label="授权网页搜索"
+            title="授权网页搜索 · Brave + Tavily · 默认关闭"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                allowWebSearch ? 'translate-x-5' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <span className="text-[10px] leading-4 text-[color:var(--muted)]">网页搜索</span>
         </div>
       </div>
       <button

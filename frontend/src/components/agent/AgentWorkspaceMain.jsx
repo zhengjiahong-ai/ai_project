@@ -34,6 +34,8 @@ const AgentWorkspaceMain = ({
   onJumpToSource,
   allowExternalSearch,
   onAllowExternalSearchChange,
+  allowWebSearch,
+  onAllowWebSearchChange,
 }) => (
   <main className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[26px]">
     <AgentWorkspaceHeader
@@ -90,6 +92,8 @@ const AgentWorkspaceMain = ({
         onCreateTask={onCreateTask}
         allowExternalSearch={allowExternalSearch}
         onAllowExternalSearchChange={onAllowExternalSearchChange}
+        allowWebSearch={allowWebSearch}
+        onAllowWebSearchChange={onAllowWebSearchChange}
       />
     </div>
   </main>

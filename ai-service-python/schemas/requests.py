@@ -80,6 +80,7 @@ class ResearchTaskCreateRequest(BaseModel):
     userConstraints: Optional[str] = ""
     briefPreview: Optional[Dict[str, Any]] = None
     allowExternalSearch: bool = Field(default=False)
+    allowWebSearch: bool = Field(default=False)
 
 
 class ResearchTaskBriefPreviewRequest(BaseModel):
@@ -127,6 +128,7 @@ class AgentTaskCreateRequest(BaseModel):
     context: Optional[Dict[str, Any]] = None
     allowExternalSearch: bool = Field(default=False)
     allowCodeExecution: bool = Field(default=False)
+    allowWebSearch: bool = Field(default=False)
 
 
 class AgentRunCreateRequest(BaseModel):
@@ -136,6 +138,7 @@ class AgentRunCreateRequest(BaseModel):
     context: Optional[Dict[str, Any]] = None
     allowExternalSearch: bool = Field(default=False)
     allowCodeExecution: bool = Field(default=False)
+    allowWebSearch: bool = Field(default=False)
 
 
 class AgentPlanItemRequest(BaseModel):
@@ -144,6 +147,7 @@ class AgentPlanItemRequest(BaseModel):
     detail: Optional[str] = ""
     allowExternalSearch: Optional[bool] = Field(default=False)
     allowCodeExecution: Optional[bool] = Field(default=False)
+    allowWebSearch: Optional[bool] = Field(default=False)
 
 
 class AgentPlanReviewRequest(BaseModel):
@@ -160,6 +164,7 @@ class AgentRunPlanReviewRequest(BaseModel):
     reviewNotes: Optional[str] = ""
     allowExternalSearch: bool = Field(default=False)
     allowCodeExecution: bool = Field(default=False)
+    allowWebSearch: bool = Field(default=False)
 
 
 class AgentFinalReviewRequest(BaseModel):
