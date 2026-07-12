@@ -39,6 +39,7 @@ def run_agentic_search_loop(
     invoke_fetch=None,
     invoke_judge=None,
     fetch_cache=None,
+    on_progress=None,
 ) -> Dict[str, Any]:
     """Run iterative search→fetch→judge loop.
 
@@ -57,6 +58,8 @@ def run_agentic_search_loop(
         invoke_judge: Callable(question, evidence) → dict (injectable for tests).
         fetch_cache: Optional cache object with get(url)→dict|None (injectable
                      for tests). Cached URLs are skipped during selection.
+        on_progress: Optional callback(iteration, pages_fetched, confidence) → None,
+                     called after each iteration completes (injectable for tests).
 
     Returns:
         {iterations, verdict, confidence, evidence_items, web_search_used, pages_fetched}
@@ -175,6 +178,13 @@ def run_agentic_search_loop(
 
         # Count this as a completed iteration
         iteration += 1
+
+        # Notify progress callback if provided
+        if on_progress is not None:
+            try:
+                on_progress(iteration, total_pages_fetched, confidence)
+            except Exception:
+                pass  # callback failure must not crash the loop
 
         # Step 5: Re-judge evidence coverage
         evidence_for_judge = all_evidence[-12:] if all_evidence else []

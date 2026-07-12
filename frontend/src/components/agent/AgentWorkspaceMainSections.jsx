@@ -143,6 +143,7 @@ const AgentPlanReviewForm = ({ currentTask, activeProject, onReviewPlan }) => {
   const [reviewNotes, setReviewNotes] = useState('');
   const [allowExternalSearch, setAllowExternalSearch] = useState(false);
   const [allowWebSearch, setAllowWebSearch] = useState(false);
+  const [allowIterativeSearch, setAllowIterativeSearch] = useState(false);
   const extConfig = currentTask?.externalSearchConfig;
   if (currentTask?.status !== 'awaiting_plan_review') return null;
   return (
@@ -196,6 +197,31 @@ const AgentPlanReviewForm = ({ currentTask, activeProject, onReviewPlan }) => {
         </div>
       </div>
 
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => allowWebSearch && setAllowIterativeSearch((prev) => !prev)}
+          className={`relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none ${
+            !allowWebSearch ? 'cursor-not-allowed opacity-40 bg-[color:var(--border)]' :
+            allowIterativeSearch ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--border)]'
+          }`}
+          role="switch"
+          aria-checked={allowIterativeSearch}
+          aria-label="授权迭代搜索"
+          disabled={!allowWebSearch}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              allowIterativeSearch ? 'translate-x-5' : 'translate-x-1'
+            }`}
+          />
+        </button>
+        <div>
+          <div className="text-xs font-semibold text-[color:var(--foreground)]">授权迭代搜索</div>
+          <div className="text-[10px] leading-5 text-[color:var(--muted)]">多轮搜索+抓取+评估 · 仅在网页搜索启用时可用</div>
+        </div>
+      </div>
+
       {allowExternalSearch && extConfig?.allowExternalSearch && (
         <div className="agent-card-soft rounded-xl border border-indigo-400/25 px-4 py-3 text-xs leading-6 text-indigo-400">
           <div className="font-semibold">外部学术检索已授权</div>
@@ -212,7 +238,7 @@ const AgentPlanReviewForm = ({ currentTask, activeProject, onReviewPlan }) => {
       <button type="button" className="agent-secondary-button rounded-lg px-3 py-1 text-xs" onClick={() => setItems((prev) => [...prev, { id: `plan-${prev.length + 1}`, label: '', detail: '' }])}>新增计划项</button>
       <textarea value={constraints} onChange={(event) => setConstraints(event.target.value)} className="agent-card agent-body min-h-16 w-full rounded-xl p-3" placeholder="执行约束" />
       <textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="agent-card agent-body min-h-16 w-full rounded-xl p-3" placeholder="审查备注（可选）" />
-      <button type="button" className="agent-primary-button rounded-xl px-4 py-2 text-xs font-semibold" onClick={() => onReviewPlan?.({ planItems: items.filter((item) => item.label?.trim()), focusedPaperIds: paperIds, constraints, reviewNotes, allowExternalSearch, allowWebSearch })}>确认计划并执行</button>
+      <button type="button" className="agent-primary-button rounded-xl px-4 py-2 text-xs font-semibold" onClick={() => onReviewPlan?.({ planItems: items.filter((item) => item.label?.trim()), focusedPaperIds: paperIds, constraints, reviewNotes, allowExternalSearch, allowWebSearch, allowIterativeSearch })}>确认计划并执行</button>
     </div>
   );
 };

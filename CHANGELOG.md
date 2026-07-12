@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.91
+
+1. **Agent 研究中的迭代搜索集成**：`agent_orchestrator.py` 的 `collect_project_evidence()` 新增 `allow_iterative_search` 参数，在 Phase 3 Web 搜索阶段支持调用 `run_agentic_search_loop()` 替代单轮搜索（`allowWebSearch=true` 且 `allowIterativeSearch=true` 时启用）；`run_agentic_search_loop()` 新增 `on_progress(iteration, pages_fetched, confidence)` 回调，每轮迭代完成后推送进度；`schemas/requests.py` 的 `AgentTaskCreateRequest`/`AgentRunCreateRequest`/`AgentPlanItemRequest` 新增 `allowIterativeSearch` 字段；`agent_project_service.py` 从 approved plan items 解析 `allowIterativeSearch` 并传递；前端新增迭代搜索开关（依赖网页搜索启用），证据面板 `web_page`/`web_search` 来源标记高亮。
+
 ### 2026-07-12 v0.1.90
 
 1. **搜索结果驱动的抓取优先级**：`agentic_search_loop.py` 的 `_select_top_urls()` 新增 `skip_urls` 参数，支持在选 URL 时排除已抓取或已缓存的页面；`run_agentic_search_loop()` 跨轮追踪 `fetched_urls`，避免同一 session 内重复抓取相同 URL；新增 `fetch_cache` 参数（可选），传入 `WebFetchCache` 实例后自动跳过缓存命中的 URL；缓存检查失败不中断搜索循环。优先级排序保持纯规则驱动（URL 可信度 → 标题关键词重叠 → 描述长度）。

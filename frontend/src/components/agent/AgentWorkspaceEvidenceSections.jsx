@@ -93,7 +93,11 @@ export const AgentEvidenceListSection = ({ activeProject, currentTask, activePap
           <div className="agent-evidence-meta mt-1 flex flex-wrap gap-2 text-[10px] font-semibold">
             {item.sectionId && <span>{item.sectionId}</span>}
             {Number.isInteger(item.pageIndex) && <span>p.{item.pageIndex + 1}</span>}
-            {item.sourceType && <span>{item.sourceType}</span>}
+            {item.sourceType && (
+              <span className={(item.sourceType === 'web_page' || item.sourceType === 'web_search') ? 'text-[color:var(--accent)]' : ''}>
+                {item.sourceType}
+              </span>
+            )}
           </div>
           <div className="mt-2">
             <SourceList sources={[item]} onJumpToSource={onJumpToSource} variant="agent" />

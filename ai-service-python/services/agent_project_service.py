@@ -229,6 +229,7 @@ def create_agent_run(project_id: str, request: AgentRunCreateRequest | Dict[str,
         "externalSearchConfig": {
             "allowExternalSearch": bool(getattr(normalized_request, "allowExternalSearch", False)),
             "allowWebSearch": bool(getattr(normalized_request, "allowWebSearch", False)),
+            "allowIterativeSearch": bool(getattr(normalized_request, "allowIterativeSearch", False)),
             "provider": "disabled",
             "budget": {"callLimit": 3, "evidenceLimit": 15, "callsUsed": 0, "evidenceUsed": 0},
             "status": "disabled",
@@ -524,11 +525,15 @@ def _run_minimal_agent_task(task_id: str) -> None:
             allow_web_search = any(
                 bool(item.get("allowWebSearch")) for item in approved_plan
             )
+            allow_iterative_search = any(
+                bool(item.get("allowIterativeSearch")) for item in approved_plan
+            )
             paper_contexts, tool_calls, evidence_items = agent_orchestrator.collect_project_evidence(
                 execution_prompt,
                 paper_ids,
                 allow_external_search=allow_external_search,
                 allow_web_search=allow_web_search,
+                allow_iterative_search=allow_iterative_search,
                 should_cancel=lambda: _is_task_cancelled(task_id),
                 on_progress=update_retrieval_progress,
             )

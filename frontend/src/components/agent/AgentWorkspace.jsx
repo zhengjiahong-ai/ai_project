@@ -81,6 +81,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
   const [prompt, setPrompt] = useState('');
   const [allowExternalSearch, setAllowExternalSearch] = useState(false);
   const [allowWebSearch, setAllowWebSearch] = useState(false);
+  const [allowIterativeSearch, setAllowIterativeSearch] = useState(false);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
@@ -451,6 +452,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
         constraints: activeProject.defaultConstraints || '',
         allowExternalSearch,
         allowWebSearch,
+        allowIterativeSearch,
         context: {
           activePaperId,
         },
@@ -664,6 +666,8 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
           onAllowExternalSearchChange={setAllowExternalSearch}
           allowWebSearch={allowWebSearch}
           onAllowWebSearchChange={setAllowWebSearch}
+          allowIterativeSearch={allowIterativeSearch}
+          onAllowIterativeSearchChange={setAllowIterativeSearch}
         />
 
         {rightCollapsed ? (

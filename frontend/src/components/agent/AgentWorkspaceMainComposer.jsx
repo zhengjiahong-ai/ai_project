@@ -58,7 +58,7 @@ export const AgentResponseCard = ({ currentTask, currentStageLabel, children }) 
   </div>
 );
 
-const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask, allowExternalSearch = false, onAllowExternalSearchChange, allowWebSearch = false, onAllowWebSearchChange }) => (
+const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask, allowExternalSearch = false, onAllowExternalSearchChange, allowWebSearch = false, onAllowWebSearchChange, allowIterativeSearch = false, onAllowIterativeSearchChange }) => (
   <div className="agent-composer border-t px-5 py-4 backdrop-blur">
     <div className="mb-3 flex flex-wrap gap-2">
       {QUICK_PROMPTS.map((item) => (
@@ -124,6 +124,28 @@ const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPromp
             />
           </button>
           <span className="text-[10px] leading-4 text-[color:var(--muted)]">网页搜索</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => allowWebSearch && onAllowIterativeSearchChange?.(!allowIterativeSearch)}
+            className={`relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none ${
+              !allowWebSearch ? 'cursor-not-allowed opacity-40 bg-[color:var(--border)]' :
+              allowIterativeSearch ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--border)]'
+            }`}
+            role="switch"
+            aria-checked={allowIterativeSearch}
+            aria-label="授权迭代搜索"
+            title={allowWebSearch ? "多轮搜索+抓取+评估 · 仅在网页搜索启用时可用" : "需要先启用网页搜索"}
+            disabled={!allowWebSearch}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                allowIterativeSearch ? 'translate-x-5' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <span className="text-[10px] leading-4 text-[color:var(--muted)]">迭代搜索</span>
         </div>
       </div>
       <button

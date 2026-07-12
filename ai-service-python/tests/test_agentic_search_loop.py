@@ -287,6 +287,50 @@ class AgenticSearchLoopTests(unittest.TestCase):
         # At least nature.com was fetched once
         self.assertGreaterEqual(nature_count, 1)
 
+    def test_on_progress_callback_called_each_iteration(self):
+        """Verify on_progress is called with (iteration, pages_fetched, confidence) each round."""
+        from services.agentic_search_loop import run_agentic_search_loop
+
+        progress_log = []
+        def on_progress(iteration, pages_fetched, confidence):
+            progress_log.append((iteration, pages_fetched, confidence))
+
+        result = run_agentic_search_loop(
+            question="test",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=2,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=_mock_judge_correct,
+            on_progress=on_progress,
+        )
+        # Should be called at least once (after each iteration)
+        self.assertGreaterEqual(len(progress_log), 1)
+        # First call: iteration=1, pages_fetched>=1, confidence is a float
+        self.assertEqual(progress_log[0][0], 1)  # iteration
+        self.assertGreaterEqual(progress_log[0][1], 1)  # pages_fetched
+        self.assertIsInstance(progress_log[0][2], float)  # confidence
+
+    def test_on_progress_none_does_not_crash(self):
+        """Verify loop works unchanged when on_progress is None (backward compat)."""
+        from services.agentic_search_loop import run_agentic_search_loop
+
+        result = run_agentic_search_loop(
+            question="test",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=1,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=_mock_judge_correct,
+            on_progress=None,
+        )
+        self.assertEqual(result["verdict"], "CORRECT")
+        self.assertTrue(result["web_search_used"])
+
 
 if __name__ == "__main__":
     unittest.main()

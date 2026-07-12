@@ -129,6 +129,7 @@ class AgentTaskCreateRequest(BaseModel):
     allowExternalSearch: bool = Field(default=False)
     allowCodeExecution: bool = Field(default=False)
     allowWebSearch: bool = Field(default=False)
+    allowIterativeSearch: bool = Field(default=False)
 
 
 class AgentRunCreateRequest(BaseModel):
@@ -139,6 +140,7 @@ class AgentRunCreateRequest(BaseModel):
     allowExternalSearch: bool = Field(default=False)
     allowCodeExecution: bool = Field(default=False)
     allowWebSearch: bool = Field(default=False)
+    allowIterativeSearch: bool = Field(default=False)
 
 
 class AgentPlanItemRequest(BaseModel):
@@ -148,6 +150,7 @@ class AgentPlanItemRequest(BaseModel):
     allowExternalSearch: Optional[bool] = Field(default=False)
     allowCodeExecution: Optional[bool] = Field(default=False)
     allowWebSearch: Optional[bool] = Field(default=False)
+    allowIterativeSearch: Optional[bool] = Field(default=False)
 
 
 class AgentPlanReviewRequest(BaseModel):

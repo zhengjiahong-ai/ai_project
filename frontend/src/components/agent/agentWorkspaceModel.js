@@ -85,11 +85,13 @@ export const buildAgentProjectPayload = ({
 export const buildAgentPlanReviewPayload = (payload = {}) => {
   const allowExternalSearch = Boolean(payload.allowExternalSearch);
   const allowWebSearch = Boolean(payload.allowWebSearch);
+  const allowIterativeSearch = Boolean(payload.allowIterativeSearch);
   return {
     planItems: (Array.isArray(payload.planItems) ? payload.planItems : []).map((item) => ({
       ...item,
       allowExternalSearch: item?.id === 'external' ? allowExternalSearch : false,
       allowWebSearch: item?.id === 'external' ? allowWebSearch : false,
+      allowIterativeSearch: item?.id === 'external' ? allowIterativeSearch : false,
     })),
     focusedPaperIds: Array.isArray(payload.focusedPaperIds) ? payload.focusedPaperIds : [],
     constraints: `${payload.constraints ?? ''}`,

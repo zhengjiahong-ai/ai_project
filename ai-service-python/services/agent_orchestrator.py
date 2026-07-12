@@ -309,6 +309,7 @@ def collect_project_evidence(
     *,
     allow_external_search: bool = False,
     allow_web_search: bool = False,
+    allow_iterative_search: bool = False,
     should_cancel: CancelCheck | None = None,
     on_progress: ProgressCallback | None = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -408,37 +409,100 @@ def collect_project_evidence(
 
     if should_try_web_search_agent(paper_contexts, allow_web_search):
         if not (should_cancel and should_cancel()):
-            with trace_step(
-                "agent_web_search",
-                input_size=len(prompt),
-                meta={"sparsePaperCount": sum(1 for item in paper_contexts if int(item.get("evidenceCount") or 0) <= 1)},
-            ) as web_step:
-                web_queries = build_web_search_queries_agent(prompt, paper_contexts)
-                web_result = retrieve_web_agent_evidence(web_queries)
-                web_evidence = web_result.get("items") or []
-                web_tool_calls = web_result.get("web_tool_calls") or []
-                web_step["outputSize"] = len(web_evidence)
-                web_step["meta"] = {
-                    **web_step.get("meta", {}),
-                    "status": web_result.get("status"),
-                    "provider": web_result.get("provider"),
-                    "degradation": web_result.get("degradation"),
-                }
+            if allow_iterative_search:
+                # Iterative search loop: search → fetch → judge → repeat
+                with trace_step(
+                    "agent_iterative_search",
+                    input_size=len(prompt),
+                    meta={"sparsePaperCount": sum(1 for item in paper_contexts if int(item.get("evidenceCount") or 0) <= 1), "mode": "iterative"},
+                ) as loop_step:
+                    sparse_papers = [
+                        item for item in paper_contexts
+                        if int(item.get("evidenceCount") or 0) <= 1 or str(item.get("status") or "") == "fallback"
+                    ]
+                    missing_aspects = [
+                        f"supplementary evidence for {clean_text(item.get('pdfId')) or 'unknown-paper'}"
+                        for item in sparse_papers
+                    ]
+                    sub_question = "supplementary web evidence for project papers"
+                    query_plan = {"keywords": [clean_text(prompt)[:80]], "paperIds": paper_ids}
 
-                if web_evidence:
-                    evidence_items.extend(web_evidence)
-                    evidence_items = evidence_items[:24]
-                if web_tool_calls:
-                    tool_calls.extend(web_tool_calls)
+                    def _iter_on_progress(iteration, pages_fetched, confidence):
+                        if on_progress:
+                            on_progress(
+                                copy.deepcopy(tool_calls),
+                                copy.deepcopy(evidence_items[:12]),
+                                copy.deepcopy(paper_contexts),
+                                0.69 + (0.03 * min(iteration, 3)),
+                                "web_search_iterative",
+                            )
 
-                if on_progress:
-                    on_progress(
-                        copy.deepcopy(tool_calls),
-                        copy.deepcopy(evidence_items[:12]),
-                        copy.deepcopy(paper_contexts),
-                        0.72,
-                        "web_search",
+                    from services.agentic_search_loop import run_agentic_search_loop
+
+                    loop_result = run_agentic_search_loop(
+                        question=prompt,
+                        sub_question=sub_question,
+                        missing_aspects=missing_aspects,
+                        query_plan=query_plan,
+                        should_cancel=should_cancel,
+                        on_progress=_iter_on_progress,
                     )
+                    loop_evidence = loop_result.get("evidence_items") or []
+                    loop_step["outputSize"] = len(loop_evidence)
+                    loop_step["meta"] = {
+                        **loop_step.get("meta", {}),
+                        "iterations": loop_result.get("iterations", 0),
+                        "verdict": loop_result.get("verdict"),
+                        "web_search_used": loop_result.get("web_search_used"),
+                        "pages_fetched": loop_result.get("pages_fetched"),
+                        "status": "success" if loop_evidence else "no_results",
+                    }
+
+                    if loop_evidence:
+                        evidence_items.extend(loop_evidence)
+                        evidence_items = evidence_items[:24]
+
+                    if on_progress:
+                        on_progress(
+                            copy.deepcopy(tool_calls),
+                            copy.deepcopy(evidence_items[:12]),
+                            copy.deepcopy(paper_contexts),
+                            0.72,
+                            "web_search_iterative",
+                        )
+            else:
+                # Simple single-pass web search (existing behavior)
+                with trace_step(
+                    "agent_web_search",
+                    input_size=len(prompt),
+                    meta={"sparsePaperCount": sum(1 for item in paper_contexts if int(item.get("evidenceCount") or 0) <= 1)},
+                ) as web_step:
+                    web_queries = build_web_search_queries_agent(prompt, paper_contexts)
+                    web_result = retrieve_web_agent_evidence(web_queries)
+                    web_evidence = web_result.get("items") or []
+                    web_tool_calls = web_result.get("web_tool_calls") or []
+                    web_step["outputSize"] = len(web_evidence)
+                    web_step["meta"] = {
+                        **web_step.get("meta", {}),
+                        "status": web_result.get("status"),
+                        "provider": web_result.get("provider"),
+                        "degradation": web_result.get("degradation"),
+                    }
+
+                    if web_evidence:
+                        evidence_items.extend(web_evidence)
+                        evidence_items = evidence_items[:24]
+                    if web_tool_calls:
+                        tool_calls.extend(web_tool_calls)
+
+                    if on_progress:
+                        on_progress(
+                            copy.deepcopy(tool_calls),
+                            copy.deepcopy(evidence_items[:12]),
+                            copy.deepcopy(paper_contexts),
+                            0.72,
+                            "web_search",
+                        )
 
     return paper_contexts, tool_calls, evidence_items[:12]
 
@@ -943,12 +1007,14 @@ def execute_run(
     paper_ids: List[str],
     allow_external_search: bool = False,
     allow_web_search: bool = False,
+    allow_iterative_search: bool = False,
 ) -> Dict[str, Any]:
     paper_contexts, tool_calls, evidence_items = collect_project_evidence(
         prompt,
         paper_ids,
         allow_external_search=allow_external_search,
         allow_web_search=allow_web_search,
+        allow_iterative_search=allow_iterative_search,
     )
     finding, comparison_table, conflicts, open_questions = build_agent_outputs(
         prompt,
