@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.84
+
+1. **实现 Web 页面抓取基础设施**：新增 `web_fetcher.py`，实现完整安全检查链（白名单校验 → DNS 解析检查 → HTTPS 强制 → `allow_redirects=False` → Content-Type 预检查 text/html|text/plain|application/json → 2 MiB 上限 → UTF-8 转码）；并发控制 `threading.Semaphore(3)` + per-host 速率限制 2 秒；仅对 429/5xx 最多 1 次重试（共 2 次尝试）；所有错误返回使用错误码字符串（`FetchError` 类），不含原始 URL 和响应体；`FetchResult` 为 frozen dataclass 不可变。
+
 ### 2026-07-12 v0.1.83
 
 1. **注册 search_web 工具并接入 Agent/Research**：在 ToolRegistry 注册 `search_web` 工具（`safetyScope.access="restricted"`），输入 query(1-300 chars)/limit(1-10)/searchType(general/academic/news)，预算每任务 5 次调用/20 条结果；仅在学术检索+外部学术都不足且 `allowWebSearch` 授权时触发。
