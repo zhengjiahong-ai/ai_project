@@ -91,7 +91,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         contracts = registry.list_tools()
 
         self.assertEqual(registry.schemaVersion, "1.0")
-        self.assertEqual(len(contracts), 11)
+        self.assertEqual(len(contracts), 12)
         self.assertEqual(
             set(contracts[0]),
             {"name", "version", "description", "inputSchema", "outputSchema", "safetyScope"},
@@ -464,7 +464,7 @@ class ToolRegistryContractTests(unittest.TestCase):
 
     def test_existing_tools_keep_read_only_safety_scopes(self):
         registry = get_tool_registry()
-        restricted_tools = {"run_descriptive_statistics", "search_web"}
+        restricted_tools = {"run_descriptive_statistics", "search_web", "fetch_web_page"}
         for contract in registry.list_tools():
             if contract["name"] in restricted_tools:
                 continue
@@ -505,6 +505,32 @@ class ToolRegistryContractTests(unittest.TestCase):
         self.assertEqual(
             definition.outputSchema["properties"]["status"]["enum"],
             ["disabled", "success", "budget_exceeded", "failed"],
+        )
+        self.assertFalse(definition.outputSchema["additionalProperties"])
+
+    def test_fetch_web_page_tool_is_registered_with_restricted_contract(self):
+        registry = get_tool_registry()
+        definition = registry.get("fetch_web_page")
+
+        self.assertEqual(definition.name, "fetch_web_page")
+        self.assertEqual(definition.version, "1.0.0")
+        self.assertEqual(definition.safetyScope["access"], "restricted")
+        self.assertTrue(definition.safetyScope["networkAccess"])
+        self.assertTrue(definition.safetyScope["sideEffects"])
+        self.assertEqual(definition.safetyScope["dataScopes"], ["web_page_content"])
+
+        props = definition.inputSchema["properties"]
+        self.assertIn("url", props)
+        self.assertEqual(props["url"]["minLength"], 1)
+        self.assertEqual(props["url"]["maxLength"], 2048)
+        self.assertIn("maxChars", props)
+        self.assertEqual(props["maxChars"]["minimum"], 1000)
+        self.assertEqual(props["maxChars"]["maximum"], 16000)
+        self.assertFalse(definition.inputSchema["additionalProperties"])
+
+        self.assertEqual(
+            definition.outputSchema["properties"]["status"]["enum"],
+            ["success", "disabled", "budget_exceeded", "failed"],
         )
         self.assertFalse(definition.outputSchema["additionalProperties"])
 

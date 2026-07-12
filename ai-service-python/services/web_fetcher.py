@@ -127,6 +127,7 @@ def fetch_web_page(
     max_chars: int = 50000,
     clock: Callable[[], float] = time.monotonic,
     sleep_fn: Callable[[float], None] = time.sleep,
+    cache: Optional[Any] = None,
 ) -> FetchResult:
     """Fetch a web page through the full security chain.
 
@@ -136,6 +137,7 @@ def fetch_web_page(
         max_chars: Maximum decoded characters to return (default 50000).
         clock: Monotonic clock for latency measurement.
         sleep_fn: Sleep function for rate limiting (injectable for tests).
+        cache: Optional WebFetchCache for caching results (default None = no cache).
 
     Returns:
         FetchResult with status, content, and metadata.
@@ -145,30 +147,55 @@ def fetch_web_page(
 
     from services.url_whitelist import validate_fetch_url
 
-    # Step 0: URL sanity check
+    # Step 0: Cache check (before any network or semaphore work)
+    if cache is not None:
+        cached = cache.get(url)
+        if cached is not None:
+            return FetchResult(**cached)
+
+    # Step 1: URL sanity check
     if not url or not isinstance(url, str):
         return _error_result(FetchError.INVALID_URL)
 
-    # Step 1: Whitelist + DNS + internal IP check
+    # Step 2: Whitelist + DNS + internal IP check
     try:
         hostname = validate_fetch_url(url)
     except ValueError:
         return _error_result(FetchError.NOT_WHITELISTED)
 
-    # Step 2: HTTPS only (double-check; validate_fetch_url already checks this)
+    # Step 3: HTTPS only (double-check; validate_fetch_url already checks this)
     parsed = urlparse(url)
     if parsed.scheme != "https":
         return _error_result(FetchError.NOT_HTTPS)
 
-    # Step 3: Acquire concurrency semaphore (with timeout)
+    # Step 4: Acquire concurrency semaphore (with timeout)
     acquired = _fetch_concurrency_semaphore.acquire(timeout=30.0)
     if not acquired:
         return _error_result(FetchError.CONCURRENCY_BLOCKED)
 
     try:
-        return _perform_fetch(url, hostname, session=session, max_chars=max_chars, clock=clock, sleep_fn=sleep_fn)
+        result = _perform_fetch(url, hostname, session=session, max_chars=max_chars, clock=clock, sleep_fn=sleep_fn)
     finally:
         _fetch_concurrency_semaphore.release()
+
+    # Step 5: Cache successful results (blocked content excluded by WebFetchCache.put)
+    if cache is not None and result.status == "success":
+        from services.content_safety import sanitize_fetched_web_content
+
+        safety = sanitize_fetched_web_content(result.content, url=url)
+        cache.put(url, {
+            "status": result.status,
+            "url": result.url,
+            "content": result.content,
+            "content_type": result.content_type,
+            "content_length": result.content_length,
+            "fetched_at": result.fetched_at,
+            "elapsed_ms": 0,
+            "retry_count": 0,
+            "grade": safety["grade"],
+        })
+
+    return result
 
 
 def _perform_fetch(

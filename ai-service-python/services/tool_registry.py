@@ -36,6 +36,8 @@ EXTERNAL_SEARCH_CALL_BUDGET = 3
 EXTERNAL_SEARCH_EVIDENCE_BUDGET = 15
 WEB_SEARCH_CALL_BUDGET = 5
 WEB_SEARCH_RESULT_BUDGET = 20
+WEB_FETCH_CALL_BUDGET = 10
+WEB_FETCH_CHAR_BUDGET = 80_000
 
 
 class ToolNotFoundError(KeyError):
@@ -528,6 +530,41 @@ def _build_default_tool_registry() -> ToolRegistry:
             side_effects=True,
         ),
     )
+    registry.register(
+        "fetch_web_page",
+        "Fetch and extract text content from a whitelisted web page URL. "
+        "Only available when allowWebSearch is authorized and a web-capable provider is configured.",
+        {
+            "type": "object",
+            "required": ["url"],
+            "properties": {
+                "url": {"type": "string", "minLength": 1, "maxLength": 2048},
+                "maxChars": {"type": "integer", "minimum": 1000, "maximum": 16000},
+            },
+            "additionalProperties": False,
+        },
+        _fetch_web_page_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "url", "content"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "disabled", "budget_exceeded", "failed"]},
+                "url": {"type": "string"},
+                "content": {"type": "string"},
+                "content_type": {"type": "string"},
+                "content_length": {"type": "integer"},
+                "reason": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["web_page_content"],
+            network_access=True,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
     return registry
 
 
@@ -813,6 +850,84 @@ def _search_web_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
+def _fetch_web_page_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    from services.url_whitelist import validate_fetch_url
+    from services.web_fetcher import fetch_web_page as _fetch_page
+
+    url = _clean_text(payload.get("url"))
+    if not url:
+        raise ToolValidationError("fetch_web_page requires a non-empty url.")
+
+    # Validate URL through whitelist before any network access
+    try:
+        validate_fetch_url(url)
+    except ValueError:
+        raise ToolValidationError("fetch_web_page url must pass whitelist validation.")
+
+    max_chars = int(payload.get("maxChars") or 16000)
+
+    provider = _get_external_search_provider()
+    provider_name = _resolve_provider_display_name(provider)
+
+    with trace_step(
+        "tool_fetch_web_page",
+        input_size=len(url),
+        meta={
+            "provider": provider_name if provider.enabled is True else "disabled",
+            "maxChars": max_chars,
+            "budget": _web_fetch_budget_snapshot(),
+        },
+    ) as step:
+        if provider.enabled is not True:
+            return {"status": "disabled", "url": "", "content": "", "reason": "Web fetch is not enabled."}
+
+        web_capable = bool(getattr(provider, "supports_web_search", False))
+        if not web_capable:
+            return {"status": "disabled", "url": "", "content": "", "reason": "No web-capable provider configured."}
+
+        budget_reason = _web_fetch_budget_block_reason(max_chars)
+        if budget_reason:
+            record_counter("webFetchBudgetBlocks")
+            return {
+                "status": "budget_exceeded",
+                "url": "",
+                "content": "",
+                "reason": budget_reason,
+            }
+
+        try:
+            result = _fetch_page(url, max_chars=max_chars)
+        except Exception:
+            record_counter("webFetchFailures")
+            return {"status": "failed", "url": "", "content": "", "reason": "Web fetch provider failed."}
+
+        record_counter("webFetchCalls")
+        content_len = len(result.content or "")
+        record_counter("webFetchChars", content_len)
+
+        step["outputSize"] = content_len
+        step["meta"] = {
+            **step.get("meta", {}),
+            "status": result.status,
+            "latencyMs": result.elapsed_ms,
+            "budget": _web_fetch_budget_snapshot(),
+        }
+        if result.status != "success":
+            return {
+                "status": "failed",
+                "url": "",
+                "content": "",
+                "reason": result.status,
+            }
+        return {
+            "status": "success",
+            "url": result.url,
+            "content": result.content,
+            "content_type": result.content_type,
+            "content_length": result.content_length,
+        }
+
+
 def _get_external_search_provider() -> Any:
     global _DEFAULT_EXTERNAL_SEARCH_PROVIDER
     if _DEFAULT_EXTERNAL_SEARCH_PROVIDER is None:
@@ -875,6 +990,24 @@ def _web_search_budget_block_reason(requested_limit: int) -> str:
         return "Web search call budget exceeded (max 5 per task)."
     if snapshot["resultsUsed"] + max(0, int(requested_limit or 0)) > snapshot["resultLimit"]:
         return "Web search result budget exceeded (max 20 per task)."
+    return ""
+
+
+def _web_fetch_budget_snapshot() -> Dict[str, int]:
+    return {
+        "callLimit": WEB_FETCH_CALL_BUDGET,
+        "callsUsed": _trace_counter_value("webFetchCalls"),
+        "charLimit": WEB_FETCH_CHAR_BUDGET,
+        "charsUsed": _trace_counter_value("webFetchChars"),
+    }
+
+
+def _web_fetch_budget_block_reason(max_chars: int) -> str:
+    snapshot = _web_fetch_budget_snapshot()
+    if snapshot["callsUsed"] >= snapshot["callLimit"]:
+        return "Web fetch call budget exceeded (max 10 per task)."
+    if snapshot["charsUsed"] + max(0, int(max_chars or 0)) > snapshot["charLimit"]:
+        return "Web fetch char budget exceeded (max 80000 per task)."
     return ""
 
 
