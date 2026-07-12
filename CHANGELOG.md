@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.85
+
+1. **实现 HTML 内容提取与清洗**：新增 `html_extractor.py`，使用 BeautifulSoup + lxml 解析 HTML；移除 script/style/iframe/object/embed/svg/math/form/input 等 18 种危险标签；移除 HTML 注释和 CDATA；文本后处理含空白压缩、连续换行去重（最多 2 个）、50,000 chars 上限、不可打印字符过滤；保留 title/URL/提取时间作为元数据。
+
 ### 2026-07-12 v0.1.84
 
 1. **实现 Web 页面抓取基础设施**：新增 `web_fetcher.py`，实现完整安全检查链（白名单校验 → DNS 解析检查 → HTTPS 强制 → `allow_redirects=False` → Content-Type 预检查 text/html|text/plain|application/json → 2 MiB 上限 → UTF-8 转码）；并发控制 `threading.Semaphore(3)` + per-host 速率限制 2 秒；仅对 429/5xx 最多 1 次重试（共 2 次尝试）；所有错误返回使用错误码字符串（`FetchError` 类），不含原始 URL 和响应体；`FetchResult` 为 frozen dataclass 不可变。
