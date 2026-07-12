@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.86
+
+1. **实现抓取内容安全验证**：新增 `content_safety.py`，`sanitize_fetched_web_content()` 执行提示注入检测（复用 `safety_service.detect_prompt_injection`）、安全分级（safe/flagged/blocked）、blocked 内容整页拒绝（恶意软件/钓鱼/色情/暴力）；URL 可信度标记 high(.gov/.edu/学术出版商)/medium(Wikipedia/GitHub/新闻)/low(.com)/unknown；token 截断（tiktoken cl100k_base，默认 4000 tokens，char-ratio 回退）；已集成到 `web_fetcher.py` fetch pipeline。
+
 ### 2026-07-12 v0.1.85
 
 1. **实现 HTML 内容提取与清洗**：新增 `html_extractor.py`，使用 BeautifulSoup + lxml 解析 HTML；移除 script/style/iframe/object/embed/svg/math/form/input 等 18 种危险标签；移除 HTML 注释和 CDATA；文本后处理含空白压缩、连续换行去重（最多 2 个）、50,000 chars 上限、不可打印字符过滤；保留 title/URL/提取时间作为元数据。
