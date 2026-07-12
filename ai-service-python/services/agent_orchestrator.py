@@ -540,6 +540,32 @@ def build_agent_outputs(
         ],
     }
     conflicts = enrich_conflicts_with_graph_context(detect_conflicts(paper_contexts, evidence_items))
+
+    # P6-18: cross-source evidence validation
+    try:
+        from services.evidence_cross_validator import cross_validate_evidence
+
+        cv_result = cross_validate_evidence(evidence_items, use_llm=False)
+        if cv_result.get("claims"):
+            conflicts.append({
+                "id": "cross-validation",
+                "conflictType": "cross-validation",
+                "severity": "low",
+                "claim": "Multi-source evidence cross-validation",
+                "summary": (
+                    f"Cross-validated {cv_result['summary']['total_claims']} claims across sources: "
+                    f"{cv_result['summary']['confirmed']} confirmed, "
+                    f"{cv_result['summary']['supported']} supported, "
+                    f"{cv_result['summary']['single_source']} single-source, "
+                    f"{cv_result['summary']['contradicted']} contradicted."
+                ),
+                "papers": paper_ids,
+                "sourceIds": [],
+                "crossValidation": cv_result,
+            })
+    except Exception:
+        pass  # cross-validation is optional; never blocks agent output
+
     open_questions = []
     for item in paper_contexts:
         if item.get("evidenceCount", 0) <= 1:
@@ -627,6 +653,8 @@ def build_minimal_report(
                 f"{code_lines}\n\n"
             )
 
+    cross_validation_lines = _build_cross_validation_lines(conflicts)
+
     return (
         "# Agent Research Draft\n\n"
         f"## Task\n{prompt}\n\n"
@@ -640,6 +668,7 @@ def build_minimal_report(
         f"{conclusion_lines}\n\n"
         "## Conflict Candidates\n"
         f"{conflict_lines}\n\n"
+        f"{cross_validation_lines}"
         "## Open Questions\n"
         f"{question_lines}\n"
     )
@@ -841,6 +870,38 @@ def build_conclusion_lines(
         )
 
     return lines
+
+
+def _build_cross_validation_lines(conflicts: List[Dict[str, Any]]) -> str:
+    """Build cross-validation report section from conflicts list."""
+    cv_conflicts = [c for c in (conflicts or []) if c.get("conflictType") == "cross-validation"]
+    if not cv_conflicts:
+        return ""
+    cv = cv_conflicts[0].get("crossValidation") or {}
+    claims = cv.get("claims") or []
+    summary = cv.get("summary") or {}
+    if not claims:
+        return ""
+
+    lines = ["## Cross-Source Validation\n"]
+    lines.append(f"Validated {summary.get('total_claims', 0)} claims across sources: "
+                 f"{summary.get('confirmed', 0)} confirmed, "
+                 f"{summary.get('supported', 0)} supported, "
+                 f"{summary.get('single_source', 0)} single-source, "
+                 f"{summary.get('contradicted', 0)} contradicted.\n")
+
+    for claim in claims:
+        level = claim.get("agreement_level", "unknown")
+        label = {"confirmed": "✓", "supported": "~", "single_source": "?", "contradicted": "✗"}.get(level, "?")
+        sources_str = ", ".join(claim.get("source_types", []))
+        lines.append(f"- {label} [{level}] {claim.get('claim', '')[:200]} (sources: {sources_str})")
+        if claim.get("needs_more_evidence"):
+            lines.append("  ⚠ 需更多证据 — 仅单一来源支持")
+        if claim.get("needs_manual_review"):
+            lines.append("  ⚠ 需人工核查 — 存在矛盾声明")
+
+    lines.append("")
+    return "\n".join(lines)
 
 
 def build_conflict_lines(conflicts: List[Dict[str, Any]]) -> List[str]:

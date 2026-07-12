@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.93
+
+1. **多源证据交叉验证**：新增 `evidence_cross_validator.py`，实现 `cross_validate_evidence()` 函数，支持 LLM 驱动的声明提取→聚类→一致性评分和规则型降级路径（关键词提取→Jaccard 聚类→极性检测）；agreement_level 分为 confirmed（≥3 来源）/supported（2 来源）/single_source/contradicted；单源声明标记 `needs_more_evidence=True`，矛盾声明标记 `needs_manual_review=True`；已集成到 `agent_orchestrator.py` 的 `build_agent_outputs()`（附加到 conflicts 列表）和 `build_minimal_report()`（新增 Cross-Source Validation 章节），以及 `research_aggregator.py` 的 `build_research_report()`（新增"多源证据交叉验证"章节）。
+
 ### 2026-07-12 v0.1.92
 
 1. **迭代搜索 Trace 与成本审计**：`trace_service.py` 的 `start_trace()` 种子全部 Web 搜索/抓取计数器（`webSearchCalls`/`webSearchResults`/`webSearchFailures`/`webSearchLatencyMs`/`webSearchBudgetBlocks`/`webSearchCacheHits`/`webFetchCalls`/`webFetchChars`/`webFetchFailures`/`webFetchBudgetBlocks`/`webFetchCacheHits`/`webFetchBytes`）和 agentic 循环计数器（`agenticLoopIterations`/`queryRefinementCalls`）；`agentic_search_loop.py` 每轮迭代包装独立 `trace_step("agentic_loop_iter_N")`，记录 `agenticLoopIterations` 和 `queryRefinementCalls` 计数器；`web_fetcher.py` 的 `FetchResult` 新增 `cache_hit` 字段，`tool_registry.py` 成功路径新增 `webFetchBytes` 和 `webFetchCacheHits` 计数；脱敏规则不变。

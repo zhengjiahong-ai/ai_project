@@ -53,6 +53,35 @@ def build_research_report(
                 )
             lines.append("")
 
+    # P6-18: multi-source evidence cross-validation
+    try:
+        from services.evidence_cross_validator import cross_validate_evidence
+
+        all_evidence = collect_conflict_evidence(findings)
+        cv_result = cross_validate_evidence(all_evidence, use_llm=False)
+        cv_claims = cv_result.get("claims") or []
+        cv_summary = cv_result.get("summary") or {}
+        if cv_claims:
+            lines.append("## 多源证据交叉验证")
+            lines.append(f"跨源验证 {cv_summary.get('total_claims', 0)} 条声明："
+                         f"{cv_summary.get('confirmed', 0)} 已确认、"
+                         f"{cv_summary.get('supported', 0)} 有支撑、"
+                         f"{cv_summary.get('single_source', 0)} 单一来源、"
+                         f"{cv_summary.get('contradicted', 0)} 矛盾。")
+            lines.append("")
+            for claim in cv_claims:
+                level = claim.get("agreement_level", "unknown")
+                label = {"confirmed": "✓", "supported": "~", "single_source": "?", "contradicted": "✗"}.get(level, "?")
+                sources_str = ", ".join(claim.get("source_types", []))
+                lines.append(f"- {label} [{level}] {claim.get('claim', '')[:200]} (来源: {sources_str})")
+                if claim.get("needs_more_evidence"):
+                    lines.append("  ⚠ 需更多证据 — 仅单一来源支持")
+                if claim.get("needs_manual_review"):
+                    lines.append("  ⚠ 需人工核查 — 存在矛盾声明")
+            lines.append("")
+    except Exception:
+        pass  # cross-validation is optional; never blocks report generation
+
     lines.extend([
         "## 综合判断",
         overall_assessment(question, findings, planned_count=len(plan_items)),
