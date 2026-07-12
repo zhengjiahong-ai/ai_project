@@ -17,6 +17,7 @@ def research_sub_question(
     documents: List[Dict[str, Any]],
     *,
     allow_web_search: bool = False,
+    allow_iterative_search: bool = False,
 ) -> Dict[str, Any]:
     research_context = build_planning_context(question, paper_skeleton, documents)
     with trace_step(
@@ -109,37 +110,75 @@ def research_sub_question(
     web_search_used = False
     if should_try_web_search(judge, allow_web_search=allow_web_search):
         missing = normalize_missing_aspects(judge.get("missingAspects"))
-        with trace_step(
-            "research_web_search",
-            input_size=len(missing),
-            meta={"missingAspects": missing},
-        ) as web_step:
-            web_result = retrieve_web_search_evidence(
-                research_question=question,
-                missing_aspects=missing,
-            )
-            web_evidence = web_result.get("items") or []
-            web_degradation = web_result.get("degradation") or ""
-            web_step["outputSize"] = len(web_evidence)
-            web_step["meta"] = {
-                **web_step.get("meta", {}),
-                "status": web_result.get("status"),
-                "degradation": web_degradation,
-            }
-            if web_evidence:
-                combined_evidence = merge_evidence_lists(combined_evidence, web_evidence)
-                web_search_used = True
-                with trace_step("research_judge_web", input_size=len(combined_evidence)) as judge_step:
-                    judge = judge_research_evidence(
-                        sub_question,
-                        combined_evidence,
-                        keywords=[
-                            *(query_plan.get("keywords") or []),
-                            *(judge.get("missingAspects") or []),
-                        ],
-                    )
-                    judge_step["outputSize"] = len(judge.get("missingAspects") or [])
-                    annotate_judge_step(judge_step, judge, "stop")
+        if allow_iterative_search:
+            with trace_step(
+                "research_agentic_search",
+                input_size=len(missing),
+                meta={"missingAspects": missing, "mode": "iterative"},
+            ) as loop_step:
+                from services.agentic_search_loop import run_agentic_search_loop
+
+                loop_result = run_agentic_search_loop(
+                    question=question,
+                    sub_question=sub_question,
+                    missing_aspects=missing,
+                    query_plan=query_plan,
+                )
+                loop_evidence = loop_result.get("evidence_items") or []
+                loop_step["outputSize"] = len(loop_evidence)
+                loop_step["meta"] = {
+                    **loop_step.get("meta", {}),
+                    "iterations": loop_result.get("iterations", 0),
+                    "verdict": loop_result.get("verdict"),
+                    "web_search_used": loop_result.get("web_search_used"),
+                    "pages_fetched": loop_result.get("pages_fetched"),
+                }
+                if loop_evidence:
+                    combined_evidence = merge_evidence_lists(combined_evidence, loop_evidence)
+                    web_search_used = loop_result.get("web_search_used", False)
+                    with trace_step("research_judge_agentic", input_size=len(combined_evidence)) as judge_step:
+                        judge = judge_research_evidence(
+                            sub_question,
+                            combined_evidence,
+                            keywords=[
+                                *(query_plan.get("keywords") or []),
+                                *(judge.get("missingAspects") or []),
+                            ],
+                        )
+                        judge_step["outputSize"] = len(judge.get("missingAspects") or [])
+                        annotate_judge_step(judge_step, judge, "stop")
+        else:
+            with trace_step(
+                "research_web_search",
+                input_size=len(missing),
+                meta={"missingAspects": missing},
+            ) as web_step:
+                web_result = retrieve_web_search_evidence(
+                    research_question=question,
+                    missing_aspects=missing,
+                )
+                web_evidence = web_result.get("items") or []
+                web_degradation = web_result.get("degradation") or ""
+                web_step["outputSize"] = len(web_evidence)
+                web_step["meta"] = {
+                    **web_step.get("meta", {}),
+                    "status": web_result.get("status"),
+                    "degradation": web_degradation,
+                }
+                if web_evidence:
+                    combined_evidence = merge_evidence_lists(combined_evidence, web_evidence)
+                    web_search_used = True
+                    with trace_step("research_judge_web", input_size=len(combined_evidence)) as judge_step:
+                        judge = judge_research_evidence(
+                            sub_question,
+                            combined_evidence,
+                            keywords=[
+                                *(query_plan.get("keywords") or []),
+                                *(judge.get("missingAspects") or []),
+                            ],
+                        )
+                        judge_step["outputSize"] = len(judge.get("missingAspects") or [])
+                        annotate_judge_step(judge_step, judge, "stop")
 
     summary = build_finding_summary(sub_question, combined_evidence, judge)
     return {
