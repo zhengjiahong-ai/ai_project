@@ -9,6 +9,8 @@ from __future__ import annotations
 import os
 from typing import Any, Callable, Dict, List, Optional
 
+from services.trace_service import record_counter, trace_step
+
 _MAX_ITERATIONS_DEFAULT = 3
 _MAX_URLS_PER_ROUND = 3
 _MAX_URLS_TOTAL = 10
@@ -106,6 +108,7 @@ def run_agentic_search_loop(
                 previous_results=all_web_items[-10:],
                 missing_aspects=missing_aspects,
             )
+            record_counter("queryRefinementCalls")
         else:
             queries = build_web_search_queries(
                 research_question=question,
@@ -114,70 +117,85 @@ def run_agentic_search_loop(
         if not queries:
             break
 
-        # Step 2: Execute web search for each query
-        web_items = []
-        for query in queries:
-            try:
-                search_result = invoke_search(query, limit=4)
-            except Exception:
-                continue
-            if search_result.get("status") == "success":
-                items = search_result.get("items") or []
-                web_items.extend(items)
-        if not web_items:
-            break
+        # Steps 2-4: search → select → fetch (per-iteration trace step)
+        with trace_step(
+            f"agentic_loop_iter_{iteration + 1}",
+            input_size=len(queries),
+            meta={"iteration": iteration + 1, "queryCount": len(queries)},
+        ) as iter_step:
+            # Step 2: Execute web search for each query
+            web_items = []
+            for query in queries:
+                try:
+                    search_result = invoke_search(query, limit=4)
+                except Exception:
+                    continue
+                if search_result.get("status") == "success":
+                    items = search_result.get("items") or []
+                    web_items.extend(items)
+            if not web_items:
+                iter_step["outputSize"] = 0
+                break
 
-        all_web_items.extend(web_items)
+            all_web_items.extend(web_items)
 
-        # Step 3: Build skip set from session history + cache
-        skip_urls = set(fetched_urls)
+            # Step 3: Build skip set from session history + cache
+            skip_urls = set(fetched_urls)
 
-        if fetch_cache is not None:
-            for item in web_items:
+            if fetch_cache is not None:
+                for item in web_items:
+                    url = str(item.get("url") or "").strip()
+                    if not url or url in skip_urls:
+                        continue
+                    try:
+                        if fetch_cache.get(url) is not None:
+                            skip_urls.add(url)
+                    except Exception:
+                        pass  # cache failure must not crash the loop
+
+            # Select top URLs to fetch (trust-based priority)
+            urls_to_fetch = _select_top_urls(
+                web_items, missing_aspects=missing_aspects, max_urls=_MAX_URLS_PER_ROUND,
+                skip_urls=skip_urls,
+            )
+            remaining = _MAX_URLS_TOTAL - total_pages_fetched
+            urls_to_fetch = urls_to_fetch[:max(0, remaining)]
+
+            # Step 4: Fetch selected pages
+            fetched_texts = []
+            for item in urls_to_fetch:
                 url = str(item.get("url") or "").strip()
-                if not url or url in skip_urls:
+                if not url:
                     continue
                 try:
-                    if fetch_cache.get(url) is not None:
-                        skip_urls.add(url)
+                    fetch_result = invoke_fetch(url, max_chars=8000)
                 except Exception:
-                    pass  # cache failure must not crash the loop
+                    continue
+                if fetch_result.get("status") == "success":
+                    content = fetch_result.get("content", "")
+                    if content:
+                        fetched_texts.append({
+                            "sourceId": f"web-page-{iteration + 1}-{len(fetched_texts) + 1}",
+                            "sourceType": "web_page",
+                            "title": item.get("title", ""),
+                            "text": content[:3000],
+                            "url": url,
+                        })
+                        total_pages_fetched += 1
+                        fetched_urls.add(url)
 
-        # Select top URLs to fetch (trust-based priority)
-        urls_to_fetch = _select_top_urls(
-            web_items, missing_aspects=missing_aspects, max_urls=_MAX_URLS_PER_ROUND,
-            skip_urls=skip_urls,
-        )
-        remaining = _MAX_URLS_TOTAL - total_pages_fetched
-        urls_to_fetch = urls_to_fetch[:max(0, remaining)]
-
-        # Step 4: Fetch selected pages
-        fetched_texts = []
-        for item in urls_to_fetch:
-            url = str(item.get("url") or "").strip()
-            if not url:
-                continue
-            try:
-                fetch_result = invoke_fetch(url, max_chars=8000)
-            except Exception:
-                continue
-            if fetch_result.get("status") == "success":
-                content = fetch_result.get("content", "")
-                if content:
-                    fetched_texts.append({
-                        "sourceId": f"web-page-{iteration + 1}-{len(fetched_texts) + 1}",
-                        "sourceType": "web_page",
-                        "title": item.get("title", ""),
-                        "text": content[:3000],
-                        "url": url,
-                    })
-                    total_pages_fetched += 1
-                    fetched_urls.add(url)
+            iter_step["outputSize"] = len(fetched_texts)
+            iter_step["meta"] = {
+                **iter_step.get("meta", {}),
+                "pagesFetched": len(fetched_texts),
+                "totalPagesFetched": total_pages_fetched,
+            }
 
         all_evidence.extend(fetched_texts)
 
         # Count this as a completed iteration
         iteration += 1
+        record_counter("agenticLoopIterations")
 
         # Notify progress callback if provided
         if on_progress is not None:

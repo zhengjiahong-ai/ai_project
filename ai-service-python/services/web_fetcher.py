@@ -45,6 +45,7 @@ class FetchResult:
     fetched_at: str = ""           # ISO 8601 timestamp
     elapsed_ms: int = 0            # total fetch time in milliseconds
     retry_count: int = 0           # number of retries performed
+    cache_hit: bool = False        # True when result came from WebFetchCache
 
 
 # ---- Constants ----
@@ -151,7 +152,9 @@ def fetch_web_page(
     if cache is not None:
         cached = cache.get(url)
         if cached is not None:
-            return FetchResult(**cached)
+            cached_with_flag = dict(cached)
+            cached_with_flag["cache_hit"] = True
+            return FetchResult(**cached_with_flag)
 
     # Step 1: URL sanity check
     if not url or not isinstance(url, str):

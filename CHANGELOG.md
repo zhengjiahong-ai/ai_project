@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.92
+
+1. **迭代搜索 Trace 与成本审计**：`trace_service.py` 的 `start_trace()` 种子全部 Web 搜索/抓取计数器（`webSearchCalls`/`webSearchResults`/`webSearchFailures`/`webSearchLatencyMs`/`webSearchBudgetBlocks`/`webSearchCacheHits`/`webFetchCalls`/`webFetchChars`/`webFetchFailures`/`webFetchBudgetBlocks`/`webFetchCacheHits`/`webFetchBytes`）和 agentic 循环计数器（`agenticLoopIterations`/`queryRefinementCalls`）；`agentic_search_loop.py` 每轮迭代包装独立 `trace_step("agentic_loop_iter_N")`，记录 `agenticLoopIterations` 和 `queryRefinementCalls` 计数器；`web_fetcher.py` 的 `FetchResult` 新增 `cache_hit` 字段，`tool_registry.py` 成功路径新增 `webFetchBytes` 和 `webFetchCacheHits` 计数；脱敏规则不变。
+
 ### 2026-07-12 v0.1.91
 
 1. **Agent 研究中的迭代搜索集成**：`agent_orchestrator.py` 的 `collect_project_evidence()` 新增 `allow_iterative_search` 参数，在 Phase 3 Web 搜索阶段支持调用 `run_agentic_search_loop()` 替代单轮搜索（`allowWebSearch=true` 且 `allowIterativeSearch=true` 时启用）；`run_agentic_search_loop()` 新增 `on_progress(iteration, pages_fetched, confidence)` 回调，每轮迭代完成后推送进度；`schemas/requests.py` 的 `AgentTaskCreateRequest`/`AgentRunCreateRequest`/`AgentPlanItemRequest` 新增 `allowIterativeSearch` 字段；`agent_project_service.py` 从 approved plan items 解析 `allowIterativeSearch` 并传递；前端新增迭代搜索开关（依赖网页搜索启用），证据面板 `web_page`/`web_search` 来源标记高亮。

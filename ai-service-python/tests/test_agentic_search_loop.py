@@ -331,6 +331,29 @@ class AgenticSearchLoopTests(unittest.TestCase):
         self.assertEqual(result["verdict"], "CORRECT")
         self.assertTrue(result["web_search_used"])
 
+    def test_records_agentic_loop_iterations_counter(self):
+        """Verify agenticLoopIterations counter is recorded each iteration."""
+        from services.agentic_search_loop import run_agentic_search_loop
+        from services.trace_service import start_trace, get_trace_snapshot, clear_traces
+
+        clear_traces()
+        trace_id = start_trace("unit_test")
+
+        run_agentic_search_loop(
+            question="test",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=2,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=_mock_judge_correct,
+        )
+        snapshot = get_trace_snapshot(trace_id)
+        counters = snapshot.get("counters", {})
+        self.assertGreaterEqual(counters.get("agenticLoopIterations", 0), 1)
+        clear_traces()
+
 
 if __name__ == "__main__":
     unittest.main()

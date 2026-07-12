@@ -904,6 +904,9 @@ def _fetch_web_page_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         record_counter("webFetchCalls")
         content_len = len(result.content or "")
         record_counter("webFetchChars", content_len)
+        record_counter("webFetchBytes", result.content_length or 0)
+        if getattr(result, "cache_hit", False):
+            record_counter("webFetchCacheHits")
 
         step["outputSize"] = content_len
         step["meta"] = {

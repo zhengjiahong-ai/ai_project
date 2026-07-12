@@ -108,6 +108,23 @@ def start_trace(
             "codeExecutionCalls": 0,
             "codeExecutionFailures": 0,
             "codeExecutionOutputCount": 0,
+            # Web search counters
+            "webSearchCalls": 0,
+            "webSearchResults": 0,
+            "webSearchFailures": 0,
+            "webSearchLatencyMs": 0,
+            "webSearchBudgetBlocks": 0,
+            "webSearchCacheHits": 0,
+            # Web fetch counters
+            "webFetchCalls": 0,
+            "webFetchChars": 0,
+            "webFetchFailures": 0,
+            "webFetchBudgetBlocks": 0,
+            "webFetchCacheHits": 0,
+            "webFetchBytes": 0,
+            # Agentic loop counters
+            "agenticLoopIterations": 0,
+            "queryRefinementCalls": 0,
         },
         "steps": [],
     }
