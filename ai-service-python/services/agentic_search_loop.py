@@ -38,6 +38,7 @@ def run_agentic_search_loop(
     invoke_search=None,
     invoke_fetch=None,
     invoke_judge=None,
+    fetch_cache=None,
 ) -> Dict[str, Any]:
     """Run iterative search→fetch→judge loop.
 
@@ -54,6 +55,8 @@ def run_agentic_search_loop(
         invoke_search: Callable(query, limit) → dict (injectable for tests).
         invoke_fetch: Callable(url, max_chars) → dict (injectable for tests).
         invoke_judge: Callable(question, evidence) → dict (injectable for tests).
+        fetch_cache: Optional cache object with get(url)→dict|None (injectable
+                     for tests). Cached URLs are skipped during selection.
 
     Returns:
         {iterations, verdict, confidence, evidence_items, web_search_used, pages_fetched}
@@ -79,6 +82,7 @@ def run_agentic_search_loop(
     all_evidence: list = []
     all_web_items: list = []
     total_pages_fetched = 0
+    fetched_urls: set = set()
     prev_coverage_score = -1.0
     stall_count = 0
     verdict = "INCORRECT"
@@ -122,9 +126,24 @@ def run_agentic_search_loop(
 
         all_web_items.extend(web_items)
 
-        # Step 3: Select top URLs to fetch (trust-based priority)
+        # Step 3: Build skip set from session history + cache
+        skip_urls = set(fetched_urls)
+
+        if fetch_cache is not None:
+            for item in web_items:
+                url = str(item.get("url") or "").strip()
+                if not url or url in skip_urls:
+                    continue
+                try:
+                    if fetch_cache.get(url) is not None:
+                        skip_urls.add(url)
+                except Exception:
+                    pass  # cache failure must not crash the loop
+
+        # Select top URLs to fetch (trust-based priority)
         urls_to_fetch = _select_top_urls(
             web_items, missing_aspects=missing_aspects, max_urls=_MAX_URLS_PER_ROUND,
+            skip_urls=skip_urls,
         )
         remaining = _MAX_URLS_TOTAL - total_pages_fetched
         urls_to_fetch = urls_to_fetch[:max(0, remaining)]
@@ -150,6 +169,7 @@ def run_agentic_search_loop(
                         "url": url,
                     })
                     total_pages_fetched += 1
+                    fetched_urls.add(url)
 
         all_evidence.extend(fetched_texts)
 
@@ -197,6 +217,7 @@ def _select_top_urls(
     *,
     missing_aspects: list | None = None,
     max_urls: int = _MAX_URLS_PER_ROUND,
+    skip_urls: set[str] | None = None,
 ) -> list:
     """Select the best URLs to fetch from web search results.
 
@@ -204,6 +225,10 @@ def _select_top_urls(
     1. URL trust tier (high > medium > low > unknown)
     2. Title keyword overlap with missing_aspects
     3. Description length (longer = more informative)
+
+    Args:
+        skip_urls: Optional set of URLs to exclude from selection (e.g. already
+                   fetched or cached). Defaults to empty set when None.
     """
     from services.content_safety import _classify_url_trust
 
@@ -215,7 +240,7 @@ def _select_top_urls(
                 missing_keywords.add(word)
 
     scored = []
-    seen_urls = set()
+    seen_urls = set(skip_urls or set())
     for item in web_items:
         url = str(item.get("url") or "").strip()
         if not url or url in seen_urls:

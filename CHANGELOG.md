@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.90
+
+1. **搜索结果驱动的抓取优先级**：`agentic_search_loop.py` 的 `_select_top_urls()` 新增 `skip_urls` 参数，支持在选 URL 时排除已抓取或已缓存的页面；`run_agentic_search_loop()` 跨轮追踪 `fetched_urls`，避免同一 session 内重复抓取相同 URL；新增 `fetch_cache` 参数（可选），传入 `WebFetchCache` 实例后自动跳过缓存命中的 URL；缓存检查失败不中断搜索循环。优先级排序保持纯规则驱动（URL 可信度 → 标题关键词重叠 → 描述长度）。
+
 ### 2026-07-12 v0.1.89
 
 1. **LLM 驱动的动态查询提炼**：`external_query_planner.py` 新增 `refine_search_queries()`，基于前轮搜索结果使用 flash LLM（deepseek-v4-flash, temp 0.3）动态生成 1-3 条精炼查询；LLM 失败时自动降级为确定性 `build_web_search_queries()`；已集成到 `agentic_search_loop.py` 的迭代搜索（从第二轮起优先使用）。
