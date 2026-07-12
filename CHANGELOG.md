@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-12 v0.1.87
+
+1. **注册 fetch_web_page 工具与缓存集成**：在 ToolRegistry 注册 `fetch_web_page` 工具（restricted access），输入 url/maxChars(1000-16000)，预算 10 次调用/80,000 chars；新增 `web_fetch_cache.py`（SHA-256 URL key，24h TTL，JSON 存储，blocked 内容不缓存）；缓存集成到 `web_fetcher.fetch_web_page()` 的 fetch pipeline（命中跳过网络，成功后写入缓存）。
+
 ### 2026-07-12 v0.1.86
 
 1. **实现抓取内容安全验证**：新增 `content_safety.py`，`sanitize_fetched_web_content()` 执行提示注入检测（复用 `safety_service.detect_prompt_injection`）、安全分级（safe/flagged/blocked）、blocked 内容整页拒绝（恶意软件/钓鱼/色情/暴力）；URL 可信度标记 high(.gov/.edu/学术出版商)/medium(Wikipedia/GitHub/新闻)/low(.com)/unknown；token 截断（tiktoken cl100k_base，默认 4000 tokens，char-ratio 回退）；已集成到 `web_fetcher.py` fetch pipeline。
