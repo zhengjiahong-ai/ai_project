@@ -14,9 +14,9 @@
       "outputJson": {
         "brief": "固定离线研究计划",
         "subQuestions": [
-          "离线子问题一是什么？",
-          "离线子问题二有哪些证据？",
-          "离线子问题三有哪些边界？"
+          {"question": "离线子问题一是什么？", "searchKeywords": ["offline", "sub question one"], "expectedSourceTypes": ["current_paper"]},
+          {"question": "离线子问题二有哪些证据？", "searchKeywords": ["offline", "evidence"], "expectedSourceTypes": ["current_paper", "library"]},
+          {"question": "离线子问题三有哪些边界？", "searchKeywords": ["offline", "boundary", "limitations"], "expectedSourceTypes": ["current_paper"]}
         ]
       }
     },

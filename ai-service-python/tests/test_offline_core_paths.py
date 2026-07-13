@@ -49,7 +49,10 @@ class OfflineCorePathsTests(unittest.TestCase):
 
         self.assertEqual(brief, "固定离线研究计划")
         self.assertEqual(len(questions), 3)
-        self.assertEqual(questions[0], "离线子问题一是什么？")
+        self.assertIsInstance(questions[0], dict)
+        self.assertEqual(questions[0]["question"], "离线子问题一是什么？")
+        self.assertEqual(questions[0]["searchKeywords"], ["offline", "sub question one"])
+        self.assertEqual(questions[0]["expectedSourceTypes"], ["current_paper"])
         post.assert_not_called()
 
     def test_two_stage_background_graph_uses_offline_fixtures(self):
