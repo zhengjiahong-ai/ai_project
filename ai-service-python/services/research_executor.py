@@ -132,6 +132,7 @@ def research_sub_question(
                     "verdict": loop_result.get("verdict"),
                     "web_search_used": loop_result.get("web_search_used"),
                     "pages_fetched": loop_result.get("pages_fetched"),
+                    "tokenBudgetExhausted": loop_result.get("tokenBudgetExhausted", False),
                 }
                 if loop_evidence:
                     combined_evidence = merge_evidence_lists(combined_evidence, loop_evidence)

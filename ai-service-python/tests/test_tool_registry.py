@@ -219,7 +219,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         trace_id = trace_service.start_trace("unit_external_search")
         with patch("services.tool_registry.create_external_search_provider", return_value=provider):
             registry = get_tool_registry()
-            for _index in range(3):
+            for _index in range(10):
                 result = registry.invoke("retrieve_external_academic", {"query": "retrieval systems", "limit": 5})
                 self.assertEqual(result["status"], "success")
             blocked = registry.invoke("retrieve_external_academic", {"query": "retrieval systems", "limit": 5})
@@ -229,9 +229,9 @@ class ToolRegistryContractTests(unittest.TestCase):
         self.assertEqual(blocked["provider"], "crossref")
         self.assertEqual(blocked["items"], [])
         self.assertIn("call budget", blocked["reason"])
-        self.assertEqual(provider.search.call_count, 3)
-        self.assertEqual(snapshot["counters"]["externalSearchCalls"], 3)
-        self.assertEqual(snapshot["counters"]["externalEvidenceCount"], 3)
+        self.assertEqual(provider.search.call_count, 10)
+        self.assertEqual(snapshot["counters"]["externalSearchCalls"], 10)
+        self.assertEqual(snapshot["counters"]["externalEvidenceCount"], 10)
         self.assertEqual(snapshot["counters"]["externalSearchBudgetBlocks"], 1)
 
     def test_external_academic_tool_returns_sanitized_failure_and_counts_it(self):

@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-13 v0.1.99
+
+1. **动态预算与自适应搜索深度**：新增 `PIXIU_MAX_TOKENS_PER_TASK` 环境变量（默认 500,000 tokens）驱动任务级 token 预算；`agentic_search_loop.py` 迭代上限从 3 轮改为 15 轮安全上限，实际终止由信息增益率（连续 2 轮 <5% 自动停止）和 token 预算共同决定；每调用预算放宽（搜索 5→20、抓取 10→30）；`tool_registry.py` 在搜索/抓取/外部检索工具中新增 token 预算门控；`research_executor.py` trace 记录 token 预算耗尽状态。
+
 ### 2026-07-13 v0.1.98
 
 1. **LLM Judge 多步反思链升级**：`retrieval_judge_service.py` 的 judge 输出新增 `reflection` 字段（结构化中文反思："已确认...仍不确定...需要查找...矛盾在于..."）和 `suggestedQueries` 字段（judge 自主生成的下一轮精确检索关键词）；LLM 不可用时自动降级为空字段和三段式判断；`agentic_search_loop.py` 优先使用 judge 的 `suggestedQueries` 驱动下一轮搜索；`tool_registry.py` 输出 schema 同步新增这两个可选字段。

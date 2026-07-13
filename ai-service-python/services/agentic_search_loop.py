@@ -12,9 +12,10 @@ from typing import Any, Callable, Dict, List, Optional
 
 from services.trace_service import record_counter, trace_step
 
-_MAX_ITERATIONS_DEFAULT = 3
-_MAX_URLS_PER_ROUND = 3
-_MAX_URLS_TOTAL = 10
+_MAX_ITERATIONS_DEFAULT = 15
+_MAX_URLS_PER_ROUND = 5
+_MAX_URLS_TOTAL = 30
+_MIN_INFORMATION_GAIN_RATE = 0.05
 
 _TRUST_ORDER = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
 
@@ -30,6 +31,52 @@ def _env_max_iterations() -> int:
     return _MAX_ITERATIONS_DEFAULT
 
 
+_MAX_TOKENS_PER_TASK_DEFAULT = 500_000
+
+
+def _env_max_tokens_per_task() -> int:
+    val = os.environ.get("PIXIU_MAX_TOKENS_PER_TASK", "")
+    try:
+        parsed = int(val)
+        if parsed >= 1:
+            return parsed
+    except (ValueError, TypeError):
+        pass
+    return _MAX_TOKENS_PER_TASK_DEFAULT
+
+
+def _token_budget_exhausted(max_tokens: int) -> bool:
+    """Check whether cumulative estimated tokens exceed the given budget."""
+    from services.trace_service import get_current_trace_id, get_trace_snapshot
+
+    trace_id = get_current_trace_id()
+    if not trace_id:
+        return False
+    try:
+        snapshot = get_trace_snapshot(trace_id)
+    except KeyError:
+        return False
+    counters = snapshot.get("counters") or {}
+    consumed = (
+        int(counters.get("estimatedInputTokens") or 0)
+        + int(counters.get("estimatedOutputTokens") or 0)
+    )
+    return consumed >= max_tokens
+
+
+def _compute_information_gain_rate(
+    current_coverage_score: float,
+    previous_coverage_score: float,
+) -> float:
+    """Compute the information gain rate between two coverage scores.
+
+    Returns gain_rate where gain_rate > 0 means coverage improved.
+    Uses max(prev_score, 0.01) as denominator to avoid division by zero.
+    """
+    denominator = max(previous_coverage_score, 0.01)
+    return (current_coverage_score - previous_coverage_score) / denominator
+
+
 def run_agentic_search_loop(
     question: str,
     sub_question: str,
@@ -37,6 +84,7 @@ def run_agentic_search_loop(
     query_plan: Dict[str, Any],
     *,
     max_iterations: int | None = None,
+    max_tokens: int | None = None,
     should_cancel: Callable[[], bool] | None = None,
     invoke_search=None,
     invoke_fetch=None,
@@ -47,14 +95,17 @@ def run_agentic_search_loop(
     """Run iterative search→fetch→judge loop.
 
     Each round: build queries → search_web → select top URLs → fetch_web_page → judge.
-    Terminates on: CORRECT+confident, coverage stall, max iterations, cancel signal.
+    Terminates on: CORRECT+confident, low information gain (<5% for 2 rounds),
+    token budget exhaustion, max iterations (ceiling 15), or cancel signal.
 
     Args:
         question: The main research question.
         sub_question: Current sub-question being investigated.
         missing_aspects: Aspects still missing from evidence.
         query_plan: Query plan dict with keywords etc.
-        max_iterations: Max loop rounds (default from env or 3).
+        max_iterations: Max loop rounds (default from env or 15).
+        max_tokens: Max task token budget; terminates when exceeded (default from
+                    PIXIU_MAX_TOKENS_PER_TASK env var or 500,000).
         should_cancel: Optional cancel signal callback.
         invoke_search: Callable(query, limit) → dict (injectable for tests).
         invoke_fetch: Callable(url, max_chars) → dict (injectable for tests).
@@ -65,7 +116,8 @@ def run_agentic_search_loop(
                      called after each iteration completes (injectable for tests).
 
     Returns:
-        {iterations, verdict, confidence, evidence_items, web_search_used, pages_fetched}
+        {iterations, verdict, confidence, evidence_items, web_search_used, pages_fetched,
+         tokenBudgetExhausted}
     """
     from services.external_query_planner import build_web_search_queries
 
@@ -90,7 +142,8 @@ def run_agentic_search_loop(
     total_pages_fetched = 0
     fetched_urls: set = set()
     prev_coverage_score = -1.0
-    stall_count = 0
+    low_gain_count = 0
+    token_budget_exhausted = False
     verdict = "INCORRECT"
     confidence = 0.0
     iteration = 0
@@ -98,6 +151,12 @@ def run_agentic_search_loop(
 
     while iteration < max_iterations:
         if should_cancel and should_cancel():
+            break
+
+        # Check task-level token budget before each iteration
+        resolved_max_tokens = max_tokens if max_tokens is not None else _env_max_tokens_per_task()
+        if _token_budget_exhausted(resolved_max_tokens):
+            token_budget_exhausted = True
             break
 
         # Step 1: Generate web search queries.
@@ -238,13 +297,14 @@ def run_agentic_search_loop(
         if verdict == "CORRECT" and confidence >= 0.75:
             break
 
-        if coverage_score <= prev_coverage_score:
-            stall_count += 1
+        gain_rate = _compute_information_gain_rate(coverage_score, prev_coverage_score)
+        if gain_rate < _MIN_INFORMATION_GAIN_RATE:
+            low_gain_count += 1
         else:
-            stall_count = 0
+            low_gain_count = 0
             prev_coverage_score = coverage_score
 
-        if stall_count >= 2:
+        if low_gain_count >= 2:
             break
 
     return {
@@ -254,6 +314,7 @@ def run_agentic_search_loop(
         "evidence_items": all_evidence,
         "web_search_used": len(all_web_items) > 0,
         "pages_fetched": total_pages_fetched,
+        "tokenBudgetExhausted": token_budget_exhausted,
     }
 
 

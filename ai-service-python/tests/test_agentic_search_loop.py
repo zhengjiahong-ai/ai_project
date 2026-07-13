@@ -453,6 +453,126 @@ class AgenticSearchLoopTests(unittest.TestCase):
                     "retrievalTimestamp should not be empty",
                 )
 
+    # ---- 1-2: dynamic budget and adaptive search depth ----
+
+    def test_token_budget_exhausted_terminates_loop(self):
+        """Loop terminates with tokenBudgetExhausted when max_tokens is exceeded."""
+        from services.agentic_search_loop import run_agentic_search_loop
+        from services.trace_service import start_trace, record_counter, clear_traces
+
+        clear_traces()
+        trace_id = start_trace("unit_test")
+        # Simulate high token usage to trigger budget exhaustion
+        record_counter("estimatedInputTokens", 800)
+
+        result = run_agentic_search_loop(
+            question="test",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=3,
+            max_tokens=500,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=_mock_judge_correct,
+        )
+
+        self.assertTrue(result.get("tokenBudgetExhausted", False),
+                        "Should report tokenBudgetExhausted when budget is exceeded")
+        self.assertLess(result["iterations"], 3,
+                        "Should terminate early before max iterations")
+        clear_traces()
+
+    def test_low_information_gain_terminates(self):
+        """Loop terminates after 2 consecutive rounds with <5% coverage gain."""
+        from services.agentic_search_loop import run_agentic_search_loop
+
+        call_count = [0]
+        def mock_judge_stagnant(question, evidence_items):
+            call_count[0] += 1
+            # Return same coverage each round: gain = 0% < 5%
+            return {
+                "verdict": "AMBIGUOUS", "confidence": 0.45,
+                "missingAspects": ["still missing"],
+                "coverage": {"score": 0.40},
+            }
+
+        result = run_agentic_search_loop(
+            question="test",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=10,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=mock_judge_stagnant,
+        )
+
+        # Should have run: round 1 (baseline), round 2 (low gain 1), round 3 (low gain 2 → terminate)
+        # So at most 3 iterations before low-gain termination kicks in
+        self.assertLessEqual(result["iterations"], 3,
+                             "Should terminate early on low information gain, not run to max")
+        self.assertGreaterEqual(result["iterations"], 2,
+                                "Should run at least enough rounds to detect low gain")
+
+    def test_complex_question_can_extend_beyond_3_rounds(self):
+        """Complex question with improving coverage continues past the old limit of 3."""
+        from services.agentic_search_loop import run_agentic_search_loop
+
+        call_count = [0]
+        def mock_judge_improving(question, evidence_items):
+            call_count[0] += 1
+            # Coverage improves each round (>5% gain each time)
+            scores = [0.20, 0.35, 0.55, 0.72]
+            idx = min(call_count[0] - 1, len(scores) - 1)
+            if scores[idx] >= 0.70:
+                return {
+                    "verdict": "CORRECT", "confidence": 0.80,
+                    "missingAspects": [],
+                    "coverage": {"score": scores[idx]},
+                }
+            return {
+                "verdict": "AMBIGUOUS", "confidence": 0.45,
+                "missingAspects": ["more evidence needed"],
+                "coverage": {"score": scores[idx]},
+            }
+
+        result = run_agentic_search_loop(
+            question="test",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=10,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=mock_judge_improving,
+        )
+
+        # Should reach round 4 (coverage continues improving >5% each round)
+        self.assertGreaterEqual(result["iterations"], 4,
+                                "Complex question with improving coverage should extend past 3 rounds")
+        self.assertEqual(result["verdict"], "CORRECT")
+
+    def test_simple_question_terminates_early(self):
+        """Simple question with CORRECT+confident judge returns in 1-2 rounds."""
+        from services.agentic_search_loop import run_agentic_search_loop
+
+        result = run_agentic_search_loop(
+            question="test",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=10,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=_mock_judge_correct,
+        )
+
+        self.assertEqual(result["iterations"], 1,
+                         "Simple question should terminate in 1 round")
+        self.assertEqual(result["verdict"], "CORRECT")
+        self.assertGreaterEqual(result["confidence"], 0.75)
+
 
 if __name__ == "__main__":
     unittest.main()

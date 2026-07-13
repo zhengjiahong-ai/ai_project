@@ -1,4 +1,5 @@
 import copy
+import os
 import re
 import time
 from dataclasses import dataclass
@@ -32,12 +33,48 @@ Handler = Callable[[Dict[str, Any]], Any]
 
 _DEFAULT_TOOL_REGISTRY = None
 _DEFAULT_EXTERNAL_SEARCH_PROVIDER = None
-EXTERNAL_SEARCH_CALL_BUDGET = 3
-EXTERNAL_SEARCH_EVIDENCE_BUDGET = 15
-WEB_SEARCH_CALL_BUDGET = 5
-WEB_SEARCH_RESULT_BUDGET = 20
-WEB_FETCH_CALL_BUDGET = 10
-WEB_FETCH_CHAR_BUDGET = 80_000
+EXTERNAL_SEARCH_CALL_BUDGET = 10
+EXTERNAL_SEARCH_EVIDENCE_BUDGET = 40
+WEB_SEARCH_CALL_BUDGET = 20
+WEB_SEARCH_RESULT_BUDGET = 50
+WEB_FETCH_CALL_BUDGET = 30
+WEB_FETCH_CHAR_BUDGET = 200_000
+
+_MAX_TOKENS_PER_TASK_DEFAULT = 500_000
+
+
+def _env_max_tokens_per_task() -> int:
+    val = os.environ.get("PIXIU_MAX_TOKENS_PER_TASK", "")
+    try:
+        parsed = int(val)
+        if parsed >= 1:
+            return parsed
+    except (ValueError, TypeError):
+        pass
+    return _MAX_TOKENS_PER_TASK_DEFAULT
+
+
+def _task_token_budget_exhausted() -> bool:
+    """Check whether the task-level token budget has been exhausted.
+
+    Reads the current trace counters for estimatedInputTokens + estimatedOutputTokens
+    and compares against PIXIU_MAX_TOKENS_PER_TASK.
+    Returns True when the cumulative token usage exceeds the budget.
+    """
+    max_tokens = _env_max_tokens_per_task()
+    trace_id = get_current_trace_id()
+    if not trace_id:
+        return False
+    try:
+        snapshot = get_trace_snapshot(trace_id)
+    except KeyError:
+        return False
+    counters = snapshot.get("counters") or {}
+    consumed = (
+        int(counters.get("estimatedInputTokens") or 0)
+        + int(counters.get("estimatedOutputTokens") or 0)
+    )
+    return consumed >= max_tokens
 
 
 class ToolNotFoundError(KeyError):
@@ -986,6 +1023,8 @@ def _external_search_budget_snapshot() -> Dict[str, int]:
 
 
 def _external_search_budget_block_reason(requested_limit: int) -> str:
+    if _task_token_budget_exhausted():
+        return "Task token budget exhausted."
     snapshot = _external_search_budget_snapshot()
     if snapshot["callsUsed"] >= snapshot["callLimit"]:
         return "External academic search call budget exceeded."
@@ -1004,11 +1043,13 @@ def _web_search_budget_snapshot() -> Dict[str, int]:
 
 
 def _web_search_budget_block_reason(requested_limit: int) -> str:
+    if _task_token_budget_exhausted():
+        return "Task token budget exhausted."
     snapshot = _web_search_budget_snapshot()
     if snapshot["callsUsed"] >= snapshot["callLimit"]:
-        return "Web search call budget exceeded (max 5 per task)."
+        return "Web search call budget exceeded (max 20 per task)."
     if snapshot["resultsUsed"] + max(0, int(requested_limit or 0)) > snapshot["resultLimit"]:
-        return "Web search result budget exceeded (max 20 per task)."
+        return "Web search result budget exceeded (max 50 per task)."
     return ""
 
 
@@ -1022,11 +1063,13 @@ def _web_fetch_budget_snapshot() -> Dict[str, int]:
 
 
 def _web_fetch_budget_block_reason(max_chars: int) -> str:
+    if _task_token_budget_exhausted():
+        return "Task token budget exhausted."
     snapshot = _web_fetch_budget_snapshot()
     if snapshot["callsUsed"] >= snapshot["callLimit"]:
-        return "Web fetch call budget exceeded (max 10 per task)."
+        return "Web fetch call budget exceeded (max 30 per task)."
     if snapshot["charsUsed"] + max(0, int(max_chars or 0)) > snapshot["charLimit"]:
-        return "Web fetch char budget exceeded (max 80000 per task)."
+        return "Web fetch char budget exceeded (max 200000 per task)."
     return ""
 
 
