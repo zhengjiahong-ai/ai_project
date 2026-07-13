@@ -177,6 +177,9 @@ const run = async () => {
     totalAspects: null,
     evidenceCount: null,
     sourceTypes: [],
+    sourceDiversityScore: null,
+    sourceTrustWeightedScore: null,
+    crossSourceAgreement: null,
   });
   assert.equal(normalizedRunningTask.findings[1].retryReason, '');
   assert.equal(normalizedRunningTask.conflicts.length, 1);

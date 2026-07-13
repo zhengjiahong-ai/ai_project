@@ -90,8 +90,41 @@ const formatFindingCoverage = (coverage) => {
     return '';
   }
   const percent = Math.round(coverage.score * 100);
-  const evidenceText = coverage.evidenceCount !== null ? ` · 证据 ${coverage.evidenceCount} 条` : '';
-  return `覆盖 ${percent}%${evidenceText}`;
+  const parts = [`覆盖 ${percent}%`];
+  if (coverage.evidenceCount !== null) {
+    parts.push(`证据 ${coverage.evidenceCount} 条`);
+  }
+  if (coverage.sourceDiversityScore !== null) {
+    parts.push(`多样性 ${Math.round(coverage.sourceDiversityScore * 100)}%`);
+  }
+  if (coverage.sourceTrustWeightedScore !== null) {
+    parts.push(`可信 ${Math.round(coverage.sourceTrustWeightedScore * 100)}%`);
+  }
+  return parts.join(' · ');
+};
+
+const formatSourceAnalysis = (coverage) => {
+  if (!coverage || typeof coverage !== 'object') return '';
+  const lines = [];
+  if (coverage.sourceTypes && coverage.sourceTypes.length > 0) {
+    lines.push(`**来源类型**: ${coverage.sourceTypes.join(', ')}`);
+  }
+  if (coverage.sourceDiversityScore !== null) {
+    const pct = Math.round(coverage.sourceDiversityScore * 100);
+    lines.push(`**来源多样性 (Shannon)**: ${pct}%${pct >= 60 ? ' ✓ 多源覆盖' : pct >= 30 ? ' △ 来源偏少' : ' ✗ 来源单一'}`);
+  }
+  if (coverage.sourceTrustWeightedScore !== null) {
+    const pct = Math.round(coverage.sourceTrustWeightedScore * 100);
+    const label = pct >= 80 ? '高可信' : pct >= 55 ? '中等可信' : '可信度偏低';
+    lines.push(`**可信度加权分**: ${pct}% (${label})`);
+  }
+  if (coverage.crossSourceAgreement !== null) {
+    const pct = Math.round(coverage.crossSourceAgreement * 100);
+    lines.push(`**跨源一致性**: ${pct}%${pct >= 70 ? ' ✓ 多源一致' : pct >= 40 ? ' △ 部分一致' : ' ✗ 一致性低'}`);
+  } else {
+    lines.push('**跨源一致性**: 无法评估（来源类型不足）');
+  }
+  return lines.join('\n');
 };
 
 const getPlanItemStatusLabel = (status) => {
@@ -770,6 +803,9 @@ const DeepResearchPanel = ({
                         content={[
                           `### 结论摘要\n${finding.summary}`,
                           judgeText || coverageText ? `### JUDGE 评分\n${[judgeText, coverageText].filter(Boolean).join(' · ')}` : '',
+                          formatSourceAnalysis(finding.coverage)
+                            ? `### 来源分析\n${formatSourceAnalysis(finding.coverage)}`
+                            : '',
                           finding.sources.length > 0
                             ? `### 证据来源\n${finding.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
                             : '',
@@ -790,6 +826,9 @@ const DeepResearchPanel = ({
                                     content: [
                                       `### 结论摘要\n${finding.summary}`,
                                       judgeText || coverageText ? `### JUDGE 评分\n${[judgeText, coverageText].filter(Boolean).join(' · ')}` : '',
+                                      formatSourceAnalysis(finding.coverage)
+                                        ? `### 来源分析\n${formatSourceAnalysis(finding.coverage)}`
+                                        : '',
                                       finding.sources.length > 0
                                         ? `### 证据来源\n${finding.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
                                         : '',

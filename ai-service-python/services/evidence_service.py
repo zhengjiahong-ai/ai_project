@@ -2,7 +2,7 @@ import re
 from typing import Any, Dict, Iterable, List, Optional
 
 
-VALID_SOURCE_TYPES = {"current_paper", "library", "external_academic", "unknown"}
+VALID_SOURCE_TYPES = {"current_paper", "library", "external_academic", "web_search", "web_page", "unknown"}
 EXTERNAL_EVIDENCE_FIELDS = (
     "provider",
     "providerId",

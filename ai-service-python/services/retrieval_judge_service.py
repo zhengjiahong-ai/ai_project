@@ -1,3 +1,4 @@
+import math
 from typing import Any, Dict, List, Optional
 
 from llm.client import get_llm
@@ -6,6 +7,15 @@ from services.utils import parse_json_from_llm
 
 
 VALID_VERDICTS = {"CORRECT", "AMBIGUOUS", "INCORRECT"}
+
+SOURCE_TRUST_WEIGHTS = {
+    "current_paper": 1.0,
+    "library": 0.85,
+    "external_academic": 0.65,
+    "web_search": 0.45,
+    "web_page": 0.40,
+}
+SOURCE_TRUST_DEFAULT = 0.30
 
 
 def judge_evidence_quality(
@@ -197,23 +207,113 @@ def _result(
 def _build_coverage(evidence: List[Dict[str, Any]], terms: List[str], matched_terms: List[str]) -> Dict[str, Any]:
     source_types = []
     seen_source_types = set()
+    source_type_counts: Dict[str, int] = {}
     for item in evidence:
         source_type = str(item.get("sourceType") or "").strip()
-        if not source_type or source_type in seen_source_types:
+        if not source_type:
             continue
-        seen_source_types.add(source_type)
-        source_types.append(source_type[:80])
+        if source_type not in seen_source_types:
+            seen_source_types.add(source_type)
+            source_types.append(source_type[:80])
+        source_type_counts[source_type] = source_type_counts.get(source_type, 0) + 1
 
     total_aspects = len(terms)
     matched_aspects = len({term.lower() for term in matched_terms})
     score = matched_aspects / total_aspects if total_aspects else (0.5 if evidence else 0.0)
+
+    # sourceDiversityScore (Shannon diversity index, normalized 0-1)
+    total_count = sum(source_type_counts.values())
+    source_diversity = _compute_shannon_diversity(source_type_counts, total_count)
+
+    # sourceTrustWeightedScore
+    source_trust = _compute_source_trust_weighted(source_type_counts, total_count)
+
+    # crossSourceAgreement
+    cross_agreement = _compute_cross_source_agreement(evidence, source_type_counts)
+
     return {
         "score": round(max(0.0, min(1.0, score)), 2),
         "matchedAspects": matched_aspects,
         "totalAspects": total_aspects,
         "evidenceCount": len(evidence),
         "sourceTypes": source_types,
+        "sourceDiversityScore": round(max(0.0, min(1.0, source_diversity)), 4),
+        "sourceTrustWeightedScore": round(max(0.0, min(1.0, source_trust)), 4),
+        "crossSourceAgreement": cross_agreement,
     }
+
+
+def _compute_shannon_diversity(source_type_counts: Dict[str, int], total_count: int) -> float:
+    if total_count == 0:
+        return 0.0
+    entropy = 0.0
+    for count in source_type_counts.values():
+        if count > 0:
+            p = count / total_count
+            entropy -= p * math.log(p)
+    n = len(source_type_counts)
+    if n <= 1:
+        return 0.0
+    max_entropy = math.log(n)
+    if max_entropy == 0:
+        return 0.0
+    return entropy / max_entropy
+
+
+def _compute_source_trust_weighted(source_type_counts: Dict[str, int], total_count: int) -> float:
+    if total_count == 0:
+        return 0.0
+    weighted_sum = 0.0
+    for source_type, count in source_type_counts.items():
+        weight = SOURCE_TRUST_WEIGHTS.get(source_type, SOURCE_TRUST_DEFAULT)
+        weighted_sum += weight * count
+    return weighted_sum / total_count
+
+
+def _compute_cross_source_agreement(
+    evidence: List[Dict[str, Any]], source_type_counts: Dict[str, int]
+) -> Optional[float]:
+    unique_types = len(source_type_counts)
+    if unique_types <= 1:
+        return None
+
+    # Extract meaningful text tokens per source type
+    source_texts: Dict[str, str] = {}
+    for item in evidence:
+        source_type = str(item.get("sourceType") or "").strip()
+        if not source_type:
+            continue
+        text = str(item.get("text") or "")
+        source_texts[source_type] = source_texts.get(source_type, "") + " " + text
+
+    # Build keyword sets per source type
+    source_keyword_sets: Dict[str, set] = {}
+    for source_type, text in source_texts.items():
+        tokens = set(token.lower() for token in text.split() if len(token) >= 3)
+        if tokens:
+            source_keyword_sets[source_type] = tokens
+
+    if len(source_keyword_sets) <= 1:
+        return None
+
+    # Count how many source types share keywords with at least one other
+    agreeing_types = 0
+    source_list = list(source_keyword_sets.keys())
+    for i, source_a in enumerate(source_list):
+        tokens_a = source_keyword_sets[source_a]
+        has_overlap = False
+        for j, source_b in enumerate(source_list):
+            if i == j:
+                continue
+            tokens_b = source_keyword_sets[source_b]
+            overlap = len(tokens_a & tokens_b)
+            if overlap >= 2:  # at least 2 shared keywords
+                has_overlap = True
+                break
+        if has_overlap:
+            agreeing_types += 1
+
+    return round(agreeing_types / len(source_list), 4)
 
 
 def _normalize_coverage(value: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -228,14 +328,25 @@ def _normalize_coverage(value: Optional[Dict[str, Any]]) -> Dict[str, Any]:
             for item in (coverage.get("sourceTypes") if isinstance(coverage.get("sourceTypes"), list) else [])
             if str(item).strip()
         ][:6],
+        "sourceDiversityScore": _coerce_float_or_none(coverage.get("sourceDiversityScore")),
+        "sourceTrustWeightedScore": _coerce_float_or_none(coverage.get("sourceTrustWeightedScore")),
+        "crossSourceAgreement": _coerce_float_or_none(coverage.get("crossSourceAgreement")),
     }
 
 
 def _judge_score(verdict: str, confidence: float, coverage: Dict[str, Any]) -> int:
     verdict_bonus = {"CORRECT": 16, "AMBIGUOUS": 4, "INCORRECT": -8}.get(verdict, -8)
-    evidence_bonus = min(int(coverage.get("evidenceCount") or 0), 4) * 3
-    source_bonus = min(len(coverage.get("sourceTypes") or []), 2) * 2
-    raw_score = confidence * 70 + float(coverage.get("score") or 0) * 20 + evidence_bonus + source_bonus + verdict_bonus
+    source_diversity = _coerce_float(coverage.get("sourceDiversityScore"), 0.0)
+    source_trust = _coerce_float(coverage.get("sourceTrustWeightedScore"), SOURCE_TRUST_DEFAULT)
+    cross_agreement = _coerce_float(coverage.get("crossSourceAgreement"), 0.0)
+    raw_score = (
+        confidence * 55
+        + float(coverage.get("score") or 0) * 15
+        + source_diversity * 8
+        + source_trust * 8
+        + cross_agreement * 6
+        + verdict_bonus
+    )
     return int(round(max(0, min(100, raw_score))))
 
 
@@ -259,6 +370,15 @@ def _coerce_float(value: Any, fallback: float) -> float:
         return float(value)
     except (TypeError, ValueError):
         return fallback
+
+
+def _coerce_float_or_none(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _normalize_terms(value: Any) -> List[str]:

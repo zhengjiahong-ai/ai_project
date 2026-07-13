@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-13 v0.1.95
+
+1. **证据质量综合评分升级**：`retrieval_judge_service.py` 的 coverage 新增三个评分维度：`sourceDiversityScore`（Shannon 多样性指数，0–1）、`sourceTrustWeightedScore`（来源可信度加权分，权重：current_paper=1.0/library=0.85/external_academic=0.65/web_search=0.45/web_page=0.40）、`crossSourceAgreement`（跨源一致性，多源关键词重叠比率）；`_judge_score()` 权重重新分配，新增维度各占 6–8%；修复 `VALID_SOURCE_TYPES` 缺失 web_search/web_page 导致来源类型被映射为 unknown 的问题；前端 finding 卡片展开区新增"来源分析"章节，展示来源类型分布、多样性、可信度和跨源一致性。
+
 ### 2026-07-13 v0.1.94
 
 1. **来源追踪与引用链**：为所有外部证据项新增 `provenance` 字段（含 discoveryPath/searchQuery/searchIteration/sourceUrl/retrievalTimestamp），完整记录证据发现路径；`normalize_external_evidence()` 自动从现有字段派生 provenance；`agentic_search_loop.py` 为抓取的网页证据注入迭代级来源信息；`evidence_service.py` 和 `tool_registry.py` schema 同步更新以支持 provenance 传播；前端 `SourceCitation` 外部来源展开面板和芯片 tooltip 展示完整发现路径；旧证据项兼容 `provenance: null`。

@@ -1,5 +1,5 @@
 import copy
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.external_query_planner import build_external_academic_queries
@@ -480,6 +480,9 @@ def normalize_judge_coverage(value: Any) -> Dict[str, Any]:
         "totalAspects": max(0, coerce_int(coverage.get("totalAspects"), 0)),
         "evidenceCount": max(0, coerce_int(coverage.get("evidenceCount"), 0)),
         "sourceTypes": normalize_text_list(coverage.get("sourceTypes"), limit=6),
+        "sourceDiversityScore": coerce_float_or_none(coverage.get("sourceDiversityScore")),
+        "sourceTrustWeightedScore": coerce_float_or_none(coverage.get("sourceTrustWeightedScore")),
+        "crossSourceAgreement": coerce_float_or_none(coverage.get("crossSourceAgreement")),
     }
 
 
@@ -552,6 +555,15 @@ def coerce_float(value: Any, fallback: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return fallback
+
+
+def coerce_float_or_none(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def clean_text(value: Any) -> str:

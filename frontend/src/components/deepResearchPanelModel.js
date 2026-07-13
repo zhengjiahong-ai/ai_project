@@ -109,6 +109,9 @@ const normalizeCoverage = (coverage) => {
       totalAspects: null,
       evidenceCount: null,
       sourceTypes: [],
+      sourceDiversityScore: null,
+      sourceTrustWeightedScore: null,
+      crossSourceAgreement: null,
     };
   }
   return {
@@ -117,6 +120,9 @@ const normalizeCoverage = (coverage) => {
     totalAspects: normalizeInteger(coverage.totalAspects),
     evidenceCount: normalizeInteger(coverage.evidenceCount),
     sourceTypes: normalizeTextList(coverage.sourceTypes, 6),
+    sourceDiversityScore: normalizeNumber(coverage.sourceDiversityScore, 0, 1),
+    sourceTrustWeightedScore: normalizeNumber(coverage.sourceTrustWeightedScore, 0, 1),
+    crossSourceAgreement: normalizeNumber(coverage.crossSourceAgreement, 0, 1),
   };
 };
 
