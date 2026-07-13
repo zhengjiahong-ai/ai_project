@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-13 v0.1.97
+
+1. **端到端集成测试与安全验收**：新增 `test_p6_security_boundary.py`（17 个安全边界测试：URL 白名单、内网 IP 拒绝、重定向防护、注入清洗、API Key 不泄露、预算耗尽降级、Web 搜索禁用回退）；新增 `test_web_search_e2e.py`（12 个端到端测试：Deep Research + Web 搜索全链路、Agent + 迭代搜索全链路、多 Provider 去重、空结果降级）；新增 `web_search_benchmark.py`（离线基准：Brave/Tavily 成功率、页面抓取成功率、迭代时延、Token 开销）；新增 `docs/P6_ACCEPTANCE_REPORT.md`（安全验收、功能集成、性能基准、回退验证总结）。
+
 ### 2026-07-13 v0.1.96
 
 1. **综合深度研究报告生成升级**：`build_research_report()` 新增 4 个章节：证据收集摘要（来源类型分布、平均多样性、平均可信度、跨源一致性可评估率）、各子问题增强（JUDGE评分/覆盖/多样性/可信度/来源分布/跨源一致性）、来源追溯（discoveryPath→query→sourceUrl→retrievalTimestamp）、执行统计（LLM调用/检索/外部学术搜索/Web搜索/页面抓取/迭代轮次/总耗时）；`build_minimal_report()` 新增来源追溯章节；`research_task_service.py` 将 trace snapshot 传入报告生成；新 `trace_summary` 参数可选，旧调用方式完全兼容。
