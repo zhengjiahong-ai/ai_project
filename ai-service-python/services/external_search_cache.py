@@ -77,6 +77,9 @@ class ExternalSearchCache:
                 return None
         for item in results:
             item["query"] = normalized_query
+            provenance = item.get("provenance")
+            if isinstance(provenance, dict):
+                provenance["searchQuery"] = normalized_query
         return results
 
     def put(

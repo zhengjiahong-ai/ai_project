@@ -86,6 +86,18 @@ export const normalizeEvidenceSource = (source, index = 0) => {
       return null;
     }
 
+    const provenance = source?.provenance && typeof source.provenance === 'object'
+      ? {
+          discoveryPath: normalizeText(source.provenance.discoveryPath),
+          searchQuery: normalizeText(source.provenance.searchQuery),
+          searchIteration: Number.isInteger(source.provenance.searchIteration)
+            ? source.provenance.searchIteration
+            : null,
+          sourceUrl: normalizeText(source.provenance.sourceUrl),
+          retrievalTimestamp: normalizeText(source.provenance.retrievalTimestamp),
+        }
+      : null;
+
     return {
       sourceId,
       sourceType: EXTERNAL_SOURCE_TYPE,
@@ -107,6 +119,7 @@ export const normalizeEvidenceSource = (source, index = 0) => {
       retrievedAt,
       license,
       abstract,
+      provenance,
       canJumpToSource: extLocation.canJumpToSource,
       locationLabel: extLocation.locationLabel,
     };

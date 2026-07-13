@@ -197,6 +197,20 @@ def _external_evidence_schema() -> Dict[str, Any]:
             "retrievedAt": {"type": "string"},
             "query": {"type": "string"},
             "license": {"type": "string"},
+            "provenance": {
+                "type": "object",
+                "required": [
+                    "discoveryPath", "searchQuery", "searchIteration",
+                    "sourceUrl", "retrievalTimestamp",
+                ],
+                "properties": {
+                    "discoveryPath": {"type": "string"},
+                    "searchQuery": {"type": "string"},
+                    "searchIteration": {"type": ["integer", "null"]},
+                    "sourceUrl": {"type": "string"},
+                    "retrievalTimestamp": {"type": "string"},
+                },
+            },
         },
         "additionalProperties": False,
     }

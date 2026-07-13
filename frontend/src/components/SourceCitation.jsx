@@ -84,6 +84,17 @@ const ExternalSourceExpanded = ({ source }) => (
         <span className="opacity-75 whitespace-pre-wrap">{source.text}</span>
       </div>
     )}
+    {source.provenance && (
+      <div className="mt-2 border-t border-[color:var(--border)] pt-2">
+        <span className="font-semibold">发现路径: </span>
+        <span className="opacity-75">
+          {source.provenance.discoveryPath || '—'}
+          {source.provenance.searchQuery && ` · 查询: "${source.provenance.searchQuery}"`}
+          {Number.isInteger(source.provenance.searchIteration) && ` · 第${source.provenance.searchIteration}轮`}
+          {source.provenance.retrievalTimestamp && ` · ${formatExternalRetrieved(source.provenance.retrievalTimestamp)}`}
+        </span>
+      </div>
+    )}
   </div>
 );
 
@@ -115,12 +126,21 @@ export const SourceChip = ({ source, onJumpToSource, onShowDetails }) => {
   };
 
   if (isExternal) {
+    const provenanceTooltip = source?.provenance
+      ? [
+          `发现路径: ${source.provenance.discoveryPath || '—'}`,
+          source.provenance.searchQuery && `搜索查询: ${source.provenance.searchQuery}`,
+          Number.isInteger(source.provenance.searchIteration) && `第${source.provenance.searchIteration}轮`,
+          source.provenance.retrievalTimestamp && `检索时间: ${source.provenance.retrievalTimestamp}`,
+        ].filter(Boolean).join(' | ')
+      : (source?.canJumpToSource ? '打开外部来源' : '查看外部来源元数据');
+
     return (
       <button
         type="button"
         onClick={handleClick}
         className="source-external-chip inline-flex items-center gap-1 rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-semibold text-indigo-400 transition hover:opacity-80"
-        title={source?.canJumpToSource ? '打开外部来源' : '查看外部来源元数据'}
+        title={provenanceTooltip}
       >
         {source?.canJumpToSource ? <Globe size={12} /> : <FileText size={12} />}
         <span>

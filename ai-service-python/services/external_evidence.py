@@ -59,6 +59,13 @@ def normalize_external_evidence(item: Any, *, source_type: str = EXTERNAL_SOURCE
         "retrievedAt": _clean_string(raw.get("retrievedAt")),
         "query": _clean_string(raw.get("query")),
         "license": _clean_string(raw.get("license")),
+        "provenance": {
+            "discoveryPath": str(source_type or EXTERNAL_SOURCE_TYPE),
+            "searchQuery": _clean_string(raw.get("query")),
+            "searchIteration": None,
+            "sourceUrl": _normalize_url(raw.get("url")),
+            "retrievalTimestamp": _clean_string(raw.get("retrievedAt")),
+        },
     }
     return normalized
 

@@ -58,6 +58,13 @@ class ExternalEvidenceTests(unittest.TestCase):
             "retrievedAt": "",
             "query": "",
             "license": "",
+            "provenance": {
+                "discoveryPath": "external_academic",
+                "searchQuery": "",
+                "searchIteration": None,
+                "sourceUrl": "",
+                "retrievalTimestamp": "",
+            },
         })
 
     def test_doi_has_priority_and_deduplicates_across_providers(self):
@@ -203,6 +210,103 @@ class ExternalEvidenceTests(unittest.TestCase):
         ):
             self.assertEqual(normalized[0][field], external[field])
             self.assertEqual(compacted[0][field], external[field])
+
+    # ---- P6-19: provenance field ----
+
+    def test_provenance_field_populated_from_existing_fields(self):
+        """normalize_external_evidence constructs provenance from existing fields."""
+        item = normalize_external_evidence({
+            "provider": "Semantic Scholar",
+            "providerId": "paper-1",
+            "title": "Test Paper",
+            "url": "https://example.org/paper",
+            "retrievedAt": "2026-07-13T10:00:00Z",
+            "query": "deep learning evaluation",
+        })
+
+        self.assertIn("provenance", item)
+        provenance = item["provenance"]
+        self.assertIsInstance(provenance, dict)
+        self.assertEqual(provenance["discoveryPath"], "external_academic")
+        self.assertEqual(provenance["searchQuery"], "deep learning evaluation")
+        self.assertIsNone(provenance["searchIteration"])
+        self.assertEqual(provenance["sourceUrl"], "https://example.org/paper")
+        self.assertEqual(provenance["retrievalTimestamp"], "2026-07-13T10:00:00Z")
+
+    def test_provenance_web_search_source_type(self):
+        """Web search evidence gets discoveryPath='web_search'."""
+        item = normalize_external_evidence(
+            {
+                "provider": "Brave Search",
+                "providerId": "https://example.com/result",
+                "title": "Web Result",
+                "url": "https://example.com/result",
+                "retrievedAt": "2026-07-13T10:00:00Z",
+                "query": "research topic",
+            },
+            source_type="web_search",
+        )
+
+        self.assertEqual(item["provenance"]["discoveryPath"], "web_search")
+
+    def test_provenance_missing_optional_fields_has_stable_defaults(self):
+        """Provenance fields default to empty strings when source data is missing."""
+        item = normalize_external_evidence({
+            "provider": "Crossref",
+            "providerId": "work-minimal",
+            "title": "Minimal Paper",
+        })
+
+        provenance = item["provenance"]
+        self.assertEqual(provenance["discoveryPath"], "external_academic")
+        self.assertEqual(provenance["searchQuery"], "")
+        self.assertIsNone(provenance["searchIteration"])
+        self.assertEqual(provenance["sourceUrl"], "")
+        self.assertEqual(provenance["retrievalTimestamp"], "")
+
+    def test_provenance_propagates_through_evidence_pipeline(self):
+        """Provenance field is preserved through normalize_evidence_items and compact_evidence_for_response."""
+        external = normalize_external_evidence({
+            "provider": "Crossref",
+            "providerId": "work-provenance",
+            "title": "Provenance Paper",
+            "abstract": "Provenance paper abstract.",
+            "url": "https://example.org/provenance",
+            "retrievedAt": "2026-07-13T10:00:00Z",
+            "query": "provenance query",
+        })
+
+        normalized = normalize_evidence_items([external])
+        compacted = compact_evidence_for_response([external])
+
+        self.assertIn("provenance", normalized[0])
+        self.assertEqual(normalized[0]["provenance"]["discoveryPath"], "external_academic")
+        self.assertIn("provenance", compacted[0])
+        self.assertEqual(compacted[0]["provenance"]["searchQuery"], "provenance query")
+
+    def test_provenance_null_backward_compatible(self):
+        """Evidence items without provenance field are handled gracefully (null-safe)."""
+        evidence_without_provenance = {
+            "sourceId": "external-doi-abc123",
+            "sourceType": "external_academic",
+            "provider": "Crossref",
+            "providerId": "old-item",
+            "title": "Old Paper",
+            "authors": [],
+            "year": None,
+            "abstract": "Old evidence abstract text for backward compatibility.",
+            "doi": "",
+            "url": "",
+            "retrievedAt": "",
+            "query": "",
+            "license": "",
+        }
+
+        # normalize_evidence_items should accept items without provenance
+        normalized = normalize_evidence_items([evidence_without_provenance])
+        self.assertEqual(len(normalized), 1)
+        # Old items get provenance=None (not set by normalize_evidence_items)
+        self.assertIsNone(normalized[0].get("provenance"))
 
 
 if __name__ == "__main__":

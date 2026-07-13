@@ -7,6 +7,7 @@ max iterations, budget exhaustion, or cancellation.
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
 from services.trace_service import record_counter, trace_step
@@ -180,6 +181,13 @@ def run_agentic_search_loop(
                             "title": item.get("title", ""),
                             "text": content[:3000],
                             "url": url,
+                            "provenance": {
+                                "discoveryPath": "web_search→web_page",
+                                "searchQuery": str(item.get("query", "")),
+                                "searchIteration": iteration + 1,
+                                "sourceUrl": url,
+                                "retrievalTimestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                            },
                         })
                         total_pages_fetched += 1
                         fetched_urls.add(url)

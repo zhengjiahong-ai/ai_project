@@ -15,6 +15,7 @@ EXTERNAL_EVIDENCE_FIELDS = (
     "retrievedAt",
     "query",
     "license",
+    "provenance",
 )
 MIN_CITATION_SCORE = 0.12
 

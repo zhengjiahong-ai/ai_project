@@ -354,6 +354,105 @@ class AgenticSearchLoopTests(unittest.TestCase):
         self.assertGreaterEqual(counters.get("agenticLoopIterations", 0), 1)
         clear_traces()
 
+    # ---- P6-19: provenance field on web page evidence ----
+
+    def test_web_page_evidence_has_provenance(self):
+        """Fetched web page evidence items include provenance with iteration info."""
+        from services.agentic_search_loop import run_agentic_search_loop
+
+        result = run_agentic_search_loop(
+            question="test question",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=1,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=_mock_judge_correct,
+        )
+
+        evidence_items = result.get("evidence_items", [])
+        self.assertGreater(len(evidence_items), 0, "Should have at least one evidence item")
+
+        for item in evidence_items:
+            self.assertIn("provenance", item, f"Evidence item {item.get('sourceId')} missing provenance")
+            provenance = item["provenance"]
+            self.assertIsInstance(provenance, dict)
+            self.assertIn("discoveryPath", provenance)
+            self.assertIn("searchQuery", provenance)
+            self.assertIn("searchIteration", provenance)
+            self.assertIn("sourceUrl", provenance)
+            self.assertIn("retrievalTimestamp", provenance)
+
+    def test_web_page_provenance_discovery_path(self):
+        """Web page evidence has discoveryPath='web_search→web_page'."""
+        from services.agentic_search_loop import run_agentic_search_loop
+
+        result = run_agentic_search_loop(
+            question="test question",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=1,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=_mock_judge_correct,
+        )
+
+        for item in result.get("evidence_items", []):
+            if item.get("sourceType") == "web_page":
+                self.assertEqual(
+                    item["provenance"]["discoveryPath"],
+                    "web_search→web_page",
+                )
+
+    def test_web_page_provenance_iteration_is_positive(self):
+        """searchIteration is 1-based and positive for web page evidence."""
+        from services.agentic_search_loop import run_agentic_search_loop
+
+        result = run_agentic_search_loop(
+            question="test question",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=1,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=_mock_judge_correct,
+        )
+
+        for item in result.get("evidence_items", []):
+            if item.get("sourceType") == "web_page":
+                iteration = item["provenance"]["searchIteration"]
+                self.assertIsInstance(iteration, int)
+                self.assertGreaterEqual(iteration, 1)
+
+    def test_web_page_provenance_includes_source_url_and_timestamp(self):
+        """Web page provenance includes sourceUrl and retrievalTimestamp."""
+        from services.agentic_search_loop import run_agentic_search_loop
+
+        result = run_agentic_search_loop(
+            question="test question",
+            sub_question="test sub",
+            missing_aspects=["aspect1"],
+            query_plan={"keywords": ["key1"]},
+            max_iterations=1,
+            invoke_search=_mock_search_success,
+            invoke_fetch=_mock_fetch_success,
+            invoke_judge=_mock_judge_correct,
+        )
+
+        for item in result.get("evidence_items", []):
+            if item.get("sourceType") == "web_page":
+                self.assertTrue(
+                    item["provenance"]["sourceUrl"],
+                    "sourceUrl should not be empty",
+                )
+                self.assertTrue(
+                    item["provenance"]["retrievalTimestamp"],
+                    "retrievalTimestamp should not be empty",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

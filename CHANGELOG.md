@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-13 v0.1.94
+
+1. **来源追踪与引用链**：为所有外部证据项新增 `provenance` 字段（含 discoveryPath/searchQuery/searchIteration/sourceUrl/retrievalTimestamp），完整记录证据发现路径；`normalize_external_evidence()` 自动从现有字段派生 provenance；`agentic_search_loop.py` 为抓取的网页证据注入迭代级来源信息；`evidence_service.py` 和 `tool_registry.py` schema 同步更新以支持 provenance 传播；前端 `SourceCitation` 外部来源展开面板和芯片 tooltip 展示完整发现路径；旧证据项兼容 `provenance: null`。
+
 ### 2026-07-12 v0.1.93
 
 1. **多源证据交叉验证**：新增 `evidence_cross_validator.py`，实现 `cross_validate_evidence()` 函数，支持 LLM 驱动的声明提取→聚类→一致性评分和规则型降级路径（关键词提取→Jaccard 聚类→极性检测）；agreement_level 分为 confirmed（≥3 来源）/supported（2 来源）/single_source/contradicted；单源声明标记 `needs_more_evidence=True`，矛盾声明标记 `needs_manual_review=True`；已集成到 `agent_orchestrator.py` 的 `build_agent_outputs()`（附加到 conflicts 列表）和 `build_minimal_report()`（新增 Cross-Source Validation 章节），以及 `research_aggregator.py` 的 `build_research_report()`（新增"多源证据交叉验证"章节）。
