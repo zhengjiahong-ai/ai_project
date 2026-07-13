@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-13 v0.1.96
+
+1. **综合深度研究报告生成升级**：`build_research_report()` 新增 4 个章节：证据收集摘要（来源类型分布、平均多样性、平均可信度、跨源一致性可评估率）、各子问题增强（JUDGE评分/覆盖/多样性/可信度/来源分布/跨源一致性）、来源追溯（discoveryPath→query→sourceUrl→retrievalTimestamp）、执行统计（LLM调用/检索/外部学术搜索/Web搜索/页面抓取/迭代轮次/总耗时）；`build_minimal_report()` 新增来源追溯章节；`research_task_service.py` 将 trace snapshot 传入报告生成；新 `trace_summary` 参数可选，旧调用方式完全兼容。
+
 ### 2026-07-13 v0.1.95
 
 1. **证据质量综合评分升级**：`retrieval_judge_service.py` 的 coverage 新增三个评分维度：`sourceDiversityScore`（Shannon 多样性指数，0–1）、`sourceTrustWeightedScore`（来源可信度加权分，权重：current_paper=1.0/library=0.85/external_academic=0.65/web_search=0.45/web_page=0.40）、`crossSourceAgreement`（跨源一致性，多源关键词重叠比率）；`_judge_score()` 权重重新分配，新增维度各占 6–8%；修复 `VALID_SOURCE_TYPES` 缺失 web_search/web_page 导致来源类型被映射为 unknown 的问题；前端 finding 卡片展开区新增"来源分析"章节，展示来源类型分布、多样性、可信度和跨源一致性。

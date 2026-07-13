@@ -654,6 +654,7 @@ def build_minimal_report(
             )
 
     cross_validation_lines = _build_cross_validation_lines(conflicts)
+    provenance_lines = _build_agent_provenance_lines(evidence_items)
 
     return (
         "# Agent Research Draft\n\n"
@@ -669,6 +670,7 @@ def build_minimal_report(
         "## Conflict Candidates\n"
         f"{conflict_lines}\n\n"
         f"{cross_validation_lines}"
+        f"{provenance_lines}"
         "## Open Questions\n"
         f"{question_lines}\n"
     )
@@ -900,6 +902,49 @@ def _build_cross_validation_lines(conflicts: List[Dict[str, Any]]) -> str:
         if claim.get("needs_manual_review"):
             lines.append("  ⚠ 需人工核查 — 存在矛盾声明")
 
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _build_agent_provenance_lines(evidence_items: List[Dict[str, Any]]) -> str:
+    """Build source provenance section from external evidence items."""
+    provenance_items = []
+    for item in (evidence_items or []):
+        provenance = item.get("provenance") if isinstance(item, dict) else None
+        if not isinstance(provenance, dict):
+            continue
+        provenance_items.append({
+            "sourceId": item.get("sourceId", ""),
+            "provider": item.get("provider", ""),
+            "discoveryPath": provenance.get("discoveryPath", ""),
+            "searchQuery": provenance.get("searchQuery", ""),
+            "searchIteration": provenance.get("searchIteration"),
+            "sourceUrl": provenance.get("sourceUrl", ""),
+            "retrievalTimestamp": provenance.get("retrievalTimestamp", ""),
+        })
+
+    if not provenance_items:
+        return ""
+
+    seen = set()
+    lines = ["## Source Provenance", ""]
+    for item in provenance_items:
+        key = (item["sourceId"], item["sourceUrl"])
+        if key in seen:
+            continue
+        seen.add(key)
+        parts = [f"[{item['discoveryPath'] or 'unknown'}]"]
+        if item["provider"]:
+            parts.append(item["provider"])
+        if item["searchQuery"]:
+            parts.append(f'query: "{item["searchQuery"]}"')
+        if isinstance(item["searchIteration"], int):
+            parts.append(f"round {item['searchIteration']}")
+        if item["sourceUrl"]:
+            parts.append(item["sourceUrl"][:120])
+        if item["retrievalTimestamp"]:
+            parts.append(item["retrievalTimestamp"])
+        lines.append(f"- {' → '.join(parts)}")
     lines.append("")
     return "\n".join(lines)
 

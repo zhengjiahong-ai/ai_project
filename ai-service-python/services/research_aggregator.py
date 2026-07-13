@@ -14,6 +14,7 @@ def build_research_report(
     plan_items: List[Any],
     findings: List[Dict[str, Any]],
     conflicts: List[Dict[str, Any]] | None = None,
+    trace_summary: Dict[str, Any] | None = None,
 ) -> str:
     lines = [
         "## 研究 brief",
@@ -23,15 +24,48 @@ def build_research_report(
     ]
 
     for index, finding in enumerate(findings, start=1):
+        coverage = finding.get("coverage") if isinstance(finding.get("coverage"), dict) else {}
+        judge_score = finding.get("judgeScore")
+        source_types_list = coverage.get("sourceTypes") or []
+        diversity = coverage.get("sourceDiversityScore")
+        trust = coverage.get("sourceTrustWeightedScore")
+        cross_agreement = coverage.get("crossSourceAgreement")
+
         lines.extend([
             f"### {index}. {finding.get('subQuestion')}",
             f"- 结论：{finding.get('summary')}",
             f"- 证据判断：{finding.get('verdict')}",
             f"- 证据来源：{_format_source_line(finding)}",
         ])
+        if judge_score is not None:
+            score_parts = [f"JUDGE评分: {judge_score}/100"]
+            cov_score = coverage.get("score")
+            if cov_score is not None:
+                score_parts.append(f"覆盖: {int(cov_score * 100)}%")
+            if diversity is not None:
+                score_parts.append(f"多样性: {int(diversity * 100)}%")
+            if trust is not None:
+                score_parts.append(f"可信度: {int(trust * 100)}%")
+            lines.append(f"- {' · '.join(score_parts)}")
+
+        if source_types_list:
+            type_counts = _count_source_types(finding.get("sources") or [])
+            counts_str = ", ".join(
+                f"{st}({type_counts.get(st, 0)})" for st in source_types_list
+            )
+            lines.append(f"- 来源分布: {counts_str}")
+
+        if cross_agreement is not None:
+            lines.append(f"- 跨源一致性: {int(cross_agreement * 100)}%")
+        elif source_types_list:
+            lines.append("- 跨源一致性: 无法评估")
+
         if finding.get("missingAspects"):
             lines.append(f"- 缺失点：{', '.join(finding.get('missingAspects') or [])}")
         lines.append("")
+
+    # P6-21: evidence collection summary
+    lines.extend(_build_evidence_summary(findings))
 
     normalized_conflicts = conflicts if isinstance(conflicts, list) else []
     if normalized_conflicts:
@@ -82,6 +116,11 @@ def build_research_report(
     except Exception:
         pass  # cross-validation is optional; never blocks report generation
 
+    # P6-19: source provenance
+    provenance_lines = _build_provenance_section(findings)
+    if provenance_lines:
+        lines.extend(provenance_lines)
+
     lines.extend([
         "## 综合判断",
         overall_assessment(question, findings, planned_count=len(plan_items)),
@@ -89,6 +128,11 @@ def build_research_report(
         "## 证据不足与后续建议",
         next_steps(findings),
     ])
+
+    # P6-21: execution statistics
+    if isinstance(trace_summary, dict):
+        lines.extend(_build_exec_stats(trace_summary))
+
     return "\n".join(line for line in lines if line is not None).strip()
 
 
@@ -378,12 +422,158 @@ def _format_source_line(finding: Dict[str, Any]) -> str:
         isinstance(src, dict) and str(src.get("sourceType") or "") == "external_academic"
         for src in (finding.get("sources") or [])
     )
+    has_web = any(
+        isinstance(src, dict) and str(src.get("sourceType") or "") in ("web_search", "web_page")
+        for src in (finding.get("sources") or [])
+    )
     if has_external:
         base += "（含外部学术检索）"
+    if has_web:
+        base += "（含Web搜索）"
     degradation = finding.get("externalSearchDegradation")
     if degradation:
         base += f" [外部检索降级: {degradation}]"
     return base
+
+
+def _count_source_types(sources: List[Dict[str, Any]]) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    for src in sources:
+        if isinstance(src, dict):
+            st = str(src.get("sourceType") or "unknown")
+            counts[st] = counts.get(st, 0) + 1
+    return counts
+
+
+def _build_evidence_summary(findings: List[Dict[str, Any]]) -> List[str]:
+    if not findings:
+        return []
+    lines = ["", "## 证据收集摘要"]
+    total_evidence = 0
+    all_type_counts: Dict[str, int] = {}
+    diversities = []
+    trusts = []
+    cross_evaluable = 0
+
+    for finding in findings:
+        sources = finding.get("sources") or []
+        total_evidence += len(sources)
+        for src in sources:
+            st = str(src.get("sourceType") or "unknown") if isinstance(src, dict) else "unknown"
+            all_type_counts[st] = all_type_counts.get(st, 0) + 1
+        coverage = finding.get("coverage") if isinstance(finding.get("coverage"), dict) else {}
+        if coverage.get("sourceDiversityScore") is not None:
+            diversities.append(coverage["sourceDiversityScore"])
+        if coverage.get("sourceTrustWeightedScore") is not None:
+            trusts.append(coverage["sourceTrustWeightedScore"])
+        if coverage.get("crossSourceAgreement") is not None:
+            cross_evaluable += 1
+
+    lines.append(f"- 总证据条数: {total_evidence}")
+    if all_type_counts:
+        type_str = ", ".join(f"{k}({v})" for k, v in sorted(all_type_counts.items()))
+        lines.append(f"- 来源类型分布: {type_str}")
+    if diversities:
+        avg_div = sum(diversities) / len(diversities)
+        lines.append(f"- 平均来源多样性 (Shannon): {avg_div:.2f}")
+    if trusts:
+        avg_trust = sum(trusts) / len(trusts)
+        lines.append(f"- 平均可信度加权: {avg_trust:.2f}")
+    if findings:
+        lines.append(f"- 跨源一致性可评估: {cross_evaluable}/{len(findings)} 个子问题")
+    lines.append("")
+    return lines
+
+
+def _build_provenance_section(findings: List[Dict[str, Any]]) -> List[str]:
+    provenance_items = []
+    for finding in findings:
+        for src in (finding.get("sources") or []):
+            if not isinstance(src, dict):
+                continue
+            provenance = src.get("provenance")
+            if not isinstance(provenance, dict):
+                continue
+            provenance_items.append({
+                "sourceId": src.get("sourceId", ""),
+                "provider": src.get("provider", ""),
+                "discoveryPath": provenance.get("discoveryPath", ""),
+                "searchQuery": provenance.get("searchQuery", ""),
+                "searchIteration": provenance.get("searchIteration"),
+                "sourceUrl": provenance.get("sourceUrl", ""),
+                "retrievalTimestamp": provenance.get("retrievalTimestamp", ""),
+            })
+
+    if not provenance_items:
+        return []
+
+    seen = set()
+    lines = ["", "## 来源追溯"]
+    for item in provenance_items:
+        key = (item["sourceId"], item["sourceUrl"])
+        if key in seen:
+            continue
+        seen.add(key)
+
+        parts = []
+        path = item["discoveryPath"] or "unknown"
+        parts.append(f"[{path}]")
+        if item["provider"]:
+            parts.append(item["provider"])
+        if item["searchQuery"]:
+            parts.append(f'查询: "{item["searchQuery"]}"')
+        if isinstance(item["searchIteration"], int):
+            parts.append(f"第{item['searchIteration']}轮")
+        if item["sourceUrl"]:
+            parts.append(item["sourceUrl"][:120])
+        if item["retrievalTimestamp"]:
+            parts.append(item["retrievalTimestamp"])
+        lines.append(f"- {' → '.join(parts)}")
+    lines.append("")
+    return lines
+
+
+def _build_exec_stats(trace_summary: Dict[str, Any]) -> List[str]:
+    counters = trace_summary.get("counters") if isinstance(trace_summary.get("counters"), dict) else {}
+    duration_ms = trace_summary.get("durationMs")
+
+    rows = []
+    stat_items = [
+        ("LLM 调用", "llmCalls"),
+        ("检索调用", "retrievalCalls"),
+        ("外部学术搜索", "externalSearchCalls"),
+        ("外部证据条数", "externalEvidenceCount"),
+        ("Web 搜索", "webSearchCalls"),
+        ("页面抓取", "webFetchCalls"),
+        ("迭代搜索轮次", "agenticLoopIterations"),
+    ]
+
+    for label, key in stat_items:
+        val = counters.get(key)
+        if isinstance(val, (int, float)) and val > 0:
+            rows.append((label, str(int(val))))
+
+    # Always show LLM calls and retrieval calls even if 0
+    llm_val = counters.get("llmCalls")
+    if not isinstance(llm_val, (int, float)) or llm_val == 0:
+        rows.insert(0, ("LLM 调用", "0"))
+    ret_val = counters.get("retrievalCalls")
+    if not isinstance(ret_val, (int, float)) or ret_val == 0:
+        rows.insert(1, ("检索调用", "0"))
+
+    if duration_ms is not None:
+        rows.append(("总耗时", f"{duration_ms / 1000:.1f}s"))
+
+    if not rows:
+        return []
+
+    lines = ["", "## 执行统计"]
+    lines.append("| 指标 | 数值 |")
+    lines.append("|------|------|")
+    for label, value in rows:
+        lines.append(f"| {label} | {value} |")
+    lines.append("")
+    return lines
 
 
 def _any_external_source(findings: List[Dict[str, Any]]) -> bool:

@@ -28,6 +28,7 @@ from services.safety_service import (
 from services.trace_service import (
     build_public_trace_summary,
     finalize_trace,
+    get_trace_snapshot,
     record_counter,
     record_metric,
     sanitize_text,
@@ -470,7 +471,8 @@ def _run_research_task(
             conflicts=copy.deepcopy(conflicts),
         )
         with trace_step("research_report_synthesis", input_size=len(findings)) as step:
-            report = _build_research_report(research_question, brief, plan_items, findings, conflicts)
+            trace_summary = get_trace_snapshot(trace_id)
+            report = _build_research_report(research_question, brief, plan_items, findings, conflicts, trace_summary=trace_summary)
             step["outputSize"] = len(str(report or ""))
         if _is_cancelled(task_id):
             return
