@@ -16,7 +16,29 @@ def build_external_academic_queries(
     research_question: Any,
     planner_sub_questions: Any,
     missing_aspects: Any,
+    search_keywords: Any = None,
 ) -> List[str]:
+    # Prioritize LLM-generated search keywords when available
+    normalized_keywords = _normalize_items(search_keywords, _MISSING_ASPECT_CHARS) if search_keywords else []
+    if normalized_keywords:
+        normalized_question = sanitize_external_academic_query_text(
+            research_question,
+            max_chars=_RESEARCH_QUESTION_CHARS,
+        )
+        queries = []
+        seen = set()
+        for kw in normalized_keywords:
+            query = f"{normalized_question} {kw}"[:MAX_EXTERNAL_QUERY_CHARS].rstrip()
+            key = query.casefold()
+            if not query or key in seen:
+                continue
+            seen.add(key)
+            queries.append(query)
+            if len(queries) >= MAX_EXTERNAL_QUERIES:
+                return queries
+        if queries:
+            return queries
+
     normalized_missing_aspects = _normalize_items(missing_aspects, _MISSING_ASPECT_CHARS)
     if not normalized_missing_aspects:
         return []
@@ -73,13 +95,36 @@ _WEB_MISSING_ASPECT_CHARS = 180
 def build_web_search_queries(
     research_question: Any,
     missing_aspects: Any,
+    search_keywords: Any = None,
 ) -> List[str]:
     """Build web search queries from research question and missing aspects.
 
     Returns deduplicated, sanitized queries suitable for the search_web tool.
     Each query is capped at MAX_WEB_SEARCH_QUERY_CHARS (300).
+    When search_keywords (from LLM plan) are provided, they are used with priority.
     """
     from services.safety_service import sanitize_web_search_query_text
+
+    # Prioritize LLM-generated search keywords when available
+    normalized_keywords = _normalize_web_aspects(search_keywords, _WEB_MISSING_ASPECT_CHARS) if search_keywords else []
+    if normalized_keywords:
+        normalized_question = sanitize_web_search_query_text(
+            research_question,
+            max_chars=_WEB_RESEARCH_QUESTION_CHARS,
+        )
+        queries = []
+        seen = set()
+        for kw in normalized_keywords:
+            query = f"{normalized_question} {kw}"[:MAX_WEB_SEARCH_QUERY_CHARS].rstrip()
+            key = query.casefold()
+            if not query or key in seen:
+                continue
+            seen.add(key)
+            queries.append(query)
+            if len(queries) >= MAX_WEB_SEARCH_QUERIES:
+                return queries
+        if queries:
+            return queries
 
     normalized_missing = _normalize_web_aspects(missing_aspects, _WEB_MISSING_ASPECT_CHARS)
     if not normalized_missing:

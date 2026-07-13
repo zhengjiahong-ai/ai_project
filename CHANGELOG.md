@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-13 v0.2.0
+
+1. **LLM 驱动的自主任务分解**：`research_planner.py` 的 `build_research_plan()` 提示词升级为生成分层结构（根问题→子问题，每个携带 `searchKeywords` 和 `expectedSourceTypes`）；兼容旧格式（纯字符串子问题）自动升级；新增 `replan_if_needed()` 动态重规划——每完成子问题后 LLM 评估是否需要调整计划，失败时降级为简单 follow-up；`external_query_planner.py` 优先使用 plan item 的 `searchKeywords` 生成查询；`research_task_service.py` 执行循环集成动态重规划。阶段一完成，版本号提升至 0.2.0。
+
 ### 2026-07-13 v0.1.99
 
 1. **动态预算与自适应搜索深度**：新增 `PIXIU_MAX_TOKENS_PER_TASK` 环境变量（默认 500,000 tokens）驱动任务级 token 预算；`agentic_search_loop.py` 迭代上限从 3 轮改为 15 轮安全上限，实际终止由信息增益率（连续 2 轮 <5% 自动停止）和 token 预算共同决定；每调用预算放宽（搜索 5→20、抓取 10→30）；`tool_registry.py` 在搜索/抓取/外部检索工具中新增 token 预算门控；`research_executor.py` trace 记录 token 预算耗尽状态。

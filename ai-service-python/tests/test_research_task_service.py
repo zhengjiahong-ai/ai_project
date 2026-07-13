@@ -132,6 +132,7 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
             patch.object(research_task_service, "_load_current_paper_documents", return_value=([{"sourceId": "doc-1", "text": "paper evidence"}], "paper-1")),
             patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一", "子问题二", "子问题三"])),
             patch.object(research_task_service, "_research_sub_question", side_effect=fake_research_sub_question),
+            patch("llm.client.get_llm", side_effect=RuntimeError("LLM unavailable in test")),
         ):
             task = research_task_service.run_research_task_now(task_id)
 
@@ -522,6 +523,97 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         with closing(sqlite3.connect(db_path)) as connection:
             columns = {row[1] for row in connection.execute("PRAGMA table_info(research_tasks)").fetchall()}
         self.assertIn("traceSummary", columns)
+
+    # ---- 1-3: LLM-driven autonomous task decomposition ----
+
+    def test_plan_items_include_search_keywords_and_source_types(self):
+        """build_initial_plan_items produces items with searchKeywords and expectedSourceTypes."""
+        from services.research_planner import build_initial_plan_items
+
+        # Simulate new LLM format: list of {question, searchKeywords, expectedSourceTypes}
+        structured_sub_questions = [
+            {"question": "核心研究目标是什么？", "searchKeywords": ["research objective", "goal"], "expectedSourceTypes": ["current_paper"]},
+            {"question": "实验方法有哪些？", "searchKeywords": ["methodology", "experiment design"], "expectedSourceTypes": ["current_paper", "library"]},
+        ]
+
+        items = build_initial_plan_items(structured_sub_questions)
+
+        self.assertEqual(len(items), 2)
+        for item in items:
+            self.assertIn("searchKeywords", item)
+            self.assertIn("expectedSourceTypes", item)
+            self.assertIsInstance(item["searchKeywords"], list)
+            self.assertIsInstance(item["expectedSourceTypes"], list)
+
+        self.assertEqual(items[0]["searchKeywords"], ["research objective", "goal"])
+        self.assertEqual(items[0]["expectedSourceTypes"], ["current_paper"])
+        self.assertEqual(items[1]["searchKeywords"], ["methodology", "experiment design"])
+
+    def test_old_plan_format_still_works(self):
+        """build_initial_plan_items handles old-format string-only sub-questions."""
+        from services.research_planner import build_initial_plan_items
+
+        old_format = ["子问题一", "子问题二", "子问题三"]
+        items = build_initial_plan_items(old_format)
+
+        self.assertEqual(len(items), 3)
+        for item in items:
+            self.assertEqual(item["searchKeywords"], [])
+            self.assertEqual(item["expectedSourceTypes"], [])
+            self.assertEqual(item["kind"], "initial")
+
+    def test_replan_if_needed_generates_new_items(self):
+        """replan_if_needed returns new plan items when finding is insufficient."""
+        from services.research_planner import replan_if_needed
+
+        # Mock LLM response for replanning
+        mock_llm_response = json.dumps({
+            "shouldReplan": True,
+            "newSubQuestions": [
+                {"question": "补充搜索消融实验证据", "searchKeywords": ["ablation study", "消融实验"], "expectedSourceTypes": ["current_paper", "library"]},
+            ],
+        }, ensure_ascii=False)
+
+        with patch("llm.client.get_llm") as mock_llm:
+            mock_llm.return_value._call.return_value = mock_llm_response
+            new_items = replan_if_needed(
+                finding={
+                    "subQuestion": "原始子问题",
+                    "verdict": "INCORRECT",
+                    "missingAspects": ["消融实验", "关键指标"],
+                    "summary": "证据不足",
+                },
+                question="研究问题",
+                next_index=5,
+            )
+
+        self.assertGreater(len(new_items), 0)
+        self.assertEqual(new_items[0]["kind"], "replan")
+        self.assertIn("searchKeywords", new_items[0])
+        self.assertIn("expectedSourceTypes", new_items[0])
+        self.assertIn("消融实验", new_items[0]["question"])
+
+    def test_replan_if_needed_falls_back_on_llm_failure(self):
+        """replan_if_needed falls back to single follow-up item when LLM fails."""
+        from services.research_planner import replan_if_needed
+
+        with patch("llm.client.get_llm") as mock_llm:
+            mock_llm.return_value._call.side_effect = RuntimeError("LLM unavailable")
+            new_items = replan_if_needed(
+                finding={
+                    "subQuestion": "原始子问题",
+                    "verdict": "INCORRECT",
+                    "missingAspects": ["消融实验", "关键指标"],
+                    "summary": "证据不足",
+                },
+                question="研究问题",
+                next_index=5,
+            )
+
+        # Should fall back to a single follow_up item
+        self.assertEqual(len(new_items), 1)
+        self.assertEqual(new_items[0]["kind"], "follow_up")
+        self.assertIn("消融实验", new_items[0]["question"])
 
 
 class ResearchTaskExternalSearchTests(unittest.TestCase):

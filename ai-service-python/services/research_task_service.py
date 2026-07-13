@@ -424,21 +424,25 @@ def _run_research_task(
             plan_items[index]["status"] = "done"
             if follow_up_count < MAX_DYNAMIC_FOLLOW_UPS and _should_create_follow_up(finding):
                 with trace_step(
-                    "research_follow_up_planning",
+                    "research_replanning",
                     input_size=len(str(finding.get("summary") or "")),
                     meta={
                         "sourceQuestion": sanitize_text(finding.get("subQuestion"), max_chars=120),
                         "missingAspects": _normalize_missing_aspects(finding.get("missingAspects")),
                     },
                 ) as step:
-                    follow_up_item = _build_follow_up_plan_item(finding, len(plan_items) + 1)
-                    if follow_up_item:
-                        plan_items.append(follow_up_item)
+                    from services.research_planner import replan_if_needed
+
+                    new_items = replan_if_needed(
+                        finding=finding,
+                        question=research_question,
+                        next_index=len(plan_items) + 1,
+                    )
+                    for new_item in new_items:
+                        plan_items.append(new_item)
                         follow_up_count += 1
-                        record_metric("followUpCount", follow_up_count)
-                        step["outputSize"] = 1
-                    else:
-                        step["outputSize"] = 0
+                    record_metric("followUpCount", follow_up_count)
+                    step["outputSize"] = len(new_items)
 
             total = max(len(plan_items), 1)
             done_progress = round(0.2 + ((index + 1) / total) * 0.6, 2)
@@ -585,10 +589,20 @@ def _research_sub_question(
     }
 
 
-def _build_initial_plan_items(sub_questions: List[str]) -> List[Dict[str, Any]]:
+def _build_initial_plan_items(sub_questions: List[Any]) -> List[Dict[str, Any]]:
     items = []
-    for index, sub_question in enumerate(sub_questions, start=1):
-        question = _clean_text(sub_question)
+    for index, raw_item in enumerate(sub_questions, start=1):
+        if isinstance(raw_item, dict):
+            question = _clean_text(raw_item.get("question"))
+            search_keywords = _normalize_string_list(raw_item.get("searchKeywords"), limit=5, max_chars=80)
+            expected_source_types = _normalize_string_list(raw_item.get("expectedSourceTypes"), limit=4, max_chars=40)
+        elif isinstance(raw_item, str):
+            question = _clean_text(raw_item)
+            search_keywords = []
+            expected_source_types = []
+        else:
+            continue
+
         if not question:
             continue
         items.append(
@@ -597,6 +611,9 @@ def _build_initial_plan_items(sub_questions: List[str]) -> List[Dict[str, Any]]:
                 "question": question,
                 "kind": "initial",
                 "status": "pending",
+                "parentId": None,
+                "searchKeywords": search_keywords,
+                "expectedSourceTypes": expected_source_types,
                 "sourceQuestion": "",
                 "sourceMissingAspects": [],
             }
@@ -619,7 +636,7 @@ def _build_follow_up_plan_item(finding: Dict[str, Any], index: int) -> Dict[str,
 
     missing_text = "、".join(missing_aspects[:3])
     question = (
-        f"围绕“{source_question}”继续核查缺失证据：{missing_text}。"
+        f"围绕'{source_question}'继续核查缺失证据：{missing_text}。"
         "仅使用当前论文和内部文献库线索，不扩大到外部 Web。"
     )
     return {
@@ -627,6 +644,9 @@ def _build_follow_up_plan_item(finding: Dict[str, Any], index: int) -> Dict[str,
         "question": question[:160],
         "kind": "follow_up",
         "status": "pending",
+        "parentId": None,
+        "searchKeywords": missing_aspects[:5],
+        "expectedSourceTypes": ["current_paper", "library"],
         "sourceQuestion": source_question,
         "sourceMissingAspects": missing_aspects,
     }
@@ -651,7 +671,7 @@ def _build_research_plan(
     paper_skeleton: Dict[str, Any],
     documents: List[Dict[str, Any]],
     brief_override: str = "",
-) -> Tuple[str, List[str]]:
+) -> Tuple[str, List[Any]]:
     fallback_brief, fallback_sub_questions = _fallback_plan(question)
     skeleton_payload = _read_paper_skeleton(paper_skeleton, max_sections=6, max_chars_per_section=220)
     paper_skeleton_block = wrap_untrusted_context(
@@ -672,12 +692,20 @@ Return valid JSON only.
 JSON shape:
 {{
   "brief": "short Chinese research brief",
-  "subQuestions": ["子问题 1", "子问题 2", "子问题 3"]
+  "subQuestions": [
+    {{
+      "question": "子问题 1",
+      "searchKeywords": ["keyword1", "keyword2"],
+      "expectedSourceTypes": ["current_paper", "library"]
+    }}
+  ]
 }}
 
 Rules:
 - Focus on the current paper first.
 - Produce 3 to 5 Chinese sub-questions.
+- Each sub-question must include 2-5 searchKeywords (precise English or Chinese terms for retrieval).
+- Each sub-question must include expectedSourceTypes (one or more of: current_paper, library, external_academic, web_search).
 - Keep each sub-question concrete and answerable with current-paper evidence plus optional library supplements.
 - Do not mention web search, agents, or external browsing.
 
@@ -705,7 +733,9 @@ Current paper evidence:
                 )
             )
             brief = _clean_text(brief_override) or _clean_text(payload.get("brief")) or fallback_brief
-            sub_questions = _normalize_sub_questions(payload.get("subQuestions"), fallback_sub_questions)
+            raw_sub_questions = payload.get("subQuestions") or []
+            from services.research_planner import _normalize_structured_sub_questions
+            sub_questions = _normalize_structured_sub_questions(raw_sub_questions, fallback_sub_questions)
             step["outputSize"] = len(sub_questions)
             return brief, sub_questions
         except Exception as error:
@@ -949,13 +979,13 @@ def _build_finding_summary(sub_question: str, evidence: List[Dict[str, Any]], ju
     missing_aspects = _normalize_missing_aspects(judge_result.get("missingAspects"))
     preview = _evidence_preview(evidence)
     if verdict == "CORRECT":
-        return f"围绕“{sub_question}”，现有证据基本充分。关键信息包括：{preview or '已检索到可支撑回答的当前论文或补充文献证据。'}"
+        return f"围绕'{sub_question}'，现有证据基本充分。关键信息包括：{preview or '已检索到可支撑回答的当前论文或补充文献证据。'}"
     if verdict == "AMBIGUOUS":
         suffix = f"；但仍缺少 {', '.join(missing_aspects)} 等关键信息" if missing_aspects else "；但关键论证仍不够完整"
-        return f"围绕“{sub_question}”，现有证据部分相关。已观察到：{preview or '检索到了部分线索'}{suffix}。"
+        return f"围绕'{sub_question}'，现有证据部分相关。已观察到：{preview or '检索到了部分线索'}{suffix}。"
     if missing_aspects:
-        return f"围绕“{sub_question}”，当前证据不足，仍缺少 {', '.join(missing_aspects)} 等直接依据。"
-    return f"围绕“{sub_question}”，当前没有检索到足够直接的证据。"
+        return f"围绕'{sub_question}'，当前证据不足，仍缺少 {', '.join(missing_aspects)} 等直接依据。"
+    return f"围绕'{sub_question}'，当前没有检索到足够直接的证据。"
 
 
 def _build_research_report(
@@ -1204,7 +1234,7 @@ def _overall_assessment(question: str, findings: List[Dict[str, Any]], planned_c
     partial = [item for item in findings if item.get("verdict") == "AMBIGUOUS"]
     insufficient = [item for item in findings if item.get("verdict") == "INCORRECT"]
     return (
-        f"围绕“{question}”，本次任务共规划 {planned_count} 个子问题，"
+        f"围绕'{question}'，本次任务共规划 {planned_count} 个子问题，"
         f"其中证据充足 {len(supported)} 项，部分相关 {len(partial)} 项，证据不足 {len(insufficient)} 项。"
         " 当前结论优先依据当前论文，必要时参考了内部文献库补充线索；对证据不足的部分不应当作论文已经证明的事实。"
     )
@@ -1297,14 +1327,26 @@ def _should_retry(judge_result: Dict[str, Any]) -> bool:
     )
 
 
-def _fallback_plan(question: str) -> Tuple[str, List[str]]:
+def _fallback_plan(question: str) -> Tuple[str, List[Dict[str, Any]]]:
     normalized_question = _clean_text(question) or "当前研究问题"
     return (
         f"围绕“{normalized_question}”，优先核对当前论文中的研究目标、方法证据、实验支撑与结论边界，再用内部文献库补充缺口。",
         [
-            f"这篇论文针对“{normalized_question}”想解决的核心研究问题与研究目标是什么？",
-            f"当前论文中有哪些方法、机制或流程证据可以直接支撑“{normalized_question}”？",
-            f"实验结果、评价指标和已披露局限对“{normalized_question}”提供了哪些支持或边界？",
+            {
+                "question": f"这篇论文针对“{normalized_question}”想解决的核心研究问题与研究目标是什么？",
+                "searchKeywords": ["研究目标", "research objective", "核心问题"],
+                "expectedSourceTypes": ["current_paper"],
+            },
+            {
+                "question": f"当前论文中有哪些方法、机制或流程证据可以直接支撑“{normalized_question}”？",
+                "searchKeywords": ["方法", "methodology", "实验流程"],
+                "expectedSourceTypes": ["current_paper", "library"],
+            },
+            {
+                "question": f"实验结果、评价指标和已披露局限对“{normalized_question}”提供了哪些支持或边界？",
+                "searchKeywords": ["实验结果", "评价指标", "局限性", "limitations"],
+                "expectedSourceTypes": ["current_paper"],
+            },
         ],
     )
 
@@ -1418,6 +1460,25 @@ def _normalize_missing_aspects(value: Any) -> List[str]:
         seen.add(key)
         items.append(text[:80])
         if len(items) >= 5:
+            break
+    return items
+
+
+def _normalize_string_list(value: Any, limit: int = 5, max_chars: int = 80) -> List[str]:
+    if not isinstance(value, list):
+        return []
+    items = []
+    seen = set()
+    for raw_item in value:
+        text = _clean_text(raw_item)
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        items.append(text[:max_chars])
+        if len(items) >= limit:
             break
     return items
 
