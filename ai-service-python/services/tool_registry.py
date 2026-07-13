@@ -345,6 +345,8 @@ def _build_default_tool_registry() -> ToolRegistry:
                 "judgeScore": {"type": "integer", "minimum": 0, "maximum": 100},
                 "coverage": {"type": "object", "additionalProperties": True},
                 "retryReason": {"type": "string"},
+                "reflection": {"type": "string"},
+                "suggestedQueries": {"type": "array", "items": {"type": "string"}},
             },
         ),
         safety_scope=_safety_scope(["provided_evidence"], network_access=False, sensitive_output=False),

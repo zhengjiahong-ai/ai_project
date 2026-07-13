@@ -94,14 +94,18 @@ def run_agentic_search_loop(
     verdict = "INCORRECT"
     confidence = 0.0
     iteration = 0
+    judge_suggested_queries: list = []
 
     while iteration < max_iterations:
         if should_cancel and should_cancel():
             break
 
         # Step 1: Generate web search queries.
-        # From round 2+, use LLM-driven refinement if we have previous results.
-        if all_web_items:
+        # Priority: judge's suggestedQueries > LLM refinement > deterministic build.
+        if judge_suggested_queries:
+            queries = judge_suggested_queries[:3]
+            judge_suggested_queries = []
+        elif all_web_items:
             from services.external_query_planner import refine_search_queries
 
             queries = refine_search_queries(
@@ -224,6 +228,11 @@ def run_agentic_search_loop(
         coverage = judge_result.get("coverage") or {}
         coverage_score = float(coverage.get("score") or 0)
         missing_aspects = list(judge_result.get("missingAspects") or [])
+
+        # Extract judge's suggested queries for next iteration (if any)
+        suggested_raw = judge_result.get("suggestedQueries")
+        if isinstance(suggested_raw, list) and suggested_raw:
+            judge_suggested_queries = [str(q).strip()[:200] for q in suggested_raw if str(q).strip()][:3]
 
         # Step 6: Check termination conditions
         if verdict == "CORRECT" and confidence >= 0.75:

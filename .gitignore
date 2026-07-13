@@ -58,6 +58,7 @@ ai-service-python/core/chroma_literature_db/
 !/ai-service-python/tests/test_external_search_registry.py
 !/ai-service-python/tests/test_external_search_cache.py
 !/ai-service-python/tests/test_external_query_planner.py
+!/ai-service-python/tests/test_retrieval_judge_service.py
 !/ai-service-python/tests/test_safety_service.py
 !/ai-service-python/tests/test_code_sandbox_benchmark.py
 !/ai-service-python/tests/test_code_execution_models.py

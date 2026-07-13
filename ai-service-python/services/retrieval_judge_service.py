@@ -142,8 +142,21 @@ Return valid JSON only with this shape:
   "confidence": 0.0,
   "reason": "short reason",
   "missingAspects": ["short missing aspect"],
-  "shouldRetry": true
+  "shouldRetry": true,
+  "reflection": "已确认 X 和 Y，仍不确定 Z。为验证 Z 需要查找 ____。当前证据矛盾在于 ____。",
+  "suggestedQueries": ["precise search keyword combination 1", "precise search keyword combination 2"]
 }}
+
+The "reflection" field must follow this format in Chinese:
+- Start with what is confirmed (已确认...)
+- Then state what remains uncertain (仍不确定...)
+- Then state what evidence is needed to resolve the uncertainty (为验证...需要查找...)
+- Finally note any contradictions in current evidence (当前证据矛盾在于...)
+- If evidence is empty, write "无可用证据，无法进行反思。"
+
+The "suggestedQueries" field must contain 0-3 precise search keyword combinations
+(not full sentences) optimized for academic/web search to fill the knowledge gaps.
+Each query should be ≤200 characters. Leave empty if no further search is needed.
 
 Question:
 {question}
@@ -169,6 +182,18 @@ Evidence:
         _matched_terms(_normalize_terms(keywords) or _fallback_terms(question), "\n".join(item.get("text", "") for item in evidence)),
     )
 
+    # Extract new reflection fields from LLM response
+    reflection = str(payload.get("reflection") or "").strip()[:400]
+    suggested_queries_raw = payload.get("suggestedQueries")
+    if isinstance(suggested_queries_raw, list):
+        suggested_queries = [
+            str(q).strip()[:200]
+            for q in suggested_queries_raw
+            if str(q).strip()
+        ][:3]
+    else:
+        suggested_queries = []
+
     return _result(
         verdict=verdict,
         confidence=confidence,
@@ -176,6 +201,8 @@ Evidence:
         missing_aspects=[str(item).strip()[:80] for item in missing_aspects if str(item).strip()][:6],
         should_retry=should_retry,
         coverage=coverage,
+        reflection=reflection,
+        suggested_queries=suggested_queries,
     )
 
 
@@ -186,12 +213,21 @@ def _result(
     missing_aspects: Optional[List[str]] = None,
     should_retry: Optional[bool] = None,
     coverage: Optional[Dict[str, Any]] = None,
+    reflection: str = "",
+    suggested_queries: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     normalized_verdict = verdict if verdict in VALID_VERDICTS else "INCORRECT"
     normalized_confidence = round(max(0.0, min(1.0, float(confidence))), 2)
     normalized_missing = missing_aspects or []
     normalized_should_retry = normalized_verdict != "CORRECT" if should_retry is None else bool(should_retry)
     normalized_coverage = _normalize_coverage(coverage)
+    normalized_reflection = str(reflection or "").strip()[:400]
+    normalized_suggested_queries = suggested_queries if isinstance(suggested_queries, list) else []
+    normalized_suggested_queries = [
+        str(q).strip()[:200]
+        for q in normalized_suggested_queries
+        if str(q).strip()
+    ][:3]
     return {
         "verdict": normalized_verdict,
         "confidence": normalized_confidence,
@@ -201,6 +237,8 @@ def _result(
         "judgeScore": _judge_score(normalized_verdict, normalized_confidence, normalized_coverage),
         "coverage": normalized_coverage,
         "retryReason": _retry_reason(normalized_should_retry, normalized_missing, reason),
+        "reflection": normalized_reflection,
+        "suggestedQueries": normalized_suggested_queries,
     }
 
 

@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-13 v0.1.98
+
+1. **LLM Judge 多步反思链升级**：`retrieval_judge_service.py` 的 judge 输出新增 `reflection` 字段（结构化中文反思："已确认...仍不确定...需要查找...矛盾在于..."）和 `suggestedQueries` 字段（judge 自主生成的下一轮精确检索关键词）；LLM 不可用时自动降级为空字段和三段式判断；`agentic_search_loop.py` 优先使用 judge 的 `suggestedQueries` 驱动下一轮搜索；`tool_registry.py` 输出 schema 同步新增这两个可选字段。
+
 ### 2026-07-13 v0.1.97
 
 1. **端到端集成测试与安全验收**：新增 `test_p6_security_boundary.py`（17 个安全边界测试：URL 白名单、内网 IP 拒绝、重定向防护、注入清洗、API Key 不泄露、预算耗尽降级、Web 搜索禁用回退）；新增 `test_web_search_e2e.py`（12 个端到端测试：Deep Research + Web 搜索全链路、Agent + 迭代搜索全链路、多 Provider 去重、空结果降级）；新增 `web_search_benchmark.py`（离线基准：Brave/Tavily 成功率、页面抓取成功率、迭代时延、Token 开销）；新增 `docs/P6_ACCEPTANCE_REPORT.md`（安全验收、功能集成、性能基准、回退验证总结）。
