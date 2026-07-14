@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertTriangle, Archive, BookOpen, FileText, GitCompare, Sparkles, Terminal, Workflow } from 'lucide-react';
 
 import { buildAgentComparisonArtifact, buildAgentReportArtifact } from '../artifactModel.js';
+import ResearchTimeline from './ResearchTimeline.jsx';
 import SourceList from '../SourceCitation.jsx';
 import { getAgentArtifactSaveState } from './agentWorkspaceModel.js';
 import { formatAgentTime, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
@@ -94,7 +95,19 @@ export const AgentTaskHistorySection = ({ tasks, currentTask, onSelectTask }) =>
 };
 
 export const AgentTimelineSection = ({ currentTask }) => {
+  const researchTimeline = currentTask?.researchTimeline || [];
   const events = currentTask?.events || [];
+  const isRunning = currentTask?.status && !['done', 'failed', 'cancelled', 'awaiting_final_review'].includes(currentTask.status);
+
+  // Use new researchTimeline if available, otherwise fall back to old events
+  const steps = researchTimeline.length > 0 ? researchTimeline : events.map((event) => ({
+    stepId: event.eventId,
+    type: event.type || 'search',
+    summary: event.summary || event.type,
+    detail: '',
+    status: 'success',
+    durationMs: 0,
+  }));
 
   return (
     <details className="agent-section mt-4 rounded-[18px]" open>
@@ -106,31 +119,11 @@ export const AgentTimelineSection = ({ currentTask }) => {
           研究过程时间线
         </span>
         <span className="agent-chip-accent px-2.5 py-1 text-[11px] font-semibold">
-          {events.length} events
+          {steps.length} 步
         </span>
       </summary>
-      <div className="space-y-2 px-4 pb-4">
-        {events.map((event, index) => (
-          <div key={event.eventId || `${event.type}-${index}`} className="grid grid-cols-[16px_minmax(0,1fr)] gap-3">
-            <div className="pt-1">
-              <span className="agent-timeline-dot block h-3 w-3 rounded-full" />
-            </div>
-            <div className="agent-card rounded-2xl px-3 py-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="agent-title text-xs font-semibold">{event.summary || event.type}</span>
-                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--accent-strong)]">
-                  {event.stage || currentTask?.stage || 'stage'}
-                </span>
-              </div>
-              <div className="agent-muted mt-1 text-[10px]">{event.type}</div>
-            </div>
-          </div>
-        ))}
-        {events.length === 0 && (
-          <div className="agent-empty-state rounded-2xl border-dashed px-4 py-4 text-xs leading-6">
-            启动任务后，这里会随着轮询逐步出现规划、检索、判断和报告更新事件。
-          </div>
-        )}
+      <div className="px-4 pb-4">
+        <ResearchTimeline steps={steps} isRunning={isRunning} />
       </div>
     </details>
   );

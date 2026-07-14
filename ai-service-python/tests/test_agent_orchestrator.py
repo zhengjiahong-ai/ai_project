@@ -61,7 +61,7 @@ class AgentOrchestratorTests(unittest.TestCase):
         }
 
         with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
-            paper_contexts, tool_calls, evidence_items = collect_project_evidence(
+            paper_contexts, tool_calls, evidence_items, _timeline = collect_project_evidence(
                 prompt="compare methods",
                 paper_ids=["paper-a"],
             )
@@ -93,7 +93,7 @@ class AgentOrchestratorTests(unittest.TestCase):
         fake_registry.invoke.side_effect = RuntimeError("index unavailable")
 
         with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
-            paper_contexts, tool_calls, evidence_items = collect_project_evidence(
+            paper_contexts, tool_calls, evidence_items, _timeline = collect_project_evidence(
                 prompt="compare methods",
                 paper_ids=["paper-a"],
             )
@@ -186,12 +186,13 @@ class AgentOrchestratorTests(unittest.TestCase):
 
         with patch(
             "services.agent_orchestrator.collect_project_evidence",
-            return_value=(paper_contexts, tool_calls, evidence_items),
+            return_value=(paper_contexts, tool_calls, evidence_items, []),
         ):
             result = execute_run("compare methods", ["paper-a"])
 
         self.assertEqual(result["paperContexts"], paper_contexts)
         self.assertEqual(result["toolCalls"], tool_calls)
+        self.assertEqual(result["researchTimeline"], [])
         self.assertEqual(result["artifacts"]["evidenceItems"], evidence_items)
         self.assertTrue(result["artifacts"]["findings"])
         self.assertIn("# Agent Research Draft", result["artifacts"]["draftReport"])
@@ -259,7 +260,7 @@ class AgentOrchestratorTests(unittest.TestCase):
         fake_registry.invoke.return_value = {"items": []}
 
         with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
-            paper_contexts, tool_calls, evidence_items = collect_project_evidence(
+            paper_contexts, tool_calls, evidence_items, _timeline = collect_project_evidence(
                 prompt=ADVERSARIAL_FIXTURE["queryCases"][0]["input"],
                 paper_ids=["paper-a"],
                 allow_external_search=False,
@@ -348,7 +349,7 @@ class AgentOrchestratorTests(unittest.TestCase):
         fake_registry.invoke.side_effect = fake_invoke
 
         with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
-            paper_contexts, tool_calls, evidence_items = collect_project_evidence(
+            paper_contexts, tool_calls, evidence_items, _timeline = collect_project_evidence(
                 prompt="compare methods",
                 paper_ids=["paper-a", "paper-b"],
                 allow_external_search=True,

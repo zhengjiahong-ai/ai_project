@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.3.0
+
+1. **中间推理透明化**：`agent_orchestrator.py` 的 `collect_project_evidence()` 新增 `_timeline_step()` 辅助函数和 `research_timeline` 步骤收集（检索→外部学术搜索→Web 搜索，每步含 type/summary/detail/status/durationMs）；`execute_run()` 返回新增 `researchTimeline` 字段；`agent_project_service.py` 将 `researchTimeline` 持久化到任务快照并随 workspace 响应返回；前端新增 `ResearchTimeline.jsx` 组件（步骤图标映射、状态颜色、展开查看详情、自动滚动、运行中 pulse 动画）；`AgentTimelineSection` 升级为使用 `ResearchTimeline`，兼容旧 `events` 降级展示。阶段三开始，版本号跳至 0.3.0。
+
 ### 2026-07-14 v0.2.3
 
 1. **新增 analyze_image 图片理解工具**：ToolRegistry 注册 `analyze_image` 工具，LLM Agent 可下载白名单内 URL 的图片并送 VLM（DeepSeek v4-pro）获取文字描述；新增 `services/image_analyzer.py` 实现图片下载（5 MiB 上限、image/png|jpeg|gif|webp 类型白名单、15s 超时）、base64 编码、多模态消息构建和 VLM 调用；`llm/client.py` `_resolve_messages` 升级支持 list-typed content（OpenAI 多模态格式）；`html_extractor.py` 新增 `extract_image_refs()` 提取 `<img alt src>`；`web_fetcher.py` `FetchResult` 新增 `image_urls` 字段；`evidence_service.py` `VALID_SOURCE_TYPES` 新增 `image_analysis`。图片不缓存、不持久化，描述经 `sanitize_untrusted_text` 清洗后进入证据链。

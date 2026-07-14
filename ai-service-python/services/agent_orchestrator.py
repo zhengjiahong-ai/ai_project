@@ -312,10 +312,11 @@ def collect_project_evidence(
     allow_iterative_search: bool = False,
     should_cancel: CancelCheck | None = None,
     on_progress: ProgressCallback | None = None,
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     paper_contexts: List[Dict[str, Any]] = []
     tool_calls: List[Dict[str, Any]] = []
     evidence_items: List[Dict[str, Any]] = []
+    research_timeline: List[Dict[str, Any]] = []
 
     for index, pdf_id in enumerate(paper_ids):
         if should_cancel and should_cancel():
@@ -373,6 +374,15 @@ def collect_project_evidence(
                 pdf_id,
             )
 
+    # Add paper retrieval summary step
+    papers_with_evidence = sum(1 for c in paper_contexts if int(c.get("evidenceCount") or 0) > 0)
+    research_timeline.append(_timeline_step(
+        "retrieve",
+        f"从 {len(paper_ids)} 篇项目论文中检索证据",
+        f"{papers_with_evidence}/{len(paper_ids)} 篇论文返回证据片段，共收集 {len(evidence_items)} 条",
+        "success",
+    ))
+
     if should_try_external_search(paper_contexts, allow_external_search):
         if not (should_cancel and should_cancel()):
             with trace_step(
@@ -406,6 +416,13 @@ def collect_project_evidence(
                         0.69,
                         "external_academic",
                     )
+
+                research_timeline.append(_timeline_step(
+                    "search",
+                    "外部学术检索",
+                    f"Provider: {ext_result.get('provider', 'unknown')}, 状态: {ext_result.get('status', 'unknown')}, 获得 {len(external_evidence)} 条证据",
+                    "success" if external_evidence else "error",
+                ))
 
     if should_try_web_search_agent(paper_contexts, allow_web_search):
         if not (should_cancel and should_cancel()):
@@ -470,6 +487,13 @@ def collect_project_evidence(
                             0.72,
                             "web_search_iterative",
                         )
+
+                    research_timeline.append(_timeline_step(
+                        "search",
+                        f"迭代 Web 搜索完成",
+                        f"{loop_result.get('iterations', 0)} 轮迭代, {loop_result.get('pages_fetched', 0)} 页抓取, verdict: {loop_result.get('verdict', 'unknown')}",
+                        "success" if loop_evidence else "error",
+                    ))
             else:
                 # Simple single-pass web search (existing behavior)
                 with trace_step(
@@ -504,7 +528,14 @@ def collect_project_evidence(
                             "web_search",
                         )
 
-    return paper_contexts, tool_calls, evidence_items[:12]
+                    research_timeline.append(_timeline_step(
+                        "search",
+                        "Web 搜索完成",
+                        f"Provider: {web_result.get('provider', 'unknown')}, 获得 {len(web_evidence)} 条证据",
+                        "success" if web_evidence else "error",
+                    ))
+
+    return paper_contexts, tool_calls, evidence_items[:12], research_timeline
 
 
 def build_agent_outputs(
@@ -1145,7 +1176,7 @@ def execute_run(
     allow_web_search: bool = False,
     allow_iterative_search: bool = False,
 ) -> Dict[str, Any]:
-    paper_contexts, tool_calls, evidence_items = collect_project_evidence(
+    paper_contexts, tool_calls, evidence_items, research_timeline = collect_project_evidence(
         prompt,
         paper_ids,
         allow_external_search=allow_external_search,
@@ -1168,6 +1199,7 @@ def execute_run(
     return {
         "paperContexts": paper_contexts,
         "toolCalls": tool_calls,
+        "researchTimeline": research_timeline,
         "artifacts": {
             "evidenceItems": evidence_items,
             "findings": [finding],
@@ -1181,6 +1213,24 @@ def execute_run(
 
 def clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
+
+
+def _timeline_step(
+    step_type: str,
+    summary: str,
+    detail: str = "",
+    status: str = "success",
+    duration_ms: int = 0,
+) -> Dict[str, Any]:
+    import uuid
+    return {
+        "stepId": uuid.uuid4().hex[:12],
+        "type": step_type,
+        "summary": summary,
+        "detail": detail,
+        "status": status,
+        "durationMs": duration_ms,
+    }
 
 
 def _plan_item(item_id: str, label: str, detail: str, status: str) -> Dict[str, Any]:

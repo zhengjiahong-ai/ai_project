@@ -252,6 +252,7 @@ export const buildTaskFromRunWorkspace = ({ run = null, pendingReview = null, la
     focusedPaperIds: normalizedRun.focusedPaperIds,
     constraints: normalizedRun.constraints,
     planItems: Array.isArray(pendingReview?.planItems) ? pendingReview.planItems : [],
+    researchTimeline: Array.isArray(run?.researchTimeline) ? run.researchTimeline : [],
     events: Array.isArray(timeline) ? timeline.map((entry) => ({
       eventId: `${entry?.id ?? ''}`.trim(),
       type: `${entry?.type ?? ''}`.trim(),
