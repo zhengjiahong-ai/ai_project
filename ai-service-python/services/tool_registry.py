@@ -28,9 +28,12 @@ from services.trace_service import (
 from services.code_execution_models import IDENTIFIER_PATTERN, create_code_execution_job
 from services.code_executor import execute_python_sandbox
 from services.browser_agent import browser_navigate, browser_screenshot
+from services.adversarial_reviewer import adversarial_review
 from services.chart_analyzer import extract_chart_data
 from services.citation_graph import traverse_citation_graph
 from services.conflict_adjudicator import adjudicate_conflict
+from services.cross_lingual import cross_lingual_search
+from services.domain_specialists import activate_domain_specialist
 from services.hypothesis_engine import generate_and_verify_hypotheses, verify_hypothesis
 from services.image_analyzer import analyze_image
 from services.meta_analysis import meta_analyze
@@ -1151,6 +1154,155 @@ def _build_default_tool_registry() -> ToolRegistry:
         ),
     )
     registry.register(
+        "cross_lingual_search",
+        "Search across multiple languages for academic evidence. Translates the "
+        "query into each target language, searches external academic providers, "
+        "and translates results back. Supports zh/en/ja/de/fr/ko/es.",
+        {
+            "type": "object",
+            "required": ["query"],
+            "properties": {
+                "query": {"type": "string", "minLength": 1, "maxLength": 300},
+                "languages": {"type": "array", "items": {"type": "string"}},
+                "limitPerLang": {"type": "integer", "minimum": 1, "maximum": 10},
+            },
+            "additionalProperties": False,
+        },
+        _cross_lingual_search_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "query", "results", "resultCount", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "error"]},
+                "query": {"type": "string"},
+                "translations": {"type": "object", "additionalProperties": True},
+                "results": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "resultCount": {"type": "integer", "minimum": 0},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["cross_lingual"],
+            network_access=True,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "adversarial_review",
+        "Perform adversarial self-review of research findings. Generates "
+        "counter-arguments as a skeptical reviewer, identifies weaknesses "
+        "(single-source risk, confounding, methodology limitations), and "
+        "adjusts confidence scores accordingly.",
+        {
+            "type": "object",
+            "required": ["question"],
+            "properties": {
+                "question": {"type": "string", "minLength": 1, "maxLength": 300},
+                "findings": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "evidenceItems": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "conflicts": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+            },
+            "additionalProperties": False,
+        },
+        _adversarial_review_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "reviewedFindings", "overallConfidence", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "error"]},
+                "reviewedFindings": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "overallConfidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                "shouldSeekMoreEvidence": {"type": "boolean"},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["adversarial_review"],
+            network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "generate_paper_draft",
+        "Generate a structured academic paper draft (Markdown + LaTeX) from "
+        "research findings. Includes Abstract, Introduction, Related Work, "
+        "Methodology, Results, Discussion, Conclusion, and References (BibTeX).",
+        {
+            "type": "object",
+            "required": ["question"],
+            "properties": {
+                "question": {"type": "string", "minLength": 1, "maxLength": 500},
+                "findings": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "evidenceItems": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "conflicts": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "title": {"type": "string", "maxLength": 300},
+            },
+            "additionalProperties": False,
+        },
+        _generate_paper_draft_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "title", "outputPath", "referenceCount", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "error"]},
+                "title": {"type": "string"},
+                "sections": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "referenceCount": {"type": "integer", "minimum": 0},
+                "outputPath": {"type": "string"},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["paper_writer"],
+            network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "activate_domain_specialist",
+        "Activate a domain-specific research agent with pre-configured tools, "
+        "search queries, and evaluation criteria. Domains: cs, medical, bio, physics, econ.",
+        {
+            "type": "object",
+            "required": ["domain"],
+            "properties": {
+                "domain": {"type": "string", "minLength": 1, "maxLength": 20},
+            },
+            "additionalProperties": False,
+        },
+        _activate_domain_specialist_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "domain", "tools", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "error"]},
+                "domain": {"type": "string"},
+                "tools": {"type": "array", "items": {"type": "string"}},
+                "searchQueries": {"type": "array", "items": {"type": "string"}},
+                "knowledgeBase": {"type": "string"},
+                "promptExtension": {"type": "string"},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["domain_specialist"],
+            network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
         "search_web",
         "Search the web for supplementary evidence. "
         "Only available when allowWebSearch is authorized and a web-capable provider is configured.",
@@ -2066,6 +2218,66 @@ def _recall_past_research_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         step["outputSize"] = result.get("count", 0)
         if result["status"] != "success":
             record_counter("recallMemoryFailures")
+        return result
+
+
+def _cross_lingual_search_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    query = (payload.get("query") or "").strip()
+    if not query:
+        raise ToolValidationError("cross_lingual_search requires a query.")
+    languages = payload.get("languages") or ["zh", "en", "ja", "de"]
+    limit = int(payload.get("limitPerLang") or 5)
+    with trace_step("tool_cross_lingual_search", input_size=len(query)) as step:
+        record_counter("crossLingualCalls")
+        result = cross_lingual_search(query, languages=languages, limit_per_lang=limit)
+        step["outputSize"] = result.get("resultCount", 0)
+        if result["status"] != "success":
+            record_counter("crossLingualFailures")
+        return result
+
+
+def _adversarial_review_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    question = (payload.get("question") or "").strip()
+    if not question:
+        raise ToolValidationError("adversarial_review requires a question.")
+    findings = payload.get("findings") or []
+    evidence = payload.get("evidenceItems") or []
+    conflicts = payload.get("conflicts") or []
+    with trace_step("tool_adversarial_review", input_size=len(question)) as step:
+        record_counter("adversarialReviewCalls")
+        result = adversarial_review(question, findings, evidence, conflicts)
+        step["outputSize"] = result.get("counterCount", 0)
+        step["meta"] = {"overallConfidence": result.get("overallConfidence")}
+        if result["status"] != "success":
+            record_counter("adversarialReviewFailures")
+        return result
+
+
+def _generate_paper_draft_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    from services.paper_writer import generate_paper_draft
+    question = (payload.get("question") or "").strip()
+    if not question:
+        raise ToolValidationError("generate_paper_draft requires a question.")
+    title = (payload.get("title") or "").strip()
+    findings = payload.get("findings") or []
+    evidence = payload.get("evidenceItems") or []
+    conflicts = payload.get("conflicts") or []
+    with trace_step("tool_generate_paper_draft", input_size=len(question)) as step:
+        record_counter("paperDraftCalls")
+        result = generate_paper_draft(question, findings, evidence, conflicts, title=title)
+        step["outputSize"] = result.get("referenceCount", 0)
+        if result["status"] != "success":
+            record_counter("paperDraftFailures")
+        return result
+
+
+def _activate_domain_specialist_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    domain = (payload.get("domain") or "").strip()
+    if not domain:
+        raise ToolValidationError("activate_domain_specialist requires a domain.")
+    with trace_step("tool_activate_domain_specialist", input_size=len(domain)) as step:
+        result = activate_domain_specialist(domain)
+        step["outputSize"] = len(result.get("tools", []))
         return result
 
 

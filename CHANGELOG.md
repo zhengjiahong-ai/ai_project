@@ -2,6 +2,17 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.6.0
+
+1. **阶段六——全自主学术研究**：新增 5 个核心能力模块——
+   `cross_lingual.py` 跨语言研究综合（zh/en/ja/de/fr/ko/es 多语言搜索→翻译→合并去重，复用翻译 LLM）；
+   `adversarial_reviewer.py` 对抗性自我验证（LLM 扮演严格评审人，检查 single-source risk/confounding/methodology limitations，调整置信度）；
+   `reproducibility_checker.py` 实验可复现性验证（搜索 GitHub 代码仓库→git clone→pip install→python main.py→对比输出数值）；
+   `paper_writer.py` 自动论文学术写作（Abstract/Introduction/Related Work/Methodology/Results/Discussion/Conclusion + BibTeX，输出 Markdown/LaTeX/PDF）；
+   `research_monitor.py` 持续研究监控（arXiv/PubMed 新论文检测→LLM 相关性评分→摘要推送，SQLite 去重）；
+   `domain_specialists/` 领域专家 Agent（cs/medical/bio/physics/econ 5 个预配置，含领域工具+搜索策略+评估标准）。
+   ToolRegistry 工具数从 27 增至 31，版本号 0.5.0 → 0.6.0。
+
 ### 2026-07-14 v0.5.0
 
 1. **阶段五——深度理解与自主验证**：新增 6 个核心能力模块——
