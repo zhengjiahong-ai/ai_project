@@ -39,6 +39,8 @@ const AgentWorkspaceMain = ({
   onAllowWebSearchChange,
   allowIterativeSearch,
   onAllowIterativeSearchChange,
+  domain,
+  onDomainChange,
 }) => (
   <main className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[26px]">
     <AgentWorkspaceHeader
@@ -100,6 +102,8 @@ const AgentWorkspaceMain = ({
         onAllowWebSearchChange={onAllowWebSearchChange}
         allowIterativeSearch={allowIterativeSearch}
         onAllowIterativeSearchChange={onAllowIterativeSearchChange}
+        domain={domain}
+        onDomainChange={onDomainChange}
       />
     </div>
   </main>

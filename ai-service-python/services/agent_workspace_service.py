@@ -5,11 +5,13 @@ def build_workspace_view(
     latest_artifacts,
     recent_runs,
     timeline,
+    pending_clarification=None,
 ):
     return {
         "project": project,
         "activeRun": active_run,
         "pendingReview": pending_review,
+        "pendingClarification": pending_clarification,
         "latestArtifacts": latest_artifacts,
         "recentRuns": list(recent_runs),
         "timeline": list(timeline),

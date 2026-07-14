@@ -55,6 +55,7 @@ from schemas.requests import (
     AgentProjectPapersRequest,
     AgentProjectUpdateRequest,
     AgentRunCreateRequest,
+    AgentClarificationRequest,
     AgentRunFinalReviewRequest,
     AgentRunPlanReviewRequest,
     AgentTaskCreateRequest,
@@ -421,6 +422,20 @@ async def review_agent_plan(task_id: str, request: AgentPlanReviewRequest):
 async def review_agent_run_final(run_id: str, request: AgentRunFinalReviewRequest):
     try:
         return JSONResponse(agent_review_service.review_final(run_id, request))
+    except agent_project_service.AgentTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except agent_project_service.AgentReviewConflictError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=409)
+    except ValueError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=422)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.post("/agent-runs/{run_id}/clarification")
+async def answer_agent_clarification(run_id: str, request: AgentClarificationRequest):
+    try:
+        return JSONResponse(agent_review_service.answer_clarification(run_id, request))
     except agent_project_service.AgentTaskNotFoundError as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
     except agent_project_service.AgentReviewConflictError as error:

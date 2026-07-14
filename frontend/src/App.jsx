@@ -34,6 +34,7 @@ import PaperAnalysis from './components/PaperAnalysis';
 import PdfViewer from './components/PdfViewer';
 import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 import TranslationPanel from './components/TranslationPanel';
+import PaperWriterPanel from './components/PaperWriterPanel.jsx';
 import { useAbortableChat } from './hooks/useAbortableChat.js';
 import { usePaperArtifacts } from './hooks/usePaperArtifacts.js';
 import { usePaperSession } from './hooks/usePaperSession.js';
@@ -127,6 +128,7 @@ const workspaceTabs = [
   { id: 'background', label: '背景补课', icon: Network },
   { id: 'socratic', label: '引导学习', icon: Sparkles },
   { id: 'deep-research', label: '深度研究', icon: Search },
+  { id: 'paper-writer', label: '论文写作', icon: FileText },
   { id: 'notes', label: '笔记', icon: Bookmark },
 ];
 
@@ -141,7 +143,7 @@ const workspaceTabSections = [
     id: 'analysis',
     label: '分析研究',
     description: '偏重批判、补课、引导学习与研究推进。',
-    tabIds: ['analysis', 'background', 'socratic', 'deep-research'],
+    tabIds: ['analysis', 'background', 'socratic', 'deep-research', 'paper-writer'],
   },
   {
     id: 'assets',
@@ -3214,6 +3216,13 @@ export default function App() {
                         pageData={currentTranslationPage}
                         onRetry={handleRetryTranslation}
                         onCaptureArtifact={handleCaptureWorkbenchArtifact}
+                      />
+                    )}
+
+                    {activeTab === 'paper-writer' && (
+                      <PaperWriterPanel
+                        apiService={apiService}
+                        onSaveToWorkbench={handleCaptureWorkbenchArtifact}
                       />
                     )}
 

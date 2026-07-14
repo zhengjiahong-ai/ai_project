@@ -153,7 +153,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
 
         with (
             patch.object(agent_project_service, "_agent_step_delay", return_value=None),
-            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items, [])),
         ):
             agent_project_service._run_minimal_agent_task(task["taskId"])
 
@@ -466,7 +466,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
             patch.object(
                 agent_project_service.agent_orchestrator,
                 "collect_project_evidence",
-                return_value=(paper_contexts, combined_tool_calls, evidence_items),
+                return_value=(paper_contexts, combined_tool_calls, evidence_items, []),
             ),
         ):
             agent_project_service._run_minimal_agent_task(task["taskId"])
@@ -529,7 +529,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         ]
         with (
             patch.object(agent_project_service, "_agent_step_delay", return_value=None),
-            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items, [])),
         ):
             agent_project_service._run_minimal_agent_task(task["taskId"])
 
@@ -581,7 +581,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
 
         with (
             patch.object(agent_project_service, "_agent_step_delay", return_value=None),
-            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items, [])),
         ):
             agent_project_service._run_minimal_agent_task(task["taskId"])
 
@@ -619,7 +619,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
 
         with (
             patch.object(agent_project_service, "_agent_step_delay", return_value=None),
-            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items, [])),
         ):
             agent_project_service._run_minimal_agent_task(task["taskId"])
 
@@ -668,7 +668,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
 
         with (
             patch.object(agent_project_service, "_agent_step_delay", return_value=None),
-            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items, [])),
         ):
             agent_project_service._run_minimal_agent_task(task["taskId"])
 
@@ -787,7 +787,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
 
         with (
             patch.object(agent_project_service, "_agent_step_delay", return_value=None),
-            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items)),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=(paper_contexts, tool_calls, evidence_items, [])),
         ):
             agent_project_service._run_minimal_agent_task(task["taskId"])
 

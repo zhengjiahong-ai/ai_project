@@ -67,3 +67,9 @@ def review_final(run_id, request):
     from services import agent_project_service
 
     return agent_project_service.review_agent_run_final(run_id, request)
+
+
+def answer_clarification(run_id, request):
+    from services import agent_project_service
+
+    return agent_project_service.answer_agent_clarification(run_id, request)

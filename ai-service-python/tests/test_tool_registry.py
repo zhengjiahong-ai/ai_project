@@ -91,7 +91,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         contracts = registry.list_tools()
 
         self.assertEqual(registry.schemaVersion, "1.0")
-        self.assertEqual(len(contracts), 31)
+        self.assertEqual(len(contracts), 39)
         self.assertEqual(
             set(contracts[0]),
             {"name", "version", "description", "inputSchema", "outputSchema", "safetyScope"},
@@ -464,7 +464,7 @@ class ToolRegistryContractTests(unittest.TestCase):
 
     def test_existing_tools_keep_read_only_safety_scopes(self):
         registry = get_tool_registry()
-        restricted_tools = {"run_descriptive_statistics", "execute_python", "query_structured_data", "analyze_image", "browser_navigate", "browser_screenshot", "expand_citation_graph", "trace_reasoning_chain", "adjudicate_conflict", "generate_and_verify_hypotheses", "execute_tool_pipeline", "extract_chart_data", "extract_html_tables", "meta_analyze", "parallel_research", "recall_past_research", "cross_lingual_search", "adversarial_review", "generate_paper_draft", "activate_domain_specialist", "search_web", "fetch_web_page"}
+        restricted_tools = {"run_descriptive_statistics", "execute_python", "query_structured_data", "analyze_image", "browser_navigate", "browser_screenshot", "expand_citation_graph", "trace_reasoning_chain", "adjudicate_conflict", "generate_and_verify_hypotheses", "execute_tool_pipeline", "extract_chart_data", "extract_html_tables", "meta_analyze", "parallel_research", "recall_past_research", "cross_lingual_search", "adversarial_review", "generate_paper_draft", "activate_domain_specialist", "search_web", "fetch_web_page", "create_research_monitor", "check_new_publications", "deactivate_research_monitor", "verify_reproducibility"}
         for contract in registry.list_tools():
             if contract["name"] in restricted_tools:
                 continue

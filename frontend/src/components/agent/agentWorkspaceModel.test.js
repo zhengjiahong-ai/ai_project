@@ -31,12 +31,13 @@ assert.deepEqual(
   }),
   {
     planItems: [
-      { id: 'methods', label: 'Compare methods', allowExternalSearch: false },
-      { id: 'external', label: 'External academic search', allowExternalSearch: true },
+      { id: 'methods', label: 'Compare methods', allowExternalSearch: false, allowWebSearch: false, allowIterativeSearch: false },
+      { id: 'external', label: 'External academic search', allowExternalSearch: true, allowWebSearch: false, allowIterativeSearch: false },
     ],
     focusedPaperIds: ['paper-1'],
     constraints: 'Evidence first',
     reviewNotes: 'Approved',
+    allowWebSearch: false,
   },
 );
 

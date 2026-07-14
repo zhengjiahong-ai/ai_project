@@ -312,11 +312,21 @@ def collect_project_evidence(
     allow_iterative_search: bool = False,
     should_cancel: CancelCheck | None = None,
     on_progress: ProgressCallback | None = None,
+    domain_config: dict | None = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     paper_contexts: List[Dict[str, Any]] = []
     tool_calls: List[Dict[str, Any]] = []
     evidence_items: List[Dict[str, Any]] = []
     research_timeline: List[Dict[str, Any]] = []
+
+    # Apply domain-specific search queries if available
+    domain_queries = (domain_config or {}).get("searchQueries") or []
+    if domain_queries and should_cancel is None:
+        research_timeline.append(_timeline_step(
+            "domain_activated",
+            f"Domain specialist activated: {(domain_config or {}).get('domain', '')}",
+            f"Tools: {', '.join((domain_config or {}).get('tools', [])[:8])}",
+        ))
 
     for index, pdf_id in enumerate(paper_ids):
         if should_cancel and should_cancel():
@@ -1175,13 +1185,24 @@ def execute_run(
     allow_external_search: bool = False,
     allow_web_search: bool = False,
     allow_iterative_search: bool = False,
+    domain: str = "",
 ) -> Dict[str, Any]:
+    # Activate domain specialist if a domain is selected
+    domain_config = {}
+    if domain and domain.strip():
+        try:
+            from services.domain_specialists import activate_domain_specialist
+            domain_config = activate_domain_specialist(domain.strip())
+        except Exception:
+            domain_config = {}
+
     paper_contexts, tool_calls, evidence_items, research_timeline = collect_project_evidence(
         prompt,
         paper_ids,
         allow_external_search=allow_external_search,
         allow_web_search=allow_web_search,
         allow_iterative_search=allow_iterative_search,
+        domain_config=domain_config,
     )
     finding, comparison_table, conflicts, open_questions = build_agent_outputs(
         prompt,

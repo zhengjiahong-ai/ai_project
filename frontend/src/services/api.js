@@ -402,6 +402,31 @@ export const createApiService = (client, agentFallbackClient = null, options = {
       }
     }
   },
+
+  answerAgentClarification: async (runId, payload) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-runs/${encodeURIComponent(runId)}/clarification`, payload, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.post(`/agent-runs/${encodeURIComponent(runId)}/clarification`, payload) : null,
+    ),
+
+  createResearchMonitor: async (payload) =>
+    agentPrimaryClient.post('/research-monitors', payload),
+
+  getResearchMonitors: async () =>
+    agentPrimaryClient.get('/research-monitors'),
+
+  checkResearchMonitor: async (monitorId) =>
+    agentPrimaryClient.get(`/research-monitors/${encodeURIComponent(monitorId)}/check`),
+
+  getResearchMonitorDigest: async (monitorId) =>
+    agentPrimaryClient.get(`/research-monitors/${encodeURIComponent(monitorId)}/digest`),
+
+  deactivateResearchMonitor: async (monitorId) =>
+    agentPrimaryClient.delete(`/research-monitors/${encodeURIComponent(monitorId)}`),
+
+  generatePaperDraft: async (payload) =>
+    agentPrimaryClient.post('/generate-paper-draft', payload),
+
   };
 };
 

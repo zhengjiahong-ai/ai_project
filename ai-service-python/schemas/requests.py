@@ -141,6 +141,7 @@ class AgentRunCreateRequest(BaseModel):
     allowCodeExecution: bool = Field(default=False)
     allowWebSearch: bool = Field(default=False)
     allowIterativeSearch: bool = Field(default=False)
+    domain: Optional[str] = Field(default="")
 
 
 class AgentPlanItemRequest(BaseModel):
@@ -178,6 +179,12 @@ class AgentFinalReviewRequest(BaseModel):
 class AgentRunFinalReviewRequest(BaseModel):
     reviewNotes: Optional[str] = ""
     riskReviews: Optional[List[RiskReviewItem]] = None
+
+
+class AgentClarificationRequest(BaseModel):
+    userAnswer: str
+    question: Optional[str] = ""
+    currentDirection: Optional[str] = ""
 
 
 class CodeExecutionJobCreateRequest(BaseModel):

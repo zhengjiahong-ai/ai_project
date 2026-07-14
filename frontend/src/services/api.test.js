@@ -138,6 +138,7 @@ const run = async () => {
     pdfId: 'paper-1',
     paperSkeleton: { abstract: 'summary' },
     allowExternalSearch: false,
+    allowWebSearch: false,
   });
 
   await createResearchService.createResearchTask('研究问题', 'paper-1', null, '', null, true);
@@ -539,7 +540,7 @@ const run = async () => {
   assert.deepEqual(readerCalls.at(-1), {
     method: researchContract.method,
     url: researchContract.frontendPath,
-    body: researchRequest,
+    body: { ...researchRequest, allowWebSearch: false },
   });
   assertContract(researchResponse, researchContract.pythonResponseContract);
 

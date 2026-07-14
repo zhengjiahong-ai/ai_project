@@ -215,7 +215,10 @@ def create_agent_run(project_id: str, request: AgentRunCreateRequest | Dict[str,
         "prompt": prompt,
         "focusedPaperIds": focused_paper_ids,
         "constraints": _clean_text(normalized_request.constraints),
-        "context": dict(normalized_request.context or {}),
+        "context": {
+            **dict(normalized_request.context or {}),
+            "domain": _clean_text(getattr(normalized_request, "domain", "") or ""),
+        },
         "planItems": [],
         "events": [_event("task_created", task_id, PLANNING_STAGE, "Created an Agent research task.")],
         "toolCalls": [],
@@ -333,6 +336,54 @@ def review_agent_run_final(run_id: str, request: AgentRunFinalReviewRequest | Ag
     return {"status": "success", "run": _build_run_record(finalized_task), "artifacts": _build_artifacts_resource(finalized_task)}
 
 
+def answer_agent_clarification(run_id: str, request) -> Dict[str, Any]:
+    """Process user's answer to a clarification question and resume the run."""
+    from services.research_dialogue import incorporate_user_feedback
+    from services.agent_run_service import transition_run_status
+
+    task_id = _clean_text(run_id)
+    task = _copy_task(task_id)
+    if task.get("status") != "awaiting_clarification":
+        raise AgentReviewConflictError("Agent task is not awaiting clarification.")
+
+    user_answer = _clean_text(request.userAnswer)
+    question = _clean_text((request.question or task.get("pendingClarificationQuestion") or ""))
+    current_direction = _clean_text(request.currentDirection or task.get("prompt") or "")
+
+    # Incorporate user feedback
+    feedback_result = incorporate_user_feedback(question, user_answer, current_direction)
+
+    # Record clarification in timeline
+    events = [
+        *task.get("events", []),
+        _event(
+            "clarification_answered", task_id,
+            task.get("stage", "synthesizing"),
+            f"User answered clarification: {user_answer[:200]}",
+        ),
+    ]
+
+    # Transition back to running
+    execution_phase = task.get("executionPhase") or task.get("stage") or "synthesizing"
+    transitioned = transition_run_status(task, "running", execution_phase)
+    with _LOCK:
+        _TASKS[task_id] = {**transitioned, "updatedAt": _utc_now()}
+        _persist_task_locked(_TASKS[task_id])
+
+    # Also update the refined direction
+    refined = feedback_result.get("refinedDirection") or ""
+    refined_queries = feedback_result.get("refinedQueries") or []
+    context = copy.deepcopy(_copy_task(task_id).get("context") or {})
+    context["refinedDirection"] = refined
+    context["refinedQueries"] = refined_queries
+    context["clarificationRound"] = (context.get("clarificationRound") or 0) + 1
+    updated = _update_task(task_id, context=context, events=events)
+
+    return {"status": "success", "run": _build_run_record(updated),
+            "refinedDirection": refined, "refinedQueries": refined_queries}
+
+
+
 def get_latest_agent_task(project_id: str) -> Dict[str, Any]:
     project = _copy_project(project_id)
     task_id = _clean_text(project.get("latestTaskId"))
@@ -388,6 +439,17 @@ def get_agent_workspace(project_id: str) -> Dict[str, Any]:
     project = _copy_project(project_id)
     recent_tasks = _list_project_tasks(project_id)
     active_task = recent_tasks[0] if recent_tasks else None
+    pending_clarification = None
+    if active_task and active_task.get("status") == "awaiting_clarification":
+        clarification_question = (active_task.get("context") or {}).get("clarificationQuestion") or ""
+        clarification_round = (active_task.get("context") or {}).get("clarificationRound") or 1
+        if clarification_question:
+            pending_clarification = {
+                "runId": active_task.get("taskId"),
+                "question": [{"question": clarification_question, "context": "Research needs clarification"}],
+                "roundNumber": clarification_round,
+            }
+
     workspace = build_workspace_view(
         project=copy.deepcopy(project),
         active_run=_build_run_record(active_task) if active_task else None,
@@ -395,6 +457,7 @@ def get_agent_workspace(project_id: str) -> Dict[str, Any]:
         latest_artifacts=_build_artifacts_resource(active_task) if active_task else None,
         recent_runs=[_build_run_record(task) for task in recent_tasks[:20]],
         timeline=_build_timeline_resource(active_task) if active_task else [],
+        pending_clarification=pending_clarification,
     )
     return {"status": "success", "workspace": workspace}
 
@@ -528,6 +591,15 @@ def _run_minimal_agent_task(task_id: str) -> None:
             allow_iterative_search = any(
                 bool(item.get("allowIterativeSearch")) for item in approved_plan
             )
+            task_context = _copy_task(task_id).get("context") or {}
+            domain = task_context.get("domain") or ""
+            domain_config = {}
+            if domain:
+                try:
+                    from services.domain_specialists import activate_domain_specialist
+                    domain_config = activate_domain_specialist(domain)
+                except Exception:
+                    domain_config = {}
             paper_contexts, tool_calls, evidence_items, _research_timeline = agent_orchestrator.collect_project_evidence(
                 execution_prompt,
                 paper_ids,
@@ -536,6 +608,7 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 allow_iterative_search=allow_iterative_search,
                 should_cancel=lambda: _is_task_cancelled(task_id),
                 on_progress=update_retrieval_progress,
+                domain_config=domain_config,
             )
             if _is_task_cancelled(task_id):
                 return

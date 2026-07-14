@@ -58,7 +58,16 @@ export const AgentResponseCard = ({ currentTask, currentStageLabel, children }) 
   </div>
 );
 
-const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask, allowExternalSearch = false, onAllowExternalSearchChange, allowWebSearch = false, onAllowWebSearchChange, allowIterativeSearch = false, onAllowIterativeSearchChange }) => (
+const DOMAIN_OPTIONS = [
+  { value: '', label: '通用 (无领域特化)' },
+  { value: 'cs', label: '计算机科学' },
+  { value: 'medical', label: '医学' },
+  { value: 'bio', label: '生物学' },
+  { value: 'physics', label: '物理学' },
+  { value: 'econ', label: '经济学' },
+];
+
+const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask, allowExternalSearch = false, onAllowExternalSearchChange, allowWebSearch = false, onAllowWebSearchChange, allowIterativeSearch = false, onAllowIterativeSearchChange, domain = '', onDomainChange }) => (
   <div className="agent-composer border-t px-5 py-4 backdrop-blur">
     <div className="mb-3 flex flex-wrap gap-2">
       {QUICK_PROMPTS.map((item) => (
@@ -85,6 +94,18 @@ const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPromp
           <div>多论文研究</div>
           <div className="agent-muted">{(activeProject?.paperIds || []).length || 0} papers</div>
         </div>
+        {onDomainChange && (
+          <select
+            className="agent-card-soft w-full rounded-xl px-3 py-2 text-xs outline-none"
+            value={domain}
+            onChange={(e) => onDomainChange(e.target.value)}
+            title="选择研究领域以获得领域特化的工具和搜索策略"
+          >
+            {DOMAIN_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        )}
         <div className="flex items-center gap-2">
           <button
             type="button"
