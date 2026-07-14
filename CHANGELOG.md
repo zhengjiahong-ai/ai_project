@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.4.1
+
+1. **长周期自主执行**：新增 `research_session.py` 研究会话管理——SQLite 持久化 session（question/status/progress/token_budget/checkpoint_data）；`checkpoint()` 每个子问题完成后自动保存完整状态（findings/conflicts/evidence/completedSubQuestions）；`resume_session()` 从最近 checkpoint 恢复；`launch_background_session()` 后台线程执行 + pause/resume/cancel 控制；每 session 独立 2M token 预算 + 实时剩余时间估算。版本号 0.4.0 → 0.4.1。
+
 ### 2026-07-14 v0.4.0
 
 1. **阶段四——学术图谱与深度推理**：新增 5 个核心能力模块——
