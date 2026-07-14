@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.3.1
+
+1. **报告深度升级**：`build_research_report()` 新增 4 个章节——`_build_executive_summary()` LLM 生成约 500 字执行摘要（flash 模型、15s 超时、失败降级为规则评估）；`_build_evidence_comparison_table()` 自动生成 Markdown 证据对比表（行为子问题、列为来源类型、单元格为证据片段）；`_build_dispute_map()` 争议地图（共识区/分歧区/待验证区，整合 cross-validation 和冲突检测结果）；`_build_hierarchical_citations()` 多层级引用索引 `[N]` 主引用 + `[N.M]` 子引用。旧报告格式完全兼容。
+
 ### 2026-07-14 v0.3.0
 
 1. **中间推理透明化**：`agent_orchestrator.py` 的 `collect_project_evidence()` 新增 `_timeline_step()` 辅助函数和 `research_timeline` 步骤收集（检索→外部学术搜索→Web 搜索，每步含 type/summary/detail/status/durationMs）；`execute_run()` 返回新增 `researchTimeline` 字段；`agent_project_service.py` 将 `researchTimeline` 持久化到任务快照并随 workspace 响应返回；前端新增 `ResearchTimeline.jsx` 组件（步骤图标映射、状态颜色、展开查看详情、自动滚动、运行中 pulse 动画）；`AgentTimelineSection` 升级为使用 `ResearchTimeline`，兼容旧 `events` 降级展示。阶段三开始，版本号跳至 0.3.0。

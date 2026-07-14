@@ -88,6 +88,7 @@ def build_research_report(
             lines.append("")
 
     # P6-18: multi-source evidence cross-validation
+    cv_result: Dict[str, Any] | None = None
     try:
         from services.evidence_cross_validator import cross_validate_evidence
 
@@ -128,6 +129,26 @@ def build_research_report(
         "## 证据不足与后续建议",
         next_steps(findings),
     ])
+
+    # 3-2: executive summary (LLM-generated with rule fallback)
+    exec_summary = _build_executive_summary(question, findings, normalized_conflicts)
+    if exec_summary:
+        lines.append(exec_summary)
+
+    # 3-2: evidence comparison table
+    comparison = _build_evidence_comparison_table(findings)
+    if comparison:
+        lines.append(comparison)
+
+    # 3-2: dispute map
+    dispute = _build_dispute_map(normalized_conflicts, cv_result)
+    if dispute:
+        lines.append(dispute)
+
+    # 3-2: hierarchical citations
+    citations = _build_hierarchical_citations(findings)
+    if citations:
+        lines.append(citations)
 
     # P6-21: execution statistics
     if isinstance(trace_summary, dict):
@@ -582,3 +603,176 @@ def _any_external_source(findings: List[Dict[str, Any]]) -> bool:
         for finding in findings
         for src in (finding.get("sources") or [])
     )
+
+
+# ── 3-2: Report depth upgrade ───────────────────────────────────────────────
+
+def _build_hierarchical_citations(findings: List[Dict[str, Any]]) -> str:
+    """Build a multi-level citation index ``[N]`` / ``[N.M]`` from findings."""
+    lines: list[str] = []
+    main_idx = 0
+    for finding in findings:
+        sources = finding.get("sources") or []
+        if not sources:
+            continue
+        sub_q = finding.get("subQuestion", "")
+        main_idx += 1
+        lines.append(f"- **[{main_idx}]** {sub_q[:120]}")
+        sub_idx = 0
+        for src in sources:
+            if not isinstance(src, dict):
+                continue
+            src_id = src.get("sourceId", "")
+            text = (src.get("text") or "").strip()[:100]
+            chunk = src.get("chunkIndex")
+            if chunk is not None:
+                sub_idx += 1
+                lines.append(f"  - **[{main_idx}.{sub_idx}]** {src_id} (chunk {chunk}): {text}")
+            else:
+                lines.append(f"  - {src_id}: {text}")
+    if not lines:
+        return ""
+    return "## 引用索引\n\n" + "\n".join(lines) + "\n"
+
+
+def _build_evidence_comparison_table(findings: List[Dict[str, Any]]) -> str:
+    """Build a Markdown evidence comparison table across source types."""
+    source_types = ["current_paper", "library", "external_academic", "web_search", "web_page", "image_analysis"]
+    type_labels = {
+        "current_paper": "当前论文", "library": "内部文献库",
+        "external_academic": "外部学术", "web_search": "Web搜索",
+        "web_page": "网页", "image_analysis": "图片分析",
+    }
+    # Determine which columns actually have data
+    used_types: set[str] = set()
+    for finding in findings:
+        for src in (finding.get("sources") or []):
+            if isinstance(src, dict):
+                st = str(src.get("sourceType") or "")
+                if st in source_types:
+                    used_types.add(st)
+    ordered_types = [t for t in source_types if t in used_types]
+    if not ordered_types:
+        ordered_types = ["current_paper"]
+
+    header = "| 子问题 | " + " | ".join(type_labels.get(t, t) for t in ordered_types) + " |"
+    sep = "|--------|" + "|".join("------" for _ in ordered_types) + "|"
+    rows = [header, sep]
+
+    for finding in findings:
+        sub_q = (finding.get("subQuestion") or "")[:60]
+        by_type: dict[str, list[str]] = {}
+        for src in (finding.get("sources") or []):
+            if not isinstance(src, dict):
+                continue
+            st = str(src.get("sourceType") or "")
+            text = (src.get("text") or "").strip()[:80]
+            if st not in ordered_types:
+                continue
+            by_type.setdefault(st, []).append(text)
+        cells = [sub_q] if sub_q else ["(未命名)"]
+        for st in ordered_types:
+            snippets = by_type.get(st, [])
+            cells.append(snippets[0] if snippets else "-")
+        rows.append("| " + " | ".join(cells) + " |")
+
+    if len(rows) <= 2:
+        return ""
+    return "## 证据对比表\n\n" + "\n".join(rows) + "\n\n"
+
+
+def _build_dispute_map(
+    conflicts: List[Dict[str, Any]] | None,
+    cv_result: Dict[str, Any] | None = None,
+) -> str:
+    """Build a dispute map with consensus / disagreement / unverified zones."""
+    if not conflicts and not cv_result:
+        return ""
+
+    consensus: list[str] = []
+    disagreement: list[str] = []
+    unverified: list[str] = []
+
+    # From cross-validation claims
+    cv_claims = cv_result.get("claims") if isinstance(cv_result, dict) else []
+    for claim in (cv_claims or []):
+        level = claim.get("agreement_level", "")
+        text = claim.get("claim", "")[:150]
+        src_types = ", ".join(claim.get("source_types", []))
+        line = f"- {text} (来源: {src_types})" if src_types else f"- {text}"
+        if level in ("confirmed", "supported"):
+            consensus.append(f"- [✓ {level}] {line.lstrip('- ')}")
+        elif level == "contradicted":
+            disagreement.append(f"- [✗ {level}] {line.lstrip('- ')}")
+        else:
+            unverified.append(f"- [? {level}] {line.lstrip('- ')}")
+
+    # From conflicts
+    for conflict in (conflicts or [])[:5]:
+        claim = (conflict.get("claim") or conflict.get("topic") or "未命名冲突")[:120]
+        severity = conflict.get("severity", "medium")
+        src_ids = ", ".join(conflict.get("sourceIds") or [])
+        line = f"- {claim}"
+        if src_ids:
+            line += f" (来源: {src_ids})"
+        if severity == "high":
+            line += " ⚠高严重度"
+        disagreement.append(line)
+
+    parts: list[str] = []
+    if consensus:
+        parts.append("### 共识区\n" + "\n".join(consensus))
+    if disagreement:
+        parts.append("### 分歧区\n" + "\n".join(disagreement))
+    if unverified:
+        parts.append("### 待验证区\n" + "\n".join(unverified))
+    if not parts:
+        return ""
+
+    return "## 争议地图\n\n" + "\n\n".join(parts) + "\n\n"
+
+
+def _build_executive_summary(
+    question: str,
+    findings: List[Dict[str, Any]],
+    conflicts: List[Dict[str, Any]] | None = None,
+) -> str:
+    """Generate a ~500-character executive summary via LLM, falling back to rules."""
+    try:
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+
+        from llm.client import get_llm
+
+        finding_lines = []
+        for i, f in enumerate(findings[:8], 1):
+            finding_lines.append(
+                f"{i}. {f.get('subQuestion', '')}: {f.get('summary', '')[:120]} "
+                f"[{f.get('verdict', '?')}]"
+            )
+        conflict_lines = []
+        for c in (conflicts or [])[:3]:
+            conflict_lines.append(f"- {c.get('claim', c.get('topic', ''))[:120]}")
+
+        prompt = (
+            f"研究问题：{question}\n\n"
+            f"子问题结论：\n" + "\n".join(finding_lines) + "\n\n"
+            + (f"争议：\n" + "\n".join(conflict_lines) + "\n\n" if conflict_lines else "")
+            + "请用中文撰写一份约500字的研究执行摘要，需包含："
+            "1) 核心发现 2) 证据强度评估 3) 主要争议 4) 后续研究建议。"
+            "只输出摘要正文，不加标题。"
+        )
+
+        def _call_llm():
+            llm = get_llm()
+            return llm._call(prompt=prompt)
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_call_llm)
+            result = future.result(timeout=15)
+        summary = (result or "").strip()[:800]
+        if len(summary) >= 80:
+            return "## 执行摘要\n\n" + summary + "\n"
+    except Exception:
+        pass
+    # Fallback: concise rule-based summary
+    return "## 执行摘要\n\n" + overall_assessment(question, findings, len(findings)) + "\n"
