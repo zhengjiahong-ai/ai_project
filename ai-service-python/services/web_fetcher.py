@@ -46,6 +46,7 @@ class FetchResult:
     elapsed_ms: int = 0            # total fetch time in milliseconds
     retry_count: int = 0           # number of retries performed
     cache_hit: bool = False        # True when result came from WebFetchCache
+    image_urls: tuple = ()         # extracted <img> src URLs from HTML content
 
 
 # ---- Constants ----
@@ -291,6 +292,16 @@ def _perform_fetch(
 
             text = text[:max_chars]
 
+            # Extract image URLs from HTML before safety sanitization
+            image_urls: tuple = ()
+            if "html" in content_type.lower():
+                try:
+                    from services.html_extractor import extract_image_refs
+                    refs = extract_image_refs(text)
+                    image_urls = tuple(ref["src"] for ref in refs if ref.get("src"))
+                except Exception:
+                    image_urls = ()
+
             # Content safety validation
             from services.content_safety import sanitize_fetched_web_content
 
@@ -307,6 +318,7 @@ def _perform_fetch(
                 fetched_at=_now_iso(),
                 elapsed_ms=elapsed_ms,
                 retry_count=retry_count,
+                image_urls=image_urls,
             )
         finally:
             response.close()

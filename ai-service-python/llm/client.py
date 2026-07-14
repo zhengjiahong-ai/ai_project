@@ -25,11 +25,16 @@ DEFAULT_DEEPSEEK_TRANSLATION_MODEL = "deepseek-v4-flash"
 def _resolve_messages(
     prompt: str,
     messages: Optional[List[Dict[str, str]]],
-) -> List[Dict[str, str]]:
+) -> List[Dict[str, Any]]:
+    def _normalize_content(content: Any) -> Any:
+        if isinstance(content, list):
+            return content  # multimodal content blocks: [{"type": "text", ...}, {"type": "image_url", ...}]
+        return str(content or "")
+
     resolved_messages = [
         {
             "role": str(item.get("role") or "user"),
-            "content": str(item.get("content") or ""),
+            "content": _normalize_content(item.get("content")),
         }
         for item in (messages or [])
         if isinstance(item, dict)

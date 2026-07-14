@@ -2,12 +2,14 @@
 
 Uses BeautifulSoup + lxml for parsing. Removes dangerous tags,
 extracts clean text, and applies post-processing constraints.
+Also extracts <img alt src> references for downstream image analysis.
 """
 from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup, CData, Comment
 
@@ -41,6 +43,48 @@ _MULTI_SPACE_PATTERN = re.compile(r"[ \t]+")
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def extract_image_refs(html: str, *, max_images: int = 20) -> List[Dict[str, str]]:
+    """Extract ``<img alt src>`` references from raw HTML.
+
+    Args:
+        html: Raw HTML content.
+        max_images: Maximum number of image refs to return.
+
+    Returns:
+        List of dicts with ``alt`` (max 500 chars) and ``src`` (absolute URL).
+        Data URIs, relative paths, and empty/missing src are filtered.
+    """
+    if not html or not isinstance(html, str):
+        return []
+
+    soup = BeautifulSoup(html, "lxml")
+    refs: List[Dict[str, str]] = []
+
+    for img in soup.find_all("img"):
+        if len(refs) >= max_images:
+            break
+        src = (img.get("src") or "").strip()
+        if not src:
+            continue
+        # Skip data URIs (inline base64 images).
+        if src.startswith("data:"):
+            continue
+        # Skip relative paths and protocol-relative URLs.
+        if src.startswith("//") or (src.startswith("/") and not src.startswith("https://")):
+            continue
+        # Basic validation: must look like an absolute HTTPS URL.
+        parsed = urlparse(src)
+        if parsed.scheme not in ("http", "https"):
+            continue
+        if not parsed.netloc:
+            continue
+
+        alt = (img.get("alt") or "").strip()[:500]
+        refs.append({"alt": alt, "src": src})
+
+    return refs
 
 
 def extract_html_content(
@@ -77,6 +121,9 @@ def extract_html_content(
         if isinstance(node, (Comment, CData)):
             node.extract()
 
+    # Step 2b: Extract image refs before decomposing / unwrapping tags
+    images = extract_image_refs(html)
+
     # Step 3a: Decompose container tags (tag + all descendants destroyed)
     for tag_name in _DECOMPOSE_TAGS:
         for tag in soup.find_all(tag_name):
@@ -100,6 +147,7 @@ def extract_html_content(
         "extracted_at": fetched_at or _now_iso(),
         "char_count": len(text),
         "truncated": len(raw_text) > max_chars,
+        "images": images,
     }
 
 
@@ -139,4 +187,5 @@ def _empty_result(url: str = "", fetched_at: Optional[str] = None) -> Dict[str, 
         "extracted_at": fetched_at or _now_iso(),
         "char_count": 0,
         "truncated": False,
+        "images": [],
     }

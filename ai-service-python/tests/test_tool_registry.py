@@ -91,7 +91,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         contracts = registry.list_tools()
 
         self.assertEqual(registry.schemaVersion, "1.0")
-        self.assertEqual(len(contracts), 14)
+        self.assertEqual(len(contracts), 15)
         self.assertEqual(
             set(contracts[0]),
             {"name", "version", "description", "inputSchema", "outputSchema", "safetyScope"},
@@ -464,7 +464,7 @@ class ToolRegistryContractTests(unittest.TestCase):
 
     def test_existing_tools_keep_read_only_safety_scopes(self):
         registry = get_tool_registry()
-        restricted_tools = {"run_descriptive_statistics", "execute_python", "query_structured_data", "search_web", "fetch_web_page"}
+        restricted_tools = {"run_descriptive_statistics", "execute_python", "query_structured_data", "analyze_image", "search_web", "fetch_web_page"}
         for contract in registry.list_tools():
             if contract["name"] in restricted_tools:
                 continue
@@ -663,6 +663,49 @@ class ToolRegistryContractTests(unittest.TestCase):
     def test_query_structured_data_tool_is_not_exposed_through_mcp(self):
         registry = get_tool_registry()
         definition = registry.get("query_structured_data")
+        self.assertNotEqual(definition.safetyScope["access"], "read_only")
+        self.assertTrue(definition.safetyScope["sideEffects"])
+
+    def test_analyze_image_tool_has_restricted_versioned_contract(self):
+        registry = get_tool_registry()
+        definition = registry.get("analyze_image")
+
+        self.assertEqual(definition.name, "analyze_image")
+        self.assertEqual(definition.version, "1.0.0")
+        self.assertEqual(definition.safetyScope["access"], "restricted")
+        self.assertTrue(definition.safetyScope["networkAccess"])
+        self.assertTrue(definition.safetyScope["sideEffects"])
+        self.assertTrue(definition.safetyScope["sensitiveOutput"])
+        self.assertEqual(definition.safetyScope["dataScopes"], ["image_analysis"])
+
+        # Input schema
+        props = definition.inputSchema["properties"]
+        self.assertIn("imageUrl", props)
+        self.assertEqual(props["imageUrl"]["minLength"], 1)
+        self.assertEqual(props["imageUrl"]["maxLength"], 2048)
+        self.assertFalse(definition.inputSchema["additionalProperties"])
+
+        # Output schema
+        self.assertEqual(
+            definition.outputSchema["required"],
+            ["status", "description", "imageUrl", "sourceType", "error"],
+        )
+        self.assertEqual(
+            definition.outputSchema["properties"]["status"]["enum"],
+            ["success", "error"],
+        )
+        self.assertFalse(definition.outputSchema["additionalProperties"])
+
+    def test_analyze_image_tool_rejects_empty_url(self):
+        registry = get_tool_registry()
+        with self.assertRaisesRegex(ToolValidationError, "required field"):
+            registry.invoke("analyze_image", {})
+        with self.assertRaisesRegex(ToolValidationError, "length must be at least"):
+            registry.invoke("analyze_image", {"imageUrl": ""})
+
+    def test_analyze_image_tool_is_not_exposed_through_mcp(self):
+        registry = get_tool_registry()
+        definition = registry.get("analyze_image")
         self.assertNotEqual(definition.safetyScope["access"], "read_only")
         self.assertTrue(definition.safetyScope["sideEffects"])
 

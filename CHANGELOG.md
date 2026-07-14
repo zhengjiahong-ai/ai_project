@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.2.3
+
+1. **新增 analyze_image 图片理解工具**：ToolRegistry 注册 `analyze_image` 工具，LLM Agent 可下载白名单内 URL 的图片并送 VLM（DeepSeek v4-pro）获取文字描述；新增 `services/image_analyzer.py` 实现图片下载（5 MiB 上限、image/png|jpeg|gif|webp 类型白名单、15s 超时）、base64 编码、多模态消息构建和 VLM 调用；`llm/client.py` `_resolve_messages` 升级支持 list-typed content（OpenAI 多模态格式）；`html_extractor.py` 新增 `extract_image_refs()` 提取 `<img alt src>`；`web_fetcher.py` `FetchResult` 新增 `image_urls` 字段；`evidence_service.py` `VALID_SOURCE_TYPES` 新增 `image_analysis`。图片不缓存、不持久化，描述经 `sanitize_untrusted_text` 清洗后进入证据链。
+
 ### 2026-07-14 v0.2.2
 
 1. **新增 query_structured_data 结构化数据查询工具**：ToolRegistry 注册 `query_structured_data` 工具，LLM Agent 可对 JSON 数据执行 SQL SELECT 查询；新增 `services/structured_query.py` 使用 sqlite3 `:memory:` 实现纯内存查询（支持 SELECT/WHERE/ORDER BY/GROUP BY/LIMIT，拒绝写操作和多语句注入）；输入 `query`(SQL) + `data`(JSON 数组)，输出 `rows`(JSON 数组) + `rowCount`；512 KiB 数据上限、4096 字符查询上限、1000 行结果上限。

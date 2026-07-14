@@ -27,6 +27,7 @@ from services.trace_service import (
 
 from services.code_execution_models import IDENTIFIER_PATTERN, create_code_execution_job
 from services.code_executor import execute_python_sandbox
+from services.image_analyzer import analyze_image
 from services.structured_query import query_structured_data
 from code_worker import FIXED_TEMPLATE_TEXT
 
@@ -642,6 +643,48 @@ def _build_default_tool_registry() -> ToolRegistry:
         safety_scope=_safety_scope(
             ["structured_query"],
             network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "analyze_image",
+        "Download an image from a whitelisted URL and analyze it with a "
+        "vision-capable LLM. Returns a text description of the image content. "
+        "The description is tagged with sourceType='image_analysis' for "
+        "evidence-chain integration. Images are not cached or persisted.",
+        {
+            "type": "object",
+            "required": ["imageUrl"],
+            "properties": {
+                "imageUrl": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048,
+                },
+            },
+            "additionalProperties": False,
+        },
+        _analyze_image_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "description", "imageUrl", "sourceType", "error"],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": ["success", "error"],
+                },
+                "description": {"type": "string"},
+                "imageUrl": {"type": "string"},
+                "sourceType": {"type": "string"},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["image_analysis"],
+            network_access=True,
             sensitive_output=True,
             access="restricted",
             side_effects=True,
@@ -1335,6 +1378,27 @@ def _query_structured_data_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
         if result["status"] != "success":
             record_counter("structuredQueryFailures")
+        return result
+
+
+def _analyze_image_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    image_url = (payload.get("imageUrl") or "").strip()
+    if not image_url:
+        raise ToolValidationError("analyze_image requires a non-empty imageUrl.")
+
+    with trace_step("tool_analyze_image", input_size=len(image_url)) as step:
+        record_counter("imageAnalysisCalls")
+        try:
+            result = analyze_image(image_url)
+        except ValueError as exc:
+            raise ToolValidationError(str(exc)) from exc
+        step["outputSize"] = len(result.get("description") or "")
+        step["meta"] = {
+            "status": result["status"],
+            "sourceType": result.get("sourceType"),
+        }
+        if result["status"] != "success":
+            record_counter("imageAnalysisFailures")
         return result
 
 
