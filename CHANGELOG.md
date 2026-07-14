@@ -2,6 +2,16 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.4.0
+
+1. **阶段四——学术图谱与深度推理**：新增 5 个核心能力模块——
+   `citation_graph.py` 引用网络 BFS 遍历（Semantic Scholar API，SQLite 缓存，支持 forward/backward/both）；
+   `reasoning_chain.py` 多步推理链（LLM 分类论文立场：supports/contradicts/extends/replicates/cites_without_engagement）；
+   `conflict_adjudicator.py` 矛盾裁决器（规则评分+LLM分析，评估venue/时效/方法论/引用数）；
+   `hypothesis_engine.py` 假设生成与验证（LLM 生成可检验假设，规则验证置信度）；
+   `tool_orchestrator.py` 工具组合编排器（LLM 规划 DAG，拓扑序执行，$step_N 引用前序输出）。
+   ToolRegistry 工具数从 17 增至 22，版本号跳至 0.4.0。
+
 ### 2026-07-14 v0.3.2
 
 1. **新增 browser_navigate / browser_screenshot 浏览器操作工具**：ToolRegistry 注册 `browser_navigate`（导航到白名单 URL 并返回 JS 渲染文本）和 `browser_screenshot`（捕获当前页面视口为 base64 PNG）两个 headless browser 工具；新增 `services/browser_agent.py` 使用 Playwright Chromium 实现无头浏览器操作（30s 导航超时、15s 截图超时、5 MiB 截图上限、route 拦截非白名单请求）；受 `PIXIU_ALLOW_BROWSER=true` 环境变量控制，默认关闭。
