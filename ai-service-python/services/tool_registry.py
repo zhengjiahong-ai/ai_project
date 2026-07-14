@@ -28,10 +28,15 @@ from services.trace_service import (
 from services.code_execution_models import IDENTIFIER_PATTERN, create_code_execution_job
 from services.code_executor import execute_python_sandbox
 from services.browser_agent import browser_navigate, browser_screenshot
+from services.chart_analyzer import extract_chart_data
 from services.citation_graph import traverse_citation_graph
 from services.conflict_adjudicator import adjudicate_conflict
 from services.hypothesis_engine import generate_and_verify_hypotheses, verify_hypothesis
 from services.image_analyzer import analyze_image
+from services.meta_analysis import meta_analyze
+from services.parallel_research import dispatch_parallel_research
+from services.research_memory import recall_relevant_past_research, store_finding
+from services.table_extractor import extract_html_tables
 from services.reasoning_chain import build_reasoning_chain
 from services.structured_query import query_structured_data
 from code_worker import FIXED_TEMPLATE_TEXT
@@ -967,6 +972,185 @@ def _build_default_tool_registry() -> ToolRegistry:
         ),
     )
     registry.register(
+        "extract_chart_data",
+        "Extract structured quantitative data from a chart image. "
+        "Returns chart type, axis labels, data series with data points and "
+        "error bars, legend items, and caption. Uses VLM with specialized "
+        "chart-reading prompts.",
+        {
+            "type": "object",
+            "required": ["imageUrl"],
+            "properties": {
+                "imageUrl": {"type": "string", "minLength": 1, "maxLength": 2048},
+            },
+            "additionalProperties": False,
+        },
+        _extract_chart_data_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "chartType", "dataSeries", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "error"]},
+                "chartType": {"type": "string"},
+                "title": {"type": "string"},
+                "dataSeries": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "summary": {"type": "string"},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["chart_analysis"],
+            network_access=True,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "extract_html_tables",
+        "Extract structured table data from raw HTML content. "
+        "Finds <table> elements, parses headers and rows, returns JSON arrays "
+        "compatible with query_structured_data.",
+        {
+            "type": "object",
+            "required": ["html"],
+            "properties": {
+                "html": {"type": "string", "minLength": 1, "maxLength": 524288},
+            },
+            "additionalProperties": False,
+        },
+        _extract_html_tables_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "tables", "tableCount", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "error"]},
+                "tables": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "tableCount": {"type": "integer", "minimum": 0},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["table_extraction"],
+            network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "meta_analyze",
+        "Perform mini meta-analysis across multiple studies. Aggregates effect "
+        "sizes using random-effects (DerSimonian-Laird) and fixed-effects models, "
+        "computes heterogeneity (Q, I²), Egger's test for publication bias, "
+        "and GRADE evidence quality assessment. Returns forest plot data.",
+        {
+            "type": "object",
+            "required": ["studies"],
+            "properties": {
+                "studies": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+            },
+            "additionalProperties": False,
+        },
+        _meta_analyze_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "summary", "heterogeneity", "forestPlot", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "error"]},
+                "model": {"type": "string"},
+                "summary": {"type": "object", "additionalProperties": True},
+                "heterogeneity": {"type": "object", "additionalProperties": True},
+                "forestPlot": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "studyCount": {"type": "integer", "minimum": 0},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["meta_analysis"],
+            network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "parallel_research",
+        "Dispatch sub-questions to independent research agents that execute "
+        "concurrently (up to 6 agents). Merges findings with cross-validation "
+        "and LLM summary. Each agent runs search→fetch→judge independently.",
+        {
+            "type": "object",
+            "required": ["question", "subQuestions"],
+            "properties": {
+                "question": {"type": "string", "minLength": 1, "maxLength": 500},
+                "subQuestions": {"type": "array", "items": {"type": "string"}},
+                "maxAgents": {"type": "integer", "minimum": 1, "maximum": 6},
+            },
+            "additionalProperties": False,
+        },
+        _parallel_research_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "question", "subResults", "mergedFindings", "agentCount", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "error"]},
+                "question": {"type": "string"},
+                "subResults": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "mergedFindings": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "crossValidation": {"type": "string"},
+                "agentCount": {"type": "integer", "minimum": 0},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["parallel_research"],
+            network_access=True,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "recall_past_research",
+        "Search past research findings for knowledge relevant to the current "
+        "question. Returns semantically similar previous findings with evidence "
+        "summaries. Uses keyword embedding for cross-session memory.",
+        {
+            "type": "object",
+            "required": ["question"],
+            "properties": {
+                "question": {"type": "string", "minLength": 1, "maxLength": 500},
+                "domain": {"type": "string", "maxLength": 100},
+            },
+            "additionalProperties": False,
+        },
+        _recall_past_research_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "question", "memories", "count", "error"],
+            "properties": {
+                "status": {"type": "string", "enum": ["success", "error"]},
+                "question": {"type": "string"},
+                "memories": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "count": {"type": "integer", "minimum": 0},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["research_memory"],
+            network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
         "search_web",
         "Search the web for supplementary evidence. "
         "Only available when allowWebSearch is authorized and a web-capable provider is configured.",
@@ -1812,6 +1996,76 @@ def _execute_tool_pipeline_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         step["outputSize"] = result.get("stepCount", 0)
         if result["status"] != "success":
             record_counter("toolPipelineFailures")
+        return result
+
+
+def _extract_chart_data_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    image_url = (payload.get("imageUrl") or "").strip()
+    if not image_url:
+        raise ToolValidationError("extract_chart_data requires a non-empty imageUrl.")
+    with trace_step("tool_extract_chart_data", input_size=len(image_url)) as step:
+        record_counter("chartDataCalls")
+        result = extract_chart_data(image_url)
+        step["outputSize"] = len(result.get("summary", ""))
+        if result["status"] != "success":
+            record_counter("chartDataFailures")
+        return result
+
+
+def _extract_html_tables_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    html = (payload.get("html") or "").strip()
+    if not html:
+        raise ToolValidationError("extract_html_tables requires non-empty html.")
+    with trace_step("tool_extract_html_tables", input_size=len(html)) as step:
+        record_counter("htmlTableCalls")
+        result = extract_html_tables(html)
+        step["outputSize"] = result.get("tableCount", 0)
+        if result["status"] != "success":
+            record_counter("htmlTableFailures")
+        return result
+
+
+def _meta_analyze_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    studies = payload.get("studies") or []
+    if not studies:
+        raise ToolValidationError("meta_analyze requires a non-empty studies array.")
+    with trace_step("tool_meta_analyze", input_size=len(studies)) as step:
+        record_counter("metaAnalyzeCalls")
+        result = meta_analyze(studies)
+        step["outputSize"] = result.get("studyCount", 0)
+        if result["status"] != "success":
+            record_counter("metaAnalyzeFailures")
+        return result
+
+
+def _parallel_research_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    question = (payload.get("question") or "").strip()
+    sub_questions = payload.get("subQuestions") or []
+    max_agents = int(payload.get("maxAgents") or 4)
+    if not question:
+        raise ToolValidationError("parallel_research requires a non-empty question.")
+    if not sub_questions:
+        raise ToolValidationError("parallel_research requires subQuestions.")
+    with trace_step("tool_parallel_research", input_size=len(question)) as step:
+        record_counter("parallelResearchCalls")
+        result = dispatch_parallel_research(question, sub_questions, max_agents=max_agents)
+        step["outputSize"] = result.get("agentCount", 0)
+        if result["status"] != "success":
+            record_counter("parallelResearchFailures")
+        return result
+
+
+def _recall_past_research_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    question = (payload.get("question") or "").strip()
+    domain = (payload.get("domain") or "").strip()
+    if not question:
+        raise ToolValidationError("recall_past_research requires a non-empty question.")
+    with trace_step("tool_recall_past_research", input_size=len(question)) as step:
+        record_counter("recallMemoryCalls")
+        result = recall_relevant_past_research(question, domain=domain)
+        step["outputSize"] = result.get("count", 0)
+        if result["status"] != "success":
+            record_counter("recallMemoryFailures")
         return result
 
 

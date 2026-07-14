@@ -2,6 +2,17 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.5.0
+
+1. **阶段五——深度理解与自主验证**：新增 6 个核心能力模块——
+   `chart_analyzer.py` 结构化图表理解（VLM 提取 chartType/axes/dataSeries/errorBars/legend 为 JSON）；
+   `table_extractor.py` HTML 表格提取（BeautifulSoup 解析 <table> → query_structured_data 兼容格式）；
+   `meta_analysis.py` 元分析引擎（随机效应 DerSimonian-Laird + 固定效应、异质性 Q/I²/tau²、Egger 发表偏倚检验、GRADE 证据质量评级、森林图数据）；
+   `research_dialogue.py` 交互式研究对话（LLM 生成澄清追问、用户反馈注入研究方向调整）；
+   `parallel_research.py` 多 Agent 并行研究（ThreadPool 最多 6 并发、独立搜索→抓取→judge、merge + 交叉验证 + LLM 综合）；
+   `research_memory.py` 跨会话记忆（SQLite 向量化存储 findings、keyword embedding 语义检索、outdated 标记）；
+   `benchmarks/research_quality/evaluator.py` 自动基准评测（3 个预设问题 + ground truth、4 维评分）。ToolRegistry 工具数从 22 增至 27，版本号 0.4.1 → 0.5.0。
+
 ### 2026-07-14 v0.4.1
 
 1. **长周期自主执行**：新增 `research_session.py` 研究会话管理——SQLite 持久化 session（question/status/progress/token_budget/checkpoint_data）；`checkpoint()` 每个子问题完成后自动保存完整状态（findings/conflicts/evidence/completedSubQuestions）；`resume_session()` 从最近 checkpoint 恢复；`launch_background_session()` 后台线程执行 + pause/resume/cancel 控制；每 session 独立 2M token 预算 + 实时剩余时间估算。版本号 0.4.0 → 0.4.1。
