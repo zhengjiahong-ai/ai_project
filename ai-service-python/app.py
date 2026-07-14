@@ -21,6 +21,19 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event() -> None:
         startup_warmup()
+        try:
+            from services.monitor_scheduler import start_scheduler
+            start_scheduler()
+        except Exception:
+            pass
+
+    @app.on_event("shutdown")
+    async def shutdown_event() -> None:
+        try:
+            from services.monitor_scheduler import stop_scheduler
+            stop_scheduler()
+        except Exception:
+            pass
 
     @app.get("/")
     def read_root() -> dict[str, str]:

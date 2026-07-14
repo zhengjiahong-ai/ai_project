@@ -87,6 +87,7 @@ from services import (
     chat_service,
     code_execution_service,
     rag_service,
+    research_monitor,
     research_task_service,
     trace_service,
 )
@@ -577,5 +578,59 @@ async def deep_analysis(request: Annotated[DeepAnalysisRequest | str, Body(...)]
         return JSONResponse(error.to_response(), status_code=409)
     except ValueError as error:
         return JSONResponse({"status": "error", "errorCode": "bad_request", "message": str(error)}, status_code=400)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+# ── Research Monitor API ──────────────────────────────────────────────────
+
+@router.post("/research-monitors")
+async def create_monitor_route(request: dict):
+    try:
+        return JSONResponse(research_monitor.create_monitor(
+            question=request.get("question", ""),
+            sources=request.get("sources", ["arxiv"]),
+            frequency=request.get("frequency", "manual"),
+        ))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/research-monitors")
+async def list_monitors_route():
+    try:
+        monitors = research_monitor.list_monitors()
+        serializable = []
+        for m in monitors:
+            row = {}
+            for k in m.keys():
+                row[k] = m[k]
+            serializable.append(row)
+        return JSONResponse({"status": "success", "monitors": serializable, "error": ""})
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/research-monitors/{monitor_id}/check")
+async def check_monitor_route(monitor_id: str):
+    try:
+        return JSONResponse(research_monitor.check_new_publications(monitor_id))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.get("/research-monitors/{monitor_id}/digest")
+async def digest_monitor_route(monitor_id: str):
+    try:
+        return JSONResponse(research_monitor.get_monitor_digest(monitor_id))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@router.delete("/research-monitors/{monitor_id}")
+async def deactivate_monitor_route(monitor_id: str):
+    try:
+        ok = research_monitor.deactivate_monitor(monitor_id)
+        return JSONResponse({"status": "success" if ok else "error", "monitorId": monitor_id, "error": "" if ok else "Monitor not found."})
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)

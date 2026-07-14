@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Archive, BookOpen, FileText, GitCompare, Sparkles, Terminal, Workflow } from 'lucide-react';
+import { AlertTriangle, Archive, BarChart3, BookOpen, FileText, GitCompare, Lightbulb, Shield, Sparkles, Terminal, Workflow } from 'lucide-react';
 
 import { buildAgentComparisonArtifact, buildAgentReportArtifact } from '../artifactModel.js';
 import ResearchTimeline from './ResearchTimeline.jsx';
 import SourceList from '../SourceCitation.jsx';
 import { getAgentArtifactSaveState } from './agentWorkspaceModel.js';
 import { formatAgentTime, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
+import MetaAnalysisCard from './MetaAnalysisCard.jsx';
+import HypothesisCard from './HypothesisCard.jsx';
+import ConflictAdjudicationCard from './ConflictAdjudicationCard.jsx';
+import AdversarialReviewCard from './AdversarialReviewCard.jsx';
 
 export const AgentTaskPromptBubble = ({ task, prompt }) => (
   <div className="flex justify-end">
@@ -495,6 +499,93 @@ export const AgentCodeExecutionSection = ({ currentTask }) => {
             )}
           </div>
         ))}
+      </div>
+    </details>
+  );
+};
+
+const TOOL_CARD_MAP = {
+  meta_analyze: { component: MetaAnalysisCard, icon: BarChart3, label: '元分析' },
+  generate_and_verify_hypotheses: { component: HypothesisCard, icon: Lightbulb, label: '研究假设' },
+  adjudicate_conflict: { component: ConflictAdjudicationCard, icon: AlertTriangle, label: '矛盾裁决' },
+  adversarial_review: { component: AdversarialReviewCard, icon: Shield, label: '对抗审查' },
+};
+
+export const AgentToolCallsSection = ({ currentTask }) => {
+  const toolCalls = currentTask?.toolCalls || [];
+  if (!toolCalls.length) return null;
+
+  return (
+    <details className="agent-section mt-4 rounded-[18px]" open>
+      <summary className="agent-title flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm font-semibold">
+        <span className="flex items-center gap-2">
+          <span className="agent-icon-accent inline-flex h-6 w-6 items-center justify-center rounded-lg">
+            <Workflow size={14} />
+          </span>
+          工具调用与分析
+        </span>
+        <span className="agent-chip-accent px-2.5 py-1 text-[11px] font-semibold">
+          {toolCalls.length} 次调用
+        </span>
+      </summary>
+      <div className="space-y-2 px-4 pb-4">
+        {toolCalls.map((tc, index) => {
+          const cardDef = TOOL_CARD_MAP[tc.name];
+          if (cardDef) {
+            const CardComponent = cardDef.component;
+            return (
+              <div key={tc.id || index} className="agent-card rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-3 pt-3">
+                  {React.createElement(cardDef.icon, { size: 14, className: 'text-pixiu-accent' })}
+                  <span className="text-xs font-semibold text-pixiu">{cardDef.label}</span>
+                  {tc.version && (
+                    <span className="text-[10px] text-pixiu-muted font-mono">v{tc.version}</span>
+                  )}
+                  <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    tc.status === 'succeeded' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                    tc.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                    'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                  }`}>
+                    {tc.status || 'unknown'}
+                  </span>
+                </div>
+                <CardComponent result={tc.result || tc} />
+              </div>
+            );
+          }
+
+          // Fallback: generic tool call display
+          return (
+            <div key={tc.id || index} className="agent-card rounded-2xl px-3 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-pixiu-muted font-mono">
+                  {tc.name || 'unknown_tool'}
+                </span>
+                {tc.version && (
+                  <span className="text-[10px] text-pixiu-muted font-mono">v{tc.version}</span>
+                )}
+                <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                  tc.status === 'succeeded' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                  tc.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                  'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                }`}>
+                  {tc.status || 'unknown'}
+                </span>
+              </div>
+              {tc.target && (
+                <div className="text-[11px] text-pixiu-muted mb-1">目标: {tc.target}</div>
+              )}
+              {tc.result?.summary && (
+                <div className="agent-body text-[11px] leading-6 mt-1">{tc.result.summary}</div>
+              )}
+              {tc.error && (
+                <div className="mt-1 rounded-xl border border-red-400/30 bg-red-50/5 px-3 py-2 text-xs text-red-400">
+                  {tc.error}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </details>
   );

@@ -15,6 +15,7 @@ import {
   AgentTaskPlanSection,
   AgentTaskPromptBubble,
   AgentTimelineSection,
+  AgentToolCallsSection,
 } from './AgentWorkspaceMainSections.jsx';
 
 const AgentWorkspaceMain = ({
@@ -72,6 +73,7 @@ const AgentWorkspaceMain = ({
                 />
                 <AgentConflictSection currentTask={currentTask} onJumpToSource={onJumpToSource} />
                 <AgentCodeExecutionSection currentTask={currentTask} />
+                <AgentToolCallsSection currentTask={currentTask} />
                 <AgentDraftReportSection
                   activeProject={activeProject}
                   currentTask={currentTask}
