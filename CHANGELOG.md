@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.3.2
+
+1. **新增 browser_navigate / browser_screenshot 浏览器操作工具**：ToolRegistry 注册 `browser_navigate`（导航到白名单 URL 并返回 JS 渲染文本）和 `browser_screenshot`（捕获当前页面视口为 base64 PNG）两个 headless browser 工具；新增 `services/browser_agent.py` 使用 Playwright Chromium 实现无头浏览器操作（30s 导航超时、15s 截图超时、5 MiB 截图上限、route 拦截非白名单请求）；受 `PIXIU_ALLOW_BROWSER=true` 环境变量控制，默认关闭。
+
 ### 2026-07-14 v0.3.1
 
 1. **报告深度升级**：`build_research_report()` 新增 4 个章节——`_build_executive_summary()` LLM 生成约 500 字执行摘要（flash 模型、15s 超时、失败降级为规则评估）；`_build_evidence_comparison_table()` 自动生成 Markdown 证据对比表（行为子问题、列为来源类型、单元格为证据片段）；`_build_dispute_map()` 争议地图（共识区/分歧区/待验证区，整合 cross-validation 和冲突检测结果）；`_build_hierarchical_citations()` 多层级引用索引 `[N]` 主引用 + `[N.M]` 子引用。旧报告格式完全兼容。

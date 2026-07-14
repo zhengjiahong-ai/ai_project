@@ -27,6 +27,7 @@ from services.trace_service import (
 
 from services.code_execution_models import IDENTIFIER_PATTERN, create_code_execution_job
 from services.code_executor import execute_python_sandbox
+from services.browser_agent import browser_navigate, browser_screenshot
 from services.image_analyzer import analyze_image
 from services.structured_query import query_structured_data
 from code_worker import FIXED_TEMPLATE_TEXT
@@ -684,6 +685,81 @@ def _build_default_tool_registry() -> ToolRegistry:
         },
         safety_scope=_safety_scope(
             ["image_analysis"],
+            network_access=True,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "browser_navigate",
+        "Navigate to a whitelisted URL using a headless browser (Playwright Chromium) "
+        "and return the JS-rendered text content. The browser session is maintained "
+        "across calls. Use this for pages that require JavaScript to render content. "
+        "Controlled by the PIXIU_ALLOW_BROWSER environment variable (default: disabled).",
+        {
+            "type": "object",
+            "required": ["url"],
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048,
+                },
+            },
+            "additionalProperties": False,
+        },
+        _browser_navigate_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "url", "content", "title", "error"],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": ["success", "error"],
+                },
+                "url": {"type": "string"},
+                "content": {"type": "string"},
+                "title": {"type": "string"},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["browser_content"],
+            network_access=True,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "browser_screenshot",
+        "Capture a screenshot of the current headless browser page viewport "
+        "as a base64-encoded PNG data URI. Requires a prior browser_navigate call. "
+        "Controlled by the PIXIU_ALLOW_BROWSER environment variable (default: disabled).",
+        {
+            "type": "object",
+            "required": [],
+            "properties": {},
+            "additionalProperties": False,
+        },
+        _browser_screenshot_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "imageBase64", "error"],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": ["success", "error"],
+                },
+                "imageBase64": {"type": "string"},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["browser_screenshot"],
             network_access=True,
             sensitive_output=True,
             access="restricted",
@@ -1399,6 +1475,38 @@ def _analyze_image_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
         if result["status"] != "success":
             record_counter("imageAnalysisFailures")
+        return result
+
+
+def _browser_navigate_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    url = (payload.get("url") or "").strip()
+    if not url:
+        raise ToolValidationError("browser_navigate requires a non-empty url.")
+
+    with trace_step("tool_browser_navigate", input_size=len(url)) as step:
+        record_counter("browserNavigateCalls")
+        try:
+            result = browser_navigate(url)
+        except ValueError as exc:
+            raise ToolValidationError(str(exc)) from exc
+        step["outputSize"] = len(result.get("content") or "")
+        step["meta"] = {"status": result["status"]}
+        if result["status"] != "success":
+            record_counter("browserNavigateFailures")
+        return result
+
+
+def _browser_screenshot_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    with trace_step("tool_browser_screenshot", input_size=0) as step:
+        record_counter("browserScreenshotCalls")
+        try:
+            result = browser_screenshot()
+        except ValueError as exc:
+            raise ToolValidationError(str(exc)) from exc
+        step["outputSize"] = len(result.get("imageBase64") or "")
+        step["meta"] = {"status": result["status"]}
+        if result["status"] != "success":
+            record_counter("browserScreenshotFailures")
         return result
 
 

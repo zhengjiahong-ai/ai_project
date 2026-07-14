@@ -91,7 +91,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         contracts = registry.list_tools()
 
         self.assertEqual(registry.schemaVersion, "1.0")
-        self.assertEqual(len(contracts), 15)
+        self.assertEqual(len(contracts), 17)
         self.assertEqual(
             set(contracts[0]),
             {"name", "version", "description", "inputSchema", "outputSchema", "safetyScope"},
@@ -464,7 +464,7 @@ class ToolRegistryContractTests(unittest.TestCase):
 
     def test_existing_tools_keep_read_only_safety_scopes(self):
         registry = get_tool_registry()
-        restricted_tools = {"run_descriptive_statistics", "execute_python", "query_structured_data", "analyze_image", "search_web", "fetch_web_page"}
+        restricted_tools = {"run_descriptive_statistics", "execute_python", "query_structured_data", "analyze_image", "browser_navigate", "browser_screenshot", "search_web", "fetch_web_page"}
         for contract in registry.list_tools():
             if contract["name"] in restricted_tools:
                 continue
@@ -708,6 +708,29 @@ class ToolRegistryContractTests(unittest.TestCase):
         definition = registry.get("analyze_image")
         self.assertNotEqual(definition.safetyScope["access"], "read_only")
         self.assertTrue(definition.safetyScope["sideEffects"])
+
+    def test_browser_navigate_tool_has_restricted_versioned_contract(self):
+        registry = get_tool_registry()
+        definition = registry.get("browser_navigate")
+        self.assertEqual(definition.name, "browser_navigate")
+        self.assertEqual(definition.version, "1.0.0")
+        self.assertEqual(definition.safetyScope["access"], "restricted")
+        self.assertTrue(definition.safetyScope["networkAccess"])
+        self.assertTrue(definition.safetyScope["sideEffects"])
+
+    def test_browser_screenshot_tool_has_restricted_versioned_contract(self):
+        registry = get_tool_registry()
+        definition = registry.get("browser_screenshot")
+        self.assertEqual(definition.name, "browser_screenshot")
+        self.assertEqual(definition.safetyScope["access"], "restricted")
+        self.assertTrue(definition.safetyScope["networkAccess"])
+
+    def test_browser_navigate_tool_rejects_empty_url(self):
+        registry = get_tool_registry()
+        with self.assertRaisesRegex(ToolValidationError, "required field"):
+            registry.invoke("browser_navigate", {})
+        with self.assertRaisesRegex(ToolValidationError, "length must be at least"):
+            registry.invoke("browser_navigate", {"url": ""})
 
 
 if __name__ == "__main__":
