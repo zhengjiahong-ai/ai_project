@@ -2,6 +2,18 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.6.1
+
+1. **补齐阶段四/五/六缺口**：将 research_dialogue、research_monitor、reproducibility_checker 三个未注册模块注册到 ToolRegistry，工具数 31 → 39。
+2. **修复实验可复现性验证安全与兼容性**：`rm -rf` 替换为 `shutil.rmtree`（Windows 兼容）；git clone + pip install + python 执行迁入 Docker 沙箱（复用现有镜像、无网络、只读根文件系统、seccomp）；新增 `PIXIU_ALLOW_REPRODUCIBILITY` 环境变量门控（默认关闭）；GitHub URL 白名单校验。
+3. **新增 Agent 研究对话循环**：Agent 执行中新增 `awaiting_clarification` 状态，编排器在证据矛盾或稀疏时生成追问 → 用户回答 → 调整研究方向后继续，最多 3 轮。
+4. **新增 Agent 领域专家选择**：创建 run 时可选择研究领域（cs/medical/bio/physics/econ），编排器自动注入领域工具列表、搜索策略和评估标准。
+5. **新增前端论文写作面板**：阅读 IDE 右侧新增"论文写作"标签页，支持输入研究问题 → 生成完整论文草稿（Abstract/Introduction/Related Work/Methodology/Results/Discussion/Conclusion）→ 分节预览与编辑 → Markdown/LaTeX/BibTeX 下载 → 保存到工作台。
+6. **新增前端研究监控面板**：Agent 工作区新增"研究监控"入口，支持创建监控（arXiv/PubMed 来源选择）、手动检查新论文、相关性评分（★ 评级）、Markdown 摘要生成、监控停用管理。
+7. **新增 Agent 结果增强卡片**：MetaAnalysisCard（森林图 + 异质性 Q/I²/τ² + GRADE 评级 + Egger 检验）、HypothesisCard（假设 statement/verdict/置信度）、ConflictAdjudicationCard（Pro vs Con 对比评分）、AdversarialReviewCard（counter-arguments + 置信度调整前后对比）、ClarificationCard（追问文本输入 + 提交回答）。
+8. **Agent 工作区增强**：任务创建区域新增研究领域下拉选择器；Agent run 完成后的结果区新增"生成论文草稿"按钮，内联展开 PaperWriterPanel 预览与导出。
+9. **更新测试与契约**：同步更新 ToolRegistry 测试断言（31 → 39）、Agent 持久化测试 mock（collect_project_evidence 4-tuple）、Contract Smokee 共享请求字段；新增 agentWorkspaceModel 测试覆盖新字段。
+
 ### 2026-07-14 v0.6.0
 
 1. **阶段六——全自主学术研究**：新增 5 个核心能力模块——
