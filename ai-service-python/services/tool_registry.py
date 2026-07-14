@@ -27,6 +27,7 @@ from services.trace_service import (
 
 from services.code_execution_models import IDENTIFIER_PATTERN, create_code_execution_job
 from services.code_executor import execute_python_sandbox
+from services.structured_query import query_structured_data
 from code_worker import FIXED_TEMPLATE_TEXT
 
 
@@ -590,6 +591,56 @@ def _build_default_tool_registry() -> ToolRegistry:
         },
         safety_scope=_safety_scope(
             ["code_execution"],
+            network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "query_structured_data",
+        "Execute a SQL SELECT query against a JSON array of objects in an "
+        "in-memory sandbox. Supports SELECT, WHERE, ORDER BY, GROUP BY, and "
+        "LIMIT. No external database connection — the data is loaded from "
+        "the `data` JSON parameter and discarded after the query. "
+        "Only SELECT statements are allowed; write operations are rejected.",
+        {
+            "type": "object",
+            "required": ["query", "data"],
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                },
+                "data": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 524288,
+                },
+            },
+            "additionalProperties": False,
+        },
+        _query_structured_data_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "rows", "rowCount", "error"],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": ["success", "error"],
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {"type": "object", "additionalProperties": True},
+                },
+                "rowCount": {"type": "integer", "minimum": 0},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["structured_query"],
             network_access=False,
             sensitive_output=True,
             access="restricted",
@@ -1260,6 +1311,30 @@ def _execute_python_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
         if result["status"] != "success":
             record_counter("codeExecutionFailures")
+        return result
+
+
+def _query_structured_data_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    query = (payload.get("query") or "").strip()
+    if not query:
+        raise ToolValidationError("query_structured_data requires a non-empty query string.")
+    data = (payload.get("data") or "").strip()
+    if not data:
+        raise ToolValidationError("query_structured_data requires a non-empty data string.")
+
+    with trace_step("tool_query_structured_data", input_size=len(data)) as step:
+        record_counter("structuredQueryCalls")
+        try:
+            result = query_structured_data(query, data)
+        except ValueError as exc:
+            raise ToolValidationError(str(exc)) from exc
+        step["outputSize"] = result.get("rowCount", 0)
+        step["meta"] = {
+            "status": result["status"],
+            "rowCount": result["rowCount"],
+        }
+        if result["status"] != "success":
+            record_counter("structuredQueryFailures")
         return result
 
 

@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.2.2
+
+1. **新增 query_structured_data 结构化数据查询工具**：ToolRegistry 注册 `query_structured_data` 工具，LLM Agent 可对 JSON 数据执行 SQL SELECT 查询；新增 `services/structured_query.py` 使用 sqlite3 `:memory:` 实现纯内存查询（支持 SELECT/WHERE/ORDER BY/GROUP BY/LIMIT，拒绝写操作和多语句注入）；输入 `query`(SQL) + `data`(JSON 数组)，输出 `rows`(JSON 数组) + `rowCount`；512 KiB 数据上限、4096 字符查询上限、1000 行结果上限。
+
 ### 2026-07-14 v0.2.1
 
 1. **新增 execute_python 沙箱代码执行工具**：ToolRegistry 注册 `execute_python` 工具，LLM Agent 可在 Docker 沙箱中运行 Python 数据分析代码；新增 `services/code_executor.py` 实现 AST 级安全校验（仅允许 math/statistics/json/csv/collections/itertools 等白名单模块）和 Docker 沙箱执行（复用现有镜像与 seccomp，`--network none`、`--read-only`、`--cap-drop ALL`、30s 超时）；`agent_orchestrator.py` 报告模板新增 "Python Code Execution" 章节渲染执行结果。

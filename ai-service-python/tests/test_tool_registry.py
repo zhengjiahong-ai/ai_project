@@ -91,7 +91,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         contracts = registry.list_tools()
 
         self.assertEqual(registry.schemaVersion, "1.0")
-        self.assertEqual(len(contracts), 13)
+        self.assertEqual(len(contracts), 14)
         self.assertEqual(
             set(contracts[0]),
             {"name", "version", "description", "inputSchema", "outputSchema", "safetyScope"},
@@ -464,7 +464,7 @@ class ToolRegistryContractTests(unittest.TestCase):
 
     def test_existing_tools_keep_read_only_safety_scopes(self):
         registry = get_tool_registry()
-        restricted_tools = {"run_descriptive_statistics", "execute_python", "search_web", "fetch_web_page"}
+        restricted_tools = {"run_descriptive_statistics", "execute_python", "query_structured_data", "search_web", "fetch_web_page"}
         for contract in registry.list_tools():
             if contract["name"] in restricted_tools:
                 continue
@@ -606,6 +606,63 @@ class ToolRegistryContractTests(unittest.TestCase):
     def test_execute_python_tool_is_not_exposed_through_mcp(self):
         registry = get_tool_registry()
         definition = registry.get("execute_python")
+        self.assertNotEqual(definition.safetyScope["access"], "read_only")
+        self.assertTrue(definition.safetyScope["sideEffects"])
+
+    def test_query_structured_data_tool_has_restricted_versioned_contract(self):
+        registry = get_tool_registry()
+        definition = registry.get("query_structured_data")
+
+        self.assertEqual(definition.name, "query_structured_data")
+        self.assertEqual(definition.version, "1.0.0")
+        self.assertEqual(definition.safetyScope["access"], "restricted")
+        self.assertFalse(definition.safetyScope["networkAccess"])
+        self.assertTrue(definition.safetyScope["sideEffects"])
+        self.assertTrue(definition.safetyScope["sensitiveOutput"])
+        self.assertEqual(definition.safetyScope["dataScopes"], ["structured_query"])
+
+        # Input schema
+        props = definition.inputSchema["properties"]
+        self.assertIn("query", props)
+        self.assertEqual(props["query"]["minLength"], 1)
+        self.assertEqual(props["query"]["maxLength"], 4096)
+        self.assertIn("data", props)
+        self.assertEqual(props["data"]["minLength"], 1)
+        self.assertEqual(props["data"]["maxLength"], 524288)
+        self.assertFalse(definition.inputSchema["additionalProperties"])
+
+        # Output schema
+        self.assertEqual(
+            definition.outputSchema["required"],
+            ["status", "rows", "rowCount", "error"],
+        )
+        self.assertEqual(
+            definition.outputSchema["properties"]["status"]["enum"],
+            ["success", "error"],
+        )
+        self.assertFalse(definition.outputSchema["additionalProperties"])
+
+    def test_query_structured_data_tool_rejects_empty_query(self):
+        registry = get_tool_registry()
+        # Missing query → schema validation error.
+        with self.assertRaisesRegex(ToolValidationError, "required field"):
+            registry.invoke("query_structured_data", {"data": "[]"})
+        # Empty query → schema catches minLength (value is stripped before check).
+        with self.assertRaisesRegex(ToolValidationError, "length must be at least"):
+            registry.invoke("query_structured_data", {"query": "", "data": "[]"})
+
+    def test_query_structured_data_tool_rejects_non_select(self):
+        registry = get_tool_registry()
+        result = registry.invoke("query_structured_data", {
+            "query": "DROP TABLE data",
+            "data": '[{"x": 1}]',
+        })
+        self.assertEqual(result["status"], "error")
+        self.assertIn("Only SELECT", result["error"])
+
+    def test_query_structured_data_tool_is_not_exposed_through_mcp(self):
+        registry = get_tool_registry()
+        definition = registry.get("query_structured_data")
         self.assertNotEqual(definition.safetyScope["access"], "read_only")
         self.assertTrue(definition.safetyScope["sideEffects"])
 
