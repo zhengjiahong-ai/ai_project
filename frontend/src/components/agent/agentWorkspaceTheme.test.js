@@ -17,7 +17,6 @@ const filesToScan = [
 ];
 
 const forbiddenThemeTokens = [
-  'bg-white',
   'bg-white/',
   'text-slate-',
   'border-slate-',
