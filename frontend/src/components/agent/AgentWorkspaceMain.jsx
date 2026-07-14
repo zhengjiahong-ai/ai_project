@@ -5,6 +5,7 @@ import AgentTaskComposer, {
   AgentWorkspaceHeader,
 } from './AgentWorkspaceMainComposer.jsx';
 import {
+  AgentCodeExecutionSection,
   AgentComparisonSection,
   AgentConflictSection,
   AgentDraftReportSection,
@@ -68,6 +69,7 @@ const AgentWorkspaceMain = ({
                   onCaptureArtifact={onCaptureArtifact}
                 />
                 <AgentConflictSection currentTask={currentTask} onJumpToSource={onJumpToSource} />
+                <AgentCodeExecutionSection currentTask={currentTask} />
                 <AgentDraftReportSection
                   activeProject={activeProject}
                   currentTask={currentTask}

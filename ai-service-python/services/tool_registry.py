@@ -26,6 +26,7 @@ from services.trace_service import (
 )
 
 from services.code_execution_models import IDENTIFIER_PATTERN, create_code_execution_job
+from services.code_executor import execute_python_sandbox
 from code_worker import FIXED_TEMPLATE_TEXT
 
 
@@ -540,6 +541,55 @@ def _build_default_tool_registry() -> ToolRegistry:
         },
         safety_scope=_safety_scope(
             ["code_execution_artifact"],
+            network_access=False,
+            sensitive_output=True,
+            access="restricted",
+            side_effects=True,
+        ),
+    )
+    registry.register(
+        "execute_python",
+        "Execute a short Python script in a restricted sandbox. "
+        "Only a whitelist of safe standard-library modules is available: "
+        "math, statistics, json, csv, collections, itertools, datetime, re, "
+        "textwrap, pprint, and similar. "
+        "Network access, filesystem writes, and dangerous built-ins "
+        "(eval, exec, __import__, open, etc.) are blocked. "
+        "Maximum 30 second timeout.",
+        {
+            "type": "object",
+            "required": ["code"],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 65536,
+                },
+                "timeout": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30,
+                },
+            },
+            "additionalProperties": False,
+        },
+        _execute_python_tool,
+        output_schema={
+            "type": "object",
+            "required": ["status", "stdout", "stderr", "error"],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": ["success", "timeout", "error", "forbidden_import"],
+                },
+                "stdout": {"type": "string"},
+                "stderr": {"type": "string"},
+                "error": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+        safety_scope=_safety_scope(
+            ["code_execution"],
             network_access=False,
             sensitive_output=True,
             access="restricted",
@@ -1183,6 +1233,34 @@ def _run_descriptive_statistics_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
             "templateId": job.runtime.template_id,
             "message": "Job created. Requires execution approval before the sandbox runs.",
         }
+
+
+def _execute_python_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+    code = (payload.get("code") or "").strip()
+    if not code:
+        raise ToolValidationError("execute_python requires a non-empty code string.")
+    if len(code) > 65536:
+        raise ToolValidationError(
+            f"execute_python code length {len(code)} exceeds maximum 65536 characters."
+        )
+
+    timeout = int(payload.get("timeout") or 30)
+    timeout = min(max(timeout, 1), 30)
+
+    with trace_step("tool_execute_python", input_size=len(code)) as step:
+        record_counter("codeExecutionCalls")
+        try:
+            result = execute_python_sandbox(code, timeout=timeout)
+        except ValueError as exc:
+            raise ToolValidationError(str(exc)) from exc
+        step["outputSize"] = len(result.get("stdout") or "") + len(result.get("stderr") or "")
+        step["meta"] = {
+            "status": result["status"],
+            "outputChars": step["outputSize"],
+        }
+        if result["status"] != "success":
+            record_counter("codeExecutionFailures")
+        return result
 
 
 def _normalize_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:

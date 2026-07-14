@@ -624,6 +624,7 @@ def build_minimal_report(
     conflicts: List[Dict[str, Any]],
     open_questions: List[str],
     code_execution_results: Optional[List[Dict[str, Any]]] = None,
+    execute_python_results: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     paper_lines = "\n".join(build_scope_lines(paper_contexts)) or "- No project papers selected"
     evidence_lines = "\n".join(build_evidence_snapshot_lines(evidence_items)) or "- No evidence snippets yet"
@@ -653,6 +654,15 @@ def build_minimal_report(
                 f"{code_lines}\n\n"
             )
 
+    py_section = ""
+    if execute_python_results:
+        py_lines = _build_python_execution_section_lines(execute_python_results)
+        if py_lines:
+            py_section = (
+                "## Python Code Execution\n"
+                f"{py_lines}\n\n"
+            )
+
     cross_validation_lines = _build_cross_validation_lines(conflicts)
     provenance_lines = _build_agent_provenance_lines(evidence_items)
 
@@ -665,6 +675,7 @@ def build_minimal_report(
         f"{evidence_lines}\n\n"
         f"{external_section}"
         f"{code_section}"
+        f"{py_section}"
         "## Current Conclusion\n"
         f"{conclusion_lines}\n\n"
         "## Conflict Candidates\n"
@@ -794,6 +805,25 @@ def _build_code_execution_section_lines(results: List[Dict[str, Any]]) -> str:
             + (f" ({row_count} rows, {column_count} columns)" if row_count is not None else "")
             + " — code-computed artifact, not original paper evidence."
         )
+    return "\n".join(lines)
+
+
+def _build_python_execution_section_lines(results: List[Dict[str, Any]]) -> str:
+    if not results:
+        return ""
+    lines = []
+    for i, result in enumerate(results):
+        status = result.get("status", "unknown")
+        stdout = (result.get("stdout") or "").strip()
+        stderr = (result.get("stderr") or "").strip()
+        error = (result.get("error") or "").strip()
+        lines.append(f"\n**Execution {i + 1}** ({status}):")
+        if stdout:
+            lines.append("```\n" + stdout[:2000] + "\n```")
+        if stderr:
+            lines.append("Stderr:\n```\n" + stderr[:1000] + "\n```")
+        if error:
+            lines.append(f"Error: {error}")
     return "\n".join(lines)
 
 

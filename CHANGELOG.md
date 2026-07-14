@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-14 v0.2.1
+
+1. **新增 execute_python 沙箱代码执行工具**：ToolRegistry 注册 `execute_python` 工具，LLM Agent 可在 Docker 沙箱中运行 Python 数据分析代码；新增 `services/code_executor.py` 实现 AST 级安全校验（仅允许 math/statistics/json/csv/collections/itertools 等白名单模块）和 Docker 沙箱执行（复用现有镜像与 seccomp，`--network none`、`--read-only`、`--cap-drop ALL`、30s 超时）；`agent_orchestrator.py` 报告模板新增 "Python Code Execution" 章节渲染执行结果。
+
 ### 2026-07-13 v0.2.0
 
 1. **LLM 驱动的自主任务分解**：`research_planner.py` 的 `build_research_plan()` 提示词升级为生成分层结构（根问题→子问题，每个携带 `searchKeywords` 和 `expectedSourceTypes`）；兼容旧格式（纯字符串子问题）自动升级；新增 `replan_if_needed()` 动态重规划——每完成子问题后 LLM 评估是否需要调整计划，失败时降级为简单 follow-up；`external_query_planner.py` 优先使用 plan item 的 `searchKeywords` 生成查询；`research_task_service.py` 执行循环集成动态重规划。阶段一完成，版本号提升至 0.2.0。

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Archive, BookOpen, FileText, GitCompare, Sparkles, Workflow } from 'lucide-react';
+import { AlertTriangle, Archive, BookOpen, FileText, GitCompare, Sparkles, Terminal, Workflow } from 'lucide-react';
 
 import { buildAgentComparisonArtifact, buildAgentReportArtifact } from '../artifactModel.js';
 import SourceList from '../SourceCitation.jsx';
@@ -445,6 +445,63 @@ export const AgentConflictSection = ({ currentTask, onJumpToSource }) => {
             综合阶段会生成冲突候选，包括证据覆盖不均、检索回退和潜在结论风险。
           </div>
         )}
+      </div>
+    </details>
+  );
+};
+
+export const AgentCodeExecutionSection = ({ currentTask }) => {
+  const results = currentTask?.executePythonResults || [];
+  if (!results.length) return null;
+
+  const statusTone = (status) => {
+    switch (status) {
+      case 'success': return 'text-emerald-500';
+      case 'timeout': return 'text-amber-500';
+      case 'error': return 'text-red-500';
+      case 'forbidden_import': return 'text-red-500';
+      default: return 'text-gray-500';
+    }
+  };
+
+  return (
+    <details className="agent-section mt-4 rounded-[18px]" open>
+      <summary className="agent-title flex cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm font-semibold">
+        <span className="flex items-center gap-2">
+          <span className="agent-icon-accent inline-flex h-6 w-6 items-center justify-center rounded-lg">
+            <Terminal size={14} />
+          </span>
+          代码执行结果
+        </span>
+        <span className="agent-chip-accent px-2.5 py-1 text-[11px] font-semibold">
+          {results.length} 次执行
+        </span>
+      </summary>
+      <div className="space-y-2 px-4 pb-4">
+        {results.map((result, index) => (
+          <div key={result.id || index} className="agent-card rounded-2xl px-3 py-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${statusTone(result.status)}`}>
+                Run {index + 1} · {result.status || 'unknown'}
+              </span>
+            </div>
+            {result.stdout && (
+              <pre className="agent-card-soft mt-1 max-h-48 overflow-auto rounded-xl p-3 text-xs leading-5 font-mono whitespace-pre-wrap">
+                {result.stdout}
+              </pre>
+            )}
+            {result.stderr && (
+              <pre className="mt-1 max-h-32 overflow-auto rounded-xl border border-amber-400/30 bg-amber-50/5 p-3 text-xs leading-5 font-mono whitespace-pre-wrap text-amber-400">
+                {result.stderr}
+              </pre>
+            )}
+            {result.error && (
+              <div className="mt-1 rounded-xl border border-red-400/30 bg-red-50/5 px-3 py-2 text-xs text-red-400">
+                {result.error}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </details>
   );

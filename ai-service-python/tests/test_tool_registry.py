@@ -91,7 +91,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         contracts = registry.list_tools()
 
         self.assertEqual(registry.schemaVersion, "1.0")
-        self.assertEqual(len(contracts), 12)
+        self.assertEqual(len(contracts), 13)
         self.assertEqual(
             set(contracts[0]),
             {"name", "version", "description", "inputSchema", "outputSchema", "safetyScope"},
@@ -464,7 +464,7 @@ class ToolRegistryContractTests(unittest.TestCase):
 
     def test_existing_tools_keep_read_only_safety_scopes(self):
         registry = get_tool_registry()
-        restricted_tools = {"run_descriptive_statistics", "search_web", "fetch_web_page"}
+        restricted_tools = {"run_descriptive_statistics", "execute_python", "search_web", "fetch_web_page"}
         for contract in registry.list_tools():
             if contract["name"] in restricted_tools:
                 continue
@@ -533,6 +533,81 @@ class ToolRegistryContractTests(unittest.TestCase):
             ["success", "disabled", "budget_exceeded", "failed"],
         )
         self.assertFalse(definition.outputSchema["additionalProperties"])
+
+    def test_execute_python_tool_has_restricted_versioned_contract(self):
+        registry = get_tool_registry()
+        definition = registry.get("execute_python")
+
+        self.assertEqual(definition.name, "execute_python")
+        self.assertEqual(definition.version, "1.0.0")
+        self.assertEqual(definition.safetyScope["access"], "restricted")
+        self.assertFalse(definition.safetyScope["networkAccess"])
+        self.assertTrue(definition.safetyScope["sideEffects"])
+        self.assertTrue(definition.safetyScope["sensitiveOutput"])
+        self.assertEqual(definition.safetyScope["dataScopes"], ["code_execution"])
+
+        # Input schema
+        props = definition.inputSchema["properties"]
+        self.assertIn("code", props)
+        self.assertEqual(props["code"]["minLength"], 1)
+        self.assertEqual(props["code"]["maxLength"], 65536)
+        self.assertIn("timeout", props)
+        self.assertEqual(props["timeout"]["minimum"], 1)
+        self.assertEqual(props["timeout"]["maximum"], 30)
+        self.assertFalse(definition.inputSchema["additionalProperties"])
+
+        # Output schema
+        self.assertEqual(
+            definition.outputSchema["required"],
+            ["status", "stdout", "stderr", "error"],
+        )
+        self.assertEqual(
+            definition.outputSchema["properties"]["status"]["enum"],
+            ["success", "timeout", "error", "forbidden_import"],
+        )
+        self.assertFalse(definition.outputSchema["additionalProperties"])
+
+    def test_execute_python_tool_rejects_empty_code(self):
+        registry = get_tool_registry()
+        # Missing code → schema validation error.
+        with self.assertRaisesRegex(ToolValidationError, "required field"):
+            registry.invoke("execute_python", {})
+        # Empty / whitespace-only → schema catches minLength (value is stripped before check).
+        for code_val in ("", "   "):
+            with self.subTest(code=code_val):
+                with self.assertRaisesRegex(ToolValidationError, "length must be at least"):
+                    registry.invoke("execute_python", {"code": code_val})
+
+    def test_execute_python_tool_rejects_code_exceeding_max_length(self):
+        registry = get_tool_registry()
+        long_code = "x" * 65537
+        with self.assertRaisesRegex(ToolValidationError, "maxLength"):
+            registry.invoke("execute_python", {"code": long_code})
+
+    def test_execute_python_tool_timeout_range(self):
+        registry = get_tool_registry()
+        too_low = {"code": "print(1)", "timeout": 0}
+        too_high = {"code": "print(1)", "timeout": 31}
+        with self.assertRaisesRegex(ToolValidationError, "must be at least"):
+            registry.invoke("execute_python", too_low)
+        with self.assertRaisesRegex(ToolValidationError, "must be at most"):
+            registry.invoke("execute_python", too_high)
+
+    def test_execute_python_tool_rejects_unknown_fields(self):
+        registry = get_tool_registry()
+        for payload in [
+            {"code": "print(1)", "scriptText": "evil"},
+            {"code": "print(1)", "unsafe": True},
+        ]:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ToolValidationError):
+                    registry.invoke("execute_python", payload)
+
+    def test_execute_python_tool_is_not_exposed_through_mcp(self):
+        registry = get_tool_registry()
+        definition = registry.get("execute_python")
+        self.assertNotEqual(definition.safetyScope["access"], "read_only")
+        self.assertTrue(definition.safetyScope["sideEffects"])
 
 
 if __name__ == "__main__":
