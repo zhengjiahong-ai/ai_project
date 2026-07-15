@@ -461,6 +461,10 @@ def _generate_graph_payload(
     rag_sources: List[dict],
     request: BackgroundKnowledgeRequest,
 ) -> Dict[str, Any]:
+    cross_paper_sources = None
+    if getattr(request, 'include_library_papers', False):
+        # Retrieve cross-paper context from other papers in the library
+        cross_paper_sources = _load_cross_paper_sources(request)
     return generate_current_paper_graph(
         paper_topic=paper_topic,
         paper_context=paper_context,
@@ -468,7 +472,47 @@ def _generate_graph_payload(
         rag_sources=rag_sources,
         reader_profile=reader_profile,
         pdf_id=_normalize_pdf_id(request.pdfId),
+        cross_paper_sources=cross_paper_sources,
     )
+
+
+def _load_cross_paper_sources(request: BackgroundKnowledgeRequest) -> Optional[List[Dict[str, Any]]]:
+    """Load paper context from other papers in the library (opt-in only).
+
+    Retrieves related papers from the knowledge graph store and returns their
+    indexed fragments as additional context for concept extraction. The current
+    paper is excluded from results.
+    """
+    normalized_pdf_id = _normalize_pdf_id(request.pdfId)
+    if not normalized_pdf_id:
+        return None
+    try:
+        from services.knowledge_graph_store import read_graph_neighborhood
+        seed_terms = [str(request.paper_topic or '').strip()] if request.paper_topic else []
+        neighborhood = read_graph_neighborhood(
+            paperIds=None,
+            sourceIds=None,
+            seedTerms=seed_terms,
+            maxNodes=6,
+            maxEdges=8,
+        )
+        if neighborhood.get('status') == 'unavailable':
+            return None
+        # Extract paper-level context from neighbor graph nodes
+        sources: List[Dict[str, Any]] = []
+        for node in (neighborhood.get('nodes') or [])[:3]:
+            node_pdf_id = str(node.get('pdfId') or '')
+            if node_pdf_id and node_pdf_id != normalized_pdf_id:
+                sources.append({
+                    'sourceId': f"cross-paper-{node_pdf_id}",
+                    'text': str(node.get('summary') or node.get('label') or ''),
+                    'paperTitle': str(node.get('paperTitle') or node_pdf_id),
+                    'pdfId': node_pdf_id,
+                    'provenance': 'library',
+                })
+        return sources if sources else None
+    except Exception:
+        return None
 
 
 def _normalize_payload(

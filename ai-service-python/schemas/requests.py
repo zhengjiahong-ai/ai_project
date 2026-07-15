@@ -51,6 +51,7 @@ class BackgroundKnowledgeRequest(BaseModel):
     pdfId: Optional[str] = None
     paperSkeleton: Optional[Dict[str, Any]] = None
     paperStructure: Optional[Dict[str, Any]] = None
+    include_library_papers: bool = False
 
 
 class ChatRequest(BaseModel):

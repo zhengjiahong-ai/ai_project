@@ -69,6 +69,7 @@ const BackgroundKnowledgePanel = ({
   const [activeMode, setActiveMode] = useState('why');
   const [visiblePathCount, setVisiblePathCount] = useState(2);
   const [selectedGraphItem, setSelectedGraphItem] = useState(null);
+  const [crossPaperEnabled, setCrossPaperEnabled] = useState(false);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -91,7 +92,7 @@ const BackgroundKnowledgePanel = ({
   const confidenceText = formatPercent(data?.confidence);
   const coverageText = formatPercent(sourceCoverage?.ratio);
   const uncoveredNodeLabels = useMemo(() => getUncoveredNodeLabels(data), [data]);
-  const handleGenerate = createGenerateHandler(onGenerate, selectedReaderProfile);
+  const handleGenerate = () => onGenerate?.(selectedReaderProfile, { includeLibraryPapers: crossPaperEnabled });
   const readerProfileSummary = summarizeReaderProfile(data?.reader_profile || selectedReaderProfile);
 
   const nodeByLabel = useMemo(() => {
@@ -200,6 +201,15 @@ const BackgroundKnowledgePanel = ({
             背景补课
           </h2>
           <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-xs theme-text-secondary cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={crossPaperEnabled}
+                onChange={(e) => setCrossPaperEnabled(e.target.checked)}
+                className="cursor-pointer"
+              />
+              包含论文库关联概念
+            </label>
             <button
               type="button"
               onClick={handleGenerate}

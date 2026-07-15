@@ -13,10 +13,12 @@ ROOT_NODE_ID = "current-paper"
 PROVENANCE_CURRENT_PAPER = "current_paper_supported"
 PROVENANCE_MODEL = "model_inference"
 PROVENANCE_EXTERNAL = "external_supported"
+PROVENANCE_LIBRARY = "library_paper_supported"
 CONFIDENCE_CAPS = {
     PROVENANCE_MODEL: 0.60,
     PROVENANCE_CURRENT_PAPER: 0.85,
     PROVENANCE_EXTERNAL: 0.95,
+    PROVENANCE_LIBRARY: 0.70,
 }
 
 
@@ -30,6 +32,7 @@ def generate_current_paper_graph(
     pdf_id: Optional[str],
     llm: Any = None,
     external_provider: Optional[ExternalSearchProvider] = None,
+    cross_paper_sources: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     provider = external_provider if external_provider is not None else create_external_search_provider()
     model = llm or get_llm()
@@ -38,6 +41,23 @@ def generate_current_paper_graph(
         for source in rag_sources
         if isinstance(source, dict) and source.get("sourceId")
     }
+    # Cross-paper sources get their own source IDs for provenance tracking
+    cross_paper_source_ids: set = set()
+    cross_paper_context: str = ""
+    if cross_paper_sources:
+        cross_paper_source_ids = {
+            str(source.get("sourceId") or "").strip()
+            for source in cross_paper_sources
+            if isinstance(source, dict) and source.get("sourceId")
+        }
+        allowed_source_ids |= cross_paper_source_ids
+        cross_paper_context = "\n\n".join(
+            f"[Paper: {source.get('paperTitle', source.get('pdfId', 'unknown'))}] "
+            f"{source.get('sourceId', '')}: {str(source.get('text') or '')[:700]}"
+            for source in cross_paper_sources[:3]
+            if isinstance(source, dict)
+        )
+
     source_context = "\n\n".join(
         f"{source.get('sourceId')}: {str(source.get('text') or '')[:900]}"
         for source in rag_sources[:5]
@@ -54,6 +74,7 @@ def generate_current_paper_graph(
         structure=structure_block["wrapped"],
         sources=sources_block["wrapped"],
         allowed_source_ids=sorted(allowed_source_ids),
+        cross_paper_context=cross_paper_context,
     )
     with trace_step("extract_background_concepts", input_size=len(concept_prompt)) as step:
         raw_concepts = model._call(
@@ -69,6 +90,7 @@ def generate_current_paper_graph(
         concept_payload.get("concepts"),
         allowed_source_ids=allowed_source_ids,
         has_current_paper=bool(pdf_id),
+        cross_paper_source_ids=cross_paper_source_ids if cross_paper_sources else None,
     )
     concepts = _enrich_concepts_external(concepts, provider, paper_topic)
 
@@ -260,7 +282,8 @@ def _provenance_counts(items: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def _normalize_concepts(value: Any, *, allowed_source_ids: set, has_current_paper: bool) -> List[Dict[str, Any]]:
+def _normalize_concepts(value: Any, *, allowed_source_ids: set, has_current_paper: bool, cross_paper_source_ids: Optional[set] = None) -> List[Dict[str, Any]]:
+    cross_ids = cross_paper_source_ids or set()
     concepts: List[Dict[str, Any]] = []
     seen = set()
     for index, item in enumerate(value if isinstance(value, list) else []):
@@ -272,7 +295,13 @@ def _normalize_concepts(value: Any, *, allowed_source_ids: set, has_current_pape
             continue
         seen.add(node_id)
         source_ids = _valid_source_ids(item.get("sourceIds"), allowed_source_ids) if has_current_paper else []
-        provenance = PROVENANCE_CURRENT_PAPER if source_ids else PROVENANCE_MODEL
+        # Determine provenance: cross-paper > current-paper > model
+        if source_ids and cross_ids and any(sid in cross_ids for sid in source_ids):
+            provenance = PROVENANCE_LIBRARY
+        elif source_ids:
+            provenance = PROVENANCE_CURRENT_PAPER
+        else:
+            provenance = PROVENANCE_MODEL
         concepts.append({
             "id": node_id,
             "label": label,
@@ -285,11 +314,19 @@ def _normalize_concepts(value: Any, *, allowed_source_ids: set, has_current_pape
             "sourceIds": source_ids,
             "provenanceStatus": provenance,
             "confidence": CONFIDENCE_CAPS[provenance],
-            "confidenceReason": str(item.get("confidenceReason") or ("当前论文片段明确涉及该概念。" if source_ids else "模型根据当前论文推断的隐含前置概念。")),
+            "confidenceReason": str(item.get("confidenceReason") or (_cross_provenance_reason(provenance, bool(source_ids)))),
         })
         if len(concepts) >= 10:
             break
     return concepts
+
+
+def _cross_provenance_reason(provenance: str, has_source_ids: bool) -> str:
+    if provenance == PROVENANCE_LIBRARY:
+        return "论文库中其他论文的片段支持该概念。"
+    if provenance == PROVENANCE_CURRENT_PAPER and has_source_ids:
+        return "当前论文片段明确涉及该概念。"
+    return "模型根据当前论文推断的隐含前置概念。"
 
 
 def _normalize_edges(value: Any, *, node_ids: set, allowed_source_ids: set, has_current_paper: bool) -> List[Dict[str, Any]]:
@@ -320,6 +357,10 @@ def _normalize_edges(value: Any, *, node_ids: set, allowed_source_ids: set, has_
 
 
 def _concept_prompt(**values: Any) -> str:
+    cross_section = ""
+    cross_context = values.get('cross_paper_context', '')
+    if cross_context:
+        cross_section = f"\nCross-paper library evidence (use for concept discovery, not verification):\n{cross_context}\n"
     return f"""
 Identify concepts a reader must understand before reading the current paper. Return JSON only:
 {{"concepts":[{{"id":"stable-id","label":"中文标签","type":"concept|method|theory|tool","level":"basic|intermediate|advanced","stage":"foundation|method_prerequisite|experiment_understanding|critical_perspective","summary":"简述","why":"与本文的关系","searchQueries":["future academic query"],"sourceIds":["source-id"]}}]}}
@@ -328,7 +369,7 @@ Topic: {values['paper_topic']}
 Reader profile: {_stringify(values['reader_profile'])}
 Structure: {values['structure']}
 Context: {values['context']}
-Evidence: {values['sources']}
+Evidence: {values['sources']}{cross_section}
 """
 
 

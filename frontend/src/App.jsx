@@ -785,7 +785,7 @@ export default function App() {
     setPapersList,
   });
 
-  const handleGenerateBackgroundKnowledge = useCallback(async (selectedProfile = backgroundReaderProfile) => {
+  const handleGenerateBackgroundKnowledge = useCallback(async (selectedProfile = backgroundReaderProfile, options = {}) => {
     if (!pdfId) {
       window.alert('请先上传 PDF 文件。');
       return;
@@ -830,6 +830,7 @@ export default function App() {
         user_knowledge_level: requestedKnowledgeLevel,
         reader_profile: requestedProfile,
         behavior_signals: behaviorSignals,
+        include_library_papers: Boolean(options?.includeLibraryPapers),
       });
 
       if (!response || response.status !== 'success') {
