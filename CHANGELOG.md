@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-15 v0.6.6
+
+1. **Semantic Scholar Benchmark API Key 支持**：`provider_benchmark.py` 新增 `--ss-api-key` CLI 参数和 `SEMANTIC_SCHOLAR_API_KEY` 环境变量支持；`_request_spec` 和 `fetch_provider_case` 传递 API Key header；snapshot 记录认证模式；更新 `p6_provider_selection.md` 选型文档。
+
 ### 2026-07-15 v0.6.5
 
 1. **App.jsx handler 拆分**：提取 `usePdfUpload`、`useChat`、`useCriticalReading`、`useDeepResearch`、`usePageTranslation` 五个自定义 hook，App.jsx 从 2883 行降至 2110 行；所有现有前端测试通过。

@@ -98,6 +98,19 @@ Schema 版本: 1.1
 
 注: Semantic Scholar 匿名访问在连续请求下触发 429 限流。需要 API Key 才能稳定使用。
 
+### Semantic Scholar (with API Key) — 待重测
+
+Benchmark 已支持 `--ss-api-key` 参数（也可通过 `SEMANTIC_SCHOLAR_API_KEY` 环境变量配置）。
+配置 API Key 后运行:
+
+```bash
+python -m benchmarks.external_search.provider_benchmark --live --ss-api-key YOUR_KEY
+# 或
+SEMANTIC_SCHOLAR_API_KEY=YOUR_KEY python -m benchmarks.external_search.provider_benchmark --live
+```
+
+预期: 配置 Key 后 hitAt5 >= 0.8，通过门禁进入推荐组合。
+
 ## 选型决策
 
 ### 状态: complete

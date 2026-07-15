@@ -7,6 +7,7 @@ Request destinations and queries cannot be supplied through CLI options.
 import argparse
 import json
 import math
+import os
 import re
 import statistics
 import time
@@ -284,7 +285,7 @@ def _child_text(elem, tag):
     return ""
 
 
-def _request_spec(provider, case):
+def _request_spec(provider, case, ss_api_key=None):
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
     if provider == "crossref":
         return CROSSREF_ENDPOINT, {
@@ -292,6 +293,8 @@ def _request_spec(provider, case):
             "rows": RESULT_LIMIT,
         }, headers
     if provider == "semantic_scholar":
+        if ss_api_key:
+            headers["x-api-key"] = ss_api_key
         return SEMANTIC_SCHOLAR_ENDPOINT, {
             "query": case["query"],
             "limit": RESULT_LIMIT,
@@ -306,9 +309,9 @@ def _request_spec(provider, case):
     raise ValueError("unsupported benchmark provider")
 
 
-def fetch_provider_case(provider, case, session=None, clock=time.perf_counter):
+def fetch_provider_case(provider, case, session=None, clock=time.perf_counter, ss_api_key=None):
     session = session or requests.Session()
-    endpoint, params, headers = _request_spec(provider, case)
+    endpoint, params, headers = _request_spec(provider, case, ss_api_key=ss_api_key)
     started = clock()
     response = None
     base = {
@@ -369,7 +372,7 @@ def fetch_provider_case(provider, case, session=None, clock=time.perf_counter):
             response.close()
 
 
-def run_live_benchmark(fixtures, session=None, sleep_fn=time.sleep):
+def run_live_benchmark(fixtures, session=None, sleep_fn=time.sleep, ss_api_key=None):
     cases = fixtures.get("cases") or []
     if len(cases) > 12:
         raise ValueError("live benchmark is limited to twelve fixed cases")
@@ -378,13 +381,14 @@ def run_live_benchmark(fixtures, session=None, sleep_fn=time.sleep):
     if len(requests_to_make) > 36:
         raise ValueError("live benchmark is limited to thirty-six requests")
 
+    ss_auth_mode = "api_key" if ss_api_key else "anonymous"
     snapshot = {
         "schemaVersion": "1.1",
         "generatedAt": _utc_now(),
         "fixtureSchemaVersion": fixtures.get("schemaVersion", ""),
         "providers": {
             "crossref": {"authMode": "anonymous", "requests": []},
-            "semantic_scholar": {"authMode": "anonymous", "requests": []},
+            "semantic_scholar": {"authMode": ss_auth_mode, "requests": []},
             "arxiv": {"authMode": "anonymous", "requests": []},
         },
     }
@@ -394,6 +398,7 @@ def run_live_benchmark(fixtures, session=None, sleep_fn=time.sleep):
                 provider,
                 case,
                 session=session,
+                ss_api_key=ss_api_key,
             )
         )
         if index < len(requests_to_make) - 1:
@@ -595,11 +600,14 @@ def main(argv=None):
     parser.add_argument("--fixture", type=Path, default=directory / "fixtures.json")
     parser.add_argument("--snapshot", type=Path, default=directory / "provider-snapshot.json")
     parser.add_argument("--output", type=Path, default=directory / "benchmark-results.json")
+    parser.add_argument("--ss-api-key", default=os.environ.get("SEMANTIC_SCHOLAR_API_KEY", ""),
+                        help="Semantic Scholar API key (defaults to SEMANTIC_SCHOLAR_API_KEY env var)")
     args = parser.parse_args(argv)
 
+    ss_api_key = args.ss_api_key.strip() or None
     fixtures = _load_json(args.fixture)
     if args.live:
-        snapshot = run_live_benchmark(fixtures)
+        snapshot = run_live_benchmark(fixtures, ss_api_key=ss_api_key)
         _write_json(args.snapshot, snapshot)
     else:
         snapshot = _load_json(args.snapshot)
