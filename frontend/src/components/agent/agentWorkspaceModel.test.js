@@ -16,7 +16,7 @@ import {
   removeSelectedAgentPaperId,
   removeAgentProjectFromState,
   resolveInitialAgentPaperSelection,
-} from './agentWorkspaceModel.js';
+} from './agentWorkspaceModel.ts';
 
 assert.deepEqual(
   buildAgentPlanReviewPayload({

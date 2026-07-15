@@ -23,7 +23,7 @@ import {
   removeSelectedAgentPaperId,
   resolveInitialAgentPaperSelection,
   resolveNextAgentProjectNumber,
-} from './agentWorkspaceModel.js';
+} from './agentWorkspaceModel.ts';
 import { loadAgentWorkspaceSnapshot, saveAgentWorkspaceSnapshot } from './agentWorkspaceStore.js';
 import { PAUSED_AGENT_STATUSES, STAGE_LABELS, TERMINAL_AGENT_STATUSES } from './agentWorkspaceUi.js';
 

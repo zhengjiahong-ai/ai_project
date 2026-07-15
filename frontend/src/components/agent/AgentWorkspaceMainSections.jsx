@@ -4,7 +4,7 @@ import { AlertTriangle, Archive, BarChart3, BookOpen, FileText, GitCompare, Ligh
 import { buildAgentComparisonArtifact, buildAgentReportArtifact } from '../artifactModel.js';
 import ResearchTimeline from './ResearchTimeline.jsx';
 import SourceList from '../SourceCitation.jsx';
-import { getAgentArtifactSaveState } from './agentWorkspaceModel.js';
+import { getAgentArtifactSaveState } from './agentWorkspaceModel.ts';
 import { formatAgentTime, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
 import MetaAnalysisCard from './MetaAnalysisCard.jsx';
 import HypothesisCard from './HypothesisCard.jsx';

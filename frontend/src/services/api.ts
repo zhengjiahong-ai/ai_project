@@ -1,4 +1,170 @@
-import axios from 'axios';
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
+
+// ── Core API types ──────────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface PaperSkeleton {
+  abstract?: string;
+  introduction?: string;
+  [key: string]: unknown;
+}
+
+export interface ChatResponse {
+  status?: string;
+  reply?: string;
+  message?: string;
+  sentenceSourceMap?: unknown[];
+  rag_sources?: unknown[];
+  data?: {
+    reply?: string;
+    sentenceSourceMap?: unknown[];
+    rag_sources?: unknown[];
+  };
+}
+
+export interface UploadResponse {
+  status: string;
+  pdfId: string;
+  title?: string;
+  parseStatus?: string;
+  parseMessage?: string;
+  ragIndexed?: boolean;
+  ragChunkCount?: number;
+  ragErrorCode?: string;
+  paper_structure?: Record<string, unknown>;
+  message?: string;
+  authors?: string[];
+}
+
+export interface CriticalReadingResponse {
+  status: string;
+  analysis?: Record<string, unknown>;
+  message?: string;
+  errorCode?: string;
+}
+
+export interface BackgroundKnowledgeRequest {
+  pdfId: string;
+  paperSkeleton?: Record<string, unknown> | null;
+  paperStructure?: Record<string, unknown> | null;
+  paper_topic?: string | null;
+  user_knowledge_level?: string;
+  reader_profile?: Record<string, unknown> | null;
+  behavior_signals?: Record<string, unknown> | null;
+}
+
+export interface SocraticRequest {
+  pdfId: string;
+  paperSkeleton: Record<string, unknown> | null;
+  readingProgress: Record<string, unknown>;
+}
+
+export interface SocraticAnswerRequest extends SocraticRequest {
+  currentIndex: number;
+  currentQuestion: string;
+  userAnswer: string;
+  turns?: Record<string, unknown>[];
+}
+
+export interface TranslatePageRequest {
+  pdfId: string;
+  pageIndex: number;
+  pageText: string;
+  paperSkeleton?: Record<string, unknown> | null;
+  pageLayout?: Record<string, unknown> | null;
+}
+
+export interface TranslatePageOptions {
+  timeoutMs?: number;
+  signal?: AbortSignal;
+}
+
+export interface ResearchTaskPayload {
+  question: string;
+  pdfId: string;
+  paperSkeleton?: Record<string, unknown> | null;
+  allowExternalSearch: boolean;
+  allowWebSearch: boolean;
+  userConstraints?: string;
+  briefPreview?: Record<string, unknown> | null;
+}
+
+export interface AgentProjectPayload {
+  title: string;
+  goal: string;
+  paperIds: string[];
+}
+
+export interface AgentRunPayload {
+  prompt: string;
+  focusedPaperIds?: string[];
+  constraints?: string;
+  domain?: string;
+  allowExternalSearch?: boolean;
+  allowWebSearch?: boolean;
+  allowIterativeSearch?: boolean;
+}
+
+export interface PlanReviewPayload {
+  planItems: Record<string, unknown>[];
+  focusedPaperIds: string[];
+  constraints: string;
+  reviewNotes: string;
+  allowWebSearch?: boolean;
+}
+
+export interface FinalReviewPayload {
+  decision: string;
+  reviewNotes?: string;
+}
+
+export interface PaperDraftPayload {
+  question: string;
+  title: string;
+  findings: unknown[];
+  evidenceItems: unknown[];
+  conflicts: unknown[];
+  sourceIds: string[];
+}
+
+export interface ResearchMonitorPayload {
+  source: string;
+  query: string;
+  label?: string;
+}
+
+// ── API client types ────────────────────────────────────────────────────────
+
+export interface ApiClient extends AxiosInstance {
+  // Augmented with response interceptor (strips to response.data)
+}
+
+export interface ApiService {
+  uploadPdf: (file: File) => Promise<UploadResponse>;
+  sendMessage: (message: string, pdfId: string | null, history: ChatMessage[], paperSkeleton: PaperSkeleton | null, signal?: AbortSignal | null) => Promise<ChatResponse>;
+  criticalReading: (pdfId: string) => Promise<CriticalReadingResponse>;
+  backgroundKnowledge: (params: BackgroundKnowledgeRequest) => Promise<unknown>;
+  startSocraticSession: (pdfId: string, paperSkeleton: Record<string, unknown> | null, readingProgress: Record<string, unknown>) => Promise<unknown>;
+  answerSocraticSession: (pdfId: string, paperSkeleton: Record<string, unknown> | null, readingProgress: Record<string, unknown>, currentIndex: number, currentQuestion: string, userAnswer: string, turns?: Record<string, unknown>[]) => Promise<unknown>;
+  translatePage: (pdfId: string, pageIndex: number, pageText: string, paperSkeleton: Record<string, unknown> | null, pageLayout: Record<string, unknown> | null, options?: TranslatePageOptions) => Promise<unknown>;
+  generatePaperDraft: (payload: PaperDraftPayload) => Promise<unknown>;
+  createAgentProject: (payload: AgentProjectPayload) => Promise<unknown>;
+  createAgentRun: (projectId: string, payload: AgentRunPayload) => Promise<unknown>;
+  reviewAgentRunPlan: (runId: string, payload: PlanReviewPayload) => Promise<unknown>;
+  reviewAgentRunFinal: (runId: string, payload: FinalReviewPayload) => Promise<unknown>;
+  getAgentWorkspace: (projectId: string) => Promise<unknown>;
+  getAgentRunArtifacts: (runId: string) => Promise<unknown>;
+  getAgentRunTimeline: (runId: string) => Promise<unknown>;
+  createResearchTask: (question: string, pdfId: string, paperSkeleton?: Record<string, unknown> | null, userConstraints?: string, briefPreview?: Record<string, unknown> | null, allowExternalSearch?: boolean, allowWebSearch?: boolean) => Promise<unknown>;
+  getResearchTask: (taskId: string) => Promise<unknown>;
+  [key: string]: (...args: unknown[]) => Promise<unknown>;
+}
+
+// ── Implementation ──────────────────────────────────────────────────────────
 
 export const resolveApiBaseUrl = (
   env = globalThis.__VITE_ENV__ ?? (typeof import.meta !== 'undefined' ? import.meta.env : undefined),

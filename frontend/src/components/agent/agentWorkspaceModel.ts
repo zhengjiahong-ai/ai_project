@@ -1,6 +1,131 @@
 import { collectSourcesByIds, normalizeEvidenceSources } from '../evidenceCitationModel.js';
 
-export const createEmptyAgentWorkspaceState = () => ({
+// ── Type definitions ────────────────────────────────────────────────────────
+
+export interface ExternalSearchBudget {
+  callLimit: number;
+  evidenceLimit: number;
+  callsUsed: number;
+  evidenceUsed: number;
+}
+
+export interface ExternalSearchConfig {
+  allowExternalSearch: boolean;
+  provider: string;
+  budget: ExternalSearchBudget;
+  status: string;
+  degradation: string;
+}
+
+export interface AgentProject {
+  projectId: string;
+  title: string;
+  goal: string;
+  paperIds: string[];
+  papers: Record<string, unknown>[];
+  latestTaskId: string;
+  defaultConstraints: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentTask {
+  taskId: string;
+  projectId: string;
+  traceId: string;
+  status: string;
+  stage: string;
+  progress: number;
+  prompt: string;
+  focusedPaperIds: string[];
+  planItems: Record<string, unknown>[];
+  events: Record<string, unknown>[];
+  toolCalls: Record<string, unknown>[];
+  evidenceItems: Record<string, unknown>[];
+  findings: Record<string, unknown>[];
+  comparisonTable: Record<string, unknown>;
+  conflicts: Record<string, unknown>[];
+  reportSources: Record<string, unknown>[];
+  openQuestions: Record<string, unknown>[];
+  reviewRisks: Record<string, unknown>[];
+  humanReview: Record<string, unknown>;
+  constraints: string;
+  draftReport: string;
+  error: string;
+  createdAt: string;
+  updatedAt: string;
+  externalSearchConfig: ExternalSearchConfig;
+}
+
+export interface AgentRun {
+  runId: string;
+  taskId: string;
+  projectId: string;
+  traceId: string;
+  status: string;
+  executionPhase: string;
+  stage: string;
+  progress: number;
+  prompt: string;
+  focusedPaperIds: string[];
+  constraints: string;
+  context: Record<string, unknown>;
+  humanReview: Record<string, unknown>;
+  reviewRisks: Record<string, unknown>[];
+  traceSummary: Record<string, unknown>;
+  externalSearchConfig: ExternalSearchConfig;
+  error: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentWorkspaceState {
+  projects: AgentProject[];
+  activeProjectId: string;
+  activeProject: AgentProject | null;
+  activeWorkspace: Record<string, unknown> | null;
+  latestTask: AgentTask | null;
+  currentTask: AgentTask | null;
+  tasksByProjectId: Record<string, AgentTask[]>;
+  nextProjectNumber: number;
+  loading: boolean;
+  error: string;
+}
+
+export interface AgentArtifacts {
+  runId: string;
+  evidenceItems: Record<string, unknown>[];
+  toolCallSummary: Record<string, unknown>[];
+  findings: Record<string, unknown>[];
+  comparisonTable: Record<string, unknown>;
+  conflicts: Record<string, unknown>[];
+  openQuestions: Record<string, unknown>[];
+  draftReport: string;
+  llmSynthesis: string;
+  advancedAnalysis: Record<string, unknown> | null;
+}
+
+export interface AgentArtifactsResponse {
+  status: string;
+  artifacts: AgentArtifacts;
+}
+
+export interface AgentWorkspaceResponse {
+  status: string;
+  workspace: {
+    project: AgentProject;
+    activeRun: AgentRun | null;
+    pendingReview: Record<string, unknown> | null;
+    latestArtifacts: Record<string, unknown> | null;
+    recentRuns: AgentRun[];
+    timeline: Record<string, unknown>[];
+    uiHints: Record<string, unknown>;
+  };
+}
+
+// ── Functions ───────────────────────────────────────────────────────────────
+
+export const createEmptyAgentWorkspaceState = (): AgentWorkspaceState => ({
   projects: [],
   activeProjectId: '',
   activeProject: null,

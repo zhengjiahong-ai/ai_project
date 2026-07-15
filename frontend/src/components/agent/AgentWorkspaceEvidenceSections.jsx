@@ -3,7 +3,7 @@ import { Archive, Wrench } from 'lucide-react';
 
 import { buildAgentEvidenceArtifact } from '../artifactModel.js';
 import SourceList from '../SourceCitation.jsx';
-import { getAgentArtifactSaveState } from './agentWorkspaceModel.js';
+import { getAgentArtifactSaveState } from './agentWorkspaceModel.ts';
 import { getProgressWidth, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';
 
 export const AgentToolTraceSection = ({ currentTask }) => (

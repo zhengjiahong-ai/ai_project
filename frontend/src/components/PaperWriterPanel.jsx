@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { FileText, Download, Loader2, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight, Edit3, X } from 'lucide-react';
 import MarkdownContent from './MarkdownContent.jsx';
-import { SECTION_LABELS, SECTIONS, createEmptyPaperWriterState, normalizePaperDraftResult, buildPaperDraftPayload } from './paperWriterModel.js';
+import { SECTION_LABELS, SECTIONS, createEmptyPaperWriterState, normalizePaperDraftResult, buildPaperDraftPayload } from './paperWriterModel.ts';
 
 export default function PaperWriterPanel({ apiService, agentApiService, currentRun, onSaveToWorkbench }) {
   const [state, setState] = useState(createEmptyPaperWriterState);
