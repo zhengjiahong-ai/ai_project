@@ -613,6 +613,183 @@ class OutlineExtractorTests(unittest.TestCase):
 
         self.assertEqual(titles, ["IV. NUMERICAL RESULTS"])
 
+    # ── Chinese heading tests ─────────────────────────────────────────────
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_outline_detects_chinese_chapter_headings(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tei_path = _write_tei(
+                Path(tmp_dir),
+                """
+                <div>
+                  <head coords="1,72,100,180,16">第一章 研究背景与意义</head>
+                  <p coords="1,72,124,460,12">本章介绍研究背景。</p>
+                </div>
+                <div>
+                  <head coords="2,72,100,180,16">第2节 系统模型设计</head>
+                  <p coords="2,72,124,460,12">系统模型详细说明。</p>
+                </div>
+                """,
+            )
+
+            outline = build_document_outline(tei_path)
+
+        titles = [item["displayTitle"] for item in outline]
+        # Chapter prefix ("第X章") is structural metadata; the title is the meaningful part
+        self.assertIn("研究背景与意义", titles)
+        self.assertIn("系统模型设计", titles)
+        self.assertTrue(
+            any("研究背景与意义" in item["rawTitle"] for item in outline)
+        )
+        self.assertTrue(
+            any("系统模型设计" in item["rawTitle"] for item in outline)
+        )
+
+    def test_outline_detects_chinese_digit_numbered_headings(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tei_path = _write_tei(
+                Path(tmp_dir),
+                """
+                <div>
+                  <head coords="1,72,100,180,16">一、引言</head>
+                  <p coords="1,72,124,460,12">本文研究自然语言处理领域。</p>
+                </div>
+                <div>
+                  <head coords="2,72,100,180,16">二、相关工作</head>
+                  <p coords="2,72,124,460,12">相关工作介绍。</p>
+                </div>
+                <div>
+                  <head coords="3,72,100,180,16">三、研究方法</head>
+                  <p coords="3,72,124,460,12">研究方法详细描述。</p>
+                </div>
+                """,
+            )
+
+            outline = build_document_outline(tei_path)
+
+        titles = [item["displayTitle"] for item in outline]
+        self.assertIn("1 引言", titles)
+        self.assertIn("2 相关工作", titles)
+        self.assertIn("3 研究方法", titles)
+
+        intro = next(item for item in outline if item["rawTitle"] == "引言")
+        self.assertEqual(intro["headingNumber"], "1")
+
+    def test_outline_detects_mixed_cn_en_numbered_headings(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tei_path = _write_tei(
+                Path(tmp_dir),
+                """
+                <div>
+                  <head coords="1,72,100,180,16">1.1 研究背景</head>
+                  <p coords="1,72,124,460,12">研究背景详细描述。</p>
+                </div>
+                <div>
+                  <head coords="2,72,100,180,16">2.1 系统模型</head>
+                  <p coords="2,72,124,460,12">系统模型说明。</p>
+                </div>
+                <div>
+                  <head coords="3,72,100,180,16">3.2 实验结果与讨论</head>
+                  <p coords="3,72,124,460,12">实验结果分析。</p>
+                </div>
+                """,
+            )
+
+            outline = build_document_outline(tei_path)
+
+        titles = [item["displayTitle"] for item in outline]
+        self.assertIn("1.1 研究背景", titles)
+        self.assertIn("2.1 系统模型", titles)
+        self.assertIn("3.2 实验结果与讨论", titles)
+
+        bg = next(item for item in outline if item["rawTitle"] == "研究背景")
+        self.assertEqual(bg["headingNumber"], "1.1")
+        self.assertEqual(bg["source"], "tei")
+
+    def test_outline_detects_common_chinese_unnumbered_headings(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tei_path = _write_tei(
+                Path(tmp_dir),
+                """
+                <div>
+                  <head coords="1,72,100,180,16">摘要</head>
+                  <p coords="1,72,124,460,12">本文提出了一种新的方法。</p>
+                </div>
+                <div>
+                  <head coords="2,72,100,180,16">结论</head>
+                  <p coords="2,72,124,460,12">本文总结了研究成果。</p>
+                </div>
+                <div>
+                  <head coords="3,72,100,180,16">致谢</head>
+                  <p coords="3,72,124,460,12">感谢资助机构。</p>
+                </div>
+                """,
+            )
+
+            outline = build_document_outline(tei_path)
+
+        titles = [item["displayTitle"] for item in outline]
+        self.assertIn("摘要", titles)
+        self.assertIn("结论", titles)
+        self.assertIn("致谢", titles)
+
+        abstract = next(item for item in outline if item["rawTitle"] == "摘要")
+        self.assertEqual(abstract["headingNumber"], "")
+
+    def test_outline_paragraph_level_chinese_heading(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tei_path = _write_tei(
+                Path(tmp_dir),
+                """
+                <div>
+                  <head coords="1,72,80,180,16">3 方法</head>
+                  <p coords="1,72,110,200,14">3.1 数据预处理</p>
+                  <p coords="1,72,130,460,12">数据预处理包括清洗和标准化两个步骤。</p>
+                  <p coords="1,72,190,220,14">3.2 模型训练</p>
+                  <p coords="1,72,212,460,12">模型训练使用Adam优化器。</p>
+                </div>
+                """,
+            )
+
+            outline = build_document_outline(tei_path)
+
+        titles = [item["displayTitle"] for item in outline]
+        self.assertIn("3 方法", titles)
+        self.assertIn("3.1 数据预处理", titles)
+        self.assertIn("3.2 模型训练", titles)
+
+    def test_outline_preserves_english_regression_after_cn_changes(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tei_path = _write_tei(
+                Path(tmp_dir),
+                """
+                <div>
+                  <head coords="1,72,80,180,16">1 Introduction</head>
+                  <p coords="1,72,100,220,12">This paper addresses the problem.</p>
+                </div>
+                <div>
+                  <head coords="2,72,80,180,16">2 Related Work</head>
+                  <p coords="2,72,100,220,12">Prior work has shown.</p>
+                </div>
+                <div>
+                  <head coords="3,72,80,180,16">3.1 Model Architecture</head>
+                  <p coords="3,72,100,220,12">The model consists of.</p>
+                </div>
+                <div>
+                  <head coords="4,72,80,180,16">IV. EXPERIMENTS</head>
+                  <p coords="4,72,100,220,12">We conduct experiments.</p>
+                </div>
+                <div>
+                  <head coords="5,72,80,180,16">A. Ablation Study</head>
+                  <p coords="5,72,100,220,12">Ablation results.</p>
+                </div>
+                """,
+            )
+
+            outline = build_document_outline(tei_path)
+
+        titles = [item["displayTitle"] for item in outline]
+        self.assertIn("1 Introduction", titles)
+        self.assertIn("2 Related Work", titles)
+        self.assertIn("3.1 Model Architecture", titles)
+        self.assertIn("IV. EXPERIMENTS", titles)
+        self.assertIn("A. Ablation Study", titles)

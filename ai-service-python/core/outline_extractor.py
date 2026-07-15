@@ -42,6 +42,59 @@ _COMMON_UNNUMBERED_HEADING_RE = re.compile(
     re.IGNORECASE,
 )
 
+# ── Chinese heading patterns ────────────────────────────────────────────────
+_CHINESE_DIGIT_CHARS = {
+    "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+    "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+}
+_CHINESE_DIGIT_RE = re.compile(
+    r"^\s*(["
+    + "".join(_CHINESE_DIGIT_CHARS)
+    + r"]{1,3})(?:[、，。．.)]|(?=\s))"
+)
+_CHAPTER_RE = re.compile(
+    r"^\s*第\s*(["
+    + "".join(_CHINESE_DIGIT_CHARS)
+    + r"一二三四五六七八九十]{1,3}|\d{1,2})\s*[章节部分篇](?:\s|$)"
+)
+_MIXED_CN_EN_HEADING_RE = re.compile(
+    r"^\s*(?P<number>\d+(?:[.\-]\d+)*|["
+    + "".join(_CHINESE_DIGIT_CHARS)
+    + r"]{1,3})(?:[.)、，．]|\s{1,4})"
+    r"(?=[一-鿿])"
+    r"(?P<title>[一-鿿][^\n]{1,120})\s*$"
+)
+_CN_NUMBERED_HEADING_PREFIX_RE = re.compile(
+    r"^\s*(?P<number>\d+(?:[.\-]\d+)*)"
+    r"(?:[.)、，．]|\s{1,4})"
+    r"(?P<tail>[一-鿿][^\n]{2,260})"
+)
+_COMMON_CHINESE_UNNUMBERED_HEADING_RE = re.compile(
+    r"^(摘要|绪论|引言|前言|介绍|研究背景|相关工作|文献综述|"
+    r"问题描述|问题定义|问题建模|系统模型|模型架构|方法|方法论|"
+    r"研究方法|算法设计|实验设计|实验设置|实验|实验与评估|"
+    r"实验结果|结果与分析|结果与讨论|讨论|局限|不足|"
+    r"结论|总结与展望|未来工作|致谢|参考文献|附录|"
+    r"数据|数据集|基线|基准|评估指标|消融实验|"
+    r"实现细节|训练细节)$"
+)
+
+# Extended heading RE that also accepts Chinese-numbered and Chinese section headings.
+_NUMBERED_HEADING_RE_WITH_CN = re.compile(
+    r"^\s*(?P<number>\d+(?:[.\-]\d+)*|[IVXLC]+|[A-Z]|["
+    + "".join(_CHINESE_DIGIT_CHARS)
+    + r"]{1,3})(?:[.)、，．])?\s+"
+    r"(?P<title>[A-Z0-9一-鿿][^\n]{2,120})\s*$",
+    re.IGNORECASE,
+)
+_NUMBERED_HEADING_PREFIX_RE_WITH_CN = re.compile(
+    r"^\s*(?P<number>\d+(?:[.\-]\d+)*|[IVXLC]+|[A-Z]|["
+    + "".join(_CHINESE_DIGIT_CHARS)
+    + r"]{1,3})(?:[.)、，．])?\s+"
+    r"(?P<tail>[A-Z0-9一-鿿][^\n]{2,260})",
+    re.IGNORECASE,
+)
+
 
 @dataclass
 class OutlineCandidate:
@@ -661,6 +714,11 @@ def _should_skip_heading_candidate(raw_title: str, heading_number: str = "") -> 
     if not number and re.fullmatch(r"[\W_]+", title):
         return True
 
+    # Chinese short headings (摘要, 结论, 引言, 方法 etc.) are valid
+    is_chinese = bool(re.search(r"[一-鿿]", title))
+    if is_chinese and _COMMON_CHINESE_UNNUMBERED_HEADING_RE.match(title):
+        return False
+
     if len(title) <= 2 and not number:
         return True
 
@@ -668,29 +726,175 @@ def _should_skip_heading_candidate(raw_title: str, heading_number: str = "") -> 
 
 
 def _classify_paragraph_heading(text: str) -> tuple[str, str, float]:
-    numbered_match = _NUMBERED_HEADING_RE.match(text)
+    # ── 1. Chinese chapter pattern (第X章 / 第X节) ──
+    chapter_result = _try_chinese_chapter_heading(text)
+    if chapter_result:
+        return chapter_result
+
+    # ── 2. Numbered heading (English / mixed / Chinese numbers) ──
+    numbered_match = _NUMBERED_HEADING_RE_WITH_CN.match(text)
     if numbered_match:
         number = _normalize_heading_number(numbered_match.group("number"))
         raw_title = _clean_heading_title(numbered_match.group("title"))
-        if _looks_like_numbered_heading(number, raw_title):
+        if _looks_like_numbered_heading_cn(number, raw_title):
             return number, raw_title, 0.82 if number else 0.74
 
+    # ── 3. Mixed Chinese-English numbered heading ──
+    mixed_cn_result = _try_mixed_cn_heading(text)
+    if mixed_cn_result:
+        return mixed_cn_result
+
+    # ── 4. Prefixed heading (long paragraphs with a heading at the front) ──
     prefixed_heading = _extract_numbered_heading_prefix(text)
     if prefixed_heading:
         return prefixed_heading
+
+    # ── 5. Chinese-number-only heading (一、 / 二、 / etc.) ──
+    cn_digit_result = _try_chinese_digit_heading(text)
+    if cn_digit_result:
+        return cn_digit_result
 
     if len(text) > 140:
         return "", "", 0.0
 
     compact_text = _clean_heading_title(text)
+
+    # ── 6. Common unnumbered headings (English + Chinese) ──
     if _COMMON_UNNUMBERED_HEADING_RE.match(compact_text):
+        return "", compact_text, 0.68
+    if _COMMON_CHINESE_UNNUMBERED_HEADING_RE.match(compact_text):
         return "", compact_text, 0.68
 
     return "", "", 0.0
 
 
+def _try_chinese_chapter_heading(text: str) -> tuple[str, str, float] | None:
+    """Detect headings like 第一章 研究背景 / 第2节 方法."""
+    match = _CHAPTER_RE.match(text)
+    if not match:
+        return None
+    remaining = _clean_inline_text(text[match.end():])
+    if not remaining or not re.search(r"[一-鿿]", remaining):
+        # 第X章  without any Chinese title text is likely just a separator
+        return None
+    if _looks_like_heading_text(remaining) or _COMMON_CHINESE_UNNUMBERED_HEADING_RE.match(remaining):
+        return "", remaining, 0.84
+    # Try to find a heading boundary in the remaining text
+    boundary_title = _heading_before_body_boundary(remaining)
+    if boundary_title and _looks_like_heading_text(boundary_title):
+        return "", boundary_title, 0.78
+    return "", remaining[:120], 0.76
+
+
+def _try_mixed_cn_heading(text: str) -> tuple[str, str, float] | None:
+    """Detect mixed Chinese-English headings like 1.1 研究背景 / 二、相关工作."""
+    match = _MIXED_CN_EN_HEADING_RE.match(text)
+    if not match:
+        # Also try the prefix variant for longer paragraphs
+        prefix_match = _CN_NUMBERED_HEADING_PREFIX_RE.match(text)
+        if not prefix_match:
+            return None
+        number = _normalize_heading_number(prefix_match.group("number"))
+        tail = _clean_inline_text(prefix_match.group("tail"))
+        if not tail:
+            return None
+        boundary_title = _heading_before_body_boundary(tail)
+        if boundary_title and _looks_like_heading_text(boundary_title):
+            return number, boundary_title, 0.72
+        # Take first 14 CJK chars as title
+        title = _extract_leading_cjk_title(tail)
+        if title and _looks_like_heading_text(title):
+            return number, title, 0.70
+        return None
+
+    number = _normalize_heading_number(match.group("number"))
+    raw_title = _clean_heading_title(match.group("title"))
+    if raw_title and _looks_like_heading_text(raw_title):
+        return number, raw_title, 0.80
+    return None
+
+
+def _try_chinese_digit_heading(text: str) -> tuple[str, str, float] | None:
+    """Detect headings starting with Chinese digits like 一、引言 / 二、方法."""
+    match = _CHINESE_DIGIT_RE.match(text)
+    if not match:
+        return None
+    after_number = _clean_inline_text(text[match.end():])
+    if not after_number:
+        return None
+    if not re.search(r"[一-鿿]", after_number):
+        return None
+    number = _chinese_digit_to_arabic(match.group(1))
+    if not number:
+        return None
+    boundary_title = _heading_before_body_boundary(after_number)
+    if boundary_title and _looks_like_heading_text(boundary_title):
+        return number, boundary_title, 0.72
+    if _COMMON_CHINESE_UNNUMBERED_HEADING_RE.match(after_number):
+        return number, after_number, 0.74
+    if _looks_like_heading_text(after_number):
+        return number, after_number, 0.70
+    return None
+
+
+def _chinese_digit_to_arabic(text: str) -> str:
+    """Convert simple Chinese digit text (一-十, 十一-二十) to Arabic string."""
+    text = text.strip()
+    if not text:
+        return ""
+    if text in _CHINESE_DIGIT_CHARS:
+        return str(_CHINESE_DIGIT_CHARS[text])
+    if len(text) == 2 and text[0] == "十":
+        # 十一 → 11, 十二 → 12, ...
+        units = _CHINESE_DIGIT_CHARS.get(text[1], 0)
+        return str(10 + units)
+    if len(text) == 2 and text[1] == "十":
+        # 二十 → 20
+        tens = _CHINESE_DIGIT_CHARS.get(text[0], 0)
+        return str(tens * 10)
+    return text
+
+
+def _extract_leading_cjk_title(text: str, max_chars: int = 14) -> str:
+    """Extract leading CJK characters + mixed script as a title fragment."""
+    words = re.findall(r"[一-鿿　-〿＀-￯]+|[A-Za-z][A-Za-z-]{2,}", text)
+    title_parts: list[str] = []
+    for w in words:
+        title_parts.append(w)
+        if len("".join(title_parts)) >= max_chars:
+            break
+    return " ".join(title_parts).strip()
+
+
+def _looks_like_numbered_heading_cn(number: str, title: str) -> bool:
+    """Extended version of _looks_like_numbered_heading that also handles Chinese titles."""
+    cleaned = _clean_heading_title(title)
+    normalized_number = _normalize_heading_number(number)
+    if not normalized_number or not _looks_like_heading_text(cleaned):
+        return False
+    if re.fullmatch(r"\d{3,}", normalized_number):
+        return False
+    if not any(char.isalpha() for char in cleaned) and not re.search(r"[一-鿿]", cleaned):
+        return False
+    if re.fullmatch(r"\d+", normalized_number) and _looks_like_numbered_sentence_item(cleaned):
+        return False
+    if _COMMON_UNNUMBERED_HEADING_RE.match(cleaned) or _COMMON_CHINESE_UNNUMBERED_HEADING_RE.match(cleaned):
+        return True
+    if _is_uppercase_heading(cleaned):
+        return True
+    word_tokens = re.findall(r"[A-Za-z][A-Za-z-]{2,}|[一-鿿]{2,}", cleaned)
+    if len(word_tokens) >= 2:
+        return True
+    if re.fullmatch(r"[IVXLC]+|[A-Z]", normalized_number, re.IGNORECASE) and len(word_tokens) >= 1:
+        return True
+    # Chinese titles: single longer CJK term is acceptable
+    if re.search(r"[一-鿿]", cleaned) and len(cleaned) >= 3:
+        return True
+    return False
+
+
 def _extract_numbered_heading_prefix(text: str) -> tuple[str, str, float] | None:
-    match = _NUMBERED_HEADING_PREFIX_RE.match(text)
+    match = _NUMBERED_HEADING_PREFIX_RE_WITH_CN.match(text)
     if not match:
         return None
 
@@ -700,12 +904,18 @@ def _extract_numbered_heading_prefix(text: str) -> tuple[str, str, float] | None
         return None
 
     uppercase_title = _leading_uppercase_heading(tail)
-    if uppercase_title and _looks_like_numbered_heading(number, uppercase_title):
+    if uppercase_title and _looks_like_numbered_heading_cn(number, uppercase_title):
         return number, uppercase_title, 0.78
 
     boundary_title = _heading_before_body_boundary(tail)
-    if boundary_title and _looks_like_numbered_heading(number, boundary_title):
+    if boundary_title and _looks_like_numbered_heading_cn(number, boundary_title):
         return number, boundary_title, 0.72
+
+    # Chinese section: try extracting a leading CJK title
+    if re.search(r"[一-鿿]", tail):
+        cn_title = _extract_leading_cjk_title(tail)
+        if cn_title and _looks_like_numbered_heading_cn(number, cn_title):
+            return number, cn_title, 0.70
 
     return None
 
@@ -914,12 +1124,35 @@ def _split_heading_number(text: str, explicit_number: str = "") -> tuple[str, st
     cleaned = _clean_heading_title(text)
     number = normalized_explicit
 
-    match = _NUMBERED_HEADING_RE.match(cleaned)
+    match = _NUMBERED_HEADING_RE_WITH_CN.match(cleaned)
     if match:
         parsed_number = _normalize_heading_number(match.group("number"))
         if parsed_number:
             number = number or parsed_number
             return number, _clean_heading_title(match.group("title"))
+
+    # Try Chinese chapter pattern (第一章 研究背景)
+    ch_match = _CHAPTER_RE.match(cleaned)
+    if ch_match:
+        remaining = _clean_inline_text(cleaned[ch_match.end():])
+        if remaining:
+            return number, remaining
+
+    # Try Chinese digit prefix (一、引言 / 二、相关工作)
+    cn_digit_match = _CHINESE_DIGIT_RE.match(cleaned)
+    if cn_digit_match:
+        cn_number = _chinese_digit_to_arabic(cn_digit_match.group(1))
+        after = _clean_inline_text(cleaned[cn_digit_match.end():])
+        if cn_number and after:
+            return cn_number, after
+
+    # Try mixed EN number + CN title (1.1 研究背景)
+    mixed_match = _MIXED_CN_EN_HEADING_RE.match(cleaned)
+    if mixed_match:
+        parsed_number = _normalize_heading_number(mixed_match.group("number"))
+        parsed_title = _clean_heading_title(mixed_match.group("title"))
+        if parsed_number and parsed_title:
+            return parsed_number, parsed_title
 
     if number:
         escaped = re.escape(number).replace(r"\.", r"[.\-]")
@@ -932,6 +1165,11 @@ def _normalize_heading_number(value: Any) -> str:
     text = str(value or "").strip()
     if not text:
         return ""
+
+    # Chinese digit → Arabic
+    cn_arabic = _chinese_digit_to_arabic(text)
+    if cn_arabic and cn_arabic.isdigit():
+        return cn_arabic
 
     for pattern in (_DIGIT_NUMBER_RE, _ALPHA_NUMBER_RE, _ROMAN_NUMBER_RE):
         match = pattern.match(text)
