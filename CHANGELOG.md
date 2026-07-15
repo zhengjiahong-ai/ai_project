@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-15 v0.6.8
+
+1. **Agent 结论深度推理升级**：新增 `extract_claims_per_paper()` 和 `cross_paper_consistency_check()` 多步推理链；`synthesize_llm_report()` 升级为三步 LLM 调用（per-paper claims → cross-paper consistency → weighted synthesis），每步引用 sourceId；LLM 失败时降级为规则型。
+2. **论文写作面板增强**：`buildPaperDraftPayload` 支持接收 findings/evidenceItems/conflicts，Agent run 完成后自动预填；新增分节重新生成按钮和 `buildRegenerateSectionPayload`；LaTeX 转义修复（% $ { } # ~ ^）；BibTeX 类型推断（article/inproceedings/techreport/book）；新增 `.sty` 文件生成。
+3. **Python 结构化日志**：新增 `core/logging_config.py`，`PIXIU_LOG_LEVEL` 环境变量控制日志级别；`SanitizingFormatter` 自动过滤 API key、论文全文、用户消息等敏感字段；24 处 `print()` 迁移为结构化 logger。
+
 ### 2026-07-15 v0.6.7
 
 1. **LLM 驱动查询改写**：新增 `build_llm_academic_queries()` 函数，Agent 外部学术检索和 Web 搜索查询生成优先使用 LLM flash 模型，失败降级为规则型；`agent_orchestrator.py` 的查询构建函数同步接入。
