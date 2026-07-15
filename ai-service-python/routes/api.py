@@ -596,6 +596,10 @@ async def generate_paper_draft(request: PaperDraftRequest):
             evidence_items=request.evidenceItems or [],
             conflicts=request.conflicts or [],
             title=request.title or "",
+            meta_analysis=request.metaAnalysis,
+            adversarial_review=request.adversarialReview,
+            section=request.section or "",
+            existing_sections=request.existingSections,
         )
         return JSONResponse(result)
     except Exception as error:

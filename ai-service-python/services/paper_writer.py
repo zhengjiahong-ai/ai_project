@@ -27,10 +27,15 @@ def generate_paper_draft(
     meta_analysis: dict[str, Any] | None = None,
     adversarial_review: dict[str, Any] | None = None,
     title: str = "",
+    section: str = "",
+    existing_sections: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Generate a structured academic paper draft.
 
-    Returns ``{status, title, sections, references, markdown, latex, error}``.
+    If ``section`` is provided, only that section is regenerated; all other
+    sections are preserved from ``existing_sections``.
+
+    Returns ``{status, title, sections, references, markdown, latex, bibtex, sty, error}``.
     """
     if not question or not question.strip():
         return _error("Research question cannot be empty.")
@@ -42,9 +47,20 @@ def generate_paper_draft(
     adv = adversarial_review or {}
 
     title = title.strip() if title and title.strip() else f"A Systematic Review of {question[:80]}"
-    sections = _build_sections(question, title, findings, evidence, conflicts, meta, adv)
+
+    if section and existing_sections:
+        # Per-section regeneration: rebuild only the requested section
+        existing = dict(existing_sections)
+        rebuilt = _build_sections(question, title, findings, evidence, conflicts, meta, adv)
+        if section in rebuilt:
+            existing[section] = rebuilt[section]
+        sections = existing
+    else:
+        sections = _build_sections(question, title, findings, evidence, conflicts, meta, adv)
     references = _build_references(evidence)
     markdown = _render_markdown(title, sections, references)
+    bibtex = _render_bibtex(references)
+    sty = _render_sty()
     latex = _render_latex(title, sections, references)
 
     # Write to disk
@@ -53,13 +69,16 @@ def generate_paper_draft(
     out_path.mkdir(parents=True, exist_ok=True)
     (out_path / "paper.md").write_text(markdown, encoding="utf-8")
     (out_path / "paper.tex").write_text(latex, encoding="utf-8")
-    (out_path / "references.bib").write_text(_render_bibtex(references), encoding="utf-8")
+    (out_path / "references.bib").write_text(bibtex, encoding="utf-8")
+    (out_path / "pixiu-paper.sty").write_text(sty, encoding="utf-8")
 
     return {
         "status": "success",
         "title": title,
-        "sections": [{"heading": s["heading"], "wordCount": len(s["body"].split())} for s in sections],
+        "sections": [{"heading": s["heading"], "wordCount": len(s["body"].split()), "body": s["body"]} for s in sections],
         "referenceCount": len(references),
+        "bibtex": bibtex,
+        "sty": sty,
         "outputPath": str(out_path),
         "markdown": markdown,
         "latex": latex,
@@ -238,41 +257,98 @@ def _render_markdown(title: str, sections: list[dict[str, Any]], references: lis
     return "\n".join(lines)
 
 
+def _escape_latex(text: str) -> str:
+    """Escape special LaTeX characters."""
+    replacements = [
+        ("\\", r"\textbackslash "),
+        ("&", r"\&"),
+        ("%", r"\%"),
+        ("$", r"\$"),
+        ("#", r"\#"),
+        ("_", r"\_"),
+        ("{", r"\{"),
+        ("}", r"\}"),
+        ("~", r"\textasciitilde "),
+        ("^", r"\^{}"),
+    ]
+    result = str(text or "")
+    for char, repl in replacements:
+        result = result.replace(char, repl)
+    return result
+
+
+def _render_sty() -> str:
+    """Generate a minimal Overleaf-compatible .sty file."""
+    return (
+        "% Pixiu Paper Draft Style File\n"
+        "% Generated for Overleaf compatibility\n"
+        "\\ProvidesPackage{pixiu-paper}\n\n"
+        "\\usepackage[utf8]{inputenc}\n"
+        "\\usepackage{hyperref}\n"
+        "\\usepackage{amsmath,amssymb}\n"
+        "\\usepackage{graphicx}\n"
+        "\\usepackage[backend=bibtex]{biblatex}\n"
+        "\\usepackage{geometry}\n"
+        "\\geometry{a4paper, margin=1in}\n\n"
+        "\\newcommand{\\pixiuNote}[1]{\\marginpar{\\footnotesize\\textsf{#1}}}\n"
+    )
+
+
 def _render_latex(title: str, sections: list[dict[str, Any]], references: list[dict[str, Any]]) -> str:
     lines = [
         r"\documentclass{article}",
         r"\usepackage[utf8]{inputenc}",
         r"\usepackage{hyperref}",
-        r"\title{" + title.replace("&", r"\&") + "}",
+        r"\title{" + _escape_latex(title) + "}",
         r"\date{\today}",
         r"\begin{document}",
         r"\maketitle",
     ]
     for s in sections:
         cmd = "section*" if s["heading"] == "Abstract" else "section"
-        lines.append(rf"\{cmd}{{{s['heading']}}}")
-        lines.append(s["body"].replace("&", r"\&").replace("_", r"\_"))
+        heading = _escape_latex(s["heading"])
+        body = _escape_latex(s.get("body", ""))
+        lines.append(rf"\{cmd}{{{heading}}}")
+        lines.append(body)
         lines.append("")
     lines.append(r"\begin{thebibliography}{99}")
     for r in references:
-        authors = ", ".join(r["authors"][:3])
-        lines.append(rf"\bibitem{{{r['id']}}} {authors} ({r.get('year','n.d.')}). \textit{{{r['title'][:200]}}}.")
+        authors = _escape_latex(", ".join(r.get("authors", [])[:3]) or "Unknown")
+        title = _escape_latex(str(r.get("title", ""))[:200])
+        year = str(r.get("year", "n.d."))
+        lines.append(rf"\bibitem{{{r['id']}}} {authors} ({year}). \textit{{{title}}}.")
     lines.append(r"\end{thebibliography}")
     lines.append(r"\end{document}")
     return "\n".join(lines)
 
 
+def _infer_bibtex_type(ref: dict[str, Any]) -> str:
+    """Infer BibTeX entry type from reference metadata."""
+    venue = str(ref.get("venue", "")).lower()
+    if any(w in venue for w in ("conference", "proceedings", "workshop", "symposium")):
+        return "inproceedings"
+    if any(w in venue for w in ("arxiv", "preprint")):
+        return "techreport"
+    if any(w in venue for w in ("book", "monograph")):
+        return "book"
+    return "article"
+
+
 def _render_bibtex(references: list[dict[str, Any]]) -> str:
     entries = []
     for r in references:
-        authors = " and ".join(r["authors"][:5])
+        authors = " and ".join(str(a) for a in r.get("authors", [])[:5])
+        entry_type = _infer_bibtex_type(r)
+        year = str(r.get("year", "")).strip()
+        if not year:
+            year = "n.d."
         entries.append(
-            f"@article{{{r['id']},\n"
+            f"@{entry_type}{{{r['id']},\n"
             f"  author = {{{authors}}},\n"
-            f"  title = {{{r['title'][:300]}}},\n"
-            f"  year = {{{r.get('year','')}}},\n"
-            f"  journal = {{{r.get('venue','')}}},\n"
-            f"  doi = {{{r.get('doi','')}}}\n}}"
+            f"  title = {{{str(r.get('title', ''))[:300]}}},\n"
+            f"  year = {{{year}}},\n"
+            f"  journal = {{{r.get('venue', '')}}},\n"
+            f"  doi = {{{r.get('doi', '')}}}\n}}"
         )
     return "\n\n".join(entries)
 

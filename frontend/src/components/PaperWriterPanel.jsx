@@ -1,18 +1,67 @@
-import { useState, useCallback, useRef } from 'react';
-import { FileText, Download, Loader2, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight, Edit3, X } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { FileText, Download, Loader2, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight, Edit3, RefreshCw, X } from 'lucide-react';
 import MarkdownContent from './MarkdownContent.jsx';
-import { SECTION_LABELS, SECTIONS, createEmptyPaperWriterState, normalizePaperDraftResult, buildPaperDraftPayload } from './paperWriterModel.ts';
+import { SECTION_LABELS, SECTIONS, createEmptyPaperWriterState, normalizePaperDraftResult, buildPaperDraftPayload, buildRegenerateSectionPayload } from './paperWriterModel.ts';
 
 export default function PaperWriterPanel({ apiService, agentApiService, currentRun, onSaveToWorkbench }) {
   const [state, setState] = useState(createEmptyPaperWriterState);
   const [expandedSections, setExpandedSections] = useState({});
   const [editingSection, setEditingSection] = useState(null);
   const [editContent, setEditContent] = useState('');
+  const [regeneratingSection, setRegeneratingSection] = useState(null);
   const abortRef = useRef(null);
 
   const api = agentApiService ?? apiService;
 
   const updateState = useCallback((patch) => setState((prev) => ({ ...prev, ...patch })), []);
+
+  // Pre-fill from Agent run results when currentRun changes
+  useEffect(() => {
+    if (!currentRun?.prompt) return;
+    const findings = currentRun?.findings || currentRun?.artifacts?.findings || [];
+    const evidenceItems = currentRun?.evidenceItems || currentRun?.artifacts?.evidenceItems || [];
+    const conflicts = currentRun?.conflicts || currentRun?.artifacts?.conflicts || [];
+    if (findings.length > 0 || conflicts.length > 0) {
+      setState((prev) => ({
+        ...prev,
+        question: currentRun.prompt || prev.question,
+        selectedSourceIds: evidenceItems.map((e) => e?.sourceId).filter(Boolean),
+      }));
+      // Store agent data for next generate
+      window.__pixiuAgentDraftData = { findings, evidenceItems, conflicts };
+    }
+  }, [currentRun?.runId]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRegenerateSection = useCallback(async (sectionKey) => {
+    if (!state.question.trim() || !sectionKey) return;
+    setRegeneratingSection(sectionKey);
+
+    try {
+      const agentData = window.__pixiuAgentDraftData || {};
+      const payload = buildRegenerateSectionPayload({
+        question: state.question,
+        title: state.title,
+        section: sectionKey,
+        findings: agentData.findings || [],
+        evidenceItems: agentData.evidenceItems || [],
+        conflicts: agentData.conflicts || [],
+        existingSections: state.sections || {},
+      });
+
+      const response = await api.generatePaperDraft(payload);
+      const result = normalizePaperDraftResult(response);
+      if (result.status === 'done' && result.sections[sectionKey]) {
+        setState((prev) => ({
+          ...prev,
+          sections: { ...prev.sections, [sectionKey]: result.sections[sectionKey] },
+        }));
+      }
+    } catch (err) {
+      console.error('Section regeneration failed', err);
+    } finally {
+      setRegeneratingSection(null);
+    }
+  }, [state.question, state.title, state.sections, api]);
 
   const handleGenerate = useCallback(async () => {
     if (!state.question.trim()) return;
@@ -22,10 +71,14 @@ export default function PaperWriterPanel({ apiService, agentApiService, currentR
       const controller = new AbortController();
       abortRef.current = controller;
 
+      const agentData = window.__pixiuAgentDraftData || {};
       const payload = buildPaperDraftPayload({
         question: state.question,
         title: state.title,
         sourceIds: state.selectedSourceIds,
+        findings: agentData.findings || [],
+        evidenceItems: agentData.evidenceItems || [],
+        conflicts: agentData.conflicts || [],
       });
 
       const result = await api.post('/generate-paper-draft', payload, {
@@ -194,6 +247,14 @@ export default function PaperWriterPanel({ apiService, agentApiService, currentR
                       {SECTION_LABELS[key]}
                     </span>
                     <div className="flex items-center gap-2">
+                      <button
+                        className="p-1 hover:bg-pixiu-surface rounded"
+                        onClick={(e) => { e.stopPropagation(); handleRegenerateSection(key); }}
+                        title="重新生成本节"
+                        disabled={regeneratingSection === key}
+                      >
+                        {regeneratingSection === key ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                      </button>
                       <button
                         className="p-1 hover:bg-pixiu-surface rounded"
                         onClick={(e) => { e.stopPropagation(); startEditSection(key); }}

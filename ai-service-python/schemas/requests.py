@@ -211,6 +211,10 @@ class PaperDraftRequest(BaseModel):
     evidenceItems: Optional[List[Dict[str, Any]]] = None
     conflicts: Optional[List[Dict[str, Any]]] = None
     sourceIds: Optional[List[str]] = None
+    metaAnalysis: Optional[Dict[str, Any]] = None
+    adversarialReview: Optional[Dict[str, Any]] = None
+    section: Optional[str] = ""
+    existingSections: Optional[Dict[str, str]] = None
 
 
 class ResearchMonitorCreateRequest(BaseModel):

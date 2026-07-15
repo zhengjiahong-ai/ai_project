@@ -106,15 +106,47 @@ export const buildPaperDraftPayload = ({
   question = '',
   title = '',
   sourceIds = [],
+  findings = [],
+  evidenceItems = [],
+  conflicts = [],
 }: {
   question?: string;
   title?: string;
   sourceIds?: string[];
+  findings?: Record<string, unknown>[];
+  evidenceItems?: Record<string, unknown>[];
+  conflicts?: Record<string, unknown>[];
 } = {}): PaperDraftPayload => ({
   question: `${question ?? ''}`.trim(),
   title: `${title ?? ''}`.trim(),
-  findings: [],
-  evidenceItems: [],
-  conflicts: [],
+  findings: Array.isArray(findings) ? findings : [],
+  evidenceItems: Array.isArray(evidenceItems) ? evidenceItems : [],
+  conflicts: Array.isArray(conflicts) ? conflicts : [],
   sourceIds: Array.isArray(sourceIds) ? sourceIds.filter(Boolean) : [],
+});
+
+export const buildRegenerateSectionPayload = ({
+  question = '',
+  title = '',
+  section = '',
+  findings = [],
+  evidenceItems = [],
+  conflicts = [],
+  existingSections = {},
+}: {
+  question?: string;
+  title?: string;
+  section?: string;
+  findings?: Record<string, unknown>[];
+  evidenceItems?: Record<string, unknown>[];
+  conflicts?: Record<string, unknown>[];
+  existingSections?: Record<string, string>;
+} = {}) => ({
+  question: `${question ?? ''}`.trim(),
+  title: `${title ?? ''}`.trim(),
+  section,
+  findings: Array.isArray(findings) ? findings : [],
+  evidenceItems: Array.isArray(evidenceItems) ? evidenceItems : [],
+  conflicts: Array.isArray(conflicts) ? conflicts : [],
+  existingSections: existingSections || {},
 });
