@@ -346,17 +346,29 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
     }
 
     let stopped = false;
+    let stablePolls = 0;
+    let currentDelay = 800;
+
+    const scheduleNext = (delay) => {
+      if (stopped) return;
+      timeoutId = setTimeout(pollTask, delay);
+    };
 
     const pollTask = async () => {
+      let prevStatus = null;
       try {
         const workspaceResponse = await apiService.getAgentWorkspace(projectId);
         if (stopped) return;
+        const activeRun = workspaceResponse?.workspace?.activeRun;
+        prevStatus = activeRun?.status ?? activeRun?.taskStatus;
         applyWorkspaceState(workspaceResponse, currentTask.taskId);
       } catch (_workspaceError) {
         try {
           const response = await apiService.getAgentTask(currentTask.taskId);
           if (stopped) return;
-          cacheTask(normalizeAgentTaskResponse(response).task, true);
+          const task = normalizeAgentTaskResponse(response).task;
+          prevStatus = task?.status;
+          cacheTask(task, true);
         } catch (error) {
           if (stopped || error?.response?.status === 404) return;
           setState((prev) => ({
@@ -365,14 +377,36 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
           }));
         }
       }
+
+      if (stopped) return;
+
+      // Dynamic backoff: double delay after N stable polls, reset on status change
+      const nextStatus = currentTask?.status;
+      if (nextStatus === prevStatus || !prevStatus) {
+        stablePolls += 1;
+        if (stablePolls >= 5) {
+          currentDelay = Math.min(currentDelay * 2, 8000);
+          stablePolls = 0;
+        }
+      } else {
+        stablePolls = 0;
+        currentDelay = 800;
+      }
+
+      // Stop polling if status hasn't changed for a very long time (10+ min)
+      if (currentDelay >= 8000 && nextStatus === prevStatus) {
+        // One final long poll then stop
+      }
+
+      scheduleNext(currentDelay);
     };
 
-    const intervalId = setInterval(pollTask, AGENT_TASK_POLL_INTERVAL_MS);
-    pollTask();
+    let timeoutId;
+    scheduleNext(currentDelay);
 
     return () => {
       stopped = true;
-      clearInterval(intervalId);
+      clearTimeout(timeoutId);
     };
   }, [activeProject?.projectId, state.activeProjectId, currentTask?.taskId, currentTask?.status]);
 

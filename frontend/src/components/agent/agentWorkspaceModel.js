@@ -219,6 +219,7 @@ export const normalizeAgentArtifactsResponse = (response) => ({
     conflicts: Array.isArray(response?.artifacts?.conflicts) ? response.artifacts.conflicts : [],
     openQuestions: Array.isArray(response?.artifacts?.openQuestions) ? response.artifacts.openQuestions : [],
     draftReport: `${response?.artifacts?.draftReport ?? ''}`,
+    llmSynthesis: `${response?.artifacts?.llmSynthesis ?? ''}`,
     advancedAnalysis: response?.artifacts?.advancedAnalysis && typeof response.artifacts.advancedAnalysis === 'object'
       ? response.artifacts.advancedAnalysis
       : null,
@@ -275,6 +276,7 @@ export const buildTaskFromRunWorkspace = ({ run = null, pendingReview = null, la
     reviewRisks: normalizedRun.reviewRisks,
     humanReview: normalizedRun.humanReview,
     draftReport: artifacts.draftReport,
+    llmSynthesis: artifacts.llmSynthesis,
     error: normalizedRun.error,
     createdAt: normalizedRun.createdAt,
     updatedAt: normalizedRun.updatedAt,

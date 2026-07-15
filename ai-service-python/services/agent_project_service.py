@@ -1471,9 +1471,25 @@ def _ensure_storage_loaded() -> None:
 
 def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
     status = _clean_text(task.get("status"))
-    if status in TERMINAL_STATUSES or status in {"awaiting_plan_review", "awaiting_final_review", "awaiting_tool_approval"}:
+    if status in TERMINAL_STATUSES or status in {"awaiting_plan_review", "awaiting_final_review", "awaiting_tool_approval", "awaiting_clarification"}:
         return task
     task_id = _clean_text(task.get("taskId"))
+
+    # Queued tasks survive restarts — re-enqueue for background execution
+    if status == "queued":
+        events = list(task.get("events") or [])
+        events.append(_event("task_recovered", task_id, "queued", "Task recovered after service restart and re-queued for execution."))
+        recovered = {
+            **task,
+            "status": "queued",
+            "events": events,
+            "updatedAt": _utc_now(),
+        }
+        # Schedule recovery in background to avoid blocking state reload
+        import threading
+        threading.Thread(target=lambda: _recover_queued_task(task_id), daemon=True).start()
+        return recovered
+
     events = list(task.get("events") or [])
     if not events or events[-1].get("type") != "task_expired":
         events.append(_event("task_expired", task_id, DONE_STAGE, INTERRUPTED_RESTART_ERROR))
@@ -1486,6 +1502,19 @@ def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
         "error": INTERRUPTED_RESTART_ERROR,
         "updatedAt": _utc_now(),
     }
+
+
+def _recover_queued_task(task_id: str) -> None:
+    """Re-enqueue a task that was queued before restart, with a short delay for state stabilization."""
+    import time
+    time.sleep(2.0)  # Allow state reload to complete
+    try:
+        task = _copy_task(task_id)
+        if _clean_text(task.get("status")) != "queued":
+            return
+        _start_agent_worker(_run_minimal_agent_task, task_id)
+    except (AgentProjectNotFoundError, AgentTaskNotFoundError):
+        pass
 
 
 def _build_agent_review_risks(conflicts: List[Dict[str, Any]], open_questions: List[str]) -> List[Dict[str, Any]]:

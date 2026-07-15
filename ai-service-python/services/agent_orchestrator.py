@@ -1320,6 +1320,85 @@ def _extract_study_items(
     return studies
 
 
+def synthesize_llm_report(
+    prompt: str,
+    paper_contexts: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+    conflicts: List[Dict[str, Any]],
+    open_questions: List[str],
+    advanced_analysis: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Generate a structured research synthesis using LLM, falling back to rule-based on failure."""
+    try:
+        from llm.client import get_llm
+
+        evidence_summary = "\n".join(
+            f"- [{item.get('sourceType', 'unknown')}] {clean_text(item.get('text', item.get('title', '')))[:300]}"
+            for item in evidence_items[:10]
+        )
+        conflict_summary = "\n".join(
+            f"- [{c.get('severity', '?')}] {clean_text(c.get('summary', c.get('claim', '')))[:200]}"
+            for c in (conflicts or [])[:5]
+        )
+
+        synthesis_prompt = (
+            "You are a senior research synthesizer. Based on the evidence collected across multiple papers, "
+            "produce a structured research synthesis in Markdown with these sections:\n\n"
+            "## Executive Summary\nA 2-3 sentence overview of the key findings.\n\n"
+            "## Cross-Paper Synthesis\nIdentify 2-4 common themes, patterns, or contradictions across the papers. "
+            "For each theme, cite which papers support it.\n\n"
+            "## Evidence Strength Assessment\nRate the overall evidence quality (strong/moderate/limited) "
+            "and explain why. Note any gaps.\n\n"
+            "## Key Insights\n3-5 actionable insights or conclusions that emerge from the synthesis.\n\n"
+            "## Recommendations for Further Research\n2-3 specific directions for follow-up work.\n\n"
+            f"Research Question: {prompt}\n\n"
+            f"Evidence ({len(evidence_items)} items):\n{evidence_summary}\n\n"
+            f"Conflicts:\n{conflict_summary}\n\n"
+            f"Open Questions:\n" + "\n".join(f"- {q}" for q in (open_questions or [])[:4])
+        )
+
+        llm = get_llm()
+        result = llm._call(prompt=synthesis_prompt)
+        if result and len(str(result).strip()) > 100:
+            return str(result).strip()
+    except Exception:
+        pass
+
+    # Fallback: build a rule-based synthesis that's still informative
+    profiles = build_paper_support_profiles(paper_contexts, evidence_items)
+    strongest = [p for p in profiles if p["evidenceCount"] >= 2]
+    themes = extract_common_themes(profiles)
+
+    lines = ["## Executive Summary\n"]
+    lines.append(
+        f"This synthesis covers {len(paper_contexts)} papers with {len(evidence_items)} evidence items. "
+        f"{len(strongest)} papers provide moderate-to-strong evidence coverage."
+    )
+    lines.append("\n## Cross-Paper Synthesis\n")
+    if themes:
+        lines.append(f"Key recurring themes: {', '.join(themes[:4])}.")
+    for p in profiles:
+        lines.append(f"- `{p['pdfId']}`: {p['evidenceCount']} snippets, theme: {p['theme']}")
+    lines.append("\n## Evidence Strength Assessment\n")
+    dense = len([p for p in profiles if p["evidenceCount"] >= 3])
+    if dense >= 2:
+        lines.append("Overall evidence quality: **moderate** — multiple papers provide dense coverage.")
+    elif strongest:
+        lines.append("Overall evidence quality: **limited** — some papers have useful evidence but coverage is uneven.")
+    else:
+        lines.append("Overall evidence quality: **limited** — most papers have sparse evidence coverage.")
+    lines.append("\n## Key Insights\n")
+    lines.append("- The automated evidence collection identified both converging and diverging claims across papers.")
+    if conflicts:
+        lines.append(f"- {len(conflicts)} potential conflicts were detected and flagged for human review.")
+    if open_questions:
+        lines.append(f"- {len(open_questions)} open questions remain for follow-up investigation.")
+    lines.append("\n## Recommendations for Further Research\n")
+    lines.append("- Run additional retrieval rounds with refined queries targeting specific sections (methods, experiments).")
+    lines.append("- Human review of flagged conflicts is recommended before drawing final conclusions.")
+    return "\n".join(lines)
+
+
 def execute_run(
     prompt: str,
     paper_ids: List[str],
@@ -1366,6 +1445,14 @@ def execute_run(
         conflicts,
         open_questions,
     )
+    llm_synthesis = synthesize_llm_report(
+        prompt=prompt,
+        paper_contexts=paper_contexts,
+        evidence_items=evidence_items,
+        conflicts=conflicts,
+        open_questions=open_questions,
+        advanced_analysis=advanced_analysis,
+    )
     return {
         "paperContexts": paper_contexts,
         "toolCalls": tool_calls,
@@ -1377,6 +1464,7 @@ def execute_run(
             "conflicts": conflicts,
             "openQuestions": open_questions,
             "draftReport": draft_report,
+            "llmSynthesis": llm_synthesis,
             "advancedAnalysis": advanced_analysis,
         },
     }

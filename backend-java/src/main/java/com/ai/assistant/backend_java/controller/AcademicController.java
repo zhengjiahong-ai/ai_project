@@ -26,37 +26,7 @@ public class AcademicController {
     @Autowired
     private AiService aiService;
 
-    @PostMapping("/code-execution-artifacts")
-    public ResponseEntity<Map<String, Object>> uploadCodeExecutionArtifact(@RequestParam("file") MultipartFile file) {
-        return aiService.uploadCodeExecutionArtifact(file);
-    }
-
-    @PostMapping("/code-execution-jobs")
-    public ResponseEntity<Map<String, Object>> createCodeExecutionJob(@RequestBody Map<String, Object> request) {
-        return aiService.createCodeExecutionJob(request);
-    }
-
-    @GetMapping("/code-execution-jobs")
-    public ResponseEntity<Map<String, Object>> listCodeExecutionJobs() {
-        return aiService.listCodeExecutionJobs();
-    }
-
-    @GetMapping("/code-execution-jobs/{jobId}")
-    public ResponseEntity<Map<String, Object>> getCodeExecutionJob(@PathVariable String jobId) {
-        return aiService.getCodeExecutionJob(jobId);
-    }
-
-    @PostMapping("/code-execution-jobs/{jobId}/execution-review")
-    public ResponseEntity<Map<String, Object>> reviewCodeExecution(
-            @PathVariable String jobId, @RequestBody Map<String, Object> request) {
-        return aiService.reviewCodeExecution(jobId, request);
-    }
-
-    @PostMapping("/code-execution-jobs/{jobId}/publication-review")
-    public ResponseEntity<Map<String, Object>> reviewCodePublication(
-            @PathVariable String jobId, @RequestBody Map<String, Object> request) {
-        return aiService.reviewCodePublication(jobId, request);
-    }
+    // ── PDF / Reader ──────────────────────────────────────────────────────
 
     @PostMapping("/upload")
     public Map<String, Object> uploadPdf(@RequestParam("file") MultipartFile file) {
@@ -108,6 +78,8 @@ public class AcademicController {
         return aiService.backgroundKnowledge(request);
     }
 
+    // ── Research Tasks ────────────────────────────────────────────────────
+
     @PostMapping("/research-tasks")
     public ResponseEntity<Map<String, Object>> createResearchTask(@RequestBody Map<String, Object> request) {
         return aiService.createResearchTask(request);
@@ -134,12 +106,14 @@ public class AcademicController {
     }
 
     @PostMapping("/research-tasks/{taskId}/plan-review")
-    public ResponseEntity<Map<String, Object>> reviewResearchPlan(@PathVariable String taskId, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, Object>> reviewResearchPlan(
+            @PathVariable String taskId, @RequestBody Map<String, Object> request) {
         return aiService.reviewResearchPlan(taskId, request);
     }
 
     @PostMapping("/research-tasks/{taskId}/final-review")
-    public ResponseEntity<Map<String, Object>> reviewResearchFinal(@PathVariable String taskId, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, Object>> reviewResearchFinal(
+            @PathVariable String taskId, @RequestBody Map<String, Object> request) {
         return aiService.reviewResearchFinal(taskId, request);
     }
 
@@ -147,6 +121,8 @@ public class AcademicController {
     public ResponseEntity<Map<String, Object>> getTrace(@PathVariable String traceId) {
         return aiService.getTrace(traceId);
     }
+
+    // ── Agent Projects ────────────────────────────────────────────────────
 
     @PostMapping("/agent-projects")
     public ResponseEntity<Map<String, Object>> createAgentProject(@RequestBody Map<String, Object> request) {
@@ -165,8 +141,7 @@ public class AcademicController {
 
     @PatchMapping("/agent-projects/{projectId}")
     public ResponseEntity<Map<String, Object>> updateAgentProject(
-            @PathVariable String projectId,
-            @RequestBody Map<String, Object> request) {
+            @PathVariable String projectId, @RequestBody Map<String, Object> request) {
         return aiService.updateAgentProject(projectId, request);
     }
 
@@ -177,29 +152,27 @@ public class AcademicController {
 
     @PostMapping("/agent-projects/{projectId}/papers")
     public ResponseEntity<Map<String, Object>> addAgentProjectPapers(
-            @PathVariable String projectId,
-            @RequestBody Map<String, Object> request) {
+            @PathVariable String projectId, @RequestBody Map<String, Object> request) {
         return aiService.addAgentProjectPapers(projectId, request);
     }
 
     @DeleteMapping("/agent-projects/{projectId}/papers/{pdfId}")
     public ResponseEntity<Map<String, Object>> removeAgentProjectPaper(
-            @PathVariable String projectId,
-            @PathVariable String pdfId) {
+            @PathVariable String projectId, @PathVariable String pdfId) {
         return aiService.removeAgentProjectPaper(projectId, pdfId);
     }
 
+    // ── Agent Tasks / Runs ─────────────────────────────────────────────────
+
     @PostMapping("/agent-projects/{projectId}/tasks")
     public ResponseEntity<Map<String, Object>> createAgentTask(
-            @PathVariable String projectId,
-            @RequestBody Map<String, Object> request) {
+            @PathVariable String projectId, @RequestBody Map<String, Object> request) {
         return aiService.createAgentTask(projectId, request);
     }
 
     @PostMapping("/agent-projects/{projectId}/runs")
     public ResponseEntity<Map<String, Object>> createAgentRun(
-            @PathVariable String projectId,
-            @RequestBody Map<String, Object> request) {
+            @PathVariable String projectId, @RequestBody Map<String, Object> request) {
         return aiService.createAgentRun(projectId, request);
     }
 
@@ -215,8 +188,7 @@ public class AcademicController {
 
     @GetMapping("/agent-projects/{projectId}/tasks")
     public ResponseEntity<Map<String, Object>> listAgentProjectTasks(
-            @PathVariable String projectId,
-            @RequestParam(required = false) Integer limit) {
+            @PathVariable String projectId, @RequestParam(required = false) Integer limit) {
         return aiService.listAgentProjectTasks(projectId, limit);
     }
 
@@ -246,22 +218,26 @@ public class AcademicController {
     }
 
     @PostMapping("/agent-runs/{runId}/plan-review")
-    public ResponseEntity<Map<String, Object>> reviewAgentRunPlan(@PathVariable String runId, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, Object>> reviewAgentRunPlan(
+            @PathVariable String runId, @RequestBody Map<String, Object> request) {
         return aiService.reviewAgentRunPlan(runId, request);
     }
 
     @PostMapping("/agent-tasks/{taskId}/plan-review")
-    public ResponseEntity<Map<String, Object>> reviewAgentPlan(@PathVariable String taskId, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, Object>> reviewAgentPlan(
+            @PathVariable String taskId, @RequestBody Map<String, Object> request) {
         return aiService.reviewAgentPlan(taskId, request);
     }
 
     @PostMapping("/agent-runs/{runId}/final-review")
-    public ResponseEntity<Map<String, Object>> reviewAgentRunFinal(@PathVariable String runId, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, Object>> reviewAgentRunFinal(
+            @PathVariable String runId, @RequestBody Map<String, Object> request) {
         return aiService.reviewAgentRunFinal(runId, request);
     }
 
     @PostMapping("/agent-tasks/{taskId}/final-review")
-    public ResponseEntity<Map<String, Object>> reviewAgentFinal(@PathVariable String taskId, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<Map<String, Object>> reviewAgentFinal(
+            @PathVariable String taskId, @RequestBody Map<String, Object> request) {
         return aiService.reviewAgentFinal(taskId, request);
     }
 
@@ -270,17 +246,54 @@ public class AcademicController {
         return aiService.getAgentTrace(traceId);
     }
 
+    @PostMapping("/agent-runs/{runId}/clarification")
+    public ResponseEntity<Map<String, Object>> answerAgentClarification(
+            @PathVariable String runId, @RequestBody Map<String, Object> request) {
+        return aiService.answerAgentClarification(runId, request);
+    }
+
+    // ── Code Execution ────────────────────────────────────────────────────
+
+    @PostMapping("/code-execution-artifacts")
+    public ResponseEntity<Map<String, Object>> uploadCodeExecutionArtifact(@RequestParam("file") MultipartFile file) {
+        return aiService.uploadCodeExecutionArtifact(file);
+    }
+
+    @PostMapping("/code-execution-jobs")
+    public ResponseEntity<Map<String, Object>> createCodeExecutionJob(@RequestBody Map<String, Object> request) {
+        return aiService.createCodeExecutionJob(request);
+    }
+
+    @GetMapping("/code-execution-jobs")
+    public ResponseEntity<Map<String, Object>> listCodeExecutionJobs() {
+        return aiService.listCodeExecutionJobs();
+    }
+
+    @GetMapping("/code-execution-jobs/{jobId}")
+    public ResponseEntity<Map<String, Object>> getCodeExecutionJob(@PathVariable String jobId) {
+        return aiService.getCodeExecutionJob(jobId);
+    }
+
+    @PostMapping("/code-execution-jobs/{jobId}/execution-review")
+    public ResponseEntity<Map<String, Object>> reviewCodeExecution(
+            @PathVariable String jobId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewCodeExecution(jobId, request);
+    }
+
+    @PostMapping("/code-execution-jobs/{jobId}/publication-review")
+    public ResponseEntity<Map<String, Object>> reviewCodePublication(
+            @PathVariable String jobId, @RequestBody Map<String, Object> request) {
+        return aiService.reviewCodePublication(jobId, request);
+    }
+
+    // ── Paper Draft ───────────────────────────────────────────────────────
+
     @PostMapping("/generate-paper-draft")
     public ResponseEntity<Map<String, Object>> generatePaperDraft(@RequestBody Map<String, Object> request) {
         return aiService.generatePaperDraft(request);
     }
 
-    @PostMapping("/agent-runs/{runId}/clarification")
-    public ResponseEntity<Map<String, Object>> answerAgentClarification(
-            @PathVariable String runId,
-            @RequestBody Map<String, Object> request) {
-        return aiService.answerAgentClarification(runId, request);
-    }
+    // ── Research Monitors ─────────────────────────────────────────────────
 
     @PostMapping("/research-monitors")
     public ResponseEntity<Map<String, Object>> createResearchMonitor(@RequestBody Map<String, Object> request) {
