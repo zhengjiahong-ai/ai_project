@@ -1345,6 +1345,158 @@ def _extract_study_items(
     return studies
 
 
+def extract_claims_per_paper(
+    paper_contexts: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Extract structured claims from each paper's evidence using LLM.
+
+    On LLM failure, falls back to extracting claims from finding summaries.
+
+    Returns a list of per-paper claim dicts with shape:
+    ``[{paperId, claims: [{claim, section, confidence, sourceIds}]}]``
+    """
+    claims_by_paper: List[Dict[str, Any]] = []
+    for ctx in paper_contexts:
+        pdf_id = clean_text(ctx.get("pdfId", ""))
+        paper_evidence = [
+            e for e in evidence_items
+            if clean_text(e.get("pdfId", "")) == pdf_id or clean_text(e.get("sourceId", ""))[:8] == pdf_id[:8]
+        ]
+        if not paper_evidence:
+            claims_by_paper.append({"paperId": pdf_id, "claims": []})
+            continue
+
+        # Try LLM claim extraction
+        try:
+            from llm.client import DeepSeekLLM
+            ev_text = "\n".join(
+                f"[src:{clean_text(e.get('sourceId', str(i)))[:20]}] {clean_text(e.get('text', ''))[:400]}"
+                for i, e in enumerate(paper_evidence[:6])
+            )
+            prompt = (
+                "Extract the key claims asserted by this paper based on the evidence below. "
+                "Return JSON only: {\"claims\":[{\"claim\":\"...\",\"section\":\"method|experiment|discussion\","
+                "\"confidence\":0.0-1.0,\"sourceIds\":[\"src-...\"]}]}\n"
+                f"Evidence:\n{ev_text}"
+            )
+            llm = DeepSeekLLM(model="deepseek-v4-flash", temperature=0.2)
+            raw = llm._call(prompt)
+            parsed = parse_json_from_llm(raw) if raw else {}
+            claims_list = parsed.get("claims", []) if isinstance(parsed, dict) else []
+            if claims_list:
+                claims_by_paper.append({"paperId": pdf_id, "claims": claims_list[:8]})
+                continue
+        except Exception:
+            pass
+
+        # Fallback: build claims from finding summary
+        finding_summary = build_finding_summary("", [ctx], paper_evidence)
+        claims_by_paper.append({
+            "paperId": pdf_id,
+            "claims": [{"claim": finding_summary, "section": "overview", "confidence": 0.5, "sourceIds": [
+                clean_text(e.get("sourceId", "")) for e in paper_evidence[:3]
+            ]}],
+        })
+
+    return claims_by_paper
+
+
+def cross_paper_consistency_check(
+    claims_by_paper: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Check cross-paper consistency from extracted claims.
+
+    Returns ``{aligned, contradictory, unique, summary}`` where each category
+    lists claim pairs with sourceId references.
+    """
+    aligned: List[Dict[str, Any]] = []
+    contradictory: List[Dict[str, Any]] = []
+    unique: List[Dict[str, Any]] = []
+
+    # Build a simple keyword-overlap consistency matrix
+    for i, paper_a in enumerate(claims_by_paper):
+        for claim_a in paper_a.get("claims", []):
+            claim_text = str(claim_a.get("claim", "")).lower()
+            if not claim_text:
+                continue
+
+            matched = False
+            for j, paper_b in enumerate(claims_by_paper):
+                if i >= j:
+                    continue
+                for claim_b in paper_b.get("claims", []):
+                    claim_b_text = str(claim_b.get("claim", "")).lower()
+                    if not claim_b_text:
+                        continue
+
+                    # Simple overlap measure
+                    words_a = set(claim_text.split())
+                    words_b = set(claim_b_text.split())
+                    if not words_a or not words_b:
+                        continue
+                    overlap = len(words_a & words_b) / min(len(words_a), len(words_b))
+
+                    entry = {
+                        "paperA": paper_a["paperId"],
+                        "paperB": paper_b["paperId"],
+                        "claimA": claim_a["claim"],
+                        "claimB": claim_b["claim"],
+                        "sourceIdsA": claim_a.get("sourceIds", []),
+                        "sourceIdsB": claim_b.get("sourceIds", []),
+                        "overlap": round(overlap, 2),
+                    }
+
+                    if overlap > 0.6:
+                        aligned.append(entry)
+                        matched = True
+                    elif overlap > 0.2:
+                        contradictory.append(entry)
+                        matched = True
+
+            if not matched:
+                unique.append({
+                    "paperId": paper_a["paperId"],
+                    "claim": claim_a["claim"],
+                    "sourceIds": claim_a.get("sourceIds", []),
+                })
+
+    # Try LLM-based consistency analysis
+    summary = ""
+    try:
+        from llm.client import DeepSeekLLM
+        aligned_text = "\n".join(
+            f"ALIGNED: {e['paperA']} ↔ {e['paperB']}: {e['claimA'][:100]}"
+            for e in aligned[:5]
+        )
+        contradictory_text = "\n".join(
+            f"CONTRADICT: {e['paperA']} vs {e['paperB']}: {e['claimA'][:80]} vs {e['claimB'][:80]}"
+            for e in contradictory[:5]
+        )
+        prompt = (
+            "Summarize the cross-paper consistency findings. "
+            "Identify the most important aligned and contradictory claims.\n\n"
+            f"{aligned_text}\n\n{contradictory_text}"
+        )
+        llm = DeepSeekLLM(model="deepseek-v4-flash", temperature=0.2)
+        result = llm._call(prompt)
+        if result and len(str(result).strip()) > 20:
+            summary = str(result).strip()
+    except Exception:
+        summary = (
+            f"Cross-paper analysis: {len(aligned)} aligned claims across papers, "
+            f"{len(contradictory)} contradictory claims, {len(unique)} unique claims."
+        )
+
+    return {
+        "aligned": aligned[:10],
+        "contradictory": contradictory[:10],
+        "unique": unique[:10],
+        "summary": summary,
+    }
+
+
 def synthesize_llm_report(
     prompt: str,
     paper_contexts: List[Dict[str, Any]],
@@ -1353,12 +1505,24 @@ def synthesize_llm_report(
     open_questions: List[str],
     advanced_analysis: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """Generate a structured research synthesis using LLM, falling back to rule-based on failure."""
+    """Generate a structured research synthesis via multi-step reasoning.
+
+    Step A: Extract per-paper claims from evidence.
+    Step B: Cross-paper consistency check (aligned/contradictory/unique).
+    Step C: Weighted LLM synthesis with claim-level sourceId citations.
+
+    Falls back to rule-based on any LLM failure.
+    """
     try:
         from llm.client import get_llm
 
+        # Step A+B: Claim extraction and cross-paper consistency
+        claims_by_paper = extract_claims_per_paper(paper_contexts, evidence_items)
+        consistency = cross_paper_consistency_check(claims_by_paper, evidence_items)
+
         evidence_summary = "\n".join(
-            f"- [{item.get('sourceType', 'unknown')}] {clean_text(item.get('text', item.get('title', '')))[:300]}"
+            f"- [{item.get('sourceType', 'unknown')}] src:{clean_text(str(item.get('sourceId', '')), 20)} "
+            f"{clean_text(item.get('text', item.get('title', '')))[:300]}"
             for item in evidence_items[:10]
         )
         conflict_summary = "\n".join(
@@ -1367,15 +1531,17 @@ def synthesize_llm_report(
         )
 
         synthesis_prompt = (
-            "You are a senior research synthesizer. Based on the evidence collected across multiple papers, "
-            "produce a structured research synthesis in Markdown with these sections:\n\n"
-            "## Executive Summary\nA 2-3 sentence overview of the key findings.\n\n"
-            "## Cross-Paper Synthesis\nIdentify 2-4 common themes, patterns, or contradictions across the papers. "
-            "For each theme, cite which papers support it.\n\n"
-            "## Evidence Strength Assessment\nRate the overall evidence quality (strong/moderate/limited) "
-            "and explain why. Note any gaps.\n\n"
-            "## Key Insights\n3-5 actionable insights or conclusions that emerge from the synthesis.\n\n"
-            "## Recommendations for Further Research\n2-3 specific directions for follow-up work.\n\n"
+            "You are a senior research synthesizer. Use the structured claim analysis "
+            "to produce a research synthesis in Markdown.\n\n"
+            "## Executive Summary\n2-3 sentence overview citing key sourceIds.\n\n"
+            "## Per-Paper Claims\nFor each paper, list its key claims with sourceIds.\n\n"
+            "## Cross-Paper Consistency\n"
+            f"Aligned claims (same finding across papers): {consistency['summary'][:300]}\n"
+            "Identify the 2-3 most important agreements and 2-3 most important contradictions.\n"
+            "Cite specific evidence sourceIds for each claim.\n\n"
+            "## Evidence Strength Assessment\nRate overall quality and explain gaps.\n\n"
+            "## Key Insights\n3-5 actionable insights from the synthesis.\n\n"
+            "## Recommendations for Further Research\n2-3 specific directions.\n\n"
             f"Research Question: {prompt}\n\n"
             f"Evidence ({len(evidence_items)} items):\n{evidence_summary}\n\n"
             f"Conflicts:\n{conflict_summary}\n\n"
@@ -1389,7 +1555,7 @@ def synthesize_llm_report(
     except Exception:
         pass
 
-    # Fallback: build a rule-based synthesis that's still informative
+    # Fallback: build a rule-based synthesis
     profiles = build_paper_support_profiles(paper_contexts, evidence_items)
     strongest = [p for p in profiles if p["evidenceCount"] >= 2]
     themes = extract_common_themes(profiles)
