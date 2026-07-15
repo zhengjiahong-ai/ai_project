@@ -1620,6 +1620,53 @@ def execute_run(
         paper_contexts,
         evidence_items,
     )
+
+    # ── Multi-round follow-up ────────────────────────────────────────────
+    MAX_FOLLOW_UP_ROUNDS = 2
+    follow_up_round = 0
+    while follow_up_round < MAX_FOLLOW_UP_ROUNDS and _should_follow_up(open_questions, evidence_items):
+        follow_up_round += 1
+        refined_queries = _build_follow_up_queries(prompt, open_questions, paper_contexts)
+        if not refined_queries:
+            break
+
+        research_timeline.append(_timeline_step(
+            "search",
+            f"补充检索第 {follow_up_round} 轮",
+            f"基于 {len(open_questions)} 个证据缺口发起定向补充检索",
+        ))
+
+        # Re-collect with refined queries targeting sparse papers
+        try:
+            fu_contexts, fu_tool_calls, fu_evidence, fu_timeline = collect_project_evidence(
+                prompt,
+                paper_ids,
+                allow_external_search=allow_external_search,
+                allow_web_search=allow_web_search,
+                allow_iterative_search=allow_iterative_search,
+                domain_config=domain_config,
+            )
+            # Merge new evidence
+            evidence_items = _merge_evidence(evidence_items, fu_evidence)
+            tool_calls.extend(fu_tool_calls or [])
+            research_timeline.extend(fu_timeline or [])
+        except Exception:
+            break
+
+        # Re-build outputs with expanded evidence
+        finding, comparison_table, conflicts, open_questions = build_agent_outputs(
+            prompt,
+            paper_contexts,
+            evidence_items,
+        )
+
+        research_timeline.append(_timeline_step(
+            "search",
+            f"补充检索第 {follow_up_round} 轮完成",
+            f"证据项增至 {len(evidence_items)} 条",
+        ))
+    # ── End follow-up ─────────────────────────────────────────────────────
+
     advanced_analysis = run_advanced_analysis(
         prompt=prompt,
         paper_ids=paper_ids,
@@ -1685,3 +1732,52 @@ def _timeline_step(
 
 def _plan_item(item_id: str, label: str, detail: str, status: str) -> Dict[str, Any]:
     return {"id": item_id, "label": label, "detail": detail, "status": status}
+
+
+def _should_follow_up(open_questions: List[str], evidence_items: List[Dict[str, Any]]) -> bool:
+    """Decide whether another follow-up round is warranted.
+
+    Follow-up is triggered when open_questions indicate evidence gaps
+    and there are fewer than 12 evidence items (to avoid over-collection).
+    """
+    if not open_questions:
+        return False
+    gap_signals = [
+        q for q in open_questions
+        if any(kw in str(q).lower() for kw in ("need", "gap", "sparse", "missing", "cover"))
+    ]
+    return len(gap_signals) > 0 and len(evidence_items) < 12
+
+
+def _build_follow_up_queries(
+    prompt: str,
+    open_questions: List[str],
+    paper_contexts: List[Dict[str, Any]],
+) -> List[str]:
+    """Build refined queries for supplementary evidence retrieval."""
+    sparse_pdfs = [
+        clean_text(ctx.get("pdfId", ""))
+        for ctx in paper_contexts
+        if int(ctx.get("evidenceCount", 0)) <= 1
+    ]
+    queries = []
+    for pdf_id in sparse_pdfs[:3]:
+        for q in open_questions[:2]:
+            query = f"{prompt[:80]} evidence gap for {pdf_id}: {q[:120]}"
+            queries.append(query[:256])
+    return queries[:5]
+
+
+def _merge_evidence(
+    existing: List[Dict[str, Any]],
+    new_items: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Merge new evidence items into existing, deduplicating by sourceId."""
+    seen = {str(item.get("sourceId", "")) for item in existing if item.get("sourceId")}
+    merged = list(existing)
+    for item in new_items or []:
+        sid = str(item.get("sourceId", ""))
+        if sid and sid not in seen:
+            seen.add(sid)
+            merged.append(item)
+    return merged
