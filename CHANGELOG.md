@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-15 v0.6.2
+
+1. **修复 Java 网关 GET 请求 query 参数丢失**：`forwardResearchTask`、`forwardAgentRequest`、`forwardReadOnlyTrace` 三个转发方法从 `RestTemplate.exchange(String url)` 改为 `exchange(URI)`，解决 `/research-tasks/latest?pdfId=...` 等带查询参数接口参数无法传递到 Python 服务的问题。
+2. **Java 网关新增连接失败保护**：Python 服务不可达时返回 502 Bad Gateway 及明确错误信息，不再返回 500。
+
 ### 2026-07-14 v0.6.1
 
 1. **补齐阶段四/五/六缺口**：将 research_dialogue、research_monitor、reproducibility_checker 三个未注册模块注册到 ToolRegistry，工具数 31 → 39。

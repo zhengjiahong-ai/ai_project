@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.net.URI;
 import java.net.URLEncoder;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -419,27 +422,37 @@ public class AiService {
             HttpMethod method,
             String path,
             Map<String, Object> payload) {
-        String url = PYTHON_SERVICE_URL + path;
+        URI uri = UriComponentsBuilder.fromUriString(PYTHON_SERVICE_URL + path).build(true).toUri();
         HttpEntity<?> entity = payload == null ? HttpEntity.EMPTY : new HttpEntity<>(payload);
 
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(url, method, entity, Map.class);
+            ResponseEntity<Map> response = restTemplate.exchange(uri, method, entity, Map.class);
             return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
         } catch (HttpStatusCodeException error) {
             return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));
+        } catch (ResourceAccessException error) {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("status", "error");
+            body.put("message", "Python AI service is unreachable. Please try again.");
+            return ResponseEntity.status(502).body(body);
         }
     }
 
     private ResponseEntity<Map<String, Object>> forwardReadOnlyTrace(
             HttpMethod method,
             String path) {
-        String url = PYTHON_SERVICE_URL + path;
+        URI uri = UriComponentsBuilder.fromUriString(PYTHON_SERVICE_URL + path).build(true).toUri();
 
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(url, method, HttpEntity.EMPTY, Map.class);
+            ResponseEntity<Map> response = restTemplate.exchange(uri, method, HttpEntity.EMPTY, Map.class);
             return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
         } catch (HttpStatusCodeException error) {
             return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));
+        } catch (ResourceAccessException error) {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("status", "error");
+            body.put("message", "Python AI service is unreachable. Please try again.");
+            return ResponseEntity.status(502).body(body);
         }
     }
 
@@ -447,14 +460,19 @@ public class AiService {
             HttpMethod method,
             String path,
             Map<String, Object> payload) {
-        String url = PYTHON_SERVICE_URL + path;
+        URI uri = UriComponentsBuilder.fromUriString(PYTHON_SERVICE_URL + path).build(true).toUri();
         HttpEntity<?> entity = payload == null ? HttpEntity.EMPTY : new HttpEntity<>(payload);
 
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(url, method, entity, Map.class);
+            ResponseEntity<Map> response = restTemplate.exchange(uri, method, entity, Map.class);
             return ResponseEntity.status(response.getStatusCode()).body(normalizeResearchTaskBody(response.getBody()));
         } catch (HttpStatusCodeException error) {
             return ResponseEntity.status(error.getStatusCode()).body(parsePythonErrorBody(error));
+        } catch (ResourceAccessException error) {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("status", "error");
+            body.put("message", "Python AI service is unreachable. Please try again.");
+            return ResponseEntity.status(502).body(body);
         }
     }
 
