@@ -269,4 +269,41 @@ public class AcademicController {
     public ResponseEntity<Map<String, Object>> getAgentTrace(@PathVariable String traceId) {
         return aiService.getAgentTrace(traceId);
     }
+
+    @PostMapping("/generate-paper-draft")
+    public ResponseEntity<Map<String, Object>> generatePaperDraft(@RequestBody Map<String, Object> request) {
+        return aiService.generatePaperDraft(request);
+    }
+
+    @PostMapping("/agent-runs/{runId}/clarification")
+    public ResponseEntity<Map<String, Object>> answerAgentClarification(
+            @PathVariable String runId,
+            @RequestBody Map<String, Object> request) {
+        return aiService.answerAgentClarification(runId, request);
+    }
+
+    @PostMapping("/research-monitors")
+    public ResponseEntity<Map<String, Object>> createResearchMonitor(@RequestBody Map<String, Object> request) {
+        return aiService.createResearchMonitor(request);
+    }
+
+    @GetMapping("/research-monitors")
+    public ResponseEntity<Map<String, Object>> listResearchMonitors() {
+        return aiService.listResearchMonitors();
+    }
+
+    @GetMapping("/research-monitors/{monitorId}/check")
+    public ResponseEntity<Map<String, Object>> checkResearchMonitor(@PathVariable String monitorId) {
+        return aiService.checkResearchMonitor(monitorId);
+    }
+
+    @GetMapping("/research-monitors/{monitorId}/digest")
+    public ResponseEntity<Map<String, Object>> getResearchMonitorDigest(@PathVariable String monitorId) {
+        return aiService.getResearchMonitorDigest(monitorId);
+    }
+
+    @DeleteMapping("/research-monitors/{monitorId}")
+    public ResponseEntity<Map<String, Object>> deactivateResearchMonitor(@PathVariable String monitorId) {
+        return aiService.deactivateResearchMonitor(monitorId);
+    }
 }

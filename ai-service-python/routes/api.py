@@ -67,6 +67,8 @@ from schemas.requests import (
     CodePublicationReviewRequest,
     DeepAnalysisRequest,
     PageTranslationRequest,
+    PaperDraftRequest,
+    ResearchMonitorCreateRequest,
     ResearchTaskBriefPreviewRequest,
     ResearchTaskCreateRequest,
     ResearchFinalReviewRequest,
@@ -582,15 +584,33 @@ async def deep_analysis(request: Annotated[DeepAnalysisRequest | str, Body(...)]
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
 
+# ── Paper Draft API ──────────────────────────────────────────────────────
+
+@router.post("/generate-paper-draft")
+async def generate_paper_draft(request: PaperDraftRequest):
+    try:
+        from services.paper_writer import generate_paper_draft
+        result = generate_paper_draft(
+            question=request.question,
+            findings=request.findings or [],
+            evidence_items=request.evidenceItems or [],
+            conflicts=request.conflicts or [],
+            title=request.title or "",
+        )
+        return JSONResponse(result)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
 # ── Research Monitor API ──────────────────────────────────────────────────
 
 @router.post("/research-monitors")
-async def create_monitor_route(request: dict):
+async def create_monitor_route(request: ResearchMonitorCreateRequest):
     try:
         return JSONResponse(research_monitor.create_monitor(
-            question=request.get("question", ""),
-            sources=request.get("sources", ["arxiv"]),
-            frequency=request.get("frequency", "manual"),
+            question=request.question,
+            sources=request.sources or ["arxiv"],
+            frequency=request.frequency or "manual",
         ))
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)

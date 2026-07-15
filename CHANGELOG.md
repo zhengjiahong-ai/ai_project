@@ -2,6 +2,15 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-15 v0.6.3
+
+1. **补全论文写作 API 路由**：新增 `POST /api/generate-paper-draft` Python 端点与 Java 网关转发，前端 PaperWriterPanel 端到端可用；新增 `PaperDraftRequest` Pydantic 模型。
+2. **Java 网关同步新端点**：补齐 `POST /api/generate-paper-draft`、`POST /api/agent-runs/{runId}/clarification`、`POST/GET/DELETE /api/research-monitors/*` 共 7 个 Agent 端点转发。
+3. **Agent 编排接入高级分析工具**：`agent_orchestrator.py` 新增 `run_advanced_analysis()` 函数，在证据收集后自动运行对抗性审查、假设生成与验证、元分析、冲突裁决和跨语言搜索；前端 `agentWorkspaceModel.js` 同步支持 `advancedAnalysis` 字段。
+4. **统一 Research Monitor 路由参数**：`POST /api/research-monitors` 改用 `ResearchMonitorCreateRequest` Pydantic 模型，与其他接口风格保持一致。
+5. **修复 ARCHITECTURE.md 过时已知问题**：移除已解决的 `rehype-katex` 构建失败条目，前端生产构建验证通过。
+6. **新增测试覆盖**：新增 `test_paper_writer.py`（10 个测试）和 `test_agent_orchestrator_advanced.py`（12 个测试），覆盖论文写作和高级分析集成。
+
 ### 2026-07-15 v0.6.2
 
 1. **修复 Java 网关 GET 请求 query 参数丢失**：`forwardResearchTask`、`forwardAgentRequest`、`forwardReadOnlyTrace` 三个转发方法从 `RestTemplate.exchange(String url)` 改为 `exchange(URI)`，解决 `/research-tasks/latest?pdfId=...` 等带查询参数接口参数无法传递到 Python 服务的问题。

@@ -481,6 +481,38 @@ public class AiService {
         return forwardAgentRequest(method, path, payload);
     }
 
+    public ResponseEntity<Map<String, Object>> generatePaperDraft(Map<String, Object> request) {
+        return forwardAgentRequest(HttpMethod.POST, "/generate-paper-draft", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> answerAgentClarification(String runId, Map<String, Object> request) {
+        String encodedRunId = URLEncoder.encode(String.valueOf(runId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.POST, "/agent-runs/" + encodedRunId + "/clarification", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> createResearchMonitor(Map<String, Object> request) {
+        return forwardAgentRequest(HttpMethod.POST, "/research-monitors", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> listResearchMonitors() {
+        return forwardAgentRequest(HttpMethod.GET, "/research-monitors", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> checkResearchMonitor(String monitorId) {
+        String encodedMonitorId = URLEncoder.encode(String.valueOf(monitorId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/research-monitors/" + encodedMonitorId + "/check", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> getResearchMonitorDigest(String monitorId) {
+        String encodedMonitorId = URLEncoder.encode(String.valueOf(monitorId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.GET, "/research-monitors/" + encodedMonitorId + "/digest", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> deactivateResearchMonitor(String monitorId) {
+        String encodedMonitorId = URLEncoder.encode(String.valueOf(monitorId), StandardCharsets.UTF_8).replace("+", "%20");
+        return forwardAgentRequest(HttpMethod.DELETE, "/research-monitors/" + encodedMonitorId, null);
+    }
+
     private String encode(String value) {
         return URLEncoder.encode(String.valueOf(value), StandardCharsets.UTF_8).replace("+", "%20");
     }

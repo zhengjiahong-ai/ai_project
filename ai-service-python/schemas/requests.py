@@ -201,3 +201,18 @@ class CodePublicationReviewRequest(BaseModel):
     decision: Literal["approved", "rejected"]
     expectedPublicationDigest: str = Field(pattern=r"^[0-9a-f]{64}$")
     reason: Optional[str] = Field(default=None, max_length=500)
+
+
+class PaperDraftRequest(BaseModel):
+    question: str
+    title: Optional[str] = ""
+    findings: Optional[List[Dict[str, Any]]] = None
+    evidenceItems: Optional[List[Dict[str, Any]]] = None
+    conflicts: Optional[List[Dict[str, Any]]] = None
+    sourceIds: Optional[List[str]] = None
+
+
+class ResearchMonitorCreateRequest(BaseModel):
+    question: str
+    sources: Optional[List[str]] = Field(default=["arxiv"])
+    frequency: Optional[str] = Field(default="manual")
