@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-15 v0.6.7
+
+1. **LLM 驱动查询改写**：新增 `build_llm_academic_queries()` 函数，Agent 外部学术检索和 Web 搜索查询生成优先使用 LLM flash 模型，失败降级为规则型；`agent_orchestrator.py` 的查询构建函数同步接入。
+2. **跨论文知识图谱关联**：新增 `include_library_papers` 可选字段（默认关闭），授权后通过知识图谱邻域查询引入论文库其他论文的概念和关系；新增 `library_paper_supported` 来源类型（置信度上限 0.70）；前端添加"包含论文库关联概念"复选框。
+3. **前端 TypeScript 迁移**：`api.ts`、`agentWorkspaceModel.ts`、`paperWriterModel.ts` 三个核心模块转为 TypeScript，新增类型定义（ApiService、AgentProject、AgentTask、AgentRun、PaperWriterState 等）；新增 `tsconfig.json` 和 `typecheck` 脚本。
+
 ### 2026-07-15 v0.6.6
 
 1. **Semantic Scholar Benchmark API Key 支持**：`provider_benchmark.py` 新增 `--ss-api-key` CLI 参数和 `SEMANTIC_SCHOLAR_API_KEY` 环境变量支持；`_request_spec` 和 `fetch_provider_case` 传递 API Key header；snapshot 记录认证模式；更新 `p6_provider_selection.md` 选型文档。
