@@ -36,6 +36,9 @@ from services.safety_service import (
 from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
 from services.utils import parse_json_from_llm
 
+import logging
+_logger = logging.getLogger(__name__)
+
 
 _grobid_client = None
 ANALYSIS_CHUNK_SIZE = 1200
@@ -188,12 +191,12 @@ def get_grobid_client():
 
 
 def startup_warmup() -> None:
-    print("Starting AI service warmup...")
+    _logger.info("Starting AI service warmup...")
     try:
         preload_rag()
-        print("RAG backend is ready.")
+        _logger.info("RAG backend is ready.")
     except Exception as error:
-        print(f"RAG warmup skipped: {error}")
+        _logger.info(f"RAG warmup skipped: {error}")
 
 
 def _extract_title(parsed_sections: list[dict], fallback_name: str) -> str:
@@ -272,7 +275,7 @@ def _extract_pdf_text_stats(file_path: str) -> Dict[str, int]:
         try:
             extracted_text.append(page.extract_text() or "")
         except Exception as error:
-            print(f"PDF text extraction skipped one page: {error}")
+            _logger.error(f"PDF text extraction skipped one page: {error}")
     return {
         "pageCount": len(reader.pages),
         "textCharCount": _count_non_whitespace_characters("\n".join(extracted_text)),
@@ -376,7 +379,7 @@ async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
         try:
             section_outline = build_document_outline(tei_file, file_path)
         except Exception as error:
-            print(f"outline extraction failed, falling back to parsed sections: {error}")
+            _logger.error(f"outline extraction failed, falling back to parsed sections: {error}")
             outline_version = "legacy-fallback"
             section_outline = _build_section_outline(parsed_sections)
 
@@ -452,7 +455,7 @@ Paper context:
                 paper_structure["outlineVersion"] = outline_version
                 paper_structure["sections"] = section_outline
             except Exception as error:
-                print(f"paper_structure generation failed: {error}")
+                _logger.error(f"paper_structure generation failed: {error}")
                 paper_structure = {
                     "error": "structure_parse_failed",
                     "raw": str(error)[:500],
@@ -488,7 +491,7 @@ Paper context:
                 file_path,
                 {"id": clean_pdf_id, "title": title},
             )
-            print(f"Indexed paper {title} ({clean_pdf_id}) into RAG with {rag_chunk_count} chunks.")
+            _logger.info(f"Indexed paper {title} ({clean_pdf_id}) into RAG with {rag_chunk_count} chunks.")
             if rag_chunk_count <= 0:
                 rag_indexed = False
                 rag_error_code = PAPER_NOT_INDEXED_ERROR_CODE
@@ -500,7 +503,7 @@ Paper context:
                     rag_error_code = PAPER_NOT_INDEXED_ERROR_CODE
                     rag_message = "论文正文索引写入后校验未命中，批判阅读暂不可用。请重新上传或重新解析后再试。"
         except Exception as error:
-            print(f"RAG indexing failed: {error}")
+            _logger.error(f"RAG indexing failed: {error}")
             rag_indexed = False
             rag_error_code = RAG_INDEX_UNAVAILABLE_ERROR_CODE
             rag_message = f"{RAG_INDEX_UNAVAILABLE_MESSAGE}（{error}）"
@@ -1394,7 +1397,7 @@ def _build_claim_support_items(
     try:
         claim_candidates = _extract_claims_with_llm(report, axis_results) if use_llm else []
     except Exception as error:
-        print(f"claim extraction fell back to heuristic claims: {error}")
+        _logger.error(f"claim extraction fell back to heuristic claims: {error}")
         claim_candidates = []
 
     if not claim_candidates:
@@ -1649,7 +1652,7 @@ JSON 格式：
         try:
             return _normalize_report_payload(parse_json_from_llm(raw), axis_results)
         except Exception as error:
-            print(f"structured deep analysis fell back to heuristic report: {error}")
+            _logger.error(f"structured deep analysis fell back to heuristic report: {error}")
             return _normalize_report_payload({}, axis_results)
 
 

@@ -13,6 +13,9 @@ from services.safety_service import build_guarded_messages, summarize_safety_res
 from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
 from services.utils import parse_json_from_llm
 
+import logging
+_logger = logging.getLogger(__name__)
+
 
 DEFAULT_USER_LEVEL = "一般"
 DEFAULT_PREFERRED_DEPTH = "标准"
@@ -173,7 +176,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
                 )
                 step["outputSize"] = len((payload.get("graph") or {}).get("nodes") or [])
         except Exception as error:
-            print(f"background knowledge graph generation fell back to linear plan: {error}")
+            _logger.error(f"background knowledge graph generation fell back to linear plan: {error}")
             payload = _fallback_payload(
                 paper_topic=paper_topic,
                 reader_profile=reader_profile,
@@ -244,7 +247,7 @@ def _load_current_paper_context(request: BackgroundKnowledgeRequest, normalized_
                 if document_text.strip():
                     parts.append(f"Current indexed paper excerpts:\n{document_text[:9000]}")
             except Exception as error:
-                print(f"background knowledge current-paper retrieval skipped: {error}")
+                _logger.error(f"background knowledge current-paper retrieval skipped: {error}")
 
         context = "\n\n".join(part for part in parts if part.strip())[:12000]
         step["outputSize"] = len(context)
@@ -290,7 +293,7 @@ def _retrieve_related_sources(query_plan: Dict[str, Any], normalized_pdf_id: Opt
                 step["outputSize"] = len(results or [])
                 return results
         except Exception as error:
-            print(f"background knowledge filtered retrieval skipped: {error}")
+            _logger.error(f"background knowledge filtered retrieval skipped: {error}")
 
     return []
 
@@ -896,7 +899,7 @@ Return a short ordered list, one item per line.
         raw = get_llm()._call(fallback_prompt)
         background = _parse_line_items(raw)
     except Exception as fallback_error:
-        print(f"background knowledge fallback LLM failed: {fallback_error}")
+        _logger.error(f"background knowledge fallback LLM failed: {fallback_error}")
         background = [paper_topic, "核心术语", "方法基础", "实验或评估逻辑"]
 
     payload = _normalize_payload(

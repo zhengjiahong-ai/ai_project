@@ -11,6 +11,9 @@ from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, Optional
 
+import logging
+_logger = logging.getLogger(__name__)
+
 
 _TRACE_LOCK = threading.RLock()
 _TRACE_STORE: Dict[str, Dict[str, Any]] = {}
@@ -240,7 +243,7 @@ def finalize_trace(
 
         snapshot = copy.deepcopy(trace)
 
-    print(f"[trace] {json.dumps(snapshot, ensure_ascii=False)}")
+    _logger.info(f"[trace] {json.dumps(snapshot, ensure_ascii=False)}")
     _CURRENT_TRACE_ID.set(None)
     return snapshot
 

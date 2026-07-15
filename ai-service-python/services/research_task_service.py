@@ -39,6 +39,9 @@ from services.trace_service import (
 from services.tool_registry import get_tool_registry
 from services.utils import parse_json_from_llm
 
+import logging
+_logger = logging.getLogger(__name__)
+
 
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled"}
 PLANNING_STAGE = "planning"
@@ -146,7 +149,7 @@ def preview_research_brief(request: ResearchTaskBriefPreviewRequest) -> Dict[str
         try:
             documents, normalized_pdf_id = _load_current_paper_documents(pdf_id)
         except Exception as error:
-            print(f"research brief preview could not load current paper evidence: {error}")
+            _logger.error(f"research brief preview could not load current paper evidence: {error}")
             documents, normalized_pdf_id = [], pdf_id
         preview = _build_research_brief_preview(
             question=question,
@@ -739,7 +742,7 @@ Current paper evidence:
             step["outputSize"] = len(sub_questions)
             return brief, sub_questions
         except Exception as error:
-            print(f"research task planner fell back to heuristic plan: {error}")
+            _logger.error(f"research task planner fell back to heuristic plan: {error}")
             step["outputSize"] = len(fallback_sub_questions)
             return _clean_text(brief_override) or fallback_brief, fallback_sub_questions
 
@@ -843,7 +846,7 @@ Current paper evidence:
         )
         return normalized
     except Exception as error:
-        print(f"research brief preview fell back to heuristic preview: {error}")
+        _logger.error(f"research brief preview fell back to heuristic preview: {error}")
         return fallback
 
 

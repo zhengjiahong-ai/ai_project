@@ -1,8 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from core.logging_config import configure_logging
 from routes.api import router as api_router
 from services.analysis_service import startup_warmup
+
+configure_logging()
+
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
@@ -20,6 +27,7 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def startup_event() -> None:
+        _logger.info("Application startup: running warmup...")
         startup_warmup()
         try:
             from services.monitor_scheduler import start_scheduler

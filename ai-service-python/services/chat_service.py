@@ -28,6 +28,9 @@ from services.safety_service import (
     summarize_safety_results,
     wrap_untrusted_context,
 )
+import logging
+_logger = logging.getLogger(__name__)
+
 from services.trace_service import (
     finalize_trace,
     record_counter,
@@ -223,7 +226,7 @@ def _retrieve_current_paper_evidence(
             step["outputSize"] = len(normalized)
             return normalized
     except Exception as error:
-        print(f"PDF RAG retrieval failed: {error}")
+        _logger.error(f"PDF RAG retrieval failed: {error}")
         return []
 
 
@@ -797,7 +800,7 @@ def _call_json_llm(prompt: str, fallback: Dict[str, Any]) -> Dict[str, Any]:
         raw_text = get_llm()._call(prompt)
         return _extract_json_payload(raw_text)
     except Exception as error:
-        print(f"Structured Socratic generation failed: {error}")
+        _logger.error(f"Structured Socratic generation failed: {error}")
         return fallback
 
 

@@ -10,6 +10,9 @@ from bs4 import BeautifulSoup
 
 from core.document_parser import _collect_element_coords, _union_boxes
 
+import logging
+_logger = logging.getLogger(__name__)
+
 try:
     from PyPDF2 import PdfReader
 except Exception:  # pragma: no cover - import availability depends on runtime image
@@ -272,7 +275,7 @@ def _extract_pdf_heading_candidates(pdf_path: str, order_offset: int) -> list[Ou
     try:
         lines = _extract_pdf_text_lines(pdf_path)
     except Exception as error:
-        print(f"pdf outline line extraction skipped: {error}")
+        _logger.error(f"pdf outline line extraction skipped: {error}")
         return []
 
     return _build_pdf_heading_candidates(lines, order_offset)
