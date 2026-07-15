@@ -66,6 +66,108 @@ def build_external_academic_queries(
     return queries
 
 
+def build_llm_academic_queries(
+    research_question: Any,
+    evidence_gaps: Any,
+    *,
+    temperature: float = 0.3,
+    max_queries: int = 3,
+) -> List[str]:
+    """Use LLM (flash model) to generate precise academic search queries.
+
+    Given a research question and evidence gaps (missing aspects), the LLM
+    generates 1-3 precise academic queries with keywords and expected source
+    types. On any failure, falls back to the deterministic
+    build_external_academic_queries().
+
+    Args:
+        research_question: The main research question.
+        evidence_gaps: List of missing aspects / knowledge gaps.
+        temperature: LLM temperature (default 0.3).
+        max_queries: Maximum number of queries to return (1-5).
+
+    Returns:
+        List of deduplicated, sanitized queries, each ≤256 chars.
+    """
+    normalized_question = sanitize_external_academic_query_text(
+        research_question,
+        max_chars=_RESEARCH_QUESTION_CHARS,
+    )
+    gap_items = _normalize_items(evidence_gaps, _MISSING_ASPECT_CHARS) if evidence_gaps else []
+
+    prompt = (
+        "You are a research query optimizer for academic paper search. "
+        "Given a research question and evidence gaps, generate precise "
+        "academic search queries.\n\n"
+        f"Research question: {normalized_question[:96]}\n\n"
+        f"Evidence gaps to fill:\n"
+        + "\n".join(f"- {g}" for g in (gap_items or ["general search"]))
+        + "\n\n"
+        "Instructions:\n"
+        f"- Generate 1-{max_queries} queries, one per line\n"
+        "- Each query should combine key terminology with expected source type\n"
+        "- Prioritize academic terms and precise keyword combinations\n"
+        "- Each query must be ≤250 characters\n"
+        "- Focus on filling the specific knowledge gaps\n"
+        "- Do not include URLs or special characters\n"
+        "- Output only the queries, no numbering or explanation"
+    )
+
+    raw_output = ""
+    try:
+        from llm.client import DeepSeekLLM
+        llm = DeepSeekLLM(model="deepseek-v4-flash", temperature=temperature)
+        raw_output = llm._call(prompt)
+    except Exception:
+        return build_external_academic_queries(
+            research_question=research_question,
+            planner_sub_questions=None,
+            missing_aspects=evidence_gaps,
+        )
+
+    if not raw_output or not raw_output.strip():
+        return build_external_academic_queries(
+            research_question=research_question,
+            planner_sub_questions=None,
+            missing_aspects=evidence_gaps,
+        )
+
+    queries: List[str] = []
+    seen: set = set()
+    for line in raw_output.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        # Strip leading numbering like "1.", "1)", "-", "*"
+        while line and (line[0].isdigit() or line[0] in ".-*#) "):
+            if line[0] in ".) ":
+                line = line[1:].strip()
+                break
+            line = line[1:].strip()
+        if not line:
+            continue
+
+        query = sanitize_external_academic_query_text(line, max_chars=MAX_EXTERNAL_QUERY_CHARS)
+        if not query:
+            continue
+        key = query.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        queries.append(query)
+        if len(queries) >= max_queries:
+            break
+
+    if not queries:
+        return build_external_academic_queries(
+            research_question=research_question,
+            planner_sub_questions=None,
+            missing_aspects=evidence_gaps,
+        )
+
+    return queries
+
+
 def _normalize_items(value: Any, max_chars: int) -> List[str]:
     if isinstance(value, str):
         items: Iterable[Any] = [value]

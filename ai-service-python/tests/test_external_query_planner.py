@@ -111,7 +111,7 @@ class ExternalQueryPlannerTests(unittest.TestCase):
 
         self.assertEqual(
             list(inspect.signature(build_external_academic_queries).parameters),
-            ["research_question", "planner_sub_questions", "missing_aspects"],
+            ["research_question", "planner_sub_questions", "missing_aspects", "search_keywords"],
         )
         with patch("builtins.open", side_effect=AssertionError("filesystem access")), patch(
             "socket.create_connection", side_effect=AssertionError("network access")
@@ -214,6 +214,68 @@ class RefineSearchQueriesTests(unittest.TestCase):
         for q in result:
             self.assertLessEqual(len(q), 300)
             self.assertGreater(len(q), 0)
+
+
+class LlmAcademicQueriesTests(unittest.TestCase):
+    def test_llm_academic_falls_back_when_llm_unavailable(self):
+        from services.external_query_planner import build_llm_academic_queries
+
+        # Without a real LLM backend, should fall back to rule-based queries
+        result = build_llm_academic_queries(
+            research_question="graph neural networks for molecular property prediction",
+            evidence_gaps=["scalability to large graphs", "comparison with traditional fingerprints"],
+        )
+        self.assertGreaterEqual(len(result), 1)
+        self.assertLessEqual(len(result), 3)
+        for q in result:
+            self.assertLessEqual(len(q), 256)
+            self.assertGreater(len(q), 0)
+
+    def test_llm_academic_empty_gaps_returns_queries(self):
+        from services.external_query_planner import build_llm_academic_queries
+
+        # Even without explicit gaps, should fall back and produce queries
+        result = build_llm_academic_queries(
+            research_question="transformer attention mechanisms",
+            evidence_gaps=[],
+        )
+        self.assertGreaterEqual(len(result), 1)
+        for q in result:
+            self.assertLessEqual(len(q), 256)
+
+    def test_llm_academic_deduplicates_queries(self):
+        from services.external_query_planner import build_llm_academic_queries
+
+        result = build_llm_academic_queries(
+            research_question="deep learning optimization",
+            evidence_gaps=["gradient descent", "gradient descent", "learning rate"],
+        )
+        # Deduplication ensures unique queries
+        deduped = list(dict.fromkeys(q.casefold() for q in result))
+        self.assertEqual(len(result), len(deduped))
+
+    def test_llm_academic_respects_max_queries(self):
+        from services.external_query_planner import build_llm_academic_queries
+
+        result = build_llm_academic_queries(
+            research_question="reinforcement learning",
+            evidence_gaps=["exploration strategies", "reward shaping", "policy gradients", "value functions"],
+            max_queries=2,
+        )
+        self.assertLessEqual(len(result), 2)
+
+    def test_llm_academic_query_length_under_max_chars(self):
+        from services.external_query_planner import (
+            MAX_EXTERNAL_QUERY_CHARS,
+            build_llm_academic_queries,
+        )
+
+        result = build_llm_academic_queries(
+            research_question="A" * 500,
+            evidence_gaps=["B" * 500, "C" * 500],
+        )
+        for q in result:
+            self.assertLessEqual(len(q), MAX_EXTERNAL_QUERY_CHARS)
 
 
 if __name__ == "__main__":

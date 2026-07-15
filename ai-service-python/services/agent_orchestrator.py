@@ -129,6 +129,18 @@ def build_external_search_queries(
         pdf_id = clean_text(item.get("pdfId")) or "unknown-paper"
         missing_aspects.append(f"evidence gap for {pdf_id}")
 
+    # Try LLM-driven query generation first; fall back to rule-based
+    try:
+        from services.external_query_planner import build_llm_academic_queries
+        llm_queries = build_llm_academic_queries(
+            research_question=prompt,
+            evidence_gaps=missing_aspects,
+        )
+        if llm_queries:
+            return llm_queries
+    except Exception:
+        pass
+
     sub_questions = []
     seen_ids = set()
     for item in paper_contexts:
@@ -225,6 +237,7 @@ def build_web_search_queries_agent(
     paper_contexts: List[Dict[str, Any]],
 ) -> List[str]:
     from services.external_query_planner import build_web_search_queries as _build_web_search_queries
+    from services.external_query_planner import refine_search_queries
 
     sparse_papers = [
         item for item in paper_contexts
@@ -237,6 +250,18 @@ def build_web_search_queries_agent(
     for item in sparse_papers:
         pdf_id = clean_text(item.get("pdfId")) or "unknown-paper"
         missing_aspects.append(f"supplementary evidence for {pdf_id}")
+
+    # Try LLM-driven query refinement first; fall back to rule-based
+    try:
+        llm_queries = refine_search_queries(
+            research_question=prompt,
+            previous_results=[],
+            missing_aspects=missing_aspects,
+        )
+        if llm_queries:
+            return llm_queries
+    except Exception:
+        pass
 
     return _build_web_search_queries(
         research_question=prompt,
