@@ -13,11 +13,27 @@ export default defineConfig(({ command }) => ({
   },
   server: {
     watch: {
-      usePolling: true, // 强制使用轮询，解决 Windows 上 Docker 挂载目录热更新失效的问题
+      usePolling: true,
     },
     host: true,
   },
   optimizeDeps: {
     include: ['react-resizable-panels'],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-is'],
+          'vendor-pdf': ['pdfjs-dist'],
+          'vendor-pdf-viewer': ['@react-pdf-viewer/core', '@react-pdf-viewer/highlight'],
+          'vendor-charts': ['recharts'],
+          'vendor-graph': ['react-force-graph-2d'],
+          'vendor-markdown': ['react-markdown', 'remark-math', 'rehype-katex', 'katex'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-data': ['axios', 'idb'],
+        },
+      },
+    },
   },
 }))
