@@ -16,6 +16,7 @@ __pycache__/
 .env
 .pytest_cache/
 ai-service-python/tmp*/
+ai-service-python/data/
 ai-service-python/models/* # 建议模型手动下载，不进 Git
 
 # Docker
@@ -66,6 +67,8 @@ ai-service-python/core/chroma_literature_db/
 !/ai-service-python/tests/test_code_execution_audit.py
 !/ai-service-python/tests/test_code_worker.py
 !/ai-service-python/tests/test_reproducibility_checker.py
+!/ai-service-python/tests/test_paper_writer.py
+!/ai-service-python/tests/test_agent_orchestrator_advanced.py
 !/ai-service-python/tests/fixtures/
 !/ai-service-python/tests/fixtures/llm_responses.json
 node_modules/
