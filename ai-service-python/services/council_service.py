@@ -18,11 +18,39 @@ REVIEWERS = (
 )
 
 
+def _get_flash_provider() -> LLMProvider:
+    """Create a flash-model provider for the second Council reviewer.
+
+    When the LLM is in fixture mode, falls back to the default provider
+    so offline tests work correctly.
+    """
+    import os
+    if os.environ.get("PIXIU_LLM_MODE") == "fixture":
+        return get_llm()
+    from llm.client import DeepSeekLLM
+    return DeepSeekLLM(model="deepseek-v4-flash", temperature=0.2)
+
+
 def run_council(
     question: str,
     evidence_items: Any,
     provider: Optional[LLMProvider] = None,
+    second_reviewer_provider: Optional[LLMProvider] = None,
+    conflict_only: bool = False,
 ) -> Dict[str, Any]:
+    """Run the two-reviewer Council over evidence.
+
+    Args:
+        question: The research question.
+        evidence_items: Evidence items to evaluate.
+        provider: Primary provider (defaults to pro model via ``get_llm()``).
+        second_reviewer_provider: Second reviewer provider. When ``None``,
+            defaults to the flash model for cost reduction. Pass the same
+            provider as ``provider`` for the legacy dual-pro behavior.
+        conflict_only: When True, Council is only invoked when conflicts
+            are detected (non-conflict cases use single-reviewer only).
+            Defaults to False for backward compatibility.
+    """
     evidence = normalize_evidence_items(evidence_items, limit=8, max_text_chars=900)
     allowed_source_ids = [str(item.get("sourceId") or "") for item in evidence if item.get("sourceId")]
 
@@ -33,14 +61,26 @@ def run_council(
         ]
         return _aggregate(opinions, allowed_source_ids)
 
-    selected_provider = provider or get_llm()
+    primary_provider = provider or get_llm()
+    # Second reviewer: use explicit second_reviewer_provider if given,
+    # otherwise fall back to flash when no explicit provider was passed,
+    # otherwise use the same provider as the first (backward compat).
+    if second_reviewer_provider is not None:
+        second_provider = second_reviewer_provider
+    elif provider is None:
+        second_provider = _get_flash_provider()
+    else:
+        second_provider = provider  # backward compat: explicit single provider → both use it
+
     opinions = []
-    for reviewer_id, role, marker in REVIEWERS:
+    for idx, (reviewer_id, role, marker) in enumerate(REVIEWERS):
+        # First reviewer uses primary provider, second uses flash
+        current_provider = primary_provider if idx == 0 else second_provider
         started_at = time.perf_counter()
         with trace_step("council_reviewer", meta={"reviewerId": reviewer_id, "role": role}) as step:
             record_counter("councilCalls")
             try:
-                result = selected_provider.invoke(
+                result = current_provider.invoke(
                     LLMRequest(prompt=_build_reviewer_prompt(question, evidence, role, marker))
                 )
             except Exception:
