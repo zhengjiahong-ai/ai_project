@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-15 v0.6.5
+
+1. **App.jsx handler 拆分**：提取 `usePdfUpload`、`useChat`、`useCriticalReading`、`useDeepResearch`、`usePageTranslation` 五个自定义 hook，App.jsx 从 2883 行降至 2110 行；所有现有前端测试通过。
+
 ### 2026-07-15 v0.6.4
 
 1. **中文章节识别增强**：`outline_extractor.py` 新增中文数字序号（一～十）、"第X章/第X节"模式、中英混合编号（"1.1 研究背景"）识别；新增常见中文无编号标题（摘要、绪论、结论、致谢等）检测；不降低英文论文识别准确率。

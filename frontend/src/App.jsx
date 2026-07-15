@@ -36,6 +36,11 @@ import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 import TranslationPanel from './components/TranslationPanel';
 import PaperWriterPanel from './components/PaperWriterPanel.jsx';
 import { useAbortableChat } from './hooks/useAbortableChat.js';
+import { useChat } from './hooks/useChat.js';
+import { useCriticalReading } from './hooks/useCriticalReading.js';
+import { useDeepResearch } from './hooks/useDeepResearch.js';
+import { usePageTranslation } from './hooks/usePageTranslation.js';
+import { usePdfUpload } from './hooks/usePdfUpload.js';
 import { usePaperArtifacts } from './hooks/usePaperArtifacts.js';
 import { usePaperSession } from './hooks/usePaperSession.js';
 import { useReadingWorkspace } from './hooks/useReadingWorkspace.js';
@@ -461,109 +466,27 @@ export default function App() {
     papersListRef,
   });
 
-  const handlePdfUpload = useCallback(async (file) => {
-    if (!file) return;
-
-    setPdfFileName(file.name);
-    setPdfFile(URL.createObjectURL(file));
-    setTaskActive('aiReady', false);
-    setTaskActive('deconstructing', true);
-
-    try {
-      const response = await apiService.uploadPdf(file);
-      if (!response || response.status !== 'success') {
-        throw new Error(response?.message || '论文上传失败');
-      }
-
-      const readyMessages = createReadyMessages(file.name);
-      const initialStudyProgress = buildStudyProgressSnapshot({
-        pdfId: response.pdfId,
-        pdfPageState: { pageIndex: 0, totalPages: 0 },
-        deconstructData: response,
-        analysisData: null,
-        backgroundKnowledgeData: null,
-        socraticSession: createEmptySocraticSession(response.pdfId),
-        translationState: createEmptyTranslationState(response.pdfId),
-        messages: readyMessages,
-        notes: [],
-        pdfHighlights: [],
-        workbenchCards: [],
-        deepResearchState: createEmptyDeepResearchState(),
-      });
-      const newEntry = {
-        id: response.pdfId,
-        title: response.title || file.name,
-        filename: file.name,
-        authors: normalizeAuthors(response.authors),
-        parseStatus: response.parseStatus || (response.ragIndexed === false ? '索引异常' : '已解析'),
-        parseMessage: response.parseMessage || null,
-        ragIndexed: response.ragIndexed !== false,
-        ragChunkCount: response.ragChunkCount || 0,
-        ragErrorCode: response.ragErrorCode || null,
-        indexMessage: response.message || null,
-        sectionCount: response.paper_structure?.sections?.length || 0,
-        readingProgress: initialStudyProgress.readingProgress,
-        currentPage: initialStudyProgress.currentPage,
-        totalPages: initialStudyProgress.totalPages,
-        studyProgress: initialStudyProgress.studyProgress,
-        studyPhase: initialStudyProgress.studyPhase,
-        studySummary: initialStudyProgress.studySummary,
-        progressSignals: initialStudyProgress.progressSignals,
-        timestamp: Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      const db = await initDB();
-      await persistUploadedPaperSession({
-        db,
-        file,
-        pdfId: response.pdfId,
-        response,
-        readyMessages,
-        libraryEntry: newEntry,
-      });
-
-      setPdfId(response.pdfId);
-      setDeconstructData(response);
-      setAnalysisData(null);
-      setBackgroundKnowledgeData(null);
-      setBackgroundReaderProfile(DEFAULT_BACKGROUND_READER_PROFILE);
-      resetArtifacts();
-      setMessages(readyMessages);
-      setSocraticSession(createEmptySocraticSession(response.pdfId));
-      commitTranslationState(createEmptyTranslationState(response.pdfId));
-      setIsTranslated(false);
-      currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
-      resetPageNavigation();
-      setActiveTab('deconstruct');
-      setPapersList((prev) => [newEntry, ...prev.filter((paper) => paper.id !== response.pdfId)]);
-      persistStoredLastPdfId(response.pdfId);
-
-      if (response?.ragIndexed === false && response?.message) {
-        window.alert(response.message);
-      }
-    } catch (error) {
-      console.error('Failed to upload PDF.', error);
-      setPdfFile(null);
-      setPdfFileName(null);
-      setPdfId(null);
-      setSocraticSession(createEmptySocraticSession());
-      setBackgroundKnowledgeData(null);
-      setBackgroundReaderProfile(DEFAULT_BACKGROUND_READER_PROFILE);
-      commitTranslationState(createEmptyTranslationState());
-      setIsTranslated(false);
-      currentPageTextRef.current = { pageIndex: 0, pageText: '', pageLayout: null };
-      resetArtifacts();
-      resetPageNavigation();
-      const uploadErrorMessage = formatUploadErrorMessage(error);
-      window.setTimeout(() => {
-        window.alert(uploadErrorMessage);
-      }, 0);
-    } finally {
-      setTaskActive('aiReady', true);
-      setTaskActive('deconstructing', false);
-    }
-  }, [commitTranslationState, createReadyMessages, resetArtifacts, resetPageNavigation, setTaskActive]);
+  const { handlePdfUpload } = usePdfUpload({
+    apiService,
+    createReadyMessages,
+    resetArtifacts,
+    resetPageNavigation,
+    setTaskActive,
+    commitTranslationState,
+    setPdfFileName,
+    setPdfFile,
+    setPdfId,
+    setDeconstructData,
+    setAnalysisData,
+    setBackgroundKnowledgeData,
+    setBackgroundReaderProfile,
+    setMessages,
+    setSocraticSession,
+    setIsTranslated,
+    setActiveTab,
+    setPapersList,
+    currentPageTextRef,
+  });
 
 
 
@@ -853,58 +776,14 @@ export default function App() {
     saveLibraryProgress();
   }, [currentStudyProgressSnapshot, isRestored, pdfId]);
 
-  const handleStartAnalysis = useCallback(async () => {
-    if (!pdfId) {
-      window.alert('请先上传 PDF 文件。');
-      return;
-    }
-
-    setActiveTab('analysis');
-    setTaskActive('analyzing', true);
-
-    try {
-      const response = await apiService.criticalReading(pdfId);
-      const payload = response?.analysis ?? response;
-      const isSuccess = response?.status === 'success' || payload?.status === 'success';
-      if (!isSuccess) {
-        const analysisError = new Error(response?.message || payload?.message || '批判性阅读失败');
-        analysisError.code = response?.errorCode || payload?.errorCode || null;
-        analysisError.payload = response || payload || null;
-        throw analysisError;
-      }
-
-      setAnalysisData(payload);
-      const db = await initDB();
-      await db.put('analysisStore', payload, pdfId);
-    } catch (error) {
-      console.error('Failed to run critical reading.', error);
-      const errorCode = getCriticalReadingErrorCode(error);
-      const errorMessage = formatCriticalReadingErrorMessage(error);
-      if (errorCode === 'paper_not_indexed' || errorCode === 'rag_index_unavailable') {
-        try {
-          const db = await initDB();
-          const paper = await db.get('libraryStore', pdfId);
-          if (paper) {
-            const updatedPaper = {
-              ...paper,
-              parseStatus: '索引异常',
-              ragIndexed: false,
-              ragErrorCode: errorCode,
-              indexMessage: errorMessage,
-              updatedAt: Date.now(),
-            };
-            await db.put('libraryStore', updatedPaper);
-            setPapersList((prev) => prev.map((item) => (item.id === pdfId ? updatedPaper : item)));
-          }
-        } catch (storeError) {
-          console.error('Failed to mark paper index status.', storeError);
-        }
-      }
-      window.alert(errorMessage);
-    } finally {
-      setTaskActive('analyzing', false);
-    }
-  }, [pdfId, setTaskActive]);
+  const { handleStartAnalysis } = useCriticalReading({
+    apiService,
+    pdfId,
+    setActiveTab,
+    setTaskActive,
+    setAnalysisData,
+    setPapersList,
+  });
 
   const handleGenerateBackgroundKnowledge = useCallback(async (selectedProfile = backgroundReaderProfile) => {
     if (!pdfId) {
@@ -986,285 +865,25 @@ export default function App() {
     workbenchCards.length,
   ]);
 
-  const handleDeepResearchQuestionChange = useCallback((nextQuestionDraft) => {
-    if (!pdfId) {
-      return;
-    }
-
-    setDeepResearchStateForPdf(pdfId, (prev) => ({
-      ...prev,
-      questionDraft: nextQuestionDraft,
-      errorMessage: '',
-      briefPreview: null,
-      briefError: '',
-    }));
-  }, [pdfId, setDeepResearchStateForPdf]);
-
-  const handleDeepResearchBriefConstraintsChange = useCallback((nextConstraintsDraft) => {
-    if (!pdfId) {
-      return;
-    }
-
-    setDeepResearchStateForPdf(pdfId, (prev) => ({
-      ...prev,
-      briefConstraintsDraft: nextConstraintsDraft,
-      briefError: '',
-    }));
-  }, [pdfId, setDeepResearchStateForPdf]);
-
-  const handlePreviewResearchBrief = useCallback(async () => {
-    if (!pdfId) {
-      return;
-    }
-
-    const currentState = deepResearchStateByPdf[pdfId] || createEmptyDeepResearchState();
-    const question = `${currentState.questionDraft || ''}`.trim();
-    if (!question) {
-      setDeepResearchStateForPdf(pdfId, (prev) => ({
-        ...prev,
-        briefError: '请输入研究问题后再生成研究 brief。',
-      }));
-      return;
-    }
-
-    setDeepResearchStateForPdf(pdfId, (prev) => ({
-      ...prev,
-      isPreviewingBrief: true,
-      briefError: '',
-      errorMessage: '',
-    }));
-
-    try {
-      const response = await apiService.previewResearchBrief(
-        question,
-        pdfId,
-        deconstructData?.paper_skeleton || null,
-        currentState.briefConstraintsDraft || '',
-      );
-      const nextPreview = normalizeResearchBriefPreview(response?.briefPreview);
-      if (response?.status !== 'success' || !nextPreview) {
-        throw new Error(response?.message || '研究 brief 生成失败');
-      }
-
-      setDeepResearchStateForPdf(pdfId, (prev) => ({
-        ...prev,
-        questionDraft: question,
-        briefPreview: nextPreview,
-        briefError: '',
-        isPreviewingBrief: false,
-      }));
-    } catch (error) {
-      console.error('Failed to preview deep research brief.', error);
-      setDeepResearchStateForPdf(pdfId, (prev) => ({
-        ...prev,
-        isPreviewingBrief: false,
-        briefError: error?.response?.data?.message || error?.message || '研究 brief 生成失败，请稍后重试。',
-      }));
-    }
-  }, [deepResearchStateByPdf, deconstructData, pdfId, setDeepResearchStateForPdf]);
-
-  const handleStartResearchTask = useCallback(async ({ useBriefPreview = false } = {}) => {
-    if (!pdfId) {
-      return;
-    }
-
-    const currentState = deepResearchStateByPdf[pdfId] || createEmptyDeepResearchState();
-    const question = `${currentState.questionDraft || ''}`.trim();
-    if (!question) {
-      setDeepResearchStateForPdf(pdfId, (prev) => ({
-        ...prev,
-        errorMessage: '请输入研究问题后再启动深度研究任务。',
-      }));
-      return;
-    }
-
-    setDeepResearchStateForPdf(pdfId, (prev) => ({
-      ...prev,
-      isCreating: true,
-      isCancelling: false,
-      errorMessage: '',
-      pollError: '',
-      briefError: '',
-    }));
-
-    try {
-      const response = await apiService.createResearchTask(
-        question,
-        pdfId,
-        deconstructData?.paper_skeleton || null,
-        useBriefPreview ? currentState.briefConstraintsDraft || '' : '',
-        useBriefPreview ? currentState.briefPreview : null,
-        Boolean(currentState.allowExternalSearch),
-      );
-      const nextTask = normalizeResearchTask(response?.task);
-      if (response?.status !== 'success' || !nextTask) {
-        throw new Error(response?.message || '深度研究任务创建失败');
-      }
-
-      setDeepResearchStateForPdf(pdfId, (prev) => ({
-        ...prev,
-        questionDraft: question,
-        task: nextTask,
-        errorMessage: '',
-        pollError: '',
-        isCreating: false,
-        isCancelling: false,
-        traceSummary: null,
-        traceError: '',
-        isTraceLoading: false,
-      }));
-
-      fetchDeepResearchTrace(pdfId, nextTask.traceId);
-
-      if (currentPdfIdRef.current === pdfId) {
-        setActiveTab('deep-research');
-      }
-    } catch (error) {
-      console.error('Failed to create deep research task.', error);
-      setDeepResearchStateForPdf(pdfId, (prev) => ({
-        ...prev,
-        isCreating: false,
-        errorMessage: error?.response?.data?.message || error?.message || '深度研究任务创建失败，请稍后重试。',
-      }));
-    }
-  }, [deepResearchStateByPdf, deconstructData, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
-
-  const handleRefreshResearchTask = useCallback(async () => {
-    if (!pdfId) {
-      return;
-    }
-
-    const currentTaskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
-    if (!currentTaskId) {
-      return;
-    }
-
-    setDeepResearchStateForPdf(pdfId, (prev) => ({
-      ...prev,
-      errorMessage: '',
-      pollError: '',
-    }));
-
-    try {
-      const response = await apiService.getResearchTask(currentTaskId);
-      const nextTask = normalizeResearchTask(response?.task);
-      if (response?.status !== 'success' || !nextTask) {
-        throw new Error(response?.message || '深度研究任务状态刷新失败');
-      }
-
-      setDeepResearchStateForPdf(pdfId, (prev) => {
-        if ((prev.task?.taskId || '') !== currentTaskId) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          task: nextTask,
-          errorMessage: '',
-          pollError: '',
-          isCreating: false,
-          isCancelling: false,
-        };
-      });
-
-      fetchDeepResearchTrace(pdfId, nextTask.traceId);
-    } catch (error) {
-      console.error('Failed to refresh deep research task.', error);
-      setDeepResearchStateForPdf(pdfId, (prev) => {
-        if ((prev.task?.taskId || '') !== currentTaskId) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          pollError: error?.response?.data?.message || error?.message || '深度研究任务状态刷新失败。',
-        };
-      });
-    }
-  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
-
-  const handleReviewResearchPlan = useCallback(async (payload) => {
-    const taskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
-    if (!pdfId || !taskId) return;
-    try {
-      const response = await apiService.reviewResearchPlan(taskId, payload);
-      const task = normalizeResearchTask(response?.task);
-      if (!task) throw new Error(response?.message || '计划确认失败');
-      setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, task, errorMessage: '', pollError: '' }));
-    } catch (error) {
-      setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, errorMessage: error?.response?.data?.message || error?.message || '计划确认失败。' }));
-    }
-  }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
-
-  const handleReviewResearchFinal = useCallback(async (payload) => {
-    const taskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
-    if (!pdfId || !taskId) return;
-    try {
-      const response = await apiService.reviewResearchFinal(taskId, payload);
-      const task = normalizeResearchTask(response?.task);
-      if (!task) throw new Error(response?.message || '终稿确认失败');
-      setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, task, errorMessage: '', pollError: '' }));
-      fetchDeepResearchTrace(pdfId, task.traceId);
-    } catch (error) {
-      setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, errorMessage: error?.response?.data?.message || error?.message || '终稿确认失败。' }));
-    }
-  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
-
-  const handleCancelResearchTask = useCallback(async () => {
-    if (!pdfId) {
-      return;
-    }
-
-    const currentTaskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
-    if (!currentTaskId) {
-      return;
-    }
-
-    setDeepResearchStateForPdf(pdfId, (prev) => ({
-      ...prev,
-      isCancelling: true,
-      errorMessage: '',
-      pollError: '',
-    }));
-
-    try {
-      const response = await apiService.cancelResearchTask(currentTaskId);
-      const nextTask = normalizeResearchTask(response?.task);
-      if (response?.status !== 'success' || !nextTask) {
-        throw new Error(response?.message || '深度研究任务取消失败');
-      }
-
-      setDeepResearchStateForPdf(pdfId, (prev) => {
-        if ((prev.task?.taskId || '') !== currentTaskId) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          task: nextTask,
-          errorMessage: '',
-          pollError: '',
-          isCreating: false,
-          isCancelling: false,
-        };
-      });
-
-      fetchDeepResearchTrace(pdfId, nextTask.traceId);
-    } catch (error) {
-      console.error('Failed to cancel deep research task.', error);
-      setDeepResearchStateForPdf(pdfId, (prev) => {
-        if ((prev.task?.taskId || '') !== currentTaskId) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          isCancelling: false,
-          errorMessage: error?.response?.data?.message || error?.message || '深度研究任务取消失败。',
-        };
-      });
-    }
-  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
+  const {
+    handleDeepResearchQuestionChange,
+    handleDeepResearchBriefConstraintsChange,
+    handlePreviewResearchBrief,
+    handleStartResearchTask,
+    handleRefreshResearchTask,
+    handleReviewResearchPlan,
+    handleReviewResearchFinal,
+    handleCancelResearchTask,
+  } = useDeepResearch({
+    apiService,
+    pdfId,
+    deconstructData,
+    deepResearchStateByPdf,
+    setDeepResearchStateForPdf,
+    fetchDeepResearchTrace,
+    currentPdfIdRef,
+    setActiveTab,
+  });
 
   useEffect(() => {
     if (!pdfId) {
@@ -1412,210 +1031,33 @@ export default function App() {
     setDeepResearchStateForPdf,
   ]);
 
-  const handleSendMessage = useCallback((message) => {
-    if (!pdfId || isChatLoading(pdfId)) return;
-
-    setActiveTab('chat');
-    setMessages((prev) => [...prev, { role: 'user', content: message }]);
-
-    const controller = startChatRequest(pdfId);
-    if (!controller) return;
-
-    const history = messages.slice(-6).map((item) => ({
-      role: item.role === 'ai' ? 'assistant' : item.role,
-      content: item.content,
-    }));
-
-    apiService
-      .sendMessage(message, pdfId, history, deconstructData?.paper_skeleton || null, controller.signal)
-      .then((response) => {
-        const content = response?.reply ?? response?.message ?? response?.data?.reply ?? '暂无回复';
-        const sentenceSourceMap = response?.sentenceSourceMap ?? response?.data?.sentenceSourceMap ?? [];
-        const ragSources = response?.rag_sources ?? response?.data?.rag_sources ?? [];
-        setMessages((prev) => [...prev, {
-          role: 'ai',
-          content,
-          sentenceSourceMap,
-          rag_sources: ragSources,
-        }]);
-      })
-      .catch((error) => {
-        if (error.name === 'CanceledError' || error.message === 'canceled') {
-          return;
-        }
-
-        const errMsg = error?.response?.data?.message ?? error?.message ?? '请求失败，请稍后重试';
-        setMessages((prev) => [
-          ...prev,
-          { role: 'ai', content: `抱歉，处理您的请求时出现了错误：${errMsg}` },
-        ]);
-      })
-      .finally(() => {
-        finishChatRequest(pdfId);
-      });
-  }, [deconstructData, finishChatRequest, isChatLoading, messages, pdfId, startChatRequest]);
-
-  const handleAbortChat = useCallback((targetPdfId) => {
-    const wasAborted = abortChatRequest(targetPdfId);
-    if (!wasAborted) return;
-    setMessages((prev) => [...prev, { role: 'ai', isSystem: true, content: '本次回答已由用户取消。' }]);
-  }, [abortChatRequest]);
-
-  const handleDeleteChatMessage = useCallback((index) => {
-    setMessages((prev) => {
-      const targetMessage = prev[index];
-      if (!targetMessage) return prev;
-
-      const indexesToDelete = [index];
-      if (targetMessage.role === 'user' && prev[index + 1]?.role === 'ai') {
-        indexesToDelete.push(index + 1);
-      }
-      if (targetMessage.role === 'ai' && prev[index - 1]?.role === 'user') {
-        indexesToDelete.push(index - 1);
-      }
-
-      return prev.filter((_, currentIndex) => !indexesToDelete.includes(currentIndex));
-    });
-  }, []);
-
-  const handleExplain = useCallback((content, role = 'user', isSyncOnly = false, sourceMeta = null) => {
-    if (role === 'user' && !isSyncOnly) {
-      handleSendMessage(`请解释以下内容：${content}`);
-      return;
-    }
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        role,
-        content,
-        id: Date.now(),
-        sourceAnchorId: sourceMeta?.sourceAnchorId || null,
-        sourcePageIndex: sourceMeta?.sourcePageIndex ?? null,
-        sourceText: sourceMeta?.sourceText || '',
-        sourceActionId: sourceMeta?.sourceActionId || null,
-        sourceActionLabel: sourceMeta?.sourceActionLabel || '',
-      },
-    ]);
-  }, [handleSendMessage]);
-
-  const handleJumpToSource = useCallback(async (message) => {
-    const pageIndex = Number.isFinite(message?.sourcePageIndex)
-      ? message.sourcePageIndex
-      : Number.isFinite(message?.pageIndex)
-        ? message.pageIndex
-        : null;
-    const anchorId = message?.sourceAnchorId || message?.sectionId || message?.sourceId || null;
-    const targetPdfId = `${message?.pdfId ?? ''}`.trim();
-
-    if (!anchorId && !Number.isFinite(pageIndex)) {
-      return false;
-    }
-
-    if (targetPdfId && targetPdfId !== pdfId) {
-      const hasTargetPaper = papersList.some((paper) => `${paper?.id ?? ''}`.trim() === targetPdfId);
-      if (!hasTargetPaper) {
-        return false;
-      }
-
-      const didRestore = await restorePaperState(targetPdfId);
-      if (!didRestore) {
-        return false;
-      }
-    } else if (Number.isFinite(pageIndex) && !pdfId) {
-      return false;
-    }
-
-    setAppMode('reader');
-    if (Number.isFinite(pageIndex)) {
-      jumpToPage(pageIndex);
-    }
-
-    if (anchorId) {
-      setFocusedSourceRequest({
-        anchorId,
-        token: Date.now(),
-      });
-    }
-    return true;
-  }, [jumpToPage, papersList, pdfId, restorePaperState]);
-
-  const handleSaveChatToNote = useCallback((index) => {
-    const message = messages[index];
-    if (!message) return;
-
-    let question = '';
-    let answer = '';
-
-    if (message.role === 'user') {
-      question = message.content;
-      const nextMessage = messages[index + 1];
-      answer = nextMessage?.role === 'ai' ? nextMessage.content : '等待 AI 回答中...';
-    } else {
-      answer = message.content;
-      const previousMessage = messages[index - 1];
-      question = previousMessage?.role === 'user' ? previousMessage.content : '提问内容定位失败';
-    }
-
-    const sourceMessage =
-      message.sourceAnchorId
-        ? message
-        : message.role === 'user'
-          ? messages[index + 1]
-          : messages[index - 1];
-
-    addNote({
-      text: question,
-      aiInterpretation: answer,
-      pageNumber: -1,
-      sourceAnchorId: sourceMessage?.sourceAnchorId || null,
-      sourcePageIndex: sourceMessage?.sourcePageIndex ?? null,
-      sourceActionId: sourceMessage?.sourceActionId || null,
-      sourceActionLabel: sourceMessage?.sourceActionLabel || '',
-    });
-
-    window.alert('已将该对话内容收藏至“学术笔记”中。');
-  }, [addNote, messages]);
-
-  const handleCaptureChatArtifact = useCallback((index) => {
-    const message = messages[index];
-    if (!message) {
-      return;
-    }
-
-    let question = '';
-    let answer = '';
-
-    if (message.role === 'user') {
-      question = message.content;
-      const nextMessage = messages[index + 1];
-      answer = nextMessage?.role === 'ai' ? nextMessage.content : message.content;
-    } else {
-      answer = message.content;
-      const previousMessage = messages[index - 1];
-      question = previousMessage?.role === 'user' ? previousMessage.content : '未关联到上一条提问';
-    }
-
-    const sourceMessage =
-      message.sourceAnchorId
-        ? message
-        : message.role === 'user'
-          ? messages[index + 1]
-          : messages[index - 1];
-
-    captureArtifact({
-      kind: 'chat-answer',
-      title: question.length > 36 ? `${question.slice(0, 36)}...` : question,
-      summary: answer,
-      content: `### 提问\n${question}\n\n### 回答\n${answer}`,
-      sourceMessageId: `${message.id ?? index}`,
-      pageIndex: sourceMessage?.sourcePageIndex ?? null,
-      sourceAnchorId: sourceMessage?.sourceAnchorId || null,
-      sourceActionId: sourceMessage?.sourceActionId || null,
-      sourceActionLabel: sourceMessage?.sourceActionLabel || '',
-      tags: ['chat', 'qa'],
-    });
-  }, [captureArtifact, messages]);
+  const {
+    handleSendMessage,
+    handleAbortChat,
+    handleDeleteChatMessage,
+    handleExplain,
+    handleJumpToSource,
+    handleSaveChatToNote,
+    handleCaptureChatArtifact,
+  } = useChat({
+    apiService,
+    pdfId,
+    messages,
+    setMessages,
+    setActiveTab,
+    deconstructData,
+    papersList,
+    startChatRequest,
+    finishChatRequest,
+    abortChatRequest,
+    isChatLoading,
+    addNote,
+    captureArtifact,
+    restorePaperState,
+    jumpToPage,
+    setAppMode,
+    setFocusedSourceRequest,
+  });
 
   const handleCaptureWorkbenchArtifact = useCallback((artifactInput) => {
     captureArtifact(artifactInput);
@@ -1794,239 +1236,25 @@ export default function App() {
     }
   }, [pdfId]);
 
-  const requestPageTranslation = useCallback(async ({
-    pageIndex,
-    pageText,
-    pageLayout = null,
-    force = false,
-  }) => {
-    if (!pdfId) return;
-
-    const excludedZones = deconstructData?.translationLayoutIndex?.[pageIndex]?.excludedZones || [];
-    const shouldPreferPlainTranslation = shouldPreferPlainPageTranslation({
-      excludedZones,
-    });
-    const {
-      sourceText,
-      requestPayloadPageLayout,
-      translationSourceText,
-      shouldMarkEmpty,
-    } = preparePageTranslationRequest({
-      pageText,
-      pageLayout,
-      excludedZones,
-      preferPlain: shouldPreferPlainTranslation,
-    });
-    const expectsStructuredResponse = Boolean(requestPayloadPageLayout?.blocks?.length);
-    const requestPlan = planPageTranslationState({
-      translationState: translationStateRef.current,
-      pdfId,
-      pageIndex,
-      sourceText,
-      pageLayout,
-      excludedZones,
-      force,
-      expectsStructuredResponse,
-      shouldMarkEmpty,
-      hasActiveRequest: Boolean(translationRequestsRef.current[pageIndex]),
-    });
-
-    commitTranslationState(requestPlan.nextState);
-
-    if (!requestPlan.shouldRequest || !translationSourceText) {
-      return;
-    }
-
-    const previousRequest = translationRequestsRef.current[pageIndex];
-    if (previousRequest?.controller) {
-      previousRequest.controller.abort();
-    }
-
-    const requestToken = ++translationRequestSequenceRef.current;
-    latestTranslationTokensRef.current[pageIndex] = requestToken;
-    const isCurrentRequest = () => latestTranslationTokensRef.current[pageIndex] === requestToken;
-    const clearCurrentRequest = () => {
-      if (translationRequestsRef.current[pageIndex]?.token === requestToken) {
-        delete translationRequestsRef.current[pageIndex];
-      }
-    };
-    const runTranslateRequest = async (requestText, requestLayout, timeoutMs = 90000) => {
-      const controller = new AbortController();
-      translationRequestsRef.current[pageIndex] = { token: requestToken, controller };
-      return apiService.translatePage(
-        pdfId,
-        pageIndex,
-        requestText,
-        deconstructData?.paper_skeleton || null,
-        requestLayout,
-        {
-          timeoutMs,
-          signal: controller.signal,
-        },
-      );
-    };
-
-    try {
-      let response;
-      if (expectsStructuredResponse) {
-        try {
-          response = await runTranslateRequest(
-            translationSourceText,
-            requestPayloadPageLayout,
-            STRUCTURED_TRANSLATION_TIMEOUT_MS,
-          );
-        } catch {
-          if (!isCurrentRequest()) {
-            return;
-          }
-          response = await runTranslateRequest(translationSourceText, null);
-        }
-      } else {
-        response = await runTranslateRequest(translationSourceText, requestPayloadPageLayout);
-      }
-
-      if (!isCurrentRequest()) {
-        return;
-      }
-
-      const translatedText = response?.translatedText ?? response?.data?.translatedText ?? '';
-      const translatedBlocks = Array.isArray(response?.translatedBlocks) ? response.translatedBlocks : [];
-      const renderMode =
-        response?.renderMode ||
-        (translatedBlocks.length > 0 && pageLayout?.blocks?.length ? 'overlay' : 'plain');
-
-      commitTranslationState((prev) => {
-        if (prev?.pdfId !== pdfId || !isCurrentRequest()) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          currentPage: pageIndex,
-          pages: {
-            ...prev.pages,
-            [pageIndex]: normalizeTranslationPage({
-              ...prev.pages?.[pageIndex],
-              sourceText,
-              translatedBlocks,
-              renderMode,
-              pageLayout: pageLayout || prev.pages?.[pageIndex]?.pageLayout || null,
-              excludedZones,
-              translatedText: translatedText || '暂无译文',
-              status: 'success',
-              error: '',
-              updatedAt: Date.now(),
-            }),
-          },
-        };
-      });
-    } catch (error) {
-      if (!isCurrentRequest()) {
-        return;
-      }
-
-      const errorMessage = error?.response?.data?.message ?? error?.message ?? '当前页翻译失败，请稍后重试。';
-      commitTranslationState((prev) => {
-        if (prev?.pdfId !== pdfId || !isCurrentRequest()) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-          currentPage: pageIndex,
-          pages: {
-            ...prev.pages,
-            [pageIndex]: normalizeTranslationPage({
-              ...prev.pages?.[pageIndex],
-              sourceText,
-              translatedBlocks: [],
-              renderMode: 'plain',
-              pageLayout: pageLayout || prev.pages?.[pageIndex]?.pageLayout || null,
-              excludedZones,
-              translatedText: '',
-              status: 'error',
-              error: errorMessage,
-              updatedAt: Date.now(),
-            }),
-          },
-        };
-      });
-    } finally {
-      clearCurrentRequest();
-    }
-  }, [commitTranslationState, deconstructData, pdfId]);
-
-  const handlePdfPageChange = useCallback((pageChange) => {
-    const pageIndex =
-      typeof pageChange === 'number'
-        ? pageChange
-        : Number.isFinite(pageChange?.pageIndex)
-          ? pageChange.pageIndex
-          : 0;
-    const totalPages =
-      typeof pageChange === 'object' && Number.isFinite(pageChange?.totalPages)
-        ? pageChange.totalPages
-        : pdfPageState.totalPages;
-
-    setPdfPageState({
-      pageIndex,
-      totalPages,
-    });
-    currentPageTextRef.current = {
-      pageIndex,
-      pageText: '',
-      pageLayout: null,
-    };
-    commitTranslationState((prev) => {
-      const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
-      return baseState.currentPage === pageIndex ? baseState : { ...baseState, currentPage: pageIndex };
-    });
-  }, [commitTranslationState, pdfId, pdfPageState.totalPages, setPdfPageState]);
-
-  const handlePageTextExtracted = useCallback(({
-    pageIndex,
-    pageText,
-    pageLayout = null,
-  }) => {
-    const excludedZones = deconstructData?.translationLayoutIndex?.[pageIndex]?.excludedZones || [];
-    currentPageTextRef.current = { pageIndex, pageText, pageLayout };
-    commitTranslationState((prev) => {
-      const baseState = prev?.pdfId === pdfId ? prev : createEmptyTranslationState(pdfId);
-      const existingPage = normalizeTranslationPage(baseState.pages?.[pageIndex] || {});
-
-      return {
-        ...baseState,
-        currentPage: pageIndex,
-        pages: {
-          ...baseState.pages,
-          [pageIndex]: normalizeTranslationPage({
-            ...existingPage,
-            sourceText: pageText || existingPage.sourceText,
-            pageLayout: pageLayout || existingPage.pageLayout || null,
-            excludedZones: excludedZones.length > 0 ? excludedZones : existingPage.excludedZones || [],
-          }),
-        },
-      };
-    });
-
-    if (isTranslated) {
-      requestPageTranslation({ pageIndex, pageText, pageLayout });
-    }
-  }, [commitTranslationState, deconstructData, isTranslated, pdfId, requestPageTranslation]);
+  const {
+    requestPageTranslation,
+    handlePdfPageChange,
+    handlePageTextExtracted,
+    handleRetryTranslation: handleRetryTranslationFromHook,
+  } = usePageTranslation({
+    apiService,
+    pdfId,
+    deconstructData,
+    commitTranslationState,
+    setPdfPageState,
+    pdfPageState,
+    isTranslated,
+    currentPageTextRef,
+  });
 
   const handleRetryTranslation = useCallback(() => {
-    const currentPage = translationState.currentPage ?? currentPageTextRef.current.pageIndex ?? 0;
-    const pagePayload =
-      currentPageTextRef.current.pageIndex === currentPage
-        ? currentPageTextRef.current
-        : {
-            pageIndex: currentPage,
-            pageText: translationState.pages?.[currentPage]?.sourceText || '',
-            pageLayout: translationState.pages?.[currentPage]?.pageLayout || null,
-          };
-
-    requestPageTranslation({ ...pagePayload, force: true });
-  }, [requestPageTranslation, translationState.currentPage, translationState.pages]);
+    handleRetryTranslationFromHook(translationState);
+  }, [handleRetryTranslationFromHook, translationState]);
 
   const handleHighlightsChange = useCallback((nextHighlights) => {
     setPdfHighlights(nextHighlights);
