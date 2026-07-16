@@ -86,6 +86,7 @@ const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPromp
         value={prompt}
         onChange={(event) => onPromptChange(event.target.value)}
         className="agent-body min-h-[74px] w-full resize-none bg-transparent text-sm leading-7 outline-none"
+        aria-label="创建研究任务"
         placeholder="让 Agent 比较这些论文的研究问题、方法设计、实验指标与局限性，并返回可追踪证据。"
       />
       <div className="flex flex-col gap-2">

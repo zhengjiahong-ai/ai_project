@@ -1420,7 +1420,7 @@ export default function App() {
           onAppModeChange={setAppMode}
         />
 
-        <main className="workspace-main flex min-h-0 flex-1 overflow-hidden">
+        <main className="workspace-main flex min-h-0 flex-1 overflow-hidden" aria-label="论文阅读工作区">
           {appMode === 'agent' ? (
             <ErrorBoundary area="Agent工作区">
             <Suspense fallback={<div className="flex items-center justify-center h-full theme-text-muted">加载 Agent 工作区…</div>}>
@@ -1667,7 +1667,7 @@ export default function App() {
             </div>
           </aside>
 
-          <section className="min-w-0 flex-1 overflow-hidden">
+          <section className="min-w-0 flex-1 overflow-hidden" aria-label="PDF阅读区">
             <Group orientation="vertical">
               <Panel
                 defaultSize={76}

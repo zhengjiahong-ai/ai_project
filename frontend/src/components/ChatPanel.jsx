@@ -296,6 +296,7 @@ const ChatPanel = ({
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             className="theme-input chat-composer-input w-full resize-none rounded-xl py-3 pl-4 pr-12 outline-none transition-all"
+            aria-label="输入问题"
             placeholder={isLoading ? 'Pixiu 正在回答中...' : '先问一个具体问题，例如：这篇论文的核心贡献是否成立？'}
           />
           <button

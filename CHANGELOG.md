@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.20
+
+1. **前端加载态与无障碍基线**：新增 `Skeleton.jsx`（Skeleton/SkeletonLine/SkeletonCard 骨架屏组件）；新增 `EmptyState.jsx`（通用空态组件）；为 PDF 阅读区、聊天输入框、Agent 表单、主工作区添加 `aria-label`。
+
 ### 2026-07-16 v0.6.19
 
 1. **前端工程化补齐**：新增 `.prettierrc` + `format`/`format:check` 脚本；ESLint 扩展覆盖 `.ts/.tsx` 文件；新增 `.github/workflows/ci.yml`（lint → typecheck → test）；新增 `Dockerfile.prod`（多阶段构建：Vite build + nginx 静态服务）。
