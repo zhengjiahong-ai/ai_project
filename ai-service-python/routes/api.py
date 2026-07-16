@@ -465,12 +465,13 @@ async def review_agent_final(task_id: str, request: AgentFinalReviewRequest):
 
 @router.get("/agent-traces/{trace_id}")
 async def get_agent_trace(trace_id: str):
+    # Deprecated: use GET /api/traces/{trace_id} instead.
     try:
         return JSONResponse(trace_service.get_trace_summary(trace_id))
     except trace_service.TraceNotFoundError as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
-    except Exception as error:
-        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+    except Exception:
+        pass  # let the global exception handler produce a standardised 500
 
 
 @router.post("/research-tasks/brief-preview")
@@ -523,6 +524,8 @@ async def review_research_plan(task_id: str, request: ResearchPlanReviewRequest)
         return JSONResponse({"status": "error", "message": str(error)}, status_code=409)
     except ValueError as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=422)
+    except Exception:
+        pass  # let the global exception handler produce a standardised 500
 
 
 @router.post("/research-tasks/{task_id}/final-review")
@@ -535,6 +538,8 @@ async def review_research_final(task_id: str, request: ResearchFinalReviewReques
         return JSONResponse({"status": "error", "message": str(error)}, status_code=409)
     except ValueError as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=422)
+    except Exception:
+        pass  # let the global exception handler produce a standardised 500
 
 
 @router.get("/traces/{trace_id}")
@@ -630,7 +635,7 @@ async def list_monitors_route():
             for k in m.keys():
                 row[k] = m[k]
             serializable.append(row)
-        return JSONResponse({"status": "success", "monitors": serializable, "error": ""})
+        return JSONResponse({"status": "success", "monitors": serializable})
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
@@ -655,6 +660,6 @@ async def digest_monitor_route(monitor_id: str):
 async def deactivate_monitor_route(monitor_id: str):
     try:
         ok = research_monitor.deactivate_monitor(monitor_id)
-        return JSONResponse({"status": "success" if ok else "error", "monitorId": monitor_id, "error": "" if ok else "Monitor not found."})
+        return JSONResponse({"status": "success" if ok else "error", "monitorId": monitor_id, "message": "" if ok else "Monitor not found."})
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)

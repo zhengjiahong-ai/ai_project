@@ -69,6 +69,7 @@ ai-service-python/core/chroma_literature_db/
 !/ai-service-python/tests/test_reproducibility_checker.py
 !/ai-service-python/tests/test_paper_writer.py
 !/ai-service-python/tests/test_agent_orchestrator_advanced.py
+!/ai-service-python/tests/test_error_responses.py
 !/ai-service-python/tests/fixtures/
 !/ai-service-python/tests/fixtures/llm_responses.json
 node_modules/

@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.11
+
+1. **Python 错误处理统一化**：新增 `core/error_responses.py`，定义标准化错误响应格式（`errorCode` + `message`）；`app.py` 注册全局 exception handler，已映射的已知异常返回对应 4xx/5xx 状态码，未知异常返回 500 + 通用中文消息不再泄露内部异常信息；修复 `app.py` 启动/关闭钩子 2 处 `except Exception: pass` 静默吞错为结构化日志；规范化 research monitor 错误响应格式；为 research task plan/final review 端点补上 500 兜底。
+
 ### 2026-07-16 v0.6.10
 
 1. **前端 Error Boundary + 结构化错误处理**：新增 `ErrorBoundary.jsx`，包裹 PDF 阅读区、功能面板区、Agent 工作区三大区域，任一区域渲染异常不影响其他区域；新增 `Toast.jsx`（ToastProvider + useToast），支持 success/error/warning/info 四种类型，5 秒自动消失；全项目 8 处 `window.alert` 全部替换为 toast 通知。
