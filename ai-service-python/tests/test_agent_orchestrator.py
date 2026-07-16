@@ -60,7 +60,7 @@ class AgentOrchestratorTests(unittest.TestCase):
             ]
         }
 
-        with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
+        with patch("services.agent_evidence_collector._get_tool_registry", return_value=fake_registry):
             paper_contexts, tool_calls, evidence_items, _timeline = collect_project_evidence(
                 prompt="compare methods",
                 paper_ids=["paper-a"],
@@ -92,7 +92,7 @@ class AgentOrchestratorTests(unittest.TestCase):
         }
         fake_registry.invoke.side_effect = RuntimeError("index unavailable")
 
-        with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
+        with patch("services.agent_evidence_collector._get_tool_registry", return_value=fake_registry):
             paper_contexts, tool_calls, evidence_items, _timeline = collect_project_evidence(
                 prompt="compare methods",
                 paper_ids=["paper-a"],
@@ -259,7 +259,7 @@ class AgentOrchestratorTests(unittest.TestCase):
         }
         fake_registry.invoke.return_value = {"items": []}
 
-        with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
+        with patch("services.agent_evidence_collector._get_tool_registry", return_value=fake_registry):
             paper_contexts, tool_calls, evidence_items, _timeline = collect_project_evidence(
                 prompt=ADVERSARIAL_FIXTURE["queryCases"][0]["input"],
                 paper_ids=["paper-a"],
@@ -287,7 +287,7 @@ class AgentOrchestratorTests(unittest.TestCase):
             f"provider response contained credential {secret}"
         )
 
-        with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
+        with patch("services.agent_evidence_collector._get_tool_registry", return_value=fake_registry):
             result = retrieve_external_agent_evidence(["retrieval robustness"])
 
         serialized = json.dumps(result, ensure_ascii=False)
@@ -348,7 +348,7 @@ class AgentOrchestratorTests(unittest.TestCase):
 
         fake_registry.invoke.side_effect = fake_invoke
 
-        with patch("services.agent_orchestrator.get_tool_registry", return_value=fake_registry):
+        with patch("services.agent_evidence_collector._get_tool_registry", return_value=fake_registry):
             paper_contexts, tool_calls, evidence_items, _timeline = collect_project_evidence(
                 prompt="compare methods",
                 paper_ids=["paper-a", "paper-b"],
