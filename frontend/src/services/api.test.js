@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { createApiService, resolveAgentApiBaseUrl, resolveApiBaseUrl } from './api.js';
+import { createApiService, resolveAgentApiBaseUrl, resolveApiBaseUrl } from './api.ts';
 import { canReviewExecution, canReviewPublication, groupCodeExecutionJobs } from '../components/codeExecutionApprovalModel.js';
 
 
