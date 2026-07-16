@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.19
+
+1. **前端工程化补齐**：新增 `.prettierrc` + `format`/`format:check` 脚本；ESLint 扩展覆盖 `.ts/.tsx` 文件；新增 `.github/workflows/ci.yml`（lint → typecheck → test）；新增 `Dockerfile.prod`（多阶段构建：Vite build + nginx 静态服务）。
+
 ### 2026-07-16 v0.6.18
 
 1. **补齐缺失的测试覆盖**：新增 `test_meta_analysis.py`（8 测试）、`test_research_planner.py`（10 测试）、`test_research_executor.py`（9 测试）、`test_adversarial_reviewer.py`（5 测试），共 32 个纯逻辑/离线测试覆盖 Agent 研究核心路径。
