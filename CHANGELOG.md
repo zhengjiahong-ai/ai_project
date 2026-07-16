@@ -9,8 +9,6 @@
 3. **E2E 测试扩展**：新增 `paper-writer.spec.js`（论文生成/下载）、`research-monitor.spec.js`（创建/检查/摘要）；配套 mockPaperWriterApi 和 mockResearchMonitorApi。
 4. **前端 chunk 深度拆分**：`vite.config.js` 新增 manualChunks，pdfjs-dist、react-markdown+katex、recharts、react-force-graph-2d、lucide-react 等拆为独立 chunk。
 
-### 🎉 aago.md 全部 11 个任务已完成！
-
 ### 2026-07-15 v0.6.8
 
 1. **Agent 结论深度推理升级**：新增 `extract_claims_per_paper()` 和 `cross_paper_consistency_check()` 多步推理链；`synthesize_llm_report()` 升级为三步 LLM 调用（per-paper claims → cross-paper consistency → weighted synthesis），每步引用 sourceId；LLM 失败时降级为规则型。
