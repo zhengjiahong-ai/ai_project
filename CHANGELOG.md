@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.22
+
+1. **前端 App.jsx 拆分**：`App.jsx`（2125→1526 行）的阅读 IDE 渲染区提取为 `pages/ReadingIDE.jsx`（874 行），Agent 工作区提取为 `pages/AgentResearchPage.jsx`（24 行）。
+2. **agent_orchestrator 完成拆分**：`agent_orchestrator.py`（1272→397 行）的证据收集独立为 `agent_evidence_collector.py`（546 行），报告章节独立为 `agent_report_sections.py`（372 行）。
+3. **agent_project_service 报告构建提取**：`agent_project_service.py`（1608→1335 行）的报告构建函数独立为 `agent_report_builder.py`（318 行）。
+4. **工程化收尾**：CI 扩展为 frontend + Python + Java 三 job；前端 lint/typecheck 改为硬阻断；`routes/api.py`（628→21 行）按领域拆为 7 个子路由文件；新增 `.dockerignore` ×3 + `.env.example`；grobid 添加 healthcheck；新增 `core/telemetry.py` 请求指标中间件 + 慢查询日志；新增 `tests/conftest.py` 共享 fixtures；配置新增超时和并发项。
+
 ### 2026-07-16 v0.6.21
 
 1. **Python 巨型服务文件拆分**：`tool_registry.py`（2882→370 行）按工具类别拆为 `services/tools/` 子包（`retrieval_tools.py`、`paper_tools.py`、`code_tools.py`、`research_tools.py`、`dialogue_monitor_tools.py`），共享工具函数收敛至 `_common.py`；`agent_orchestrator.py`（1418→1272 行）的 `run_advanced_analysis` 独立为 `agent_advanced_analysis.py`；`agent_project_service.py`（1777→1608 行）的 legacy 适配层独立为 `agent_legacy_adapter.py`；`analysis_service.py`（1745→1076 行）的批判阅读功能独立为 `critical_reading.py`；`background_knowledge_service.py`（1581→669 行）的图谱规范化函数独立为 `graph_normalizer.py`；`research_task_service.py`（1872→1428 行）的冲突检测独立为 `research_conflict.py`。
