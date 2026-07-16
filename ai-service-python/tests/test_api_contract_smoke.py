@@ -1,59 +1,13 @@
 import asyncio
 import json
 import sys
-import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-if "fastapi" not in sys.modules:
-    fastapi_stub = types.ModuleType("fastapi")
-    responses_stub = types.ModuleType("fastapi.responses")
+from tests.fastapi_stubs import install_fastapi_stubs
 
-    class UploadFile:
-        filename = ""
-
-        async def read(self, *_args, **_kwargs):
-            return b""
-
-    class JSONResponse:
-        def __init__(self, content, status_code=200):
-            self.status_code = status_code
-            self.body = json.dumps(content, ensure_ascii=False).encode("utf-8")
-
-    class _Route:
-        def __init__(self, path, methods):
-            self.path = path
-            self.methods = methods
-
-    class APIRouter:
-        def __init__(self, prefix=""):
-            self.prefix = prefix
-            self.routes = []
-
-        def _register(self, path, method, func):
-            self.routes.append(_Route(f"{self.prefix}{path}", {method}))
-            return func
-
-        def post(self, path):
-            return lambda func: self._register(path, "POST", func)
-
-        def get(self, path):
-            return lambda func: self._register(path, "GET", func)
-
-        def patch(self, path):
-            return lambda func: self._register(path, "PATCH", func)
-
-        def delete(self, path):
-            return lambda func: self._register(path, "DELETE", func)
-
-    fastapi_stub.APIRouter = APIRouter
-    fastapi_stub.Body = lambda default=None: default
-    fastapi_stub.File = lambda default=None: default
-    fastapi_stub.UploadFile = UploadFile
-    responses_stub.JSONResponse = JSONResponse
-    sys.modules["fastapi"] = fastapi_stub
-    sys.modules["fastapi.responses"] = responses_stub
+install_fastapi_stubs()
 
 from routes import api
 from schemas.requests import (

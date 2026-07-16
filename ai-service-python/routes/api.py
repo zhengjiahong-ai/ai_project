@@ -3,51 +3,14 @@ from typing import Annotated
 try:
     from fastapi import APIRouter, Body, File, UploadFile
     from fastapi.responses import JSONResponse
-except ModuleNotFoundError:
-    class UploadFile:  # pragma: no cover - test-only fallback
-        filename: str = ""
-
-        async def read(self, *_args, **_kwargs):
-            return b""
-
-    class JSONResponse:  # pragma: no cover - test-only fallback
-        def __init__(self, content, status_code=200):
-            import json as _json
-
-            self.status_code = status_code
-            self.body = _json.dumps(content, ensure_ascii=False).encode("utf-8")
-
-    class _Route:  # pragma: no cover - test-only fallback
-        def __init__(self, path, methods):
-            self.path = path
-            self.methods = methods
-
-    class APIRouter:  # pragma: no cover - test-only fallback
-        def __init__(self, prefix=""):
-            self.prefix = prefix
-            self.routes = []
-
-        def _register(self, path, method, func):
-            self.routes.append(_Route(f"{self.prefix}{path}", {method}))
-            return func
-
-        def post(self, path):
-            return lambda func: self._register(path, "POST", func)
-
-        def get(self, path):
-            return lambda func: self._register(path, "GET", func)
-
-        def patch(self, path):
-            return lambda func: self._register(path, "PATCH", func)
-
-        def delete(self, path):
-            return lambda func: self._register(path, "DELETE", func)
-
-    def Body(default=None):
-        return default
-
-    def File(default=None):
-        return default
+except ModuleNotFoundError:  # pragma: no cover - test-only fallback
+    from tests.fastapi_stubs import (
+        APIRouter,
+        Body,
+        File,
+        JSONResponse,
+        UploadFile,
+    )
 
 from schemas.requests import (
     BackgroundKnowledgeRequest,

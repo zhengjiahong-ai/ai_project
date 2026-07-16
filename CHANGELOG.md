@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.17
+
+1. **API 规范统一**：新增 `tests/fastapi_stubs.py`，消除 `routes/api.py` 和 `test_api_contract_smoke.py` 中重复的 FastAPI mock stub（-90 行重复代码）；新增 `schemas/responses.py`，定义 Pydantic `ApiResponse` 和 `ApiError` 响应模型。
+
 ### 2026-07-16 v0.6.16
 
 1. **前端 TypeScript 迁移扩展**：`deepResearchPanelModel`、`backgroundKnowledgePanelModel`、`criticalAnalysisData`、`artifactModel`、`evidenceCitationModel`、`readingWorkflowModel` 六个核心 model 文件从 JavaScript 迁移为 TypeScript；TS 文件从 3 个增至 9 个（+3257 行类型安全代码）；全部 24 处 import 路径同步更新。
