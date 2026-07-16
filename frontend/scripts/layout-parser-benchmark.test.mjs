@@ -46,9 +46,10 @@ const run = async () => {
     correctPairs: 2,
     accuracy: 2 / 3,
   });
+  const root = path.parse(process.cwd()).root;
   assert.equal(
-    resolveFixturePath('C:/repo/benchmarks/layout/fixtures.json', 'paper.pdf', '../../../..'),
-    path.resolve('C:/paper.pdf'),
+    resolveFixturePath(path.join(root, 'repo', 'benchmarks', 'layout', 'fixtures.json'), 'paper.pdf', '../../../..'),
+    path.join(root, 'paper.pdf'),
   );
 
   const result = evaluatePageLayout({
