@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.21
+
+1. **Python 巨型服务文件拆分**：`tool_registry.py`（2882→370 行）按工具类别拆为 `services/tools/` 子包（`retrieval_tools.py`、`paper_tools.py`、`code_tools.py`、`research_tools.py`、`dialogue_monitor_tools.py`），共享工具函数收敛至 `_common.py`；`agent_orchestrator.py`（1418→1272 行）的 `run_advanced_analysis` 独立为 `agent_advanced_analysis.py`；`agent_project_service.py`（1777→1608 行）的 legacy 适配层独立为 `agent_legacy_adapter.py`；`analysis_service.py`（1745→1076 行）的批判阅读功能独立为 `critical_reading.py`。
+
 ### 2026-07-16 v0.6.20
 
 1. **前端加载态与无障碍基线**：新增 `Skeleton.jsx`（Skeleton/SkeletonLine/SkeletonCard 骨架屏组件）；新增 `EmptyState.jsx`（通用空态组件）；为 PDF 阅读区、聊天输入框、Agent 表单、主工作区添加 `aria-label`。

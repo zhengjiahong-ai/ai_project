@@ -165,7 +165,7 @@ class ToolRegistryContractTests(unittest.TestCase):
             _external_evidence("work-2023", 2023),
         ]
 
-        with patch("services.tool_registry.create_external_search_provider", return_value=provider) as factory:
+        with patch("services.tools._common.create_external_search_provider", return_value=provider) as factory:
             registry = get_tool_registry()
             first = registry.invoke(
                 "retrieve_external_academic",
@@ -194,7 +194,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         provider.search.return_value = [_external_evidence("work-2024", 2024)]
         trace_id = trace_service.start_trace("unit_external_search")
 
-        with patch("services.tool_registry.create_external_search_provider", return_value=provider):
+        with patch("services.tools._common.create_external_search_provider", return_value=provider):
             get_tool_registry().invoke(
                 "retrieve_external_academic",
                 {"query": "retrieval systems private-marker", "limit": 1},
@@ -217,7 +217,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         provider.search.return_value = [_external_evidence("work-2024", 2024)]
 
         trace_id = trace_service.start_trace("unit_external_search")
-        with patch("services.tool_registry.create_external_search_provider", return_value=provider):
+        with patch("services.tools._common.create_external_search_provider", return_value=provider):
             registry = get_tool_registry()
             for _index in range(10):
                 result = registry.invoke("retrieve_external_academic", {"query": "retrieval systems", "limit": 5})
@@ -243,7 +243,7 @@ class ToolRegistryContractTests(unittest.TestCase):
         provider.search.side_effect = RuntimeError("sk-secret full response body with private query")
 
         trace_id = trace_service.start_trace("unit_external_search")
-        with patch("services.tool_registry.create_external_search_provider", return_value=provider):
+        with patch("services.tools._common.create_external_search_provider", return_value=provider):
             result = get_tool_registry().invoke("retrieve_external_academic", {"query": "retrieval systems", "limit": 2})
 
         snapshot = trace_service.get_trace_snapshot(trace_id)

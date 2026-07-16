@@ -3,7 +3,7 @@ integration with adversarial review, hypothesis engine, conflict adjudication,
 meta-analysis, and cross-lingual search."""
 
 import pytest
-from services.agent_orchestrator import run_advanced_analysis, _extract_study_items
+from services.agent_advanced_analysis import run_advanced_analysis, _extract_study_items
 
 
 class TestExtractStudyItems:
