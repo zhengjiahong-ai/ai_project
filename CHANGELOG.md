@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.18
+
+1. **补齐缺失的测试覆盖**：新增 `test_meta_analysis.py`（8 测试）、`test_research_planner.py`（10 测试）、`test_research_executor.py`（9 测试）、`test_adversarial_reviewer.py`（5 测试），共 32 个纯逻辑/离线测试覆盖 Agent 研究核心路径。
+
 ### 2026-07-16 v0.6.17
 
 1. **API 规范统一**：新增 `tests/fastapi_stubs.py`，消除 `routes/api.py` 和 `test_api_contract_smoke.py` 中重复的 FastAPI mock stub（-90 行重复代码）；新增 `schemas/responses.py`，定义 Pydantic `ApiResponse` 和 `ApiError` 响应模型。
