@@ -138,11 +138,12 @@ export const createEmptyAgentWorkspaceState = (): AgentWorkspaceState => ({
   error: '',
 });
 
-export const resolveNextAgentProjectNumber = (projects = [], nextProjectNumber = null) => {
+export const resolveNextAgentProjectNumber = (projects: any[] = [], nextProjectNumber: any = null) => {
   const projectList = Array.isArray(projects) ? projects : [];
-  const titleNumbers = projectList
-    .map((project) => `${project?.title ?? ''}`.trim().match(/^Agent 项目\s+(\d+)$/))
-    .filter(Boolean)
+  const matches = projectList
+    .map((project) => `${(project as any)?.title ?? ''}`.trim().match(/^Agent 项目\s+(\d+)$/))
+    .filter(Boolean) as RegExpMatchArray[];
+  const titleNumbers = matches
     .map((match) => Number(match[1]))
     .filter((value) => Number.isInteger(value) && value > 0);
   const inferredNext = Math.max(projectList.length + 1, titleNumbers.length ? Math.max(...titleNumbers) + 1 : 1);
@@ -150,7 +151,7 @@ export const resolveNextAgentProjectNumber = (projects = [], nextProjectNumber =
   return Number.isInteger(snapshotNext) && snapshotNext > 0 ? Math.max(snapshotNext, inferredNext) : inferredNext;
 };
 
-const normalizePaperId = (value) => `${value ?? ''}`.trim();
+const normalizePaperId = (value: any) => `${value ?? ''}`.trim();
 
 export const getAgentArtifactSaveState = ({ activePdfId = '', content = '' } = {}) => {
   if (!normalizePaperId(activePdfId)) {
@@ -166,17 +167,17 @@ export const getAgentArtifactSaveState = ({ activePdfId = '', content = '' } = {
     : { canSave: false, reason: '当前产物尚未生成。' };
 };
 
-export const resolveInitialAgentPaperSelection = (paperLibrary = [], activePaperId = '') => {
+export const resolveInitialAgentPaperSelection = (paperLibrary: any[] = [], activePaperId = '') => {
   const targetPaperId = normalizePaperId(activePaperId);
   if (!targetPaperId) return [];
 
   const hasPaper = (Array.isArray(paperLibrary) ? paperLibrary : []).some(
-    (paper) => normalizePaperId(paper?.id) === targetPaperId,
+    (paper: any) => normalizePaperId(paper?.id) === targetPaperId,
   );
   return hasPaper ? [targetPaperId] : [];
 };
 
-export const addSelectedAgentPaperId = (selectedPaperIds = [], paperId = '') => {
+export const addSelectedAgentPaperId = (selectedPaperIds: any[] = [], paperId = '') => {
   const targetPaperId = normalizePaperId(paperId);
   const previousIds = (Array.isArray(selectedPaperIds) ? selectedPaperIds : [])
     .map(normalizePaperId)
@@ -202,17 +203,17 @@ export const buildAgentProjectPayload = ({
   title: `${projectTitle ?? ''}`.trim() || `${fallbackTitle ?? ''}`.trim() || 'Agent 项目',
   goal: `${projectGoal ?? ''}`.trim(),
   paperIds: (Array.isArray(selectedPaperIds) ? selectedPaperIds : []).reduce(
-    (items, paperId) => addSelectedAgentPaperId(items, paperId),
-    [],
+    (items: any[], paperId: any) => addSelectedAgentPaperId(items, paperId),
+    [] as any[],
   ),
 });
 
-export const buildAgentPlanReviewPayload = (payload = {}) => {
+export const buildAgentPlanReviewPayload = (payload: any = {}) => {
   const allowExternalSearch = Boolean(payload.allowExternalSearch);
   const allowWebSearch = Boolean(payload.allowWebSearch);
   const allowIterativeSearch = Boolean(payload.allowIterativeSearch);
   return {
-    planItems: (Array.isArray(payload.planItems) ? payload.planItems : []).map((item) => ({
+    planItems: (Array.isArray(payload.planItems) ? payload.planItems : [] as any[]).map((item: any) => ({
       ...item,
       allowExternalSearch: item?.id === 'external' ? allowExternalSearch : false,
       allowWebSearch: item?.id === 'external' ? allowWebSearch : false,
@@ -225,13 +226,13 @@ export const buildAgentPlanReviewPayload = (payload = {}) => {
   };
 };
 
-export const normalizeAgentProject = (value) => {
+export const normalizeAgentProject = (value: any) => {
   const project = value && typeof value === 'object' ? value : {};
   return {
     projectId: `${project.projectId ?? ''}`.trim(),
     title: `${project.title ?? ''}`.trim() || 'Agent 研究项目',
     goal: `${project.goal ?? ''}`.trim(),
-    paperIds: Array.isArray(project.paperIds) ? project.paperIds.map((item) => `${item ?? ''}`.trim()).filter(Boolean) : [],
+    paperIds: Array.isArray(project.paperIds) ? project.paperIds.map((item: any) => `${item ?? ''}`.trim()).filter(Boolean) : [],
     papers: Array.isArray(project.papers) ? project.papers : [],
     latestTaskId: `${project.latestTaskId ?? ''}`.trim(),
     defaultConstraints: `${project.defaultConstraints ?? ''}`.trim(),
@@ -240,17 +241,17 @@ export const normalizeAgentProject = (value) => {
   };
 };
 
-export const normalizeAgentTask = (value) => {
+export const normalizeAgentTask = (value: any) => {
   const task = value && typeof value === 'object' ? value : {};
   const evidenceItems = normalizeEvidenceSources(task.evidenceItems);
   const findings = Array.isArray(task.findings) ? task.findings : [];
-  const conflicts = (Array.isArray(task.conflicts) ? task.conflicts : []).map((conflict) => ({
+  const conflicts = (Array.isArray(task.conflicts) ? task.conflicts : []).map((conflict: any) => ({
     ...conflict,
     sources: Array.isArray(conflict?.sourceIds)
       ? collectSourcesByIds(conflict.sourceIds, evidenceItems)
       : normalizeEvidenceSources(conflict?.sources),
   }));
-  const reportSourceIds = findings.flatMap((finding) => Array.isArray(finding?.sourceIds) ? finding.sourceIds : []);
+  const reportSourceIds = findings.flatMap((finding: any) => Array.isArray(finding?.sourceIds) ? finding.sourceIds : []);
   const extConfig = task.externalSearchConfig && typeof task.externalSearchConfig === 'object' ? task.externalSearchConfig : {};
   const extBudget = extConfig.budget && typeof extConfig.budget === 'object' ? extConfig.budget : {};
   return {
@@ -261,7 +262,7 @@ export const normalizeAgentTask = (value) => {
     stage: `${task.stage ?? ''}`.trim() || 'planning',
     progress: Number.isFinite(Number(task.progress)) ? Number(task.progress) : 0,
     prompt: `${task.prompt ?? task.question ?? ''}`.trim(),
-    focusedPaperIds: Array.isArray(task.focusedPaperIds) ? task.focusedPaperIds.map((item) => `${item ?? ''}`.trim()).filter(Boolean) : [],
+    focusedPaperIds: Array.isArray(task.focusedPaperIds) ? task.focusedPaperIds.map((item: any) => `${item ?? ''}`.trim()).filter(Boolean) : [],
     planItems: Array.isArray(task.planItems || task.plan) ? task.planItems || task.plan : [],
     events: Array.isArray(task.events) ? task.events : [],
     toolCalls: Array.isArray(task.toolCalls) ? task.toolCalls : [],
@@ -293,7 +294,7 @@ export const normalizeAgentTask = (value) => {
   };
 };
 
-export const normalizeAgentRun = (value) => {
+export const normalizeAgentRun = (value: any) => {
   const run = value && typeof value === 'object' ? value : {};
   const extConfig = run.externalSearchConfig && typeof run.externalSearchConfig === 'object' ? run.externalSearchConfig : {};
   const extBudget = extConfig.budget && typeof extConfig.budget === 'object' ? extConfig.budget : {};
@@ -307,7 +308,7 @@ export const normalizeAgentRun = (value) => {
     stage: `${run.executionPhase ?? ''}`.trim() || 'planning',
     progress: Number.isFinite(Number(run.progress)) ? Number(run.progress) : 0,
     prompt: `${run.prompt ?? ''}`.trim(),
-    focusedPaperIds: Array.isArray(run.focusedPaperIds) ? run.focusedPaperIds.map((item) => `${item ?? ''}`.trim()).filter(Boolean) : [],
+    focusedPaperIds: Array.isArray(run.focusedPaperIds) ? run.focusedPaperIds.map((item: any) => `${item ?? ''}`.trim()).filter(Boolean) : [],
     constraints: `${run.constraints ?? ''}`.trim(),
     context: run.context && typeof run.context === 'object' ? run.context : {},
     humanReview: run.humanReview && typeof run.humanReview === 'object' ? run.humanReview : {},
@@ -331,7 +332,7 @@ export const normalizeAgentRun = (value) => {
   };
 };
 
-export const normalizeAgentArtifactsResponse = (response) => ({
+export const normalizeAgentArtifactsResponse = (response: any) => ({
   status: `${response?.status ?? ''}`.trim() || 'error',
   artifacts: {
     runId: `${response?.artifacts?.runId ?? ''}`.trim(),
@@ -351,24 +352,24 @@ export const normalizeAgentArtifactsResponse = (response) => ({
   },
 });
 
-export const normalizeAgentTimelineResponse = (response) => ({
+export const normalizeAgentTimelineResponse = (response: any) => ({
   status: `${response?.status ?? ''}`.trim() || 'error',
   timeline: Array.isArray(response?.timeline) ? response.timeline : [],
 });
 
-export const buildTaskFromRunWorkspace = ({ run = null, pendingReview = null, latestArtifacts = null, timeline = [] } = {}) => {
+export const buildTaskFromRunWorkspace = ({ run = null, pendingReview = null, latestArtifacts = null, timeline = [] }: any = {}) => {
   if (!run) return null;
   const normalizedRun = normalizeAgentRun(run);
   const artifacts = normalizeAgentArtifactsResponse({ status: 'success', artifacts: latestArtifacts || {} }).artifacts;
   const evidenceItems = artifacts.evidenceItems;
   const findings = artifacts.findings;
-  const conflicts = (Array.isArray(artifacts.conflicts) ? artifacts.conflicts : []).map((conflict) => ({
+  const conflicts = (Array.isArray(artifacts.conflicts) ? artifacts.conflicts : []).map((conflict: any) => ({
     ...conflict,
     sources: Array.isArray(conflict?.sourceIds)
       ? collectSourcesByIds(conflict.sourceIds, evidenceItems)
       : normalizeEvidenceSources(conflict?.sources),
   }));
-  const reportSourceIds = findings.flatMap((finding) => Array.isArray(finding?.sourceIds) ? finding.sourceIds : []);
+  const reportSourceIds = findings.flatMap((finding: any) => Array.isArray(finding?.sourceIds) ? finding.sourceIds : []);
   return {
     taskId: normalizedRun.taskId,
     runId: normalizedRun.runId,
@@ -410,7 +411,7 @@ export const buildTaskFromRunWorkspace = ({ run = null, pendingReview = null, la
   };
 };
 
-export const normalizeAgentWorkspaceResponse = (response) => {
+export const normalizeAgentWorkspaceResponse = (response: any) => {
   const workspace = response?.workspace && typeof response.workspace === 'object' ? response.workspace : {};
   return {
     status: `${response?.status ?? ''}`.trim() || 'error',
@@ -426,38 +427,38 @@ export const normalizeAgentWorkspaceResponse = (response) => {
   };
 };
 
-export const normalizeAgentProjectListResponse = (response) => ({
+export const normalizeAgentProjectListResponse = (response: any) => ({
   status: `${response?.status ?? ''}`.trim() || 'error',
   projects: Array.isArray(response?.projects) ? response.projects.map(normalizeAgentProject) : [],
 });
 
-export const normalizeAgentProjectResponse = (response) => ({
+export const normalizeAgentProjectResponse = (response: any) => ({
   status: `${response?.status ?? ''}`.trim() || 'error',
   project: normalizeAgentProject(response?.project),
 });
 
-export const normalizeAgentTaskResponse = (response) => ({
+export const normalizeAgentTaskResponse = (response: any) => ({
   status: `${response?.status ?? ''}`.trim() || 'error',
   task: normalizeAgentTask(response?.task),
 });
 
-export const normalizeAgentTaskListResponse = (response) => {
+export const normalizeAgentTaskListResponse = (response: any) => {
   const limit = Number(response?.limit);
   return {
     status: `${response?.status ?? ''}`.trim() || 'error',
     projectId: `${response?.projectId ?? ''}`.trim(),
-    tasks: Array.isArray(response?.tasks) ? response.tasks.map(normalizeAgentTask).filter((task) => task.taskId) : [],
+    tasks: Array.isArray(response?.tasks) ? response.tasks.map(normalizeAgentTask).filter((task: any) => task.taskId) : [],
     limit: Number.isInteger(limit) && limit > 0 ? limit : 20,
   };
 };
 
-export const appendAgentTaskForProject = (tasksByProjectId, task) => {
+export const appendAgentTaskForProject = (tasksByProjectId: any, task: any) => {
   if (!task?.projectId || !task?.taskId) return tasksByProjectId || {};
   const previousTasks = tasksByProjectId?.[task.projectId] || [];
   const nextTasks = [
     task,
-    ...previousTasks.filter((item) => item.taskId !== task.taskId),
-  ].sort((a, b) => {
+    ...previousTasks.filter((item: any) => item.taskId !== task.taskId),
+  ].sort((a: any, b: any) => {
     const left = new Date(a.updatedAt || a.createdAt || 0).getTime();
     const right = new Date(b.updatedAt || b.createdAt || 0).getTime();
     return right - left;
@@ -469,14 +470,14 @@ export const appendAgentTaskForProject = (tasksByProjectId, task) => {
   };
 };
 
-export const getProjectTasks = (tasksByProjectId, projectId) =>
+export const getProjectTasks = (tasksByProjectId: any, projectId: any) =>
   projectId ? tasksByProjectId?.[projectId] || [] : [];
 
-export const removeAgentProjectFromState = (state, projectId) => {
+export const removeAgentProjectFromState = (state: any, projectId: any) => {
   const targetProjectId = `${projectId ?? ''}`.trim();
   if (!targetProjectId) return state;
 
-  const nextProjects = (state.projects || []).filter((project) => project.projectId !== targetProjectId);
+  const nextProjects = (state.projects || []).filter((project: any) => project.projectId !== targetProjectId);
   const nextTasksByProjectId = Object.fromEntries(
     Object.entries(state.tasksByProjectId || {}).filter(([taskProjectId]) => taskProjectId !== targetProjectId),
   );
