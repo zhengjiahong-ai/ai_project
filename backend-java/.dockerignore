@@ -1,0 +1,6 @@
+target/
+*.class
+*.jar
+.env
+.git
+.DS_Store

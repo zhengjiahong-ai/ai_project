@@ -57,7 +57,8 @@ services:
       - NEO4J_USER=${NEO4J_USER:-}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-}
     depends_on:
-      - grobid
+      grobid:
+        condition: service_healthy
 
   # --- GROBID 服务（用于PDF解析） ---
   neo4j:
@@ -82,6 +83,12 @@ services:
       - JAVA_OPTS=-Xmx4g -Xms2g # 🔥 增加内存，防止频繁 GC 导致卡顿
     volumes:
       - grobid_data:/opt/grobid/home
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8070/api/isalive"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
     deploy:
       resources:
         limits:

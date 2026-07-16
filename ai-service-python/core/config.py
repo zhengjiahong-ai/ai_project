@@ -47,6 +47,15 @@ class Settings(BaseSettings):
     pixiu_agentic_max_iterations: int = 3
     pixiu_max_tokens_per_task: int = 500_000
     pixiu_session_token_budget: int = 2_000_000
+    pixiu_task_pool_size: int = 2
+
+    # ── Timeouts (seconds) ─────────────────────────────────────────────
+    pixiu_retrieval_timeout_seconds: int = 15
+    pixiu_external_search_timeout_seconds: int = 20
+    pixiu_web_fetch_timeout_seconds: int = 30
+
+    # ── Observability ───────────────────────────────────────────────────
+    pixiu_slow_query_threshold_ms: int = 3000
 
     # ── Network / external services ────────────────────────────────────
     grobid_server_url: str = "http://grobid:8070"

@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 jobs:
+  # ── Frontend ──────────────────────────────────────────────────────────────
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -23,7 +24,42 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
       - run: npm run lint
-        continue-on-error: true
       - run: npm run typecheck
-        continue-on-error: true
       - run: npm test
+
+  # ── Python AI Service ─────────────────────────────────────────────────────
+  python:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-service-python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: ai-service-python/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: pip install ruff
+      - run: ruff check services/ routes/ core/
+        continue-on-error: true  # informational only for now
+      - run: PYTHONPATH=. python -m pytest tests/ -x --timeout=60 --ignore=tests/test_code_execution_api.py
+        continue-on-error: true  # some tests need Docker / external services
+
+  # ── Java Backend ──────────────────────────────────────────────────────────
+  java:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend-java
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+      - run: ./mvnw -B verify -DskipTests
+      - run: ./mvnw -B test
+        continue-on-error: true  # informational only until test coverage improves
