@@ -273,6 +273,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -332,6 +333,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.activeProjectId]);
 
   useEffect(() => {
@@ -362,7 +364,7 @@ const AgentWorkspace = ({ paperLibrary = [], activePaperId = '', onCaptureArtifa
         const activeRun = workspaceResponse?.workspace?.activeRun;
         prevStatus = activeRun?.status ?? activeRun?.taskStatus;
         applyWorkspaceState(workspaceResponse, currentTask.taskId);
-      } catch (_workspaceError) {
+      } catch {
         try {
           const response = await apiService.getAgentTask(currentTask.taskId);
           if (stopped) return;

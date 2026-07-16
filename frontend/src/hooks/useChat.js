@@ -71,7 +71,7 @@ export function useChat({
       .finally(() => {
         finishChatRequest(pdfId);
       });
-  }, [deconstructData, finishChatRequest, isChatLoading, messages, pdfId, startChatRequest, setActiveTab, setMessages]);
+  }, [apiService, deconstructData, finishChatRequest, isChatLoading, messages, pdfId, startChatRequest, setActiveTab, setMessages]);
 
   const handleAbortChat = useCallback((targetPdfId) => {
     const wasAborted = abortChatRequest(targetPdfId);

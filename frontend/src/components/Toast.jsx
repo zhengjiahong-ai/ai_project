@@ -88,6 +88,7 @@ export function ToastProvider({ children }) {
  * @returns {{ addToast: (type: string, message: string) => void,
  *             removeToast: (id: string) => void }}
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) {

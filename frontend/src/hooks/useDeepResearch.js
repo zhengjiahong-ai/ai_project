@@ -82,7 +82,7 @@ export function useDeepResearch({
         briefError: error?.response?.data?.message || error?.message || '研究 brief 生成失败，请稍后重试。',
       }));
     }
-  }, [deepResearchStateByPdf, deconstructData, pdfId, setDeepResearchStateForPdf]);
+  }, [apiService, deepResearchStateByPdf, deconstructData, pdfId, setDeepResearchStateForPdf]);
 
   const handleStartResearchTask = useCallback(async ({ useBriefPreview = false } = {}) => {
     if (!pdfId) return;
@@ -146,7 +146,7 @@ export function useDeepResearch({
         errorMessage: error?.response?.data?.message || error?.message || '深度研究任务创建失败，请稍后重试。',
       }));
     }
-  }, [deepResearchStateByPdf, deconstructData, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf, currentPdfIdRef, setActiveTab]);
+  }, [apiService, deepResearchStateByPdf, deconstructData, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf, currentPdfIdRef, setActiveTab]);
 
   const handleRefreshResearchTask = useCallback(async () => {
     if (!pdfId) return;
@@ -190,7 +190,7 @@ export function useDeepResearch({
         };
       });
     }
-  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
+  }, [apiService, deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
 
   const handleReviewResearchPlan = useCallback(async (payload) => {
     const taskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
@@ -203,7 +203,7 @@ export function useDeepResearch({
     } catch (error) {
       setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, errorMessage: error?.response?.data?.message || error?.message || '计划确认失败。' }));
     }
-  }, [deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
+  }, [apiService, deepResearchStateByPdf, pdfId, setDeepResearchStateForPdf]);
 
   const handleReviewResearchFinal = useCallback(async (payload) => {
     const taskId = deepResearchStateByPdf[pdfId]?.task?.taskId;
@@ -217,7 +217,7 @@ export function useDeepResearch({
     } catch (error) {
       setDeepResearchStateForPdf(pdfId, (prev) => ({ ...prev, errorMessage: error?.response?.data?.message || error?.message || '终稿确认失败。' }));
     }
-  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
+  }, [apiService, deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
 
   const handleCancelResearchTask = useCallback(async () => {
     if (!pdfId) return;
@@ -263,7 +263,7 @@ export function useDeepResearch({
         };
       });
     }
-  }, [deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
+  }, [apiService, deepResearchStateByPdf, fetchDeepResearchTrace, pdfId, setDeepResearchStateForPdf]);
 
   return {
     handleDeepResearchQuestionChange,

@@ -42,19 +42,11 @@ import {
   persistWorkbenchCards,
   persistSocraticSession,
   persistStoredActiveTab,
-  persistStoredLastPdfId,
   persistTranslationState,
-  persistUploadedPaperSession,
 } from './services/workspaceSession.js';
 import { apiService } from './services/api';
 import {
-  planPageTranslationState,
-  preparePageTranslationRequest,
-  shouldPreferPlainPageTranslation,
-} from './utils/pageTranslationRequest.js';
-import {
   createEmptyTranslationState,
-  normalizeTranslationPage,
   normalizeTranslationState,
 } from './utils/translationState.js';
 import {
@@ -69,7 +61,6 @@ import {
 import {
   TERMINAL_RESEARCH_STATUSES,
   createEmptyDeepResearchState,
-  normalizeResearchBriefPreview,
   normalizeTraceSummary,
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
@@ -157,21 +148,10 @@ const STRUCTURED_TRANSLATION_TIMEOUT_MS = 90000;
 import {
   buildPaperOutlineModel,
   clampSnippet,
-  coerceFiniteNumber,
-  flattenOutlineHierarchy,
-  formatCriticalReadingErrorMessage,
-  formatUploadErrorMessage,
-  getCriticalReadingErrorCode,
-  getOutlineLevel,
-  getOutlinePageLabel,
   getVisibleOutlineItems,
-  normalizeAuthors,
   normalizeBackgroundKnowledgeLevel,
-  normalizeOutlinePage,
   normalizeReaderTagList,
-  outlineSourceLabels,
   resolveCurrentOutlineItem,
-  sectionDisplayNames,
 } from './utils/appHelpers.js';
 
 const getWorkspaceSectionId = (tabId) =>
@@ -276,7 +256,7 @@ export default function App() {
   const isSocraticLoading = taskActivity.socraticLoading;
 
   const translationRequestsRef = useRef({});
-  const translationRequestSequenceRef = useRef(0);
+
   const latestTranslationTokensRef = useRef({});
   const translationStateRef = useRef(createEmptyTranslationState());
   const papersListRef = useRef([]);
@@ -845,6 +825,7 @@ export default function App() {
     }
   }, [
     activeTab,
+    addToast,
     backgroundReaderProfile,
     deconstructData,
     messages,
@@ -1227,10 +1208,9 @@ export default function App() {
       console.error('Failed to reset Socratic session.', error);
       addToast('error', '重新开始失败，请稍后再试。');
     }
-  }, [pdfId]);
+  }, [addToast, pdfId]);
 
   const {
-    requestPageTranslation,
     handlePdfPageChange,
     handlePageTextExtracted,
     handleRetryTranslation: handleRetryTranslationFromHook,

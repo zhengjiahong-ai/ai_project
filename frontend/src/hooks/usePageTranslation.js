@@ -32,7 +32,7 @@ export function usePageTranslation({
   }) => {
     if (!pdfId) return;
 
-    const prevPage = commitTranslationState((prev) => {
+    commitTranslationState((prev) => {
       if (!prev || prev.pdfId !== pdfId) return prev;
       const page = normalizeTranslationPage(prev.pages?.[pageIndex] || {});
       if (page.status === 'translating' && !force) return prev;

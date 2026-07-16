@@ -5,6 +5,7 @@ import { Info } from 'lucide-react';
  * Generic empty-state placeholder shown when a panel has no content.
  */
 export function EmptyState({
+  // eslint-disable-next-line no-unused-vars
   icon: Icon = Info,
   title = '暂无内容',
   description = '',

@@ -1,5 +1,5 @@
+/* global process */
 import assert from 'node:assert/strict';
-import { isValidElementType } from 'react-is';
 
 // ErrorBoundary is a class component with JSX — plain Node.js cannot
 // import .jsx files directly.  This test validates the exported shape

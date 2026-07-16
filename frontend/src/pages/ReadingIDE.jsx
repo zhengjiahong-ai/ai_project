@@ -97,7 +97,6 @@ export default function ReadingIDE({
   // ── Workspace navigation ──
   activeTab,
   activeTabMeta,
-  ActiveTabIcon,
   activeWorkspaceSection,
   visibleWorkspaceTabs,
   workspaceTabsRef,

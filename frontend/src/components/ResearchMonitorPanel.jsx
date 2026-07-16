@@ -5,7 +5,7 @@ import { createEmptyMonitorState, normalizeMonitor, normalizeCheckResult, buildC
 const SOURCE_ICONS = { arxiv: FileText, pubmed: Globe };
 const SOURCE_LABELS = { arxiv: 'arXiv', pubmed: 'PubMed' };
 
-export default function ResearchMonitorPanel({ apiService, agentApiService, paperLibrary = [], onCreateAgentProject }) {
+export default function ResearchMonitorPanel({ apiService, agentApiService }) {
   const [state, setState] = useState(createEmptyMonitorState);
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({ question: '', sources: ['arxiv'], frequency: 'manual' });
@@ -25,7 +25,11 @@ export default function ResearchMonitorPanel({ apiService, agentApiService, pape
     }
   }, [api, updateState]);
 
-  useEffect(() => { loadMonitors(); }, [loadMonitors]);
+  useEffect(() => {
+    const timer = setTimeout(() => loadMonitors(), 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreate = useCallback(async () => {
     if (!createForm.question.trim()) return;
@@ -61,10 +65,6 @@ export default function ResearchMonitorPanel({ apiService, agentApiService, pape
       updateState({ error: err?.message ?? 'Failed to deactivate monitor.' });
     }
   }, [api, loadMonitors, updateState]);
-
-  const handleAddToLibrary = useCallback((paper) => {
-    // This will be handled by the parent component
-  }, []);
 
   const handleDigest = useCallback(async (monitorId) => {
     updateState({ error: '' });

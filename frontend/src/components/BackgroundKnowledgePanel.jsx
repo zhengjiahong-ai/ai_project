@@ -12,7 +12,6 @@ import {
 
 import InsightCard from './InsightCard.jsx';
 import {
-  createGenerateHandler,
   getProvenanceMeta,
   getUncoveredNodeLabels,
   normalizeGraph,
