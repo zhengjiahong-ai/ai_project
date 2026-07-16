@@ -19,9 +19,9 @@
     "allowJs": true,
     "checkJs": false,
 
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "*": ["./*"]
     },
 
     "forceConsistentCasingInFileNames": true

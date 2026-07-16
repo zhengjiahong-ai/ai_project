@@ -28,6 +28,7 @@ export function useChat({
   jumpToPage,
   setAppMode,
   setFocusedSourceRequest,
+  showWarning,
 }) {
   const handleSendMessage = useCallback((message) => {
     if (!pdfId || isChatLoading(pdfId)) return;
@@ -191,8 +192,10 @@ export function useChat({
       sourceActionLabel: sourceMessage?.sourceActionLabel || '',
     });
 
-    window.alert('已将该对话内容收藏至"学术笔记"中。');
-  }, [addNote, messages]);
+    if (typeof showWarning === 'function') {
+      showWarning('已将该对话内容收藏至"学术笔记"中。');
+    }
+  }, [addNote, messages, showWarning]);
 
   const handleCaptureChatArtifact = useCallback((index) => {
     const message = messages[index];

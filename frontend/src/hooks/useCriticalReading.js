@@ -15,10 +15,12 @@ export function useCriticalReading({
   setTaskActive,
   setAnalysisData,
   setPapersList,
+  showWarning,
+  showError,
 }) {
   const handleStartAnalysis = useCallback(async () => {
     if (!pdfId) {
-      window.alert('请先上传 PDF 文件。');
+      if (typeof showWarning === 'function') { showWarning('请先上传 PDF 文件。'); }
       return;
     }
 
@@ -63,11 +65,11 @@ export function useCriticalReading({
           console.error('Failed to mark paper index status.', storeError);
         }
       }
-      window.alert(errorMessage);
+      if (typeof showError === 'function') { showError(errorMessage); }
     } finally {
       setTaskActive('analyzing', false);
     }
-  }, [apiService, pdfId, setActiveTab, setTaskActive, setAnalysisData, setPapersList]);
+  }, [apiService, pdfId, setActiveTab, setTaskActive, setAnalysisData, setPapersList, showWarning, showError]);
 
   return { handleStartAnalysis };
 }

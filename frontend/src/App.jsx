@@ -35,6 +35,8 @@ import PdfViewer from './components/PdfViewer';
 import SocraticQuestionsPanel from './components/SocraticQuestionsPanel';
 import TranslationPanel from './components/TranslationPanel';
 import PaperWriterPanel from './components/PaperWriterPanel.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
+import { ToastProvider, useToast } from './components/Toast.jsx';
 import { useAbortableChat } from './hooks/useAbortableChat.js';
 import { useChat } from './hooks/useChat.js';
 import { useCriticalReading } from './hooks/useCriticalReading.js';
@@ -217,6 +219,7 @@ const normalizeBackgroundReaderProfile = (value) => {
 
 export default function App() {
   const { theme, toggleTheme: handleToggleTheme } = useThemePreference(THEME_STORAGE_KEY);
+  const { addToast } = useToast();
   const [appMode, setAppMode] = useState('reader');
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
@@ -486,6 +489,8 @@ export default function App() {
     setActiveTab,
     setPapersList,
     currentPageTextRef,
+    showWarning: (msg) => addToast('warning', msg),
+    showError: (msg) => addToast('error', msg),
   });
 
 
@@ -783,11 +788,13 @@ export default function App() {
     setTaskActive,
     setAnalysisData,
     setPapersList,
+    showWarning: (msg) => addToast('warning', msg),
+    showError: (msg) => addToast('error', msg),
   });
 
   const handleGenerateBackgroundKnowledge = useCallback(async (selectedProfile = backgroundReaderProfile, options = {}) => {
     if (!pdfId) {
-      window.alert('请先上传 PDF 文件。');
+      addToast('warning', '请先上传 PDF 文件。');
       return;
     }
 
@@ -848,7 +855,7 @@ export default function App() {
       await db.put('backgroundKnowledgeStore', response, pdfId);
     } catch (error) {
       console.error('Failed to generate background knowledge graph.', error);
-      window.alert(error?.response?.data?.message || error?.message || '背景知识图谱生成失败，请稍后重试。');
+      addToast('error', error?.response?.data?.message || error?.message || '背景知识图谱生成失败，请稍后重试。');
     } finally {
       setTaskActive('backgroundKnowledgeLoading', false);
     }
@@ -1058,6 +1065,7 @@ export default function App() {
     jumpToPage,
     setAppMode,
     setFocusedSourceRequest,
+    showWarning: (msg) => addToast('warning', msg),
   });
 
   const handleCaptureWorkbenchArtifact = useCallback((artifactInput) => {
@@ -1233,7 +1241,7 @@ export default function App() {
       setSocraticSession(createEmptySocraticSession(pdfId));
     } catch (error) {
       console.error('Failed to reset Socratic session.', error);
-      window.alert('重新开始失败，请稍后再试。');
+      addToast('error', '重新开始失败，请稍后再试。');
     }
   }, [pdfId]);
 
@@ -1414,6 +1422,7 @@ export default function App() {
 
         <main className="workspace-main flex min-h-0 flex-1 overflow-hidden">
           {appMode === 'agent' ? (
+            <ErrorBoundary area="Agent工作区">
             <Suspense fallback={<div className="flex items-center justify-center h-full theme-text-muted">加载 Agent 工作区…</div>}>
               <AgentWorkspace
                 paperLibrary={papersList}
@@ -1422,6 +1431,7 @@ export default function App() {
                 onJumpToSource={handleJumpToSource}
               />
             </Suspense>
+            </ErrorBoundary>
           ) : (
           <>
           <aside
@@ -1665,6 +1675,7 @@ export default function App() {
               >
                 <Group orientation="horizontal">
                   <Panel defaultSize={58} minSize={34}>
+                    <ErrorBoundary area="PDF阅读区">
                     <div className="pdf-stage relative flex h-full flex-col p-3">
                   <div className="workspace-pdf-header theme-panel theme-border mb-2 flex h-10 shrink-0 items-center justify-between rounded-md border px-3 text-sm">
                     <div className="flex min-w-0 items-center gap-2">
@@ -1703,6 +1714,7 @@ export default function App() {
                     />
                   </div>
                     </div>
+                    </ErrorBoundary>
                   </Panel>
 
                   <Separator className="group relative w-1.5 transition-all hover:bg-pixiu/10">
@@ -1710,6 +1722,7 @@ export default function App() {
                   </Separator>
 
                   <Panel defaultSize={42} minSize={32}>
+                    <ErrorBoundary area="功能面板区">
                     <div className="panel-shell flex h-full flex-col">
                       <div className="theme-panel theme-border flex shrink-0 flex-col border-b">
                         <div className="workspace-top-panels">
@@ -2066,6 +2079,7 @@ export default function App() {
                     )}
                     </div>
                     </div>
+                    </ErrorBoundary>
                   </Panel>
                 </Group>
               </Panel>

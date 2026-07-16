@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.10
+
+1. **前端 Error Boundary + 结构化错误处理**：新增 `ErrorBoundary.jsx`，包裹 PDF 阅读区、功能面板区、Agent 工作区三大区域，任一区域渲染异常不影响其他区域；新增 `Toast.jsx`（ToastProvider + useToast），支持 success/error/warning/info 四种类型，5 秒自动消失；全项目 8 处 `window.alert` 全部替换为 toast 通知。
+
 ### 2026-07-15 v0.6.9
 
 1. **Agent 多轮迭代深化**：`execute_run` 新增最多 2 轮 follow-up 循环，基于证据缺口自动发起定向补充检索，合并新证据到 timeline 和 report。

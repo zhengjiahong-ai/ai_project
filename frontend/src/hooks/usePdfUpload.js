@@ -70,6 +70,8 @@ export function usePdfUpload({
   setActiveTab,
   setPapersList,
   currentPageTextRef,
+  showWarning,
+  showError,
 }) {
   const handlePdfUpload = useCallback(async (file) => {
     if (!file) return;
@@ -150,7 +152,7 @@ export function usePdfUpload({
       persistStoredLastPdfId(response.pdfId);
 
       if (response?.ragIndexed === false && response?.message) {
-        window.alert(response.message);
+        if (typeof showWarning === 'function') { showWarning(response.message); }
       }
     } catch (error) {
       console.error('Failed to upload PDF.', error);
@@ -167,7 +169,7 @@ export function usePdfUpload({
       resetPageNavigation();
       const uploadErrorMessage = formatUploadErrorMessage(error);
       window.setTimeout(() => {
-        window.alert(uploadErrorMessage);
+        if (typeof showError === 'function') { showError(uploadErrorMessage); }
       }, 0);
     } finally {
       setTaskActive('aiReady', true);
@@ -193,6 +195,8 @@ export function usePdfUpload({
     setActiveTab,
     setPapersList,
     currentPageTextRef,
+    showWarning,
+    showError,
   ]);
 
   return { handlePdfUpload };
