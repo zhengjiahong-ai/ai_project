@@ -1,7 +1,10 @@
 import json
+import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Any, Dict, List
+
+_logger = logging.getLogger(__name__)
 
 from llm.client import get_translation_llm
 from schemas.requests import PageTranslationRequest
@@ -260,7 +263,7 @@ def _translate_missing_blocks_individually(
         try:
             return _translate_single_block(page_index, skeleton_text, block)
         except Exception as error:
-            print(f"Structured translation single-block retry failed for {block['id']}: {error}")
+            _logger.warning("Structured translation single-block retry failed for %s: %s", block["id"], error)
             return None
 
     max_workers = min(STRUCTURED_INDIVIDUAL_RETRY_WORKERS, len(missing_blocks))
@@ -289,7 +292,7 @@ def _translate_blocks(
             try:
                 translated_blocks.extend(future.result())
             except Exception as error:
-                print(f"Structured translation batch failed, continuing with remaining batches: {error}")
+                _logger.warning("Structured translation batch failed, continuing with remaining batches: %s", error)
 
     minimum_expected = max(1, len(blocks) // 2)
     translated_by_id = {block["id"]: block for block in translated_blocks}
@@ -321,7 +324,7 @@ def translate_page(request: PageTranslationRequest) -> Dict[str, Any]:
     try:
         translated_blocks = _translate_blocks(page_index, skeleton_text, page_layout)
     except Exception as error:
-        print(f"Structured translation failed, falling back to plain mode: {error}")
+        _logger.warning("Structured translation failed, falling back to plain mode: %s", error)
         translated_blocks = []
 
     if translated_blocks:

@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -5,6 +7,7 @@ from fastapi.responses import JSONResponse
 from core.logging_config import configure_logging
 from core.error_responses import error_response, EXCEPTION_STATUS_MAP
 from routes.api import router as api_router
+from routes.health import router as health_router
 from services.analysis_service import startup_warmup
 
 configure_logging()
@@ -14,8 +17,33 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+@asynccontextmanager
+async def _app_lifespan(_app: FastAPI):
+    # ── startup ───────────────────────────────────────────────────────
+    _logger.info("Application startup: running warmup...")
+    startup_warmup()
+    try:
+        from services.monitor_scheduler import start_scheduler
+
+        start_scheduler()
+        _logger.info("Monitor scheduler started.")
+    except Exception:
+        _logger.error("Failed to start monitor scheduler", exc_info=True)
+
+    yield
+
+    # ── shutdown ──────────────────────────────────────────────────────
+    try:
+        from services.monitor_scheduler import stop_scheduler
+
+        stop_scheduler()
+        _logger.info("Monitor scheduler stopped.")
+    except Exception:
+        _logger.error("Failed to stop monitor scheduler", exc_info=True)
+
+
 def create_app() -> FastAPI:
-    app = FastAPI()
+    app = FastAPI(lifespan=_app_lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
@@ -51,36 +79,11 @@ def create_app() -> FastAPI:
             status_code=500,
         )
 
-    @app.on_event("startup")
-    async def startup_event() -> None:
-        _logger.info("Application startup: running warmup...")
-        startup_warmup()
-        try:
-            from services.monitor_scheduler import start_scheduler
-
-            start_scheduler()
-        except Exception:
-            _logger.error(
-                "Failed to start monitor scheduler",
-                exc_info=True,
-            )
-
-    @app.on_event("shutdown")
-    async def shutdown_event() -> None:
-        try:
-            from services.monitor_scheduler import stop_scheduler
-
-            stop_scheduler()
-        except Exception:
-            _logger.error(
-                "Failed to stop monitor scheduler",
-                exc_info=True,
-            )
-
     @app.get("/")
     def read_root() -> dict[str, str]:
         return {"message": "AI Paper Assistant Service is Running"}
 
+    app.include_router(health_router)
     app.include_router(api_router)
     return app
 

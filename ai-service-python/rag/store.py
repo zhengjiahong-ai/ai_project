@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Optional
 
 try:
@@ -5,12 +6,19 @@ try:
 except ModuleNotFoundError:
     HybridRetriever = None
 
+_logger = logging.getLogger(__name__)
+
 
 class DummyRAG:
     is_available = False
 
     def __init__(self, initialization_error: Exception | None = None):
         self.initialization_error = initialization_error
+        if initialization_error is not None:
+            _logger.warning(
+                "RAG initialization failed, using DummyRAG fallback: %s",
+                initialization_error,
+            )
 
     @staticmethod
     def normalize_id(id_str: Any) -> str:
@@ -72,7 +80,7 @@ def get_rag():
             _hybrid = None
             _rag_initialization_error = None
         except Exception as error:
-            print(f"RAG initialization failed: {error}")
+            _logger.error("RAG initialization failed: %s", error)
             _rag_initialization_error = error
             return DummyRAG(error)
 
@@ -99,7 +107,7 @@ def retrieve_vector_snippets(query: str, top_k: int = 3) -> List[Dict[str, Any]]
     try:
         return get_rag().retrieve(query, top_k=top_k)
     except Exception as error:
-        print(f"retrieve_vector_snippets failed: {error}")
+        _logger.warning("retrieve_vector_snippets failed: %s", error)
         return []
 
 
@@ -107,10 +115,11 @@ def retrieve_hybrid_for_vector(query: str, top_k: int = 3) -> List[Dict[str, Any
     try:
         return get_hybrid().retrieve(query, top_k=top_k).get("vector", [])
     except Exception as error:
-        print(
-            "retrieve_hybrid_for_vector failed:",
-            str(error),
-            f"(HybridRetriever={'set' if HybridRetriever is not None else 'None'}, hybrid={'set' if _hybrid is not None else 'None'})",
+        _logger.warning(
+            "retrieve_hybrid_for_vector failed: %s (HybridRetriever=%s, hybrid=%s)",
+            error,
+            "set" if HybridRetriever is not None else "None",
+            "set" if _hybrid is not None else "None",
         )
         return retrieve_vector_snippets(query, top_k=top_k)
 
@@ -123,10 +132,11 @@ def retrieve_hybrid_results(query: str, top_k: int = 3) -> Dict[str, List[Dict[s
             "bm25": results.get("bm25", []) if isinstance(results, dict) else [],
         }
     except Exception as error:
-        print(
-            "retrieve_hybrid_results failed:",
-            str(error),
-            f"(HybridRetriever={'set' if HybridRetriever is not None else 'None'}, hybrid={'set' if _hybrid is not None else 'None'})",
+        _logger.warning(
+            "retrieve_hybrid_results failed: %s (HybridRetriever=%s, hybrid=%s)",
+            error,
+            "set" if HybridRetriever is not None else "None",
+            "set" if _hybrid is not None else "None",
         )
         return {
             "vector": retrieve_vector_snippets(query, top_k=top_k),

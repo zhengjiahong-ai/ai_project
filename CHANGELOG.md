@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.12
+
+1. **健康检查 + 可观测性基线**：新增 `GET /api/health` 端点（检查 GROBID、RAG 连通性，返回聚合状态和运行时长）；`app.py` 从已弃用的 `@app.on_event` 迁移为 FastAPI lifespan context manager；生产代码 14 处 `print()` 全部迁移为结构化 logger；`DummyRAG` 初始化失败时输出 warning 级别日志。
+
 ### 2026-07-16 v0.6.11
 
 1. **Python 错误处理统一化**：新增 `core/error_responses.py`，定义标准化错误响应格式（`errorCode` + `message`）；`app.py` 注册全局 exception handler，已映射的已知异常返回对应 4xx/5xx 状态码，未知异常返回 500 + 通用中文消息不再泄露内部异常信息；修复 `app.py` 启动/关闭钩子 2 处 `except Exception: pass` 静默吞错为结构化日志；规范化 research monitor 错误响应格式；为 research task plan/final review 端点补上 500 兜底。

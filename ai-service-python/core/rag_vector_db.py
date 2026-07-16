@@ -1,7 +1,10 @@
+import logging
 import os
 import uuid
 import shutil
 import tempfile
+
+_logger = logging.getLogger(__name__)
 
 import chromadb
 from chromadb.config import Settings
@@ -102,7 +105,7 @@ class LiteratureRAG:
         
         # --- 核心改进：兜底逻辑 ---
         if not chunks:
-            print(f"警告: 论文 {metadata['file_name']} 未提取到结构化章节，尝试全文聚合切分。")
+            _logger.warning("论文 %s 未提取到结构化章节，尝试全文聚合切分。", metadata['file_name'])
             full_text = ""
             for sec in sections:
                 if sec.get("content"):
@@ -113,7 +116,7 @@ class LiteratureRAG:
                 chunks = chunk_sections(fallback_sections)
             
             if not chunks:
-                print(f"致命警告: 论文 {metadata['file_name']} 彻底未提取到有效文本内容，跳过入库。")
+                _logger.error("论文 %s 彻底未提取到有效文本内容，跳过入库。", metadata['file_name'])
                 return 0
         
         # 归一化元数据中的 ID
@@ -177,7 +180,7 @@ class LiteratureRAG:
 
         # 调试日志：检查是否真的查到了数据
         total_found = len(results.get("documents", [[]])[0])
-        print(f"RAG 检索完成: 查询='{query[:30]}...', 匹配到 {total_found} 条片段")
+        _logger.info("RAG 检索完成: 查询='%s...', 匹配到 %d 条片段", query[:30], total_found)
 
         docs = results["documents"][0]
         dists = results["distances"][0]

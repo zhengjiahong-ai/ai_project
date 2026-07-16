@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Tuple
 
 from llm.client import get_llm
@@ -9,6 +10,8 @@ from services.safety_service import (
     is_allowed_research_sub_question,
     wrap_untrusted_context,
 )
+
+_logger = logging.getLogger(__name__)
 from services.trace_service import record_counter, trace_step
 from services.tool_registry import get_tool_registry
 from services.utils import parse_json_from_llm
@@ -86,7 +89,7 @@ Current paper evidence:
             step["outputSize"] = len(sub_questions)
             return brief, sub_questions
         except Exception as error:
-            print(f"research task planner fell back to heuristic plan: {error}")
+            _logger.warning("research task planner fell back to heuristic plan: %s", error)
             step["outputSize"] = len(fallback_sub_questions)
             return clean_text(brief_override) or fallback_brief, fallback_sub_questions
 

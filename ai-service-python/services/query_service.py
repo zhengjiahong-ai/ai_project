@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Optional
 
 from llm.client import get_llm
@@ -7,6 +8,8 @@ from services.safety_service import (
     normalize_retrieval_scope,
     wrap_untrusted_context,
 )
+
+_logger = logging.getLogger(__name__)
 from services.utils import parse_json_from_llm
 
 
@@ -75,7 +78,7 @@ Context:
             "source": "llm",
         }
     except Exception as error:
-        print(f"academic query rewrite fell back to original query: {error}")
+        _logger.warning("academic query rewrite fell back to original query: %s", error)
         return _fallback_plan(original, task_type)
 
 
@@ -160,7 +163,7 @@ Context:
             source="llm",
         )
     except Exception as error:
-        print(f"chat query planner fell back to heuristic plan: {error}")
+        _logger.warning("chat query planner fell back to heuristic plan: %s", error)
         return _fallback_chat_plan(original, context=context, task_type=task_type, has_pdf=has_pdf)
 
 

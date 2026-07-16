@@ -1,8 +1,11 @@
+import logging
 import math
 from typing import Any, Dict, List, Optional
 
 from llm.client import get_llm
 from services.evidence_service import normalize_evidence_items
+
+_logger = logging.getLogger(__name__)
 from services.utils import parse_json_from_llm
 
 
@@ -31,7 +34,7 @@ def judge_evidence_quality(
     try:
         return _llm_judge(question, evidence_items, keywords=keywords, fallback=heuristic)
     except Exception as error:
-        print(f"LLM retrieval judge fell back to heuristic: {error}")
+        _logger.warning("LLM retrieval judge fell back to heuristic: %s", error)
         return heuristic
 
 
