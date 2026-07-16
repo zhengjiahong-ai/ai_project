@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.14
+
+1. **agent_orchestrator 推理链提取**：新增 `services/agent_reasoning.py`，从 `agent_orchestrator.py`（1783 行）提取 `extract_claims_per_paper`、`cross_paper_consistency_check`、`synthesize_llm_report` 等 10 个推理函数（372 行）为独立模块；orchestrator 降至 1411 行；修复 `parse_json_from_llm` 未导入的潜伏 bug。
+
 ### 2026-07-16 v0.6.13
 
 1. **Python 配置管理集中化**：新增 `core/config.py`，使用 pydantic-settings 统一管理 LLM、日志、功能开关、运行时参数、外部服务等 28 个环境变量；`llm/client.py` 全部 19 处 `os.environ.get()` 迁移为集中配置；`core/logging_config.py` 迁移为集中配置；`requirements.txt` 移除硬编码阿里云镜像、锁定 `grobid-client-python` 版本。
