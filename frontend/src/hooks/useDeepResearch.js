@@ -3,7 +3,7 @@ import {
   createEmptyDeepResearchState,
   normalizeResearchBriefPreview,
   normalizeResearchTask,
-} from '../components/deepResearchPanelModel.js';
+} from '../components/deepResearchPanelModel.ts';
 
 /**
  * Encapsulates Deep Research handlers: question input, brief preview,

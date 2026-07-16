@@ -1,7 +1,7 @@
 import React from 'react';
 import { Archive, Wrench } from 'lucide-react';
 
-import { buildAgentEvidenceArtifact } from '../artifactModel.js';
+import { buildAgentEvidenceArtifact } from '../artifactModel.ts';
 import SourceList from '../SourceCitation.jsx';
 import { getAgentArtifactSaveState } from './agentWorkspaceModel.ts';
 import { getProgressWidth, getStatusLabel, getStatusTone } from './agentWorkspaceUi.js';

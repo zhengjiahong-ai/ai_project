@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Archive, BarChart3, BookOpen, FileText, GitCompare, Lightbulb, Shield, Sparkles, Terminal, Workflow } from 'lucide-react';
 
-import { buildAgentComparisonArtifact, buildAgentReportArtifact } from '../artifactModel.js';
+import { buildAgentComparisonArtifact, buildAgentReportArtifact } from '../artifactModel.ts';
 import ResearchTimeline from './ResearchTimeline.jsx';
 import SourceList from '../SourceCitation.jsx';
 import { getAgentArtifactSaveState } from './agentWorkspaceModel.ts';

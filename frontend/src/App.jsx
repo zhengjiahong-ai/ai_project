@@ -23,7 +23,7 @@ import BottomWorkbench from './components/BottomWorkbench.jsx';
 import {
   createDefaultReaderProfile,
   summarizeReaderProfile,
-} from './components/backgroundKnowledgePanelModel.js';
+} from './components/backgroundKnowledgePanelModel.ts';
 import ChatPanel from './components/ChatPanel';
 import CriticalAnalysisPanel from './components/CriticalAnalysisPanel';
 import CodeExecutionApprovalCenter from './components/CodeExecutionApprovalCenter.jsx';
@@ -88,11 +88,11 @@ import {
   normalizeTraceSummary,
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
-} from './components/deepResearchPanelModel.js';
+} from './components/deepResearchPanelModel.ts';
 import {
   buildReadingWorkflowSuggestions,
   getPrimaryReadingWorkflowSuggestion,
-} from './components/readingWorkflowModel.js';
+} from './components/readingWorkflowModel.ts';
 import appVersionRaw from '../VERSION?raw';
 
 const workflowStages = [

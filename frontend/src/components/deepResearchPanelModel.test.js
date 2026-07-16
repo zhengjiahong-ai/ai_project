@@ -13,7 +13,7 @@ import {
   normalizeTraceSummary,
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
-} from './deepResearchPanelModel.js';
+} from './deepResearchPanelModel.ts';
 
 
 const run = async () => {

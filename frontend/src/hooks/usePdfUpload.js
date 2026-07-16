@@ -12,7 +12,7 @@ import {
 } from '../utils/translationState.js';
 import {
   createEmptyDeepResearchState,
-} from '../components/deepResearchPanelModel.js';
+} from '../components/deepResearchPanelModel.ts';
 import {
   normalizeAuthors,
   formatUploadErrorMessage,

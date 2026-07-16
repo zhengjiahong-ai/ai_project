@@ -11,7 +11,7 @@ import {
   getResearchStatusMeta,
   getResearchVerdictMeta,
   normalizeResearchTask,
-} from './deepResearchPanelModel.js';
+} from './deepResearchPanelModel.ts';
 
 const ErrorBanner = ({ message, tone = 'danger' }) => {
   if (!message) {

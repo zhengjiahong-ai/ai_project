@@ -10,7 +10,7 @@ import {
   getNoveltyDimensionRows,
   getSentenceSourceReferences,
   getStructuredSections,
-} from './criticalAnalysisData.js';
+} from './criticalAnalysisData.ts';
 
 const legacyPayload = {
   claimed_contributions: '作者声称提出了一个新的检索排序方法。',

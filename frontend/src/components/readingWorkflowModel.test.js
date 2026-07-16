@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildReadingWorkflowSuggestions,
   getPrimaryReadingWorkflowSuggestion,
-} from './readingWorkflowModel.js';
+} from './readingWorkflowModel.ts';
 
 const findSuggestion = (suggestions, actionType) => suggestions.find((item) => item.action?.type === actionType);
 

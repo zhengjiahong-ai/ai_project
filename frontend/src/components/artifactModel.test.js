@@ -10,7 +10,7 @@ import {
   normalizeInsightArtifact,
   normalizeInsightArtifacts,
   updateInsightArtifact,
-} from './artifactModel.js';
+} from './artifactModel.ts';
 
 const run = async () => {
   const artifact = createInsightArtifact({

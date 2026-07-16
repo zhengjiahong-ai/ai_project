@@ -34,7 +34,7 @@ import {
   getNoveltyDimensionRows,
   getSentenceSourceReferences,
   getStructuredSections,
-} from './criticalAnalysisData.js';
+} from './criticalAnalysisData.ts';
 
 const readingSteps = [
   { id: 'summary', label: '先看判断' },

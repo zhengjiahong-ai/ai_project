@@ -21,9 +21,9 @@ import {
   normalizeReaderProfile,
   resolveLearningPathSections,
   summarizeReaderProfile,
-} from './backgroundKnowledgePanelModel.js';
+} from './backgroundKnowledgePanelModel.ts';
 import SourceList from './SourceCitation.jsx';
-import { normalizeEvidenceSources } from './evidenceCitationModel.js';
+import { normalizeEvidenceSources } from './evidenceCitationModel.ts';
 
 const EMPTY_LIST = [];
 

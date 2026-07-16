@@ -1,4 +1,4 @@
-import { normalizeSourceLocation } from './evidenceCitationModel.js';
+import { normalizeSourceLocation } from './evidenceCitationModel.ts';
 
 export const TERMINAL_RESEARCH_STATUSES = ['succeeded', 'failed', 'cancelled'];
 

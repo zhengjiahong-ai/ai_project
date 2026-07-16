@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.16
+
+1. **前端 TypeScript 迁移扩展**：`deepResearchPanelModel`、`backgroundKnowledgePanelModel`、`criticalAnalysisData`、`artifactModel`、`evidenceCitationModel`、`readingWorkflowModel` 六个核心 model 文件从 JavaScript 迁移为 TypeScript；TS 文件从 3 个增至 9 个（+3257 行类型安全代码）；全部 24 处 import 路径同步更新。
+
 ### 2026-07-16 v0.6.15
 
 1. **chat_service 拆分**：从 `chat_service.py`（1522 行）拆出 `socratic_service.py`（731 行，苏格拉底引导式学习）和 `term_explanation_service.py`（166 行，术语解释）；chat_service 降至 667 行；三个内联 helper 函数消除循环导入。

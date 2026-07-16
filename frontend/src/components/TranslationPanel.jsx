@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Archive, Languages, Loader2, RefreshCw, ScrollText } from 'lucide-react';
 
-import { buildTranslationArtifact } from './artifactModel.js';
+import { buildTranslationArtifact } from './artifactModel.ts';
 import MarkdownContent from './MarkdownContent';
 import { createTranslationPanelViewModel } from './translationPanelModel.js';
 import { buildFidelityTranslationLayout } from '../utils/pdfTranslationLayout.js';

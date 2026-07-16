@@ -5,7 +5,7 @@ import {
   collectSourcesByIds,
   normalizeEvidenceSources,
   normalizeSentenceReferences,
-} from './evidenceCitationModel.js';
+} from './evidenceCitationModel.ts';
 
 const run = async () => {
   const sources = [

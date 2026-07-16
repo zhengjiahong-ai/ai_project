@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 import InsightCard from './InsightCard.jsx';
-import { buildDeconstructionArtifact } from './artifactModel.js';
+import { buildDeconstructionArtifact } from './artifactModel.ts';
 import { getParseWarningMessage } from './parseStatusModel.js';
 
 const outlineSourceLabels = {

@@ -1,4 +1,4 @@
-import { collectSourcesByIds, normalizeEvidenceSources } from '../evidenceCitationModel.js';
+import { collectSourcesByIds, normalizeEvidenceSources } from '../evidenceCitationModel.ts';
 
 // ── Type definitions ────────────────────────────────────────────────────────
 

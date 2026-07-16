@@ -10,7 +10,7 @@ import {
   normalizeProvenanceSummary,
   normalizeReaderProfile,
   resolveLearningPathSections,
-} from './backgroundKnowledgePanelModel.js';
+} from './backgroundKnowledgePanelModel.ts';
 
 
 const run = async () => {

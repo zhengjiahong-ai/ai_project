@@ -5,7 +5,7 @@ import InsightCard from './InsightCard.jsx';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 import SourceList from './SourceCitation.jsx';
-import { normalizeSentenceReferences } from './evidenceCitationModel.js';
+import { normalizeSentenceReferences } from './evidenceCitationModel.ts';
 
 const quickTags = ['# 核心结论', '# 证据追问', '# 批判阅读'];
 const clampText = (value, maxLength = 72) => {

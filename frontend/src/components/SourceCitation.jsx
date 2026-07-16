@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, FileText, Globe, Link2 } from 'lucide-react';
 
-import { normalizeEvidenceSources } from './evidenceCitationModel.js';
+import { normalizeEvidenceSources } from './evidenceCitationModel.ts';
 
 const formatExternalRetrieved = (value) => {
   if (!value) return '';

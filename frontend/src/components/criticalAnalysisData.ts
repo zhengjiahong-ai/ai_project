@@ -1,4 +1,4 @@
-import { normalizeSentenceReferences, normalizeSourceLocation } from './evidenceCitationModel.js';
+import { normalizeSentenceReferences, normalizeSourceLocation } from './evidenceCitationModel.ts';
 
 const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
 

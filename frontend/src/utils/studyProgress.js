@@ -1,4 +1,4 @@
-import { TERMINAL_RESEARCH_STATUSES } from '../components/deepResearchPanelModel.js';
+import { TERMINAL_RESEARCH_STATUSES } from '../components/deepResearchPanelModel.ts';
 
 const SURVEY_MAX = 35;
 const ANALYSIS_MAX = 40;

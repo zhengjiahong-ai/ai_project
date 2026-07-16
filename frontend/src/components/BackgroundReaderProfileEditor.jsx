@@ -6,7 +6,7 @@ import {
   KNOWLEDGE_LEVEL_OPTIONS,
   normalizeKnowledgeLevel,
   normalizeReaderProfile,
-} from './backgroundKnowledgePanelModel.js';
+} from './backgroundKnowledgePanelModel.ts';
 
 const BackgroundReaderProfileEditor = ({ value, onChange, compact = false }) => {
   const profile = normalizeReaderProfile(value);

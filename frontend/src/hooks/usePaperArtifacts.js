@@ -3,7 +3,7 @@ import {
   createInsightArtifact,
   normalizeInsightArtifacts,
   updateInsightArtifact,
-} from '../components/artifactModel.js';
+} from '../components/artifactModel.ts';
 
 export const usePaperArtifacts = () => {
   const [notes, setNotes] = useState([]);
