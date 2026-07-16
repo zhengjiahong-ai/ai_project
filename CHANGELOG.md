@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.15
+
+1. **chat_service 拆分**：从 `chat_service.py`（1522 行）拆出 `socratic_service.py`（731 行，苏格拉底引导式学习）和 `term_explanation_service.py`（166 行，术语解释）；chat_service 降至 667 行；三个内联 helper 函数消除循环导入。
+
 ### 2026-07-16 v0.6.14
 
 1. **agent_orchestrator 推理链提取**：新增 `services/agent_reasoning.py`，从 `agent_orchestrator.py`（1783 行）提取 `extract_claims_per_paper`、`cross_paper_consistency_check`、`synthesize_llm_report` 等 10 个推理函数（372 行）为独立模块；orchestrator 降至 1411 行；修复 `parse_json_from_llm` 未导入的潜伏 bug。
