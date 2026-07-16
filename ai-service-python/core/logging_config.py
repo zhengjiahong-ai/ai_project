@@ -10,12 +10,13 @@ Import and call ``configure_logging()`` once at application startup.
 
 import json
 import logging
-import os
 import sys
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-_LOG_DEFAULT_LEVEL = "INFO"
+from core.config import settings
+
+_LOG_DEFAULT_LEVEL = settings.pixiu_log_level
 
 # Keys whose values must never appear in log output.
 # Mirrors the sanitization list in trace_service.py.
@@ -101,8 +102,8 @@ def configure_logging(level: str | None = None) -> None:
         level: Log level string (DEBUG/INFO/WARNING/ERROR). Defaults to
                ``PIXIU_LOG_LEVEL`` env var or ``"INFO"``.
     """
-    resolved_level = (level or os.environ.get("PIXIU_LOG_LEVEL", _LOG_DEFAULT_LEVEL)).upper()
-    use_json = os.environ.get("PIXIU_LOG_JSON", "false").strip().lower() == "true"
+    resolved_level = (level or settings.pixiu_log_level).upper()
+    use_json = settings.pixiu_log_json
 
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, resolved_level, logging.INFO))

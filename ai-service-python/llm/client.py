@@ -11,15 +11,16 @@ except ModuleNotFoundError:
         return False
 
 from llm.provider import LLMProviderError, LLMRequest, LLMResult, LLMUsage
+from core.config import settings
 from services.safety_service import estimate_tokens
 from services.trace_service import record_counter, trace_step
 
 load_dotenv()
 
 
-DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-pro"
-DEFAULT_DEEPSEEK_TRANSLATION_MODEL = "deepseek-v4-flash"
+DEFAULT_DEEPSEEK_BASE_URL = settings.deepseek_base_url
+DEFAULT_DEEPSEEK_MODEL = settings.deepseek_model
+DEFAULT_DEEPSEEK_TRANSLATION_MODEL = settings.deepseek_translation_model
 
 
 def _resolve_messages(
@@ -115,7 +116,7 @@ class DeepSeekLLM:
         self.reasoning_effort = reasoning_effort
 
     def invoke(self, request: LLMRequest) -> LLMResult:
-        api_key = self.api_key or os.environ.get("DEEPSEEK_API_KEY")
+        api_key = self.api_key or settings.deepseek_api_key
         if not api_key:
             raise LLMProviderError(
                 "DeepSeek credentials are not configured.",
@@ -142,7 +143,7 @@ class DeepSeekLLM:
         if request.extra_body:
             payload.update(request.extra_body)
 
-        timeout = float(os.environ.get("DEEPSEEK_TIMEOUT_SECONDS", "120"))
+        timeout = float(settings.deepseek_timeout_seconds)
         input_size = sum(len(str(item.get("content") or "")) for item in resolved_messages)
         estimated_input_tokens = sum(estimate_tokens(item.get("content") or "") for item in resolved_messages)
         with trace_step(
@@ -341,7 +342,7 @@ _translation_llm: Optional[Any] = None
 
 
 def _get_fixture_llm(client: str) -> FixtureLLM:
-    fixture_path = os.environ.get("PIXIU_LLM_FIXTURE_PATH", "").strip()
+    fixture_path = settings.pixiu_llm_fixture_path.strip()
     if not fixture_path:
         raise ValueError("PIXIU_LLM_FIXTURE_PATH is required when PIXIU_LLM_MODE=fixture")
     return FixtureLLM(fixture_path=fixture_path, client=client)
@@ -351,23 +352,23 @@ def get_llm() -> Any:
     global _llm
 
     if _llm is None:
-        mode = os.environ.get("PIXIU_LLM_MODE", "deepseek").strip().lower()
+        mode = settings.pixiu_llm_mode.strip().lower()
         if mode == "fixture":
             _llm = _get_fixture_llm("default")
             return _llm
         if mode != "deepseek":
             raise ValueError(f"Unsupported PIXIU_LLM_MODE: {mode}")
-        api_key = os.environ.get("DEEPSEEK_API_KEY")
+        api_key = settings.deepseek_api_key
         if not api_key:
             raise ValueError("Please configure DEEPSEEK_API_KEY before starting the AI service.")
 
         _llm = DeepSeekLLM(
-            model=os.environ.get("DEEPSEEK_MODEL", DEFAULT_DEEPSEEK_MODEL),
-            temperature=float(os.environ.get("DEEPSEEK_TEMPERATURE", "0.3")),
+            model=settings.deepseek_model,
+            temperature=settings.deepseek_temperature,
             api_key=api_key,
-            base_url=os.environ.get("DEEPSEEK_BASE_URL", DEFAULT_DEEPSEEK_BASE_URL),
-            thinking_type=os.environ.get("DEEPSEEK_THINKING_TYPE", "enabled"),
-            reasoning_effort=os.environ.get("DEEPSEEK_REASONING_EFFORT", "high"),
+            base_url=settings.deepseek_base_url,
+            thinking_type=settings.deepseek_thinking_type,
+            reasoning_effort=settings.deepseek_reasoning_effort,
         )
 
     return _llm
@@ -377,23 +378,23 @@ def get_translation_llm() -> Any:
     global _translation_llm
 
     if _translation_llm is None:
-        mode = os.environ.get("PIXIU_LLM_MODE", "deepseek").strip().lower()
+        mode = settings.pixiu_llm_mode.strip().lower()
         if mode == "fixture":
             _translation_llm = _get_fixture_llm("translation")
             return _translation_llm
         if mode != "deepseek":
             raise ValueError(f"Unsupported PIXIU_LLM_MODE: {mode}")
-        api_key = os.environ.get("DEEPSEEK_API_KEY")
+        api_key = settings.deepseek_api_key
         if not api_key:
             raise ValueError("Please configure DEEPSEEK_API_KEY before starting the AI service.")
 
         _translation_llm = DeepSeekLLM(
-            model=os.environ.get("DEEPSEEK_TRANSLATION_MODEL", DEFAULT_DEEPSEEK_TRANSLATION_MODEL),
-            temperature=float(os.environ.get("DEEPSEEK_TRANSLATION_TEMPERATURE", "0.1")),
+            model=settings.deepseek_translation_model,
+            temperature=settings.deepseek_translation_temperature,
             api_key=api_key,
-            base_url=os.environ.get("DEEPSEEK_BASE_URL", DEFAULT_DEEPSEEK_BASE_URL),
-            thinking_type=os.environ.get("DEEPSEEK_TRANSLATION_THINKING_TYPE"),
-            reasoning_effort=os.environ.get("DEEPSEEK_TRANSLATION_REASONING_EFFORT"),
+            base_url=settings.deepseek_base_url,
+            thinking_type=settings.deepseek_translation_thinking_type,
+            reasoning_effort=settings.deepseek_translation_reasoning_effort,
         )
 
     return _translation_llm

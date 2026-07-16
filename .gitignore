@@ -71,6 +71,7 @@ ai-service-python/core/chroma_literature_db/
 !/ai-service-python/tests/test_agent_orchestrator_advanced.py
 !/ai-service-python/tests/test_error_responses.py
 !/ai-service-python/tests/test_health.py
+!/ai-service-python/tests/test_config.py
 !/ai-service-python/tests/fixtures/
 !/ai-service-python/tests/fixtures/llm_responses.json
 node_modules/

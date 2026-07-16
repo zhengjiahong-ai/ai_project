@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-16 v0.6.13
+
+1. **Python 配置管理集中化**：新增 `core/config.py`，使用 pydantic-settings 统一管理 LLM、日志、功能开关、运行时参数、外部服务等 28 个环境变量；`llm/client.py` 全部 19 处 `os.environ.get()` 迁移为集中配置；`core/logging_config.py` 迁移为集中配置；`requirements.txt` 移除硬编码阿里云镜像、锁定 `grobid-client-python` 版本。
+
 ### 2026-07-16 v0.6.12
 
 1. **健康检查 + 可观测性基线**：新增 `GET /api/health` 端点（检查 GROBID、RAG 连通性，返回聚合状态和运行时长）；`app.py` 从已弃用的 `@app.on_event` 迁移为 FastAPI lifespan context manager；生产代码 14 处 `print()` 全部迁移为结构化 logger；`DummyRAG` 初始化失败时输出 warning 级别日志。
