@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Send } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   area?: string;
@@ -10,6 +10,7 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  reportSent: boolean;
 }
 
 /**
@@ -20,11 +21,11 @@ interface ErrorBoundaryState {
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, reportSent: false };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return { hasError: true, error, reportSent: false };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
@@ -36,7 +37,27 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   handleRetry = (): void => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, reportSent: false });
+  };
+
+  handleReport = (): void => {
+    const payload = {
+      error: this.state.error?.message || 'Unknown error',
+      componentStack: this.state.error?.stack || '',
+      area: this.props.area || 'unknown',
+      timestamp: new Date().toISOString(),
+    };
+
+    // Fire-and-forget: don't block the UI on the report
+    fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {
+      // Silently fail — reporting is best-effort
+    });
+
+    this.setState({ reportSent: true });
   };
 
   render(): React.ReactNode {
@@ -58,15 +79,30 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               <p className="theme-text-muted mt-1 text-xs">
                 此区域渲染时发生错误，您可以尝试重新加载。
               </p>
+              {this.state.reportSent && (
+                <p className="mt-2 text-xs text-emerald-500">错误报告已发送，感谢反馈</p>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={this.handleRetry}
-              className="theme-button-secondary inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium"
-            >
-              <RefreshCw size={14} />
-              重试
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={this.handleRetry}
+                className="theme-button-secondary inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium"
+              >
+                <RefreshCw size={14} />
+                重试
+              </button>
+              {!this.state.reportSent && (
+                <button
+                  type="button"
+                  onClick={this.handleReport}
+                  className="theme-button-secondary inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium"
+                >
+                  <Send size={14} />
+                  报告问题
+                </button>
+              )}
+            </div>
           </div>
         </div>
       );

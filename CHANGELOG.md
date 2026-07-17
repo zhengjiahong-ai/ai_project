@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-17 v0.6.27
+
+1. **用户反馈与错误上报（6-3）**：新增 `POST /api/feedback` 端点（脱敏记录前端错误报告）；`ErrorBoundary` 增加"报告问题"按钮（fire-and-forget 上报 + 确认提示）；新增 `hooks/useUsageStats.js`（匿名使用统计，默认关闭 opt-in）。
+
 ### 2026-07-17 v0.6.26
 
 1. **前端无障碍深化（6-2）**：`PdfViewer` 弹窗增加 Esc 关闭、焦点移入/归还和 `role=dialog`/`aria-modal`；`ChatPanel` 图标按钮补充 `aria-label`；`--text-muted` 对比度调整到 ≥ 4.5:1（浅色 #64748b / 深色 #94a3b8）；新增 `a11y.test.jsx`（8 个 axe-core 扫描，0 个 critical violation）。
