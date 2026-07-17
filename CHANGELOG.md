@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-17 v0.6.25
+
+1. **E2E 测试骨架（6-1）**：Playwright E2E 测试已有 3 个文件 8 个用例（mock API 驱动），覆盖阅读 IDE→Agent 研究、外部检索授权与降级恢复、论文写作面板、研究监控等路径。CI 新增 `e2e` job（依赖 frontend job 通过后运行）。
+
 ### 2026-07-17 v0.6.24
 
 1. **前端组件级测试补齐（4-3）**：引入 vitest + jsdom + @testing-library/react 组件测试框架，新增 5 个组件渲染测试文件（`Skeleton`、`EmptyState`、`ErrorBoundary`、`Toast`、`ChatPanel`），35 个测试覆盖核心交互路径。npm test 总计 53 测试全通过。
