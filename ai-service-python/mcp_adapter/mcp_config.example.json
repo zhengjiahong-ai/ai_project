@@ -1,0 +1,24 @@
+{
+  "_comment": "Pixiu MCP Adapter configuration. Copy to mcp_config.json and adjust.",
+  "tools": [
+    "read_paper_skeleton",
+    "retrieve_current_paper",
+    "retrieve_library"
+  ],
+  "budgets": {
+    "retrieve_current_paper": {
+      "topK": 8,
+      "limit": 5,
+      "maxTextChars": 900
+    },
+    "retrieve_library": {
+      "topK": 5,
+      "limit": 4,
+      "maxTextChars": 700
+    },
+    "read_paper_skeleton": {
+      "maxSections": 6,
+      "maxCharsPerSection": 220
+    }
+  }
+}

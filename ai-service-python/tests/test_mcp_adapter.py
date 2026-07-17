@@ -42,14 +42,14 @@ class McpAdapterTests(unittest.TestCase):
                     self.assertTrue(is_mcp_enabled())
 
     def test_list_tools_exposes_only_allowlisted_contracts_with_read_only_metadata(self):
-        from mcp_adapter.adapter import MCP_ALLOWED_TOOL_NAMES, list_mcp_tools
+        from mcp_adapter.adapter import DEFAULT_ALLOWED_TOOLS, list_mcp_tools
 
         registry = get_tool_registry()
         internal_contracts = {item["name"]: item for item in registry.list_tools()}
 
         tools = list_mcp_tools(registry)
 
-        self.assertEqual({tool["name"] for tool in tools}, set(MCP_ALLOWED_TOOL_NAMES))
+        self.assertEqual({tool["name"] for tool in tools}, set(DEFAULT_ALLOWED_TOOLS))
         for tool in tools:
             internal = internal_contracts[tool["name"]]
             self.assertEqual(tool["description"], internal["description"])

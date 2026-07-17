@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-17 v0.6.29
+
+1. **MCP Adapter 生产化（7-2）**：工具过滤从硬编码改为 `PIXIU_MCP_CONFIG` JSON 配置文件 + 环境变量驱动；新增可选 `PIXIU_MCP_AUTH_TOKEN` 认证；server 增加 session 注册与并发支持（`register_session`、`record_tool_call`）；新增 `mcp_config.example.json` 配置示例。12 个 MCP 测试全通过。
+
 ### 2026-07-17 v0.6.28
 
 1. **LangGraph PoC 评估（7-1）**：新增 `tests/poc_langgraph_agent.py`——用 LangGraph StateGraph 重构当前 agent 研究管道（plan→execute→aggregate→follow_up_decision→report），与当前 `execute_run` 输出等效，可观测性更优（5 条 timeline vs 1 条），条件边使 follow-up 决策显式化。结论：LangGraph 适合后续接入，建议在有 human-in-the-loop 需求时优先迁移。
