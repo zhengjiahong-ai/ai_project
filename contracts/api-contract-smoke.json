@@ -373,6 +373,32 @@
       "pythonResponse": {"status": "success", "jobs": [{"jobId": "job-contract-1", "status": "awaiting_approval", "taskDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "publishable": false}]},
       "gatewayResponse": {"status": "success", "jobs": [{"jobId": "job-contract-1", "status": "awaiting_approval", "taskDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "publishable": false}]},
       "pythonResponseContract": {"type": "object", "required": ["status", "jobs"], "properties": {"status": {"type": "string", "enum": ["success"]}, "jobs": {"type": "array", "items": {"type": "object", "required": ["jobId", "status", "taskDigest", "publishable"], "properties": {"jobId": {"type": "string"}, "status": {"type": "string"}, "taskDigest": {"type": "string"}, "publishable": {"type": "boolean"}}}}}}
+    },
+    {
+      "operation": "feedback",
+      "method": "POST",
+      "frontendPath": "/feedback",
+      "javaPath": "/api/feedback",
+      "pythonPath": "/api/feedback",
+      "statusCode": 200,
+      "frontendRequest": {"errorType": "render", "componentStack": "App", "userNote": "页面加载时闪退", "metadata": {"page": "reading"}},
+      "pythonRequest": {"errorType": "render", "componentStack": "App", "userNote": "页面加载时闪退", "metadata": {"page": "reading"}},
+      "pythonResponse": {"status": "success", "received": true},
+      "gatewayResponse": {"status": "success", "received": true},
+      "pythonResponseContract": {"type": "object", "required": ["status", "received"], "properties": {"status": {"type": "string", "enum": ["success"]}, "received": {"type": "boolean"}}}
+    },
+    {
+      "operation": "usage",
+      "method": "POST",
+      "frontendPath": "/usage",
+      "javaPath": "/api/usage",
+      "pythonPath": "/api/usage",
+      "statusCode": 200,
+      "frontendRequest": {"event": "page_view", "page": "reading", "timestamp": "2026-07-17T00:00:00Z"},
+      "pythonRequest": {"event": "page_view", "page": "reading", "timestamp": "2026-07-17T00:00:00Z"},
+      "pythonResponse": {"status": "success", "received": true},
+      "gatewayResponse": {"status": "success", "received": true},
+      "pythonResponseContract": {"type": "object", "required": ["status", "received"], "properties": {"status": {"type": "string", "enum": ["success"]}, "received": {"type": "boolean"}}}
     }
   ]
 }

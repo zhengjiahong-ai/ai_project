@@ -1,8 +1,8 @@
-const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+const normalizeText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
-const normalizeInteger = (value) => {
+const normalizeInteger = (value: unknown): number | null => {
   if (Number.isInteger(value)) {
-    return value;
+    return value as number;
   }
   if (typeof value === 'string' && value.trim() !== '') {
     const parsed = Number(value);
@@ -11,7 +11,7 @@ const normalizeInteger = (value) => {
   return null;
 };
 
-const truncate = (value, maxLength = 180) => {
+const truncate = (value: unknown, maxLength = 180): string => {
   const text = normalizeText(value);
   if (!text || text.length <= maxLength) {
     return text;
@@ -21,7 +21,7 @@ const truncate = (value, maxLength = 180) => {
 
 const EXTERNAL_SOURCE_TYPE = 'external_academic';
 
-const isExternalSource = (source) => {
+const isExternalSource = (source: Record<string, any>): boolean => {
   const sourceType = normalizeText(source?.sourceType ?? source?.metadata?.sourceType);
   if (sourceType === EXTERNAL_SOURCE_TYPE) {
     return true;
@@ -29,7 +29,7 @@ const isExternalSource = (source) => {
   return Boolean(normalizeText(source?.provider) || normalizeText(source?.doi));
 };
 
-export const normalizeSourceLocation = (source) => {
+export const normalizeSourceLocation = (source: Record<string, any>) => {
   const metadata = source?.metadata && typeof source.metadata === 'object' ? source.metadata : {};
   const pageIndex = normalizeInteger(source?.pageIndex ?? source?.sourcePageIndex ?? metadata.pageIndex);
   const sectionId = normalizeText(source?.sectionId ?? metadata.sectionId);
@@ -38,11 +38,11 @@ export const normalizeSourceLocation = (source) => {
     sectionId: sectionId || null,
     pdfId: normalizeText(source?.pdfId ?? metadata.pdfId) || null,
     canJumpToSource: Number.isInteger(pageIndex),
-    locationLabel: Number.isInteger(pageIndex) ? `p.${pageIndex + 1}` : '',
+    locationLabel: Number.isInteger(pageIndex) ? `p.${(pageIndex as number) + 1}` : '',
   };
 };
 
-const normalizeExternalSourceLocation = (source) => {
+const normalizeExternalSourceLocation = (source: Record<string, any>) => {
   const provider = normalizeText(source?.provider ?? source?.metadata?.provider);
   const year = normalizeInteger(source?.year ?? source?.metadata?.year);
   const doi = normalizeText(source?.doi ?? source?.metadata?.doi);
@@ -61,7 +61,7 @@ const normalizeExternalSourceLocation = (source) => {
   };
 };
 
-export const normalizeEvidenceSource = (source, index = 0) => {
+export const normalizeEvidenceSource = (source: Record<string, any>, index = 0) => {
   if (!source || typeof source !== 'object') {
     return null;
   }
@@ -77,7 +77,7 @@ export const normalizeEvidenceSource = (source, index = 0) => {
     const title = normalizeText(source?.title ?? metadata?.title);
     const abstract = normalizeText(source?.abstract ?? metadata?.abstract);
     const authors = Array.isArray(source?.authors ?? metadata?.authors)
-      ? (source?.authors ?? metadata?.authors).map((author) => normalizeText(author)).filter(Boolean)
+      ? (source?.authors ?? metadata?.authors).map((author: unknown) => normalizeText(author)).filter(Boolean)
       : [];
     const retrievedAt = normalizeText(source?.retrievedAt ?? metadata?.retrievedAt);
     const license = normalizeText(source?.license ?? metadata?.license);
@@ -158,17 +158,17 @@ export const normalizeEvidenceSources = (sources: unknown): unknown[] => {
     });
 };
 
-export const buildSourceLookup = (sources) => {
+export const buildSourceLookup = (sources: unknown) => {
   if (!Array.isArray(sources)) {
     return new Map();
   }
 
   const lookup = new Map();
-  normalizeEvidenceSources(sources).forEach((source) => { if (source) lookup.set((source as Record<string, unknown>).sourceId as string, source); });
+  normalizeEvidenceSources(sources).forEach((source) => { if (source) lookup.set((source as Record<string, any>).sourceId as string, source); });
   return lookup;
 };
 
-export const collectSourcesByIds = (sourceIds, sources) => {
+export const collectSourcesByIds = (sourceIds: unknown, sources: unknown) => {
   if (!Array.isArray(sourceIds)) {
     return [];
   }
@@ -176,19 +176,19 @@ export const collectSourcesByIds = (sourceIds, sources) => {
   const lookup = buildSourceLookup(sources);
   const seen = new Set();
   return sourceIds
-    .map((sourceId) => normalizeText(sourceId))
+    .map((sourceId: unknown) => normalizeText(sourceId))
     .filter((sourceId) => sourceId && !seen.has(sourceId) && seen.add(sourceId))
-    .map((sourceId) => lookup.get(sourceId))
+    .map((sourceId: unknown) => lookup.get(sourceId))
     .filter(Boolean);
 };
 
-export const normalizeSentenceReferences = (sentenceSourceMap, sources, options = {}) => {
+export const normalizeSentenceReferences = (sentenceSourceMap: unknown, sources: unknown, options: Record<string, any> = {}) => {
   if (!Array.isArray(sentenceSourceMap)) {
     return [];
   }
 
   const sourceLookup = buildSourceLookup(sources);
-  const opts = options as Record<string, unknown>;
+  const opts = options as Record<string, any>;
   const targetFilter = normalizeText(opts.target);
   const maxItems = Number.isInteger(opts.maxItems) ? (opts.maxItems as number) : 8;
 
@@ -206,7 +206,7 @@ export const normalizeSentenceReferences = (sentenceSourceMap, sources, options 
 
       const sourceIds = Array.isArray(item?.sourceIds) ? item.sourceIds : [];
       const sourcesForReference = sourceIds
-        .map((sourceId) => sourceLookup.get(normalizeText(sourceId)))
+        .map((sourceId: unknown) => sourceLookup.get(normalizeText(sourceId)))
         .filter(Boolean);
 
       if (sourcesForReference.length === 0) {
@@ -219,7 +219,7 @@ export const normalizeSentenceReferences = (sentenceSourceMap, sources, options 
         sentence,
         confidence: Number.isFinite(Number(item?.confidence)) ? Number(item.confidence) : null,
         sources: sourcesForReference,
-        sourceIds: sourcesForReference.map((source) => source.sourceId),
+        sourceIds: sourcesForReference.map((source: Record<string, any>) => source.sourceId),
       };
     })
     .filter(Boolean)

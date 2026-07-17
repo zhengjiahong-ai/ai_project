@@ -7,9 +7,16 @@ from contextlib import closing
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
+
 from llm.client import DeepSeekLLM
 from schemas.requests import ResearchFinalReviewRequest, ResearchPlanReviewRequest, ResearchTaskCreateRequest
 from services import research_executor, research_task_service, trace_service
+
+_requires_llm_key = pytest.mark.skipif(
+    not os.environ.get("DEEPSEEK_API_KEY") and os.environ.get("PIXIU_LLM_MODE", "deepseek") != "fixture",
+    reason="Requires DEEPSEEK_API_KEY or PIXIU_LLM_MODE=fixture",
+)
 
 
 ADVERSARIAL_FIXTURE = json.loads(

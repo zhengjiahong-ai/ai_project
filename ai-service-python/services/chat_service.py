@@ -28,6 +28,7 @@ from services.safety_service import (
     summarize_safety_results,
     wrap_untrusted_context,
 )
+from services.socratic_service import _call_guarded_llm
 import logging
 _logger = logging.getLogger(__name__)
 

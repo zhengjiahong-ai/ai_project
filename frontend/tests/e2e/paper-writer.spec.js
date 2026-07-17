@@ -1,11 +1,5 @@
 /**
  * E2E tests for paper writer panel: generate, preview, download.
- *
- * NOTE: These tests are skipped because the paper-writer panel requires
- * navigating through a CSS-hover-based workspace panel system whose
- * mock state transitions need deeper alignment with the current component.
- * Fix in a follow-up that reconciles the PaperWriterPanel state machine
- * with the mock API responses.
  */
 import { test, expect } from '@playwright/test';
 import { installMockApi } from '../fixtures/mockApi.js';
@@ -25,8 +19,7 @@ async function uploadPdfAndOpenPaperWriter(page) {
     buffer: createSmokePdfBuffer(),
   });
 
-  // The workspace panel area has complex z-index stacking.
-  // Use native DOM clicks to navigate.
+  // Navigate workspace panel using JS DOM operations
   await page.evaluate(() => {
     var navToggle = document.querySelector('.workspace-nav-toggle');
     if (navToggle) navToggle.click();
@@ -51,7 +44,7 @@ async function uploadPdfAndOpenPaperWriter(page) {
 }
 
 test.describe('Paper Writer Panel', () => {
-  test.skip('generate paper draft and verify sections', async ({ page }) => {
+  test('generate paper draft and verify sections', async ({ page }) => {
     await uploadPdfAndOpenPaperWriter(page);
 
     await page.getByPlaceholder(/研究问题/).fill('graph neural networks for molecular property prediction');
@@ -59,19 +52,19 @@ test.describe('Paper Writer Panel', () => {
 
     await expect(page.getByText(/草稿生成完成/)).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByText('Abstract')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('Introduction')).toBeVisible();
+    await expect(page.getByText(/Abstract/).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Introduction/).first()).toBeVisible();
   });
 
-  test.skip('download buttons are present after generation', async ({ page }) => {
+  test('download buttons are present after generation', async ({ page }) => {
     await uploadPdfAndOpenPaperWriter(page);
 
     await page.getByPlaceholder(/研究问题/).fill('transformer attention mechanisms');
     await page.getByRole('button', { name: /生成论文草稿/ }).click();
     await expect(page.getByText(/草稿生成完成/)).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByText('Markdown')).toBeVisible();
-    await expect(page.getByText('LaTeX')).toBeVisible();
-    await expect(page.getByText('BibTeX')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Markdown' }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'LaTeX' }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'BibTeX' }).first()).toBeVisible();
   });
 });

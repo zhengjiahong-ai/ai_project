@@ -325,7 +325,7 @@ export const installMockApi = async (page) => {
       const question = body.question || 'default question';
       const title = body.title || `A Review of ${question.slice(0, 40)}`;
       await json(route, {
-        status: 'done',
+        status: 'success',
         title,
         question,
         sections: {

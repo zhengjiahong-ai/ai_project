@@ -1,10 +1,10 @@
 import { normalizeSentenceReferences, normalizeSourceLocation } from './evidenceCitationModel.ts';
 
-const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+const normalizeText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
-const normalizeInteger = (value) => {
+const normalizeInteger = (value: unknown): number | null => {
   if (Number.isInteger(value)) {
-    return value;
+    return value as number;
   }
   if (typeof value === 'string' && value.trim() !== '') {
     const parsed = Number(value);
@@ -21,18 +21,18 @@ const normalizeScore = (value: unknown, fallback: number | null = 0): number | n
   return Math.min(100, Math.max(0, Math.round(parsed)));
 };
 
-const normalizeList = (value) => {
+const normalizeList = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
     return [];
   }
 
   return value
-    .map((item) => normalizeText(item))
+    .map((item: unknown) => normalizeText(item))
     .filter(Boolean)
     .slice(0, 6);
 };
 
-const truncate = (value, maxLength = 180) => {
+const truncate = (value: unknown, maxLength = 180): string => {
   const text = normalizeText(value);
   if (!text || text.length <= maxLength) {
     return text;
@@ -40,37 +40,54 @@ const truncate = (value, maxLength = 180) => {
   return `${text.slice(0, maxLength).trimEnd()}...`;
 };
 
-const normalizeScoreCard = (value) => {
+interface ScoreCardInput {
+  score?: unknown;
+  label?: unknown;
+  level?: unknown;
+  summary?: unknown;
+  factors?: unknown;
+}
+
+const normalizeScoreCard = (value: unknown): { score: number; label: string; level: string; summary: string; basis: string[] } | null => {
   if (!value || typeof value !== 'object') {
     return null;
   }
+  const obj = value as ScoreCardInput;
 
-  const score = normalizeScore(value.score, null);
+  const score = normalizeScore(obj.score, null);
   if (score === null) {
     return null;
   }
 
   return {
     score,
-    label: normalizeText(value.label),
-    level: normalizeText(value.level),
-    summary: normalizeText(value.summary),
-    basis: normalizeList(value.factors),
+    label: normalizeText(obj.label),
+    level: normalizeText(obj.level),
+    summary: normalizeText(obj.summary),
+    basis: normalizeList(obj.factors),
   };
 };
 
-const DIMENSION_STATUS_LABELS = {
+const DIMENSION_STATUS_LABELS: Record<string, string> = {
   strong: '强',
   partial: '中',
   weak: '弱',
 };
 
-export const getNoveltyDimensionRows = (data, maxItems = 4) => {
+interface NoveltyDimensionInput {
+  id?: unknown;
+  label?: unknown;
+  status?: unknown;
+  score?: unknown;
+  detail?: unknown;
+}
+
+export const getNoveltyDimensionRows = (data: Record<string, unknown> | null | undefined, maxItems = 4) => {
   if (!Array.isArray(data?.noveltyDimensions)) {
     return [];
   }
 
-  return data.noveltyDimensions
+  return (data.noveltyDimensions as NoveltyDimensionInput[])
     .map((item) => {
       const id = normalizeText(item?.id);
       const label = normalizeText(item?.label);
@@ -88,18 +105,31 @@ export const getNoveltyDimensionRows = (data, maxItems = 4) => {
         detail: normalizeText(item?.detail) || '暂无评分依据。',
       };
     })
-    .filter(Boolean)
+    .filter((item): item is NonNullable<typeof item> => item != null)
     .slice(0, maxItems);
 };
 
-export const getCitationGraph = (data) => {
-  const graph = data?.citationGraph;
+interface CitationNode {
+  id?: unknown;
+  name?: unknown;
+  label?: unknown;
+  [key: string]: unknown;
+}
+
+interface CitationLink {
+  source?: unknown;
+  target?: unknown;
+  [key: string]: unknown;
+}
+
+export const getCitationGraph = (data: Record<string, unknown> | null | undefined) => {
+  const graph = data?.citationGraph as Record<string, unknown> | undefined;
   if (!graph || typeof graph !== 'object') {
     return null;
   }
 
   const nodes = Array.isArray(graph.nodes)
-    ? graph.nodes
+    ? (graph.nodes as CitationNode[])
       .map((node) => {
         const id = normalizeText(node?.id);
         if (!id) {
@@ -111,11 +141,11 @@ export const getCitationGraph = (data) => {
           name: normalizeText(node?.name) || normalizeText(node?.label) || id,
         };
       })
-      .filter(Boolean)
+      .filter((item): item is NonNullable<typeof item> => item != null)
     : [];
 
   const links = Array.isArray(graph.links)
-    ? graph.links
+    ? (graph.links as CitationLink[])
       .map((link) => {
         const source = normalizeText(link?.source);
         const target = normalizeText(link?.target);
@@ -128,7 +158,7 @@ export const getCitationGraph = (data) => {
           target,
         };
       })
-      .filter(Boolean)
+      .filter((item): item is NonNullable<typeof item> => item != null)
     : [];
 
   if (nodes.length === 0 || links.length === 0) {
@@ -138,7 +168,7 @@ export const getCitationGraph = (data) => {
   return { nodes, links };
 };
 
-export const getEvidenceBasedContributions = (data) => {
+export const getEvidenceBasedContributions = (data: Record<string, unknown> | null | undefined): string => {
   const preferred = normalizeText(data?.evidence_based_contributions);
   if (preferred) {
     return preferred;
@@ -146,23 +176,23 @@ export const getEvidenceBasedContributions = (data) => {
   return normalizeText(data?.inferred_real_contributions);
 };
 
-export const buildMetricCards = (data) => {
+export const buildMetricCards = (data: Record<string, unknown> | null | undefined): Record<string, unknown>[] => {
   if (Array.isArray(data?.metrics) && data.metrics.length > 0) {
-    return data.metrics;
+    return data.metrics as Record<string, unknown>[];
   }
 
   if (!data) {
     return [];
   }
 
-  const contributionScore = normalizeScoreCard(data.contributionScore);
-  const riskScore = normalizeScoreCard(data.riskScore);
+  const contributionScore = normalizeScoreCard((data as Record<string, unknown>).contributionScore);
+  const riskScore = normalizeScoreCard((data as Record<string, unknown>).riskScore);
   const noveltyDimensions = getNoveltyDimensionRows(data);
 
   if (contributionScore || riskScore || noveltyDimensions.length > 0) {
     const coverageScore = noveltyDimensions.length > 0
       ? normalizeScore(
-        noveltyDimensions.reduce((sum, item) => sum + item.score, 0) / noveltyDimensions.length,
+        noveltyDimensions.reduce((sum: number, item) => sum + (item.score ?? 0), 0) / noveltyDimensions.length,
         0,
       )
       : 0;
@@ -217,7 +247,7 @@ export const buildMetricCards = (data) => {
   ];
 };
 
-export const buildSummary = (data) => {
+export const buildSummary = (data: Record<string, unknown> | null | undefined): string => {
   if (typeof data?.summary === 'string' && data.summary.trim()) {
     return data.summary;
   }
@@ -227,11 +257,11 @@ export const buildSummary = (data) => {
     ? '基于证据的真实贡献'
     : '推断出的真实贡献';
 
-  const sections = [
+  const sections: [string, string][] = ([
     ['作者宣称的贡献', normalizeText(data?.claimed_contributions)],
     [evidenceTitle, evidenceBasedContributions],
     ['批判性阅读结论', normalizeText(data?.critical_analysis)],
-  ].filter(([, value]) => value);
+  ] as [string, string][]).filter(([, value]) => value);
 
   if (sections.length === 0) {
     return '暂无分析结果。';
@@ -240,7 +270,7 @@ export const buildSummary = (data) => {
   return sections.map(([title, value]) => `### ${title}\n${value}`).join('\n\n');
 };
 
-export const getDetailSections = (data) => {
+export const getDetailSections = (data: Record<string, unknown> | null | undefined) => {
   const evidenceBasedContributions = getEvidenceBasedContributions(data);
   const evidenceTitle = normalizeText(data?.evidence_based_contributions)
     ? '基于证据的真实贡献'
@@ -253,54 +283,54 @@ export const getDetailSections = (data) => {
   ].filter((section) => section.content);
 };
 
-export const getStructuredSections = (data) =>
+export const getStructuredSections = (data: Record<string, unknown> | null | undefined) =>
   [
     { key: 'weaknesses', title: '主要薄弱点', items: normalizeList(data?.weaknesses) },
     { key: 'overclaim_risks', title: '可能的夸大风险', items: normalizeList(data?.overclaim_risks) },
     { key: 'missing_evidence', title: '当前缺失证据', items: normalizeList(data?.missing_evidence) },
   ].filter((section) => section.items.length > 0);
 
-const SOURCE_TYPE_LABELS = {
+const SOURCE_TYPE_LABELS: Record<string, string> = {
   current_paper: '当前论文',
   library: '文献库',
   unknown: '未知来源',
 };
 
-const SUPPORT_LEVEL_LABELS = {
+const SUPPORT_LEVEL_LABELS: Record<string, string> = {
   SUPPORTED: '已支撑',
   PARTIAL: '部分支撑',
   UNSUPPORTED: '证据不足',
 };
 
-const SUPPORT_LEVEL_STYLES = {
+const SUPPORT_LEVEL_STYLES: Record<string, string> = {
   SUPPORTED: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600',
   PARTIAL: 'border-amber-500/30 bg-amber-500/10 text-amber-600',
   UNSUPPORTED: 'border-rose-500/30 bg-rose-500/10 text-rose-600',
 };
 
-const NUMERIC_VERIFICATION_LABELS = {
+const NUMERIC_VERIFICATION_LABELS: Record<string, string> = {
   not_applicable: '不涉及数值核对',
   candidate_found: '找到候选数值证据',
   insufficient_for_auto_verification: '候选证据不足以自动验证',
   not_found: '未找到对应数值证据',
 };
 
-const normalizeSupportLevel = (value) => {
+const normalizeSupportLevel = (value: unknown): string => {
   const level = normalizeText(value).toUpperCase();
   return SUPPORT_LEVEL_LABELS[level] ? level : 'PARTIAL';
 };
 
-const normalizeNumericVerificationStatus = (value) => {
+const normalizeNumericVerificationStatus = (value: unknown): string => {
   const status = normalizeText(value);
   return NUMERIC_VERIFICATION_LABELS[status] ? status : 'not_applicable';
 };
 
-export const getEvidencePreview = (data, maxItems = 5) => {
+export const getEvidencePreview = (data: Record<string, unknown> | null | undefined, maxItems = 5) => {
   if (!Array.isArray(data?.rag_sources)) {
     return [];
   }
 
-  return data.rag_sources
+  return (data.rag_sources as Record<string, unknown>[])
     .map((item, index) => {
       const sourceType = normalizeText(item?.sourceType) || 'unknown';
       const sourceId = normalizeText(item?.sourceId) || normalizeText(item?.id) || `source-${index + 1}`;
@@ -317,20 +347,20 @@ export const getEvidencePreview = (data, maxItems = 5) => {
         sourceLabel: SOURCE_TYPE_LABELS[sourceType] || SOURCE_TYPE_LABELS.unknown,
         text,
         chunkIndex: normalizeInteger(item?.chunkIndex),
-        ...normalizeSourceLocation(item),
+        ...normalizeSourceLocation(item as Record<string, unknown>),
       };
     })
-    .filter(Boolean)
+    .filter((item): item is NonNullable<typeof item> => item != null)
     .slice(0, maxItems);
 };
 
-export const getClaimSupportRows = (data, maxItems = 6) => {
+export const getClaimSupportRows = (data: Record<string, unknown> | null | undefined, maxItems = 6) => {
   if (!Array.isArray(data?.claims)) {
     return [];
   }
 
   const sourceMap = new Map(
-    (Array.isArray(data?.rag_sources) ? data.rag_sources : [])
+    (Array.isArray(data?.rag_sources) ? data.rag_sources as Record<string, unknown>[] : [])
       .map((source, index) => {
         const sourceId = normalizeText(source?.sourceId) || normalizeText(source?.id) || `source-${index + 1}`;
         if (!sourceId) {
@@ -346,12 +376,12 @@ export const getClaimSupportRows = (data, maxItems = 6) => {
             chunkIndex: normalizeInteger(source?.chunkIndex),
             ...normalizeSourceLocation(source),
           },
-        ];
+        ] as const;
       })
-      .filter(Boolean),
+      .filter((item): item is NonNullable<typeof item> => item != null),
   );
 
-  return data.claims
+  return (data.claims as Record<string, unknown>[])
     .map((item, index) => {
       const claim = normalizeText(item?.claim);
       if (!claim) {
@@ -360,14 +390,14 @@ export const getClaimSupportRows = (data, maxItems = 6) => {
 
       const supportLevel = normalizeSupportLevel(item?.supportLevel);
       const evidenceSourceIds = Array.isArray(item?.evidenceSourceIds)
-        ? item.evidenceSourceIds.map((sourceId) => normalizeText(sourceId)).filter(Boolean)
+        ? (item.evidenceSourceIds as unknown[]).map((sourceId: unknown) => normalizeText(sourceId)).filter(Boolean)
         : [];
       const sources = evidenceSourceIds
-        .map((sourceId) => sourceMap.get(sourceId))
+        .map((sourceId: string) => sourceMap.get(sourceId))
         .filter(Boolean);
       const numericVerificationStatus = normalizeNumericVerificationStatus(item?.numericVerificationStatus);
       const numericEvidenceCandidates = Array.isArray(item?.numericEvidenceCandidates)
-        ? item.numericEvidenceCandidates
+        ? (item.numericEvidenceCandidates as Record<string, unknown>[])
           .map((candidate, candidateIndex) => {
             const sourceId = normalizeText(candidate?.sourceId) || normalizeText(candidate?.id);
             if (!sourceId) {
@@ -392,10 +422,10 @@ export const getClaimSupportRows = (data, maxItems = 6) => {
               ...normalizeSourceLocation({
                 ...(source || {}),
                 ...candidate,
-              }),
+              } as Record<string, unknown>),
             };
           })
-          .filter(Boolean)
+          .filter((item): item is NonNullable<typeof item> => item != null)
           .slice(0, 3)
         : [];
 
@@ -414,9 +444,9 @@ export const getClaimSupportRows = (data, maxItems = 6) => {
         numericEvidenceCandidates,
       };
     })
-    .filter(Boolean)
+    .filter((item): item is NonNullable<typeof item> => item != null)
     .slice(0, maxItems);
 };
 
-export const getSentenceSourceReferences = (data, maxItems = 6) =>
-  normalizeSentenceReferences(data?.sentenceSourceMap, data?.rag_sources, { maxItems });
+export const getSentenceSourceReferences = (data: Record<string, unknown> | null | undefined, maxItems = 6) =>
+  normalizeSentenceReferences(data?.sentenceSourceMap as unknown[], data?.rag_sources as unknown[], { maxItems });

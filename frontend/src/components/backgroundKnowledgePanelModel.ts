@@ -1,46 +1,65 @@
-export const KNOWLEDGE_LEVEL_OPTIONS = ['入门', '一般', '进阶'];
-export const BACKGROUND_DEPTH_OPTIONS = ['速览', '标准', '深入'];
-export const BACKGROUND_GOAL_OPTIONS = ['扫清概念障碍', '理解方法链路', '为批判阅读做准备'];
+export const KNOWLEDGE_LEVEL_OPTIONS: string[] = ['入门', '一般', '进阶'];
+export const BACKGROUND_DEPTH_OPTIONS: string[] = ['速览', '标准', '深入'];
+export const BACKGROUND_GOAL_OPTIONS: string[] = ['扫清概念障碍', '理解方法链路', '为批判阅读做准备'];
 
-const STAGE_META = {
+const STAGE_META: Record<string, { title: string; color: string }> = {
   foundation: { title: '基础概念', color: '#0ea5e9' },
   method_prerequisite: { title: '方法前置', color: '#14b8a6' },
   experiment_understanding: { title: '实验理解', color: '#22c55e' },
   critical_perspective: { title: '批判视角', color: '#f59e0b' },
 };
 
-const PROVENANCE_META = {
+interface ProvenanceMetaEntry {
+  label: string;
+  tone: string;
+}
+
+const PROVENANCE_META: Record<string, ProvenanceMetaEntry> = {
   current_paper_supported: { label: '当前论文支持', tone: 'evidence' },
   model_inference: { label: '模型推断', tone: 'inference' },
   external_supported: { label: '外部证据支持', tone: 'external' },
   unknown: { label: '来源未标注', tone: 'unknown' },
 };
 
-export const getProvenanceMeta = (value) => PROVENANCE_META[value] || PROVENANCE_META.unknown;
+export const getProvenanceMeta = (value: string): ProvenanceMetaEntry => PROVENANCE_META[value] || PROVENANCE_META.unknown;
 
-const normalizeProvenanceCounts = (value) => {
-  const counts = value && typeof value === 'object' ? value : {};
-  const total = Number.isInteger(counts.total) && counts.total >= 0 ? counts.total : 0;
-  const currentPaperSupported = Number.isInteger(counts.currentPaperSupported) ? counts.currentPaperSupported : 0;
-  const modelInference = Number.isInteger(counts.modelInference) ? counts.modelInference : 0;
-  const externalSupported = Number.isInteger(counts.externalSupported) ? counts.externalSupported : 0;
-  const supportedRatio = typeof counts.supportedRatio === 'number'
-    ? Math.max(0, Math.min(1, counts.supportedRatio))
+interface ProvenanceCounts {
+  total: number;
+  currentPaperSupported: number;
+  modelInference: number;
+  externalSupported: number;
+  supportedRatio: number;
+}
+
+const normalizeProvenanceCounts = (value: unknown): ProvenanceCounts => {
+  const counts = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  const total: number = Number.isInteger(counts.total) && (counts.total as number) >= 0 ? (counts.total as number) : 0;
+  const currentPaperSupported: number = Number.isInteger(counts.currentPaperSupported) ? (counts.currentPaperSupported as number) : 0;
+  const modelInference: number = Number.isInteger(counts.modelInference) ? (counts.modelInference as number) : 0;
+  const externalSupported: number = Number.isInteger(counts.externalSupported) ? (counts.externalSupported as number) : 0;
+  const supportedRatio: number = typeof counts.supportedRatio === 'number'
+    ? Math.max(0, Math.min(1, counts.supportedRatio as number))
     : total > 0 ? (currentPaperSupported + externalSupported) / total : 0;
   return { total, currentPaperSupported, modelInference, externalSupported, supportedRatio };
 };
 
-export const normalizeProvenanceSummary = (data) => {
+interface ProvenanceSummary {
+  nodes: ProvenanceCounts;
+  edges: ProvenanceCounts;
+}
+
+export const normalizeProvenanceSummary = (data: Record<string, unknown> | null | undefined): ProvenanceSummary | null => {
   if (!data?.provenanceSummary || typeof data.provenanceSummary !== 'object') {
     return null;
   }
+  const ps = data.provenanceSummary as Record<string, unknown>;
   return {
-    nodes: normalizeProvenanceCounts(data.provenanceSummary.nodes),
-    edges: normalizeProvenanceCounts(data.provenanceSummary.edges),
+    nodes: normalizeProvenanceCounts(ps.nodes),
+    edges: normalizeProvenanceCounts(ps.edges),
   };
 };
 
-export const normalizeKnowledgeLevel = (value) => {
+export const normalizeKnowledgeLevel = (value: unknown): string => {
   const text = `${value ?? ''}`.trim();
   if (text === '普通/一般') {
     return '一般';
@@ -52,20 +71,20 @@ export const createDefaultReaderProfile = () => ({
   selfAssessedFamiliarity: '一般',
   preferredDepth: '标准',
   learningGoal: '',
-  knownConcepts: [],
-  confusingConcepts: [],
+  knownConcepts: [] as string[],
+  confusingConcepts: [] as string[],
 });
 
-const normalizeStringList = (value) => {
+const normalizeStringList = (value: unknown): string[] => {
   if (Array.isArray(value)) {
-    return [...new Set(value.map((item) => `${item ?? ''}`.trim()).filter(Boolean))];
+    return [...new Set(value.map((item: unknown) => `${item ?? ''}`.trim()).filter(Boolean))];
   }
 
   if (typeof value === 'string') {
     return [...new Set(
       value
         .split(/[\n,，;；、]/)
-        .map((item) => item.trim())
+        .map((item: string) => item.trim())
         .filter(Boolean),
     )];
   }
@@ -73,7 +92,7 @@ const normalizeStringList = (value) => {
   return [];
 };
 
-export const normalizePreferredDepth = (value) => {
+export const normalizePreferredDepth = (value: unknown): string => {
   const text = `${value ?? ''}`.trim();
   if (text === '快速' || text === '简要') {
     return '速览';
@@ -84,7 +103,16 @@ export const normalizePreferredDepth = (value) => {
   return BACKGROUND_DEPTH_OPTIONS.includes(text) ? text : '标准';
 };
 
-export const normalizeReaderProfile = (value, fallbackKnowledgeLevel = '一般') => {
+interface ReaderProfileInput {
+  selfAssessedFamiliarity?: unknown;
+  user_knowledge_level?: unknown;
+  preferredDepth?: unknown;
+  learningGoal?: unknown;
+  knownConcepts?: unknown;
+  confusingConcepts?: unknown;
+}
+
+export const normalizeReaderProfile = (value: ReaderProfileInput | null | undefined, fallbackKnowledgeLevel: string = '一般') => {
   const profile = value && typeof value === 'object' ? value : {};
   return {
     selfAssessedFamiliarity: normalizeKnowledgeLevel(
@@ -97,7 +125,7 @@ export const normalizeReaderProfile = (value, fallbackKnowledgeLevel = '一般')
   };
 };
 
-export const summarizeReaderProfile = (profile) => {
+export const summarizeReaderProfile = (profile: ReaderProfileInput | null | undefined): string[] => {
   const normalized = normalizeReaderProfile(profile);
   return [
     `自评熟悉度：${normalized.selfAssessedFamiliarity}`,
@@ -105,19 +133,76 @@ export const summarizeReaderProfile = (profile) => {
     normalized.learningGoal ? `目标：${normalized.learningGoal}` : '',
     normalized.knownConcepts.length > 0 ? `已掌握：${normalized.knownConcepts.join('、')}` : '',
     normalized.confusingConcepts.length > 0 ? `卡点：${normalized.confusingConcepts.join('、')}` : '',
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
 };
 
-export const normalizeGraph = (data) => {
-  const nodes = Array.isArray(data?.graph?.nodes) ? data.graph.nodes : [];
-  const links = Array.isArray(data?.graph?.links) ? data.graph.links : [];
-  const edges = Array.isArray(data?.graph?.edges) ? data.graph.edges : [];
+interface GraphData {
+  graph?: {
+    nodes?: unknown[];
+    links?: unknown[];
+    edges?: unknown[];
+  };
+  learning_path_sections?: unknown[];
+  learning_path?: unknown[];
+  sourceCoverage?: { uncoveredConceptIds?: string[] };
+  background_knowledge?: unknown[];
+  rag_sources?: unknown[];
+  confidence?: number;
+  reader_profile?: unknown;
+  user_knowledge_level?: unknown;
+  neo4j?: { enabled?: boolean; message?: string; status?: string };
+  provenanceSummary?: unknown;
+  [key: string]: unknown;
+}
+
+interface GraphNode {
+  id?: string;
+  label?: string;
+  name?: string;
+  type?: string;
+  level?: string;
+  stage?: string;
+  stageLabel?: string;
+  summary?: string;
+  why?: string;
+  sourceIds?: string[];
+  confidence?: number;
+  provenanceStatus?: string;
+  confidenceReason?: string;
+}
+
+interface GraphLink {
+  source: string;
+  target: string;
+  relation?: string;
+  type?: string;
+  label?: string;
+  sourceIds?: string[];
+  provenanceStatus?: string;
+  confidence?: number;
+  confidenceReason?: string;
+}
+
+interface GraphEdge {
+  source: string;
+  target: string;
+  type?: string;
+  sourceIds?: string[];
+  provenanceStatus?: string;
+  confidence?: number;
+  confidenceReason?: string;
+}
+
+export const normalizeGraph = (data: GraphData | null | undefined) => {
+  const nodes = (Array.isArray(data?.graph?.nodes) ? data.graph.nodes : []) as GraphNode[];
+  const links = (Array.isArray(data?.graph?.links) ? data.graph.links : []) as GraphLink[];
+  const edges = (Array.isArray(data?.graph?.edges) ? data.graph.edges : []) as GraphEdge[];
 
   return {
     nodes: nodes.map((node, index) => {
-      const stage = node.stage || 'foundation';
+      const stage: string = node.stage || 'foundation';
       const stageMeta = STAGE_META[stage] || STAGE_META.foundation;
-      const confidence = typeof node.confidence === 'number' ? node.confidence : null;
+      const confidence: number | null = typeof node.confidence === 'number' ? node.confidence : null;
 
       return {
         id: node.id || `node-${index}`,
@@ -142,16 +227,16 @@ export const normalizeGraph = (data) => {
       target: edge.target,
       relation: edge.type || 'prerequisite',
       label: edge.type === 'prerequisite' ? '前置' : edge.type || 'related',
-    }))).map((link) => ({
+    }) as GraphLink)).map((link) => ({
       source: link.source,
       target: link.target,
-      relation: link.relation || 'related',
-      label: link.label || link.relation || 'related',
-      sourceIds: Array.isArray(link.sourceIds) ? link.sourceIds : [],
-      provenanceStatus: link.provenanceStatus || 'unknown',
-      provenanceLabel: getProvenanceMeta(link.provenanceStatus || 'unknown').label,
-      confidence: typeof link.confidence === 'number' ? link.confidence : null,
-      confidenceReason: link.confidenceReason || '',
+      relation: (link as GraphLink).relation || (link as { relation?: string }).relation || 'related',
+      label: (link as GraphLink).label || (link as { relation?: string; label?: string }).relation || (link as { label?: string }).label || 'related',
+      sourceIds: Array.isArray((link as GraphLink).sourceIds) ? (link as GraphLink).sourceIds : [],
+      provenanceStatus: (link as GraphLink).provenanceStatus || 'unknown',
+      provenanceLabel: getProvenanceMeta((link as GraphLink).provenanceStatus || 'unknown').label,
+      confidence: typeof (link as GraphLink).confidence === 'number' ? (link as GraphLink).confidence : null,
+      confidenceReason: (link as GraphLink).confidenceReason || '',
     })),
     edges: edges.map((edge) => ({
       source: edge.source,
@@ -166,19 +251,37 @@ export const normalizeGraph = (data) => {
   };
 };
 
-export const resolveLearningPathSections = (data) => {
-  const sections = Array.isArray(data?.learning_path_sections) ? data.learning_path_sections : [];
+interface LearningPathSection {
+  key?: string;
+  title?: string;
+  items?: LearningPathItem[];
+}
+
+interface LearningPathItem {
+  title: string;
+  label?: string;
+  goal?: string;
+  summary?: string;
+  conceptIds?: string[];
+  sourceIds?: string[];
+  stage?: string;
+  stageLabel?: string;
+  step?: number;
+}
+
+export const resolveLearningPathSections = (data: GraphData | null | undefined) => {
+  const sections = (Array.isArray(data?.learning_path_sections) ? data.learning_path_sections : []) as LearningPathSection[];
   if (sections.length > 0) {
     return sortSectionsByPrerequisites(data, sections
       .map((section) => ({
         key: section.key || 'custom',
         title: section.title || '学习路径',
-        items: Array.isArray(section.items) ? section.items : [],
+        items: (Array.isArray(section.items) ? section.items : []) as LearningPathItem[],
       }))
       .filter((section) => section.items.length > 0));
   }
 
-  const learningPath = Array.isArray(data?.learning_path) ? data.learning_path : [];
+  const learningPath = (Array.isArray(data?.learning_path) ? data.learning_path : []) as LearningPathItem[];
   if (learningPath.length === 0) {
     return [];
   }
@@ -187,7 +290,7 @@ export const resolveLearningPathSections = (data) => {
     key: 'legacy',
     title: '学习路径',
     items: learningPath.map((step, index) => ({
-      title: step.title || step.label || `第 ${index + 1} 步`,
+      title: (step.title || step.label || `第 ${index + 1} 步`) as string,
       goal: step.goal || step.summary || '',
       conceptIds: Array.isArray(step.conceptIds) ? step.conceptIds : [],
       sourceIds: Array.isArray(step.sourceIds) ? step.sourceIds : [],
@@ -198,29 +301,38 @@ export const resolveLearningPathSections = (data) => {
   }]);
 };
 
-const getConceptIds = (item) => (Array.isArray(item?.conceptIds) ? item.conceptIds : [])
-  .map((conceptId) => `${conceptId}`.trim())
+const getConceptIds = (item: LearningPathItem | null | undefined): string[] => (Array.isArray(item?.conceptIds) ? item.conceptIds : [])
+  .map((conceptId: string) => `${conceptId}`.trim())
   .filter(Boolean);
 
-const buildNodeLabelMap = (data) => new Map(
-  (Array.isArray(data?.graph?.nodes) ? data.graph.nodes : [])
+const buildNodeLabelMap = (data: GraphData | null | undefined): Map<string, string> => new Map(
+  ((Array.isArray(data?.graph?.nodes) ? data.graph.nodes : []) as GraphNode[])
     .filter((node) => node?.id)
-    .map((node) => [node.id, node.label || node.name || node.id]),
+    .map((node) => [node.id as string, (node.label || node.name || node.id) as string]),
 );
 
-const getPrerequisiteEdges = (data, itemByConcept) => {
-  const graphEdges = Array.isArray(data?.graph?.edges) ? data.graph.edges : [];
-  const graphLinks = Array.isArray(data?.graph?.links) ? data.graph.links : [];
+interface PrerequisiteEdge {
+  source: string;
+  target: string;
+  sourceIds: string[];
+  confidenceReason: string;
+  provenanceStatus: string;
+  confidence: number | null;
+}
+
+const getPrerequisiteEdges = (data: GraphData | null | undefined, itemByConcept: Map<string, LearningPathItem>): PrerequisiteEdge[] => {
+  const graphEdges = (Array.isArray(data?.graph?.edges) ? data.graph.edges : []) as GraphEdge[];
+  const graphLinks = (Array.isArray(data?.graph?.links) ? data.graph.links : []) as GraphLink[];
   const candidates = graphEdges.length > 0
     ? graphEdges
     : graphLinks.map((link) => ({ ...link, type: link.relation }));
 
-  const validEdges = [];
-  const seen = new Set();
+  const validEdges: PrerequisiteEdge[] = [];
+  const seen = new Set<string>();
   candidates.forEach((edge) => {
     const source = `${edge?.source ?? ''}`.trim();
     const target = `${edge?.target ?? ''}`.trim();
-    const type = `${edge?.type ?? edge?.relation ?? ''}`.trim();
+    const type = `${(edge as GraphEdge)?.type ?? (edge as GraphLink)?.relation ?? ''}`.trim();
     const key = `${source}->${target}`;
     if (type !== 'prerequisite' || !source || !target || source === target || seen.has(key)) {
       return;
@@ -241,14 +353,19 @@ const getPrerequisiteEdges = (data, itemByConcept) => {
   return validEdges;
 };
 
-const topologicalItemOrder = (items, prerequisiteEdges) => {
+interface TopologicalEdge extends PrerequisiteEdge {
+  sourceItem: unknown;
+  targetItem: unknown;
+}
+
+const topologicalItemOrder = (items: unknown[], prerequisiteEdges: TopologicalEdge[]): unknown[] => {
   if (items.length <= 1 || prerequisiteEdges.length === 0) {
     return items;
   }
 
-  const itemIndex = new Map(items.map((item, index) => [item, index]));
-  const outgoing = new Map(items.map((item) => [item, []]));
-  const indegree = new Map(items.map((item) => [item, 0]));
+  const itemIndex = new Map<unknown, number>(items.map((item, index) => [item, index]));
+  const outgoing = new Map<unknown, unknown[]>(items.map((item) => [item, []]));
+  const indegree = new Map<unknown, number>(items.map((item) => [item, 0]));
 
   prerequisiteEdges.forEach((edge) => {
     const sourceItem = edge.sourceItem;
@@ -256,17 +373,17 @@ const topologicalItemOrder = (items, prerequisiteEdges) => {
     if (!sourceItem || !targetItem || sourceItem === targetItem) {
       return;
     }
-    outgoing.get(sourceItem).push(targetItem);
+    (outgoing.get(sourceItem) as unknown[]).push(targetItem);
     indegree.set(targetItem, (indegree.get(targetItem) || 0) + 1);
   });
 
   const ready = items.filter((item) => (indegree.get(item) || 0) === 0);
-  const sorted = [];
+  const sorted: unknown[] = [];
   while (ready.length > 0) {
-    ready.sort((a, b) => itemIndex.get(a) - itemIndex.get(b));
-    const item = ready.shift();
+    ready.sort((a, b) => (itemIndex.get(a) ?? 0) - (itemIndex.get(b) ?? 0));
+    const item = ready.shift() as unknown;
     sorted.push(item);
-    outgoing.get(item).forEach((nextItem) => {
+    (outgoing.get(item) as unknown[]).forEach((nextItem) => {
       indegree.set(nextItem, (indegree.get(nextItem) || 0) - 1);
       if (indegree.get(nextItem) === 0) {
         ready.push(nextItem);
@@ -277,13 +394,19 @@ const topologicalItemOrder = (items, prerequisiteEdges) => {
   return sorted.length === items.length ? sorted : items;
 };
 
-const sortSectionsByPrerequisites = (data, sections) => {
-  const allItems = sections.flatMap((section) => section.items);
+interface SectionWithItems {
+  key: string;
+  title: string;
+  items: LearningPathItem[];
+}
+
+const sortSectionsByPrerequisites = (data: GraphData | null | undefined, sections: SectionWithItems[]): SectionWithItems[] => {
+  const allItems: LearningPathItem[] = sections.flatMap((section) => section.items);
   if (allItems.length <= 1) {
     return sections;
   }
 
-  const itemByConcept = new Map();
+  const itemByConcept = new Map<string, LearningPathItem>();
   allItems.forEach((item) => {
     getConceptIds(item).forEach((conceptId) => {
       if (!itemByConcept.has(conceptId)) {
@@ -296,15 +419,15 @@ const sortSectionsByPrerequisites = (data, sections) => {
     ...edge,
     sourceItem: itemByConcept.get(edge.source),
     targetItem: itemByConcept.get(edge.target),
-  }));
+  })) as TopologicalEdge[];
   if (prerequisiteEdges.length === 0) {
     return sections;
   }
 
   const nodeLabels = buildNodeLabelMap(data);
   const sortedItems = topologicalItemOrder(allItems, prerequisiteEdges);
-  const rank = new Map(sortedItems.map((item, index) => [item, index]));
-  const outgoingByItem = new Map();
+  const rank = new Map<unknown, number>(sortedItems.map((item, index) => [item, index]));
+  const outgoingByItem = new Map<unknown, Record<string, unknown>[]>();
   prerequisiteEdges.forEach((edge) => {
     const current = outgoingByItem.get(edge.sourceItem) || [];
     current.push({
@@ -328,29 +451,30 @@ const sortSectionsByPrerequisites = (data, sections) => {
   }));
 };
 
-export const createGenerateHandler = (onGenerate, readerProfile) => () =>
+export const createGenerateHandler = (onGenerate: ((profile: ReturnType<typeof normalizeReaderProfile>) => void) | null | undefined, readerProfile: ReaderProfileInput | null | undefined) => () =>
   onGenerate?.(normalizeReaderProfile(readerProfile));
 
-export const getUncoveredNodeLabels = (data) => {
+export const getUncoveredNodeLabels = (data: GraphData | null | undefined): string[] => {
   const sourceCoverage = data?.sourceCoverage;
   if (!Array.isArray(sourceCoverage?.uncoveredConceptIds)) {
     return [];
   }
-  const labelMap = new Map(
-    (Array.isArray(data?.graph?.nodes) ? data.graph.nodes : []).map((node) => [node.id, node.label || node.id]),
+  const nodes = (Array.isArray(data?.graph?.nodes) ? data.graph.nodes : []) as GraphNode[];
+  const labelMap = new Map<string, string>(
+    nodes.map((node) => [node.id as string, (node.label || node.id) as string]),
   );
-  return sourceCoverage.uncoveredConceptIds.map((nodeId) => labelMap.get(nodeId) || nodeId);
+  return sourceCoverage.uncoveredConceptIds.map((nodeId: string) => labelMap.get(nodeId) || nodeId);
 };
 
-export const createBackgroundKnowledgeSnapshot = (data, knowledgeLevel = '一般') => {
+export const createBackgroundKnowledgeSnapshot = (data: GraphData | null | undefined, knowledgeLevel: string = '一般') => {
   const sections = resolveLearningPathSections(data);
   const normalizedReaderProfile = normalizeReaderProfile(
-    data?.reader_profile,
-    knowledgeLevel || data?.user_knowledge_level,
+    data?.reader_profile as ReaderProfileInput | undefined,
+    knowledgeLevel || (data?.user_knowledge_level as string),
   );
   return {
     selectedKnowledgeLevel: normalizeKnowledgeLevel(knowledgeLevel || data?.user_knowledge_level),
-    displayedKnowledgeLevel: data?.user_knowledge_level || normalizeKnowledgeLevel(knowledgeLevel),
+    displayedKnowledgeLevel: (data?.user_knowledge_level as string) || normalizeKnowledgeLevel(knowledgeLevel),
     readerProfileSummary: summarizeReaderProfile(normalizedReaderProfile),
     readerProfile: normalizedReaderProfile,
     graphNodeCount: normalizeGraph(data).nodes.length,
@@ -358,13 +482,13 @@ export const createBackgroundKnowledgeSnapshot = (data, knowledgeLevel = '一般
     learningSectionTitles: sections.map((section) => section.title),
     learningItems: sections.flatMap((section) => section.items.map((item) => item.title)),
     backgroundItems: Array.isArray(data?.background_knowledge) ? data.background_knowledge : [],
-    ragSourceIds: (Array.isArray(data?.rag_sources) ? data.rag_sources : []).map((source) => source.id || source.sourceId),
+    ragSourceIds: (Array.isArray(data?.rag_sources) ? data.rag_sources : []).map((source: unknown) => (source as { id?: string; sourceId?: string }).id || (source as { id?: string; sourceId?: string }).sourceId),
     hasConfidence: typeof data?.confidence === 'number',
     hasSourceCoverage: Boolean(data?.sourceCoverage),
     provenanceSummary: normalizeProvenanceSummary(data),
     uncoveredNodeLabels: getUncoveredNodeLabels(data),
     neo4jMessage: data?.neo4j?.enabled
-      ? data?.neo4j?.message || data?.neo4j?.status || ''
+      ? (data?.neo4j?.message || data?.neo4j?.status || '')
       : '未配置 Neo4j，已使用接口返回的图谱结果。',
   };
 };

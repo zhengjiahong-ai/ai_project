@@ -68,11 +68,13 @@ const run = async () => {
     'chat',
     'code-execution-jobs',
     'critical',
+    'feedback',
     'research',
     'research-final-review',
     'research-plan-review',
     'research-task',
     'trace',
+    'usage',
   ]);
 
   assert.equal(resolveApiBaseUrl({ VITE_API_BASE_URL: 'http://example.com/api' }), 'http://example.com/api');

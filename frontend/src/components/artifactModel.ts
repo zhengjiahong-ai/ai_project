@@ -1,26 +1,32 @@
-const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+const normalizeText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
-const normalizeStringList = (value) =>
+const normalizeStringList = (value: unknown): string[] =>
   (Array.isArray(value) ? value : [])
-    .map((item) => normalizeText(item))
+    .map((item: unknown) => normalizeText(item))
     .filter(Boolean);
 
-const normalizeId = (value) => normalizeText(value) || null;
+const normalizeId = (value: unknown): string | null => normalizeText(value) || null;
 
-const summarize = (value, fallback) => {
+const summarize = (value: unknown, fallback: string): string => {
   const text = normalizeText(value).replace(/\s+/g, ' ');
   if (!text) return fallback;
   return text.length > 140 ? `${text.slice(0, 140)}...` : text;
 };
 
-const escapeMarkdownCell = (value) => normalizeText(`${value ?? ''}`).replace(/\|/g, '\\|') || '-';
+const escapeMarkdownCell = (value: unknown): string => normalizeText(`${value ?? ''}`).replace(/\|/g, '\\|') || '-';
 
-export const serializeComparisonTable = (comparisonTable = {}) => {
-  const columns = Array.isArray(comparisonTable?.columns) ? comparisonTable.columns.map(escapeMarkdownCell) : [];
-  const rows = Array.isArray(comparisonTable?.rows) ? comparisonTable.rows : [];
+interface ComparisonTableInput {
+  columns?: unknown[];
+  rows?: unknown[];
+}
+
+export const serializeComparisonTable = (comparisonTable: ComparisonTableInput = {}): string => {
+  const columns: string[] = Array.isArray(comparisonTable?.columns) ? comparisonTable.columns.map(escapeMarkdownCell) : [];
+  const rawRows: unknown[] = Array.isArray(comparisonTable?.rows) ? comparisonTable.rows : [];
+  const rows: unknown[][] = rawRows as unknown[][];
   if (columns.length === 0 || rows.length === 0) return '';
 
-  const normalizeRow = (row) =>
+  const normalizeRow = (row: unknown): string =>
     columns.map((_, index) => escapeMarkdownCell(Array.isArray(row) ? row[index] : '')).join(' | ');
   return [
     `| ${columns.join(' | ')} |`,
@@ -28,6 +34,35 @@ export const serializeComparisonTable = (comparisonTable = {}) => {
     ...rows.map((row) => `| ${normalizeRow(row)} |`),
   ].join('\n');
 };
+
+interface InsightArtifactInput {
+  artifactId?: string | null;
+  kind?: string;
+  title?: string;
+  summary?: string;
+  content?: string;
+  sourceSelectionId?: string | null;
+  sourceMessageId?: string | null;
+  pdfId?: string | null;
+  sourceId?: string | null;
+  taskId?: string | null;
+  projectId?: string | null;
+  pageIndex?: number | null;
+  sectionId?: string;
+  tags?: string[];
+  displayMode?: string;
+  position?: string;
+  lane?: string;
+  pinned?: boolean;
+  userNote?: string;
+  sourceAnchorId?: string | null;
+  sourceActionId?: string | null;
+  sourceActionLabel?: string;
+  createdAt?: number | null;
+  updatedAt?: number | null;
+  id?: string;
+  isPinned?: boolean;
+}
 
 export const createInsightArtifact = ({
   artifactId,
@@ -54,7 +89,7 @@ export const createInsightArtifact = ({
   sourceActionLabel = '',
   createdAt = null,
   updatedAt = null,
-} = {}) => ({
+}: InsightArtifactInput = {}) => ({
   artifactId: artifactId || `artifact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   kind: normalizeText(kind) || 'insight',
   title: normalizeText(title) || '未命名卡片',
@@ -81,12 +116,19 @@ export const createInsightArtifact = ({
   updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
 });
 
-export const buildTranslationArtifact = ({ pdfId, pdfFileName = '', pageIndex = null, translatedText = '' } = {}) => {
+interface TranslationArtifactInput {
+  pdfId?: string | null;
+  pdfFileName?: string;
+  pageIndex?: number | null;
+  translatedText?: string;
+}
+
+export const buildTranslationArtifact = ({ pdfId, pdfFileName = '', pageIndex = null, translatedText = '' }: TranslationArtifactInput = {}) => {
   const content = normalizeText(translatedText);
   const normalizedPdfId = normalizeId(pdfId);
   if (!normalizedPdfId || !content) return null;
 
-  const pageNumber = Number.isFinite(pageIndex) ? pageIndex + 1 : 1;
+  const pageNumber = Number.isFinite(pageIndex) ? (pageIndex as number) + 1 : 1;
   const fileLabel = normalizeText(pdfFileName);
   return createInsightArtifact({
     kind: 'translation-page',
@@ -99,7 +141,14 @@ export const buildTranslationArtifact = ({ pdfId, pdfFileName = '', pageIndex = 
   });
 };
 
-export const buildDeconstructionArtifact = ({ pdfId, sectionId = '', sectionLabel = '', content = '' } = {}) => {
+interface DeconstructionArtifactInput {
+  pdfId?: string | null;
+  sectionId?: string;
+  sectionLabel?: string;
+  content?: string;
+}
+
+export const buildDeconstructionArtifact = ({ pdfId, sectionId = '', sectionLabel = '', content = '' }: DeconstructionArtifactInput = {}) => {
   const normalizedContent = normalizeText(content);
   const normalizedPdfId = normalizeId(pdfId);
   const normalizedSectionId = normalizeText(sectionId);
@@ -117,13 +166,21 @@ export const buildDeconstructionArtifact = ({ pdfId, sectionId = '', sectionLabe
   });
 };
 
+interface AgentReportArtifactInput {
+  activePdfId?: string | null;
+  projectId?: string | null;
+  taskId?: string | null;
+  projectTitle?: string;
+  draftReport?: string;
+}
+
 export const buildAgentReportArtifact = ({
   activePdfId,
   projectId,
   taskId,
   projectTitle = '',
   draftReport = '',
-} = {}) => {
+}: AgentReportArtifactInput = {}) => {
   const content = normalizeText(draftReport);
   const pdfId = normalizeId(activePdfId);
   if (!pdfId || !content) return null;
@@ -141,22 +198,31 @@ export const buildAgentReportArtifact = ({
   });
 };
 
+interface AgentComparisonArtifactInput {
+  activePdfId?: string | null;
+  projectId?: string | null;
+  taskId?: string | null;
+  projectTitle?: string;
+  comparisonTable?: ComparisonTableInput;
+}
+
 export const buildAgentComparisonArtifact = ({
   activePdfId,
   projectId,
   taskId,
   projectTitle = '',
   comparisonTable,
-} = {}) => {
+}: AgentComparisonArtifactInput = {}) => {
   const content = serializeComparisonTable(comparisonTable);
   const pdfId = normalizeId(activePdfId);
   if (!pdfId || !content) return null;
 
   const title = normalizeText(projectTitle) || 'Agent 研究';
+  const rowCount = comparisonTable?.rows?.length ?? 0;
   return createInsightArtifact({
     kind: 'agent-comparison',
     title: `${title} · 跨论文对比`,
-    summary: `已整理 ${comparisonTable.rows.length} 条跨论文比较结果。`,
+    summary: `已整理 ${rowCount} 条跨论文比较结果。`,
     content,
     pdfId,
     projectId,
@@ -165,7 +231,23 @@ export const buildAgentComparisonArtifact = ({
   });
 };
 
-export const buildAgentEvidenceArtifact = ({ activePdfId, projectId, taskId, evidence } = {}) => {
+interface AgentEvidenceInput {
+  text?: string;
+  sourceId?: string | null;
+  pdfId?: string | null;
+  pageIndex?: number | null;
+  sectionId?: string;
+  sourceType?: string;
+}
+
+interface AgentEvidenceArtifactInput {
+  activePdfId?: string | null;
+  projectId?: string | null;
+  taskId?: string | null;
+  evidence?: AgentEvidenceInput;
+}
+
+export const buildAgentEvidenceArtifact = ({ activePdfId, projectId, taskId, evidence }: AgentEvidenceArtifactInput = {}) => {
   const content = normalizeText(evidence?.text);
   if (!normalizeId(activePdfId) || !content) return null;
 
@@ -180,13 +262,13 @@ export const buildAgentEvidenceArtifact = ({ activePdfId, projectId, taskId, evi
     sourceId,
     taskId,
     projectId,
-    pageIndex: evidence?.pageIndex,
-    sectionId: evidence?.sectionId,
-    tags: ['agent', 'evidence', evidence?.sourceType],
+    pageIndex: evidence?.pageIndex ?? null,
+    sectionId: evidence?.sectionId ?? '',
+    tags: ['agent', 'evidence', evidence?.sourceType ?? ''],
   });
 };
 
-export const normalizeInsightArtifact = (artifact) => {
+export const normalizeInsightArtifact = (artifact: InsightArtifactInput | null | undefined): ReturnType<typeof createInsightArtifact> | null => {
   if (!artifact || typeof artifact !== 'object') {
     return null;
   }
@@ -198,13 +280,13 @@ export const normalizeInsightArtifact = (artifact) => {
   });
 };
 
-export const normalizeInsightArtifacts = (artifacts = []) =>
+export const normalizeInsightArtifacts = (artifacts: unknown[] = []): ReturnType<typeof createInsightArtifact>[] =>
   (Array.isArray(artifacts) ? artifacts : [])
-    .map((artifact) => normalizeInsightArtifact(artifact))
-    .filter(Boolean)
-    .sort((left, right) => Number(right.pinned) - Number(left.pinned) || right.createdAt - left.createdAt);
+    .map((artifact: unknown) => normalizeInsightArtifact(artifact as InsightArtifactInput))
+    .filter((item): item is NonNullable<ReturnType<typeof createInsightArtifact>> => item != null)
+    .sort((left, right) => Number(right.pinned) - Number(left.pinned) || (right.createdAt as number) - (left.createdAt as number));
 
-export const updateInsightArtifact = (artifact, patch = {}) => {
+export const updateInsightArtifact = (artifact: InsightArtifactInput | null | undefined, patch: Partial<InsightArtifactInput> = {}): ReturnType<typeof createInsightArtifact> | null => {
   if (!artifact) {
     return null;
   }

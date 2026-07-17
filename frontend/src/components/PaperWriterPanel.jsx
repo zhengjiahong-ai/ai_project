@@ -81,9 +81,7 @@ export default function PaperWriterPanel({ apiService, agentApiService, currentR
         conflicts: agentData.conflicts || [],
       });
 
-      const result = await api.post('/generate-paper-draft', payload, {
-        signal: controller.signal,
-      });
+      const result = await api.generatePaperDraft(payload);
 
       const normalized = normalizePaperDraftResult(result);
       updateState({

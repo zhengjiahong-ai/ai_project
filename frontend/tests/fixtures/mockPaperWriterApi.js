@@ -7,22 +7,24 @@ export function installMockPaperWriterApi(page) {
     const question = body.question || 'default question';
     const title = body.title || `A Review of ${question.slice(0, 40)}`;
 
+    const sections = {
+      abstract: 'This paper reviews ' + question + '. Key findings are summarized.',
+      introduction: '## Introduction\n\nThe field of ' + question + ' has seen rapid progress.',
+      related_work: '## Related Work\n\nPrior work has explored various aspects.',
+      methodology: '## Methodology\n\nWe employ a systematic review approach.',
+      results: '## Results\n\nAnalysis reveals several key findings.\n\n- Finding 1: Evidence supports the main claim.\n- Finding 2: Cross-paper consistency is moderate.',
+      discussion: '## Discussion\n\nThe results suggest promising directions.',
+      conclusion: '## Conclusion\n\nThis review identified key patterns.',
+    };
+
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        status: 'done',
+        status: 'success',
         title,
         question,
-        sections: [
-          { heading: 'Abstract', wordCount: 120, body: 'This paper reviews ' + question + '. Key findings are summarized.' },
-          { heading: 'Introduction', wordCount: 200, body: '## Introduction\n\nThe field of ' + question + ' has seen rapid progress.' },
-          { heading: 'Related Work', wordCount: 180, body: '## Related Work\n\nPrior work has explored various aspects.' },
-          { heading: 'Methodology', wordCount: 150, body: '## Methodology\n\nWe employ a systematic review approach.' },
-          { heading: 'Results', wordCount: 250, body: '## Results\n\nAnalysis reveals several key findings.\n\n- Finding 1: Evidence supports the main claim.\n- Finding 2: Cross-paper consistency is moderate.' },
-          { heading: 'Discussion', wordCount: 160, body: '## Discussion\n\nThe results suggest promising directions.' },
-          { heading: 'Conclusion', wordCount: 100, body: '## Conclusion\n\nThis review identified key patterns.' },
-        ],
+        sections,
         referenceCount: 8,
         markdown: '# ' + title + '\n\nGenerated paper draft.',
         latex: '\\documentclass{article}\n\\begin{document}\n' + title + '\n\\end{document}',

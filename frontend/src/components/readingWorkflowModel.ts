@@ -1,28 +1,48 @@
-const normalizeTabId = (value) => `${value ?? ''}`.trim() || 'chat';
+const normalizeTabId = (value: unknown): string => `${value ?? ''}`.trim() || 'chat';
 
-const createTabSuggestion = ({ title, description, label, tabId, tone = 'secondary' }) => ({
+interface TabSuggestionParams {
+  title: string;
+  description: string;
+  label: string;
+  tabId: string;
+  tone?: string;
+}
+
+const createTabSuggestion = ({ title, description, label, tabId, tone = 'secondary' }: TabSuggestionParams) => ({
   title,
   description,
   label,
   tone,
   action: {
-    type: 'tab',
+    type: 'tab' as const,
     tabId,
   },
 });
 
-const createWorkbenchSuggestion = ({ title, description, label = '查看资产沉淀' }) => ({
+interface WorkbenchSuggestionParams {
+  title: string;
+  description: string;
+  label?: string;
+}
+
+const createWorkbenchSuggestion = ({ title, description, label = '查看资产沉淀' }: WorkbenchSuggestionParams) => ({
   title,
   description,
   label,
-  tone: 'secondary',
+  tone: 'secondary' as const,
   action: {
-    type: 'workbench',
-    tabId: 'notes',
+    type: 'workbench' as const,
+    tabId: 'notes' as const,
   },
 });
 
-const createAgentSuggestion = (pdfId, overrides = {}) => {
+interface CreateAgentSuggestionOverrides {
+  title?: string;
+  description?: string;
+  label?: string;
+}
+
+const createAgentSuggestion = (pdfId: string, overrides: CreateAgentSuggestionOverrides = {}) => {
   const normalizedPdfId = `${pdfId ?? ''}`.trim();
   if (!normalizedPdfId) return null;
 
@@ -30,15 +50,34 @@ const createAgentSuggestion = (pdfId, overrides = {}) => {
     title: overrides.title || '加入 Agent 项目',
     description: overrides.description || '把当前论文带入 Agent 研究区，作为跨论文比较或后续项目的起点。',
     label: overrides.label || '进入 Agent 研究',
-    tone: 'agent',
+    tone: 'agent' as const,
     action: {
-      type: 'agent',
+      type: 'agent' as const,
       pdfId: normalizedPdfId,
     },
   };
 };
 
-const compactSuggestions = (items) => items.filter(Boolean).slice(0, 3);
+interface SuggestionItem {
+  title: string;
+  description: string;
+  label: string;
+  tone: string;
+  action: { type: string; tabId?: string; pdfId?: string } | null;
+}
+
+const compactSuggestions = (items: (SuggestionItem | null)[]): SuggestionItem[] =>
+  items.filter((item): item is SuggestionItem => item != null).slice(0, 3);
+
+interface BuildReadingWorkflowSuggestionsParams {
+  hasPdf?: boolean;
+  activeTab?: string;
+  isDeconstructing?: boolean;
+  latestUserMessage?: { content?: string } | null;
+  deepResearchState?: { task?: { findings?: unknown[] } } | null;
+  artifactCount?: number;
+  pdfId?: string;
+}
 
 export const buildReadingWorkflowSuggestions = ({
   hasPdf = false,
@@ -48,7 +87,7 @@ export const buildReadingWorkflowSuggestions = ({
   deepResearchState = null,
   artifactCount = 0,
   pdfId = '',
-} = {}) => {
+}: BuildReadingWorkflowSuggestionsParams = {}): SuggestionItem[] => {
   if (!hasPdf) {
     return [
       {
@@ -254,5 +293,5 @@ export const buildReadingWorkflowSuggestions = ({
   }
 };
 
-export const getPrimaryReadingWorkflowSuggestion = (suggestions = []) =>
+export const getPrimaryReadingWorkflowSuggestion = (suggestions: SuggestionItem[] = []): SuggestionItem | null =>
   (Array.isArray(suggestions) ? suggestions : []).find((item) => item?.action) || null;

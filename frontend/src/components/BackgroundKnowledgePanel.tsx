@@ -128,6 +128,7 @@ interface BgKnowledgeData {
   externalKnowledge?: { enabled?: boolean; message?: string };
   warnings?: string[];
   neo4j?: { enabled?: boolean; message?: string; status?: string };
+  [key: string]: unknown;
 }
 
 interface BackgroundCard {

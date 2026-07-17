@@ -2,7 +2,7 @@ import { normalizeSourceLocation } from './evidenceCitationModel.ts';
 
 export const TERMINAL_RESEARCH_STATUSES = ['succeeded', 'failed', 'cancelled'];
 
-const STATUS_META = {
+const STATUS_META: Record<string, { label: string; toneClass: string }> = {
   pending: {
     label: '待开始',
     toneClass: 'border-slate-400/25 bg-slate-500/10 text-slate-400',
@@ -27,7 +27,7 @@ const STATUS_META = {
   },
 };
 
-const STAGE_META = {
+const STAGE_META: Record<string, { label: string; description: string }> = {
   planning: {
     label: '规划',
     description: '正在拆分研究 brief 与子问题。',
@@ -50,7 +50,7 @@ const STAGE_META = {
   },
 };
 
-const VERDICT_META = {
+const VERDICT_META: Record<string, { label: string; toneClass: string }> = {
   CORRECT: {
     label: '证据充足',
     toneClass: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-400',
@@ -88,7 +88,7 @@ const normalizeInteger = (value: unknown): number | null => {
   return null;
 };
 
-const normalizeNumber = (value, min = 0, max = 1) => {
+const normalizeNumber = (value: unknown, min = 0, max = 1): number | null => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
     return null;
@@ -96,12 +96,12 @@ const normalizeNumber = (value, min = 0, max = 1) => {
   return Math.min(max, Math.max(min, numeric));
 };
 
-const normalizeJudgeScore = (value) => {
+const normalizeJudgeScore = (value: unknown): number | null => {
   const numeric = normalizeNumber(value, 0, 100);
   return numeric === null ? null : Math.round(numeric);
 };
 
-const normalizeCoverage = (coverage) => {
+const normalizeCoverage = (coverage: unknown) => {
   if (!coverage || typeof coverage !== 'object') {
     return {
       score: null,
@@ -114,15 +114,16 @@ const normalizeCoverage = (coverage) => {
       crossSourceAgreement: null,
     };
   }
+  const c = coverage as Record<string, unknown>;
   return {
-    score: normalizeNumber(coverage.score, 0, 1),
-    matchedAspects: normalizeInteger(coverage.matchedAspects),
-    totalAspects: normalizeInteger(coverage.totalAspects),
-    evidenceCount: normalizeInteger(coverage.evidenceCount),
-    sourceTypes: normalizeTextList(coverage.sourceTypes, 6),
-    sourceDiversityScore: normalizeNumber(coverage.sourceDiversityScore, 0, 1),
-    sourceTrustWeightedScore: normalizeNumber(coverage.sourceTrustWeightedScore, 0, 1),
-    crossSourceAgreement: normalizeNumber(coverage.crossSourceAgreement, 0, 1),
+    score: normalizeNumber(c.score, 0, 1),
+    matchedAspects: normalizeInteger(c.matchedAspects),
+    totalAspects: normalizeInteger(c.totalAspects),
+    evidenceCount: normalizeInteger(c.evidenceCount),
+    sourceTypes: normalizeTextList(c.sourceTypes, 6),
+    sourceDiversityScore: normalizeNumber(c.sourceDiversityScore, 0, 1),
+    sourceTrustWeightedScore: normalizeNumber(c.sourceTrustWeightedScore, 0, 1),
+    crossSourceAgreement: normalizeNumber(c.crossSourceAgreement, 0, 1),
   };
 };
 
@@ -160,12 +161,12 @@ const normalizeResearchConflicts = (conflicts: unknown): unknown[] => {
     .slice(0, 5);
 };
 
-const normalizeResearchPlanItems = (plan) => {
+const normalizeResearchPlanItems = (plan: unknown) => {
   if (!Array.isArray(plan)) {
     return [];
   }
 
-  return plan
+  return (plan as unknown[])
     .map((item, index) => {
       if (typeof item === 'string') {
         const question = normalizeText(item);
@@ -185,20 +186,21 @@ const normalizeResearchPlanItems = (plan) => {
       if (!item || typeof item !== 'object') {
         return null;
       }
+      const it = item as Record<string, unknown>;
 
-      const question = normalizeText(item.question) || normalizeText(item.subQuestion) || normalizeText(item.text);
+      const question = normalizeText(it.question) || normalizeText(it.subQuestion) || normalizeText(it.text);
       if (!question) {
         return null;
       }
-      const kind = normalizeText(item.kind).toLowerCase();
-      const status = normalizeText(item.status).toLowerCase();
+      const kind = normalizeText(it.kind).toLowerCase();
+      const status = normalizeText(it.status).toLowerCase();
       return {
-        id: normalizeText(item.id) || `plan-${index + 1}`,
+        id: normalizeText(it.id) || `plan-${index + 1}`,
         question,
         kind: kind === 'follow_up' ? 'follow_up' : 'initial',
         status: ['pending', 'running', 'done'].includes(status) ? status : '',
-        sourceQuestion: normalizeText(item.sourceQuestion),
-        sourceMissingAspects: normalizeTextList(item.sourceMissingAspects, 6),
+        sourceQuestion: normalizeText(it.sourceQuestion),
+        sourceMissingAspects: normalizeTextList(it.sourceMissingAspects, 6),
       };
     })
     .filter(Boolean)
@@ -258,7 +260,7 @@ export const createEmptyDeepResearchState = () => ({
   allowExternalSearch: false,
 });
 
-export const clampResearchProgress = (value) => {
+export const clampResearchProgress = (value: unknown): number => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
     return 0;
@@ -272,26 +274,27 @@ export const clampResearchProgress = (value) => {
   return numeric;
 };
 
-export const getResearchStatusMeta = (status) => STATUS_META[normalizeText(status).toLowerCase()] || STATUS_META.pending;
+export const getResearchStatusMeta = (status: unknown) => STATUS_META[normalizeText(status).toLowerCase()] || STATUS_META.pending;
 
-export const getResearchStageMeta = (stage) => STAGE_META[normalizeText(stage).toLowerCase()] || STAGE_META.planning;
+export const getResearchStageMeta = (stage: unknown) => STAGE_META[normalizeText(stage).toLowerCase()] || STAGE_META.planning;
 
-export const getResearchVerdictMeta = (verdict) => VERDICT_META[normalizeText(verdict).toUpperCase()] || VERDICT_META.INCORRECT;
+export const getResearchVerdictMeta = (verdict: unknown) => VERDICT_META[normalizeText(verdict).toUpperCase()] || VERDICT_META.INCORRECT;
 
-export const buildResearchContextHint = (paperStructure) => {
+export const buildResearchContextHint = (paperStructure: unknown): string => {
   if (!paperStructure || typeof paperStructure !== 'object') {
     return '';
   }
+  const ps = paperStructure as Record<string, unknown>;
 
-  const researchProblem = normalizeText(paperStructure.research_problem);
+  const researchProblem = normalizeText(ps.research_problem);
   if (researchProblem) {
     return researchProblem;
   }
 
-  return normalizeText(paperStructure.core_hypothesis);
+  return normalizeText(ps.core_hypothesis);
 };
 
-const normalizeExternalSearchConfig = (config) => {
+const normalizeExternalSearchConfig = (config: unknown) => {
   if (!config || typeof config !== 'object') {
     return {
       allowExternalSearch: false,
@@ -301,107 +304,114 @@ const normalizeExternalSearchConfig = (config) => {
       degradation: '',
     };
   }
-  const budget = config.budget && typeof config.budget === 'object' ? config.budget : {};
+  const cfg = config as Record<string, unknown>;
+  const budget = cfg.budget && typeof cfg.budget === 'object' ? (cfg.budget as Record<string, unknown>) : {};
   return {
-    allowExternalSearch: Boolean(config.allowExternalSearch),
-    provider: normalizeText(config.provider) || 'disabled',
+    allowExternalSearch: Boolean(cfg.allowExternalSearch),
+    provider: normalizeText(cfg.provider) || 'disabled',
     budget: {
       callLimit: normalizeInteger(budget.callLimit) || 0,
       evidenceLimit: normalizeInteger(budget.evidenceLimit) || 0,
       callsUsed: normalizeInteger(budget.callsUsed) || 0,
       evidenceUsed: normalizeInteger(budget.evidenceUsed) || 0,
     },
-    status: normalizeText(config.status) || 'disabled',
-    degradation: normalizeText(config.degradation),
+    status: normalizeText(cfg.status) || 'disabled',
+    degradation: normalizeText(cfg.degradation),
   };
 };
 
-export const normalizeResearchTask = (task) => {
+export const normalizeResearchTask = (task: unknown) => {
   if (!task || typeof task !== 'object') {
     return null;
   }
+  const t = task as Record<string, unknown>;
 
-  const status = normalizeText(task.status).toLowerCase();
+  const status = normalizeText(t.status).toLowerCase();
   const normalizedStatus = STATUS_META[status] ? status : 'pending';
   const normalizedStage = (() => {
-    const stage = normalizeText(task.stage).toLowerCase();
+    const stage = normalizeText(t.stage).toLowerCase();
     if (STAGE_META[stage]) {
       return stage;
     }
     return TERMINAL_RESEARCH_STATUSES.includes(normalizedStatus) ? 'done' : 'planning';
   })();
-  const planItems = normalizeResearchPlanItems(task.plan);
+  const planItems = normalizeResearchPlanItems(t.plan);
 
   return {
-    taskId: normalizeText(task.taskId),
-    traceId: normalizeText(task.traceId),
+    taskId: normalizeText(t.taskId),
+    traceId: normalizeText(t.traceId),
     status: normalizedStatus,
     stage: normalizedStage,
-    progress: clampResearchProgress(task.progress),
-    question: normalizeText(task.question),
-    pdfId: normalizeText(task.pdfId),
+    progress: clampResearchProgress(t.progress),
+    question: normalizeText(t.question),
+    pdfId: normalizeText(t.pdfId),
     plan: planItems.map((item) => (item as { question: string }).question),
     planItems,
-    findings: (Array.isArray(task.findings) ? task.findings : []).map((finding, index) => {
-      const verdict = normalizeText(finding?.verdict).toUpperCase();
-      const sourceIds = normalizeTextList(finding?.sourceIds, 6);
+    findings: (Array.isArray(t.findings) ? t.findings : []).map((finding: unknown, index: number) => {
+      const f = finding as Record<string, unknown>;
+      const verdict = normalizeText(f.verdict).toUpperCase();
+      const sourceIds = normalizeTextList(f.sourceIds, 6);
       return {
-        id: normalizeText(finding?.id) || `finding-${index + 1}`,
-        subQuestion: normalizeText(finding?.subQuestion) || `子问题 ${index + 1}`,
-        summary: normalizeText(finding?.summary) || '暂无结论摘要。',
+        id: normalizeText(f.id) || `finding-${index + 1}`,
+        subQuestion: normalizeText(f.subQuestion) || `子问题 ${index + 1}`,
+        summary: normalizeText(f.summary) || '暂无结论摘要。',
         verdict: VERDICT_META[verdict] ? verdict : 'INCORRECT',
-        missingAspects: normalizeTextList(finding?.missingAspects, 6),
-        judgeScore: normalizeJudgeScore(finding?.judgeScore),
-        coverage: normalizeCoverage(finding?.coverage),
-        retryReason: normalizeText(finding?.retryReason),
-        isFollowUp: Boolean(finding?.isFollowUp),
-        followUpOf: normalizeText(finding?.followUpOf),
-        sourceMissingAspects: normalizeTextList(finding?.sourceMissingAspects, 6),
+        missingAspects: normalizeTextList(f.missingAspects, 6),
+        judgeScore: normalizeJudgeScore(f.judgeScore),
+        coverage: normalizeCoverage(f.coverage),
+        retryReason: normalizeText(f.retryReason),
+        isFollowUp: Boolean(f.isFollowUp),
+        followUpOf: normalizeText(f.followUpOf),
+        sourceMissingAspects: normalizeTextList(f.sourceMissingAspects, 6),
         sourceIds,
-        sources: normalizeEvidenceSources(finding?.sources, sourceIds as string[]),
+        sources: normalizeEvidenceSources(f.sources, sourceIds as string[]),
       };
     }),
-    conflicts: normalizeResearchConflicts(task.conflicts),
-    reviewRisks: (Array.isArray(task.reviewRisks) ? task.reviewRisks : []).map((risk, index) => ({
-      riskId: normalizeText(risk?.riskId) || `risk-${index + 1}`,
-      type: normalizeText(risk?.type), label: normalizeText(risk?.label) || '待核查项',
-      detail: normalizeText(risk?.detail), sourceIds: normalizeTextList(risk?.sourceIds, 6),
-      reviewStatus: normalizeText(risk?.reviewStatus) || 'pending',
-    })),
-    humanReview: task.humanReview && typeof task.humanReview === 'object' ? task.humanReview : {},
-    report: typeof task.report === 'string' ? task.report : '',
-    error: normalizeText(task.error),
-    createdAt: normalizeText(task.createdAt),
-    updatedAt: normalizeText(task.updatedAt),
-    externalSearchConfig: normalizeExternalSearchConfig(task.externalSearchConfig),
+    conflicts: normalizeResearchConflicts(t.conflicts),
+    reviewRisks: (Array.isArray(t.reviewRisks) ? t.reviewRisks : []).map((risk: unknown, index: number) => {
+      const r = risk as Record<string, unknown>;
+      return {
+        riskId: normalizeText(r.riskId) || `risk-${index + 1}`,
+        type: normalizeText(r.type), label: normalizeText(r.label) || '待核查项',
+        detail: normalizeText(r.detail), sourceIds: normalizeTextList(r.sourceIds, 6),
+        reviewStatus: normalizeText(r.reviewStatus) || 'pending',
+      };
+    }),
+    humanReview: t.humanReview && typeof t.humanReview === 'object' ? t.humanReview : {},
+    report: typeof t.report === 'string' ? t.report : '',
+    error: normalizeText(t.error),
+    createdAt: normalizeText(t.createdAt),
+    updatedAt: normalizeText(t.updatedAt),
+    externalSearchConfig: normalizeExternalSearchConfig(t.externalSearchConfig),
   };
 };
 
-export const normalizeResearchBriefPreview = (preview) => {
+export const normalizeResearchBriefPreview = (preview: unknown) => {
   if (!preview || typeof preview !== 'object') {
     return null;
   }
+  const p = preview as Record<string, unknown>;
 
   return {
-    question: normalizeText(preview.question),
-    pdfId: normalizeText(preview.pdfId),
-    brief: normalizeText(preview.brief),
-    assumptions: normalizeTextList(preview.assumptions, 5),
-    clarifyingQuestions: normalizeTextList(preview.clarifyingQuestions, 3),
-    suggestedSubQuestions: normalizeTextList(preview.suggestedSubQuestions, 3),
-    needsClarification: Boolean(preview.needsClarification) && normalizeTextList(preview.clarifyingQuestions, 3).length > 0,
-    source: normalizeText(preview.source) || 'fallback',
+    question: normalizeText(p.question),
+    pdfId: normalizeText(p.pdfId),
+    brief: normalizeText(p.brief),
+    assumptions: normalizeTextList(p.assumptions, 5),
+    clarifyingQuestions: normalizeTextList(p.clarifyingQuestions, 3),
+    suggestedSubQuestions: normalizeTextList(p.suggestedSubQuestions, 3),
+    needsClarification: Boolean(p.needsClarification) && normalizeTextList(p.clarifyingQuestions, 3).length > 0,
+    source: normalizeText(p.source) || 'fallback',
   };
 };
 
-const normalizePlainObject = (value) => {
+const normalizePlainObject = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
   }
   return Object.fromEntries(
-    Object.entries(value)
-      .filter(([key]) => normalizeText(key))
-      .map(([key, item]) => [normalizeText(key), item]),
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]: [string, unknown]) => normalizeText(key))
+      .map(([key, item]: [string, unknown]) => [normalizeText(key), item]),
   );
 };
 
@@ -420,7 +430,7 @@ const TRACE_COUNTER_KEYS = [
   'externalSearchBudgetBlocks',
 ];
 
-const normalizeCounterValue = (value) => {
+const normalizeCounterValue = (value: unknown): number => {
   const numeric = Math.floor(Number(value));
   if (!Number.isFinite(numeric) || numeric < 0) {
     return 0;
@@ -428,48 +438,52 @@ const normalizeCounterValue = (value) => {
   return numeric;
 };
 
-export const normalizeTraceCounters = (counters) => {
+export const normalizeTraceCounters = (counters: unknown) => {
   const rawCounters = normalizePlainObject(counters);
   return Object.fromEntries(TRACE_COUNTER_KEYS.map((key) => [key, normalizeCounterValue(rawCounters[key])]));
 };
 
-export const normalizeTraceSummary = (trace) => {
+export const normalizeTraceSummary = (trace: unknown) => {
   if (!trace || typeof trace !== 'object') {
     return null;
   }
+  const tr = trace as Record<string, unknown>;
 
-  const rawSteps = Array.isArray(trace.steps) ? trace.steps : [];
-  const rawCounters = normalizePlainObject(trace.counters);
+  const rawSteps = Array.isArray(tr.steps) ? tr.steps : [];
+  const rawCounters = normalizePlainObject(tr.counters);
   return {
-    traceId: normalizeText(trace.traceId),
-    taskType: normalizeText(trace.taskType) || 'unknown',
-    status: normalizeText(trace.status) || 'unknown',
-    startedAt: normalizeText(trace.startedAt),
-    finishedAt: normalizeText(trace.finishedAt),
-    durationMs: Number.isFinite(Number(trace.durationMs)) ? Math.max(0, Number(trace.durationMs)) : null,
-    requestMeta: normalizePlainObject(trace.requestMeta),
-    responseMeta: normalizePlainObject(trace.responseMeta),
-    counters: normalizeTraceCounters(trace.counters),
+    traceId: normalizeText(tr.traceId),
+    taskType: normalizeText(tr.taskType) || 'unknown',
+    status: normalizeText(tr.status) || 'unknown',
+    startedAt: normalizeText(tr.startedAt),
+    finishedAt: normalizeText(tr.finishedAt),
+    durationMs: Number.isFinite(Number(tr.durationMs)) ? Math.max(0, Number(tr.durationMs)) : null,
+    requestMeta: normalizePlainObject(tr.requestMeta),
+    responseMeta: normalizePlainObject(tr.responseMeta),
+    counters: normalizeTraceCounters(tr.counters),
     rawCounters,
-    steps: rawSteps.slice(0, 12).map((step, index) => ({
-      name: normalizeText(step?.name) || `step-${index + 1}`,
-      status: normalizeText(step?.status) || 'unknown',
-      durationMs: Number.isFinite(Number(step?.durationMs)) ? Math.max(0, Number(step.durationMs)) : 0,
-      inputSize: Number.isFinite(Number(step?.inputSize)) ? Math.max(0, Number(step.inputSize)) : null,
-      outputSize: Number.isFinite(Number(step?.outputSize)) ? Math.max(0, Number(step.outputSize)) : null,
-      error: normalizeText(step?.error),
-      meta: normalizePlainObject(step?.meta),
-    })),
-    error: normalizeText(trace.error),
+    steps: (rawSteps as unknown[]).slice(0, 12).map((step: unknown, index: number) => {
+      const st = step as Record<string, unknown>;
+      return {
+        name: normalizeText(st.name) || `step-${index + 1}`,
+        status: normalizeText(st.status) || 'unknown',
+        durationMs: Number.isFinite(Number(st.durationMs)) ? Math.max(0, Number(st.durationMs)) : 0,
+        inputSize: Number.isFinite(Number(st.inputSize)) ? Math.max(0, Number(st.inputSize)) : null,
+        outputSize: Number.isFinite(Number(st.outputSize)) ? Math.max(0, Number(st.outputSize)) : null,
+        error: normalizeText(st.error),
+        meta: normalizePlainObject(st.meta),
+      };
+    }),
+    error: normalizeText(tr.error),
   };
 };
 
-export const shouldRestoreLatestResearchTask = (pdfId, state) => {
+export const shouldRestoreLatestResearchTask = (pdfId: unknown, state: unknown): boolean => {
   if (!normalizeText(pdfId)) {
     return false;
   }
-  const currentState = state || createEmptyDeepResearchState();
-  return !currentState.task?.taskId && !currentState.isCreating && !currentState.isCancelling;
+  const currentState = (state || createEmptyDeepResearchState()) as Record<string, unknown>;
+  return !(currentState.task as Record<string, unknown>)?.taskId && !currentState.isCreating && !currentState.isCancelling;
 };
 
 export const createDeepResearchSnapshot = ({

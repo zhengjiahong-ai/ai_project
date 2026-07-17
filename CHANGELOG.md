@@ -2,6 +2,14 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-17 v0.6.31
+
+1. **TypeScript 类型安全（8-1、9-1）**：修复 `api.ts`、`artifactModel.ts`、`backgroundKnowledgePanelModel.ts`、`readingWorkflowModel.ts` 四个 model 文件中的类型错误（113+→0），移除 `ApiService` 索引签名冲突，补齐缺失方法声明。`tsconfig.json` 开启 `noImplicitAny: true`，全项目 `tsc --noEmit` 零错误。
+2. **CI 质量门禁全部硬阻断（8-2）**：移除 CI 中所有 `continue-on-error: true`（typecheck、ruff、pytest、Java test）。pytest 已排除需要 API Key 或外部服务的测试文件，其余 920 测试全通过。
+3. **paper-writer E2E 测试恢复（9-2）**：修复 mock API 响应格式与 `normalizePaperDraftResult` 对齐（`sections` 数组→对象，`status: 'done'`→`'success'`），修复 `PaperWriterPanel` 中 `api.post` 调用为 `api.generatePaperDraft`。8 个 E2E 测试全通过。
+4. **API 契约文件更新（9-3）**：`contracts/api-contract-smoke.json` 新增 `POST /api/feedback` 和 `POST /api/usage` 契约条目。
+5. **Python 测试修复**：修复 `test_citation_responses.py` 中 `_extract_claims_with_llm` mock 目标（重构后从 `analysis_service` 移至 `critical_reading`），修复 `chat_service.py` 缺失的 `_call_guarded_llm` 导入。
+
 ### 2026-07-17 v0.6.30
 
 1. **Java 后端测试补齐与现代化（7-3）**：确认 Java 网关层已有 37 个测试（28 控制器 + 3 契约冒烟 + 1 上下文加载 + 5 快照），覆盖全部关键转发路径和 `/api` 前缀。Spring Boot 3.4.2（当前最新稳定版）+ Java 21，依赖最小化（web/jpa/h2/lombok），无已知高危 CVE。

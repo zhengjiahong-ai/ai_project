@@ -161,7 +161,42 @@ export interface ApiService {
   getAgentRunTimeline: (runId: string) => Promise<unknown>;
   createResearchTask: (question: string, pdfId: string, paperSkeleton?: Record<string, unknown> | null, userConstraints?: string, briefPreview?: Record<string, unknown> | null, allowExternalSearch?: boolean, allowWebSearch?: boolean) => Promise<unknown>;
   getResearchTask: (taskId: string) => Promise<unknown>;
-  [key: string]: (...args: unknown[]) => Promise<unknown>;
+  createAgentTask: (projectId: string, payload: Record<string, unknown>) => Promise<unknown>;
+  listAgentProjectTasks: (projectId: string, limit?: number) => Promise<unknown>;
+  listAgentProjects: () => Promise<unknown>;
+  getAgentProject: (projectId: string) => Promise<unknown>;
+  updateAgentProject: (projectId: string, payload: Record<string, unknown>) => Promise<unknown>;
+  deleteAgentProject: (projectId: string) => Promise<unknown>;
+  addAgentProjectPapers: (projectId: string, paperIds: string[]) => Promise<unknown>;
+  removeAgentProjectPaper: (projectId: string, pdfId: string) => Promise<unknown>;
+  getAgentTask: (taskId: string) => Promise<unknown>;
+  getAgentRun: (runId: string) => Promise<unknown>;
+  cancelAgentTask: (taskId: string) => Promise<unknown>;
+  reviewAgentPlan: (taskId: string, payload: Record<string, unknown>) => Promise<unknown>;
+  reviewAgentFinal: (taskId: string, payload: Record<string, unknown>) => Promise<unknown>;
+  getAgentTrace: (traceId: string) => Promise<unknown>;
+  cancelResearchTask: (taskId: string) => Promise<unknown>;
+  explainText: (text: string, pdfId: string, pageNumber: number, context?: string) => Promise<unknown>;
+  socraticQuestions: (paper_content: string, reading_progress: Record<string, unknown>) => Promise<unknown>;
+  uploadCodeExecutionArtifact: (file: File) => Promise<unknown>;
+  createCodeExecutionJob: (artifactId: string) => Promise<unknown>;
+  listCodeExecutionJobs: () => Promise<unknown>;
+  getCodeExecutionJob: (jobId: string) => Promise<unknown>;
+  reviewCodeExecution: (jobId: string, decision: string, expectedTaskDigest: string, reason?: string) => Promise<unknown>;
+  reviewCodePublication: (jobId: string, decision: string, expectedPublicationDigest: string, reason?: string) => Promise<unknown>;
+  getChatHistory: (sessionId: string) => Promise<unknown>;
+  previewResearchBrief: (question: string, pdfId: string, paperSkeleton?: Record<string, unknown> | null, userConstraints?: string) => Promise<unknown>;
+  reviewResearchPlan: (taskId: string, payload: Record<string, unknown>) => Promise<unknown>;
+  reviewResearchFinal: (taskId: string, payload: Record<string, unknown>) => Promise<unknown>;
+  getLatestResearchTask: (pdfId: string) => Promise<unknown>;
+  getTrace: (traceId: string) => Promise<unknown>;
+  getLatestAgentTask: (projectId: string) => Promise<unknown>;
+  answerAgentClarification: (runId: string, payload: Record<string, unknown>) => Promise<unknown>;
+  createResearchMonitor: (payload: ResearchMonitorPayload) => Promise<unknown>;
+  getResearchMonitors: () => Promise<unknown>;
+  checkResearchMonitor: (monitorId: string) => Promise<unknown>;
+  getResearchMonitorDigest: (monitorId: string) => Promise<unknown>;
+  deactivateResearchMonitor: (monitorId: string) => Promise<unknown>;
 }
 
 // ── Implementation ──────────────────────────────────────────────────────────
@@ -201,9 +236,9 @@ export const createApiClient = (baseURL = resolveApiBaseUrl(), axiosInstance = a
   return client;
 };
 
-const isHttpNotFound = (error) => error?.response?.status === 404;
+const isHttpNotFound = (error: unknown): boolean => (error as { response?: { status?: number } })?.response?.status === 404;
 
-const withAgentFallback = async (primaryRequest, fallbackRequest) => {
+const withAgentFallback = async <T>(primaryRequest: () => Promise<T>, fallbackRequest: (() => Promise<T>) | null): Promise<T> => {
   try {
     return await primaryRequest();
   } catch (error) {
@@ -214,9 +249,13 @@ const withAgentFallback = async (primaryRequest, fallbackRequest) => {
   }
 };
 
-export const createApiService = (client, agentFallbackClient = null, options = {}) => {
-  const agentPrimaryClient = options.agentDirect && agentFallbackClient ? agentFallbackClient : client;
-  const agentSecondaryClient = options.agentDirect ? null : agentFallbackClient;
+interface CreateApiServiceOptions {
+  agentDirect?: boolean;
+}
+
+export const createApiService = (client: ApiClient, agentFallbackClient: ApiClient | null = null, options: CreateApiServiceOptions = {}) => {
+  const agentPrimaryClient: ApiClient = options.agentDirect && agentFallbackClient ? agentFallbackClient : client;
+  const agentSecondaryClient: ApiClient | null = options.agentDirect ? null : agentFallbackClient;
 
   return {
   uploadPdf: async (file) => {
@@ -252,7 +291,7 @@ export const createApiService = (client, agentFallbackClient = null, options = {
       ...(reason ? { reason } : {}),
     }),
 
-  sendMessage: async (message, pdfId = null, history = [], paperSkeleton = null, signal = null) =>
+  sendMessage: async (message, pdfId = null, history = [], paperSkeleton = null, signal = undefined) =>
     client.post(
       '/chat',
       {
@@ -261,13 +300,13 @@ export const createApiService = (client, agentFallbackClient = null, options = {
         history,
         paperSkeleton,
       },
-      { signal },
+      signal ? { signal } : {},
     ),
 
   getChatHistory: async (sessionId) => client.get(`/chat/history/${encodeURIComponent(sessionId)}`),
 
   createResearchTask: async (question, pdfId, paperSkeleton = null, userConstraints = '', briefPreview = null, allowExternalSearch = false, allowWebSearch = false) => {
-    const payload = {
+    const payload: Record<string, unknown> = {
       question,
       pdfId,
       paperSkeleton,
@@ -521,9 +560,9 @@ export const createApiService = (client, agentFallbackClient = null, options = {
       behavior_signals,
     }),
 
-  translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null, pageLayout = null, options = {}) => {
+  translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null, pageLayout = null, options: TranslatePageOptions = {}) => {
     const timeoutMs = Number(options?.timeoutMs) > 0 ? Number(options.timeoutMs) : 90000;
-    const externalSignal = options?.signal || null;
+    const externalSignal: AbortSignal | null = options?.signal || null;
     const controller = new AbortController();
     let didTimeout = false;
     const handleExternalAbort = () => controller.abort();
@@ -556,8 +595,8 @@ export const createApiService = (client, agentFallbackClient = null, options = {
           skipErrorLog: true,
         },
       );
-    } catch (error) {
-      if (didTimeout || error?.code === 'ECONNABORTED') {
+    } catch (error: unknown) {
+      if (didTimeout || (error as { code?: string })?.code === 'ECONNABORTED') {
         throw new Error('当前页翻译超时，请重试或减少等待时间。');
       }
       throw error;
@@ -593,7 +632,7 @@ export const createApiService = (client, agentFallbackClient = null, options = {
   generatePaperDraft: async (payload) =>
     agentPrimaryClient.post('/generate-paper-draft', payload),
 
-  };
+  } as ApiService;
 };
 
 const apiClient = createApiClient();

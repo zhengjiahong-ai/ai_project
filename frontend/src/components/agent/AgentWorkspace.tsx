@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { apiService } from '../../services/api';
+import { apiService, type AgentRunPayload, type FinalReviewPayload } from '../../services/api';
 import AgentWorkspaceEvidencePanel, { AgentWorkspaceRightRail } from './AgentWorkspaceEvidencePanel.jsx';
 import AgentWorkspaceMain from './AgentWorkspaceMain.jsx';
 import AgentWorkspaceSidebar, { AgentWorkspaceLeftRail } from './AgentWorkspaceSidebar.jsx';
@@ -576,7 +576,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           activePaperId,
         },
       };
-      await apiService.createAgentRun(activeProject.projectId, runPayload);
+      await apiService.createAgentRun(activeProject.projectId, runPayload as unknown as AgentRunPayload);
       try {
         await loadWorkspace(activeProject.projectId);
       } catch {
@@ -729,7 +729,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     try {
       const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
       try {
-        await apiService.reviewAgentRunFinal(runId, payload);
+        await apiService.reviewAgentRunFinal(runId, payload as unknown as FinalReviewPayload);
         await loadWorkspace(currentTask.projectId, currentTask.taskId);
       } catch {
         const response = await apiService.reviewAgentFinal(currentTask.taskId, payload);

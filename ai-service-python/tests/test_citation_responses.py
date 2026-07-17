@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from schemas.requests import ChatRequest, DeepAnalysisRequest
-from services import analysis_service, chat_service
+from services import analysis_service, chat_service, critical_reading
 
 
 class CitationResponseTests(unittest.TestCase):
@@ -70,7 +70,7 @@ class CitationResponseTests(unittest.TestCase):
             ),
             patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
             patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
-            patch.object(analysis_service, "_extract_claims_with_llm", return_value=[]),
+            patch.object(critical_reading, "_extract_claims_with_llm", return_value=[]),
         ):
             response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
 
@@ -120,7 +120,7 @@ class CitationResponseTests(unittest.TestCase):
             ),
             patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
             patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
-            patch.object(analysis_service, "_extract_claims_with_llm", return_value=[]),
+            patch.object(critical_reading, "_extract_claims_with_llm", return_value=[]),
         ):
             response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
 
@@ -206,7 +206,7 @@ class CitationResponseTests(unittest.TestCase):
             ),
             patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
             patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
-            patch.object(analysis_service, "_extract_claims_with_llm", return_value=["作者声称 F1 提升 20%。"]),
+            patch.object(critical_reading, "_extract_claims_with_llm", return_value=["作者声称 F1 提升 20%。"]),
         ):
             response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
 
@@ -256,7 +256,7 @@ class CitationResponseTests(unittest.TestCase):
             ),
             patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
             patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
-            patch.object(analysis_service, "_extract_claims_with_llm", return_value=["作者声称准确率提升 20%。"]),
+            patch.object(critical_reading, "_extract_claims_with_llm", return_value=["作者声称准确率提升 20%。"]),
         ):
             response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
 
@@ -298,7 +298,7 @@ class CitationResponseTests(unittest.TestCase):
             ),
             patch.object(analysis_service, "_analyze_axis", return_value=axis_result),
             patch.object(analysis_service, "_generate_structured_critical_report", return_value=report),
-            patch.object(analysis_service, "_extract_claims_with_llm", return_value=["作者提出新的检索排序方法。"]),
+            patch.object(critical_reading, "_extract_claims_with_llm", return_value=["作者提出新的检索排序方法。"]),
         ):
             response = analysis_service.deep_analysis(DeepAnalysisRequest(paper_content="paper text"))
 

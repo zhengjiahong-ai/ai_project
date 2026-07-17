@@ -9,7 +9,7 @@
     "jsxImportSource": "react",
 
     "strict": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "noEmit": true,
 
     "allowImportingTsExtensions": true,
