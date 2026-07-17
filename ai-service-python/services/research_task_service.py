@@ -23,7 +23,6 @@ from services.safety_service import (
     MIN_RESEARCH_SUB_QUESTIONS,
     build_guarded_messages,
     is_allowed_research_sub_question,
-    summarize_safety_results,
     wrap_untrusted_context,
 )
 from services.trace_service import (

@@ -5,7 +5,6 @@ agents, executes concurrently, then merges findings with cross-validation.
 from __future__ import annotations
 
 import concurrent.futures
-import copy
 from typing import Any
 
 
@@ -147,7 +146,7 @@ def _merge_parallel_findings(
 
 def _llm_merge(question: str, findings: list[dict[str, Any]]) -> str:
     try:
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from concurrent.futures import ThreadPoolExecutor
         from llm.client import get_llm
 
         f_str = "\n".join(

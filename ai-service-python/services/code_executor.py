@@ -7,7 +7,6 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Optional
 
 from services.code_execution_models import WORKER_IMAGE_DIGEST
 

@@ -6,7 +6,7 @@ Uses the translation LLM (DeepSeek flash) for fast, cost-effective translation.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 LANG_MAP = {

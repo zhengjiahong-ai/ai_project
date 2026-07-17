@@ -16,8 +16,8 @@ from services.meta_analysis import meta_analyze
 from services.structured_query import query_structured_data
 from services.table_extractor import extract_html_tables
 from services.trace_service import record_counter, trace_step
-from services.tools._common import _clean_text, _coerce_positive_int
-from services.tool_registry import ToolValidationError, _object_output, _safety_scope
+from services.tools._common import _clean_text
+from services.tool_registry import ToolValidationError, _safety_scope
 from code_worker import FIXED_TEMPLATE_TEXT
 
 

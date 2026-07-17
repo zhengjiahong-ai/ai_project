@@ -739,7 +739,7 @@ def _build_executive_summary(
 ) -> str:
     """Generate a ~500-character executive summary via LLM, falling back to rules."""
     try:
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from concurrent.futures import ThreadPoolExecutor
 
         from llm.client import get_llm
 
@@ -756,7 +756,7 @@ def _build_executive_summary(
         prompt = (
             f"研究问题：{question}\n\n"
             f"子问题结论：\n" + "\n".join(finding_lines) + "\n\n"
-            + (f"争议：\n" + "\n".join(conflict_lines) + "\n\n" if conflict_lines else "")
+            + ("争议：\n" + "\n".join(conflict_lines) + "\n\n" if conflict_lines else "")
             + "请用中文撰写一份约500字的研究执行摘要，需包含："
             "1) 核心发现 2) 证据强度评估 3) 主要争议 4) 后续研究建议。"
             "只输出摘要正文，不加标题。"

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict
 
 from services.trace_service import record_counter, trace_step
 

@@ -1,30 +1,21 @@
-import json
-import re
 from typing import Any, Dict, List
 
-from llm.client import get_llm
-from rag.store import get_rag, retrieve_hybrid_for_vector, retrieve_hybrid_results
+from rag.store import retrieve_hybrid_results
 from schemas.requests import (
     ChatRequest,
     PageTranslationRequest,
-    SocraticQuestionRequest,
-    SocraticSessionAnswerRequest,
-    SocraticSessionStartRequest,
-    TermExplainRequest,
 )
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE as SHARED_MATH_MARKDOWN_GUIDELINE
 from services.evidence_service import (
     build_sentence_source_map,
     compact_evidence_for_response,
     format_evidence_context,
-    normalize_evidence_items,
 )
 from services.page_translation_service import translate_page as translate_page_v2
-from services.query_service import build_chat_query_plan, build_retrieval_queries
+from services.query_service import build_chat_query_plan
 from services.retrieval_judge_service import judge_evidence_quality
 from services.safety_service import (
     MAX_RETRIEVAL_RETRIES,
-    build_guarded_messages,
     summarize_safety_results,
     wrap_untrusted_context,
 )

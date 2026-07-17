@@ -12,9 +12,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 from services.tools._common import (
     _clean_text,
-    _coerce_positive_int,
-    _ensure_stable_source_ids,
-    _slugify,
     _normalize_payload,
     reset_external_search_provider,
 )

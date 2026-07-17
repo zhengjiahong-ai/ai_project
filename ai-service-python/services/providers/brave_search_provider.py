@@ -7,7 +7,6 @@ from typing import Any, Callable, Dict, List, Optional
 import requests
 
 from services.external_evidence import (
-    EXTERNAL_SOURCE_TYPE,
     WEB_SEARCH_SOURCE_TYPE,
     deduplicate_external_evidence,
     normalize_external_evidence,

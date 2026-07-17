@@ -4,7 +4,7 @@ import hashlib
 import re
 import statistics
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable
 
 from bs4 import BeautifulSoup
 
@@ -287,7 +287,7 @@ def _extract_pdf_text_lines(pdf_path: str) -> list[PdfTextLine]:
     order = 0
 
     for page_index, page in enumerate(reader.pages):
-        page_width = float(page.mediabox.width or 0)
+        _page_width = float(page.mediabox.width or 0)  # noqa: F841
         page_height = float(page.mediabox.height or 0)
 
         def visitor_text(text, _cm, tm, font_dict, font_size):

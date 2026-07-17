@@ -7,7 +7,7 @@ clarification questions and incorporates user feedback.
 from __future__ import annotations
 
 import json
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 LLM_TIMEOUT = 20

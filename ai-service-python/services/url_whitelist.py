@@ -209,7 +209,7 @@ def _resolve_public_ip(hostname: str) -> None:
     """
     try:
         entries = _getaddrinfo(hostname)
-    except (socket.gaierror, socket.herror, OSError) as exc:
+    except (socket.gaierror, socket.herror, OSError):
         # Sanitize exception — never include hostname in error
         raise ValueError("DNS resolution failed for the requested host.") from None
 

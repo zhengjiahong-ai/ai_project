@@ -1,14 +1,10 @@
 """Agent reasoning chain: multi-step LLM synthesis for research reports."""
 from __future__ import annotations
 
-import copy
-import json
 import logging
 import re
 from typing import Any, Dict, List
 
-from llm.client import DeepSeekLLM, get_llm
-from services.trace_service import record_counter, sanitize_text, trace_step
 from services.utils import parse_json_from_llm
 
 _logger = logging.getLogger(__name__)

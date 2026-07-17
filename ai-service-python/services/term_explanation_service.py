@@ -4,7 +4,6 @@ import logging
 from typing import Any, Dict
 from schemas.requests import TermExplainRequest
 from services.evidence_service import format_evidence_context, normalize_evidence_items
-from services.retrieval_judge_service import judge_evidence_quality
 from services.safety_service import build_guarded_messages, wrap_untrusted_context
 from services.trace_service import record_counter, trace_step
 _logger = logging.getLogger(__name__)

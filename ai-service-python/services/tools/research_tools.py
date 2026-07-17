@@ -17,8 +17,7 @@ from services.parallel_research import dispatch_parallel_research
 from services.reasoning_chain import build_reasoning_chain
 from services.research_memory import recall_relevant_past_research
 from services.trace_service import record_counter, trace_step
-from services.tools._common import _clean_text
-from services.tool_registry import ToolValidationError, _object_output, _safety_scope
+from services.tool_registry import ToolValidationError, _safety_scope
 
 
 # ---------------------------------------------------------------------------

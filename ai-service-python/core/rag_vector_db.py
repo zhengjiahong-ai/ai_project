@@ -4,18 +4,18 @@ import uuid
 import shutil
 import tempfile
 
+import chromadb  # noqa: E402
+from chromadb.config import Settings  # noqa: E402
+
+from sentence_transformers import SentenceTransformer  # noqa: E402
+
+from grobid_client.grobid_client import GrobidClient  # noqa: E402
+
+from core.document_parser import parse_tei_xml  # noqa: E402
+from rag.store import invalidate_hybrid_cache, normalize_id  # noqa: E402
+from core.smart_chunker import chunk_sections  # noqa: E402
+
 _logger = logging.getLogger(__name__)
-
-import chromadb
-from chromadb.config import Settings
-
-from sentence_transformers import SentenceTransformer
-
-from grobid_client.grobid_client import GrobidClient
-
-from core.document_parser import parse_tei_xml
-from rag.store import invalidate_hybrid_cache, normalize_id
-from core.smart_chunker import chunk_sections
 
 
 EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"

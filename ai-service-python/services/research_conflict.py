@@ -1,8 +1,7 @@
 """Research conflict detection and evidence comparison."""
 
-import copy
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 
 def _detect_research_conflicts(findings):

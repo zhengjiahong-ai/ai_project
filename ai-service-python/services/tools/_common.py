@@ -8,18 +8,12 @@ It is not part of the public API.
 import copy
 import os
 import re
-import time
 from typing import Any, Dict, List, Optional
 
 from services.external_search_provider import create_external_search_provider
-from services.safety_service import sanitize_external_academic_query_text
 from services.trace_service import (
     get_current_trace_id,
     get_trace_snapshot,
-    record_counter,
-    sanitize_text,
-    summarize_external_search_query,
-    trace_step,
 )
 
 EXTERNAL_SEARCH_CALL_BUDGET = 10

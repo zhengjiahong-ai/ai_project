@@ -41,7 +41,6 @@ def _build_minimal_report(
 
 
 def _build_finding_summary(prompt: str, paper_contexts: List[Dict[str, Any]], evidence_items: List[Dict[str, Any]]) -> str:
-    from services.agent_reasoning import clean_text
 
     paper_count = len(paper_contexts)
     evidence_count = len(evidence_items)

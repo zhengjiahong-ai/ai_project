@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import json
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from services.trace_service import record_counter, trace_step
+from services.trace_service import trace_step
 
 LLM_TIMEOUT_S = 25
 PIPELINE_TIMEOUT_S = 120

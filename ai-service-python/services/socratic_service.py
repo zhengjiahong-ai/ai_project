@@ -1,13 +1,15 @@
 """Socratic guided-learning session service."""
 from __future__ import annotations
-import json, logging, re
+import json
+import logging
+import re
 from typing import Any, Dict, List
 from llm.client import get_llm
 from rag.store import get_rag, retrieve_hybrid_for_vector
 from schemas.requests import SocraticQuestionRequest, SocraticSessionStartRequest, SocraticSessionAnswerRequest
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.retrieval_judge_service import judge_evidence_quality
-from services.safety_service import build_guarded_messages, summarize_safety_results, wrap_untrusted_context
+from services.safety_service import build_guarded_messages
 from services.trace_service import record_counter, sanitize_text, trace_step
 _logger = logging.getLogger(__name__)
 

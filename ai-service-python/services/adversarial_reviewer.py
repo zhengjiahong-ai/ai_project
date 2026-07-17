@@ -7,7 +7,7 @@ weaknesses, and adjusts confidence accordingly.
 from __future__ import annotations
 
 import json
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 LLM_TIMEOUT = 30
@@ -39,7 +39,7 @@ def adversarial_review(
         return _error("At least one finding is required.")
 
     evidence = evidence_items or []
-    conflicts_list = conflicts or []
+    conflicts_list = conflicts or []  # noqa: F841
     reviewed: list[dict[str, Any]] = []
     all_counters: list[dict[str, Any]] = []
     total_adjusted = 0.0

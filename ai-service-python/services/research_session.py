@@ -10,12 +10,10 @@ import json
 import os
 import sqlite3
 import threading
-import time
 import uuid
-from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 # ── Constants ────────────────────────────────────────────────────────────────
 

@@ -17,8 +17,7 @@ from services.research_monitor import (
     list_monitors,
 )
 from services.trace_service import record_counter, trace_step
-from services.tools._common import _clean_text
-from services.tool_registry import ToolValidationError, _object_output, _safety_scope
+from services.tool_registry import ToolValidationError, _safety_scope
 
 
 # ---------------------------------------------------------------------------

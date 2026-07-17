@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 import re
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 # ── Constants ────────────────────────────────────────────────────────────────

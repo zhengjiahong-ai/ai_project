@@ -11,7 +11,6 @@ from typing import Any, Dict, List
 
 from llm.client import get_llm
 from services.analysis_service import (
-    _axis_result_map,
     _extract_query_terms,
     _fallback_claimed_contributions,
     _fallback_evidence_based_contributions,

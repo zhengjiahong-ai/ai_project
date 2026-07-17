@@ -10,7 +10,6 @@ installs dependencies, and runs experiments. Compares output against reported re
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re

@@ -88,7 +88,7 @@ def meta_analyze(studies: list[dict[str, Any]]) -> dict[str, Any]:
             "effectSize": round(re_es, 4),
             "ciLower": round(re_ci_low, 4),
             "ciUpper": round(re_ci_high, 4),
-            "pValue": f"<0.001" if abs(re_es / re_se) > 3.3 else f"{2 * (1 - _norm_cdf(abs(re_es / re_se))):.4f}",
+            "pValue": "<0.001" if abs(re_es / re_se) > 3.3 else f"{2 * (1 - _norm_cdf(abs(re_es / re_se))):.4f}",
         },
         "heterogeneity": {
             "qStatistic": round(q_stat, 2),

@@ -24,12 +24,10 @@ from services.evidence_service import (
     format_evidence_context,
     normalize_evidence_items,
 )
-from services.math_markdown import MATH_MARKDOWN_GUIDELINE
 from services.query_service import build_retrieval_queries
 from services.retrieval_judge_service import judge_evidence_quality
 from services.safety_service import (
     MAX_RETRIEVAL_RETRIES,
-    build_guarded_messages,
     summarize_safety_results,
     wrap_untrusted_context,
 )

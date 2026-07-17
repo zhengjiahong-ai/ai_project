@@ -16,10 +16,9 @@ import os
 import sqlite3
 import threading
 import time
-from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 import requests
 
@@ -30,7 +29,7 @@ REFERENCES_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/{paper_id}
 PAPER_ENDPOINT = "https://api.semanticscholar.org/graph/v1/paper/{paper_id}"
 
 FIELDS = "title,year,abstract,citationCount,authors,externalIds,url,publicationVenue"
-CITATION_FIELDS = f"contexts,intents,isInfluential,paperId,title,year,abstract,citationCount,authors,externalIds,url"
+CITATION_FIELDS = "contexts,intents,isInfluential,paperId,title,year,abstract,citationCount,authors,externalIds,url"
 
 REQUEST_TIMEOUT = (3.05, 15.0)
 MAX_RETRIES = 2

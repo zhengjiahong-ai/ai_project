@@ -7,10 +7,10 @@ collection with progress reporting and cancellation support.
 """
 
 import copy
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from services.evidence_service import normalize_evidence_items
-from services.external_evidence import EXTERNAL_SOURCE_TYPE, normalize_external_evidence_items
+from services.external_evidence import normalize_external_evidence_items
 from services.external_query_planner import build_external_academic_queries
 from services.safety_service import external_search_degradation_reason
 from services.trace_service import record_counter, sanitize_text, trace_step
@@ -498,7 +498,7 @@ def collect_project_evidence(
 
                     research_timeline.append(_timeline_step(
                         "search",
-                        f"迭代 Web 搜索完成",
+                        "迭代 Web 搜索完成",
                         f"{loop_result.get('iterations', 0)} 轮迭代, {loop_result.get('pages_fetched', 0)} 页抓取, verdict: {loop_result.get('verdict', 'unknown')}",
                         "success" if loop_evidence else "error",
                     ))

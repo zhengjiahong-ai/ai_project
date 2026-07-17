@@ -1,12 +1,10 @@
 ﻿import copy
 import json
 import os
-import re
 import sqlite3
 import threading
 import time
 import uuid
-from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -24,25 +22,15 @@ from schemas.requests import (
 )
 from services import agent_orchestrator
 from services.agent_report_builder import (
-    _build_conflict_lines,
-    _build_conclusion_lines,
-    _build_evidence_snapshot_lines,
     _build_finding_summary,
-    _build_minimal_report,
     _build_paper_judgement,
-    _build_paper_support_profiles,
-    _build_scope_lines,
     _detect_conflicts,
     _evidence_preview,
-    _extract_common_themes,
-    _extract_keywords,
-    _infer_theme_from_evidence,
     _stabilize_source_ids,
 )
 from services.agent_legacy_adapter import (
     AgentProjectNotFoundError,
     _build_artifacts_resource,
-    _build_legacy_task_snapshot,
     _build_legacy_task_snapshot_from_run_id,
     _build_pending_review_record,
     _build_run_record,

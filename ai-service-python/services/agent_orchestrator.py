@@ -1,30 +1,16 @@
 import copy
-import re
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 from services.agent_evidence_collector import (
-    build_external_search_queries,
-    build_web_search_queries_agent,
     collect_project_evidence,
-    fallback_tool_result,
-    invoke_agent_tool,
-    retrieve_external_agent_evidence,
-    retrieve_web_agent_evidence,
-    should_try_external_search,
-    should_try_web_search_agent,
 )
 from services.agent_report_sections import (
-    build_conflict_lines,
     build_minimal_report,
     build_paper_judgement,
     detect_conflicts,
-    evidence_preview,
-    stabilize_source_ids,
 )
-from services.evidence_service import normalize_evidence_items
 from services.external_evidence import EXTERNAL_SOURCE_TYPE
 from services.knowledge_graph_store import enrich_conflicts_with_graph_context
-from services.trace_service import record_counter, sanitize_text, trace_step
 
 
 ProgressCallback = Callable[[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], float, str], None]
@@ -32,7 +18,6 @@ CancelCheck = Callable[[], bool]
 from services.agent_advanced_analysis import run_advanced_analysis
 from services.agent_reasoning import (
     build_finding_summary,
-    build_paper_support_profiles,
     clean_text,
     synthesize_llm_report,
 )
