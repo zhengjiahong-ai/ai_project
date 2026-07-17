@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-17 v0.6.23
+
+1. **前端核心组件 TypeScript 迁移（4-2）**：6 个核心 React 组件从 JSX 迁移为 TSX（`ErrorBoundary`、`ChatPanel`、`BackgroundKnowledgePanel`、`PdfViewer`、`DeepResearchPanel`、`AgentWorkspace`），全部定义 Props interface，附带迁移 `InsightCard` 和 `insightCardModel`。所有组件 `tsc --noEmit` 零错误，18 个测试全通过。
+
 ### 2026-07-16 v0.6.22
 
 1. **前端 App.jsx 拆分**：`App.jsx`（2125→1526 行）的阅读 IDE 渲染区提取为 `pages/ReadingIDE.jsx`（874 行），Agent 工作区提取为 `pages/AgentResearchPage.jsx`（24 行）。

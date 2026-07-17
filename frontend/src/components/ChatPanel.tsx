@@ -1,24 +1,78 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Bookmark, ChevronDown, ChevronRight, ChevronUp, FileText, Link2, Plus, Sparkles, Trash2, User, X } from 'lucide-react';
 
-import InsightCard from './InsightCard.jsx';
+import InsightCard from './InsightCard';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 import SourceList from './SourceCitation.jsx';
 import { normalizeSentenceReferences } from './evidenceCitationModel.ts';
 
-const quickTags = ['# 核心结论', '# 证据追问', '# 批判阅读'];
-const clampText = (value, maxLength = 72) => {
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface ChatJumpSource {
+  sourceId?: string;
+  sourceAnchorId?: string;
+  sourceText?: string;
+  sourcePageIndex?: number;
+  text?: string;
+  pageIndex?: number;
+  sectionId?: string;
+  preview?: string;
+}
+
+interface ChatMessage {
+  id?: string | number;
+  role: 'user' | 'ai';
+  isSystem?: boolean;
+  content: string;
+  sourceAnchorId?: string;
+  sourceText?: string;
+  sourcePageIndex?: number;
+  sentenceSourceMap?: unknown;
+  rag_sources?: unknown;
+}
+
+interface EvidenceRef {
+  id: string;
+  sentence: string;
+  sources: ChatJumpSource[];
+}
+
+interface ChatPanelProps {
+  messages?: ChatMessage[];
+  onSendMessage: (text: string) => void;
+  onDeleteMessage?: (index: number) => void;
+  onSaveToNote?: (index: number) => void;
+  onCaptureArtifact?: (index: number) => void;
+  onJumpToSource?: (source: ChatJumpSource) => void;
+  onAbortChat?: () => void;
+  isLoading?: boolean;
+  contextTitle?: string;
+  contextSummary?: string;
+  nextActionHint?: string;
+}
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const quickTags: string[] = ['# 核心结论', '# 证据追问', '# 批判阅读'];
+
+const clampText = (value: unknown, maxLength: number = 72): string => {
   const normalized = `${value ?? ''}`.replace(/\s+/g, ' ').trim();
   if (!normalized) {
     return '';
   }
-
   return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
 };
 
-const EvidenceReferences = ({ references = [], onJumpToSource }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+// ── Sub-components ─────────────────────────────────────────────────────────
+
+interface EvidenceReferencesProps {
+  references?: EvidenceRef[];
+  onJumpToSource?: (source: ChatJumpSource) => void;
+}
+
+const EvidenceReferences: React.FC<EvidenceReferencesProps> = ({ references = [], onJumpToSource }) => {
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   if (!references.length) {
     return null;
@@ -28,7 +82,7 @@ const EvidenceReferences = ({ references = [], onJumpToSource }) => {
     <div className="space-y-3">
       <button
         type="button"
-        onClick={() => setIsExpanded((current) => !current)}
+        onClick={() => setIsExpanded((current: boolean) => !current)}
         className="source-link-chip inline-flex items-center gap-1"
       >
         <FileText size={12} />
@@ -38,10 +92,10 @@ const EvidenceReferences = ({ references = [], onJumpToSource }) => {
 
       {isExpanded && (
         <div className="space-y-2">
-          {references.map((reference) => (
+          {references.map((reference: EvidenceRef) => (
             <div key={reference.id} className="theme-card-soft rounded-xl p-3 text-xs leading-5 theme-text-secondary">
               <div className="theme-text-primary mb-1 font-semibold">{reference.sentence}</div>
-              <div className="mb-2 theme-text-muted">{reference.sources.map((source) => source.preview).join('；')}</div>
+              <div className="mb-2 theme-text-muted">{reference.sources.map((source: ChatJumpSource) => source.preview).join('；')}</div>
               <SourceList sources={reference.sources} onJumpToSource={onJumpToSource} />
             </div>
           ))}
@@ -51,7 +105,12 @@ const EvidenceReferences = ({ references = [], onJumpToSource }) => {
   );
 };
 
-const MessageRoleBadge = ({ role, isSystem }) => {
+interface MessageRoleBadgeProps {
+  role: string;
+  isSystem: boolean;
+}
+
+const MessageRoleBadge: React.FC<MessageRoleBadgeProps> = ({ role, isSystem }) => {
   if (isSystem) {
     return <span className="chat-role-badge chat-role-system">系统提示</span>;
   }
@@ -63,7 +122,9 @@ const MessageRoleBadge = ({ role, isSystem }) => {
   return <span className="chat-role-badge chat-role-ai">Pixiu</span>;
 };
 
-const ChatPanel = ({
+// ── Main component ─────────────────────────────────────────────────────────
+
+const ChatPanel: React.FC<ChatPanelProps> = ({
   messages = [],
   onSendMessage,
   onDeleteMessage,
@@ -76,18 +137,18 @@ const ChatPanel = ({
   contextSummary = '',
   nextActionHint = '',
 }) => {
-  const [inputValue, setInputValue] = useState('');
-  const messagesEndRef = useRef(null);
-  const textareaRef = useRef(null);
-  const condensedContextSummary = clampText(contextSummary, 72);
-  const condensedNextAction = clampText(nextActionHint, 28);
-  const aiReplyCount = messages.filter((message) => message.role === 'ai' && !message.isSystem).length;
+  const [inputValue, setInputValue] = useState<string>('');
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const condensedContextSummary: string = clampText(contextSummary, 72);
+  const condensedNextAction: string = clampText(nextActionHint, 28);
+  const aiReplyCount: number = messages.filter((message: ChatMessage) => message.role === 'ai' && !message.isSystem).length;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  const handleSend = () => {
+  const handleSend = (): void => {
     if (inputValue.trim() && !isLoading) {
       onSendMessage(inputValue.trim());
       setInputValue('');
@@ -97,30 +158,29 @@ const ChatPanel = ({
     }
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>): void => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleSend();
     }
   };
 
-  const handleInputChange = (event) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
     setInputValue(event.target.value);
-    const textarea = event.target;
+    const textarea: HTMLTextAreaElement = event.target;
     textarea.style.height = 'auto';
     textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
   };
 
-  const handleQuickTag = (tag) => {
+  const handleQuickTag = (tag: string): void => {
     if (isLoading) {
       return;
     }
-
     setInputValue(tag);
     textareaRef.current?.focus();
   };
 
-  const renderMessageActions = (message, index) => (
+  const renderMessageActions = (message: ChatMessage, index: number): React.ReactNode => (
     <div className="mt-2 flex shrink-0 flex-col gap-1">
       <button
         type="button"
@@ -187,13 +247,13 @@ const ChatPanel = ({
       </div>
 
       <div className="chat-message-list flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        {messages.map((message, index) => {
-          const isUser = message.role === 'user';
-          const isSystem = Boolean(message.isSystem);
-          const references = normalizeSentenceReferences(message.sentenceSourceMap, message.rag_sources, {
+        {messages.map((message: ChatMessage, index: number) => {
+          const isUser: boolean = message.role === 'user';
+          const isSystem: boolean = Boolean(message.isSystem);
+          const references: EvidenceRef[] = normalizeSentenceReferences(message.sentenceSourceMap, message.rag_sources, {
             target: 'message',
-          });
-          const sourceFooter = message.sourceAnchorId ? (
+          }) as EvidenceRef[];
+          const sourceFooter: React.ReactNode = message.sourceAnchorId ? (
             <SourceList
               sources={[{
                 sourceId: message.sourceAnchorId,
@@ -204,10 +264,10 @@ const ChatPanel = ({
               onJumpToSource={onJumpToSource}
             />
           ) : null;
-          const citationFooter = references.length > 0 ? (
+          const citationFooter: React.ReactNode = references.length > 0 ? (
             <EvidenceReferences references={references} onJumpToSource={onJumpToSource} />
           ) : null;
-          const footer = citationFooter || sourceFooter ? (
+          const footer: React.ReactNode = citationFooter || sourceFooter ? (
             <div className="space-y-2">
               {citationFooter}
               {sourceFooter}
@@ -290,7 +350,7 @@ const ChatPanel = ({
         <div className="group relative">
           <textarea
             ref={textareaRef}
-            rows="2"
+            rows={2}
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
@@ -314,7 +374,7 @@ const ChatPanel = ({
         </div>
 
         <div className="mt-2.5 flex flex-wrap gap-2">
-          {quickTags.map((tag) => (
+          {quickTags.map((tag: string) => (
             <button
               type="button"
               key={tag}

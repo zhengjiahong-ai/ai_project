@@ -11,18 +11,18 @@ import {
 } from 'lucide-react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 
-import BackgroundKnowledgePanel from '../components/BackgroundKnowledgePanel.jsx';
+import BackgroundKnowledgePanel from '../components/BackgroundKnowledgePanel';
 import BackgroundReaderProfileEditor from '../components/BackgroundReaderProfileEditor.jsx';
 import BottomWorkbench from '../components/BottomWorkbench.jsx';
 import ChatPanel from '../components/ChatPanel';
 import CriticalAnalysisPanel from '../components/CriticalAnalysisPanel';
-import DeepResearchPanel from '../components/DeepResearchPanel.jsx';
+import DeepResearchPanel from '../components/DeepResearchPanel';
 import PaperAnalysis from '../components/PaperAnalysis';
 import PdfViewer from '../components/PdfViewer';
 import SocraticQuestionsPanel from '../components/SocraticQuestionsPanel';
 import TranslationPanel from '../components/TranslationPanel';
 import PaperWriterPanel from '../components/PaperWriterPanel.jsx';
-import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 import { renderHighlightedText } from '../utils/appHelpers.js';
 

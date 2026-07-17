@@ -65,9 +65,9 @@ const VERDICT_META = {
   },
 };
 
-const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+const normalizeText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
-const normalizeTextList = (items = [], limit = 0) => {
+const normalizeTextList = (items: unknown = [], limit: number = 0): string[] => {
   const normalized = Array.isArray(items)
     ? items.map((item) => normalizeText(item)).filter(Boolean)
     : [];
@@ -77,9 +77,9 @@ const normalizeTextList = (items = [], limit = 0) => {
   return normalized.slice(0, limit);
 };
 
-const normalizeInteger = (value) => {
+const normalizeInteger = (value: unknown): number | null => {
   if (Number.isInteger(value)) {
-    return value;
+    return value as number;
   }
   if (typeof value === 'string' && value.trim() !== '') {
     const parsed = Number(value);
@@ -126,7 +126,7 @@ const normalizeCoverage = (coverage) => {
   };
 };
 
-const normalizeResearchConflicts = (conflicts) => {
+const normalizeResearchConflicts = (conflicts: unknown): unknown[] => {
   if (!Array.isArray(conflicts)) {
     return [];
   }
@@ -153,7 +153,7 @@ const normalizeResearchConflicts = (conflicts) => {
         severity: ['high', 'medium', 'low'].includes(severity) ? severity : 'medium',
         summary: summary || '不同来源存在需要人工核查的矛盾线索。',
         sourceIds,
-        sources: normalizeEvidenceSources(conflict.sources, sourceIds),
+        sources: normalizeEvidenceSources(conflict.sources, sourceIds as string[]),
       };
     })
     .filter(Boolean)
@@ -205,7 +205,7 @@ const normalizeResearchPlanItems = (plan) => {
     .slice(0, 6);
 };
 
-const normalizeEvidenceSources = (sources, fallbackSourceIds = []) => {
+const normalizeEvidenceSources = (sources: unknown, fallbackSourceIds: string[] = []) => {
   if (Array.isArray(sources) && sources.length > 0) {
     return sources
       .map((source, index) => {
@@ -340,7 +340,7 @@ export const normalizeResearchTask = (task) => {
     progress: clampResearchProgress(task.progress),
     question: normalizeText(task.question),
     pdfId: normalizeText(task.pdfId),
-    plan: planItems.map((item) => item.question),
+    plan: planItems.map((item) => (item as { question: string }).question),
     planItems,
     findings: (Array.isArray(task.findings) ? task.findings : []).map((finding, index) => {
       const verdict = normalizeText(finding?.verdict).toUpperCase();
@@ -358,7 +358,7 @@ export const normalizeResearchTask = (task) => {
         followUpOf: normalizeText(finding?.followUpOf),
         sourceMissingAspects: normalizeTextList(finding?.sourceMissingAspects, 6),
         sourceIds,
-        sources: normalizeEvidenceSources(finding?.sources, sourceIds),
+        sources: normalizeEvidenceSources(finding?.sources, sourceIds as string[]),
       };
     }),
     conflicts: normalizeResearchConflicts(task.conflicts),

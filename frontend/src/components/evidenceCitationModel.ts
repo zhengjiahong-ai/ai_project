@@ -141,7 +141,7 @@ export const normalizeEvidenceSource = (source, index = 0) => {
   };
 };
 
-export const normalizeEvidenceSources = (sources) => {
+export const normalizeEvidenceSources = (sources: unknown): unknown[] => {
   if (!Array.isArray(sources)) {
     return [];
   }
@@ -164,7 +164,7 @@ export const buildSourceLookup = (sources) => {
   }
 
   const lookup = new Map();
-  normalizeEvidenceSources(sources).forEach((source) => lookup.set(source.sourceId, source));
+  normalizeEvidenceSources(sources).forEach((source) => { if (source) lookup.set((source as Record<string, unknown>).sourceId as string, source); });
   return lookup;
 };
 
@@ -188,8 +188,9 @@ export const normalizeSentenceReferences = (sentenceSourceMap, sources, options 
   }
 
   const sourceLookup = buildSourceLookup(sources);
-  const targetFilter = normalizeText(options.target);
-  const maxItems = Number.isInteger(options.maxItems) ? options.maxItems : 8;
+  const opts = options as Record<string, unknown>;
+  const targetFilter = normalizeText(opts.target);
+  const maxItems = Number.isInteger(opts.maxItems) ? (opts.maxItems as number) : 8;
 
   return sentenceSourceMap
     .map((item, index) => {

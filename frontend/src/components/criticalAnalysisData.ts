@@ -13,7 +13,7 @@ const normalizeInteger = (value) => {
   return null;
 };
 
-const normalizeScore = (value, fallback = 0) => {
+const normalizeScore = (value: unknown, fallback: number | null = 0): number | null => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
     return fallback;
@@ -373,8 +373,8 @@ export const getClaimSupportRows = (data, maxItems = 6) => {
             if (!sourceId) {
               return null;
             }
-            const source = sourceMap.get(sourceId);
-            const text = normalizeText(candidate?.text) || source?.text || '';
+            const source = sourceMap.get(sourceId) as Record<string, unknown> | undefined;
+            const text = normalizeText(candidate?.text) || (source?.text as string) || '';
             if (!text) {
               return null;
             }
@@ -388,9 +388,9 @@ export const getClaimSupportRows = (data, maxItems = 6) => {
               numbers: normalizeList(candidate?.numbers),
               reason: normalizeText(candidate?.reason),
               status: normalizeText(candidate?.status) || 'candidate_found',
-              chunkIndex: normalizeInteger(candidate?.chunkIndex) ?? source?.chunkIndex ?? null,
+              chunkIndex: normalizeInteger(candidate?.chunkIndex) ?? (source?.chunkIndex as number | null) ?? null,
               ...normalizeSourceLocation({
-                ...source,
+                ...(source || {}),
                 ...candidate,
               }),
             };

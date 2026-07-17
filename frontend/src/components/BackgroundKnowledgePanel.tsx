@@ -10,7 +10,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-import InsightCard from './InsightCard.jsx';
+import InsightCard from './InsightCard';
 import {
   getProvenanceMeta,
   getUncoveredNodeLabels,
@@ -24,27 +24,171 @@ import {
 import SourceList from './SourceCitation.jsx';
 import { normalizeEvidenceSources } from './evidenceCitationModel.ts';
 
-const EMPTY_LIST = [];
+// ── Types ──────────────────────────────────────────────────────────────────
 
-const learningModes = [
+interface GraphNode {
+  id: string;
+  label: string;
+  type?: string;
+  level?: string;
+  stage?: string;
+  stageLabel?: string;
+  summary?: string;
+  why?: string;
+  sourceIds?: string[];
+  confidence?: number | null;
+  provenanceStatus?: string;
+  provenanceLabel?: string;
+  confidenceReason?: string;
+  val?: number;
+  color?: string;
+}
+
+interface GraphLink {
+  source: string | GraphNode;
+  target: string | GraphNode;
+  relation?: string;
+  label?: string;
+  sourceIds?: string[];
+  provenanceStatus?: string;
+  provenanceLabel?: string;
+  confidence?: number | null;
+  confidenceReason?: string;
+}
+
+interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+  edges: GraphLink[];
+}
+
+interface GraphItem {
+  kind: 'node' | 'edge';
+  id?: string;
+  label?: string;
+  source?: GraphNode | string;
+  target?: GraphNode | string;
+  provenanceLabel?: string;
+  provenanceStatus?: string;
+  confidence?: number | null;
+  confidenceReason?: string;
+  summary?: string;
+  why?: string;
+  sourceIds?: string[];
+}
+
+interface LearningSection {
+  key: string;
+  title: string;
+  items: PathStep[];
+}
+
+interface PathStep {
+  title: string;
+  goal?: string;
+  conceptIds?: string[];
+  sourceIds?: string[];
+  stage?: string;
+  stageLabel?: string;
+  step?: number;
+  groupTitle?: string;
+  stepNumber?: number;
+  prerequisiteEdges?: PrerequisiteEdge[];
+}
+
+interface PrerequisiteEdge {
+  source?: string;
+  target?: string;
+  sourceIds?: string[];
+  confidenceReason?: string;
+  provenanceStatus?: string;
+  confidence?: number | null;
+}
+
+interface SourceCoverage {
+  ratio?: number;
+  totalConcepts?: number;
+  conceptsWithSources?: number;
+  uncoveredConceptIds?: string[];
+}
+
+interface BgKnowledgeData {
+  paper_topic?: string;
+  user_knowledge_level?: string;
+  reader_profile?: Record<string, unknown>;
+  background_knowledge?: string[];
+  rag_sources?: unknown[];
+  sourceCoverage?: SourceCoverage;
+  provenanceSummary?: unknown;
+  confidence?: number;
+  graph?: { nodes?: unknown[]; links?: unknown[]; edges?: unknown[] };
+  learning_path_sections?: unknown[];
+  learning_path?: unknown[];
+  adaptation_reason?: string;
+  externalKnowledge?: { enabled?: boolean; message?: string };
+  warnings?: string[];
+  neo4j?: { enabled?: boolean; message?: string; status?: string };
+}
+
+interface BackgroundCard {
+  title: string;
+  stageLabel: string;
+  whyText: string;
+  provenanceLabel: string;
+}
+
+interface ReaderProfile {
+  selfAssessedFamiliarity: string;
+  preferredDepth: string;
+  learningGoal: string;
+  knownConcepts: string[];
+  confusingConcepts: string[];
+}
+
+type LearningMode = 'why' | 'path' | 'sources';
+
+export interface ArtifactPayload {
+  kind: string;
+  title: string;
+  summary: string;
+  content: string;
+  tags?: string[];
+}
+
+interface BackgroundKnowledgePanelProps {
+  data: BgKnowledgeData | null;
+  isLoading: boolean;
+  hasPaperContext: boolean;
+  onGenerate?: (profile: ReaderProfile, options?: { includeLibraryPapers?: boolean }) => void;
+  readerProfile?: ReaderProfile | Record<string, unknown>;
+  GraphComponent?: React.ComponentType<Record<string, unknown>>;
+  onCaptureArtifact?: (payload: ArtifactPayload) => void;
+  onJumpToSource?: (source: Record<string, unknown>) => void;
+}
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const EMPTY_LIST: unknown[] = [];
+
+const learningModes: { id: LearningMode; label: string }[] = [
   { id: 'why', label: '先补什么' },
   { id: 'path', label: '怎么补' },
   { id: 'sources', label: '看依据' },
 ];
 
-const formatPercent = (value) => {
+const formatPercent = (value: unknown): string | null => {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return null;
   }
   return `${Math.round(value * 100)}%`;
 };
 
-const normalizeText = (value) => `${value ?? ''}`.trim();
+const normalizeText = (value: unknown): string => `${value ?? ''}`.trim();
 
-const uniqueStrings = (items = []) => {
-  const seen = new Set();
-  return items.filter((item) => {
-    const key = normalizeText(item);
+const uniqueStrings = (items: string[] = []): string[] => {
+  const seen = new Set<string>();
+  return items.filter((item: string) => {
+    const key: string = normalizeText(item);
     if (!key || seen.has(key)) {
       return false;
     }
@@ -53,22 +197,24 @@ const uniqueStrings = (items = []) => {
   });
 };
 
-const BackgroundKnowledgePanel = ({
+// ── Component ──────────────────────────────────────────────────────────────
+
+const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
   data,
   isLoading,
   hasPaperContext,
   onGenerate,
   readerProfile,
-  GraphComponent = ForceGraph,
+  GraphComponent = ForceGraph as React.ComponentType<Record<string, unknown>>,
   onCaptureArtifact,
   onJumpToSource,
 }) => {
-  const containerRef = useRef(null);
-  const [containerWidth, setContainerWidth] = useState(320);
-  const [activeMode, setActiveMode] = useState('why');
-  const [visiblePathCount, setVisiblePathCount] = useState(2);
-  const [selectedGraphItem, setSelectedGraphItem] = useState(null);
-  const [crossPaperEnabled, setCrossPaperEnabled] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(320);
+  const [activeMode, setActiveMode] = useState<LearningMode>('why');
+  const [visiblePathCount, setVisiblePathCount] = useState<number>(2);
+  const [selectedGraphItem, setSelectedGraphItem] = useState<GraphItem | null>(null);
+  const [crossPaperEnabled, setCrossPaperEnabled] = useState<boolean>(false);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -76,28 +222,30 @@ const BackgroundKnowledgePanel = ({
     }
   }, [data, isLoading]);
 
-  const selectedReaderProfile = normalizeReaderProfile(
+  const selectedReaderProfile: ReaderProfile = normalizeReaderProfile(
     readerProfile || data?.reader_profile || { user_knowledge_level: data?.user_knowledge_level },
-  );
-  const selectedKnowledgeLevel = normalizeKnowledgeLevel(
+  ) as ReaderProfile;
+  const selectedKnowledgeLevel: string = normalizeKnowledgeLevel(
     selectedReaderProfile.selfAssessedFamiliarity || data?.user_knowledge_level,
   );
-  const graphData = useMemo(() => normalizeGraph(data), [data]);
-  const learningSections = useMemo(() => resolveLearningPathSections(data), [data]);
-  const backgroundItems = Array.isArray(data?.background_knowledge) ? data.background_knowledge : EMPTY_LIST;
-  const ragSources = normalizeEvidenceSources(data?.rag_sources);
-  const sourceCoverage = data?.sourceCoverage && typeof data.sourceCoverage === 'object' ? data.sourceCoverage : null;
+  const graphData: GraphData = useMemo(() => normalizeGraph(data), [data]);
+  const learningSections: LearningSection[] = useMemo(() => resolveLearningPathSections(data), [data]);
+  const backgroundItems: string[] = Array.isArray(data?.background_knowledge) ? data.background_knowledge : [];
+  const ragSources = normalizeEvidenceSources(data?.rag_sources) as unknown as Record<string, unknown>[];
+  const sourceCoverage: SourceCoverage | null =
+    data?.sourceCoverage && typeof data.sourceCoverage === 'object' ? data.sourceCoverage : null;
   const provenanceSummary = normalizeProvenanceSummary(data);
-  const confidenceText = formatPercent(data?.confidence);
-  const coverageText = formatPercent(sourceCoverage?.ratio);
-  const uncoveredNodeLabels = useMemo(() => getUncoveredNodeLabels(data), [data]);
-  const handleGenerate = () => onGenerate?.(selectedReaderProfile, { includeLibraryPapers: crossPaperEnabled });
-  const readerProfileSummary = summarizeReaderProfile(data?.reader_profile || selectedReaderProfile);
+  const confidenceText: string | null = formatPercent(data?.confidence);
+  const coverageText: string | null = formatPercent(sourceCoverage?.ratio);
+  const uncoveredNodeLabels: string[] = useMemo(() => getUncoveredNodeLabels(data), [data]);
+  const handleGenerate = (): void =>
+    onGenerate?.(selectedReaderProfile, { includeLibraryPapers: crossPaperEnabled });
+  const readerProfileSummary: string[] = summarizeReaderProfile(data?.reader_profile || selectedReaderProfile);
 
-  const nodeByLabel = useMemo(() => {
-    const map = new Map();
-    graphData.nodes.forEach((node) => {
-      const key = normalizeText(node.label).toLowerCase();
+  const nodeByLabel: Map<string, GraphNode> = useMemo(() => {
+    const map = new Map<string, GraphNode>();
+    graphData.nodes.forEach((node: GraphNode) => {
+      const key: string = normalizeText(node.label).toLowerCase();
       if (key && !map.has(key)) {
         map.set(key, node);
       }
@@ -105,15 +253,14 @@ const BackgroundKnowledgePanel = ({
     return map;
   }, [graphData.nodes]);
 
-  const overviewSummary = useMemo(() => {
+  const overviewSummary: string = useMemo(() => {
     if (!data) {
       return '先生成背景补课图谱，再按阅读需要逐步补齐概念、方法和批判视角。';
     }
-
     return `为了更好理解 ${data?.paper_topic || '当前论文'}，建议优先补齐最影响精读推进的背景节点。`;
   }, [data]);
 
-  const overviewPoints = useMemo(
+  const overviewPoints: string[] = useMemo(
     () => [
       graphData.nodes.length > 0 ? `图谱包含 ${graphData.nodes.length} 个知识节点` : '等待图谱节点生成',
       learningSections.length > 0 ? `学习路径已拆成 ${learningSections.length} 个阶段` : '尚未生成学习路径',
@@ -122,12 +269,12 @@ const BackgroundKnowledgePanel = ({
     [backgroundItems.length, graphData.nodes.length, learningSections.length],
   );
 
-  const backgroundCards = useMemo(
+  const backgroundCards: BackgroundCard[] = useMemo(
     () =>
-      backgroundItems.slice(0, 6).map((item) => {
-        const node = nodeByLabel.get(normalizeText(item).toLowerCase());
-        const stageLabel = normalizeText(node?.stageLabel);
-        const whyText =
+      backgroundItems.slice(0, 6).map((item: string) => {
+        const node: GraphNode | undefined = nodeByLabel.get(normalizeText(item).toLowerCase());
+        const stageLabel: string = normalizeText(node?.stageLabel);
+        const whyText: string =
           normalizeText(node?.why) ||
           normalizeText(node?.summary) ||
           (stageLabel
@@ -182,14 +329,14 @@ const BackgroundKnowledgePanel = ({
     );
   }
 
-  const flattenedPathSteps = learningSections.flatMap((section) =>
-    section.items.map((step, index) => ({
+  const flattenedPathSteps: PathStep[] = learningSections.flatMap((section: LearningSection) =>
+    section.items.map((step: PathStep, index: number) => ({
       ...step,
       groupTitle: section.title,
       stepNumber: step.step || index + 1,
     })),
   );
-  const visiblePathSteps = flattenedPathSteps.slice(0, visiblePathCount);
+  const visiblePathSteps: PathStep[] = flattenedPathSteps.slice(0, visiblePathCount);
 
   return (
     <div className="theme-panel-muted flex h-full flex-col overflow-hidden">
@@ -204,7 +351,7 @@ const BackgroundKnowledgePanel = ({
               <input
                 type="checkbox"
                 checked={crossPaperEnabled}
-                onChange={(e) => setCrossPaperEnabled(e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCrossPaperEnabled(e.target.checked)}
                 className="cursor-pointer"
               />
               包含论文库关联概念
@@ -223,7 +370,7 @@ const BackgroundKnowledgePanel = ({
         <div className="mt-4 flex flex-wrap items-start gap-2">
           <span className="theme-text-secondary pt-1 text-xs font-medium">本次补课依据</span>
           <div className="flex flex-1 flex-wrap gap-2">
-            {readerProfileSummary.map((item) => (
+            {readerProfileSummary.map((item: string) => (
               <span key={item} className="workbench-kind-chip">
                 {item}
               </span>
@@ -237,7 +384,7 @@ const BackgroundKnowledgePanel = ({
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {learningModes.map((mode) => (
+          {learningModes.map((mode: { id: LearningMode; label: string }) => (
             <button
               key={mode.id}
               type="button"
@@ -265,7 +412,7 @@ const BackgroundKnowledgePanel = ({
                     kind: 'background-overview',
                     title: '背景补课总览',
                     summary: overviewSummary,
-                    content: [overviewSummary, ...overviewPoints.map((item) => `- ${item}`)].join('\n\n'),
+                    content: [overviewSummary, ...overviewPoints.map((item: string) => `- ${item}`)].join('\n\n'),
                     tags: ['background', selectedKnowledgeLevel],
                   })
                 }
@@ -280,7 +427,7 @@ const BackgroundKnowledgePanel = ({
         {activeMode === 'why' && (
           <>
             <div className="grid gap-4 md:grid-cols-3">
-              {backgroundCards.map((item) => (
+              {backgroundCards.map((item: BackgroundCard) => (
                 <div key={item.title} className="theme-card rounded-2xl p-4 text-sm theme-text-secondary">
                   <div className="theme-text-primary mb-2 text-sm font-semibold">{item.title}</div>
                   {item.stageLabel && (
@@ -310,10 +457,10 @@ const BackgroundKnowledgePanel = ({
                   graphData,
                   height: 280,
                   width: containerWidth,
-                  nodeLabel: (node) => `${node.label}\n${node.stageLabel}\n${node.provenanceLabel}\n${node.confidenceReason || node.summary || node.why || ''}`,
-                  linkLabel: (link) => `${link.label}\n${link.provenanceLabel}\n${link.confidenceReason || ''}`,
-                  onNodeClick: (node) => setSelectedGraphItem({ kind: 'node', ...node }),
-                  onLinkClick: (link) => setSelectedGraphItem({ kind: 'edge', ...link }),
+                  nodeLabel: (node: GraphNode) => `${node.label}\n${node.stageLabel}\n${node.provenanceLabel}\n${node.confidenceReason || node.summary || node.why || ''}`,
+                  linkLabel: (link: GraphLink) => `${link.label}\n${link.provenanceLabel}\n${link.confidenceReason || ''}`,
+                  onNodeClick: (node: GraphNode) => setSelectedGraphItem({ kind: 'node', ...node }),
+                  onLinkClick: (link: GraphLink) => setSelectedGraphItem({ kind: 'edge', ...link }),
                   nodeRelSize: 6,
                   linkColor: () => '#64748b',
                   linkDirectionalArrowLength: 3,
@@ -328,10 +475,10 @@ const BackgroundKnowledgePanel = ({
                     <span className="theme-text-primary font-semibold">
                       {selectedGraphItem.kind === 'node'
                         ? selectedGraphItem.label
-                        : `${selectedGraphItem.source?.label || selectedGraphItem.source} → ${selectedGraphItem.target?.label || selectedGraphItem.target}`}
+                        : `${(selectedGraphItem.source as GraphNode)?.label || selectedGraphItem.source} → ${(selectedGraphItem.target as GraphNode)?.label || selectedGraphItem.target}`}
                     </span>
                     <span className="workbench-kind-chip">
-                      {selectedGraphItem.provenanceLabel || getProvenanceMeta(selectedGraphItem.provenanceStatus).label}
+                      {selectedGraphItem.provenanceLabel || getProvenanceMeta(selectedGraphItem.provenanceStatus || 'unknown').label}
                     </span>
                     {typeof selectedGraphItem.confidence === 'number' && (
                       <span className="workbench-kind-chip">置信度 {formatPercent(selectedGraphItem.confidence)}</span>
@@ -351,29 +498,29 @@ const BackgroundKnowledgePanel = ({
 
         {activeMode === 'path' && (
           <>
-            {visiblePathSteps.map((step, index) => {
-              const stepKeyPoints = uniqueStrings([
-                step.groupTitle,
+            {visiblePathSteps.map((step: PathStep, index: number) => {
+              const stepKeyPoints: string[] = uniqueStrings([
+                step.groupTitle || '',
                 step.stageLabel && step.stageLabel !== step.groupTitle ? step.stageLabel : '',
                 Array.isArray(step.sourceIds) && step.sourceIds.length > 0 ? `依据：${step.sourceIds.join('、')}` : '',
                 ...(Array.isArray(step.prerequisiteEdges)
-                  ? step.prerequisiteEdges.slice(0, 2).map((edge) => {
-                    const supportText = edge.sourceIds?.length
+                  ? step.prerequisiteEdges.slice(0, 2).map((edge: PrerequisiteEdge) => {
+                    const supportText: string = edge.sourceIds?.length
                       ? `依据：${edge.sourceIds.join('、')}`
                       : edge.confidenceReason || '基于当前学习路径推断';
-                    const provenanceLabel = getProvenanceMeta(edge.provenanceStatus).label;
+                    const provenanceLabel: string = getProvenanceMeta(edge.provenanceStatus || 'unknown').label;
                     return `后续会用到：${edge.target}，${provenanceLabel}，${supportText}`;
                   })
                   : []),
               ]);
 
-              const detailBlocks = uniqueStrings([
+              const detailBlocks: string = uniqueStrings([
                 step.goal || '',
                 Array.isArray(step.sourceIds) && step.sourceIds.length > 0
                   ? `### 相关依据\n- ${step.sourceIds.join('\n- ')}`
                   : '',
                 Array.isArray(step.prerequisiteEdges) && step.prerequisiteEdges.length > 0
-                  ? `### 学完后继续看\n- ${step.prerequisiteEdges.slice(0, 3).map((edge) => edge.target).join('\n- ')}`
+                  ? `### 学完后继续看\n- ${step.prerequisiteEdges.slice(0, 3).map((edge: PrerequisiteEdge) => edge.target).join('\n- ')}`
                   : '',
               ]).join('\n\n');
 
@@ -393,7 +540,7 @@ const BackgroundKnowledgePanel = ({
               <div className="flex justify-center">
                 <button
                   type="button"
-                  onClick={() => setVisiblePathCount((count) => Math.min(count + 2, flattenedPathSteps.length))}
+                  onClick={() => setVisiblePathCount((count: number) => Math.min(count + 2, flattenedPathSteps.length))}
                   className="workflow-next-action workflow-next-action-primary"
                 >
                   再展开 2 步补课路径
@@ -438,7 +585,7 @@ const BackgroundKnowledgePanel = ({
                     `当前论文支持 ${provenanceSummary.nodes.currentPaperSupported}/${provenanceSummary.nodes.total}`,
                     provenanceSummary.nodes.externalSupported > 0 ? `外部证据支持 ${provenanceSummary.nodes.externalSupported} 项` : '',
                     `模型推断 ${provenanceSummary.nodes.modelInference} 项`,
-                  ].filter(Boolean)}
+                  ].filter(Boolean) as string[]}
                 />
                 <InsightCard
                   title="前置关系证据覆盖"
@@ -447,7 +594,7 @@ const BackgroundKnowledgePanel = ({
                     `当前论文支持 ${provenanceSummary.edges.currentPaperSupported}/${provenanceSummary.edges.total}`,
                     provenanceSummary.edges.externalSupported > 0 ? `外部证据支持 ${provenanceSummary.edges.externalSupported} 条` : '',
                     `模型推断 ${provenanceSummary.edges.modelInference} 条`,
-                  ].filter(Boolean)}
+                  ].filter(Boolean) as string[]}
                 />
               </div>
             )}
@@ -455,8 +602,8 @@ const BackgroundKnowledgePanel = ({
             <div className="theme-card-soft theme-text-secondary rounded-2xl p-4 text-sm leading-6">
               {data?.externalKnowledge?.enabled
                 ? data.externalKnowledge.message || '已启用受控外部学术来源。'
-                : (provenanceSummary?.nodes?.externalSupported > 0 || provenanceSummary?.edges?.externalSupported > 0)
-                  ? `已通过外部学术来源补充 ${provenanceSummary.nodes.externalSupported + provenanceSummary.edges.externalSupported} 项证据。`
+                : (provenanceSummary?.nodes?.externalSupported ?? 0) > 0 || (provenanceSummary?.edges?.externalSupported ?? 0) > 0
+                  ? `已通过外部学术来源补充 ${(provenanceSummary?.nodes?.externalSupported ?? 0) + (provenanceSummary?.edges?.externalSupported ?? 0)} 项证据。`
                   : '当前未使用外部学术来源；无当前论文依据的节点和关系均标记为模型推断。'}
             </div>
 
@@ -468,15 +615,15 @@ const BackgroundKnowledgePanel = ({
               <div className="theme-card rounded-2xl p-5">
                 <h3 className="theme-text-primary mb-3 text-sm font-bold">RAG 依据片段</h3>
                 <div className="space-y-3">
-                  {ragSources.map((source) => (
+                  {ragSources.map((source: Record<string, unknown>) => (
                     <InsightCard
-                      key={source.sourceId}
-                      title={source.sourceId}
-                      summary={source.text || '暂无片段内容'}
-                      content={source.text || ''}
+                      key={source.sourceId as string}
+                      title={source.sourceId as string}
+                      summary={(source.text as string) || '暂无片段内容'}
+                      content={(source.text as string) || ''}
                       detailsTitle="展开依据片段"
                       footer={
-                        onCaptureArtifact || source.canJumpToSource ? (
+                        onCaptureArtifact || (source.canJumpToSource as boolean) ? (
                           <div className="flex flex-wrap gap-2">
                             {onCaptureArtifact && (
                               <button
@@ -485,8 +632,8 @@ const BackgroundKnowledgePanel = ({
                                   onCaptureArtifact({
                                     kind: 'background-evidence',
                                     title: `背景依据 ${source.sourceId}`,
-                                    summary: source.text || '暂无片段内容',
-                                    content: source.text || '',
+                                    summary: (source.text as string) || '暂无片段内容',
+                                    content: (source.text as string) || '',
                                     tags: ['background', 'evidence'],
                                   })
                                 }

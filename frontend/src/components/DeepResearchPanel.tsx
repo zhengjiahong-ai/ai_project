@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, FileSearch, Link2, Loader2, RefreshCw, Search, Square, ArrowRight } from 'lucide-react';
 
-import InsightCard from './InsightCard.jsx';
+import InsightCard from './InsightCard';
 import MarkdownContent from './MarkdownContent';
 import SourceList from './SourceCitation.jsx';
 import {
@@ -13,12 +13,182 @@ import {
   normalizeResearchTask,
 } from './deepResearchPanelModel.ts';
 
-const ErrorBanner = ({ message, tone = 'danger' }) => {
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface PlanItem {
+  question: string;
+  status?: string;
+  kind?: string;
+  sourceQuestion?: string;
+  sourceMissingAspects?: string[];
+}
+
+interface ResearchTask {
+  taskId: string;
+  traceId: string;
+  status: string;
+  stage: string;
+  progress: number;
+  question?: string;
+  planItems: PlanItem[];
+  findings: Finding[];
+  conflicts: Conflict[];
+  report?: string;
+  error?: string;
+  reviewRisks: Risk[];
+  externalSearchConfig?: ExternalSearchConfig;
+}
+
+interface ExternalSearchConfig {
+  allowExternalSearch: boolean;
+  provider: string;
+  status: string;
+  degradation?: string;
+  budget: {
+    callsUsed: number;
+    callLimit: number;
+    evidenceUsed: number;
+    evidenceLimit: number;
+  };
+}
+
+interface Finding {
+  id: string;
+  subQuestion: string;
+  summary: string;
+  verdict: string;
+  judgeScore: number | null;
+  sources: ResearchSource[];
+  missingAspects: string[];
+  retryReason?: string;
+  coverage?: FindingCoverage;
+}
+
+interface ResearchSource {
+  sourceId: string;
+  locationLabel?: string;
+  preview?: string;
+  canJumpToSource?: boolean;
+}
+
+interface FindingCoverage {
+  score: number | null;
+  evidenceCount: number | null;
+  sourceDiversityScore: number | null;
+  sourceTrustWeightedScore: number | null;
+  crossSourceAgreement: number | null;
+  sourceTypes?: string[];
+}
+
+interface Conflict {
+  id: string;
+  claim?: string;
+  topic?: string;
+  summary: string;
+  conflictType: string;
+  severity: string;
+  sources: ResearchSource[];
+}
+
+interface Risk {
+  riskId: string;
+  label: string;
+  detail: string;
+}
+
+interface BriefPreview {
+  brief: string;
+  assumptions: string[];
+  clarifyingQuestions: string[];
+  suggestedSubQuestions: string[];
+  needsClarification: boolean;
+  source: string;
+}
+
+interface TraceSummary {
+  traceId: string;
+  status: string;
+  durationMs?: number;
+  counters?: Record<string, number>;
+  requestMeta?: Record<string, unknown>;
+  responseMeta?: Record<string, unknown>;
+  rawCounters?: Record<string, unknown>;
+  error?: string;
+  steps: TraceStep[];
+}
+
+interface TraceStep {
+  name: string;
+  status: string;
+  durationMs: number;
+  inputSize?: number | string;
+  outputSize?: number | string;
+  meta?: Record<string, unknown>;
+  error?: string;
+}
+
+interface TaskSnapshot {
+  summary: string;
+  keyPoints: string[];
+}
+
+interface ArtifactPayload {
+  kind: string;
+  title: string;
+  summary: string;
+  content: string;
+  tags?: string[];
+}
+
+interface DeepResearchPanelProps {
+  pdfFileName?: string;
+  paperStructure?: Record<string, unknown> | null;
+  questionDraft?: string;
+  task?: Record<string, unknown> | null;
+  errorMessage?: string;
+  pollError?: string;
+  briefPreview?: BriefPreview | null;
+  briefConstraintsDraft?: string;
+  briefError?: string;
+  traceSummary?: TraceSummary | null;
+  traceError?: string;
+  isTraceLoading?: boolean;
+  isTracePanelEnabled?: boolean;
+  isLoading?: boolean;
+  isCreating?: boolean;
+  isCancelling?: boolean;
+  isPreviewingBrief?: boolean;
+  allowExternalSearch?: boolean;
+  allowWebSearch?: boolean;
+  onQuestionChange?: (value: string) => void;
+  onStart?: () => void;
+  onPreviewBrief?: () => void;
+  onBriefConstraintsChange?: (value: string) => void;
+  onAcceptBrief?: () => void;
+  onAllowExternalSearchChange?: (value: boolean) => void;
+  onAllowWebSearchChange?: (value: boolean) => void;
+  onRefresh?: () => void;
+  onCancel?: () => void;
+  onReviewPlan?: (payload: { subQuestions: string[]; reviewNotes: string }) => void;
+  onReviewFinal?: (payload: { reviewNotes: string; riskReviews: { riskId: string; reviewStatus: string }[] }) => void;
+  onRefreshTrace?: () => void;
+  onCaptureArtifact?: (payload: ArtifactPayload) => void;
+  onJumpToSource?: (source: Record<string, unknown>) => void;
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────
+
+interface ErrorBannerProps {
+  message?: string;
+  tone?: 'danger' | 'warning';
+}
+
+const ErrorBanner: React.FC<ErrorBannerProps> = ({ message, tone = 'danger' }) => {
   if (!message) {
     return null;
   }
 
-  const toneClass =
+  const toneClass: string =
     tone === 'warning'
       ? 'border-amber-400/25 bg-amber-500/10 text-amber-500'
       : 'border-rose-400/25 bg-rose-500/10 text-rose-400';
@@ -33,42 +203,126 @@ const ErrorBanner = ({ message, tone = 'danger' }) => {
   );
 };
 
-const formatTraceMeta = (value) => {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length === 0) {
+const formatTraceMeta = (value: unknown): string => {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value as Record<string, unknown>).length === 0) {
     return '无';
   }
-  return Object.entries(value)
-    .map(([key, item]) => `${key}: ${typeof item === 'object' ? JSON.stringify(item) : item}`)
+  return Object.entries(value as Record<string, unknown>)
+    .map(([key, item]: [string, unknown]) => `${key}: ${typeof item === 'object' ? JSON.stringify(item) : item}`)
     .join(' · ');
 };
 
-const ResearchPlanReviewForm = ({ task, onReviewPlan }) => {
-  const [planDraft, setPlanDraft] = useState(() => (task.planItems || []).map((item) => item.question).join('\n'));
-  const [reviewNotes, setReviewNotes] = useState('');
+interface ResearchPlanReviewFormProps {
+  task: ResearchTask;
+  onReviewPlan?: (payload: { subQuestions: string[]; reviewNotes: string }) => void;
+}
+
+const ResearchPlanReviewForm: React.FC<ResearchPlanReviewFormProps> = ({ task, onReviewPlan }) => {
+  const [planDraft, setPlanDraft] = useState<string>(() => (task.planItems || []).map((item: PlanItem) => item.question).join('\n'));
+  const [reviewNotes, setReviewNotes] = useState<string>('');
   const extConfig = task?.externalSearchConfig;
-  return <div className="mt-4 space-y-3 border-t theme-border pt-4"><div className="theme-text-primary text-sm font-semibold">人工确认后才会开始检索</div>
-    {extConfig?.allowExternalSearch && (
-      <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-3 text-xs leading-6 text-indigo-400">
-        <div className="font-semibold">外部学术检索已授权</div>
-        <div className="mt-1 opacity-80">
-          Provider: {extConfig.provider || '未知'}
-          {' · '}Budget: 调用 {extConfig.budget?.callsUsed || 0}/{extConfig.budget?.callLimit || 0} 次
-          {' · '}证据 {extConfig.budget?.evidenceUsed || 0}/{extConfig.budget?.evidenceLimit || 0} 条
+  return (
+    <div className="mt-4 space-y-3 border-t theme-border pt-4">
+      <div className="theme-text-primary text-sm font-semibold">人工确认后才会开始检索</div>
+      {extConfig?.allowExternalSearch && (
+        <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-3 text-xs leading-6 text-indigo-400">
+          <div className="font-semibold">外部学术检索已授权</div>
+          <div className="mt-1 opacity-80">
+            Provider: {extConfig.provider || '未知'}
+            {' · '}Budget: 调用 {extConfig.budget?.callsUsed || 0}/{extConfig.budget?.callLimit || 0} 次
+            {' · '}证据 {extConfig.budget?.evidenceUsed || 0}/{extConfig.budget?.evidenceLimit || 0} 条
+          </div>
+          {extConfig.degradation && <div className="mt-1 text-amber-400">⚠ {extConfig.degradation}</div>}
+          <div className="mt-1 opacity-60">仅访问白名单学术来源，外部证据不自动覆盖内部判断。</div>
         </div>
-        {extConfig.degradation && <div className="mt-1 text-amber-400">⚠ {extConfig.degradation}</div>}
-        <div className="mt-1 opacity-60">仅访问白名单学术来源，外部证据不自动覆盖内部判断。</div>
+      )}
+      <textarea
+        value={planDraft}
+        onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setPlanDraft(event.target.value)}
+        className="theme-input min-h-36 w-full rounded-xl p-3 text-sm"
+        aria-label="研究子问题，每行一个"
+      />
+      <textarea
+        value={reviewNotes}
+        onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setReviewNotes(event.target.value)}
+        className="theme-input min-h-20 w-full rounded-xl p-3 text-sm"
+        placeholder="计划审查备注（可选）"
+      />
+      <button
+        type="button"
+        className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold"
+        onClick={() => onReviewPlan?.({ subQuestions: planDraft.split(/\r?\n/).map((item: string) => item.trim()).filter(Boolean), reviewNotes })}
+      >
+        确认计划并执行
+      </button>
+    </div>
+  );
+};
+
+interface ResearchFinalReviewFormProps {
+  task: ResearchTask;
+  onReviewFinal?: (payload: { reviewNotes: string; riskReviews: { riskId: string; reviewStatus: string }[] }) => void;
+}
+
+const ResearchFinalReviewForm: React.FC<ResearchFinalReviewFormProps> = ({ task, onReviewFinal }) => {
+  const [reviewNotes, setReviewNotes] = useState<string>('');
+  const [riskReviews, setRiskReviews] = useState<Record<string, string>>(() =>
+    Object.fromEntries((task.reviewRisks || []).map((risk: Risk) => [risk.riskId, 'reviewed'])),
+  );
+  return (
+    <div className="theme-card rounded-2xl p-5">
+      <div className="theme-text-primary mb-3 text-sm font-bold">终稿人工审查</div>
+      <div className="space-y-3">
+        {task.reviewRisks.map((risk: Risk) => (
+          <div key={risk.riskId} className="theme-card-soft rounded-xl p-3">
+            <div className="theme-text-primary text-sm font-semibold">{risk.label}</div>
+            <div className="theme-text-secondary mt-1 text-xs leading-6">{risk.detail}</div>
+            <select
+              value={riskReviews[risk.riskId] || 'reviewed'}
+              onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
+                setRiskReviews((prev: Record<string, string>) => ({ ...prev, [risk.riskId]: event.target.value }))
+              }
+              className="theme-input mt-2 rounded-lg px-2 py-1 text-xs"
+            >
+              <option value="reviewed">已核查</option>
+              <option value="needs_follow_up">仍需跟进</option>
+            </select>
+          </div>
+        ))}
+        <textarea
+          value={reviewNotes}
+          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setReviewNotes(event.target.value)}
+          className="theme-input min-h-20 w-full rounded-xl p-3 text-sm"
+          placeholder="终稿审查备注（可选）"
+        />
+        <button
+          type="button"
+          className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold"
+          onClick={() =>
+            onReviewFinal?.({
+              reviewNotes,
+              riskReviews: task.reviewRisks.map((risk: Risk) => ({
+                riskId: risk.riskId,
+                reviewStatus: riskReviews[risk.riskId] || 'reviewed',
+              })),
+            })
+          }
+        >
+          确认终稿
+        </button>
       </div>
-    )}
-    <textarea value={planDraft} onChange={(event) => setPlanDraft(event.target.value)} className="theme-input min-h-36 w-full rounded-xl p-3 text-sm" aria-label="研究子问题，每行一个" /><textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="theme-input min-h-20 w-full rounded-xl p-3 text-sm" placeholder="计划审查备注（可选）" /><button type="button" className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => onReviewPlan?.({ subQuestions: planDraft.split(/\r?\n/).map((item) => item.trim()).filter(Boolean), reviewNotes })}>确认计划并执行</button></div>;
+    </div>
+  );
 };
 
-const ResearchFinalReviewForm = ({ task, onReviewFinal }) => {
-  const [reviewNotes, setReviewNotes] = useState('');
-  const [riskReviews, setRiskReviews] = useState(() => Object.fromEntries((task.reviewRisks || []).map((risk) => [risk.riskId, 'reviewed'])));
-  return <div className="theme-card rounded-2xl p-5"><div className="theme-text-primary mb-3 text-sm font-bold">终稿人工审查</div><div className="space-y-3">{task.reviewRisks.map((risk) => <div key={risk.riskId} className="theme-card-soft rounded-xl p-3"><div className="theme-text-primary text-sm font-semibold">{risk.label}</div><div className="theme-text-secondary mt-1 text-xs leading-6">{risk.detail}</div><select value={riskReviews[risk.riskId] || 'reviewed'} onChange={(event) => setRiskReviews((prev) => ({ ...prev, [risk.riskId]: event.target.value }))} className="theme-input mt-2 rounded-lg px-2 py-1 text-xs"><option value="reviewed">已核查</option><option value="needs_follow_up">仍需跟进</option></select></div>)}<textarea value={reviewNotes} onChange={(event) => setReviewNotes(event.target.value)} className="theme-input min-h-20 w-full rounded-xl p-3 text-sm" placeholder="终稿审查备注（可选）" /><button type="button" className="theme-button-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => onReviewFinal?.({ reviewNotes, riskReviews: task.reviewRisks.map((risk) => ({ riskId: risk.riskId, reviewStatus: riskReviews[risk.riskId] || 'reviewed' })) })}>确认终稿</button></div></div>;
-};
+// ── Constants ──────────────────────────────────────────────────────────────
 
-const TRACE_COUNTER_ITEMS = [
+interface TraceCounterItem {
+  key: string;
+  label: string;
+}
+
+const TRACE_COUNTER_ITEMS: TraceCounterItem[] = [
   { key: 'llmCalls', label: 'LLM calls' },
   { key: 'retrievalCalls', label: 'Retrieval calls' },
   { key: 'retryCount', label: 'Retry' },
@@ -83,14 +337,14 @@ const TRACE_COUNTER_ITEMS = [
   { key: 'externalSearchBudgetBlocks', label: 'External blocks' },
 ];
 
-const formatCounterValue = (value) => Number(value || 0).toLocaleString('en-US');
+const formatCounterValue = (value: unknown): string => Number(value || 0).toLocaleString('en-US');
 
-const formatFindingCoverage = (coverage) => {
+const formatFindingCoverage = (coverage: FindingCoverage | null | undefined): string => {
   if (!coverage || coverage.score === null) {
     return '';
   }
-  const percent = Math.round(coverage.score * 100);
-  const parts = [`覆盖 ${percent}%`];
+  const percent: number = Math.round(coverage.score * 100);
+  const parts: string[] = [`覆盖 ${percent}%`];
   if (coverage.evidenceCount !== null) {
     parts.push(`证据 ${coverage.evidenceCount} 条`);
   }
@@ -103,23 +357,23 @@ const formatFindingCoverage = (coverage) => {
   return parts.join(' · ');
 };
 
-const formatSourceAnalysis = (coverage) => {
+const formatSourceAnalysis = (coverage: FindingCoverage | null | undefined): string => {
   if (!coverage || typeof coverage !== 'object') return '';
-  const lines = [];
+  const lines: string[] = [];
   if (coverage.sourceTypes && coverage.sourceTypes.length > 0) {
     lines.push(`**来源类型**: ${coverage.sourceTypes.join(', ')}`);
   }
   if (coverage.sourceDiversityScore !== null) {
-    const pct = Math.round(coverage.sourceDiversityScore * 100);
+    const pct: number = Math.round(coverage.sourceDiversityScore * 100);
     lines.push(`**来源多样性 (Shannon)**: ${pct}%${pct >= 60 ? ' ✓ 多源覆盖' : pct >= 30 ? ' △ 来源偏少' : ' ✗ 来源单一'}`);
   }
   if (coverage.sourceTrustWeightedScore !== null) {
-    const pct = Math.round(coverage.sourceTrustWeightedScore * 100);
-    const label = pct >= 80 ? '高可信' : pct >= 55 ? '中等可信' : '可信度偏低';
+    const pct: number = Math.round(coverage.sourceTrustWeightedScore * 100);
+    const label: string = pct >= 80 ? '高可信' : pct >= 55 ? '中等可信' : '可信度偏低';
     lines.push(`**可信度加权分**: ${pct}% (${label})`);
   }
   if (coverage.crossSourceAgreement !== null) {
-    const pct = Math.round(coverage.crossSourceAgreement * 100);
+    const pct: number = Math.round(coverage.crossSourceAgreement * 100);
     lines.push(`**跨源一致性**: ${pct}%${pct >= 70 ? ' ✓ 多源一致' : pct >= 40 ? ' △ 部分一致' : ' ✗ 一致性低'}`);
   } else {
     lines.push('**跨源一致性**: 无法评估（来源类型不足）');
@@ -127,40 +381,28 @@ const formatSourceAnalysis = (coverage) => {
   return lines.join('\n');
 };
 
-const getPlanItemStatusLabel = (status) => {
-  if (status === 'running') {
-    return '执行中';
-  }
-  if (status === 'done') {
-    return '已完成';
-  }
-  if (status === 'pending') {
-    return '待执行';
-  }
+const getPlanItemStatusLabel = (status: string): string => {
+  if (status === 'running') return '执行中';
+  if (status === 'done') return '已完成';
+  if (status === 'pending') return '待执行';
   return '';
 };
 
-const getConflictTypeLabel = (type) => {
-  if (type === 'numeric_mismatch') {
-    return '数值不一致';
-  }
-  if (type === 'opposing_conclusion') {
-    return '结论相反';
-  }
+const getConflictTypeLabel = (type: string): string => {
+  if (type === 'numeric_mismatch') return '数值不一致';
+  if (type === 'opposing_conclusion') return '结论相反';
   return '待核查冲突';
 };
 
-const getConflictSeverityClass = (severity) => {
-  if (severity === 'high') {
-    return 'border-rose-400/25 bg-rose-500/10 text-rose-400';
-  }
-  if (severity === 'low') {
-    return 'border-slate-400/25 bg-slate-500/10 text-slate-400';
-  }
+const getConflictSeverityClass = (severity: string): string => {
+  if (severity === 'high') return 'border-rose-400/25 bg-rose-500/10 text-rose-400';
+  if (severity === 'low') return 'border-slate-400/25 bg-slate-500/10 text-slate-400';
   return 'border-amber-400/25 bg-amber-500/10 text-amber-500';
 };
 
-const DeepResearchPanel = ({
+// ── Main component ─────────────────────────────────────────────────────────
+
+const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
   pdfFileName = '',
   paperStructure = null,
   questionDraft = '',
@@ -195,28 +437,27 @@ const DeepResearchPanel = ({
   onCaptureArtifact,
   onJumpToSource,
 }) => {
-  const normalizedTask = normalizeResearchTask(task);
-  const [isPlanExpanded, setIsPlanExpanded] = useState(false);
-  const [isReportExpanded, setIsReportExpanded] = useState(false);
-  const [isTraceExpanded, setIsTraceExpanded] = useState(false);
+  const normalizedTask: ResearchTask = normalizeResearchTask(task) as ResearchTask;
+  const [isPlanExpanded, setIsPlanExpanded] = useState<boolean>(false);
+  const [isReportExpanded, setIsReportExpanded] = useState<boolean>(false);
+  const [isTraceExpanded, setIsTraceExpanded] = useState<boolean>(false);
   const statusMeta = getResearchStatusMeta(normalizedTask?.status);
   const stageMeta = getResearchStageMeta(normalizedTask?.stage);
-  const paperHint = buildResearchContextHint(paperStructure);
-  const progressPercent = Math.round((normalizedTask?.progress || 0) * 100);
-  const panelBusy = isLoading || isCreating || isPreviewingBrief || isCancelling;
-  const hasActiveTask = Boolean(normalizedTask?.taskId);
-  const isTerminalTask = hasActiveTask && TERMINAL_RESEARCH_STATUSES.includes(normalizedTask.status);
-  const isRunningTask = hasActiveTask && !isTerminalTask;
-  const hasPaper = Boolean(pdfFileName);
-  const canStart = hasPaper && !isCreating && !isCancelling && !isRunningTask && Boolean(questionDraft.trim());
-  const canPreviewBrief = canStart && !isPreviewingBrief;
-  const canAcceptBrief = canStart && Boolean(briefPreview);
-  const canRefresh = hasActiveTask && !isCreating && !isCancelling;
-  const canCancel = isRunningTask && !isCreating && !isCancelling;
-  const latestFinding = normalizedTask?.findings?.[normalizedTask.findings.length - 1] || null;
+  const paperHint: string = buildResearchContextHint(paperStructure);
+  const progressPercent: number = Math.round((normalizedTask?.progress || 0) * 100);
+  const panelBusy: boolean = isLoading || isCreating || isPreviewingBrief || isCancelling;
+  const hasActiveTask: boolean = Boolean(normalizedTask?.taskId);
+  const isTerminalTask: boolean = hasActiveTask && TERMINAL_RESEARCH_STATUSES.includes(normalizedTask.status);
+  const isRunningTask: boolean = hasActiveTask && !isTerminalTask;
+  const hasPaper: boolean = Boolean(pdfFileName);
+  const canStart: boolean = hasPaper && !isCreating && !isCancelling && !isRunningTask && Boolean(questionDraft.trim());
+  const canPreviewBrief: boolean = canStart && !isPreviewingBrief;
+  const canAcceptBrief: boolean = canStart && Boolean(briefPreview);
+  const canRefresh: boolean = hasActiveTask && !isCreating && !isCancelling;
+  const canCancel: boolean = isRunningTask && !isCreating && !isCancelling;
+  const latestFinding: Finding | null = normalizedTask?.findings?.[normalizedTask.findings.length - 1] || null;
 
-
-  const taskSnapshot = useMemo(() => {
+  const taskSnapshot: TaskSnapshot | null = useMemo(() => {
     if (!hasActiveTask) {
       return null;
     }
@@ -231,7 +472,7 @@ const DeepResearchPanel = ({
     };
   }, [hasActiveTask, latestFinding?.summary, normalizedTask?.findings?.length, normalizedTask?.question, progressPercent, stageMeta.label]);
 
-  const topActions = [
+  const topActions: string[] = [
     '先给一页 brief，再决定是否启动任务',
     '可在任务运行中刷新状态或取消',
     '结果完成后可回到批判阅读核对结论',
@@ -298,7 +539,7 @@ const DeepResearchPanel = ({
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            {topActions.map((item) => (
+            {topActions.map((item: string) => (
               <span key={item} className="source-link-chip inline-flex items-center gap-1">
                 <ArrowRight size={12} />
                 {item}
@@ -314,7 +555,7 @@ const DeepResearchPanel = ({
           <div className="theme-text-primary mb-3 text-sm font-bold">研究问题</div>
           <textarea
             value={questionDraft}
-            onChange={(event) => onQuestionChange?.(event.target.value)}
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => onQuestionChange?.(event.target.value)}
             rows={4}
             disabled={!hasPaper || isCreating || isCancelling || isRunningTask}
             className="theme-input w-full rounded-xl p-3 text-sm outline-none transition"
@@ -447,7 +688,7 @@ const DeepResearchPanel = ({
               <div className="mt-4">
                 <div className="theme-text-primary text-xs font-bold">默认假设</div>
                 <div className="mt-2 space-y-2">
-                  {briefPreview.assumptions.map((item, index) => (
+                  {briefPreview.assumptions.map((item: string, index: number) => (
                     <div key={`brief-assumption-${index}`} className="theme-card-soft rounded-xl px-4 py-2 text-sm leading-6 theme-text-secondary">
                       {item}
                     </div>
@@ -460,7 +701,7 @@ const DeepResearchPanel = ({
               <div className="mt-4">
                 <div className="theme-text-primary text-xs font-bold">澄清问题</div>
                 <div className="mt-2 space-y-2">
-                  {briefPreview.clarifyingQuestions.map((item, index) => (
+                  {briefPreview.clarifyingQuestions.map((item: string, index: number) => (
                     <div key={`brief-question-${index}`} className="theme-card-soft rounded-xl px-4 py-2 text-sm leading-6 theme-text-secondary">
                       {item}
                     </div>
@@ -473,7 +714,7 @@ const DeepResearchPanel = ({
               <div className="mt-4">
                 <div className="theme-text-primary text-xs font-bold">建议子问题</div>
                 <div className="mt-2 space-y-2">
-                  {briefPreview.suggestedSubQuestions.map((item, index) => (
+                  {briefPreview.suggestedSubQuestions.map((item: string, index: number) => (
                     <div key={`brief-sub-question-${index}`} className="theme-card-soft rounded-xl px-4 py-2 text-sm leading-6 theme-text-secondary">
                       {index + 1}. {item}
                     </div>
@@ -486,7 +727,7 @@ const DeepResearchPanel = ({
               <div className="theme-text-primary mb-2 text-xs font-bold">补充约束</div>
               <textarea
                 value={briefConstraintsDraft}
-                onChange={(event) => onBriefConstraintsChange?.(event.target.value)}
+                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => onBriefConstraintsChange?.(event.target.value)}
                 rows={3}
                 disabled={!hasPaper || isCreating || isCancelling || isRunningTask}
                 className="theme-input w-full rounded-xl p-3 text-sm outline-none transition"
@@ -596,7 +837,7 @@ const DeepResearchPanel = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsTraceExpanded((current) => !current)}
+                      onClick={() => setIsTraceExpanded((current: boolean) => !current)}
                       disabled={!traceSummary}
                       className="theme-button-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -620,7 +861,7 @@ const DeepResearchPanel = ({
                       <div className="theme-card-soft rounded-xl px-4 py-3">
                         <div className="theme-text-muted">预算计数器</div>
                         <div className="mt-2 grid grid-cols-2 gap-2">
-                          {TRACE_COUNTER_ITEMS.map((item) => (
+                          {TRACE_COUNTER_ITEMS.map((item: TraceCounterItem) => (
                             <div key={item.key} className="min-w-0">
                               <div className="theme-text-muted truncate">{item.label}</div>
                               <div className="theme-text-primary font-semibold">{formatCounterValue(traceSummary.counters?.[item.key])}</div>
@@ -649,7 +890,7 @@ const DeepResearchPanel = ({
 
                         <div className="space-y-2">
                           {traceSummary.steps.length > 0 ? (
-                            traceSummary.steps.map((step, index) => (
+                            traceSummary.steps.map((step: TraceStep, index: number) => (
                               <div key={`${traceSummary.traceId}-step-${index}`} className="theme-card-soft rounded-xl px-4 py-3 text-xs">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <div className="theme-text-primary font-semibold">
@@ -718,7 +959,7 @@ const DeepResearchPanel = ({
                 <div className="theme-text-primary text-sm font-bold">研究计划</div>
                 <button
                   type="button"
-                  onClick={() => setIsPlanExpanded((current) => !current)}
+                  onClick={() => setIsPlanExpanded((current: boolean) => !current)}
                   className="theme-button-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
                 >
                   {isPlanExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -728,39 +969,39 @@ const DeepResearchPanel = ({
               {normalizedTask.planItems.length > 0 ? (
                 isPlanExpanded ? (
                   <div className="space-y-3">
-                    {normalizedTask.planItems.map((item, index) => {
-                      const statusLabel = getPlanItemStatusLabel(item.status);
+                    {normalizedTask.planItems.map((item: PlanItem, index: number) => {
+                      const statusLabel: string = getPlanItemStatusLabel(item.status || '');
                       return (
-                      <div key={`${normalizedTask.taskId}-plan-${index}`} className="theme-card-soft rounded-xl px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="theme-text-primary text-sm font-semibold">
-                            {item.kind === 'follow_up' ? 'Follow-up' : `子问题 ${index + 1}`}
+                        <div key={`${normalizedTask.taskId}-plan-${index}`} className="theme-card-soft rounded-xl px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="theme-text-primary text-sm font-semibold">
+                              {item.kind === 'follow_up' ? 'Follow-up' : `子问题 ${index + 1}`}
+                            </div>
+                            {item.kind === 'follow_up' ? (
+                              <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
+                                缺口驱动
+                              </span>
+                            ) : null}
+                            {statusLabel ? (
+                              <span className="theme-text-muted rounded-full border theme-border px-2 py-0.5 text-[11px]">
+                                {statusLabel}
+                              </span>
+                            ) : null}
                           </div>
+                          <div className="theme-text-secondary mt-1 text-sm leading-7">{item.question}</div>
                           {item.kind === 'follow_up' ? (
-                            <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-500">
-                              缺口驱动
-                            </span>
-                          ) : null}
-                          {statusLabel ? (
-                            <span className="theme-text-muted rounded-full border theme-border px-2 py-0.5 text-[11px]">
-                              {statusLabel}
-                            </span>
+                            <div className="theme-text-muted mt-2 text-xs leading-6">
+                              {item.sourceQuestion ? `由"${item.sourceQuestion}"的证据缺口生成` : '由证据缺口生成'}
+                              {item.sourceMissingAspects && item.sourceMissingAspects.length > 0 ? `：${item.sourceMissingAspects.join('、')}` : ''}
+                            </div>
                           ) : null}
                         </div>
-                        <div className="theme-text-secondary mt-1 text-sm leading-7">{item.question}</div>
-                        {item.kind === 'follow_up' ? (
-                          <div className="theme-text-muted mt-2 text-xs leading-6">
-                            {item.sourceQuestion ? `由“${item.sourceQuestion}”的证据缺口生成` : '由证据缺口生成'}
-                            {item.sourceMissingAspects.length > 0 ? `：${item.sourceMissingAspects.join('、')}` : ''}
-                          </div>
-                        ) : null}
-                      </div>
                       );
                     })}
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {normalizedTask.planItems.slice(0, 2).map((item, index) => (
+                    {normalizedTask.planItems.slice(0, 2).map((item: PlanItem, index: number) => (
                       <div key={`${normalizedTask.taskId}-plan-preview-${index}`} className="theme-card-soft rounded-xl px-4 py-3 text-sm leading-7 theme-text-secondary">
                         {item.kind === 'follow_up' ? 'Follow-up：' : ''}{item.question}
                       </div>
@@ -770,17 +1011,19 @@ const DeepResearchPanel = ({
               ) : (
                 <div className="theme-text-secondary text-sm">任务正在规划研究路径，稍后会显示子问题列表。</div>
               )}
-              {normalizedTask.status === 'awaiting_plan_review' && <ResearchPlanReviewForm key={normalizedTask.taskId} task={normalizedTask} onReviewPlan={onReviewPlan} />}
+              {normalizedTask.status === 'awaiting_plan_review' && (
+                <ResearchPlanReviewForm key={normalizedTask.taskId} task={normalizedTask} onReviewPlan={onReviewPlan} />
+              )}
             </div>
 
             <div className="theme-card rounded-2xl p-5">
               <div className="theme-text-primary mb-3 text-sm font-bold">Findings</div>
               {normalizedTask.findings.length > 0 ? (
                 <div className="space-y-4">
-                  {normalizedTask.findings.map((finding) => {
+                  {normalizedTask.findings.map((finding: Finding) => {
                     const verdictMeta = getResearchVerdictMeta(finding.verdict);
-                    const judgeText = finding.judgeScore !== null ? `JUDGE ${finding.judgeScore}/100` : '';
-                    const coverageText = formatFindingCoverage(finding.coverage);
+                    const judgeText: string = finding.judgeScore !== null ? `JUDGE ${finding.judgeScore}/100` : '';
+                    const coverageText: string = formatFindingCoverage(finding.coverage);
                     return (
                       <InsightCard
                         key={`${normalizedTask.taskId}-${finding.id}`}
@@ -790,7 +1033,7 @@ const DeepResearchPanel = ({
                           judgeText,
                           coverageText,
                           finding.sources.length > 0
-                            ? `来源：${finding.sources.map((source) => source.locationLabel ? `${source.sourceId} (${source.locationLabel})` : source.sourceId).join('、')}`
+                            ? `来源：${finding.sources.map((source: ResearchSource) => source.locationLabel ? `${source.sourceId} (${source.locationLabel})` : source.sourceId).join('、')}`
                             : '尚未绑定来源片段',
                           finding.missingAspects.length > 0 ? `仍缺证据：${finding.missingAspects.join('、')}` : '当前没有额外缺口提示',
                           finding.retryReason ? `Retry：${finding.retryReason}` : '',
@@ -807,13 +1050,13 @@ const DeepResearchPanel = ({
                             ? `### 来源分析\n${formatSourceAnalysis(finding.coverage)}`
                             : '',
                           finding.sources.length > 0
-                            ? `### 证据来源\n${finding.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
+                            ? `### 证据来源\n${finding.sources.map((source: ResearchSource) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
                             : '',
                           finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
                           finding.retryReason ? `### Retry 原因\n${finding.retryReason}` : '',
                         ].filter(Boolean).join('\n\n')}
                         detailsTitle="展开 finding 详情"
-                        footer={onCaptureArtifact || finding.sources.some((source) => source.canJumpToSource) ? (
+                        footer={onCaptureArtifact || finding.sources.some((source: ResearchSource) => source.canJumpToSource) ? (
                           <div className="flex flex-wrap gap-2">
                             {onCaptureArtifact && (
                               <button
@@ -830,7 +1073,7 @@ const DeepResearchPanel = ({
                                         ? `### 来源分析\n${formatSourceAnalysis(finding.coverage)}`
                                         : '',
                                       finding.sources.length > 0
-                                        ? `### 证据来源\n${finding.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
+                                        ? `### 证据来源\n${finding.sources.map((source: ResearchSource) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
                                         : '',
                                       finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
                                       finding.retryReason ? `### Retry 原因\n${finding.retryReason}` : '',
@@ -857,13 +1100,15 @@ const DeepResearchPanel = ({
               )}
             </div>
 
-            {normalizedTask.status === 'awaiting_final_review' && <ResearchFinalReviewForm key={normalizedTask.taskId} task={normalizedTask} onReviewFinal={onReviewFinal} />}
+            {normalizedTask.status === 'awaiting_final_review' && (
+              <ResearchFinalReviewForm key={normalizedTask.taskId} task={normalizedTask} onReviewFinal={onReviewFinal} />
+            )}
 
             <div className="theme-card rounded-2xl p-5">
               <div className="theme-text-primary mb-3 text-sm font-bold">证据冲突/需人工核查</div>
               {normalizedTask.conflicts.length > 0 ? (
                 <div className="space-y-4">
-                  {normalizedTask.conflicts.map((conflict) => (
+                  {normalizedTask.conflicts.map((conflict: Conflict) => (
                     <InsightCard
                       key={`${normalizedTask.taskId}-${conflict.id}`}
                       title={conflict.claim || conflict.topic || '跨源证据冲突'}
@@ -871,7 +1116,7 @@ const DeepResearchPanel = ({
                       keyPoints={[
                         getConflictTypeLabel(conflict.conflictType),
                         conflict.sources.length > 0
-                          ? `来源：${conflict.sources.map((source) => source.locationLabel ? `${source.sourceId} (${source.locationLabel})` : source.sourceId).join('、')}`
+                          ? `来源：${conflict.sources.map((source: ResearchSource) => source.locationLabel ? `${source.sourceId} (${source.locationLabel})` : source.sourceId).join('、')}`
                           : '尚未绑定来源片段',
                       ]}
                       meta={(
@@ -883,11 +1128,11 @@ const DeepResearchPanel = ({
                         `### 冲突摘要\n${conflict.summary}`,
                         `### 类型\n${getConflictTypeLabel(conflict.conflictType)}`,
                         conflict.sources.length > 0
-                          ? `### 冲突来源\n${conflict.sources.map((source) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
+                          ? `### 冲突来源\n${conflict.sources.map((source: ResearchSource) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
                           : '',
                       ].filter(Boolean).join('\n\n')}
                       detailsTitle="展开冲突详情"
-                      footer={conflict.sources.some((source) => source.canJumpToSource) ? (
+                      footer={conflict.sources.some((source: ResearchSource) => source.canJumpToSource) ? (
                         <div className="flex flex-wrap gap-2">
                           <SourceList sources={conflict.sources} onJumpToSource={onJumpToSource} />
                         </div>
@@ -906,7 +1151,7 @@ const DeepResearchPanel = ({
                 {normalizedTask.report && (
                   <button
                     type="button"
-                    onClick={() => setIsReportExpanded((current) => !current)}
+                    onClick={() => setIsReportExpanded((current: boolean) => !current)}
                     className="theme-button-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
                   >
                     {isReportExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

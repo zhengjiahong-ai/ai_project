@@ -23,7 +23,7 @@ import {
 
 import SourceList from './SourceCitation.jsx';
 
-import InsightCard from './InsightCard.jsx';
+import InsightCard from './InsightCard';
 import {
   buildMetricCards,
   buildSummary,

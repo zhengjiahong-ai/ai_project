@@ -5,7 +5,7 @@ import {
   extractKeyPoints,
   extractSummarySentence,
   stripMarkdown,
-} from './insightCardModel.js';
+} from './insightCardModel.ts';
 
 const run = async () => {
   assert.equal(stripMarkdown('**RAG** improves [QA](https://example.com).'), 'RAG improves QA.');

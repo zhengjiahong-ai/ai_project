@@ -1,22 +1,33 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
+interface ErrorBoundaryProps {
+  area?: string;
+  fallback?: React.ReactNode;
+  children?: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
 /**
  * Error boundary that catches render errors in child components.
  * Each major UI area (PDF viewer, right panel, agent workspace) gets its own
  * boundary so a crash in one area does not bring down the whole application.
  */
-export class ErrorBoundary extends React.Component {
-  constructor(props) {
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error(
       `[ErrorBoundary${this.props.area ? ` ${this.props.area}` : ''}]`,
       error,
@@ -24,11 +35,11 @@ export class ErrorBoundary extends React.Component {
     );
   }
 
-  handleRetry = () => {
+  handleRetry = (): void => {
     this.setState({ hasError: false, error: null });
   };
 
-  render() {
+  render(): React.ReactNode {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
@@ -61,7 +72,7 @@ export class ErrorBoundary extends React.Component {
       );
     }
 
-    return this.props.children;
+    return this.props.children as React.ReactNode;
   }
 }
 

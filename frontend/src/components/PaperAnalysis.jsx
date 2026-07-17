@@ -11,7 +11,7 @@ import {
   Network,
 } from 'lucide-react';
 
-import InsightCard from './InsightCard.jsx';
+import InsightCard from './InsightCard';
 import { buildDeconstructionArtifact } from './artifactModel.ts';
 import { getParseWarningMessage } from './parseStatusModel.js';
 

@@ -2,9 +2,24 @@ import React from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 import MarkdownContent from './MarkdownContent.jsx';
-import { buildInsightCardModel } from './insightCardModel.js';
+import { buildInsightCardModel, type InsightCardModelOutput } from './insightCardModel';
 
-const InsightCard = ({
+interface InsightCardProps {
+  title?: string;
+  icon?: React.ReactNode;
+  content?: string;
+  summary?: string;
+  keyPoints?: string[];
+  meta?: React.ReactNode;
+  footer?: React.ReactNode;
+  maxPoints?: number;
+  detailsTitle?: string;
+  defaultExpanded?: boolean;
+  className?: string;
+}
+
+
+const InsightCard: React.FC<InsightCardProps> = ({
   title = '',
   icon = null,
   content = '',
@@ -17,17 +32,17 @@ const InsightCard = ({
   defaultExpanded = false,
   className = '',
 }) => {
-  const model = buildInsightCardModel({
+  const model: InsightCardModelOutput = buildInsightCardModel({
     content,
     summary,
     keyPoints,
     maxPoints,
     detailsTitle,
     defaultExpanded,
-  });
+  }) as InsightCardModelOutput;
 
-  const [isExpanded, setIsExpanded] = React.useState(model.defaultExpanded);
-  const shouldShowCompactContent = !(model.hasDetails && isExpanded);
+  const [isExpanded, setIsExpanded] = React.useState<boolean>(model.defaultExpanded);
+  const shouldShowCompactContent: boolean = !(model.hasDetails && isExpanded);
 
   return (
     <section className={`theme-card rounded-2xl p-4 ${className}`.trim()}>
@@ -51,7 +66,7 @@ const InsightCard = ({
 
       {shouldShowCompactContent && model.hasPoints && (
         <div className="mt-3 space-y-2">
-          {model.points.map((point) => (
+          {model.points.map((point: string) => (
             <div key={point} className="theme-card-soft rounded-xl px-3 py-2 text-sm leading-6 theme-text-secondary">
               {point}
             </div>
@@ -63,7 +78,7 @@ const InsightCard = ({
         <div className="mt-4">
           <button
             type="button"
-            onClick={() => setIsExpanded((current) => !current)}
+            onClick={() => setIsExpanded((current: boolean) => !current)}
             className="theme-button-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
           >
             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

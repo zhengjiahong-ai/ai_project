@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
-import { ErrorBoundary } from '../components/ErrorBoundary.jsx';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
-const AgentWorkspace = lazy(() => import('../components/agent/AgentWorkspace.jsx'));
+const AgentWorkspace = lazy(() => import('../components/agent/AgentWorkspace'));
 
 export default function AgentResearchPage({
   papersList,
