@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-17 v0.6.24
+
+1. **前端组件级测试补齐（4-3）**：引入 vitest + jsdom + @testing-library/react 组件测试框架，新增 5 个组件渲染测试文件（`Skeleton`、`EmptyState`、`ErrorBoundary`、`Toast`、`ChatPanel`），35 个测试覆盖核心交互路径。npm test 总计 53 测试全通过。
+
 ### 2026-07-17 v0.6.23
 
 1. **前端核心组件 TypeScript 迁移（4-2）**：6 个核心 React 组件从 JSX 迁移为 TSX（`ErrorBoundary`、`ChatPanel`、`BackgroundKnowledgePanel`、`PdfViewer`、`DeepResearchPanel`、`AgentWorkspace`），全部定义 Props interface，附带迁移 `InsightCard` 和 `insightCardModel`。所有组件 `tsc --noEmit` 零错误，18 个测试全通过。
