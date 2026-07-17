@@ -152,6 +152,7 @@ export const installMockApi = async (page) => {
     project: null,
     task: null,
     taskPollCount: 0,
+    workspacePollCount: 0,
     projectPayload: null,
     taskPayload: null,
     planReviewPayload: null,
@@ -216,6 +217,14 @@ export const installMockApi = async (page) => {
     }
 
     if (request.method() === 'GET' && path === '/api/agent-projects/project-smoke-1/workspace') {
+      state.workspacePollCount += 1;
+      // Only advance state past plan-review phase if plan has been reviewed
+      if (state.task
+        && !['succeeded', 'failed', 'cancelled', 'awaiting_plan_review'].includes(state.task.status)) {
+        state.task = state.workspacePollCount >= 2
+          ? { ...draftTask, prompt: state.taskPayload?.prompt || state.task.prompt }
+          : { ...runningTask, prompt: state.taskPayload?.prompt || state.task.prompt };
+      }
       await json(route, { status: 'success', workspace: toWorkspace(state.project, state.task) });
       return;
     }
@@ -265,6 +274,7 @@ export const installMockApi = async (page) => {
       state.planReviewPayload = request.postDataJSON();
       state.task = { ...runningTask, prompt: state.taskPayload.prompt, planItems: state.planReviewPayload.planItems };
       state.taskPollCount = 0;
+      state.workspacePollCount = 0;
       await json(route, { status: 'success', run: toRun(state.task), pendingReview: toPendingReview(state.task) });
       return;
     }
@@ -273,6 +283,7 @@ export const installMockApi = async (page) => {
       state.planReviewPayload = request.postDataJSON();
       state.task = { ...runningTask, prompt: state.taskPayload.prompt, planItems: state.planReviewPayload.planItems };
       state.taskPollCount = 0;
+      state.workspacePollCount = 0;
       await json(route, { status: 'success', task: state.task });
       return;
     }

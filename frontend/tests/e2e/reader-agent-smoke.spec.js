@@ -82,7 +82,7 @@ test('阅读 IDE 与 Agent 研究完成同一浏览器 smoke 主流程', async (
     paperIds: ['paper-smoke-1'],
   });
   expect(mockState.taskPayload.prompt).toBe(prompt);
-  expect(mockState.taskPollCount).toBeGreaterThanOrEqual(2);
+  expect(mockState.workspacePollCount).toBeGreaterThanOrEqual(2);
   expect(mockState.planReviewPayload.focusedPaperIds).toEqual(['paper-smoke-1']);
   expect(mockState.finalReviewPayload.riskReviews).toEqual([{ riskId: 'open:1', reviewStatus: 'reviewed' }]);
 });
@@ -139,5 +139,5 @@ test('Agent Provider 故障降级后可刷新恢复并完成人工审查', async
   await expect(page.getByText('External academic provider failed. 内部证据与未解决缺口均已保留。', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '确认终稿' }).click();
   await expect(page.getByText('研究任务已完成')).toBeVisible();
-  expect(mockState.taskPollCount).toBeGreaterThanOrEqual(2);
+  expect(mockState.workspacePollCount).toBeGreaterThanOrEqual(2);
 });

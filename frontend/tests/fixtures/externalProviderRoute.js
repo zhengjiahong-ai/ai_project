@@ -192,6 +192,7 @@ export const installExternalProviderRoute = async (page, { scenario = 'success' 
     project: null,
     task: null,
     taskPollCount: 0,
+    workspacePollCount: 0,
     projectPayload: null,
     taskPayload: null,
     planReviewPayload: null,
@@ -235,6 +236,7 @@ export const installExternalProviderRoute = async (page, { scenario = 'success' 
       return;
     }
     if (request.method() === 'GET' && path === '/api/agent-projects/project-external-1/workspace') {
+      state.workspacePollCount += 1;
       if (state.task?.status === 'running') {
         state.taskPollCount += 1;
         state.task = state.taskPollCount >= 2
