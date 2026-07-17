@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-17 v0.6.28
+
+1. **LangGraph PoC 评估（7-1）**：新增 `tests/poc_langgraph_agent.py`——用 LangGraph StateGraph 重构当前 agent 研究管道（plan→execute→aggregate→follow_up_decision→report），与当前 `execute_run` 输出等效，可观测性更优（5 条 timeline vs 1 条），条件边使 follow-up 决策显式化。结论：LangGraph 适合后续接入，建议在有 human-in-the-loop 需求时优先迁移。
+
 ### 2026-07-17 v0.6.27
 
 1. **用户反馈与错误上报（6-3）**：新增 `POST /api/feedback` 端点（脱敏记录前端错误报告）；`ErrorBoundary` 增加"报告问题"按钮（fire-and-forget 上报 + 确认提示）；新增 `hooks/useUsageStats.js`（匿名使用统计，默认关闭 opt-in）。
