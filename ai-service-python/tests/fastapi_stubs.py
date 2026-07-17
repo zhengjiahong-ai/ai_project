@@ -30,9 +30,13 @@ class _Route:
 
 
 class APIRouter:
-    def __init__(self, prefix: str = "") -> None:
+    def __init__(self, prefix: str = "", tags: list = None, **kwargs) -> None:
         self.prefix = prefix
+        self.tags = tags or []
         self.routes: list = []
+
+    def include_router(self, router, **kwargs) -> None:
+        pass
 
     def _register(self, path: str, method: str, func):
         self.routes.append(_Route(f"{self.prefix}{path}", {method}))
@@ -75,3 +79,22 @@ def install_fastapi_stubs() -> None:
         rm = types.ModuleType("fastapi.responses")
         rm.JSONResponse = JSONResponse
         sys.modules["fastapi.responses"] = rm
+
+    # Provide a minimal Request stub for routes that reference it in type hints
+    if "fastapi" in sys.modules and not hasattr(sys.modules["fastapi"], "Request"):
+        class _Request:
+            class client:
+                host = "127.0.0.1"
+            def __init__(self):
+                self.client = self.client()
+        sys.modules["fastapi"].Request = _Request
+
+    if "pydantic" not in sys.modules:
+        pm = types.ModuleType("pydantic")
+        class _BaseModel:
+            pass
+        def _Field(default="", **kwargs):
+            return default
+        pm.BaseModel = _BaseModel
+        pm.Field = _Field
+        sys.modules["pydantic"] = pm
