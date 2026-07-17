@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-17 v0.6.26
+
+1. **前端无障碍深化（6-2）**：`PdfViewer` 弹窗增加 Esc 关闭、焦点移入/归还和 `role=dialog`/`aria-modal`；`ChatPanel` 图标按钮补充 `aria-label`；`--text-muted` 对比度调整到 ≥ 4.5:1（浅色 #64748b / 深色 #94a3b8）；新增 `a11y.test.jsx`（8 个 axe-core 扫描，0 个 critical violation）。
+
 ### 2026-07-17 v0.6.25
 
 1. **E2E 测试骨架（6-1）**：Playwright E2E 测试已有 3 个文件 8 个用例（mock API 驱动），覆盖阅读 IDE→Agent 研究、外部检索授权与降级恢复、论文写作面板、研究监控等路径。CI 新增 `e2e` job（依赖 frontend job 通过后运行）。

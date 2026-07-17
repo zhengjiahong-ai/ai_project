@@ -191,6 +191,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         }}
         className="theme-danger-button rounded-full p-1.5 opacity-0 transition-opacity group-hover:opacity-100"
         title="删除此消息"
+        aria-label="删除此消息"
       >
         <Trash2 size={14} />
       </button>
@@ -199,6 +200,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         onClick={() => onSaveToNote?.(index)}
         className="rounded-full bg-pixiu/10 p-1.5 text-pixiu opacity-0 transition-opacity hover:bg-pixiu/20 group-hover:opacity-100"
         title="收藏到学术笔记"
+        aria-label="收藏到学术笔记"
       >
         <Bookmark size={14} />
       </button>
@@ -208,6 +210,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           onClick={() => onCaptureArtifact?.(index)}
           className="rounded-full bg-pixiu/10 p-1.5 text-pixiu opacity-0 transition-opacity hover:bg-pixiu/20 group-hover:opacity-100"
           title="加入工作台"
+        aria-label="加入工作台"
         >
           <Plus size={14} />
         </button>
@@ -218,6 +221,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           onClick={() => onJumpToSource?.(message)}
           className="source-link-chip opacity-0 transition-opacity group-hover:opacity-100"
           title="回到原文位置"
+        aria-label="回到原文位置"
         >
           <Link2 size={12} />
         </button>
@@ -337,6 +341,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               onClick={onAbortChat}
               className="theme-danger-button ml-2 self-center rounded-full border border-red-400/10 p-1.5 shadow-sm transition-colors"
               title="停止生成"
+              aria-label="停止生成"
             >
               <X size={14} />
             </button>
@@ -364,6 +369,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             onClick={handleSend}
             disabled={!inputValue.trim() || isLoading}
             className="absolute bottom-3 right-3 rounded-lg bg-pixiu p-2 text-white shadow-md transition hover:bg-pixiu-dark disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="发送消息"
           >
             {isLoading ? (
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />

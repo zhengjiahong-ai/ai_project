@@ -10,7 +10,7 @@
   --panel-overlay: rgba(255, 255, 255, 0.92);
   --text-primary: #0f172a;
   --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-muted: #64748b;
   --border-subtle: #dbe2ea;
   --accent: #7b3ff2;
   --accent-strong: #4d0099;
@@ -32,7 +32,7 @@ html[data-theme='dark'] {
   --panel-overlay: rgba(17, 24, 39, 0.94);
   --text-primary: #e5eefb;
   --text-secondary: #b2c0d8;
-  --text-muted: #7f90aa;
+  --text-muted: #94a3b8;
   --border-subtle: rgba(148, 163, 184, 0.22);
   --accent: #b782ff;
   --accent-strong: #c69cff;

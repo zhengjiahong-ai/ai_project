@@ -324,6 +324,30 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
 }) => {
   const [query, setQuery] = useState<string>('');
   const originalText: string = highlight.text || '暂无选中文本';
+  const popupRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = useRef<Element | null>(null);
+
+  // Focus management: capture previous focus, move focus into popup, restore on unmount
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement;
+    // Small delay to let the popup render before focusing
+    const timer = setTimeout(() => {
+      closeButtonRef.current?.focus();
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      // Restore focus to the previously focused element
+      previousFocusRef.current instanceof HTMLElement && previousFocusRef.current.focus();
+    };
+  }, []);
+
+  const handleKeyDown = (event: React.KeyboardEvent): void => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      onClose();
+    }
+  };
 
   const handleAsk = (): void => {
     if (!query.trim() || highlight.isLoading) return;
@@ -367,7 +391,12 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
 
   return (
     <div
+      ref={popupRef}
+      role="dialog"
+      aria-label={`${highlight.actionLabel || 'AI 解释'} - p.${highlight.position.pageIndex + 1}`}
+      aria-modal="true"
       className="theme-popup absolute z-[999] flex max-h-[400px] w-80 flex-col rounded-xl animate-in fade-in zoom-in duration-200"
+      onKeyDown={handleKeyDown}
       style={{
         ...(highlight.position.top > 55
           ? { bottom: `${100 - highlight.position.top}%`, transform: 'translateY(-12px)' }
@@ -404,8 +433,10 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
             <Trash2 size={14} />
           </button>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             className="theme-icon-button rounded-full p-1 transition-colors"
+            aria-label="关闭弹窗"
           >
             <X size={16} />
           </button>
