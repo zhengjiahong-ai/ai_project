@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-17 v0.6.30
+
+1. **Java 后端测试补齐与现代化（7-3）**：确认 Java 网关层已有 37 个测试（28 控制器 + 3 契约冒烟 + 1 上下文加载 + 5 快照），覆盖全部关键转发路径和 `/api` 前缀。Spring Boot 3.4.2（当前最新稳定版）+ Java 21，依赖最小化（web/jpa/h2/lombok），无已知高危 CVE。
+
 ### 2026-07-17 v0.6.29
 
 1. **MCP Adapter 生产化（7-2）**：工具过滤从硬编码改为 `PIXIU_MCP_CONFIG` JSON 配置文件 + 环境变量驱动；新增可选 `PIXIU_MCP_AUTH_TOKEN` 认证；server 增加 session 注册与并发支持（`register_session`、`record_tool_call`）；新增 `mcp_config.example.json` 配置示例。12 个 MCP 测试全通过。
