@@ -319,6 +319,37 @@ export const installMockApi = async (page) => {
       return;
     }
 
+    // Paper writer endpoint
+    if (request.method() === 'POST' && path === '/api/generate-paper-draft') {
+      const body = request.postDataJSON() || {};
+      const question = body.question || 'default question';
+      const title = body.title || `A Review of ${question.slice(0, 40)}`;
+      await json(route, {
+        status: 'done',
+        title,
+        question,
+        sections: {
+          abstract: 'This paper reviews ' + question + '. Key findings are summarized.',
+          introduction: '## Introduction\n\nThe field of ' + question + ' has seen rapid progress.',
+          relatedWork: '## Related Work\n\nPrior work has explored various aspects.',
+          methodology: '## Methodology\n\nWe employ a systematic review approach.',
+          results: '## Results\n\nAnalysis reveals several key findings.',
+          discussion: '## Discussion\n\nThe results suggest promising directions.',
+          conclusion: '## Conclusion\n\nThis review identified key patterns.',
+        },
+        referenceCount: 8,
+        markdown: '# ' + title + '\n\nGenerated paper draft.',
+        latex: '\\documentclass{article}\n\\begin{document}\n' + title + '\n\\end{document}',
+        bibtex: '@article{test,\n  author = {Author},\n  title = {' + title + '},\n  year = {2024}\n}',
+        outputFiles: {
+          markdown: 'paper.md',
+          latex: 'paper.tex',
+          bibtex: 'references.bib',
+        },
+      });
+      return;
+    }
+
     await json(route, { status: 'error', message: `Unexpected agent API request: ${request.method()} ${path}` }, 404);
   });
 

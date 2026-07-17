@@ -2,7 +2,7 @@
  * Mock /api/generate-paper-draft endpoint for E2E tests.
  */
 export function installMockPaperWriterApi(page) {
-  return page.route('**/api/generate-paper-draft', async (route) => {
+  return page.route('**/generate-paper-draft', async (route) => {
     const body = route.request().postDataJSON() || {};
     const question = body.question || 'default question';
     const title = body.title || `A Review of ${question.slice(0, 40)}`;
@@ -11,7 +11,7 @@ export function installMockPaperWriterApi(page) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        status: 'success',
+        status: 'done',
         title,
         question,
         sections: [
