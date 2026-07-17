@@ -21,7 +21,6 @@ describe('EmptyState', () => {
 
   it('does not render description when empty', () => {
     const { container } = render(<EmptyState title="空" />);
-    const paragraphs = container.querySelectorAll('p');
     // Only the title paragraph should be present (description paragraph omitted)
     const titleEls = container.querySelectorAll('.theme-text-primary');
     expect(titleEls.length).toBe(1);
