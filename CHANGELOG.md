@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-18 v0.6.34
+
+1. **MCP Adapter SSE/HTTP 传输（10-4）**：`mcp_adapter/server.py` 新增 SSE 传输支持（`build_sse_app` / `run_sse_server`），基于 `SseServerTransport` + Starlette ASGI，提供 `GET /sse` 和 `POST /messages/` 端点。通过 `PIXIU_MCP_TRANSPORT=stdio|sse` 环境变量选择传输方式，SSE 支持 `PIXIU_MCP_SSE_HOST`/`PIXIU_MCP_SSE_PORT` 配置。认证 token 通过 `x-pixiu-mcp-auth` HTTP header 传递。新增 9 个 SSE 传输测试。
+
 ### 2026-07-18 v0.6.33
 
 1. **API 契约测试修复**：`fastapi_stubs.py` 的 `include_router` 实现子路由收集，修复空路由表问题。`test_api_contract_smoke.py` 新增 `feedback` 操作，合约移除不存在的 `usage` 路由。

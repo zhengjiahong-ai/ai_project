@@ -213,5 +213,107 @@ class McpAdapterTests(unittest.TestCase):
         self.assertNotIn("structuredContent", denied.root.model_dump(exclude_none=True))
 
 
+class McpSseTransportTests(unittest.TestCase):
+    """Tests for SSE/HTTP transport support."""
+
+    def test_sse_app_builds_starlette_app_with_sse_and_message_routes(self):
+        from mcp_adapter.server import build_sse_app
+
+        app = build_sse_app()
+        self.assertIsNotNone(app)
+        # Should have at least 2 routes: /sse and /messages/
+        route_paths = {route.path for route in app.routes}
+        self.assertIn("/sse", route_paths)
+        self.assertIn("/messages/", route_paths)
+
+    def test_sse_app_routes_are_get_and_post(self):
+        from mcp_adapter.server import build_sse_app
+
+        app = build_sse_app()
+        route_map = {}
+        for route in app.routes:
+            methods = set(getattr(route, "methods", None) or ["GET"])
+            route_map[route.path] = methods
+        self.assertIn("GET", route_map.get("/sse", set()))
+        self.assertIn("POST", route_map.get("/messages/", set()))
+
+    def test_sse_auth_extracts_token_from_headers(self):
+        """Auth token is extracted from x-pixiu-mcp-auth header."""
+        from mcp_adapter.server import _extract_sse_auth_token
+
+        # No header → None
+        self.assertIsNone(_extract_sse_auth_token({"headers": []}))
+        # Valid header
+        scope = {"headers": [(b"x-pixiu-mcp-auth", b"secret-abc")]}
+        self.assertEqual(_extract_sse_auth_token(scope), "secret-abc")
+        # Case-sensitive header name (lowercase only)
+        scope_case = {"headers": [(b"X-Pixiu-MCP-Auth", b"secret-xyz")]}
+        self.assertIsNone(_extract_sse_auth_token(scope_case))
+
+    def test_sse_auth_verification_with_configured_token(self):
+        """verify_auth_token matches when token equals configured value."""
+        import os
+
+        from mcp_adapter.adapter import verify_auth_token
+
+        valid = "test-token-sse-123"
+        with patch.dict(os.environ, {"PIXIU_MCP_AUTH_TOKEN": valid}, clear=True):
+            self.assertTrue(verify_auth_token(valid))
+            self.assertFalse(verify_auth_token("wrong-token"))
+            # No token provided when auth is configured → rejected
+            self.assertFalse(verify_auth_token(None))
+
+    def test_sse_auth_verification_open_when_not_configured(self):
+        """verify_auth_token returns True when no PIXIU_MCP_AUTH_TOKEN is set."""
+        import os
+
+        from mcp_adapter.adapter import verify_auth_token
+
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertTrue(verify_auth_token(None))
+            self.assertTrue(verify_auth_token("anything"))
+
+    def test_transport_selection_defaults_to_stdio(self):
+        from mcp_adapter.__main__ import _resolve_transport
+
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(_resolve_transport(), "stdio")
+
+    def test_transport_selection_respects_env(self):
+        from mcp_adapter.__main__ import _resolve_transport
+
+        for value in ("sse", "SSE", "Sse"):
+            with self.subTest(value=value):
+                with patch.dict(os.environ, {"PIXIU_MCP_TRANSPORT": value}, clear=True):
+                    self.assertEqual(_resolve_transport(), "sse")
+
+        with patch.dict(os.environ, {"PIXIU_MCP_TRANSPORT": "stdio"}, clear=True):
+            self.assertEqual(_resolve_transport(), "stdio")
+
+    def test_transport_selection_rejects_unknown(self):
+        from mcp_adapter.__main__ import _resolve_transport
+
+        with patch.dict(os.environ, {"PIXIU_MCP_TRANSPORT": "grpc"}, clear=True):
+            self.assertEqual(_resolve_transport(), "stdio")  # falls back
+
+    def test_entrypoint_runs_sse_server_when_configured(self):
+        from mcp_adapter.__main__ import main
+
+        runner = Mock()
+        with patch.dict(
+            os.environ,
+            {
+                "PIXIU_MCP_ENABLED": "true",
+                "PIXIU_MCP_TRANSPORT": "sse",
+                "PIXIU_MCP_SSE_HOST": "0.0.0.0",
+                "PIXIU_MCP_SSE_PORT": "9000",
+            },
+            clear=True,
+        ):
+            exit_code = main(run_server=runner)
+
+        self.assertEqual(exit_code, 0)
+        runner.assert_called_once_with()
+
 if __name__ == "__main__":
     unittest.main()
