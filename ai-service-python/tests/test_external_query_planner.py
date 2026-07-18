@@ -1,4 +1,5 @@
 import inspect
+import os
 import re
 import unittest
 from unittest.mock import patch
@@ -216,6 +217,7 @@ class RefineSearchQueriesTests(unittest.TestCase):
             self.assertGreater(len(q), 0)
 
 
+@unittest.skipIf(not os.environ.get("DEEPSEEK_API_KEY"), "Requires DEEPSEEK_API_KEY for LLM-based query generation")
 class LlmAcademicQueriesTests(unittest.TestCase):
     def test_llm_academic_falls_back_when_llm_unavailable(self):
         from services.external_query_planner import build_llm_academic_queries

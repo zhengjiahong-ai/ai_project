@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-18 v0.6.37
+
+1. **CI 测试排除显式化**：`test_offline_llm.py`、`test_offline_core_paths.py`、`test_logging_config.py` 通过修复 pydantic-settings 单例补丁恢复运行；`test_external_query_planner.py`（LLM 子集）、`test_council_service.py`（fixture 测试）添加 `@unittest.skipIf` 在无 API Key 时跳过；CI pytest `--ignore` 从 12 个减至 4 个（仅保留 Docker/Playwright 硬依赖）。
+
 ### 2026-07-18 v0.6.36
 
 1. **ruff F821 豁免清零**：修复 `chat_service.py`、`socratic_service.py`、`term_explanation_service.py`、`research_task_service.py`、`evidence_cross_validator.py`、`reasoning_chain.py`、`agent_reasoning.py` 共 7 个文件的 41 处 F821/F811/E402 lint 错误，移除 `ruff.toml` 中所有 F821 豁免规则。

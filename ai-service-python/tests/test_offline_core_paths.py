@@ -8,29 +8,38 @@ from schemas.requests import PageTranslationRequest
 from services import chat_service, page_translation_service, research_planner
 from services.knowledge_graph_service import generate_current_paper_graph
 
+import core.config as _config_module
+
+
+def _patch_settings(**kwargs):
+    patchers = [patch.object(_config_module.settings, k, v) for k, v in kwargs.items()]
+    for p in patchers:
+        p.start()
+    return patchers
+
+
+def _stop_patches(patchers):
+    for p in patchers:
+        p.stop()
+
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "llm_responses.json"
 
 
 class OfflineCorePathsTests(unittest.TestCase):
     def setUp(self):
-        self.env = patch.dict(
-            os.environ,
-            {
-                "PIXIU_LLM_MODE": "fixture",
-                "PIXIU_LLM_FIXTURE_PATH": str(FIXTURE_PATH),
-            },
-            clear=False,
+        self._settings_patches = _patch_settings(
+            pixiu_llm_mode="fixture",
+            pixiu_llm_fixture_path=str(FIXTURE_PATH),
+            deepseek_api_key="",
         )
-        self.env.start()
-        os.environ.pop("DEEPSEEK_API_KEY", None)
         llm_client._llm = None
         llm_client._translation_llm = None
 
     def tearDown(self):
         llm_client._llm = None
         llm_client._translation_llm = None
-        self.env.stop()
+        _stop_patches(self._settings_patches)
 
     def test_text_chat_uses_offline_fixture(self):
         with patch("llm.client.requests.post") as post:

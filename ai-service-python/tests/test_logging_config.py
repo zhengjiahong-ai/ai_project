@@ -1,12 +1,16 @@
 import logging
 import os
 import unittest
+from unittest.mock import patch
+
+import core.config as _config_module
 
 
 class LoggingConfigTests(unittest.TestCase):
     def setUp(self):
-        # Clear handlers before each test
+        # Clear handlers and reset root level before each test
         root = logging.getLogger()
+        root.setLevel(logging.WARNING)
         for h in list(root.handlers):
             root.removeHandler(h)
 
@@ -24,8 +28,8 @@ class LoggingConfigTests(unittest.TestCase):
     def test_configure_logging_sets_level_from_env(self):
         from core.logging_config import configure_logging
 
-        os.environ["PIXIU_LOG_LEVEL"] = "DEBUG"
-        configure_logging()
+        with patch.object(_config_module.settings, 'pixiu_log_level', 'DEBUG'):
+            configure_logging()
         self.assertEqual(logging.getLogger().level, logging.DEBUG)
 
     def test_configure_logging_defaults_to_info(self):

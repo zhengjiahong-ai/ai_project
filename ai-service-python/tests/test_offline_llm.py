@@ -10,21 +10,31 @@ from llm.provider import LLMProviderError, LLMRequest, LLMResult, LLMUsage
 from services.safety_service import estimate_tokens
 from services import trace_service
 
+import core.config as _config_module
+
+
+def _patch_settings(**kwargs):
+    """Patch settings singleton attributes with given values."""
+    patchers = [patch.object(_config_module.settings, k, v) for k, v in kwargs.items()]
+    for p in patchers:
+        p.start()
+    return patchers
+
+
+def _stop_patches(patchers):
+    for p in patchers:
+        p.stop()
+
 
 class OfflineLlmTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.fixture_path = Path(self.temp_dir.name) / "llm_responses.json"
-        self.env = patch.dict(
-            os.environ,
-            {
-                "PIXIU_LLM_MODE": "fixture",
-                "PIXIU_LLM_FIXTURE_PATH": str(self.fixture_path),
-            },
-            clear=False,
+        self._settings_patches = _patch_settings(
+            pixiu_llm_mode="fixture",
+            pixiu_llm_fixture_path=str(self.fixture_path),
+            deepseek_api_key="",
         )
-        self.env.start()
-        os.environ.pop("DEEPSEEK_API_KEY", None)
         llm_client._llm = None
         llm_client._translation_llm = None
 
@@ -32,7 +42,7 @@ class OfflineLlmTests(unittest.TestCase):
         trace_service.clear_traces()
         llm_client._llm = None
         llm_client._translation_llm = None
-        self.env.stop()
+        _stop_patches(self._settings_patches)
         self.temp_dir.cleanup()
 
     def _write_fixture(self, responses):
@@ -284,11 +294,8 @@ class OfflineLlmTests(unittest.TestCase):
                 llm_client.DeepSeekLLM(api_key="test-key").invoke(LLMRequest(prompt="malformed"))
 
     def test_default_and_translation_models_remain_unchanged(self):
-        with patch.dict(
-            os.environ,
-            {"PIXIU_LLM_MODE": "deepseek", "DEEPSEEK_API_KEY": "test-key"},
-            clear=False,
-        ):
+        p = _patch_settings(pixiu_llm_mode="deepseek", deepseek_api_key="test-key")
+        try:
             llm_client._llm = None
             llm_client._translation_llm = None
             self.assertEqual(llm_client.get_llm().model, llm_client.DEFAULT_DEEPSEEK_MODEL)
@@ -296,6 +303,8 @@ class OfflineLlmTests(unittest.TestCase):
                 llm_client.get_translation_llm().model,
                 llm_client.DEFAULT_DEEPSEEK_TRANSLATION_MODEL,
             )
+        finally:
+            _stop_patches(p)
 
 
 if __name__ == "__main__":

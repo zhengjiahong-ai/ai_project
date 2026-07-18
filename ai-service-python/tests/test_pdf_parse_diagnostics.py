@@ -3,7 +3,10 @@ import io
 import unittest
 from unittest.mock import patch
 
-from fastapi import UploadFile
+try:
+    from fastapi import UploadFile
+except ImportError:
+    raise unittest.SkipTest("FastAPI not available") from None
 
 from services import analysis_service
 

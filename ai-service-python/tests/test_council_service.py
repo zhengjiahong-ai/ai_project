@@ -226,21 +226,26 @@ class CouncilServiceTests(unittest.TestCase):
         self.assertEqual(len(result["agreements"]), 1)
         self.assertEqual(result["recommendedAction"], "manual_review_required")
 
+    @unittest.skipIf(not os.environ.get("DEEPSEEK_API_KEY"), "Requires DEEPSEEK_API_KEY for council fixture test")
     def test_repository_fixture_runs_both_council_reviewers_offline(self):
         fixture_path = Path(__file__).parent / "fixtures" / "llm_responses.json"
-        with patch.dict(
-            os.environ,
-            {
-                "PIXIU_LLM_MODE": "fixture",
-                "PIXIU_LLM_FIXTURE_PATH": str(fixture_path),
-            },
-            clear=False,
-        ):
+        import core.config as _config_module
+        p1 = patch.object(_config_module.settings, 'pixiu_llm_mode', 'fixture')
+        p2 = patch.object(_config_module.settings, 'pixiu_llm_fixture_path', str(fixture_path))
+        p3 = patch.object(_config_module.settings, 'deepseek_api_key', '')
+        p1.start()
+        p2.start()
+        p3.start()
+        try:
             llm_client._llm = None
             result = run_council(
                 "OFFLINE_COUNCIL_MARKER",
                 [{"sourceId": "source-1", "text": "固定证据支持结论。"}],
             )
+        finally:
+            p1.stop()
+            p2.stop()
+            p3.stop()
 
         self.assertEqual(len(result["opinions"]), 2)
         self.assertTrue(all(not item["abstain"] for item in result["opinions"]))
