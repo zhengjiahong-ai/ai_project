@@ -61,7 +61,7 @@ jobs:
           cache: pip
           cache-dependency-path: ai-service-python/requirements.txt
       - run: pip install -r requirements.txt
-      - run: pip install ruff
+      - run: pip install ruff pytest pytest-timeout
       - run: ruff check services/ routes/ core/
       - run: PYTHONPATH=. python -m pytest tests/ --timeout=60 --ignore=tests/test_code_execution_api.py --ignore=tests/test_offline_llm.py --ignore=tests/test_offline_core_paths.py --ignore=tests/test_external_query_planner.py --ignore=tests/test_logging_config.py --ignore=tests/test_council_service.py --ignore=tests/test_health.py --ignore=tests/test_research_task_service.py --ignore=tests/test_citation_responses.py --ignore=tests/test_api_contract_smoke.py
 
