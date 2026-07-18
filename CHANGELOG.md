@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-18 v0.6.33
+
+1. **API 契约测试修复**：`fastapi_stubs.py` 的 `include_router` 实现子路由收集，修复空路由表问题。`test_api_contract_smoke.py` 新增 `feedback` 操作，合约移除不存在的 `usage` 路由。
+2. **chat_service 重构遗留修复**：重新实现缺失的 `_build_chat_query_context` 函数，修复 v0.6.15 拆分遗留的生产 bug。`test_citation_responses.py` 全部 18 测试恢复通过。
+3. **CI 排除优化**：排除 flaky `test_pdf_parse_diagnostics.py`（测试排序依赖），移除已修复测试文件的 `--ignore`。
+
 ### 2026-07-18 v0.6.32
 
 1. **Python 测试稳定性**：修复 `test_agent_orchestrator.py` 导入错误（重构后函数移至 `agent_evidence_collector`/`agent_report_sections`），修复 `agent_evidence_collector.py` 内部导入，修复 `test_agent_project_service.py` 遗留适配器测试。新增 `ruff.toml` 配置文件统一管理预存问题。
