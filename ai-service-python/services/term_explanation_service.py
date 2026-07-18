@@ -1,12 +1,19 @@
 """Term explanation service."""
 from __future__ import annotations
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
+from llm.client import get_llm
+from rag.store import get_rag
 from schemas.requests import TermExplainRequest
-from services.evidence_service import format_evidence_context, normalize_evidence_items
-from services.safety_service import build_guarded_messages, wrap_untrusted_context
-from services.trace_service import record_counter, trace_step
+from services.evidence_service import compact_evidence_for_response, format_evidence_context, normalize_evidence_items
+from services.query_service import build_retrieval_queries
+from services.safety_service import build_guarded_messages, summarize_safety_results, wrap_untrusted_context
+from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
+from services.chat_service import _evidence_context_title, _evidence_quality_instruction, _judge_and_retry_evidence
 _logger = logging.getLogger(__name__)
+
+
+MATH_MARKDOWN_GUIDELINE = "如需表达数学公式，请使用 Markdown LaTeX 语法：行内公式用 $...$，独立公式用 $$...$$。"
 
 
 # ── helpers (inlined from chat_service) ──

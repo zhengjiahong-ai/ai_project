@@ -94,6 +94,26 @@ def build_reasoning_chain(
     }
 
 
+def _summarize_chain(claim: str, chain_nodes: list[dict[str, Any]]) -> str:
+    """Summarize a reasoning chain of evidence sources."""
+    if not chain_nodes:
+        return "无可用证据链。"
+    supports = [n for n in chain_nodes if n.get("relation") == "supports"]
+    contradicts = [n for n in chain_nodes if n.get("relation") == "contradicts"]
+    extends = [n for n in chain_nodes if n.get("relation") == "extends"]
+    total = len(chain_nodes)
+    lines = [
+        f"证据链含 {total} 篇论文：{len(supports)} 篇支持，{len(contradicts)} 篇反对，{len(extends)} 篇扩展。",
+    ]
+    if supports:
+        titles = [n.get("title", "?")[:60] for n in supports[:3]]
+        lines.append(f"支持来源：{'、'.join(titles)}")
+    if contradicts:
+        titles = [n.get("title", "?")[:60] for n in contradicts[:3]]
+        lines.append(f"反对来源：{'、'.join(titles)}")
+    return " ".join(lines)
+
+
 # ── LLM classification ──────────────────────────────────────────────────────
 
 def _classify_relation(claim: str, text: str, title: str) -> dict[str, Any]:

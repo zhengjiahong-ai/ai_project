@@ -68,6 +68,59 @@ def _llm_cross_validate(items: list) -> Dict[str, Any]:
     return _cluster_and_score(llm_claims, items)
 
 
+def _cluster_and_score(llm_claims: list, items: list) -> dict:
+    """Cluster LLM-extracted claims by topic overlap and score agreement."""
+    item_map = {}
+    for item in items:
+        sid = item.get("sourceId", "")
+        if sid:
+            item_map[sid] = item
+
+    enriched = []
+    for claim in llm_claims:
+        if not isinstance(claim, dict):
+            continue
+        source_ids = claim.get("sourceIds") or []
+        sources = [item_map[s] for s in source_ids if s in item_map]
+        source_types = sorted(set(s.get("sourceType", "unknown") for s in sources))
+        source_count = len(source_types)
+        if source_count >= 3:
+            agreement_level = "confirmed"
+        elif source_count >= 2:
+            agreement_level = "supported"
+        elif source_count >= 1:
+            agreement_level = "single_source"
+        else:
+            agreement_level = "single_source"
+        enriched.append({
+            "claimId": claim.get("claimId", f"c-{len(enriched) + 1}"),
+            "claim": claim.get("claim", "")[:200],
+            "sourceIds": source_ids,
+            "sourceTypes": source_types,
+            "agreementLevel": agreement_level,
+            "sourceCount": len(sources),
+        })
+
+    total_claims = len(enriched)
+    confirmed = sum(1 for c in enriched if c["agreementLevel"] == "confirmed")
+    supported = sum(1 for c in enriched if c["agreementLevel"] == "supported")
+    single = sum(1 for c in enriched if c["agreementLevel"] == "single_source")
+    contradicted = sum(1 for c in enriched if c["agreementLevel"] == "contradicted")
+
+    return {
+        "claims": enriched,
+        "summary": {
+            "totalClaims": total_claims,
+            "confirmedCount": confirmed,
+            "supportedCount": supported,
+            "singleSourceCount": single,
+            "contradictedCount": contradicted,
+            "agreementRate": round((confirmed + supported) / max(total_claims, 1), 2),
+            "method": "llm",
+        },
+    }
+
+
 def _build_claim_extraction_prompt(items: list) -> str:
     """Build prompt for LLM claim extraction."""
     evidence_texts = []

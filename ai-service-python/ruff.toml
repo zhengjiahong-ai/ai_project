@@ -4,22 +4,7 @@
 
 [lint]
 [lint.per-file-ignores]
-# ── Pre-existing refactoring bugs ────────────────────────────────────────────
-# chat_service.py: functions were moved to socratic_service/term_explanation_service
-# during v0.6.15 split; internal call sites were not updated.
-"services/chat_service.py" = ["F821", "E402"]
-# socratic_service.py: SOCRATIC_* constants need to be imported from shared module
-"services/socratic_service.py" = ["F821"]
-# term_explanation_service.py: missing imports from chat_service split (v0.6.15)
-"services/term_explanation_service.py" = ["F821"]
-# research_task_service.py: _detect_research_conflicts redefined (aggregator vs conflict)
-"services/research_task_service.py" = ["F811", "F821"]
-# evidence_cross_validator.py: _cluster_and_score reference (v0.6.22)
-"services/evidence_cross_validator.py" = ["F821"]
-# reasoning_chain.py: _summarize_chain reference
-"services/reasoning_chain.py" = ["F821"]
-# agent_reasoning.py: Optional type annotation
-"services/agent_reasoning.py" = ["F821"]
+# ── Fixed in 11-1 (ruff F821 豁免清零) ──────────────────────────────────────
 
 # ── Intentional E402 (logger before service imports) ─────────────────────────
 "services/agent_orchestrator.py" = ["E402"]

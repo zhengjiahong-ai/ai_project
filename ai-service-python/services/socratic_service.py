@@ -14,6 +14,97 @@ from services.trace_service import record_counter, sanitize_text, trace_step
 _logger = logging.getLogger(__name__)
 
 
+# ── socratic session constants ───────────────────────────────────────────
+
+SOCRATIC_TOTAL_QUESTIONS = 5
+SOCRATIC_MASTERY_LEVELS = ("需加强", "一般", "较好")
+SOCRATIC_EVIDENCE_LABELS = {
+    "CORRECT": "证据充足",
+    "AMBIGUOUS": "部分相关",
+    "INCORRECT": "证据不足",
+}
+SOCRATIC_SECTION_ALIASES = {
+    "abstract": ["abstract", "摘要"],
+    "introduction": ["introduction", "intro", "引言", "背景"],
+    "methods": ["methods", "method", "approach", "model", "methodology", "方法"],
+    "results": ["results", "result", "experiment", "experiments", "evaluation", "结果", "实验"],
+    "discussion": ["discussion", "analysis", "讨论", "分析"],
+    "conclusion": ["conclusion", "concluding", "总结", "结论"],
+}
+SOCRATIC_TOPIC_AXES = {
+    1: {
+        "key": "research_problem",
+        "label": "研究问题与价值",
+        "defaultQuestion": "请先用你自己的话概括：这篇论文想解决什么问题，为什么这个问题值得研究？",
+        "retrievalQuery": "论文 研究问题 研究动机 研究价值",
+        "keywords": ["研究问题", "研究动机", "研究价值", "任务边界"],
+        "aspects": [
+            {"name": "研究问题", "terms": ["研究问题", "任务", "要解决什么问题", "problem"]},
+            {"name": "研究动机", "terms": ["研究动机", "痛点", "挑战", "why"]},
+            {"name": "研究价值", "terms": ["研究价值", "意义", "贡献", "value"]},
+        ],
+        "reviewSections": ["abstract", "introduction"],
+        "reviewSectionLabel": "摘要/引言",
+    },
+    2: {
+        "key": "core_method",
+        "label": "核心方法与创新",
+        "defaultQuestion": "作者提出的方法或模型核心思路是什么？它和已有做法相比，最关键的变化在哪里？",
+        "retrievalQuery": "论文 核心方法 创新点 与已有方法差异",
+        "keywords": ["核心方法", "关键创新", "与已有方法差异", "模型设计"],
+        "aspects": [
+            {"name": "核心方法", "terms": ["核心方法", "核心思路", "方法", "model"]},
+            {"name": "关键创新", "terms": ["创新", "新颖", "关键变化", "innovation"]},
+            {"name": "与已有方法差异", "terms": ["差异", "相比", "已有方法", "baseline"]},
+        ],
+        "reviewSections": ["methods", "introduction"],
+        "reviewSectionLabel": "方法/引言部分",
+    },
+    3: {
+        "key": "experiment_evaluation",
+        "label": "实验设计与结果评估",
+        "defaultQuestion": "实验是如何设计的？主要结果说明了什么？证据有多强？",
+        "retrievalQuery": "论文 实验设计 实验结果 评估指标",
+        "keywords": ["实验设计", "主要结果", "评估指标", "证据强度"],
+        "aspects": [
+            {"name": "实验设计", "terms": ["实验设计", "实验设置", "实验", "experiment"]},
+            {"name": "主要结果", "terms": ["结果", "性能", "指标", "accuracy"]},
+            {"name": "证据强度", "terms": ["显著", "优势", "提升", "evidence"]},
+        ],
+        "reviewSections": ["results", "experiment"],
+        "reviewSectionLabel": "实验/结果部分",
+    },
+    4: {
+        "key": "comparison_discussion",
+        "label": "对比分析与讨论",
+        "defaultQuestion": "作者把自己方法和哪些工作做了对比？对比公平吗？还有哪些值得讨论的地方？",
+        "retrievalQuery": "论文 对比方法 与已有方法对比 讨论",
+        "keywords": ["对比方法", "对比公平性", "讨论", "分析"],
+        "aspects": [
+            {"name": "对比方法", "terms": ["对比", "比较", "baseline", "compare"]},
+            {"name": "对比公平性", "terms": ["公平", "控制变量", "fair"]},
+            {"name": "讨论深度", "terms": ["讨论", "分析", "原因", "discussion"]},
+        ],
+        "reviewSections": ["discussion", "results"],
+        "reviewSectionLabel": "讨论/结果部分",
+    },
+    5: {
+        "key": "limitation_reflection",
+        "label": "局限性反思与总结",
+        "defaultQuestion": "这篇论文还有哪些局限？你对它的整体评价是什么？如果让你改进，你会先做什么？",
+        "retrievalQuery": "论文 局限性 未来工作 总结",
+        "keywords": ["局限性", "潜在风险", "改进方向", "未来工作"],
+        "aspects": [
+            {"name": "局限性", "terms": ["局限", "限制", "limitation"]},
+            {"name": "潜在风险", "terms": ["风险", "隐患", "risk"]},
+            {"name": "改进方向", "terms": ["改进", "未来工作", "优化", "future work"]},
+        ],
+        "reviewSections": ["discussion", "conclusion"],
+        "reviewSectionLabel": "讨论/结论部分",
+    },
+}
+
+
 # ── helpers (inlined from chat_service) ──
 
 def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any] | None) -> str:

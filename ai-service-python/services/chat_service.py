@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from rag.store import retrieve_hybrid_results
+from rag.store import get_rag, retrieve_hybrid_results
 from schemas.requests import (
     ChatRequest,
     PageTranslationRequest,
@@ -10,6 +10,7 @@ from services.evidence_service import (
     build_sentence_source_map,
     compact_evidence_for_response,
     format_evidence_context,
+    normalize_evidence_items,
 )
 from services.page_translation_service import translate_page as translate_page_v2
 from services.query_service import build_chat_query_plan
@@ -20,9 +21,6 @@ from services.safety_service import (
     wrap_untrusted_context,
 )
 from services.socratic_service import _call_guarded_llm
-import logging
-_logger = logging.getLogger(__name__)
-
 from services.trace_service import (
     finalize_trace,
     record_counter,
@@ -31,6 +29,8 @@ from services.trace_service import (
     start_trace,
     trace_step,
 )
+import logging
+_logger = logging.getLogger(__name__)
 
 
 SOCRATIC_TOTAL_QUESTIONS = 5
@@ -123,6 +123,51 @@ SOCRATIC_TOPIC_AXES = {
     },
 }
 
+
+
+def _normalize_hybrid_evidence(raw_results, limit=None):
+    """Normalize hybrid/library retrieval results."""
+    return normalize_evidence_items(raw_results, source_type="library", limit=limit)
+
+
+def _retrieve_current_paper_evidence(
+    retrieval_query: str,
+    pdf_id: str | None = None,
+    current_top_k: int = 5,
+    current_limit: int = 5,
+) -> List[Dict[str, Any]]:
+    if not pdf_id:
+        return []
+    try:
+        with trace_step(
+            "retrieve_current_paper",
+            input_size=len(str(retrieval_query or "")),
+            meta={"pdfId": sanitize_text(pdf_id, max_chars=80)},
+        ) as step:
+            record_counter("retrievalCalls")
+            rag = get_rag()
+            clean_pdf_id = rag.normalize_id(pdf_id)
+            raw_results = rag.retrieve(retrieval_query, top_k=current_top_k, filter_metadata={"id": clean_pdf_id})
+            normalized = normalize_evidence_items(raw_results, source_type="current_paper", pdf_id=clean_pdf_id, limit=current_limit)
+            step["outputSize"] = len(normalized)
+            return normalized
+    except Exception as error:
+        _logger.error(f"PDF RAG retrieval failed: {error}")
+        return []
+
+
+def _deduplicate_evidence(items: List[Dict[str, Any]], limit: int | None = None) -> List[Dict[str, Any]]:
+    deduped = []
+    seen = set()
+    for item in items:
+        text_key = " ".join(str(item.get("text") or "").lower().split())
+        if not text_key or text_key in seen:
+            continue
+        seen.add(text_key)
+        deduped.append(item)
+        if limit is not None and len(deduped) >= limit:
+            break
+    return deduped
 
 
 def _retrieve_library_evidence(

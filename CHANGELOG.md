@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-18 v0.6.36
+
+1. **ruff F821 豁免清零**：修复 `chat_service.py`、`socratic_service.py`、`term_explanation_service.py`、`research_task_service.py`、`evidence_cross_validator.py`、`reasoning_chain.py`、`agent_reasoning.py` 共 7 个文件的 41 处 F821/F811/E402 lint 错误，移除 `ruff.toml` 中所有 F821 豁免规则。
+
 ### 2026-07-18 v0.6.35
 
 1. **LangGraph 正式迁移（10-5）**：新增 `services/agent_langgraph.py`——LangGraph StateGraph agent 编排器，含双 interrupt 人工审批节点（plan_review / final_review），支持计划拒绝/编辑、follow-up 循环、风险审查等。通过 `agent_graph_state_to_response` 保持与现有 API 的向后兼容。新增 11 个测试覆盖完整工作流。

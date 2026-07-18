@@ -16,7 +16,7 @@ from schemas.requests import ResearchFinalReviewRequest, ResearchPlanReviewReque
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.query_service import build_retrieval_queries
 from services import research_aggregator, research_executor, research_planner
-from services.research_conflict import _detect_research_conflicts, _build_research_review_risks, _validate_risk_reviews
+from services.research_conflict import _build_research_review_risks, _next_steps, _overall_assessment, _validate_risk_reviews
 from services.safety_service import (
     MAX_RESEARCH_SUB_QUESTIONS,
     MAX_RETRIEVAL_RETRIES,
@@ -270,6 +270,7 @@ def run_research_task_now(task_id: str) -> Dict[str, Any]:
             paper_skeleton=context.get("paperSkeleton") or {},
             user_constraints=str(context.get("userConstraints") or ""),
             brief_preview=context.get("briefPreview") or {},
+            trace_id=str(task.get("traceId") or ""),
         )
     return _copy_task_snapshot(task_id)
 
@@ -342,6 +343,7 @@ def _run_research_task(
     paper_skeleton: Dict[str, Any],
     user_constraints: str = "",
     brief_preview: Dict[str, Any] | None = None,
+    trace_id: str = "",
 ) -> None:
     if _is_cancelled(task_id):
         return
