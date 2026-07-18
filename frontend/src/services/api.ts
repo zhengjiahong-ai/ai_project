@@ -207,7 +207,7 @@ export const resolveApiBaseUrl = (
 
 export const resolveAgentApiBaseUrl = (
   env = globalThis.__VITE_ENV__ ?? (typeof import.meta !== 'undefined' ? import.meta.env : undefined),
-) => env?.VITE_AGENT_API_BASE_URL || 'http://localhost:8000/api';
+) => env?.VITE_AGENT_API_BASE_URL || 'http://localhost:8081/api';
 
 export const createApiClient = (baseURL = resolveApiBaseUrl(), axiosInstance = axios) => {
   const client = axiosInstance.create({
@@ -636,9 +636,9 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
 };
 
 const apiClient = createApiClient();
-const agentFallbackClient = createApiClient(resolveAgentApiBaseUrl());
+const agentFallbackClient = createApiClient('http://localhost:8000/api');
 
-export const apiService = createApiService(apiClient, agentFallbackClient, { agentDirect: true });
+export const apiService = createApiService(apiClient, agentFallbackClient, { agentDirect: false });
 export const uploadPdf = apiService.uploadPdf;
 
 export default apiClient;

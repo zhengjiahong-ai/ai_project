@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-18 v0.6.38
+
+1. **Agent 双链路统一**：前端 Agent API 默认地址从 Python 直连（`localhost:8000`）改为 Java 网关（`localhost:8081`），Agent 请求优先走统一 `/api` 网关，Java 返回 404 时自动回退到 Python；Python 直连保留为显式配置 `VITE_AGENT_API_BASE_URL=http://localhost:8000/api` 时的行为。
+
 ### 2026-07-18 v0.6.37
 
 1. **CI 测试排除显式化**：`test_offline_llm.py`、`test_offline_core_paths.py`、`test_logging_config.py` 通过修复 pydantic-settings 单例补丁恢复运行；`test_external_query_planner.py`（LLM 子集）、`test_council_service.py`（fixture 测试）添加 `@unittest.skipIf` 在无 API Key 时跳过；CI pytest `--ignore` 从 12 个减至 4 个（仅保留 Docker/Playwright 硬依赖）。
