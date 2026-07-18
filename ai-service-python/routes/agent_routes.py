@@ -27,6 +27,12 @@ from services import (
     agent_timeline_service,
     agent_workspace_service,
 )
+from services.agent_langgraph import (
+    agent_graph_state_to_response,
+    build_agent_graph,
+    resume_agent_graph,
+    run_agent_graph,
+)
 
 agent_router = APIRouter()
 
@@ -267,5 +273,97 @@ async def review_agent_final(task_id: str, request: AgentFinalReviewRequest):
         return JSONResponse({"status": "error", "message": str(error)}, status_code=409)
     except ValueError as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=422)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+# ── LangGraph Agent Graph routes ─────────────────────────────────────────
+
+
+@agent_router.post("/agent-graph")
+async def create_agent_graph(request: AgentRunCreateRequest):
+    """Create a LangGraph agent research task and run to the first interrupt.
+
+    The graph stops at plan_review (or final_review if plan already approved).
+    Returns the current graph state as an API response.
+    """
+    import uuid as _uuid
+    from services.agent_langgraph import (
+        agent_graph_state_to_response,
+        run_agent_graph,
+    )
+
+    thread_id = str(_uuid.uuid4())
+    try:
+        state = run_agent_graph(
+            prompt=request.prompt,
+            paper_ids=request.focusedPaperIds,
+            constraints=request.constraints or "",
+            allow_external_search=request.allowExternalSearch,
+            allow_web_search=request.allowWebSearch,
+            allow_iterative_search=request.allowIterativeSearch,
+            domain=request.domain or "",
+            thread_id=thread_id,
+        )
+        interrupted = state.get("status", "") == "awaiting_plan_review" or not state.get("plan_approved")
+        response = agent_graph_state_to_response(state, interrupted=interrupted)
+        response["threadId"] = thread_id
+        return JSONResponse({"status": "success", "task": response})
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@agent_router.post("/agent-graph/{thread_id}/resume")
+async def resume_agent_graph_route(thread_id: str, request):
+    """Resume a LangGraph agent graph after human review.
+
+    The body should contain the resume data: for plan review,
+    ``{"plan_approved": True, "plan_review_notes": "...", ...}``;
+    for final review,
+    ``{"final_approved": True, "final_review_notes": "...", ...}``.
+    """
+    from services.agent_langgraph import (
+        agent_graph_state_to_response,
+        resume_agent_graph,
+    )
+
+    try:
+        resume_data = await request.json()
+    except Exception:
+        return JSONResponse({"status": "error", "message": "Invalid JSON body."}, status_code=400)
+
+    try:
+        state = resume_agent_graph(resume_data, thread_id=thread_id)
+        interrupted = (
+            state.get("status", "") == "awaiting_plan_review"
+            or state.get("status", "") == "awaiting_final_review"
+            or (not state.get("plan_approved") and not state.get("final_approved"))
+        )
+        response = agent_graph_state_to_response(state, interrupted=interrupted)
+        response["threadId"] = thread_id
+        return JSONResponse({"status": "success", "task": response})
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@agent_router.get("/agent-graph/{thread_id}")
+async def get_agent_graph(thread_id: str):
+    """Get the current state of a LangGraph agent graph by thread ID."""
+    from services.agent_langgraph import (
+        agent_graph_state_to_response,
+        build_agent_graph,
+    )
+
+    try:
+        graph = build_agent_graph()
+        config = {"configurable": {"thread_id": thread_id}}
+        state = graph.get_state(config)
+        if state is None or state.values is None or not state.values:
+            return JSONResponse({"status": "error", "message": "Graph state not found."}, status_code=404)
+        graph_state = state.values
+        interrupted = len(state.next or []) > 0
+        response = agent_graph_state_to_response(graph_state, interrupted=interrupted)
+        response["threadId"] = thread_id
+        return JSONResponse({"status": "success", "task": response})
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)

@@ -19,6 +19,7 @@ import {
   normalizeAgentTaskListResponse,
   normalizeAgentTaskResponse,
   normalizeAgentWorkspaceResponse,
+  normalizeAgentGraphResponse,
   removeAgentProjectFromState,
   removeSelectedAgentPaperId,
   resolveInitialAgentPaperSelection,
@@ -431,14 +432,27 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
 
     const pollTask = async (): Promise<void> => {
       let prevStatus: string | null = null;
-      try {
-        const workspaceResponse = await apiService.getAgentWorkspace(projectId);
-        if (stopped) return;
-        const activeRun = (workspaceResponse as { workspace?: { activeRun?: { status?: string; taskStatus?: string } } })
-          ?.workspace?.activeRun;
-        prevStatus = activeRun?.status ?? activeRun?.taskStatus ?? null;
-        applyWorkspaceState(workspaceResponse, currentTask.taskId);
-      } catch {
+      const threadId: string = (currentTask as { threadId?: string }).threadId || '';
+      // Try LangGraph graph state if we have a threadId
+      if (threadId) {
+        try {
+          const graphResponse = await apiService.getAgentGraphState(threadId);
+          if (stopped) return;
+          const normalized = normalizeAgentGraphResponse(graphResponse);
+          const graphTask = normalized.task as AgentTask & { threadId?: string };
+          prevStatus = graphTask?.status;
+          cacheTask(graphTask as AgentTask, true);
+        } catch { /* fall through to legacy */ }
+      }
+      if (!prevStatus) {
+        try {
+          const workspaceResponse = await apiService.getAgentWorkspace(projectId);
+          if (stopped) return;
+          const activeRun = (workspaceResponse as { workspace?: { activeRun?: { status?: string; taskStatus?: string } } })
+            ?.workspace?.activeRun;
+          prevStatus = activeRun?.status ?? activeRun?.taskStatus ?? null;
+          applyWorkspaceState(workspaceResponse, currentTask.taskId);
+        } catch {
         try {
           const response = await apiService.getAgentTask(currentTask.taskId);
           if (stopped) return;
@@ -455,6 +469,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           }));
         }
       }
+      } // end if(!prevStatus)
 
       if (stopped) return;
 
@@ -576,13 +591,25 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           activePaperId,
         },
       };
-      await apiService.createAgentRun(activeProject.projectId, runPayload as unknown as AgentRunPayload);
+      // Try LangGraph agent-graph first, fall back to legacy run/task path
+      let langGraphTask: (AgentTask & { threadId?: string }) | null = null;
       try {
-        await loadWorkspace(activeProject.projectId);
+        const graphResponse = await apiService.runAgentGraph(runPayload as unknown as AgentRunPayload);
+        const normalized = normalizeAgentGraphResponse(graphResponse);
+        langGraphTask = normalized.task as AgentTask & { threadId?: string };
+        cacheTask(langGraphTask as AgentTask, true);
       } catch {
-        const response = await apiService.createAgentTask(activeProject.projectId, runPayload);
-        const task: AgentTask = normalizeAgentTaskResponse(response).task as unknown as AgentTask;
-        cacheTask(task, true);
+        langGraphTask = null;
+      }
+      if (!langGraphTask) {
+        try {
+          await apiService.createAgentRun(activeProject.projectId, runPayload as unknown as AgentRunPayload);
+          await loadWorkspace(activeProject.projectId);
+        } catch {
+          const response = await apiService.createAgentTask(activeProject.projectId, runPayload);
+          const task: AgentTask = normalizeAgentTaskResponse(response).task as unknown as AgentTask;
+          cacheTask(task, true);
+        }
       }
       setPrompt('');
       setState((prev: AgentWorkspaceState) => ({ ...prev, error: '' }));
@@ -704,14 +731,35 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   const handleReviewPlan = async (payload: Record<string, unknown>): Promise<void> => {
     if (!currentTask?.taskId) return;
     try {
+      const threadId: string = (currentTask as { threadId?: string }).threadId || '';
       const reviewPayload = buildAgentPlanReviewPayload(payload);
-      const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
-      try {
-        await apiService.reviewAgentRunPlan(runId, reviewPayload);
-        await loadWorkspace(currentTask.projectId, currentTask.taskId);
-      } catch {
-        const response = await apiService.reviewAgentPlan(currentTask.taskId, reviewPayload);
-        cacheTask(normalizeAgentTaskResponse(response).task as unknown as AgentTask, true);
+      // Try LangGraph resume first; fall back to legacy run/task review
+      let reviewed = false;
+      if (threadId) {
+        try {
+          const resumeData = {
+            plan_approved: true,
+            plan_review_notes: `${payload.reviewNotes || ''}`,
+            plan_items: payload.planItems || [],
+            allow_external_search: !!(payload as any).allowExternalSearch,
+            allow_web_search: !!(payload as any).allowWebSearch,
+            allow_iterative_search: !!(payload as any).allowIterativeSearch,
+          };
+          const graphResponse = await apiService.resumeAgentGraph(threadId, resumeData);
+          const normalized = normalizeAgentGraphResponse(graphResponse);
+          cacheTask(normalized.task as AgentTask & { threadId?: string }, true);
+          reviewed = true;
+        } catch { /* fall through to legacy */ }
+      }
+      if (!reviewed) {
+        const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
+        try {
+          await apiService.reviewAgentRunPlan(runId, reviewPayload);
+          await loadWorkspace(currentTask.projectId, currentTask.taskId);
+        } catch {
+          const response = await apiService.reviewAgentPlan(currentTask.taskId, reviewPayload);
+          cacheTask(normalizeAgentTaskResponse(response).task as unknown as AgentTask, true);
+        }
       }
       setState((prev: AgentWorkspaceState) => ({ ...prev, error: '' }));
     } catch (error: unknown) {
@@ -727,13 +775,31 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   const handleReviewFinal = async (payload: Record<string, unknown>): Promise<void> => {
     if (!currentTask?.taskId) return;
     try {
-      const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
-      try {
-        await apiService.reviewAgentRunFinal(runId, payload as unknown as FinalReviewPayload);
-        await loadWorkspace(currentTask.projectId, currentTask.taskId);
-      } catch {
-        const response = await apiService.reviewAgentFinal(currentTask.taskId, payload);
-        cacheTask(normalizeAgentTaskResponse(response).task as unknown as AgentTask, true);
+      const threadId: string = (currentTask as { threadId?: string }).threadId || '';
+      // Try LangGraph resume first; fall back to legacy run/task review
+      let reviewed = false;
+      if (threadId) {
+        try {
+          const resumeData = {
+            final_approved: true,
+            final_review_notes: `${payload.reviewNotes || ''}`,
+            risk_reviews: payload.riskReviews || [],
+          };
+          const graphResponse = await apiService.resumeAgentGraph(threadId, resumeData);
+          const normalized = normalizeAgentGraphResponse(graphResponse);
+          cacheTask(normalized.task as AgentTask & { threadId?: string }, true);
+          reviewed = true;
+        } catch { /* fall through to legacy */ }
+      }
+      if (!reviewed) {
+        const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
+        try {
+          await apiService.reviewAgentRunFinal(runId, payload as unknown as FinalReviewPayload);
+          await loadWorkspace(currentTask.projectId, currentTask.taskId);
+        } catch {
+          const response = await apiService.reviewAgentFinal(currentTask.taskId, payload);
+          cacheTask(normalizeAgentTaskResponse(response).task as unknown as AgentTask, true);
+        }
       }
       setState((prev: AgentWorkspaceState) => ({ ...prev, error: '' }));
     } catch (error: unknown) {

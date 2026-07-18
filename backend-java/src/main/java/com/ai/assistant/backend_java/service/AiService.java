@@ -93,4 +93,8 @@ public class AiService {
     public ResponseEntity<Map<String, Object>> checkResearchMonitor(String id)                                   { return agentService.checkResearchMonitor(id); }
     public ResponseEntity<Map<String, Object>> getResearchMonitorDigest(String id)                               { return agentService.getResearchMonitorDigest(id); }
     public ResponseEntity<Map<String, Object>> deactivateResearchMonitor(String id)                              { return agentService.deactivateResearchMonitor(id); }
+
+    public ResponseEntity<Map<String, Object>> createAgentGraph(Map<String, Object> r)                           { return agentService.createAgentGraph(r); }
+    public ResponseEntity<Map<String, Object>> resumeAgentGraph(String id, Map<String, Object> r)                { return agentService.resumeAgentGraph(id, r); }
+    public ResponseEntity<Map<String, Object>> getAgentGraph(String id)                                           { return agentService.getAgentGraph(id); }
 }

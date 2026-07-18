@@ -504,3 +504,86 @@ export const removeAgentProjectFromState = (state: any, projectId: any) => {
     tasksByProjectId: nextTasksByProjectId,
   };
 };
+
+// ── LangGraph Agent Graph normalization ────────────────────────────────────
+
+export interface AgentGraphState {
+  threadId: string;
+  prompt: string;
+  paper_ids: string[];
+  status: string;
+  planItems: Record<string, unknown>[];
+  paperContexts: Record<string, unknown>[];
+  toolCalls: Record<string, unknown>[];
+  evidenceItems: Record<string, unknown>[];
+  findings: Record<string, unknown>[];
+  comparisonTable: Record<string, unknown>;
+  conflicts: Record<string, unknown>[];
+  openQuestions: string[];
+  draftReport: string;
+  reviewRisks: Record<string, unknown>[];
+  humanReview: Record<string, unknown>;
+  researchTimeline: Record<string, unknown>[];
+  error: string;
+}
+
+/**
+ * Normalize a LangGraph agent-graph API response into the existing AgentTask shape
+ * so that AgentWorkspace can consume it without major refactoring.
+ */
+export const normalizeAgentGraphResponse = (response: any): { task: AgentTask & { threadId?: string } } => {
+  const task = response?.task || response || {};
+  return {
+    task: {
+      taskId: task.threadId || '',
+      projectId: '',
+      traceId: '',
+      status: task.status || 'pending',
+      stage: task.status === 'awaiting_plan_review' ? 'planning'
+        : task.status === 'running' ? 'retrieving'
+        : task.status === 'awaiting_final_review' ? 'synthesizing'
+        : task.status === 'succeeded' ? 'done'
+        : 'planning',
+      progress: task.status === 'succeeded' ? 1.0
+        : task.status === 'awaiting_final_review' ? 0.9
+        : task.status === 'running' ? 0.5
+        : 0.1,
+      prompt: task.prompt || '',
+      focusedPaperIds: task.paper_ids || [],
+      planItems: task.planItems || [],
+      events: (task.researchTimeline || []).map((e: Record<string, unknown>) => ({
+        eventId: `${e.timestamp || ''}`,
+        type: e.node || 'unknown',
+        timestamp: e.timestamp || '',
+        taskId: task.threadId || '',
+        stage: 'planning',
+        summary: e.summary || '',
+      })),
+      toolCalls: task.toolCalls || [],
+      evidenceItems: task.evidenceItems || [],
+      findings: task.findings || [],
+      comparisonTable: task.comparisonTable || {},
+      conflicts: task.conflicts || [],
+      reportSources: [],
+      openQuestions: (task.openQuestions || []).map((q: string, i: number) => ({
+        id: `open:${i}`,
+        question: q,
+      })),
+      reviewRisks: task.reviewRisks || [],
+      humanReview: task.humanReview || { plan: {}, final: {} },
+      constraints: '',
+      draftReport: task.draftReport || '',
+      error: task.error || '',
+      createdAt: '',
+      updatedAt: '',
+      threadId: task.threadId || '',
+      externalSearchConfig: {
+        allowExternalSearch: false,
+        provider: '',
+        budget: { callLimit: 0, evidenceLimit: 0, callsUsed: 0, evidenceUsed: 0 },
+        status: '',
+        degradation: '',
+      },
+    } as AgentTask & { threadId?: string },
+  };
+};

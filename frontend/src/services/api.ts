@@ -197,6 +197,11 @@ export interface ApiService {
   checkResearchMonitor: (monitorId: string) => Promise<unknown>;
   getResearchMonitorDigest: (monitorId: string) => Promise<unknown>;
   deactivateResearchMonitor: (monitorId: string) => Promise<unknown>;
+
+  // LangGraph Agent Graph
+  runAgentGraph: (payload: AgentRunPayload) => Promise<unknown>;
+  resumeAgentGraph: (threadId: string, payload: Record<string, unknown>) => Promise<unknown>;
+  getAgentGraphState: (threadId: string) => Promise<unknown>;
 }
 
 // ── Implementation ──────────────────────────────────────────────────────────
@@ -631,6 +636,16 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
 
   generatePaperDraft: async (payload) =>
     agentPrimaryClient.post('/generate-paper-draft', payload),
+
+  // LangGraph Agent Graph
+  runAgentGraph: async (payload) =>
+    agentPrimaryClient.post('/agent-graph', payload),
+
+  resumeAgentGraph: async (threadId, payload) =>
+    agentPrimaryClient.post(`/agent-graph/${encodeURIComponent(threadId)}/resume`, payload),
+
+  getAgentGraphState: async (threadId) =>
+    agentPrimaryClient.get(`/agent-graph/${encodeURIComponent(threadId)}`),
 
   } as ApiService;
 };

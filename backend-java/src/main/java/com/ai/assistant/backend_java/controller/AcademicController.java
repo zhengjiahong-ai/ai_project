@@ -319,4 +319,22 @@ public class AcademicController {
     public ResponseEntity<Map<String, Object>> deactivateResearchMonitor(@PathVariable String monitorId) {
         return aiService.deactivateResearchMonitor(monitorId);
     }
+
+    // ── LangGraph Agent Graph ─────────────────────────────────────────────
+
+    @PostMapping("/agent-graph")
+    public ResponseEntity<Map<String, Object>> createAgentGraph(@RequestBody Map<String, Object> request) {
+        return aiService.createAgentGraph(request);
+    }
+
+    @PostMapping("/agent-graph/{threadId}/resume")
+    public ResponseEntity<Map<String, Object>> resumeAgentGraph(
+            @PathVariable String threadId, @RequestBody Map<String, Object> request) {
+        return aiService.resumeAgentGraph(threadId, request);
+    }
+
+    @GetMapping("/agent-graph/{threadId}")
+    public ResponseEntity<Map<String, Object>> getAgentGraph(@PathVariable String threadId) {
+        return aiService.getAgentGraph(threadId);
+    }
 }

@@ -222,4 +222,18 @@ public class AgentGatewayService {
     public ResponseEntity<Map<String, Object>> deactivateResearchMonitor(String monitorId) {
         return fwd(HttpMethod.DELETE, "/research-monitors/" + enc(monitorId), null);
     }
+
+    // ── LangGraph Agent Graph ────────────────────────────────────────────
+
+    public ResponseEntity<Map<String, Object>> createAgentGraph(Map<String, Object> request) {
+        return fwdPost("/agent-graph", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> resumeAgentGraph(String threadId, Map<String, Object> request) {
+        return fwdPost("/agent-graph/" + enc(threadId) + "/resume", request);
+    }
+
+    public ResponseEntity<Map<String, Object>> getAgentGraph(String threadId) {
+        return fwdGet("/agent-graph/" + enc(threadId));
+    }
 }
