@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Annotated, Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
@@ -226,7 +226,6 @@ def report_node(state: AgentGraphState) -> AgentGraphState:
     _record(state, "report", "Generating draft report and risks")
 
     try:
-        from services.agent_orchestrator import build_agent_outputs as _outputs
         from services.agent_report_sections import build_minimal_report
 
         state["draft_report"] = build_minimal_report(
@@ -285,7 +284,7 @@ def follow_up_decision(state: AgentGraphState) -> str:
         state["follow_up_count"] = follow_ups + 1
         _record(state, "decision", f"Gap detected → follow-up round {follow_ups + 1}")
         return "execute"
-    _record(state, "decision", f"No gap or sufficient evidence → final review")
+    _record(state, "decision", "No gap or sufficient evidence → final review")
     return "final_review"
 
 
