@@ -528,6 +528,20 @@ def _evidence_quality_instruction(judge_result: Dict[str, Any]) -> str:
 
 
 
+def _build_chat_query_context(
+    history: List[Dict[str, Any]], paper_skeleton: Dict[str, Any]
+) -> str:
+    """Build a minimal context string from paper skeleton for query planning."""
+    parts: List[str] = []
+    abstract = str(paper_skeleton.get("abstract") or "").strip()
+    if abstract:
+        parts.append(f"Abstract: {abstract[:1200]}")
+    introduction = str(paper_skeleton.get("introduction") or "").strip()
+    if introduction:
+        parts.append(f"Introduction: {introduction[:1200]}")
+    return "\n\n".join(parts)
+
+
 def chat(request: ChatRequest) -> Dict[str, Any]:
     message = request.message or ""
     if not message.strip():

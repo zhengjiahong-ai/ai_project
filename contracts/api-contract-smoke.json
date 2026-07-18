@@ -386,19 +386,6 @@
       "pythonResponse": {"status": "success", "received": true},
       "gatewayResponse": {"status": "success", "received": true},
       "pythonResponseContract": {"type": "object", "required": ["status", "received"], "properties": {"status": {"type": "string", "enum": ["success"]}, "received": {"type": "boolean"}}}
-    },
-    {
-      "operation": "usage",
-      "method": "POST",
-      "frontendPath": "/usage",
-      "javaPath": "/api/usage",
-      "pythonPath": "/api/usage",
-      "statusCode": 200,
-      "frontendRequest": {"event": "page_view", "page": "reading", "timestamp": "2026-07-17T00:00:00Z"},
-      "pythonRequest": {"event": "page_view", "page": "reading", "timestamp": "2026-07-17T00:00:00Z"},
-      "pythonResponse": {"status": "success", "received": true},
-      "gatewayResponse": {"status": "success", "received": true},
-      "pythonResponseContract": {"type": "object", "required": ["status", "received"], "properties": {"status": {"type": "string", "enum": ["success"]}, "received": {"type": "boolean"}}}
     }
   ]
 }

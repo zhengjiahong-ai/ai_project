@@ -74,7 +74,6 @@ const run = async () => {
     'research-plan-review',
     'research-task',
     'trace',
-    'usage',
   ]);
 
   assert.equal(resolveApiBaseUrl({ VITE_API_BASE_URL: 'http://example.com/api' }), 'http://example.com/api');

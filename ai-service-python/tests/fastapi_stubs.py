@@ -36,7 +36,9 @@ class APIRouter:
         self.routes: list = []
 
     def include_router(self, router, **kwargs) -> None:
-        pass
+        prefix = kwargs.get("prefix", "")
+        for route in getattr(router, "routes", []):
+            self.routes.append(_Route(f"{self.prefix}{prefix}{route.path}", route.methods))
 
     def _register(self, path: str, method: str, func):
         self.routes.append(_Route(f"{self.prefix}{path}", {method}))
