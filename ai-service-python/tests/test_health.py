@@ -1,6 +1,10 @@
 """Tests for the /api/health endpoint."""
 import json
 
+import pytest
+
+pytest.importorskip("fastapi", reason="FastAPI not available")
+
 
 def _client():
     """Build a FastAPI TestClient with the health router mounted."""
