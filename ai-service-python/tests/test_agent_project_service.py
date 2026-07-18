@@ -14,7 +14,7 @@ from schemas.requests import (
     AgentFinalReviewRequest,
     AgentPlanReviewRequest,
 )
-from services import agent_project_service, trace_service
+from services import agent_legacy_adapter, agent_project_service, trace_service
 
 
 class _NoopThread:
@@ -333,7 +333,7 @@ class AgentProjectPersistenceTests(unittest.TestCase):
             "planItems": [{"id": "evidence", "label": "Collect evidence"}],
         }
 
-        adapted = agent_project_service._build_legacy_task_snapshot(project, run, review, None, [])
+        adapted = agent_legacy_adapter._build_legacy_task_snapshot(project, run, review, None, [])
 
         self.assertEqual(adapted["taskId"], "run-1")
         self.assertEqual(adapted["projectId"], "project-1")

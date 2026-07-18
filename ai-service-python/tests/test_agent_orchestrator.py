@@ -4,15 +4,19 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from services import trace_service
+from services.agent_evidence_collector import (
+    build_external_search_queries,
+    collect_project_evidence,
+)
 from services.agent_orchestrator import (
     build_agent_outputs,
     build_code_execution_proposal,
-    build_external_search_queries,
-    build_minimal_report,
     build_plan_items,
     build_review_plan_items,
-    collect_project_evidence,
     execute_run,
+)
+from services.agent_report_sections import build_minimal_report
+from services.agent_evidence_collector import (
     retrieve_external_agent_evidence,
     should_try_external_search,
 )

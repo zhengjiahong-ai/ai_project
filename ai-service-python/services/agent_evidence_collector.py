@@ -310,7 +310,8 @@ def collect_project_evidence(
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     # Lazy imports to avoid circular dependency with agent_orchestrator.
     from services.agent_reasoning import clean_text
-    from services.agent_orchestrator import evidence_preview, stabilize_source_ids, _timeline_step
+    from services.agent_orchestrator import _timeline_step
+    from services.agent_report_sections import evidence_preview, stabilize_source_ids
 
     paper_contexts: List[Dict[str, Any]] = []
     tool_calls: List[Dict[str, Any]] = []

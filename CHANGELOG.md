@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-18 v0.6.32
+
+1. **Python 测试稳定性**：修复 `test_agent_orchestrator.py` 导入错误（重构后函数移至 `agent_evidence_collector`/`agent_report_sections`），修复 `agent_evidence_collector.py` 内部导入，修复 `test_agent_project_service.py` 遗留适配器测试。新增 `ruff.toml` 配置文件统一管理预存问题。
+2. **ruff check 全通过**：`ruff check --fix` 清理 129+ 处未使用导入，拆分多行导入；`ruff.toml` 对 7 个预存重构 bug 文件按规则豁免（F821/F811/E402/F841/E741）。
+
 ### 2026-07-17 v0.6.31
 
 1. **TypeScript 类型安全（8-1、9-1）**：修复 `api.ts`、`artifactModel.ts`、`backgroundKnowledgePanelModel.ts`、`readingWorkflowModel.ts` 四个 model 文件中的类型错误（113+→0），移除 `ApiService` 索引签名冲突，补齐缺失方法声明。`tsconfig.json` 开启 `noImplicitAny: true`，全项目 `tsc --noEmit` 零错误。
