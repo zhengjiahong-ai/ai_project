@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-18 v0.6.35
+
+1. **LangGraph 正式迁移（10-5）**：新增 `services/agent_langgraph.py`——LangGraph StateGraph agent 编排器，含双 interrupt 人工审批节点（plan_review / final_review），支持计划拒绝/编辑、follow-up 循环、风险审查等。通过 `agent_graph_state_to_response` 保持与现有 API 的向后兼容。新增 11 个测试覆盖完整工作流。
+
 ### 2026-07-18 v0.6.34
 
 1. **MCP Adapter SSE/HTTP 传输（10-4）**：`mcp_adapter/server.py` 新增 SSE 传输支持（`build_sse_app` / `run_sse_server`），基于 `SseServerTransport` + Starlette ASGI，提供 `GET /sse` 和 `POST /messages/` 端点。通过 `PIXIU_MCP_TRANSPORT=stdio|sse` 环境变量选择传输方式，SSE 支持 `PIXIU_MCP_SSE_HOST`/`PIXIU_MCP_SSE_PORT` 配置。认证 token 通过 `x-pixiu-mcp-auth` HTTP header 传递。新增 9 个 SSE 传输测试。
