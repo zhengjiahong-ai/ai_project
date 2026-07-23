@@ -62,7 +62,31 @@ export const AgentEvidenceListSection = ({ activeProject, currentTask, activePap
     </div>
 
     <div className="mt-3 space-y-3">
-      {(currentTask?.evidenceItems || []).map((item) => (
+      {(currentTask?.evidenceItems || []).map((item) => {
+        // 17-3: chart_analysis / image_analysis get special rendering.
+        if (item.sourceType === 'chart_analysis' && item.metadata?.chartData) {
+          const ChartAnalysisCard = React.lazy(() => import('./ChartAnalysisCard.jsx'));
+          return (
+            <React.Suspense key={item.sourceId} fallback={<div className="agent-card rounded-[18px] p-3 text-xs">加载图表...</div>}>
+              <ChartAnalysisCard evidence={item} />
+            </React.Suspense>
+          );
+        }
+        if (item.sourceType === 'image_analysis') {
+          return (
+            <article key={item.sourceId} className="agent-card rounded-[18px] p-3 border-l-[3px]" style={{ borderLeftColor: 'var(--info, #0ea5e9)' }}>
+              <div className="agent-title text-xs font-semibold leading-5">图片分析</div>
+              <div className="mt-1 text-xs text-[color:var(--text-secondary)]">{item.text}</div>
+              {item.metadata?.imageUrl && (
+                <div className="mt-2 text-[10px] text-[color:var(--text-muted)]">来源: {item.metadata.imageUrl}</div>
+              )}
+              <div className="agent-evidence-meta mt-1 flex flex-wrap gap-2 text-[10px] font-semibold">
+                <span className="text-[color:var(--info)]">image_analysis</span>
+              </div>
+            </article>
+          );
+        }
+        return (
         <article key={item.sourceId} className="agent-card rounded-[18px] p-3">
           <div className="flex items-start justify-between gap-2">
             <div className="agent-title text-xs font-semibold leading-5">{item.pdfId || item.sourceId}</div>
@@ -103,7 +127,8 @@ export const AgentEvidenceListSection = ({ activeProject, currentTask, activePap
             <SourceList sources={[item]} onJumpToSource={onJumpToSource} variant="agent" />
           </div>
         </article>
-      ))}
+        );
+      })}
       {(currentTask?.evidenceItems || []).length === 0 && (
         <div className="agent-empty-state rounded-[18px] border-dashed px-4 py-5 text-xs leading-6">
           暂无证据卡片。任务进入检索阶段后，会在这里展示可追踪片段。

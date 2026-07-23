@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.58
+
+1. **ChartAnalysisCard 图表可视化（17-3）**：新增 `ChartAnalysisCard.jsx`——对 `sourceType="chart_analysis"` 的 evidence 以内嵌 recharts 图表渲染（bar/line/scatter/pie），支持暗色模式；`AgentWorkspaceEvidenceSections.jsx` 集成 chart_analysis / image_analysis 差异化渲染。
+2. **Agent LLM 语义缺口评估（18-2）**：`agent_orchestrator.py` 新增 `_llm_should_follow_up`——使用 flash 模型评估证据缺口，10s 超时，失败降级为关键字匹配；评估结果经 `llm_cache.py` 缓存。
+
 ### 2026-07-23 v0.6.57
 
 1. **前端置信度徽标（17-1）**：`AgentDraftReportSection` 报告渲染新增置信度徽标——解析 `(avg credibility N.NN, level: **high/medium/low/insufficient**)\` 模式，以彩色圆点+标签展示；Consensus/Contested/Single-Source 子标题以差异化左边框颜色区分；老报告（无子标题）原样渲染不报错。

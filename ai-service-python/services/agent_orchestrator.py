@@ -361,16 +361,72 @@ def _plan_item(item_id: str, label: str, detail: str, status: str) -> Dict[str, 
 def _should_follow_up(open_questions: List[str], evidence_items: List[Dict[str, Any]]) -> bool:
     """Decide whether another follow-up round is warranted.
 
-    Follow-up is triggered when open_questions indicate evidence gaps
-    and there are fewer than 12 evidence items (to avoid over-collection).
+    Uses LLM semantic evaluation when API key is available; falls back to
+    keyword matching on failure or timeout.
     """
     if not open_questions:
         return False
+    if len(evidence_items) >= 12:
+        return False
+
+    # 18-2: try LLM semantic gap assessment first.
+    llm_result = _llm_should_follow_up(open_questions, evidence_items)
+    if llm_result is not None:
+        return llm_result
+
+    # Fallback: keyword matching.
     gap_signals = [
         q for q in open_questions
         if any(kw in str(q).lower() for kw in ("need", "gap", "sparse", "missing", "cover"))
     ]
     return len(gap_signals) > 0 and len(evidence_items) < 12
+
+
+def _llm_should_follow_up(
+    open_questions: List[str],
+    evidence_items: List[Dict[str, Any]],
+) -> bool | None:
+    """Use flash LLM to assess whether evidence gaps warrant another round (18-2).
+
+    Returns True/False, or None when the LLM is unavailable (caller should fall back).
+    """
+    try:
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+
+        from llm.client import get_translation_llm
+        from services.llm_cache import get_llm_cache
+
+        questions_text = "\n".join(f"- {q}" for q in open_questions[:5])
+        evidence_preview = "\n".join(
+            f"- [{item.get('sourceType', '?')}] {str(item.get('text', ''))[:120]}"
+            for item in evidence_items[:6]
+        )
+        cache = get_llm_cache()
+        cached = cache.get("flash-gap-check", 0.1, "", f"{questions_text}|{evidence_preview}")
+        if cached is not None:
+            return cached.strip().lower() == "yes"
+
+        prompt = (
+            "You are evaluating whether an academic research agent should perform "
+            "another round of evidence retrieval. Answer ONLY 'yes' or 'no'.\n\n"
+            f"Open questions (evidence gaps):\n{questions_text}\n\n"
+            f"Existing evidence ({len(evidence_items)} items):\n{evidence_preview}\n\n"
+            "Should the agent continue searching for more evidence? "
+            "Reply 'yes' if there are clear evidence gaps that additional retrieval "
+            "could fill. Reply 'no' if the existing evidence is sufficient."
+        )
+
+        def _call():
+            return get_translation_llm()._call(prompt)
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_call)
+            result = future.result(timeout=10)
+            decision = str(result or "").strip().lower() == "yes"
+            cache.put("flash-gap-check", 0.1, "", f"{questions_text}|{evidence_preview}", "yes" if decision else "no")
+            return decision
+    except (FutureTimeout, Exception):
+        return None  # fall back to keyword matching
 
 
 def _build_follow_up_queries(
