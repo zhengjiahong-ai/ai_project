@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
+import { themeColorWithAlpha } from '../utils/themeColor';
 import { highlightPlugin, type RenderHighlightTargetProps, type RenderHighlightsProps } from '@react-pdf-viewer/highlight';
 import {
   Bookmark,
@@ -869,11 +870,11 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
                     {
                       background:
                         activeHighlightId === highlightEntity.id
-                          ? 'rgba(77, 0, 153, 0.4)'
-                          : 'rgba(77, 0, 153, 0.2)',
+                          ? themeColorWithAlpha('--accent-strong', 0.4, 'rgba(77,0,153,0.4)')
+                          : themeColorWithAlpha('--accent-strong', 0.2, 'rgba(77,0,153,0.2)'),
                       border:
                         activeHighlightId === highlightEntity.id
-                          ? '1px solid rgba(77, 0, 153, 0.6)'
+                          ? `1px solid ${themeColorWithAlpha('--accent-strong', 0.6, 'rgba(77,0,153,0.6)')}`
                           : 'none',
                       cursor: 'pointer',
                       mixBlendMode: 'multiply' as const,

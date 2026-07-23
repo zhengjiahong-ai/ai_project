@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph from 'react-force-graph-2d';
+import { cachedThemeColor } from '../utils/themeColor';
 import {
   BookOpenCheck,
   Database,
@@ -463,7 +464,7 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
                   onNodeClick: (node: GraphNode) => setSelectedGraphItem({ kind: 'node', ...node }),
                   onLinkClick: (link: GraphLink) => setSelectedGraphItem({ kind: 'edge', ...link }),
                   nodeRelSize: 6,
-                  linkColor: () => '#64748b',
+                  linkColor: () => cachedThemeColor('--text-muted', '#64748b'),
                   linkDirectionalArrowLength: 3,
                   linkDirectionalArrowRelPos: 1,
                   cooldownTicks: 100,

@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.43
+
+1. **暗色模式完善（13-4）**：新增 `utils/themeColor.js` 主题颜色工具（`cachedThemeColor`、`themeColorWithAlpha`）；`CriticalAnalysisPanel.jsx` 中 ForceGraph linkColor、Recharts 图表 CartesianGrid/YAxis/Bar 填充色从硬编码切换为 CSS 变量；`BackgroundKnowledgePanel.tsx` 中 ForceGraph linkColor 切换为 CSS 变量；`MetaAnalysisCard.jsx` 中 GRADE 回退色从硬编码 `#6b7280` 切换为 `var(--text-muted)`；`PdfViewer.tsx` 中 PDF 高亮标注色从硬编码 `rgba(77,0,153,...)` 切换为通过 `themeColorWithAlpha('--accent-strong', ...)` 动态计算。
+
 ### 2026-07-23 v0.6.42
 
 1. **中文论文 PDF 解析增强（13-3）**：`outline_extractor.py` 中 `_chinese_digit_to_arabic` 扩展支持至九百九十九（二十一、三十五、一百零五 等）；`_COMMON_CHINESE_UNNUMBERED_HEADING_RE` 新增研究动机、创新点、理论分析、敏感性分析、系统实现等 20+ 常见中文学术标题；新增 `_try_chinese_paren_heading` 检测（一）/（1）等中文括号编号模式；`_split_heading_number` 和 `_extract_standalone_heading_number` 同步支持中文括号编号和中文独立编号的 PDF 分离恢复；新增 8 个中文解析测试。

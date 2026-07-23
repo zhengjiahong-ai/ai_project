@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph from 'react-force-graph-2d';
+import { cachedThemeColor } from '../utils/themeColor';
 import {
   AlertCircle,
   ArrowRight,
@@ -186,7 +187,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                     width={containerWidth}
                     nodeLabel="name"
                     nodeRelSize={6}
-                    linkColor={() => '#64748b'}
+                    linkColor={() => cachedThemeColor('--text-muted', '#64748b')}
                     linkDirectionalArrowLength={3}
                     linkDirectionalArrowRelPos={1}
                     cooldownTicks={100}
@@ -211,11 +212,11 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={metrics} layout="vertical" margin={{ left: -20, right: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(148, 163, 184, 0.18)" />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-subtle)" />
                     <XAxis type="number" domain={[0, 100]} hide />
-                    <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} />
+                    <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fontWeight: 600, fill: 'var(--text-muted)' }} />
                     <Tooltip
-                      cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                      cursor={{ fill: 'var(--accent-soft)' }}
                       content={({ active, payload }) => {
                         if (!active || !payload?.length) return null;
                         const item = payload[0].payload;
@@ -241,7 +242,7 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                       {metrics.map((entry, index) => (
                         <Cell
                           key={`${entry.name}-${index}`}
-                          fill={entry.score >= 80 ? '#4D0099' : entry.score >= 60 ? '#7c3aed' : '#94a3b8'}
+                          fill={entry.score >= 80 ? 'var(--accent-strong)' : entry.score >= 60 ? 'var(--accent)' : 'var(--text-muted)'}
                         />
                       ))}
                     </Bar>

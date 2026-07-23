@@ -64,9 +64,9 @@ export default function MetaAnalysisCard({ result = {} }) {
           {/* GRADE badge */}
           {grade.level && (
             <div className="flex items-center gap-2 p-2 rounded text-xs"
-              style={{ backgroundColor: `${GRADE_COLORS[grade.level] ?? '#6b7280'}20` }}>
-              <Scale size={14} style={{ color: GRADE_COLORS[grade.level] ?? '#6b7280' }} />
-              <span className="font-medium" style={{ color: GRADE_COLORS[grade.level] ?? '#6b7280' }}>
+              style={{ backgroundColor: `${GRADE_COLORS[grade.level] ?? 'var(--text-muted)'}20` }}>
+              <Scale size={14} style={{ color: GRADE_COLORS[grade.level] ?? 'var(--text-muted)' }} />
+              <span className="font-medium" style={{ color: GRADE_COLORS[grade.level] ?? 'var(--text-muted)' }}>
                 GRADE: {GRADE_LABELS[grade.level] ?? grade.level}
               </span>
               {grade.reason && <span className="text-pixiu-muted">— {grade.reason}</span>}
