@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.60
+
+1. **超大文件拆分（19-2）**：`agent_langgraph.py`（929→649 行）的三个推理节点（`evidence_weighing_node`、`cross_paper_reasoning_node`、`conflict_resolution_node`）提取到新建 `services/agent_langgraph_reasoning.py`（296 行）；主文件通过模块级 re-export 保持向后兼容。
+
 ### 2026-07-23 v0.6.59
 
 1. **lint 修复**：`App.jsx` 分享路由 early return 移至所有 hooks 之后（React rules-of-hooks）；`AgentWorkspace.tsx` 修复 `??` 运算符 + 未使用变量警告。
