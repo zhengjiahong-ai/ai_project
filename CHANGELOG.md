@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.51
+
+1. **LLM 响应语义缓存（15-2）**：新增 `services/llm_cache.py`——SQLite 持久化的 LLM 响应精确匹配缓存（SHA-256 键），TTL 默认 1 小时（`PIXIU_LLM_CACHE_TTL_MINUTES`）；集成到 `llm/client.py` 的 `DeepSeekLLM._call`，缓存命中时跳过 API 调用并记录 `llmCacheHits`/`llmCacheMisses` trace 计数器；`core/config.py` 新增 `pixiu_llm_cache_mode`、`pixiu_llm_cache_ttl_minutes`、`pixiu_llm_cache_path` 配置项。
+
 ### 2026-07-23 v0.6.50
 
 1. **前端代码分包与懒加载（15-1）**：`App.jsx` 中 `ReadingIDE` 和 `AgentResearchPage` 改为 `React.lazy` + `Suspense` 懒加载；`vite.config.js` 新增 `vendor-db`（idb）独立 chunk。生产构建主入口 ~317 kB（gzip ~101 kB），ReadingIDE（209 kB）和 AgentResearchPage（1.2 kB）按需加载。61 测试 + build 全通过。

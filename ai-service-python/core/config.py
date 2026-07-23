@@ -77,5 +77,10 @@ class Settings(BaseSettings):
     pixiu_credibility_web_page_weight: float = 0.40
     pixiu_credibility_default_weight: float = 0.30
 
+    # ── LLM cache (15-2) ──────────────────────────────────────────────
+    pixiu_llm_cache_mode: str = "exact"
+    pixiu_llm_cache_ttl_minutes: int = 60
+    pixiu_llm_cache_path: str = ""
+
 
 settings = Settings()

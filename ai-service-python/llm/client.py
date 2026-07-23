@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -215,7 +214,30 @@ class DeepSeekLLM:
     ) -> str:
         del run_manager
         extra_body = kwargs.get("extra_body")
-        return self.invoke(
+
+        # ── 15-2: LLM response cache ────────────────────────────────
+        try:
+            from services.llm_cache import get_llm_cache
+            from services.trace_service import record_counter
+
+            cache = get_llm_cache()
+            system_prompt = ""
+            if messages:
+                for m in messages:
+                    if m.get("role") == "system":
+                        system_prompt = str(m.get("content", ""))
+                        break
+            user_prompt = prompt or (str(messages[-1].get("content", "")) if messages else "")
+
+            cached = cache.get(self.model, self.temperature, system_prompt, user_prompt)
+            if cached is not None:
+                record_counter("llmCacheHits", 1)
+                return cached
+            record_counter("llmCacheMisses", 1)
+        except Exception:
+            pass
+
+        result = self.invoke(
             LLMRequest(
                 prompt=prompt,
                 messages=messages,
@@ -223,6 +245,17 @@ class DeepSeekLLM:
                 extra_body=extra_body if isinstance(extra_body, dict) else {},
             )
         ).content
+
+        # ── store in cache ──────────────────────────────────────────
+        try:
+            from services.llm_cache import get_llm_cache
+
+            cache = get_llm_cache()
+            cache.put(self.model, self.temperature, system_prompt, user_prompt, result)
+        except Exception:
+            pass
+
+        return result
 
 
 class FixtureLLM:
