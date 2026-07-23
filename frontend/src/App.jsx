@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart3,
   BookOpen,
@@ -20,8 +20,8 @@ import CodeExecutionApprovalCenter from './components/CodeExecutionApprovalCente
 import LibrarySidebar from './components/LibrarySidebar';
 import Navbar from './components/Navbar';
 import { ToastProvider, useToast } from './components/Toast.jsx';
-import ReadingIDE from './pages/ReadingIDE.jsx';
-import AgentResearchPage from './pages/AgentResearchPage.jsx';
+const ReadingIDE = React.lazy(() => import('./pages/ReadingIDE.jsx'));
+const AgentResearchPage = React.lazy(() => import('./pages/AgentResearchPage.jsx'));
 import { useAbortableChat } from './hooks/useAbortableChat.js';
 import { useChat } from './hooks/useChat.js';
 import { useCriticalReading } from './hooks/useCriticalReading.js';
@@ -1385,6 +1385,7 @@ export default function App() {
         />
 
         <main className="workspace-main flex min-h-0 flex-1 overflow-hidden" aria-label="论文阅读工作区">
+          <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-muted">加载中...</div>}>
           {appMode === 'agent' ? (
             <AgentResearchPage
               papersList={papersList}
@@ -1498,6 +1499,7 @@ export default function App() {
               handleDeleteNote={handleDeleteNote}
             />
           )}
+          </Suspense>
         </main>
       </div>
     </>

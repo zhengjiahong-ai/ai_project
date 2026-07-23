@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.50
+
+1. **前端代码分包与懒加载（15-1）**：`App.jsx` 中 `ReadingIDE` 和 `AgentResearchPage` 改为 `React.lazy` + `Suspense` 懒加载；`vite.config.js` 新增 `vendor-db`（idb）独立 chunk。生产构建主入口 ~317 kB（gzip ~101 kB），ReadingIDE（209 kB）和 AgentResearchPage（1.2 kB）按需加载。61 测试 + build 全通过。
+
 ### 2026-07-23 v0.6.49
 
 1. **报告质量结构化升级（14-4）**：`agent_report_builder.py` 的 `_build_minimal_report` 新增 `Executive Summary` 章节（LLM 生成 ~300 字摘要，失败降级为确定性自动摘要）；`Current Conclusion` 拆分为三段——`Consensus Findings`（多论文一致支持，附带 credibility 评分和置信度标签）、`Contested Findings`（存在矛盾，附带 auto-resolved / needs_manual_review 裁决状态）、`Single-Source Findings`（仅单论文支持，标记低置信度）；后端报告格式兼容旧前端渲染。
