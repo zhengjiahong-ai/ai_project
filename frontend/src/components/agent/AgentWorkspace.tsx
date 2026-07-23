@@ -745,7 +745,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
             allow_external_search: !!(payload as any).allowExternalSearch,
             allow_web_search: !!(payload as any).allowWebSearch,
             allow_iterative_search: !!(payload as any).allowIterativeSearch,
-            allow_knowledge_graph: !!(payload as any).allowKnowledgeGraph ?? true,
+            allow_knowledge_graph: (payload as any).allowKnowledgeGraph !== false,
           };
           const graphResponse = await apiService.resumeAgentGraph(threadId, resumeData);
           const normalized = normalizeAgentGraphResponse(graphResponse);

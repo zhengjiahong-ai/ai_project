@@ -658,7 +658,7 @@ export const AgentDraftReportSection = ({ activeProject, currentTask, activePape
     if (artifact) onCaptureArtifact?.(artifact);
   };
 
-  const hasStructuredConclusion = draftSections.some((l) => _isSectionHeader(l));
+  const _hasStructuredConclusion = draftSections.some((l) => _isSectionHeader(l));
 
   return (
     <details className="agent-section mt-4 rounded-[18px]" open>

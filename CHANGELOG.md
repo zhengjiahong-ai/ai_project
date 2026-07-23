@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.59
+
+1. **lint 修复**：`App.jsx` 分享路由 early return 移至所有 hooks 之后（React rules-of-hooks）；`AgentWorkspace.tsx` 修复 `??` 运算符 + 未使用变量警告。
+
 ### 2026-07-23 v0.6.58
 
 1. **ChartAnalysisCard 图表可视化（17-3）**：新增 `ChartAnalysisCard.jsx`——对 `sourceType="chart_analysis"` 的 evidence 以内嵌 recharts 图表渲染（bar/line/scatter/pie），支持暗色模式；`AgentWorkspaceEvidenceSections.jsx` 集成 chart_analysis / image_analysis 差异化渲染。
