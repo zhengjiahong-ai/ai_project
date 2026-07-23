@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.61
+
+1. **部署与运维指南（19-4）**：新建 `docs/DEPLOYMENT.md`——覆盖裸机（gunicorn+nginx+systemd）和 Docker 两种部署方式；所有 `PIXIU_*` / `DEEPSEEK_*` 环境变量按必填/可选/默认值分类；6 个 SQLite 数据库持久化路径和备份策略；7 条安全建议。
+
 ### 2026-07-23 v0.6.60
 
 1. **超大文件拆分（19-2）**：`agent_langgraph.py`（929→649 行）的三个推理节点（`evidence_weighing_node`、`cross_paper_reasoning_node`、`conflict_resolution_node`）提取到新建 `services/agent_langgraph_reasoning.py`（296 行）；主文件通过模块级 re-export 保持向后兼容。
