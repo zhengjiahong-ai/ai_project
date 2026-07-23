@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.53
+
+1. **E2E 测试真实服务路径覆盖（15-4）**：新增 `tests/e2e_real/test_e2e_real.py`——覆盖 Agent 项目 CRUD、健康检查、限流 429 响应、MCP SSE 端点连通性、LangGraph agent 完整工作流（创建→计划审查）；服务不可达时自动 skip；新增 `tests/e2e_real/` 目录和运行说明。
+
 ### 2026-07-23 v0.6.52
 
 1. **API 限流基础防护（15-3）**：新增 `core/rate_limiter.py`——基于 token bucket 的内存限流器（无需 Redis），按 IP + 路由前缀分组（全局 60 rpm、Agent 10 rpm、聊天 30 rpm、翻译 10 rpm），通过 `PIXIU_RATE_LIMIT_ENABLED` 默认开启；集成到 `app.py` 为 FastAPI middleware，限流时返回 `429` + `Retry-After` header；`/api/health` 不限流。
