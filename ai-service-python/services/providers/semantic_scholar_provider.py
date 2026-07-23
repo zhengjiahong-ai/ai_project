@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import requests
 
+from core.config import settings
 from services.external_evidence import deduplicate_external_evidence, normalize_external_evidence
 from services.external_search_cache import (
     ExternalSearchCache,
@@ -156,6 +157,8 @@ def build_semantic_scholar_provider(config: Any) -> SemanticScholarProvider:
         env_key = str(config.get(SEMANTIC_SCHOLAR_API_KEY_ENV, "")).strip()
         if env_key:
             api_key = env_key
+    if not api_key:
+        api_key = settings.semantic_scholar_api_key.strip() or None
     return SemanticScholarProvider(
         cache=ExternalSearchCache(default_external_search_cache_path()),
         api_key=api_key or None,

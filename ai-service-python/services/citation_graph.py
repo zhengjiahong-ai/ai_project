@@ -18,6 +18,8 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+from core.config import settings
 from typing import Any, Optional
 
 import requests
@@ -93,7 +95,7 @@ class _RateLimiter:
 
 
 def _api_key() -> Optional[str]:
-    key = os.environ.get("SEMANTIC_SCHOLAR_API_KEY", "").strip()
+    key = settings.semantic_scholar_api_key.strip()
     return key or None
 
 

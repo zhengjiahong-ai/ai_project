@@ -89,6 +89,7 @@ def create_external_search_provider(
 
     providers_env = str(source.get(EXTERNAL_SEARCH_PROVIDERS_ENV, "")).strip()
     if providers_env:
+        providers_env = _auto_enable_semantic_scholar(providers_env, source)
         return _create_multi_provider(providers_env, source, builders)
 
     provider_name = str(source.get(EXTERNAL_SEARCH_PROVIDER_ENV, "")).strip().lower()
@@ -126,6 +127,36 @@ def create_external_search_provider(
             "External search provider builder returned an invalid provider."
         )
     return provider
+
+
+def _semantic_scholar_api_key_available(source: Mapping[str, str]) -> bool:
+    """Check whether a Semantic Scholar API key is configured via env or settings."""
+    env_key = str(source.get("SEMANTIC_SCHOLAR_API_KEY", "")).strip()
+    if env_key:
+        return True
+    try:
+        from core.config import settings
+
+        return bool(settings.semantic_scholar_api_key.strip())
+    except Exception:
+        return False
+
+
+def _auto_enable_semantic_scholar(
+    providers_env: str,
+    source: Mapping[str, str],
+) -> str:
+    """Append semantic_scholar to the provider list when an API key is configured."""
+    requested = [
+        name.strip().lower()
+        for name in providers_env.split(",")
+        if name.strip()
+    ]
+    if "semantic_scholar" in requested:
+        return providers_env
+    if _semantic_scholar_api_key_available(source):
+        return providers_env + ",semantic_scholar"
+    return providers_env
 
 
 def _create_multi_provider(

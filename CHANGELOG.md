@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.41
+
+1. **Semantic Scholar Provider 重新接入（13-2）**：`citation_graph.py` 的 `SEMANTIC_SCHOLAR_API_KEY` 从 `os.environ.get()` 迁移为集中配置 `settings.semantic_scholar_api_key`；`build_semantic_scholar_provider` 新增 `settings.semantic_scholar_api_key` fallback；`create_external_search_provider` 新增自动启用逻辑——配置 `SEMANTIC_SCHOLAR_API_KEY` 时自动将 `semantic_scholar` 追加到多 Provider 列表；`.env.example` 新增 `SEMANTIC_SCHOLAR_API_KEY` 配置项；更新 `docs/p6_provider_selection.md` 选型文档反映 API Key 自动启用行为。
+
 ### 2026-07-18 v0.6.40
 
 1. **MCP SSE 挂载到 FastAPI**：`app.py` 新增条件挂载，`PIXIU_MCP_ENABLED=true` + `PIXIU_MCP_TRANSPORT=sse` 时将 `build_sse_app()` 挂载到 `/mcp` 路径，SSE 端点与主服务同端口可用（`/mcp/sse`、`/mcp/messages/`）；`core/config.py` 新增 `pixiu_mcp_enabled`、`pixiu_mcp_transport`、`pixiu_mcp_sse_host`、`pixiu_mcp_sse_port`、`pixiu_mcp_auth_token` 集中配置项。

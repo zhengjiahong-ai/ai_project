@@ -123,14 +123,14 @@ SEMANTIC_SCHOLAR_API_KEY=YOUR_KEY python -m benchmarks.external_search.provider_
 
 ### 排除的 Provider
 
-- **semantic_scholar**: 匿名访问 100% 429 限流，需要 API Key
+- 无。三个 Provider 均可通过配置启用。
 
 ### 决策理由
 
 1. **Crossref** 和 **ArXiv** 在匿名访问下均 100% 成功，通过门禁
-2. **Semantic Scholar** 匿名访问全部 429，排除（标记为 `anonymous_access_unavailable`）
+2. **Semantic Scholar** 匿名访问全部 429，但配置 `SEMANTIC_SCHOLAR_API_KEY` 后可用。v0.6.41 起，配置 API Key 后自动追加到 Provider 列表
 3. ArXiv 在 CS/物理/数学领域有优势（原生收录预印本），Crossref 覆盖更广
-4. 两者组合(`arxiv,crossref`)形成互补：ArXiv 提供 CS 领域深度覆盖，Crossref 提供全学科广度
+4. 三者组合形成互补：ArXiv 提供 CS 领域深度覆盖，Crossref 提供全学科广度，Semantic Scholar 提供高精度元数据和高引用覆盖率
 
 ### 生产推荐配置
 
@@ -139,14 +139,15 @@ SEMANTIC_SCHOLAR_API_KEY=YOUR_KEY python -m benchmarks.external_search.provider_
 PIXIU_EXTERNAL_SEARCH_ENABLED=true
 PIXIU_EXTERNAL_SEARCH_PROVIDERS=arxiv,crossref
 
-# 如需启用 Semantic Scholar（需要 API Key）
-# SEMANTIC_SCHOLAR_API_KEY=your_key_here
-# PIXIU_EXTERNAL_SEARCH_PROVIDERS=arxiv,crossref,semantic_scholar
+# Semantic Scholar（可选，配置 API Key 后自动启用）
+SEMANTIC_SCHOLAR_API_KEY=your_key_here
+# 配置上述 Key 后无需手动加到 PROVIDERS 列表，系统自动追加 semantic_scholar
+# 也可显式指定: PIXIU_EXTERNAL_SEARCH_PROVIDERS=arxiv,crossref,semantic_scholar
 ```
 
 ## 已知限制
 
-1. **Semantic Scholar 需要 API Key**: 在未配置 `SEMANTIC_SCHOLAR_API_KEY` 时不可用。即使配置了 Key，也不应作为唯一 Provider。
+1. **Semantic Scholar 需要 API Key**: 在未配置 `SEMANTIC_SCHOLAR_API_KEY` 时不可用。配置 Key 后自动追加到多 Provider 列表，但不应作为唯一 Provider。
 2. **ArXiv 学科限制**: ArXiv 主要收录物理、数学、CS、生物学预印本，对医学/社会科学查询可能返回空结果。
 3. **Snapshot 时效性**: 离线 snapshot 反映的是 2026-06-21 的 API 行为。建议定期运行 `--live` 更新。
 4. **匿名访问限制**: 所有 Provider 在批量请求下都可能触发限流。生产环境建议配置 API Key（Semantic Scholar 必需，Crossref 推荐使用 Polite Pool）。
