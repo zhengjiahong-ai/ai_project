@@ -21,18 +21,19 @@ def _build_minimal_report(
 ) -> str:
     paper_lines = "\n".join(_build_scope_lines(paper_contexts)) or "- No project papers selected"
     evidence_lines = "\n".join(_build_evidence_snapshot_lines(evidence_items)) or "- No evidence snippets yet"
-    conclusion_lines = "\n".join(_build_conclusion_lines(prompt, paper_contexts, evidence_items))
+    executive_summary = _build_executive_summary(prompt, paper_contexts, evidence_items, conflicts, open_questions)
+    conclusion = _build_structured_conclusion(prompt, paper_contexts, evidence_items, conflicts)
     question_lines = "\n".join(f"- {item}" for item in open_questions[:4]) or "- None"
     conflict_lines = "\n".join(_build_conflict_lines(conflicts)) or "- No strong conflict candidates detected in this pass"
     return (
         "# Agent Research Draft\n\n"
         f"## Task\n{prompt}\n\n"
         f"## Project\n{project.get('title')}\n\n"
+        f"## Executive Summary\n{executive_summary}\n\n"
         f"## Scope\n{paper_lines}\n\n"
         "## Evidence Snapshot\n"
         f"{evidence_lines}\n\n"
-        "## Current Conclusion\n"
-        f"{conclusion_lines}\n\n"
+        f"## Current Conclusion\n{conclusion}\n\n"
         "## Conflict Candidates\n"
         f"{conflict_lines}\n\n"
         "## Open Questions\n"
@@ -199,6 +200,196 @@ def _build_conclusion_lines(
         )
 
     return lines
+
+
+def _build_executive_summary(
+    prompt: str,
+    paper_contexts: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+    conflicts: List[Dict[str, Any]],
+    open_questions: List[str],
+) -> str:
+    """Generate an executive summary (~300 chars) via LLM flash model.
+
+    Falls back to a deterministic auto-summary when the LLM is unavailable
+    or returns an empty response.
+    """
+    # ── Try LLM flash model ──────────────────────────────────────────
+    try:
+        from llm.client import get_llm
+
+        evidence_preview = "; ".join(
+            f"{item.get('pdfId', '?')}: {str(item.get('text', ''))[:80]}"
+            for item in evidence_items[:4]
+        )
+        conflicts_preview = "; ".join(
+            str(c.get("summary", ""))[:80] for c in conflicts[:2]
+        )
+        llm_prompt = (
+            f"Summarise the following research findings in ≤300 characters in Chinese. "
+            f"Research question: {prompt[:200]}. "
+            f"Papers analysed: {len(paper_contexts)}. "
+            f"Evidence snippets: {len(evidence_items)}. "
+            f"Key evidence: {evidence_preview}. "
+            f"Conflicts: {conflicts_preview}. "
+            f"Open questions: {len(open_questions)}."
+        )
+        result = get_llm()._call(llm_prompt)
+        if result and len(str(result).strip()) >= 20:
+            return "\n" + str(result).strip()[:500] + "\n"
+    except Exception:
+        pass
+
+    # ── Fallback: deterministic auto-summary ─────────────────────────
+    paper_count = len(paper_contexts)
+    evidence_count = len(evidence_items)
+    conflict_count = len([c for c in conflicts if c.get("id") != "no-major-conflict"])
+    profiles = _build_paper_support_profiles(paper_contexts, evidence_items)
+    strongest = [p for p in profiles if p["evidenceCount"] >= 2]
+    sparse = [p for p in profiles if p["evidenceCount"] <= 1]
+
+    parts = [
+        f"本次研究分析了 {paper_count} 篇论文，共收集 {evidence_count} 条证据片段。",
+    ]
+    if strongest:
+        parts.append(
+            f"证据覆盖较好的论文包括 {', '.join(p['pdfId'] for p in strongest[:3])}。"
+        )
+    if sparse:
+        parts.append(
+            f"{len(sparse)} 篇论文证据较为稀疏，结论需谨慎对待。"
+        )
+    if conflict_count:
+        parts.append(f"发现 {conflict_count} 个潜在冲突，需人工核查。")
+    else:
+        parts.append("未检测到明显冲突。")
+
+    return "\n" + " ".join(parts) + "\n"
+
+
+def _build_structured_conclusion(
+    prompt: str,
+    paper_contexts: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+    conflicts: List[Dict[str, Any]],
+) -> str:
+    """Build a 14-4 structured conclusion with three sub-sections.
+
+    * **Consensus Findings** — claims supported by ≥2 papers (high confidence).
+    * **Contested Findings** — claims with conflicts or adjudication notes.
+    * **Single-Source Findings** — claims from only one paper (low confidence).
+    """
+    profiles = _build_paper_support_profiles(paper_contexts, evidence_items)
+    strongest = [p for p in profiles if p["evidenceCount"] >= 2]
+    sparse = [p for p in profiles if p["evidenceCount"] <= 1]
+    resolved_conflicts = [c for c in conflicts if c.get("resolution_status") == "auto_resolved"]
+    unresolved_conflicts = [c for c in conflicts if c.get("resolution_status") == "needs_manual_review"]
+    other_conflicts = [c for c in conflicts if "resolution_status" not in c]
+
+    # Build confidence data per paper.
+    paper_cred: Dict[str, Dict[str, Any]] = {}
+    for item in evidence_items:
+        pdf_id = str(item.get("pdfId") or "")
+        if not pdf_id:
+            continue
+        if pdf_id not in paper_cred:
+            paper_cred[pdf_id] = {"count": 0, "total_score": 0.0, "cross_sources": set()}
+        cred = item.get("credibility") or {}
+        paper_cred[pdf_id]["count"] += 1
+        paper_cred[pdf_id]["total_score"] += float(cred.get("score", 0.5))
+        paper_cred[pdf_id]["cross_sources"].add(str(item.get("sourceType") or ""))
+
+    parts: List[str] = []
+
+    # ── Consensus Findings ────────────────────────────────────────────
+    consensus_items: List[str] = []
+    for pdf_id, data in paper_cred.items():
+        if data["count"] >= 2 and len(data["cross_sources"]) >= 1:
+            avg_score = data["total_score"] / data["count"]
+            level = (
+                "high" if avg_score >= 0.75
+                else "medium" if avg_score >= 0.50
+                else "low"
+            )
+            consensus_items.append(
+                f"- `{pdf_id}`: {data['count']} evidence items "
+                f"(avg credibility {avg_score:.2f}, level: **{level}**) "
+                f"across {len(data['cross_sources'])} source types."
+            )
+    if consensus_items:
+        parts.append(
+            "### Consensus Findings\n"
+            + "\n".join(consensus_items[:8])
+        )
+    elif strongest:
+        parts.append(
+            "### Consensus Findings\n"
+            + "\n".join(
+                f"- `{p['pdfId']}`: {p['evidenceCount']} evidence items focused on {p['theme']}."
+                for p in strongest[:4]
+            )
+        )
+    else:
+        parts.append(
+            "### Consensus Findings\n"
+            "- Insufficient evidence to establish multi-paper consensus."
+        )
+
+    # ── Contested Findings ────────────────────────────────────────────
+    contested_items: List[str] = []
+    for c in resolved_conflicts[:4]:
+        contested_items.append(
+            f"- [{c.get('severity', '?')}] {c.get('summary', c.get('claim', ''))[:200]} "
+            f"— **auto-resolved** ({c.get('resolution_direction', '')[:120]})"
+        )
+    for c in unresolved_conflicts[:4]:
+        contested_items.append(
+            f"- [{c.get('severity', '?')}] {c.get('summary', c.get('claim', ''))[:200]} "
+            f"— **needs manual review**: {c.get('resolution_reason', '')[:120]}"
+        )
+    for c in other_conflicts[:4]:
+        if c.get("id") == "no-major-conflict":
+            continue
+        contested_items.append(
+            f"- [{c.get('severity', '?')}] {c.get('summary', c.get('claim', ''))[:200]}"
+        )
+    if contested_items:
+        parts.append(
+            "### Contested Findings\n"
+            + "\n".join(contested_items[:8])
+        )
+    else:
+        parts.append(
+            "### Contested Findings\n"
+            "- No contested findings detected in this pass."
+        )
+
+    # ── Single-Source Findings ────────────────────────────────────────
+    single_items: List[str] = []
+    for pdf_id, data in paper_cred.items():
+        if data["count"] == 1:
+            single_items.append(
+                f"- `{pdf_id}`: single evidence item (credibility "
+                f"{data['total_score']:.2f}) — treat as **low confidence**."
+            )
+    for p in sparse:
+        pdf_id = p["pdfId"]
+        if pdf_id not in paper_cred:
+            single_items.append(
+                f"- `{pdf_id}`: sparse or fallback evidence — treat as **low confidence**."
+            )
+    if single_items:
+        parts.append(
+            "### Single-Source Findings\n"
+            + "\n".join(single_items[:6])
+        )
+    else:
+        parts.append(
+            "### Single-Source Findings\n"
+            "- All findings are supported by ≥2 evidence items across papers."
+        )
+
+    return "\n\n".join(parts)
 
 
 def _build_conflict_lines(conflicts: List[Dict[str, Any]]) -> List[str]:

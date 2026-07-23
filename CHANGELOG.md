@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.49
+
+1. **报告质量结构化升级（14-4）**：`agent_report_builder.py` 的 `_build_minimal_report` 新增 `Executive Summary` 章节（LLM 生成 ~300 字摘要，失败降级为确定性自动摘要）；`Current Conclusion` 拆分为三段——`Consensus Findings`（多论文一致支持，附带 credibility 评分和置信度标签）、`Contested Findings`（存在矛盾，附带 auto-resolved / needs_manual_review 裁决状态）、`Single-Source Findings`（仅单论文支持，标记低置信度）；后端报告格式兼容旧前端渲染。
+
 ### 2026-07-23 v0.6.48
 
 1. **Agent 多轮迭代推理深化（14-3）**：`agent_orchestrator.py` 的 `execute_run` follow-up 循环从固定 2 轮升级为信息增益驱动——每轮计算新增证据增益率，连续 2 轮 <10% 自动停止，安全上限 5 轮；`agent_langgraph.py` 的 `follow_up_decision` 和 `conflict_resolution_node` 同步支持增益终止逻辑，默认 `max_follow_up` 从 2 提升至 5；`conflict_resolution_node` 统一管理 follow-up 计数器和信息增益状态（修复条件边函数状态不持久化问题）。
