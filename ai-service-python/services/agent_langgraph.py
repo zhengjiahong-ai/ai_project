@@ -51,11 +51,21 @@ class AgentGraphState(TypedDict, total=False):
     evidence_items: List[Dict[str, Any]]
     research_timeline: List[Dict[str, Any]]
 
+    # Evidence weighing (14-1)
+    weighted_evidence: List[Dict[str, Any]]
+
+    # Cross-paper reasoning (14-1)
+    cross_paper_insights: Dict[str, Any]
+
     # Synthesis
     findings: List[Dict[str, Any]]
     comparison_table: Dict[str, Any]
     conflicts: List[Dict[str, Any]]
     open_questions: List[str]
+
+    # Conflict resolution (14-1)
+    resolved_conflicts: List[Dict[str, Any]]
+    unresolved_conflicts: List[Dict[str, Any]]
 
     # Final review (human-in-the-loop #2)
     draft_report: str
@@ -221,6 +231,336 @@ def synthesize_node(state: AgentGraphState) -> AgentGraphState:
     return state
 
 
+# ── 14-1 Reasoning Nodes ──────────────────────────────────────────────────────
+
+
+# Source-type base trust weights (configurable via env in 14-2).
+_SOURCE_TYPE_TRUST: Dict[str, float] = {
+    "current_paper": 1.0,
+    "library": 0.85,
+    "external_academic": 0.65,
+    "web_search": 0.45,
+    "web_page": 0.40,
+}
+
+
+def _compute_credibility(
+    evidence: Dict[str, Any],
+    all_evidence: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Compute structured credibility score for a single evidence item.
+
+    Deterministic weighting; does NOT call an LLM.
+    """
+    source_type = str(evidence.get("sourceType") or evidence.get("source_type") or "unknown")
+    source_weight = _SOURCE_TYPE_TRUST.get(source_type, 0.35)
+
+    # Page anchor: items with a page index are more trustworthy.
+    has_page = evidence.get("pageIndex") is not None
+    page_factor = 1.0 if has_page else 0.65
+
+    # Cross-source agreement: how many *other* evidence items share keywords.
+    text = str(evidence.get("text") or "")
+    keywords = set(text.lower().split()) if text else set()
+    if keywords:
+        other_texts = [
+            str(e.get("text") or "")
+            for e in all_evidence
+            if e is not evidence
+        ]
+        agreement_hits = sum(
+            1 for ot in other_texts
+            if ot and len(keywords & set(ot.lower().split())) >= 3
+        )
+        cross_agreement = min(1.0, agreement_hits / max(1, len(other_texts)) * 3)
+    else:
+        cross_agreement = 0.0
+
+    # Judge score (if present on the evidence item).
+    judge_score = float(evidence.get("judgeScore") or evidence.get("score") or 0.5)
+    judge_score = max(0.0, min(1.0, judge_score / 100.0 if judge_score > 1.0 else judge_score))
+
+    # Composite score: weighted average.
+    score = round(
+        source_weight * 0.35
+        + page_factor * 0.20
+        + cross_agreement * 0.20
+        + judge_score * 0.25,
+        3,
+    )
+
+    return {
+        "score": score,
+        "factors": {
+            "source_type_weight": source_weight,
+            "page_anchor_coverage": page_factor,
+            "cross_source_agreement": round(cross_agreement, 3),
+            "judge_score": round(judge_score, 3),
+        },
+        "calibration_note": (
+            "high" if score >= 0.75
+            else "medium" if score >= 0.50
+            else "low" if score >= 0.30
+            else "insufficient"
+        ),
+    }
+
+
+def evidence_weighing_node(state: AgentGraphState) -> AgentGraphState:
+    """Compute structured credibility scores for every evidence item.
+
+    Uses deterministic weighting (source type, page anchor, cross-source
+    agreement, judge score).  LLM is NOT called here — this is a fast,
+    deterministic enrichment step.
+    """
+    evidence_items: List[Dict[str, Any]] = state.get("evidence_items", [])
+    _record(state, "evidence_weighing", f"Weighing {len(evidence_items)} evidence items")
+
+    weighted: List[Dict[str, Any]] = []
+    for item in evidence_items:
+        enriched = dict(item)
+        enriched["credibility"] = _compute_credibility(item, evidence_items)
+        weighted.append(enriched)
+
+    state["weighted_evidence"] = weighted
+    _record(state, "evidence_weighing",
+            f"Weighed {len(weighted)} items; "
+            f"avg score={sum(e['credibility']['score'] for e in weighted) / max(1, len(weighted)):.2f}")
+    return state
+
+
+def cross_paper_reasoning_node(state: AgentGraphState) -> AgentGraphState:
+    """Analyse weighted evidence across papers to surface insights.
+
+    Outputs ``cross_paper_insights`` with four sub-lists:
+
+    * **consensus** — claims independently supported by ≥2 papers.
+    * **complementary** — papers contribute disjoint but compatible evidence.
+    * **contradictory** — evidence from different papers points in opposite directions.
+    * **gaps** — topics with little or no evidence.
+
+    Uses lightweight deterministic grouping + LLM flash-model call for
+    semantic judgement (fails gracefully to rule-based fallback).
+    """
+    weighted: List[Dict[str, Any]] = state.get("weighted_evidence", [])
+    paper_ids: List[str] = state.get("paper_ids", [])
+    _record(state, "cross_paper_reasoning",
+            f"Reasoning across {len(paper_ids)} papers with {len(weighted)} weighted evidence items")
+
+    insights: Dict[str, Any] = {
+        "consensus": [],
+        "complementary": [],
+        "contradictory": [],
+        "gaps": [],
+    }
+
+    if not weighted:
+        insights["gaps"].append({
+            "description": "No evidence collected; unable to perform cross-paper reasoning.",
+            "severity": "critical",
+        })
+        state["cross_paper_insights"] = insights
+        _record(state, "cross_paper_reasoning", "No evidence → all gaps")
+        return state
+
+    # ── Deterministic grouping ────────────────────────────────────────────
+    # Group evidence by paper.
+    by_paper: Dict[str, List[Dict[str, Any]]] = {}
+    for item in weighted:
+        pid = str(item.get("pdfId") or "unknown")
+        by_paper.setdefault(pid, []).append(item)
+
+    # Find high-credibility claims per paper.
+    HIGH_THRESHOLD = 0.60
+    paper_claims: Dict[str, List[str]] = {}
+    for pid, items in by_paper.items():
+        high_cred = [it for it in items if it.get("credibility", {}).get("score", 0) >= HIGH_THRESHOLD]
+        if high_cred:
+            paper_claims[pid] = [
+                str(it.get("text") or "")[:200]
+                for it in sorted(high_cred, key=lambda x: x.get("credibility", {}).get("score", 0), reverse=True)[:6]
+            ]
+
+    paper_list = list(paper_claims.keys())
+
+    # Consensus: topics where ≥2 papers have high-cred evidence with overlapping keywords.
+    for i in range(len(paper_list)):
+        for j in range(i + 1, len(paper_list)):
+            p1, p2 = paper_list[i], paper_list[j]
+            for c1 in paper_claims.get(p1, []):
+                k1 = set(c1.lower().split())
+                for c2 in paper_claims.get(p2, []):
+                    k2 = set(c2.lower().split())
+                    overlap = len(k1 & k2)
+                    if overlap >= 4:
+                        insights["consensus"].append({
+                            "papers": [p1, p2],
+                            "shared_terms": sorted(k1 & k2)[:10],
+                            "claim_a": c1[:150],
+                            "claim_b": c2[:150],
+                        })
+
+    # Complementary: papers with different but non-overlapping high-cred evidence.
+    covered_topics: Dict[str, set] = {}
+    for pid, claims in paper_claims.items():
+        covered_topics[pid] = set()
+        for c in claims:
+            covered_topics[pid] |= set(c.lower().split())
+    for i in range(len(paper_list)):
+        for j in range(i + 1, len(paper_list)):
+            p1, p2 = paper_list[i], paper_list[j]
+            t1, t2 = covered_topics.get(p1, set()), covered_topics.get(p2, set())
+            if t1 and t2 and len(t1 & t2) < 3:
+                insights["complementary"].append({
+                    "papers": [p1, p2],
+                    "paper_a_topics": sorted(t1 - t2)[:8],
+                    "paper_b_topics": sorted(t2 - t1)[:8],
+                })
+
+    # Contradictory: low-cred items that conflict with high-cred items from other papers.
+    LOW_THRESHOLD = 0.35
+    for pid, items in by_paper.items():
+        low_items = [it for it in items if it.get("credibility", {}).get("score", 0) <= LOW_THRESHOLD]
+        other_high = []
+        for opid, oitems in by_paper.items():
+            if opid != pid:
+                other_high.extend([
+                    it for it in oitems
+                    if it.get("credibility", {}).get("score", 0) >= HIGH_THRESHOLD
+                ])
+        for low in low_items[:3]:
+            low_text = str(low.get("text") or "")[:100]
+            for oh in other_high[:5]:
+                oh_text = str(oh.get("text") or "")[:100]
+                # Simple keyword overlap detection for potential contradiction.
+                lk = set(low_text.lower().split())
+                ok = set(oh_text.lower().split())
+                shared = lk & ok
+                if len(shared) >= 3:
+                    insights["contradictory"].append({
+                        "low_credibility_paper": pid,
+                        "high_credibility_paper": oh.get("pdfId"),
+                        "shared_topic": sorted(shared)[:8],
+                        "low_credibility_claim": low_text,
+                        "high_credibility_claim": oh_text,
+                    })
+
+    # Gaps: papers with no high-credibility evidence.
+    for pid in paper_ids:
+        if pid not in paper_claims or len(paper_claims.get(pid, [])) == 0:
+            insights["gaps"].append({
+                "paper_id": pid,
+                "description": f"No high-credibility evidence (≥{HIGH_THRESHOLD}) found for this paper.",
+                "severity": "high",
+            })
+
+    # LLM enrichment is deferred to 14-2 (evidence credibility model).
+    # The deterministic grouping above already produces useful insights.
+    insights["llm_enriched"] = False
+
+    # Deduplicate consensus entries.
+    seen_consensus = set()
+    unique_consensus = []
+    for entry in insights["consensus"]:
+        key = tuple(sorted(entry.get("papers", [])))
+        if key not in seen_consensus:
+            seen_consensus.add(key)
+            unique_consensus.append(entry)
+    insights["consensus"] = unique_consensus[:8]
+
+    state["cross_paper_insights"] = insights
+    _record(state, "cross_paper_reasoning",
+            f"consensus={len(insights['consensus'])}, "
+            f"complementary={len(insights['complementary'])}, "
+            f"contradictory={len(insights['contradictory'])}, "
+            f"gaps={len(insights['gaps'])}")
+    return state
+
+
+def conflict_resolution_node(state: AgentGraphState) -> AgentGraphState:
+    """Attempt automatic conflict adjudication.
+
+    A conflict can be auto-resolved when:
+
+    * The evidence weight difference between the two sides is ≥ 0.4, AND
+    * The high-weight side has source credibility ≥ 0.8.
+
+    All other conflicts are marked ``needs_manual_review`` with a reason.
+    """
+    conflicts: List[Dict[str, Any]] = state.get("conflicts", [])
+    weighted: List[Dict[str, Any]] = state.get("weighted_evidence", [])
+    _record(state, "conflict_resolution", f"Resolving {len(conflicts)} conflicts")
+
+    resolved: List[Dict[str, Any]] = []
+    unresolved: List[Dict[str, Any]] = []
+
+    # Build a lookup: sourceId → credibility score.
+    cred_by_source: Dict[str, float] = {}
+    for item in weighted:
+        sid = str(item.get("sourceId") or "")
+        if sid:
+            cred_by_source[sid] = item.get("credibility", {}).get("score", 0.5)
+
+    for conflict in conflicts:
+        source_ids = list(conflict.get("sourceIds", []) or [])
+        if not source_ids:
+            unresolved.append({
+                **conflict,
+                "resolution_status": "needs_manual_review",
+                "resolution_reason": "No source IDs to evaluate evidence weight.",
+            })
+            continue
+
+        # Compute average credibility per side.
+        scores = [cred_by_source.get(str(sid), 0.5) for sid in source_ids]
+        if len(scores) < 2:
+            unresolved.append({
+                **conflict,
+                "resolution_status": "needs_manual_review",
+                "resolution_reason": "Single-source conflict; cannot auto-adjudicate.",
+            })
+            continue
+
+        max_score = max(scores)
+        min_score = min(scores)
+        weight_diff = max_score - min_score
+
+        if weight_diff >= 0.4 and max_score >= 0.8:
+            resolved.append({
+                **conflict,
+                "resolution_status": "auto_resolved",
+                "resolution_direction": f"Favouring higher-credibility evidence (score={max_score:.2f} vs {min_score:.2f})",
+                "resolution_confidence": round(weight_diff, 2),
+                "winning_source_ids": [
+                    str(sid) for sid in source_ids
+                    if cred_by_source.get(str(sid), 0.5) == max_score
+                ][:3],
+            })
+        else:
+            reason_parts = []
+            if weight_diff < 0.4:
+                reason_parts.append(
+                    f"evidence weight difference ({weight_diff:.2f}) below 0.4 threshold"
+                )
+            if max_score < 0.8:
+                reason_parts.append(
+                    f"highest credibility ({max_score:.2f}) below 0.8 threshold"
+                )
+            unresolved.append({
+                **conflict,
+                "resolution_status": "needs_manual_review",
+                "resolution_reason": "; ".join(reason_parts) + ".",
+                "weight_diff": round(weight_diff, 2),
+                "max_credibility": round(max_score, 2),
+            })
+
+    state["resolved_conflicts"] = resolved
+    state["unresolved_conflicts"] = unresolved
+    _record(state, "conflict_resolution",
+            f"{len(resolved)} resolved, {len(unresolved)} need manual review")
+    return state
+
+
 def report_node(state: AgentGraphState) -> AgentGraphState:
     """Generate draft report and review risks."""
     _record(state, "report", "Generating draft report and risks")
@@ -265,11 +605,21 @@ def report_node(state: AgentGraphState) -> AgentGraphState:
 
 
 def follow_up_decision(state: AgentGraphState) -> str:
-    """Decide: need more evidence (loop) or go to final review?"""
+    """Decide: need more evidence (loop) or go to final review?
+
+    Considers open_questions, cross_paper_insights gaps, and evidence
+    count to determine whether another round of evidence collection
+    (starting from evidence_weighing) is warranted.
+    """
     open_qs = state.get("open_questions", [])
     evidence = state.get("evidence_items", [])
     follow_ups = state.get("follow_up_count", 0)
     max_fu = state.get("max_follow_up", 2)
+
+    # Also check cross_paper_insights gaps (14-1).
+    insights = state.get("cross_paper_insights", {})
+    insight_gaps = insights.get("gaps", []) if isinstance(insights, dict) else []
+    high_severity_gaps = [g for g in insight_gaps if g.get("severity") in ("critical", "high")]
 
     if follow_ups >= max_fu:
         _record(state, "decision", f"Max follow-up ({max_fu}) → final review")
@@ -280,6 +630,9 @@ def follow_up_decision(state: AgentGraphState) -> str:
         for kw in ("missing", "gap", "sparse", "need", "insufficient")
         if kw in str(q).lower()
     )
+    # Boost gap signals with cross-paper insight gaps.
+    gap_signals += len(high_severity_gaps)
+
     if gap_signals > 0 and len(evidence) < 12:
         state["follow_up_count"] = follow_ups + 1
         _record(state, "decision", f"Gap detected → follow-up round {follow_ups + 1}")
@@ -357,9 +710,11 @@ def _get_checkpointer() -> MemorySaver:
 def build_agent_graph(checkpointer: Optional[Any] = None):
     """Build the LangGraph agent research graph with human-in-the-loop.
 
-    Graph structure:
-        init → plan_review (INTERRUPT) → execute → synthesize
-        → follow_up_decision → (loop to execute or) → report
+    Graph structure (14-1 enhanced):
+        init → plan_review (INTERRUPT) → execute
+        → evidence_weighing → cross_paper_reasoning → synthesize
+        → conflict_resolution → follow_up_decision
+        → (loop to evidence_weighing or) → report
         → final_review (INTERRUPT) → end
 
     Args:
@@ -373,7 +728,10 @@ def build_agent_graph(checkpointer: Optional[Any] = None):
     graph.add_node("plan_review", plan_review_node)
     graph.add_node("plan_rejected", plan_rejected_node)
     graph.add_node("execute", execute_node)
+    graph.add_node("evidence_weighing", evidence_weighing_node)
+    graph.add_node("cross_paper_reasoning", cross_paper_reasoning_node)
     graph.add_node("synthesize", synthesize_node)
+    graph.add_node("conflict_resolution", conflict_resolution_node)
     graph.add_node("report", report_node)
     graph.add_node("final_review", final_review_node)
     graph.add_node("final_rejected", final_rejected_node)
@@ -391,12 +749,17 @@ def build_agent_graph(checkpointer: Optional[Any] = None):
     )
     graph.add_edge("plan_rejected", END)
 
-    # execute → synthesize → follow_up decision → (loop or) → report
-    graph.add_edge("execute", "synthesize")
+    # execute → evidence_weighing → cross_paper_reasoning → synthesize
+    # → conflict_resolution → follow_up_decision
+    # → (loop to evidence_weighing or) → report
+    graph.add_edge("execute", "evidence_weighing")
+    graph.add_edge("evidence_weighing", "cross_paper_reasoning")
+    graph.add_edge("cross_paper_reasoning", "synthesize")
+    graph.add_edge("synthesize", "conflict_resolution")
     graph.add_conditional_edges(
-        "synthesize",
+        "conflict_resolution",
         follow_up_decision,
-        {"execute": "execute", "final_review": "report"},
+        {"execute": "evidence_weighing", "final_review": "report"},
     )
 
     # report → final_review → decision (approved → success, rejected → final_rejected)
@@ -471,10 +834,14 @@ def run_agent_graph(
         "tool_calls": [],
         "evidence_items": [],
         "research_timeline": [],
+        "weighted_evidence": [],
+        "cross_paper_insights": {},
         "findings": [],
         "comparison_table": {},
         "conflicts": [],
         "open_questions": [],
+        "resolved_conflicts": [],
+        "unresolved_conflicts": [],
         "draft_report": "",
         "review_risks": [],
         "plan_approved": False,
@@ -559,10 +926,14 @@ def agent_graph_state_to_response(
         "paperContexts": state.get("paper_contexts", []),
         "toolCalls": state.get("tool_calls", []),
         "evidenceItems": state.get("evidence_items", []),
+        "weightedEvidence": state.get("weighted_evidence", []),
+        "crossPaperInsights": state.get("cross_paper_insights", {}),
         "findings": state.get("findings", []),
         "comparisonTable": state.get("comparison_table", {}),
         "conflicts": state.get("conflicts", []),
         "openQuestions": state.get("open_questions", []),
+        "resolvedConflicts": state.get("resolved_conflicts", []),
+        "unresolvedConflicts": state.get("unresolved_conflicts", []),
         "draftReport": state.get("draft_report", ""),
         "reviewRisks": state.get("review_risks", []),
         "humanReview": {

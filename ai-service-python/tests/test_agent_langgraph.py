@@ -1,7 +1,7 @@
 """Tests for LangGraph-based agent orchestrator (10-5)."""
 import uuid
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -179,7 +179,9 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
         graph = build_agent_graph()
         nodes = list(graph.get_graph().nodes.keys())
         required = {"init", "plan_review", "plan_rejected", "execute",
-                    "synthesize", "report", "final_review",
+                    "evidence_weighing", "cross_paper_reasoning",
+                    "synthesize", "conflict_resolution",
+                    "report", "final_review",
                     "final_rejected", "success", "__start__"}
         for node in required:
             self.assertIn(node, nodes, f"Node {node} not found in graph")
@@ -417,6 +419,191 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
         # Plan items should be the edited version (set by plan_review_node after resume)
         self.assertEqual(state["plan_items"][0]["id"], "edited")
         self.assertTrue(state.get("plan_approved"))
+
+
+class AgentLangGraph14ReasoningTests(unittest.TestCase):
+    """Tests for 14-1 reasoning nodes: evidence_weighing, cross_paper_reasoning, conflict_resolution."""
+
+    def test_evidence_weighing_computes_credibility(self):
+        """evidence_weighing_node adds credibility scores to all evidence items."""
+        from services.agent_langgraph import AgentGraphState, evidence_weighing_node
+
+        state: AgentGraphState = {
+            "evidence_items": [
+                {"sourceId": "s1", "text": "The method achieves 95% accuracy on benchmark X.", "sourceType": "current_paper", "pageIndex": 3, "judgeScore": 85},
+                {"sourceId": "s2", "text": "Prior work reported lower accuracy on similar benchmarks.", "sourceType": "external_academic", "pageIndex": None, "judgeScore": 60},
+                {"sourceId": "s3", "text": "method accuracy benchmark results", "sourceType": "web_search", "pageIndex": None, "judgeScore": 40},
+            ],
+        }
+        result = evidence_weighing_node(state)
+
+        weighted = result.get("weighted_evidence", [])
+        self.assertEqual(len(weighted), 3)
+
+        for item in weighted:
+            self.assertIn("credibility", item)
+            cred = item["credibility"]
+            self.assertIn("score", cred)
+            self.assertIn("factors", cred)
+            self.assertIn("calibration_note", cred)
+            self.assertGreaterEqual(cred["score"], 0.0)
+            self.assertLessEqual(cred["score"], 1.0)
+            self.assertIn(cred["calibration_note"], ("high", "medium", "low", "insufficient"))
+
+        # Current paper with page anchor and high judge score should be highest.
+        self.assertGreater(weighted[0]["credibility"]["score"], weighted[1]["credibility"]["score"])
+        self.assertGreater(weighted[0]["credibility"]["score"], weighted[2]["credibility"]["score"])
+
+    def test_evidence_weighing_empty_list(self):
+        """evidence_weighing_node handles empty evidence_items gracefully."""
+        from services.agent_langgraph import AgentGraphState, evidence_weighing_node
+
+        state: AgentGraphState = {"evidence_items": []}
+        result = evidence_weighing_node(state)
+        self.assertEqual(len(result.get("weighted_evidence", [])), 0)
+
+    def test_compute_credibility_boundary_scores(self):
+        """_compute_credibility handles edge cases (0 evidence, single item)."""
+        from services.agent_langgraph import _compute_credibility
+
+        # Single item, no cross-source agreement possible.
+        item = {"sourceId": "solo", "text": "unique content here", "sourceType": "current_paper", "pageIndex": 0, "judgeScore": 100}
+        cred = _compute_credibility(item, [item])
+        self.assertGreater(cred["score"], 0.5)
+        self.assertEqual(cred["factors"]["cross_source_agreement"], 0.0)
+
+        # No text → no keywords → cross_agreement = 0.
+        item2 = {"sourceId": "empty", "text": "", "sourceType": "web_page", "pageIndex": None, "judgeScore": 0}
+        cred2 = _compute_credibility(item2, [item2])
+        self.assertLess(cred2["score"], 0.4)
+        self.assertEqual(cred2["calibration_note"], "low")
+
+    def test_cross_paper_reasoning_with_multi_paper_evidence(self):
+        """cross_paper_reasoning_node identifies consensus and gaps."""
+        from services.agent_langgraph import AgentGraphState, cross_paper_reasoning_node
+
+        state: AgentGraphState = {
+            "prompt": "Compare methods across papers",
+            "paper_ids": ["paper-a", "paper-b"],
+            "weighted_evidence": [
+                {"sourceId": "a1", "text": "Transformer model achieves 95% accuracy on benchmark X with attention mechanism.", "pdfId": "paper-a", "sourceType": "current_paper", "credibility": {"score": 0.85, "factors": {}, "calibration_note": "high"}},
+                {"sourceId": "b1", "text": "Transformer based approach achieves 94% accuracy on benchmark X using attention.", "pdfId": "paper-b", "sourceType": "current_paper", "credibility": {"score": 0.80, "factors": {}, "calibration_note": "high"}},
+                {"sourceId": "a2", "text": "Training requires 100 GPU hours on 8 A100 cards.", "pdfId": "paper-a", "sourceType": "current_paper", "credibility": {"score": 0.75, "factors": {}, "calibration_note": "medium"}},
+            ],
+        }
+        result = cross_paper_reasoning_node(state)
+        insights = result.get("cross_paper_insights", {})
+
+        self.assertIsInstance(insights, dict)
+        self.assertIn("consensus", insights)
+        self.assertIn("complementary", insights)
+        self.assertIn("contradictory", insights)
+        self.assertIn("gaps", insights)
+        # Both papers have high-cred evidence with overlapping keywords → consensus.
+        self.assertGreater(len(insights["consensus"]), 0)
+
+    def test_cross_paper_reasoning_no_evidence(self):
+        """cross_paper_reasoning_node handles no weighted evidence."""
+        from services.agent_langgraph import AgentGraphState, cross_paper_reasoning_node
+
+        state: AgentGraphState = {
+            "prompt": "test",
+            "paper_ids": ["paper-a"],
+            "weighted_evidence": [],
+        }
+        result = cross_paper_reasoning_node(state)
+        insights = result.get("cross_paper_insights", {})
+        self.assertEqual(len(insights.get("consensus", [])), 0)
+        self.assertEqual(len(insights.get("complementary", [])), 0)
+        self.assertEqual(len(insights.get("contradictory", [])), 0)
+        self.assertGreater(len(insights.get("gaps", [])), 0)
+
+    def test_conflict_resolution_auto_resolves_clear_case(self):
+        """Conflict with weight diff ≥0.4 and max credibility ≥0.8 is auto-resolved."""
+        from services.agent_langgraph import AgentGraphState, conflict_resolution_node
+
+        state: AgentGraphState = {
+            "conflicts": [
+                {
+                    "id": "conflict-1",
+                    "conflictType": "numeric_mismatch",
+                    "label": "Accuracy difference",
+                    "detail": "Paper A reports 95%, Paper B reports 60%",
+                    "sourceIds": ["high-cred-source", "low-cred-source"],
+                },
+            ],
+            "weighted_evidence": [
+                {"sourceId": "high-cred-source", "credibility": {"score": 0.90}},
+                {"sourceId": "low-cred-source", "credibility": {"score": 0.30}},
+            ],
+        }
+        result = conflict_resolution_node(state)
+
+        resolved = result.get("resolved_conflicts", [])
+        unresolved = result.get("unresolved_conflicts", [])
+
+        self.assertEqual(len(resolved), 1)
+        self.assertEqual(len(unresolved), 0)
+        self.assertEqual(resolved[0]["resolution_status"], "auto_resolved")
+        self.assertGreaterEqual(resolved[0]["resolution_confidence"], 0.4)
+
+    def test_conflict_resolution_needs_manual_review_when_close(self):
+        """Conflict with small weight diff → needs_manual_review."""
+        from services.agent_langgraph import AgentGraphState, conflict_resolution_node
+
+        state: AgentGraphState = {
+            "conflicts": [
+                {
+                    "id": "conflict-2",
+                    "conflictType": "opposing_conclusion",
+                    "label": "Method comparison",
+                    "detail": "Papers disagree on optimal approach",
+                    "sourceIds": ["src-a", "src-b"],
+                },
+            ],
+            "weighted_evidence": [
+                {"sourceId": "src-a", "credibility": {"score": 0.70}},
+                {"sourceId": "src-b", "credibility": {"score": 0.55}},
+            ],
+        }
+        result = conflict_resolution_node(state)
+        unresolved = result.get("unresolved_conflicts", [])
+        self.assertEqual(len(unresolved), 1)
+        self.assertEqual(unresolved[0]["resolution_status"], "needs_manual_review")
+        self.assertIn("resolution_reason", unresolved[0])
+
+    def test_conflict_resolution_no_source_ids(self):
+        """Conflict with no sourceIds → needs_manual_review."""
+        from services.agent_langgraph import AgentGraphState, conflict_resolution_node
+
+        state: AgentGraphState = {
+            "conflicts": [{"id": "orphan", "conflictType": "unknown", "label": "No sources"}],
+            "weighted_evidence": [],
+        }
+        result = conflict_resolution_node(state)
+        unresolved = result.get("unresolved_conflicts", [])
+        self.assertEqual(len(unresolved), 1)
+        self.assertIn("No source IDs", unresolved[0]["resolution_reason"])
+
+    def test_response_includes_new_14_1_fields(self):
+        """agent_graph_state_to_response includes weightedEvidence, crossPaperInsights, resolved/unresolved conflicts."""
+        from services.agent_langgraph import agent_graph_state_to_response, AgentGraphState
+
+        state: AgentGraphState = {
+            "prompt": "test",
+            "weighted_evidence": [{"sourceId": "s1", "credibility": {"score": 0.85}}],
+            "cross_paper_insights": {"consensus": [{"papers": ["a", "b"]}], "gaps": []},
+            "resolved_conflicts": [{"id": "c1", "resolution_status": "auto_resolved"}],
+            "unresolved_conflicts": [{"id": "c2", "resolution_status": "needs_manual_review"}],
+            "plan_items": [{"id": "p1"}],
+            "plan_approved": False,
+            "final_approved": False,
+        }
+        response = agent_graph_state_to_response(state, interrupted=True)
+        self.assertEqual(len(response.get("weightedEvidence", [])), 1)
+        self.assertIn("consensus", response.get("crossPaperInsights", {}))
+        self.assertEqual(len(response.get("resolvedConflicts", [])), 1)
+        self.assertEqual(len(response.get("unresolvedConflicts", [])), 1)
 
 
 if __name__ == "__main__":
