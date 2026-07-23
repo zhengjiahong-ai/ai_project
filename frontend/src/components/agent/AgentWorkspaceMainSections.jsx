@@ -591,6 +591,53 @@ export const AgentToolCallsSection = ({ currentTask }) => {
   );
 };
 
+// ── 17-1: confidence level → badge colour/style ──────────────────────────
+const CONFIDENCE_STYLES = {
+  high: { dot: 'var(--success, #16a34a)', bg: 'rgba(22,163,74,0.12)', label: '高置信度' },
+  medium: { dot: 'var(--warning, #ca8a04)', bg: 'rgba(202,138,4,0.12)', label: '中等置信度' },
+  low: { dot: 'var(--caution, #d97706)', bg: 'rgba(217,119,6,0.12)', label: '低置信度' },
+  insufficient: { dot: 'var(--text-muted, #6b7280)', bg: 'rgba(107,114,128,0.10)', label: '证据不足' },
+};
+
+const SECTION_STYLES = {
+  'Consensus Findings': '1.5px solid var(--success, #16a34a)',
+  'Contested Findings': '1.5px solid var(--caution, #d97706)',
+  'Single-Source Findings': '1.5px solid var(--text-muted, #6b7280)',
+};
+
+const _parseConfidence = (line) => {
+  const match = line.match(/\(avg credibility ([\d.]+), level: \*\*(high|medium|low|insufficient)\*\*\)/i);
+  if (!match) return null;
+  return { score: parseFloat(match[1]), level: match[2].toLowerCase() };
+};
+
+const _isSectionHeader = (line) => {
+  return /^### (Consensus|Contested|Single-Source) Findings/.test(line);
+};
+
+const _renderConfidenceBadge = (level) => {
+  const style = CONFIDENCE_STYLES[level] || CONFIDENCE_STYLES.insufficient;
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        marginLeft: '8px',
+        padding: '1px 8px',
+        borderRadius: '999px',
+        fontSize: '10px',
+        fontWeight: 600,
+        background: style.bg,
+        color: style.dot,
+      }}
+    >
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: style.dot, display: 'inline-block' }} />
+      {style.label}
+    </span>
+  );
+};
+
 export const AgentDraftReportSection = ({ activeProject, currentTask, activePaperId, onCaptureArtifact, onJumpToSource }) => {
   const draftReport = `${currentTask?.draftReport || ''}`.trim();
   const draftSections = draftReport
@@ -603,13 +650,15 @@ export const AgentDraftReportSection = ({ activeProject, currentTask, activePape
     event.stopPropagation();
     const artifact = buildAgentReportArtifact({
       activePdfId: activePaperId,
-      projectId: activeProject?.projectId || currentTask?.projectId,
+      projectId: activeProject?.projectId || currentTask?.taskId,
       taskId: currentTask?.taskId,
       projectTitle: activeProject?.title,
       draftReport,
     });
     if (artifact) onCaptureArtifact?.(artifact);
   };
+
+  const hasStructuredConclusion = draftSections.some((l) => _isSectionHeader(l));
 
   return (
     <details className="agent-section mt-4 rounded-[18px]" open>
@@ -638,11 +687,23 @@ export const AgentDraftReportSection = ({ activeProject, currentTask, activePape
       </summary>
       <div className="space-y-2 px-4 pb-4">
         {draftSections.length > 0 ? (
-          draftSections.map((line, index) => (
-            <div key={`${line}-${index}`} className="agent-card whitespace-pre-wrap rounded-2xl px-3 py-2.5 text-xs leading-6">
-              {line}
-            </div>
-          ))
+          draftSections.map((line, index) => {
+            const cred = _parseConfidence(line);
+            const isHeader = _isSectionHeader(line);
+            const sectionName = isHeader ? line.replace(/^###\s+/, '') : '';
+            const borderStyle = sectionName ? SECTION_STYLES[sectionName] : undefined;
+
+            return (
+              <div
+                key={`${line}-${index}`}
+                className={`agent-card whitespace-pre-wrap rounded-2xl px-3 py-2.5 text-xs leading-6${isHeader ? ' font-semibold text-sm' : ''}`}
+                style={borderStyle ? { borderLeft: borderStyle, paddingLeft: '12px' } : undefined}
+              >
+                {isHeader ? line.replace(/^###\s+/, '') : line}
+                {cred ? _renderConfidenceBadge(cred.level) : null}
+              </div>
+            );
+          })
         ) : (
           <div className="agent-empty-state rounded-2xl border-dashed px-4 py-4 text-xs leading-6">
             这里会显示当前 Agent 任务输出的完整结构化草稿，不再截断前几段。

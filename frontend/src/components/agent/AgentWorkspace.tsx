@@ -118,6 +118,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   const [prompt, setPrompt] = useState<string>('');
   const [allowExternalSearch, setAllowExternalSearch] = useState<boolean>(false);
   const [allowWebSearch, setAllowWebSearch] = useState<boolean>(false);
+  const [allowKnowledgeGraph, setAllowKnowledgeGraph] = useState<boolean>(true);
   const [domain, setDomain] = useState<string>('');
   const [allowIterativeSearch, setAllowIterativeSearch] = useState<boolean>(false);
   const [leftCollapsed, setLeftCollapsed] = useState<boolean>(false);
@@ -586,7 +587,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
         allowExternalSearch,
         allowWebSearch,
         allowIterativeSearch,
-        domain: domain || '',
+        allowKnowledgeGraph,  domain: domain || '',
         context: {
           activePaperId,
         },
@@ -744,6 +745,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
             allow_external_search: !!(payload as any).allowExternalSearch,
             allow_web_search: !!(payload as any).allowWebSearch,
             allow_iterative_search: !!(payload as any).allowIterativeSearch,
+            allow_knowledge_graph: !!(payload as any).allowKnowledgeGraph ?? true,
           };
           const graphResponse = await apiService.resumeAgentGraph(threadId, resumeData);
           const normalized = normalizeAgentGraphResponse(graphResponse);
@@ -875,7 +877,8 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           allowWebSearch={allowWebSearch}
           onAllowWebSearchChange={setAllowWebSearch}
           allowIterativeSearch={allowIterativeSearch}
-          onAllowIterativeSearchChange={setAllowIterativeSearch}
+          allowKnowledgeGraph={allowKnowledgeGraph}
+          onAllowKnowledgeGraphChange={setAllowKnowledgeGraph}    onAllowIterativeSearchChange={setAllowIterativeSearch}
           domain={domain}
           onDomainChange={setDomain}
         />

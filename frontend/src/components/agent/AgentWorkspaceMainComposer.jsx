@@ -67,7 +67,7 @@ const DOMAIN_OPTIONS = [
   { value: 'econ', label: '经济学' },
 ];
 
-const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask, allowExternalSearch = false, onAllowExternalSearchChange, allowWebSearch = false, onAllowWebSearchChange, allowIterativeSearch = false, onAllowIterativeSearchChange, domain = '', onDomainChange }) => (
+const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPrompt, onCreateTask, allowExternalSearch = false, onAllowExternalSearchChange, allowWebSearch = false, onAllowWebSearchChange, allowIterativeSearch = false, onAllowIterativeSearchChange, allowKnowledgeGraph = true, onAllowKnowledgeGraphChange, domain = '', onDomainChange }) => (
   <div className="agent-composer border-t px-5 py-4 backdrop-blur">
     <div className="mb-3 flex flex-wrap gap-2">
       {QUICK_PROMPTS.map((item) => (
@@ -168,6 +168,26 @@ const AgentTaskComposer = ({ activeProject, prompt, onPromptChange, onQuickPromp
             />
           </button>
           <span className="text-[10px] leading-4 text-[color:var(--muted)]">迭代搜索</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onAllowKnowledgeGraphChange?.(!allowKnowledgeGraph)}
+            className={`relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none ${
+              allowKnowledgeGraph ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--border)]'
+            }`}
+            role="switch"
+            aria-checked={allowKnowledgeGraph}
+            aria-label="使用知识图谱补充证据"
+            title="使用知识图谱补充证据 · 来自本地已解析论文 · 默认开启"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                allowKnowledgeGraph ? 'translate-x-5' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <span className="text-[10px] leading-4 text-[color:var(--muted)]">图谱补充</span>
         </div>
       </div>
       <button

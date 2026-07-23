@@ -2,6 +2,13 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.57
+
+1. **前端置信度徽标（17-1）**：`AgentDraftReportSection` 报告渲染新增置信度徽标——解析 `(avg credibility N.NN, level: **high/medium/low/insufficient**)\` 模式，以彩色圆点+标签展示；Consensus/Contested/Single-Source 子标题以差异化左边框颜色区分；老报告（无子标题）原样渲染不报错。
+2. **知识图谱开关（17-2）**：前端 `AgentTaskComposer` 新增"图谱补充"开关（默认开启），`AgentWorkspace.tsx` 状态管理 + `agent_evidence_collector.py` 接受 `allow_knowledge_graph` 参数控制图谱查询。
+3. **分享页面（17-4）**：新增 `SharedReportPage.jsx`——从 URL 路径提取 token 调用 `GET /api/shared/{token}` 获取只读报告；过期 token 展示空态；`App.jsx` 注册 `/share/:token` 路由（基于 window.location 匹配）。
+4. **API 认证（19-1）**：新增 `core/auth.py`——可选 Bearer token 认证中间件；设置 `PIXIU_API_AUTH_TOKEN` 时，写操作需 `Authorization: Bearer <token>`；读操作和 `/api/health` 始终公开；未设置 token 时行为不变。
+
 ### 2026-07-23 v0.6.56
 
 1. **用户协作与轻量分享（16-4）**：新增 `services/share_service.py`——SQLite 持久化的只读分享 token（UUID4，7 天有效期）；新增 `POST /api/agent-projects/{projectId}/share`（生成分享链接）和 `GET /api/shared/{token}`（只读报告页）两个路由；分享不暴露 PDF、完整 evidence、API key、trace 和聊天记录。

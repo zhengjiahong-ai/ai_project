@@ -40,6 +40,8 @@ const AgentWorkspaceMain = ({
   onAllowWebSearchChange,
   allowIterativeSearch,
   onAllowIterativeSearchChange,
+  allowKnowledgeGraph,
+  onAllowKnowledgeGraphChange,
   domain,
   onDomainChange,
 }) => (
@@ -104,6 +106,8 @@ const AgentWorkspaceMain = ({
         onAllowWebSearchChange={onAllowWebSearchChange}
         allowIterativeSearch={allowIterativeSearch}
         onAllowIterativeSearchChange={onAllowIterativeSearchChange}
+        allowKnowledgeGraph={allowKnowledgeGraph}
+        onAllowKnowledgeGraphChange={onAllowKnowledgeGraphChange}
         domain={domain}
         onDomainChange={onDomainChange}
       />

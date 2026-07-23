@@ -56,6 +56,14 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # ── 19-1: auth middleware (before rate limiter) ────────────────────
+    try:
+        from core.auth import AuthMiddleware
+
+        app.add_middleware(AuthMiddleware)
+    except Exception:
+        pass
+
     # ── 15-3: rate limiter middleware ─────────────────────────────────
     try:
         from core.rate_limiter import RateLimiterMiddleware

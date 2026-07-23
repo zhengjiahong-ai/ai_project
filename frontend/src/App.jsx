@@ -22,6 +22,7 @@ import Navbar from './components/Navbar';
 import { ToastProvider, useToast } from './components/Toast.jsx';
 const ReadingIDE = React.lazy(() => import('./pages/ReadingIDE.jsx'));
 const AgentResearchPage = React.lazy(() => import('./pages/AgentResearchPage.jsx'));
+const SharedReportPage = React.lazy(() => import('./pages/SharedReportPage.jsx'));
 import { useAbortableChat } from './hooks/useAbortableChat.js';
 import { useChat } from './hooks/useChat.js';
 import { useCriticalReading } from './hooks/useCriticalReading.js';
@@ -182,6 +183,18 @@ const normalizeBackgroundReaderProfile = (value) => {
 };
 
 export default function App() {
+  // 17-4: Share route — render SharedReportPage for /share/:token paths.
+  const shareMatch = window.location.pathname.match(/^\/share\/([a-f0-9]+)$/i);
+  if (shareMatch) {
+    return (
+      <div className="app-shell min-h-screen bg-[var(--bg-primary)]">
+        <React.Suspense fallback={<div className="flex h-screen items-center justify-center text-muted">加载中...</div>}>
+          <SharedReportPage />
+        </React.Suspense>
+      </div>
+    );
+  }
+
   const { theme, toggleTheme: handleToggleTheme } = useThemePreference(THEME_STORAGE_KEY);
   const { addToast } = useToast();
   const [appMode, setAppMode] = useState('reader');

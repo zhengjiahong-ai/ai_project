@@ -89,5 +89,8 @@ class Settings(BaseSettings):
     pixiu_rate_limit_chat_rpm: int = 30
     pixiu_rate_limit_translate_rpm: int = 10
 
+    # ── Auth (19-1) ────────────────────────────────────────────────────
+    pixiu_api_auth_token: str = ""
+
 
 settings = Settings()
