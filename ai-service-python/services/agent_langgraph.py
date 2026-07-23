@@ -172,22 +172,9 @@ def plan_rejected_node(state: AgentGraphState) -> AgentGraphState:
 
 
 def execute_node(state: AgentGraphState) -> AgentGraphState:
-    """Collect evidence using the existing evidence collector.
-
-    Tracks follow-up rounds: the first entry after plan approval is the main
-    execution (round 0); every re-entry via the follow-up loop increments
-    ``follow_up_count``.
-    """
-    # ── follow-up round tracking ──────────────────────────────────────
-    # ``_execute_entry_count`` is an internal flag; 0 means first entry.
-    entry_count: int = state.get("_execute_entry_count", 0)  # type: ignore[typeddict-item]
-    if entry_count > 0:
-        state["follow_up_count"] = state.get("follow_up_count", 0) + 1
-    state["_execute_entry_count"] = entry_count + 1  # type: ignore[typeddict-item]
-
+    """Collect evidence using the existing evidence collector."""
     state["status"] = "running"
-    _record(state, "execute",
-            f"Collecting evidence across papers (round {state.get('follow_up_count', 0)})")
+    _record(state, "execute", "Collecting evidence across papers")
 
     try:
         from services.agent_evidence_collector import collect_project_evidence
@@ -494,6 +481,30 @@ def conflict_resolution_node(state: AgentGraphState) -> AgentGraphState:
 
     state["resolved_conflicts"] = resolved
     state["unresolved_conflicts"] = unresolved
+
+    # ── pre-increment follow-up counter (14-1 fix) ──────────────────
+    # Because ``follow_up_decision`` is a conditional edge function
+    # (not a LangGraph node), its state mutations are NOT persisted.
+    # We increment the counter here (in a real node) so the NEXT
+    # invocation of follow_up_decision sees the updated value.
+    current_fu: int = state.get("follow_up_count", 0)
+    max_fu: int = state.get("max_follow_up", 2)
+    if current_fu < max_fu:
+        open_qs = state.get("open_questions", [])
+        insights = state.get("cross_paper_insights", {})
+        insight_gaps = insights.get("gaps", []) if isinstance(insights, dict) else []
+        has_gaps = (
+            any(
+                kw in str(q).lower()
+                for q in open_qs
+                for kw in ("missing", "gap", "sparse", "need", "insufficient")
+            )
+            or len(insight_gaps) > 0
+        )
+        evidence = state.get("evidence_items", [])
+        if has_gaps and len(evidence) < 12:
+            state["follow_up_count"] = current_fu + 1
+
     _record(state, "conflict_resolution",
             f"{len(resolved)} resolved, {len(unresolved)} need manual review")
     return state
