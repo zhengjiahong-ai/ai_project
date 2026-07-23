@@ -2,6 +2,11 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.55
+
+1. **Agent 知识图谱深度集成（16-2）**：`knowledge_graph_store.py` 新增 `find_bridging_concepts` 跨论文概念桥接查询；`agent_evidence_collector.py` 在证据稀疏时自动查询知识图谱邻域作为 `sourceType="knowledge_graph"` 补充证据；`evidence_credibility.py` 新增 `knowledge_graph` 来源类型（权重 0.60）。
+2. **多模态能力深化（16-3）**：`evidence_credibility.py` 新增 `chart_analysis`（权重 0.55）和 `image_analysis`（权重 0.50）来源类型，为阅读 IDE 和 Agent 证据链中的图表/图片分析结果提供结构化可信度评分。
+
 ### 2026-07-23 v0.6.54
 
 1. **PDF 复杂版式解析增强（16-1）**：`outline_extractor.py` 新增 `_build_standalone_pdf_outline`——当 GROBID TEI 无 `<div>` 章节（中文论文常见）时，基于 PDF 字号/加粗/CJK 特征构建独立章节树，新增 `_rate_pdf_heading_likelihood` 评分函数；`table_extractor.py` 新增 `extract_tei_tables`（GROBID `<figure type="table">` 路径）和 `extract_tables_from_pdf_text_lines`（PDF 文本行聚类+列对齐 fallback）。

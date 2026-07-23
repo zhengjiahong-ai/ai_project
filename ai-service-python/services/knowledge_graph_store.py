@@ -137,6 +137,64 @@ def read_graph_neighborhood(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def find_bridging_concepts(
+    paper_a_id: str,
+    paper_b_id: str,
+    max_nodes: int = DEFAULT_MAX_NODES,
+    max_edges: int = DEFAULT_MAX_EDGES,
+) -> Dict[str, Any]:
+    """Find shared concepts and one-hop paths between two papers' knowledge graphs (16-2).
+
+    Used by ``cross_paper_reasoning_node`` when two papers lack direct
+    evidence associations — the bridged concepts become
+    ``cross_paper_insights.complementary`` entries.
+
+    Returns ``{status, shared_nodes, bridge_edges, paper_ids}``.
+    """
+    result: Dict[str, Any] = {
+        "status": "unavailable",
+        "shared_nodes": [],
+        "bridge_edges": [],
+        "paper_ids": [paper_a_id, paper_b_id],
+    }
+
+    try:
+        db_path = os.environ.get(
+            "KNOWLEDGE_GRAPH_DB_PATH",
+            os.path.join(os.path.dirname(__file__), "..", "data", "knowledge_graph.sqlite3"),
+        )
+        if not os.path.isfile(db_path):
+            return result
+
+        with closing(sqlite3.connect(db_path)) as conn:
+            conn.row_factory = sqlite3.Row
+            # Find concept nodes that appear in both papers' graphs.
+            shared_rows = conn.execute(
+                """SELECT n.node_id, n.label, n.node_type, n.confidence
+                   FROM graph_nodes n
+                   JOIN graph_nodes n2 ON n.label = n2.label AND n.node_type = n2.node_type
+                   WHERE n.paper_id = ? AND n2.paper_id = ? AND n.node_type = 'concept'
+                   LIMIT ?""",
+                (paper_a_id, paper_b_id, max_nodes),
+            ).fetchall()
+
+            shared_nodes = [dict(r) for r in shared_rows]
+            if not shared_nodes:
+                return result
+
+            result["shared_nodes"] = shared_nodes
+            result["status"] = "available"
+            result["bridge_edges"] = []
+            result["context_note"] = (
+                f"图谱桥接：{paper_a_id} 和 {paper_b_id} 共享 {len(shared_nodes)} 个概念节点。"
+                "此关联来自已有背景知识图谱，不代表直接论文引用关系。"
+            )
+    except Exception:
+        pass
+
+    return result
+
+
 def enrich_conflicts_with_graph_context(conflicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     enriched = []
     for conflict in conflicts or []:

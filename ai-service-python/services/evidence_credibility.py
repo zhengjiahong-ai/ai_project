@@ -39,6 +39,9 @@ def get_source_trust_weights() -> Dict[str, float]:
         "current_paper": 1.0,
         "library": 0.85,
         "external_academic": 0.65,
+        "knowledge_graph": 0.60,  # 16-2: local knowledge graph derivation
+        "chart_analysis": 0.55,   # 16-3: VLM chart data extraction
+        "image_analysis": 0.50,   # 16-3: VLM image description
         "web_search": 0.45,
         "web_page": 0.40,
     }

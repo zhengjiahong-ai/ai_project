@@ -544,6 +544,45 @@ def collect_project_evidence(
                         "success" if web_evidence else "error",
                     ))
 
+    # 16-2: supplement sparse papers with knowledge-graph neighbourhood.
+    try:
+        sparse_ids = [
+            ctx.get("pdfId") for ctx in paper_contexts
+            if int(ctx.get("evidenceCount") or 0) <= 1 and ctx.get("pdfId")
+        ]
+        if sparse_ids:
+            from services.knowledge_graph_store import read_graph_neighborhood
+
+            kg_result = read_graph_neighborhood({
+                "paperIds": sparse_ids,
+                "seedTerms": [],
+                "sourceIds": [],
+                "maxNodes": 6,
+                "maxEdges": 8,
+            })
+            kg_nodes = kg_result.get("nodes") or []
+            if kg_nodes:
+                kg_evidence = [
+                    {
+                        "sourceId": f"kg-{n.get('node_id', '?')}",
+                        "text": f"[图谱推导] {n.get('label', '')} ({n.get('node_type', 'concept')})",
+                        "sourceType": "knowledge_graph",
+                        "pdfId": sparse_ids[0] if len(sparse_ids) == 1 else "",
+                        "pageIndex": None,
+                        "metadata": {"graph_derived": True, "confidence": n.get("confidence", 0.5)},
+                    }
+                    for n in kg_nodes[:4]
+                ]
+                evidence_items.extend(kg_evidence)
+                research_timeline.append(_timeline_step(
+                    "knowledge_graph",
+                    "图谱补充",
+                    f"从知识图谱补充 {len(kg_evidence)} 条邻域证据 (papers: {', '.join(sparse_ids[:3])})",
+                    "success" if kg_evidence else "warning",
+                ))
+    except Exception:
+        pass  # graph lookup is best-effort
+
     # 14-2: enrich final evidence list with structured credibility scores.
     enriched = evidence_items[:12]
     try:
