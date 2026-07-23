@@ -534,7 +534,9 @@ def follow_up_decision(state: AgentGraphState) -> str:
 
     Considers open_questions, cross_paper_insights gaps, and evidence
     count to determine whether another round of evidence collection
-    (starting from evidence_weighing) is warranted.
+    (looping back to execute, which re-collects evidence and then
+    flows through evidence_weighing → cross_paper_reasoning → ...)
+    is warranted.
     """
     open_qs = state.get("open_questions", [])
     evidence = state.get("evidence_items", [])
@@ -639,7 +641,7 @@ def build_agent_graph(checkpointer: Optional[Any] = None):
         init → plan_review (INTERRUPT) → execute
         → evidence_weighing → cross_paper_reasoning → synthesize
         → conflict_resolution → follow_up_decision
-        → (loop to evidence_weighing or) → report
+        → (loop to execute for re-collection or) → report
         → final_review (INTERRUPT) → end
 
     Args:
@@ -684,7 +686,7 @@ def build_agent_graph(checkpointer: Optional[Any] = None):
     graph.add_conditional_edges(
         "conflict_resolution",
         follow_up_decision,
-        {"execute": "evidence_weighing", "final_review": "report"},
+        {"execute": "execute", "final_review": "report"},
     )
 
     # report → final_review → decision (approved → success, rejected → final_rejected)
@@ -779,7 +781,7 @@ def run_agent_graph(
         "started_at": _now(),
     }
 
-    config: Dict[str, Any] = {}
+    config: Dict[str, Any] = {"recursion_limit": 50}
     if thread_id:
         config["configurable"] = {"thread_id": thread_id}
 
@@ -804,7 +806,7 @@ def resume_agent_graph(
         The graph state after resuming (may interrupt again at next review point).
     """
     graph = build_agent_graph()
-    config = {"configurable": {"thread_id": thread_id}}
+    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 50}
     return graph.invoke(Command(resume=resume_data), config)
 
 
