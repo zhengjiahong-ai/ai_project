@@ -50,6 +50,9 @@ _CHINESE_DIGIT_CHARS = {
     "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
     "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
 }
+_ZERO = "零"
+_HUNDRED = "百"
+_THOUSAND = "千"
 _CHINESE_DIGIT_RE = re.compile(
     r"^\s*(["
     + "".join(_CHINESE_DIGIT_CHARS)
@@ -72,6 +75,13 @@ _CN_NUMBERED_HEADING_PREFIX_RE = re.compile(
     r"(?:[.)、，．]|\s{1,4})"
     r"(?P<tail>[一-鿿][^\n]{2,260})"
 )
+_CHINESE_PAREN_NUMBER_RE = re.compile(
+    r"^\s*(?:[（(])\s*(["
+    + "".join(_CHINESE_DIGIT_CHARS)
+    + r"]{1,3}|\d{1,2})\s*(?:[）)])"
+    r"\s*(?P<title>[一-鿿A-Z][^\n]{1,120})\s*$",
+    re.IGNORECASE,
+)
 _COMMON_CHINESE_UNNUMBERED_HEADING_RE = re.compile(
     r"^(摘要|绪论|引言|前言|介绍|研究背景|相关工作|文献综述|"
     r"问题描述|问题定义|问题建模|系统模型|模型架构|方法|方法论|"
@@ -79,7 +89,14 @@ _COMMON_CHINESE_UNNUMBERED_HEADING_RE = re.compile(
     r"实验结果|结果与分析|结果与讨论|讨论|局限|不足|"
     r"结论|总结与展望|未来工作|致谢|参考文献|附录|"
     r"数据|数据集|基线|基准|评估指标|消融实验|"
-    r"实现细节|训练细节)$"
+    r"实现细节|训练细节|"
+    r"研究动机|创新点|主要贡献|理论分析|理论推导|性能评估|"
+    r"系统实现|系统设计|系统架构|模型假设|符号说明|符号定义|"
+    r"对比实验|参数设置|参数分析|敏感性分析|复杂度分析|"
+    r"收敛性分析|收敛性证明|应用场景|案例分析|实例分析|"
+    r"相关工作比较|优缺点分析|误差分析|鲁棒性分析|"
+    r"研究现状|国内外研究现状|技术路线|总体框架|"
+    r"网络结构|网络架构|损失函数|优化目标|训练策略)$"
 )
 
 # Extended heading RE that also accepts Chinese-numbered and Chinese section headings.
@@ -547,10 +564,30 @@ def _recover_split_pdf_numbered_heading_candidates(
 
 def _extract_standalone_heading_number(text: str) -> str:
     cleaned = _clean_inline_text(text)
+    # English multi-part numbers: 1.1, 2.3.1
     match = re.match(r"^(\d+(?:[.\-]\d+)+)(?:[.)])?$", cleaned)
-    if not match:
-        return ""
-    return _normalize_heading_number(match.group(1))
+    if match:
+        return _normalize_heading_number(match.group(1))
+    # Chinese digit standalone: 一、 二、 三、
+    cn_match = re.match(
+        r"^\s*(["
+        + "".join(_CHINESE_DIGIT_CHARS)
+        + r"]{1,3})(?:[、，。．.)]|\s*)$",
+        cleaned,
+    )
+    if cn_match:
+        return _chinese_digit_to_arabic(cn_match.group(1))
+    # Chinese parenthetical: （一） (二) （1） (2)
+    cn_paren = re.match(
+        r"^\s*[（(]\s*(["
+        + "".join(_CHINESE_DIGIT_CHARS)
+        + r"]{1,3}|\d{1,2})\s*[）)]\s*$",
+        cleaned,
+    )
+    if cn_paren:
+        cn_arabic = _chinese_digit_to_arabic(cn_paren.group(1))
+        return cn_arabic if cn_arabic and cn_arabic.isdigit() else cn_paren.group(1)
+    return ""
 
 
 def _find_split_heading_title_line(
@@ -757,6 +794,11 @@ def _classify_paragraph_heading(text: str) -> tuple[str, str, float]:
     if cn_digit_result:
         return cn_digit_result
 
+    # ── 5b. Chinese parenthetical numbering (（一） / （1） / etc.) ──
+    cn_paren_result = _try_chinese_paren_heading(text)
+    if cn_paren_result:
+        return cn_paren_result
+
     if len(text) > 140:
         return "", "", 0.0
 
@@ -840,21 +882,72 @@ def _try_chinese_digit_heading(text: str) -> tuple[str, str, float] | None:
     return None
 
 
+def _try_chinese_paren_heading(text: str) -> tuple[str, str, float] | None:
+    """Detect parenthetical Chinese numbering like （一）引言 / （1）方法 / (二) 相关工作."""
+    match = _CHINESE_PAREN_NUMBER_RE.match(text)
+    if not match:
+        return None
+    raw_title = _clean_heading_title(match.group("title"))
+    if not raw_title:
+        return None
+    if not re.search(r"[一-鿿A-Za-z]", raw_title):
+        return None
+    # Convert Chinese digit inside parens to Arabic
+    number_text = match.group(1)
+    cn_arabic = _chinese_digit_to_arabic(number_text)
+    number = cn_arabic if cn_arabic and cn_arabic.isdigit() else number_text
+    if _looks_like_heading_text(raw_title):
+        return number, raw_title, 0.76
+    if _COMMON_CHINESE_UNNUMBERED_HEADING_RE.match(raw_title):
+        return number, raw_title, 0.78
+    return None
+
+
 def _chinese_digit_to_arabic(text: str) -> str:
-    """Convert simple Chinese digit text (一-十, 十一-二十) to Arabic string."""
+    """Convert Chinese digit text (一-九十九, 一百-九百九十九) to Arabic string."""
     text = text.strip()
     if not text:
         return ""
+
+    # Single digit 一～十
     if text in _CHINESE_DIGIT_CHARS:
         return str(_CHINESE_DIGIT_CHARS[text])
+
+    # 十一～十九
     if len(text) == 2 and text[0] == "十":
-        # 十一 → 11, 十二 → 12, ...
         units = _CHINESE_DIGIT_CHARS.get(text[1], 0)
         return str(10 + units)
-    if len(text) == 2 and text[1] == "十":
-        # 二十 → 20
+
+    # 二十～九十九 (二十, 二十一, 三十五, 九十九)
+    if len(text) in (2, 3) and text[-1] == "十":
         tens = _CHINESE_DIGIT_CHARS.get(text[0], 0)
         return str(tens * 10)
+    if len(text) == 3 and text[1] == "十":
+        tens = _CHINESE_DIGIT_CHARS.get(text[0], 0)
+        units = _CHINESE_DIGIT_CHARS.get(text[2], 0)
+        return str(tens * 10 + units)
+
+    # 一百～九百九十九
+    if _HUNDRED in text:
+        parts = text.split(_HUNDRED)
+        hundreds = _CHINESE_DIGIT_CHARS.get(parts[0], 0)
+        result = hundreds * 100
+        if len(parts) > 1 and parts[1]:
+            remainder = parts[1]
+            if remainder.startswith(_ZERO):
+                # 一百零五 → 105
+                units = _CHINESE_DIGIT_CHARS.get(remainder[1:], 0)
+                result += units
+            elif remainder in _CHINESE_DIGIT_CHARS:
+                # 一百一/一百二... (rare, typically has 十)
+                result += _CHINESE_DIGIT_CHARS[remainder]
+            elif len(remainder) <= 3:
+                # Recurse for the remainder (十一~九十九)
+                sub = _chinese_digit_to_arabic(remainder)
+                if sub and sub.isdigit():
+                    result += int(sub)
+        return str(result)
+
     return text
 
 
@@ -1156,6 +1249,16 @@ def _split_heading_number(text: str, explicit_number: str = "") -> tuple[str, st
         parsed_title = _clean_heading_title(mixed_match.group("title"))
         if parsed_number and parsed_title:
             return parsed_number, parsed_title
+
+    # Try Chinese parenthetical numbering (（一）研究动机 / (二) 系统架构)
+    cn_paren_match = _CHINESE_PAREN_NUMBER_RE.match(cleaned)
+    if cn_paren_match:
+        paren_number_text = cn_paren_match.group(1)
+        cn_arabic = _chinese_digit_to_arabic(paren_number_text)
+        paren_number = cn_arabic if cn_arabic and cn_arabic.isdigit() else paren_number_text
+        paren_title = _clean_heading_title(cn_paren_match.group("title"))
+        if paren_number and paren_title:
+            return paren_number, paren_title
 
     if number:
         escaped = re.escape(number).replace(r"\.", r"[.\-]")

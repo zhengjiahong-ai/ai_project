@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.42
+
+1. **中文论文 PDF 解析增强（13-3）**：`outline_extractor.py` 中 `_chinese_digit_to_arabic` 扩展支持至九百九十九（二十一、三十五、一百零五 等）；`_COMMON_CHINESE_UNNUMBERED_HEADING_RE` 新增研究动机、创新点、理论分析、敏感性分析、系统实现等 20+ 常见中文学术标题；新增 `_try_chinese_paren_heading` 检测（一）/（1）等中文括号编号模式；`_split_heading_number` 和 `_extract_standalone_heading_number` 同步支持中文括号编号和中文独立编号的 PDF 分离恢复；新增 8 个中文解析测试。
+
 ### 2026-07-23 v0.6.41
 
 1. **Semantic Scholar Provider 重新接入（13-2）**：`citation_graph.py` 的 `SEMANTIC_SCHOLAR_API_KEY` 从 `os.environ.get()` 迁移为集中配置 `settings.semantic_scholar_api_key`；`build_semantic_scholar_provider` 新增 `settings.semantic_scholar_api_key` fallback；`create_external_search_provider` 新增自动启用逻辑——配置 `SEMANTIC_SCHOLAR_API_KEY` 时自动将 `semantic_scholar` 追加到多 Provider 列表；`.env.example` 新增 `SEMANTIC_SCHOLAR_API_KEY` 配置项；更新 `docs/p6_provider_selection.md` 选型文档反映 API Key 自动启用行为。

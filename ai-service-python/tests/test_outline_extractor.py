@@ -2,7 +2,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from core.outline_extractor import PdfTextLine, _build_pdf_heading_candidates, build_document_outline
+from core.outline_extractor import (
+    PdfTextLine,
+    _build_pdf_heading_candidates,
+    _chinese_digit_to_arabic,
+    _extract_standalone_heading_number,
+    build_document_outline,
+)
 
 
 def _write_tei(base_path: Path, body: str) -> str:
@@ -793,3 +799,157 @@ class OutlineExtractorTests(unittest.TestCase):
         self.assertIn("3.1 Model Architecture", titles)
         self.assertIn("IV. EXPERIMENTS", titles)
         self.assertIn("A. Ablation Study", titles)
+
+    # ── Extended Chinese heading tests (13-3) ───────────────────────────────
+
+    def test_chinese_digit_to_arabic_extended_range(self):
+        cases = [
+            ("一", "1"), ("五", "5"), ("十", "10"),
+            ("十一", "11"), ("十五", "15"), ("十九", "19"),
+            ("二十", "20"), ("二十一", "21"), ("二十五", "25"),
+            ("三十", "30"), ("三十五", "35"),
+            ("四十五", "45"), ("九十九", "99"),
+            ("一百", "100"), ("一百零五", "105"),
+            ("一百二十", "120"), ("一百二十三", "123"),
+            ("二百", "200"), ("九百九十九", "999"),
+        ]
+        for cn, expected in cases:
+            with self.subTest(cn=cn):
+                self.assertEqual(_chinese_digit_to_arabic(cn), expected)
+
+    def test_chinese_digit_to_arabic_unknown_returns_text(self):
+        self.assertEqual(_chinese_digit_to_arabic(""), "")
+        self.assertEqual(_chinese_digit_to_arabic("hello"), "hello")
+
+    def test_extract_standalone_heading_number_chinese(self):
+        self.assertEqual(_extract_standalone_heading_number("一、"), "1")
+        self.assertEqual(_extract_standalone_heading_number("三、"), "3")
+        self.assertEqual(_extract_standalone_heading_number("十、"), "10")
+        self.assertEqual(_extract_standalone_heading_number("十五"), "15")
+        self.assertEqual(_extract_standalone_heading_number("（一）"), "1")
+        self.assertEqual(_extract_standalone_heading_number("(二)"), "2")
+        self.assertEqual(_extract_standalone_heading_number("（3）"), "3")
+
+    def test_extract_standalone_heading_number_english_unchanged(self):
+        self.assertEqual(_extract_standalone_heading_number("1.1"), "1.1")
+        self.assertEqual(_extract_standalone_heading_number("2.3.1"), "2.3.1")
+        self.assertEqual(_extract_standalone_heading_number("42"), "")
+
+    def test_outline_detects_chinese_paren_numbered_headings(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tei_path = _write_tei(
+                Path(tmp_dir),
+                """
+                <div>
+                  <head coords="1,72,100,180,16">（一）研究动机</head>
+                  <p coords="1,72,124,460,12">研究动机部分描述。</p>
+                </div>
+                <div>
+                  <head coords="2,72,100,180,16">（二）创新点</head>
+                  <p coords="2,72,124,460,12">创新点详细说明。</p>
+                </div>
+                <div>
+                  <head coords="3,72,100,180,16">(三) 系统架构</head>
+                  <p coords="3,72,124,460,12">系统架构描述。</p>
+                </div>
+                """,
+            )
+
+            outline = build_document_outline(tei_path)
+
+        titles = [item["displayTitle"] for item in outline]
+        self.assertIn("1 研究动机", titles)
+        self.assertIn("2 创新点", titles)
+        self.assertIn("3 系统架构", titles)
+
+        item = next(item for item in outline if item["rawTitle"] == "研究动机")
+        self.assertEqual(item["headingNumber"], "1")
+
+    def test_outline_detects_new_chinese_unnumbered_headings(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tei_path = _write_tei(
+                Path(tmp_dir),
+                """
+                <div>
+                  <head coords="1,72,100,180,16">研究动机</head>
+                  <p coords="1,72,124,460,12">研究动机。</p>
+                </div>
+                <div>
+                  <head coords="2,72,100,180,16">理论分析</head>
+                  <p coords="2,72,124,460,12">理论分析。</p>
+                </div>
+                <div>
+                  <head coords="3,72,100,180,16">敏感性分析</head>
+                  <p coords="3,72,124,460,12">敏感性分析。</p>
+                </div>
+                <div>
+                  <head coords="4,72,100,180,16">系统实现</head>
+                  <p coords="4,72,124,460,12">系统实现。</p>
+                </div>
+                """,
+            )
+
+            outline = build_document_outline(tei_path)
+
+        titles = [item["displayTitle"] for item in outline]
+        self.assertIn("研究动机", titles)
+        self.assertIn("理论分析", titles)
+        self.assertIn("敏感性分析", titles)
+        self.assertIn("系统实现", titles)
+
+    def test_outline_chinese_section_with_digit_conversion(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tei_path = _write_tei(
+                Path(tmp_dir),
+                """
+                <div>
+                  <head coords="1,72,100,180,16">十二、实验结果与讨论</head>
+                  <p coords="1,72,124,460,12">实验结果分析。</p>
+                </div>
+                <div>
+                  <head coords="2,72,100,180,16">二十五、结论与展望</head>
+                  <p coords="2,72,124,460,12">结论。</p>
+                </div>
+                """,
+            )
+
+            outline = build_document_outline(tei_path)
+
+        titles = [item["displayTitle"] for item in outline]
+        self.assertIn("12 实验结果与讨论", titles)
+        self.assertIn("25 结论与展望", titles)
+
+    def test_pdf_split_recovery_chinese_standalone_number(self):
+        lines = [
+            PdfTextLine(
+                text="一、",
+                page_index=1,
+                x=72,
+                y=100,
+                width=30,
+                height=15,
+                font_size=11,
+                bold_ratio=0.0,
+                page_width=612,
+                page_height=792,
+                order=1,
+            ),
+            PdfTextLine(
+                text="研究背景与意义",
+                page_index=1,
+                x=108,
+                y=100,
+                width=200,
+                height=15,
+                font_size=11,
+                bold_ratio=1.0,
+                page_width=612,
+                page_height=792,
+                order=2,
+            ),
+        ]
+
+        candidates = _build_pdf_heading_candidates(lines, 0)
+
+        titles = [candidate.display_title for candidate in candidates]
+        self.assertIn("1 研究背景与意义", titles)
