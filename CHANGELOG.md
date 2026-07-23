@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.47
+
+1. **证据可信度模型升级（14-2）**：新增 `services/evidence_credibility.py` 共享可信度模块——`compute_credibility`（来源类型权重×页码锚点×跨源一致性×JUDGE 评分）、`enrich_evidence_with_credibility`（批量添加 credibility 字段）、`get_source_trust_weights`（从 `core/config.py` 读取可配置权重）；`core/config.py` 新增 `PIXIU_CREDIBILITY_*` 系列 6 个环境变量；`agent_langgraph.py` 的 `evidence_weighing_node` 切换为共享模块；`retrieval_judge_service.py` 的 `_compute_source_trust_weighted` 和 `_judge_score` 使用可配置权重；`agent_evidence_collector.py` 的 `collect_project_evidence` 返回证据统一携带 `credibility` 字段。新增 `test_evidence_credibility.py`（8 个测试）。
+
 ### 2026-07-23 v0.6.46
 
 1. **LangGraph Agent 推理节点深化（14-1）**：`agent_langgraph.py` StateGraph 新增三个推理节点——`evidence_weighing`（证据可信度结构化评分）、`cross_paper_reasoning`（跨论文共识/互补/矛盾/空白发现）、`conflict_resolution`（证据权重差异 ≥0.4 且高权重方可信度 ≥0.8 时自动裁决冲突）；`follow_up_decision` 整合 cross_paper_insights gaps 信号；`agent_graph_state_to_response` 新增 `weightedEvidence`、`crossPaperInsights`、`resolvedConflicts`、`unresolvedConflicts` 字段。新增 9 个测试。

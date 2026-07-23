@@ -69,5 +69,13 @@ class Settings(BaseSettings):
     # ── Paths ──────────────────────────────────────────────────────────
     paper_draft_dir: str = ""
 
+    # ── Evidence credibility weights (14-2) ──────────────────────────────
+    pixiu_credibility_current_paper_weight: float = 1.0
+    pixiu_credibility_library_weight: float = 0.85
+    pixiu_credibility_external_academic_weight: float = 0.65
+    pixiu_credibility_web_search_weight: float = 0.45
+    pixiu_credibility_web_page_weight: float = 0.40
+    pixiu_credibility_default_weight: float = 0.30
+
 
 settings = Settings()

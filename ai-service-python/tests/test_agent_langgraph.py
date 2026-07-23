@@ -463,18 +463,18 @@ class AgentLangGraph14ReasoningTests(unittest.TestCase):
         self.assertEqual(len(result.get("weighted_evidence", [])), 0)
 
     def test_compute_credibility_boundary_scores(self):
-        """_compute_credibility handles edge cases (0 evidence, single item)."""
-        from services.agent_langgraph import _compute_credibility
+        """compute_credibility handles edge cases (0 evidence, single item)."""
+        from services.evidence_credibility import compute_credibility
 
         # Single item, no cross-source agreement possible.
         item = {"sourceId": "solo", "text": "unique content here", "sourceType": "current_paper", "pageIndex": 0, "judgeScore": 100}
-        cred = _compute_credibility(item, [item])
+        cred = compute_credibility(item, [item])
         self.assertGreater(cred["score"], 0.5)
         self.assertEqual(cred["factors"]["cross_source_agreement"], 0.0)
 
         # No text → no keywords → cross_agreement = 0.
         item2 = {"sourceId": "empty", "text": "", "sourceType": "web_page", "pageIndex": None, "judgeScore": 0}
-        cred2 = _compute_credibility(item2, [item2])
+        cred2 = compute_credibility(item2, [item2])
         self.assertLess(cred2["score"], 0.4)
         self.assertEqual(cred2["calibration_note"], "low")
 

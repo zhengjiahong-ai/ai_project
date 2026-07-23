@@ -11,6 +11,21 @@ from services.utils import parse_json_from_llm
 
 VALID_VERDICTS = {"CORRECT", "AMBIGUOUS", "INCORRECT"}
 
+# ── 14-2: source trust weights are now configurable via core.config ──────
+# Kept as module-level getters for backward compatibility.
+def _get_source_trust_weights():
+    from services.evidence_credibility import get_source_trust_weights as _get
+
+    return _get()
+
+
+def _get_source_trust_default():
+    from services.evidence_credibility import get_source_trust_default as _get
+
+    return _get()
+
+
+# Legacy module-level constants – prefer the getters above.
 SOURCE_TRUST_WEIGHTS = {
     "current_paper": 1.0,
     "library": 0.85,
@@ -304,9 +319,11 @@ def _compute_shannon_diversity(source_type_counts: Dict[str, int], total_count: 
 def _compute_source_trust_weighted(source_type_counts: Dict[str, int], total_count: int) -> float:
     if total_count == 0:
         return 0.0
+    weights = _get_source_trust_weights()
+    default = _get_source_trust_default()
     weighted_sum = 0.0
     for source_type, count in source_type_counts.items():
-        weight = SOURCE_TRUST_WEIGHTS.get(source_type, SOURCE_TRUST_DEFAULT)
+        weight = weights.get(source_type, default)
         weighted_sum += weight * count
     return weighted_sum / total_count
 
@@ -378,7 +395,8 @@ def _normalize_coverage(value: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 def _judge_score(verdict: str, confidence: float, coverage: Dict[str, Any]) -> int:
     verdict_bonus = {"CORRECT": 16, "AMBIGUOUS": 4, "INCORRECT": -8}.get(verdict, -8)
     source_diversity = _coerce_float(coverage.get("sourceDiversityScore"), 0.0)
-    source_trust = _coerce_float(coverage.get("sourceTrustWeightedScore"), SOURCE_TRUST_DEFAULT)
+    default_w = _get_source_trust_default()
+    source_trust = _coerce_float(coverage.get("sourceTrustWeightedScore"), default_w)
     cross_agreement = _coerce_float(coverage.get("crossSourceAgreement"), 0.0)
     raw_score = (
         confidence * 55

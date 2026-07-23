@@ -544,4 +544,13 @@ def collect_project_evidence(
                         "success" if web_evidence else "error",
                     ))
 
-    return paper_contexts, tool_calls, evidence_items[:12], research_timeline
+    # 14-2: enrich final evidence list with structured credibility scores.
+    enriched = evidence_items[:12]
+    try:
+        from services.evidence_credibility import enrich_evidence_with_credibility
+
+        enriched = enrich_evidence_with_credibility(enriched)
+    except Exception:
+        pass  # credibility enrichment is best-effort; never blocks evidence return
+
+    return paper_contexts, tool_calls, enriched, research_timeline

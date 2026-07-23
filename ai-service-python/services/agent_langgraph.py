@@ -25,6 +25,8 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.types import Command, interrupt
 
+from services.evidence_credibility import enrich_evidence_with_credibility
+
 _logger = logging.getLogger(__name__)
 
 # ── State ────────────────────────────────────────────────────────────────────
@@ -231,97 +233,20 @@ def synthesize_node(state: AgentGraphState) -> AgentGraphState:
     return state
 
 
-# ── 14-1 Reasoning Nodes ──────────────────────────────────────────────────────
-
-
-# Source-type base trust weights (configurable via env in 14-2).
-_SOURCE_TYPE_TRUST: Dict[str, float] = {
-    "current_paper": 1.0,
-    "library": 0.85,
-    "external_academic": 0.65,
-    "web_search": 0.45,
-    "web_page": 0.40,
-}
-
-
-def _compute_credibility(
-    evidence: Dict[str, Any],
-    all_evidence: List[Dict[str, Any]],
-) -> Dict[str, Any]:
-    """Compute structured credibility score for a single evidence item.
-
-    Deterministic weighting; does NOT call an LLM.
-    """
-    source_type = str(evidence.get("sourceType") or evidence.get("source_type") or "unknown")
-    source_weight = _SOURCE_TYPE_TRUST.get(source_type, 0.35)
-
-    # Page anchor: items with a page index are more trustworthy.
-    has_page = evidence.get("pageIndex") is not None
-    page_factor = 1.0 if has_page else 0.65
-
-    # Cross-source agreement: how many *other* evidence items share keywords.
-    text = str(evidence.get("text") or "")
-    keywords = set(text.lower().split()) if text else set()
-    if keywords:
-        other_texts = [
-            str(e.get("text") or "")
-            for e in all_evidence
-            if e is not evidence
-        ]
-        agreement_hits = sum(
-            1 for ot in other_texts
-            if ot and len(keywords & set(ot.lower().split())) >= 3
-        )
-        cross_agreement = min(1.0, agreement_hits / max(1, len(other_texts)) * 3)
-    else:
-        cross_agreement = 0.0
-
-    # Judge score (if present on the evidence item).
-    judge_score = float(evidence.get("judgeScore") or evidence.get("score") or 0.5)
-    judge_score = max(0.0, min(1.0, judge_score / 100.0 if judge_score > 1.0 else judge_score))
-
-    # Composite score: weighted average.
-    score = round(
-        source_weight * 0.35
-        + page_factor * 0.20
-        + cross_agreement * 0.20
-        + judge_score * 0.25,
-        3,
-    )
-
-    return {
-        "score": score,
-        "factors": {
-            "source_type_weight": source_weight,
-            "page_anchor_coverage": page_factor,
-            "cross_source_agreement": round(cross_agreement, 3),
-            "judge_score": round(judge_score, 3),
-        },
-        "calibration_note": (
-            "high" if score >= 0.75
-            else "medium" if score >= 0.50
-            else "low" if score >= 0.30
-            else "insufficient"
-        ),
-    }
+# ── 14-1/14-2 Reasoning Nodes ─────────────────────────────────────────────────
 
 
 def evidence_weighing_node(state: AgentGraphState) -> AgentGraphState:
     """Compute structured credibility scores for every evidence item.
 
-    Uses deterministic weighting (source type, page anchor, cross-source
-    agreement, judge score).  LLM is NOT called here — this is a fast,
-    deterministic enrichment step.
+    Delegates to the shared ``evidence_credibility`` module (14-2) so the
+    same weights and formula are used by both the LangGraph and classic
+    ``execute_run`` paths.
     """
     evidence_items: List[Dict[str, Any]] = state.get("evidence_items", [])
     _record(state, "evidence_weighing", f"Weighing {len(evidence_items)} evidence items")
 
-    weighted: List[Dict[str, Any]] = []
-    for item in evidence_items:
-        enriched = dict(item)
-        enriched["credibility"] = _compute_credibility(item, evidence_items)
-        weighted.append(enriched)
-
+    weighted = enrich_evidence_with_credibility(evidence_items)
     state["weighted_evidence"] = weighted
     _record(state, "evidence_weighing",
             f"Weighed {len(weighted)} items; "
