@@ -224,9 +224,14 @@ def execute_run(
         evidence_items,
     )
 
-    # ── Multi-round follow-up ────────────────────────────────────────────
-    MAX_FOLLOW_UP_ROUNDS = 2
+    # ── Multi-round follow-up (14-3: information-gain driven) ────────────
+    MAX_FOLLOW_UP_ROUNDS = 5  # safety cap
+    MIN_GAIN_RATE = 0.10  # <10% new evidence = low gain
+    MAX_LOW_GAIN_ROUNDS = 2  # consecutive low-gain rounds → stop
     follow_up_round = 0
+    low_gain_count = 0
+    prev_evidence_count = len(evidence_items)
+
     while follow_up_round < MAX_FOLLOW_UP_ROUNDS and _should_follow_up(open_questions, evidence_items):
         follow_up_round += 1
         refined_queries = _build_follow_up_queries(prompt, open_questions, paper_contexts)
@@ -250,7 +255,10 @@ def execute_run(
                 domain_config=domain_config,
             )
             # Merge new evidence
+            new_before = len(evidence_items)
             evidence_items = _merge_evidence(evidence_items, fu_evidence)
+            new_after = len(evidence_items)
+            newly_added = new_after - new_before
             tool_calls.extend(fu_tool_calls or [])
             research_timeline.extend(fu_timeline or [])
         except Exception:
@@ -263,11 +271,28 @@ def execute_run(
             evidence_items,
         )
 
+        # ── Information gain check ──────────────────────────────────────
+        gain_rate = (new_after - prev_evidence_count) / max(prev_evidence_count, 1)
+        prev_evidence_count = max(new_after, prev_evidence_count)
+
+        if gain_rate < MIN_GAIN_RATE:
+            low_gain_count += 1
+        else:
+            low_gain_count = 0
+
         research_timeline.append(_timeline_step(
             "search",
             f"补充检索第 {follow_up_round} 轮完成",
-            f"证据项增至 {len(evidence_items)} 条",
+            f"证据项增至 {new_after} 条 (新增 {newly_added}, 增益率 {gain_rate:.0%})",
         ))
+
+        if low_gain_count >= MAX_LOW_GAIN_ROUNDS:
+            research_timeline.append(_timeline_step(
+                "decision",
+                "信息增益不足",
+                f"连续 {low_gain_count} 轮增益率低于 {MIN_GAIN_RATE:.0%}，自动停止补充检索",
+            ))
+            break
     # ── End follow-up ─────────────────────────────────────────────────────
 
     advanced_analysis = run_advanced_analysis(

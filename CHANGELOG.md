@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.48
+
+1. **Agent 多轮迭代推理深化（14-3）**：`agent_orchestrator.py` 的 `execute_run` follow-up 循环从固定 2 轮升级为信息增益驱动——每轮计算新增证据增益率，连续 2 轮 <10% 自动停止，安全上限 5 轮；`agent_langgraph.py` 的 `follow_up_decision` 和 `conflict_resolution_node` 同步支持增益终止逻辑，默认 `max_follow_up` 从 2 提升至 5；`conflict_resolution_node` 统一管理 follow-up 计数器和信息增益状态（修复条件边函数状态不持久化问题）。
+
 ### 2026-07-23 v0.6.47
 
 1. **证据可信度模型升级（14-2）**：新增 `services/evidence_credibility.py` 共享可信度模块——`compute_credibility`（来源类型权重×页码锚点×跨源一致性×JUDGE 评分）、`enrich_evidence_with_credibility`（批量添加 credibility 字段）、`get_source_trust_weights`（从 `core/config.py` 读取可配置权重）；`core/config.py` 新增 `PIXIU_CREDIBILITY_*` 系列 6 个环境变量；`agent_langgraph.py` 的 `evidence_weighing_node` 切换为共享模块；`retrieval_judge_service.py` 的 `_compute_source_trust_weighted` 和 `_judge_score` 使用可配置权重；`agent_evidence_collector.py` 的 `collect_project_evidence` 返回证据统一携带 `credibility` 字段。新增 `test_evidence_credibility.py`（8 个测试）。

@@ -105,7 +105,7 @@ def _record(state: AgentGraphState, node: str, summary: str) -> None:
 def init_node(state: AgentGraphState) -> AgentGraphState:
     """Initialize state and generate research plan."""
     state["follow_up_count"] = 0
-    state["max_follow_up"] = state.get("max_follow_up", 2)
+    state["max_follow_up"] = state.get("max_follow_up", 5)  # 14-3: raised from 2→5
     state["started_at"] = _now()
 
     try:
@@ -482,14 +482,32 @@ def conflict_resolution_node(state: AgentGraphState) -> AgentGraphState:
     state["resolved_conflicts"] = resolved
     state["unresolved_conflicts"] = unresolved
 
-    # ── pre-increment follow-up counter (14-1 fix) ──────────────────
+    # ── pre-increment follow-up counter + gain tracking (14-1/14-3) ─
     # Because ``follow_up_decision`` is a conditional edge function
     # (not a LangGraph node), its state mutations are NOT persisted.
-    # We increment the counter here (in a real node) so the NEXT
-    # invocation of follow_up_decision sees the updated value.
+    # We update counters here (in a real node) so the next invocation
+    # of follow_up_decision sees the updated values.
     current_fu: int = state.get("follow_up_count", 0)
-    max_fu: int = state.get("max_follow_up", 2)
-    if current_fu < max_fu:
+    max_fu: int = state.get("max_follow_up", 5)
+
+    # 14-3: information-gain tracking.
+    evidence = state.get("evidence_items", [])
+    curr_count: int = len(evidence)
+    prev_count: int = state.get("_prev_evidence_count", 0)  # type: ignore[typeddict-item]
+    gain_rate: float = 0.0
+    if prev_count > 0:
+        gain_rate = (curr_count - prev_count) / max(prev_count, 1)
+    state["_prev_evidence_count"] = curr_count  # type: ignore[typeddict-item]
+
+    low_gain: int = state.get("_low_gain_count", 0)  # type: ignore[typeddict-item]
+    if curr_count > 0 and gain_rate < 0.10:
+        low_gain += 1
+    else:
+        low_gain = 0
+    state["_low_gain_count"] = low_gain  # type: ignore[typeddict-item]
+
+    # Increment follow-up counter if gaps remain.
+    if current_fu < max_fu and low_gain < 2:
         open_qs = state.get("open_questions", [])
         insights = state.get("cross_paper_insights", {})
         insight_gaps = insights.get("gaps", []) if isinstance(insights, dict) else []
@@ -501,8 +519,7 @@ def conflict_resolution_node(state: AgentGraphState) -> AgentGraphState:
             )
             or len(insight_gaps) > 0
         )
-        evidence = state.get("evidence_items", [])
-        if has_gaps and len(evidence) < 12:
+        if has_gaps and curr_count < 12:
             state["follow_up_count"] = current_fu + 1
 
     _record(state, "conflict_resolution",
@@ -554,38 +571,46 @@ def report_node(state: AgentGraphState) -> AgentGraphState:
 
 
 def follow_up_decision(state: AgentGraphState) -> str:
-    """Decide: need more evidence (loop) or go to final review?
+    """Decide: need more evidence (loop) or go to final review?  (14-3: gain-driven)
 
-    Considers open_questions, cross_paper_insights gaps, and evidence
-    count to determine whether another round of evidence collection
-    (looping back to execute, which re-collects evidence and then
-    flows through evidence_weighing → cross_paper_reasoning → ...)
-    is warranted.
+    Read-only — all counter updates happen in ``conflict_resolution_node``
+    (a real LangGraph node) to guarantee state persistence.
+
+    Safety cap: ``max_follow_up`` (default 5).
+    Gain-based: stops when 2 consecutive rounds add < 10% new evidence.
     """
-    open_qs = state.get("open_questions", [])
-    evidence = state.get("evidence_items", [])
     follow_ups = state.get("follow_up_count", 0)
-    max_fu = state.get("max_follow_up", 2)
+    max_fu = state.get("max_follow_up", 5)
+    low_gain_count: int = state.get("_low_gain_count", 0)  # type: ignore[typeddict-item]
 
-    # Also check cross_paper_insights gaps (14-1).
-    insights = state.get("cross_paper_insights", {})
-    insight_gaps = insights.get("gaps", []) if isinstance(insights, dict) else []
-    high_severity_gaps = [g for g in insight_gaps if g.get("severity") in ("critical", "high")]
-
+    # Safety cap
     if follow_ups >= max_fu:
         _record(state, "decision", f"Max follow-up ({max_fu}) → final review")
         return "final_review"
+
+    # 14-3: Information-gain termination.
+    if low_gain_count >= 2:
+        _record(state, "decision",
+                f"Low information gain ({low_gain_count} rounds <10%) → final review")
+        return "final_review"
+
+    # Check gaps from open_questions and cross_paper_insights (14-1).
+    open_qs = state.get("open_questions", [])
+    evidence = state.get("evidence_items", [])
+    insights = state.get("cross_paper_insights", {})
+    insight_gaps = insights.get("gaps", []) if isinstance(insights, dict) else []
+    high_severity_gaps = [g for g in insight_gaps if g.get("severity") in ("critical", "high")]
 
     gap_signals = sum(
         1 for q in open_qs
         for kw in ("missing", "gap", "sparse", "need", "insufficient")
         if kw in str(q).lower()
     )
-    # Boost gap signals with cross-paper insight gaps.
     gap_signals += len(high_severity_gaps)
 
     if gap_signals > 0 and len(evidence) < 12:
-        _record(state, "decision", f"Gap detected → follow-up round {follow_ups + 1}")
+        _record(state, "decision",
+                f"Gap detected → follow-up round {follow_ups + 1}")
         return "execute"
     _record(state, "decision", "No gap or sufficient evidence → final review")
     return "final_review"
@@ -744,7 +769,7 @@ def run_agent_graph(
     allow_web_search: bool = False,
     allow_iterative_search: bool = False,
     domain: str = "",
-    max_follow_up: int = 2,
+    max_follow_up: int = 5,  # 14-3: raised from 2→5
     thread_id: Optional[str] = None,
 ) -> AgentGraphState:
     """Run the agent graph and return the final state.
