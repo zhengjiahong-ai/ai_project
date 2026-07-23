@@ -361,3 +361,57 @@ async def get_agent_graph(thread_id: str):
         return JSONResponse({"status": "success", "task": response})
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+# ── 16-4: Share routes ──────────────────────────────────────────────────────
+
+@agent_router.post("/agent-projects/{project_id}/share")
+async def create_project_share(project_id: str):
+    """Create a read-only share token for a project's latest report (16-4)."""
+    try:
+        from services.share_service import get_share_service
+        from services.agent_workspace_service import build_workspace_view
+        from services.agent_state_repository import AgentStateRepository
+
+        repo = AgentStateRepository()
+        workspace = build_workspace_view(repo, project_id)
+        if not workspace or not workspace.get("project"):
+            return JSONResponse({"status": "error", "message": "Project not found."}, status_code=404)
+
+        project = workspace["project"]
+        artifacts = workspace.get("latestArtifacts") or {}
+        report = artifacts.get("draftReport") or ""
+        if not report:
+            return JSONResponse({"status": "error", "message": "No report available to share."}, status_code=400)
+
+        share_svc = get_share_service()
+        result = share_svc.create_share(project_id, report, project.get("title", ""))
+        return JSONResponse({"status": "success", "share": result})
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@agent_router.get("/shared/{token}")
+async def get_shared_report(token: str):
+    """Read a shared project report by token (read-only, no auth) (16-4)."""
+    try:
+        from services.share_service import get_share_service
+
+        share_svc = get_share_service()
+        share = share_svc.get_share(token)
+        if share is None:
+            return JSONResponse({"status": "error", "message": "分享链接不存在或已过期。"}, status_code=404)
+
+        return JSONResponse({
+            "status": "success",
+            "share": {
+                "projectId": share["projectId"],
+                "projectTitle": share["projectTitle"],
+                "report": share["report"],
+                "expiresAt": share["expiresAt"],
+                "readOnly": True,
+            },
+        })
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+

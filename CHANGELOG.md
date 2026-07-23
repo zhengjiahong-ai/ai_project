@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.56
+
+1. **用户协作与轻量分享（16-4）**：新增 `services/share_service.py`——SQLite 持久化的只读分享 token（UUID4，7 天有效期）；新增 `POST /api/agent-projects/{projectId}/share`（生成分享链接）和 `GET /api/shared/{token}`（只读报告页）两个路由；分享不暴露 PDF、完整 evidence、API key、trace 和聊天记录。
+
 ### 2026-07-23 v0.6.55
 
 1. **Agent 知识图谱深度集成（16-2）**：`knowledge_graph_store.py` 新增 `find_bridging_concepts` 跨论文概念桥接查询；`agent_evidence_collector.py` 在证据稀疏时自动查询知识图谱邻域作为 `sourceType="knowledge_graph"` 补充证据；`evidence_credibility.py` 新增 `knowledge_graph` 来源类型（权重 0.60）。
