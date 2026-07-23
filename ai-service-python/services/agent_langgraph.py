@@ -172,9 +172,22 @@ def plan_rejected_node(state: AgentGraphState) -> AgentGraphState:
 
 
 def execute_node(state: AgentGraphState) -> AgentGraphState:
-    """Collect evidence using the existing evidence collector."""
+    """Collect evidence using the existing evidence collector.
+
+    Tracks follow-up rounds: the first entry after plan approval is the main
+    execution (round 0); every re-entry via the follow-up loop increments
+    ``follow_up_count``.
+    """
+    # ── follow-up round tracking ──────────────────────────────────────
+    # ``_execute_entry_count`` is an internal flag; 0 means first entry.
+    entry_count: int = state.get("_execute_entry_count", 0)  # type: ignore[typeddict-item]
+    if entry_count > 0:
+        state["follow_up_count"] = state.get("follow_up_count", 0) + 1
+    state["_execute_entry_count"] = entry_count + 1  # type: ignore[typeddict-item]
+
     state["status"] = "running"
-    _record(state, "execute", "Collecting evidence across papers")
+    _record(state, "execute",
+            f"Collecting evidence across papers (round {state.get('follow_up_count', 0)})")
 
     try:
         from services.agent_evidence_collector import collect_project_evidence
@@ -561,7 +574,6 @@ def follow_up_decision(state: AgentGraphState) -> str:
     gap_signals += len(high_severity_gaps)
 
     if gap_signals > 0 and len(evidence) < 12:
-        state["follow_up_count"] = follow_ups + 1
         _record(state, "decision", f"Gap detected → follow-up round {follow_ups + 1}")
         return "execute"
     _record(state, "decision", "No gap or sufficient evidence → final review")
