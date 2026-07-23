@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from core.config import settings
 from core.logging_config import configure_logging
 from core.error_responses import error_response, EXCEPTION_STATUS_MAP
 from routes.api import router as api_router
@@ -85,6 +86,29 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(api_router)
+
+    # ── MCP SSE transport (conditional mount) ──────────────────────────
+    if settings.pixiu_mcp_enabled and settings.pixiu_mcp_transport == "sse":
+        try:
+            from mcp_adapter.server import build_sse_app
+
+            _logger.info(
+                "Mounting MCP SSE transport at /mcp (auth=%s)",
+                "required" if settings.pixiu_mcp_auth_token else "disabled",
+            )
+            app.mount(
+                "/mcp",
+                build_sse_app(
+                    require_auth=bool(settings.pixiu_mcp_auth_token.strip()),
+                ),
+            )
+        except ImportError as exc:
+            _logger.warning(
+                "MCP SSE transport could not be mounted: %s. "
+                "Install starlette and mcp dependencies.",
+                exc,
+            )
+
     return app
 
 

@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # ── Feature gates ──────────────────────────────────────────────────
     pixiu_allow_browser: bool = False
     pixiu_allow_reproducibility: bool = False
+    pixiu_mcp_enabled: bool = False
+    pixiu_mcp_transport: str = "stdio"
+    pixiu_mcp_sse_host: str = "127.0.0.1"
+    pixiu_mcp_sse_port: int = 8001
+    pixiu_mcp_auth_token: str = ""
 
     # ── Runtime ────────────────────────────────────────────────────────
     pixiu_agentic_max_iterations: int = 3

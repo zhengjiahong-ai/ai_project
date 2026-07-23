@@ -118,6 +118,16 @@ KNOWLEDGE_GRAPH_DB_PATH=ai-service-python/data/knowledge_graph.sqlite3
 # 默认不要设置；仅启动本机只读 MCP adapter 时显式设为 true
 PIXIU_MCP_ENABLED=false
 
+# MCP adapter 传输方式：stdio（默认，独立进程）或 sse（挂载到 FastAPI 主端口）
+PIXIU_MCP_TRANSPORT=stdio
+
+# SSE 监听地址与端口（仅 PIXIU_MCP_TRANSPORT=sse 时生效）
+PIXIU_MCP_SSE_HOST=127.0.0.1
+PIXIU_MCP_SSE_PORT=8001
+
+# 可选的 MCP 认证 token（不设置则无认证）
+PIXIU_MCP_AUTH_TOKEN=
+
 # 仅测试使用；生产环境不要启用
 PIXIU_LLM_MODE=deepseek
 # PIXIU_LLM_FIXTURE_PATH=ai-service-python/tests/fixtures/llm_responses.json
@@ -208,6 +218,17 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 该入口只公开 `read_paper_skeleton`、`retrieve_current_paper`、`retrieve_library`。当前论文检索禁止 `includeAll=true`，并对结果数量和文本长度使用比内部工具更严格的 MCP 预算。不要把该 `stdio` 进程转发为公网服务。
+
+MCP adapter 也支持 SSE 传输模式，挂载到 FastAPI 主端口（`http://localhost:8000/mcp/sse`），需在 `.env` 中配置：
+
+```env
+PIXIU_MCP_ENABLED=true
+PIXIU_MCP_TRANSPORT=sse
+# 可选认证
+PIXIU_MCP_AUTH_TOKEN=your-secret-token
+```
+
+SSE 模式下客户端直接连接 `http://localhost:8000/mcp/sse`，无需单独启动进程。
 
 GROBID 建议继续通过 Docker 启动：
 

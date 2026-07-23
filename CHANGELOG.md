@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-18 v0.6.40
+
+1. **MCP SSE 挂载到 FastAPI**：`app.py` 新增条件挂载，`PIXIU_MCP_ENABLED=true` + `PIXIU_MCP_TRANSPORT=sse` 时将 `build_sse_app()` 挂载到 `/mcp` 路径，SSE 端点与主服务同端口可用（`/mcp/sse`、`/mcp/messages/`）；`core/config.py` 新增 `pixiu_mcp_enabled`、`pixiu_mcp_transport`、`pixiu_mcp_sse_host`、`pixiu_mcp_sse_port`、`pixiu_mcp_auth_token` 集中配置项。
+
 ### 2026-07-18 v0.6.39
 
 1. **LangGraph agent 接入 API**：新增 `POST /api/agent-graph`、`POST /api/agent-graph/{threadId}/resume`、`GET /api/agent-graph/{threadId}` 三个路由，将 LangGraph StateGraph agent 接入实际 API；前端 AgentWorkspace 创建、轮询、计划/终稿审批优先走 LangGraph 路径，旧 run/task 路径保留为兼容 fallback；Java 网关同步新增对应转发。
