@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.52
+
+1. **API 限流基础防护（15-3）**：新增 `core/rate_limiter.py`——基于 token bucket 的内存限流器（无需 Redis），按 IP + 路由前缀分组（全局 60 rpm、Agent 10 rpm、聊天 30 rpm、翻译 10 rpm），通过 `PIXIU_RATE_LIMIT_ENABLED` 默认开启；集成到 `app.py` 为 FastAPI middleware，限流时返回 `429` + `Retry-After` header；`/api/health` 不限流。
+
 ### 2026-07-23 v0.6.51
 
 1. **LLM 响应语义缓存（15-2）**：新增 `services/llm_cache.py`——SQLite 持久化的 LLM 响应精确匹配缓存（SHA-256 键），TTL 默认 1 小时（`PIXIU_LLM_CACHE_TTL_MINUTES`）；集成到 `llm/client.py` 的 `DeepSeekLLM._call`，缓存命中时跳过 API 调用并记录 `llmCacheHits`/`llmCacheMisses` trace 计数器；`core/config.py` 新增 `pixiu_llm_cache_mode`、`pixiu_llm_cache_ttl_minutes`、`pixiu_llm_cache_path` 配置项。

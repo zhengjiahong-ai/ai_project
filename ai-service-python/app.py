@@ -56,6 +56,14 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # ── 15-3: rate limiter middleware ─────────────────────────────────
+    try:
+        from core.rate_limiter import RateLimiterMiddleware
+
+        app.add_middleware(RateLimiterMiddleware)
+    except Exception:
+        pass
+
     # ── global exception handler ──────────────────────────────────────
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:

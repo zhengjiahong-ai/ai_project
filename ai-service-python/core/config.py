@@ -82,5 +82,12 @@ class Settings(BaseSettings):
     pixiu_llm_cache_ttl_minutes: int = 60
     pixiu_llm_cache_path: str = ""
 
+    # ── Rate limiter (15-3) ────────────────────────────────────────────
+    pixiu_rate_limit_enabled: bool = True
+    pixiu_rate_limit_global_rpm: int = 60
+    pixiu_rate_limit_agent_rpm: int = 10
+    pixiu_rate_limit_chat_rpm: int = 30
+    pixiu_rate_limit_translate_rpm: int = 10
+
 
 settings = Settings()
