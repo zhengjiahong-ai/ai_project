@@ -6,6 +6,164 @@ from unittest.mock import patch, Mock
 from langgraph.checkpoint.memory import MemorySaver
 
 
+class AgentLangGraphErrorHandlingTests(unittest.TestCase):
+    """Tests for error handling and edge cases."""
+
+    def test_run_with_empty_prompt_fails_gracefully(self):
+        """Empty or whitespace-only prompt should still produce a valid state (caught downstream)."""
+        from services.agent_langgraph import run_agent_graph, agent_graph_state_to_response
+
+        for bad_prompt in ("", "   "):
+            with self.subTest(prompt=repr(bad_prompt)):
+                state = run_agent_graph(prompt=bad_prompt, paper_ids=[], thread_id=f"test-empty-{uuid.uuid4().hex[:6]}")
+                resp = agent_graph_state_to_response(state)
+                # Empty prompt gets processed through init → plan_review interrupt
+                # The status reflects the interrupt state, not a validation error
+                self.assertIn(resp["status"], ("awaiting_plan_review", "failed"))
+                self.assertIsNotNone(resp.get("prompt"))
+
+    def test_run_with_empty_paper_ids_still_runs(self):
+        """Empty paper_ids should be accepted (research may only use external sources)."""
+        from services.agent_langgraph import run_agent_graph
+
+        with patch("services.agent_orchestrator.build_plan_items",
+                   return_value=[{"id": "p1", "label": "Plan", "detail": "", "status": "pending"}]):
+            state = run_agent_graph(prompt="Research without papers", paper_ids=[], thread_id="test-no-papers")
+
+        self.assertFalse(state.get("plan_approved"))
+        self.assertGreater(len(state.get("plan_items", [])), 0)
+
+    def test_thread_id_isolation(self):
+        """Different thread_ids produce independent states."""
+        from services.agent_langgraph import run_agent_graph
+
+        tid1 = "iso-1"
+        tid2 = "iso-2"
+
+        with patch("services.agent_orchestrator.build_plan_items",
+                   return_value=[{"id": f"plan-{tid1}", "label": "A", "detail": "", "status": "pending"}]):
+            s1 = run_agent_graph(prompt="Task A", paper_ids=[], thread_id=tid1)
+
+        with patch("services.agent_orchestrator.build_plan_items",
+                   return_value=[{"id": f"plan-{tid2}", "label": "B", "detail": "", "status": "pending"}]):
+            s2 = run_agent_graph(prompt="Task B", paper_ids=[], thread_id=tid2)
+
+        # Different threads should have different plan items
+        self.assertEqual(s1["plan_items"][0]["label"], "A")
+        self.assertEqual(s2["plan_items"][0]["label"], "B")
+        # Different prompt
+        self.assertEqual(s1["prompt"], "Task A")
+        self.assertEqual(s2["prompt"], "Task B")
+
+    def test_execute_node_error_gracefully_continues_to_final_review(self):
+        """When collect_project_evidence raises, the error is caught and graph continues.
+
+        The execute_node catches errors, sets empty evidence, and the graph proceeds
+        to synthesize → report → final_review (where the user can see the partial result).
+        """
+        from services.agent_langgraph import run_agent_graph, resume_agent_graph, agent_graph_state_to_response
+
+        thread_id = f"test-exec-err-{uuid.uuid4().hex[:8]}"
+
+        with patch("services.agent_orchestrator.build_plan_items",
+                   return_value=[{"id": "p1", "label": "Test", "detail": "", "status": "pending"}]):
+            run_agent_graph(prompt="Test", paper_ids=[], thread_id=thread_id)
+
+        # Resume with plan approved, but evidence collection fails
+        with (
+            patch("services.agent_evidence_collector.collect_project_evidence",
+                  side_effect=RuntimeError("Search index unavailable")),
+            patch("services.agent_orchestrator.build_agent_outputs",
+                  return_value=([], {}, [], [])),
+            patch("services.agent_report_sections.build_minimal_report",
+                  return_value="# Partial Report"),
+        ):
+            state = resume_agent_graph(
+                {"plan_approved": True, "plan_review_notes": "OK"},
+                thread_id=thread_id,
+            )
+
+        # Graph continues to final_review despite evidence collection failure
+        resp = agent_graph_state_to_response(state, interrupted=True)
+        self.assertIn(resp["status"], ("awaiting_final_review", "running"))
+        # Evidence should be empty (error was caught)
+        self.assertEqual(len(state.get("evidence_items", [])), 0)
+
+    def test_synthesis_error_continues_with_partial_state(self):
+        """When build_agent_outputs raises, synthesis error is caught and graph continues.
+
+        The synthesize_node catches errors, and the graph proceeds to report → final_review
+        with whatever was produced before the error.
+        """
+        from services.agent_langgraph import run_agent_graph, resume_agent_graph, agent_graph_state_to_response
+
+        thread_id = f"test-synth-err-{uuid.uuid4().hex[:8]}"
+
+        with patch("services.agent_orchestrator.build_plan_items",
+                   return_value=[{"id": "p1", "label": "Test", "detail": "", "status": "pending"}]):
+            run_agent_graph(prompt="Test", paper_ids=[], thread_id=thread_id)
+
+        # Evidence succeeds but synthesis fails
+        with (
+            patch("services.agent_evidence_collector.collect_project_evidence",
+                  return_value=(
+                      [{"sourceId": "s1", "text": "ok"}],
+                      [],
+                      [{"sourceId": "s1", "text": "ok", "sourceType": "current_paper"}],
+                      [],
+                  )),
+            patch("services.agent_orchestrator.build_agent_outputs",
+                  side_effect=RuntimeError("LLM model timeout")),
+            patch("services.agent_report_sections.build_minimal_report",
+                  return_value="# Recovery Report"),
+        ):
+            state = resume_agent_graph(
+                {"plan_approved": True, "plan_review_notes": "OK"},
+                thread_id=thread_id,
+            )
+
+        resp = agent_graph_state_to_response(state, interrupted=True)
+        # Graph continues to final_review despite synthesis failure
+        self.assertIn(resp["status"], ("awaiting_final_review", "running"))
+        # Draft report should still be present (recovery path)
+        self.assertIn("Recovery Report", state.get("draft_report", ""))
+
+    def test_resume_with_malformed_input_is_handled(self):
+        """Missing required fields in resume should not crash."""
+        from services.agent_langgraph import run_agent_graph, resume_agent_graph
+
+        thread_id = f"test-malform-{uuid.uuid4().hex[:8]}"
+
+        with patch("services.agent_orchestrator.build_plan_items",
+                   return_value=[{"id": "p1", "label": "Test", "detail": "", "status": "pending"}]):
+            run_agent_graph(prompt="Test", paper_ids=[], thread_id=thread_id)
+
+        # Resume with empty dict (missing plan_approved)
+        state = resume_agent_graph({}, thread_id=thread_id)
+        # Should still produce a state (plan is treated as rejected or stays pending)
+        self.assertIn("status", state)
+
+    def test_state_to_response_without_plan_items(self):
+        """Response converter handles missing optional fields gracefully."""
+        from services.agent_langgraph import agent_graph_state_to_response, AgentGraphState
+
+        state: AgentGraphState = {}
+        response = agent_graph_state_to_response(state)
+        # Empty state returns 'pending' (no plan items, no approval, no error)
+        self.assertIn(response["status"], ("pending", "failed"))
+        self.assertEqual(len(response["evidenceItems"]), 0)
+        self.assertEqual(len(response["planItems"]), 0)
+
+    def test_graph_uses_shared_checkpointer(self):
+        """Graph construction uses MemorySaver for cross-invocation state."""
+        from services.agent_langgraph import build_agent_graph
+
+        graph1 = build_agent_graph()
+        graph2 = build_agent_graph()
+        self.assertIs(graph1.checkpointer, graph2.checkpointer)
+        self.assertIsInstance(graph2.checkpointer, MemorySaver)
+
+
 class AgentLangGraphConstructionTests(unittest.TestCase):
     """Tests for graph structure and state management."""
 

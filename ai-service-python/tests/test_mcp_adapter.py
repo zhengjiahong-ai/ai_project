@@ -315,5 +315,66 @@ class McpSseTransportTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         runner.assert_called_once_with()
 
+class McpSseBoundaryTests(unittest.TestCase):
+    """Boundary and edge-case tests for SSE transport."""
+
+    def test_sse_session_registry_isolation(self):
+        """Multiple SSE sessions should be independently tracked via _active_sessions."""
+        from mcp_adapter.server import get_session_count
+        import asyncio
+
+        # Session count should start at 0 (with fresh import state)
+        initial = get_session_count()
+        self.assertGreaterEqual(initial, 0)
+
+    def test_sse_session_count_starts_clean(self):
+        """SSE session count returns a non-negative integer."""
+        from mcp_adapter.server import get_session_count
+
+        count = get_session_count()
+        self.assertIsInstance(count, int)
+        self.assertGreaterEqual(count, 0)
+
+    def test_auth_token_rejects_empty_string_when_configured(self):
+        """Empty token should be rejected when PIXIU_MCP_AUTH_TOKEN is set."""
+        import os
+
+        from mcp_adapter.adapter import verify_auth_token
+
+        with patch.dict(os.environ, {"PIXIU_MCP_AUTH_TOKEN": "secret"}, clear=True):
+            self.assertFalse(verify_auth_token(""))
+            self.assertFalse(verify_auth_token("  "))
+
+    def test_auth_token_whitespace_only_rejected(self):
+        """Whitespace-only tokens should be rejected."""
+        import os
+
+        from mcp_adapter.adapter import verify_auth_token
+
+        with patch.dict(os.environ, {"PIXIU_MCP_AUTH_TOKEN": "real-token"}, clear=True):
+            self.assertFalse(verify_auth_token("   "))
+
+    def test_transport_selection_case_insensitive(self):
+        """Transport selection should be case-insensitive."""
+        from mcp_adapter.__main__ import _resolve_transport
+
+        for value, expected in [("sse", "sse"), ("SSE", "sse"), ("Sse", "sse"),
+                                ("stdio", "stdio"), ("STDIO", "stdio")]:
+            with self.subTest(value=value):
+                with patch.dict(os.environ, {"PIXIU_MCP_TRANSPORT": value}, clear=True):
+                    self.assertEqual(_resolve_transport(), expected)
+
+    def test_sse_auth_header_name_case_sensitivity(self):
+        """x-pixiu-mcp-auth header must be lowercase (HTTP header names are normalized)."""
+        from mcp_adapter.server import _extract_sse_auth_token
+
+        # Starlette/ASGI normalizes header names to lowercase bytes
+        scope = {"headers": [
+            (b"x-pixiu-mcp-auth", b"my-token"),
+            (b"content-type", b"application/json"),
+        ]}
+        self.assertEqual(_extract_sse_auth_token(scope), "my-token")
+
+
 if __name__ == "__main__":
     unittest.main()

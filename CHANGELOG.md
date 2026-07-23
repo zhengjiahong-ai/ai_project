@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.44
+
+1. **测试覆盖补齐（13-5）**：`test_agent_langgraph.py` 新增 8 个测试——空 prompt 处理、空 paper_ids、线程 ID 隔离、evidence 收集失败恢复、synthesis 失败恢复、malformed resume 输入、空 state→response、共享 checkpointer 验证；`test_mcp_adapter.py` 新增 6 个测试——session 计数、auth token 空白/空格拒绝、transport 选择大小写不敏感、header 小写匹配。
+
 ### 2026-07-23 v0.6.43
 
 1. **暗色模式完善（13-4）**：新增 `utils/themeColor.js` 主题颜色工具（`cachedThemeColor`、`themeColorWithAlpha`）；`CriticalAnalysisPanel.jsx` 中 ForceGraph linkColor、Recharts 图表 CartesianGrid/YAxis/Bar 填充色从硬编码切换为 CSS 变量；`BackgroundKnowledgePanel.tsx` 中 ForceGraph linkColor 切换为 CSS 变量；`MetaAnalysisCard.jsx` 中 GRADE 回退色从硬编码 `#6b7280` 切换为 `var(--text-muted)`；`PdfViewer.tsx` 中 PDF 高亮标注色从硬编码 `rgba(77,0,153,...)` 切换为通过 `themeColorWithAlpha('--accent-strong', ...)` 动态计算。
