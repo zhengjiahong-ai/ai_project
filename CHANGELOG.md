@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-23 v0.6.45
+
+1. **E2E 测试扩展（13-6）**：新增 `tests/e2e/langgraph-agent-workflow.spec.js`——2 个 Playwright E2E 测试覆盖 LangGraph agent-graph 端点优先调用验证和 LangGraph 不可用时 fallback 到旧 Agent run 路径的完整工作流（计划审查→执行→终稿审查）。
+
 ### 2026-07-23 v0.6.44
 
 1. **测试覆盖补齐（13-5）**：`test_agent_langgraph.py` 新增 8 个测试——空 prompt 处理、空 paper_ids、线程 ID 隔离、evidence 收集失败恢复、synthesis 失败恢复、malformed resume 输入、空 state→response、共享 checkpointer 验证；`test_mcp_adapter.py` 新增 6 个测试——session 计数、auth token 空白/空格拒绝、transport 选择大小写不敏感、header 小写匹配。
