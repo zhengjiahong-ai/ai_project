@@ -473,7 +473,7 @@ async def create_debate(
         logger = logging.getLogger(__name__)
         logger.exception("Debate run failed for project %s", project_id)
         return JSONResponse(
-            {"status": "error", "message": f"Debate run failed: {str(e)}"},
+            {"status": "error", "message": f"Debate run failed: {e!s}"},
             status_code=500,
         )
 
