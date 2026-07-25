@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from services.utils import parse_json_from_llm
 
@@ -12,13 +12,13 @@ _logger = logging.getLogger(__name__)
 def clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
 
-def extract_keywords(text: str) -> List[str]:
+def extract_keywords(text: str) -> list[str]:
     stopwords = {
         "the", "and", "for", "with", "that", "this", "from", "into", "about", "their",
         "method", "methods", "result", "results", "paper", "study", "using", "used",
         "shows", "show", "based", "current", "evidence", "section", "discussion",
     }
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     for token in re.findall(r"[a-zA-Z][a-zA-Z_-]{3,}", text.lower()):
         if token in stopwords:
             continue
@@ -27,7 +27,7 @@ def extract_keywords(text: str) -> List[str]:
     ordered = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
     return [item[0].replace("_", " ").replace("-", " ") for item in ordered[:5]]
 
-def infer_theme_from_evidence(evidence_items: List[Dict[str, Any]]) -> str:
+def infer_theme_from_evidence(evidence_items: list[dict[str, Any]]) -> str:
     if not evidence_items:
         return "limited evidence"
 
@@ -46,7 +46,7 @@ def infer_theme_from_evidence(evidence_items: List[Dict[str, Any]]) -> str:
         return ", ".join(keywords[:2])
     return "paper-level evidence"
 
-def build_finding_summary(prompt: str, paper_contexts: List[Dict[str, Any]], evidence_items: List[Dict[str, Any]]) -> str:
+def build_finding_summary(prompt: str, paper_contexts: list[dict[str, Any]], evidence_items: list[dict[str, Any]]) -> str:
     paper_count = len(paper_contexts)
     evidence_count = len(evidence_items)
     support_profiles = build_paper_support_profiles(paper_contexts, evidence_items)
@@ -65,10 +65,10 @@ def build_finding_summary(prompt: str, paper_contexts: List[Dict[str, Any]], evi
     )
 
 def build_paper_support_profiles(
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
     for item in evidence_items:
         pdf_id = clean_text(item.get("pdfId"))
         if not pdf_id:
@@ -89,8 +89,8 @@ def build_paper_support_profiles(
         )
     return sorted(profiles, key=lambda item: item["evidenceCount"], reverse=True)
 
-def extract_common_themes(profiles: List[Dict[str, Any]]) -> List[str]:
-    counts: Dict[str, int] = {}
+def extract_common_themes(profiles: list[dict[str, Any]]) -> list[str]:
+    counts: dict[str, int] = {}
     for profile in profiles:
         for part in [item.strip() for item in str(profile.get("theme") or "").split(",")]:
             if not part or part == "limited evidence":
@@ -102,9 +102,9 @@ def extract_common_themes(profiles: List[Dict[str, Any]]) -> List[str]:
 
 def build_conclusion_lines(
     prompt: str,
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-) -> List[str]:
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+) -> list[str]:
     if not paper_contexts:
         return ["- No project papers are attached yet, so a project-level conclusion cannot be formed."]
 
@@ -151,9 +151,9 @@ def build_conclusion_lines(
     return lines
 
 def extract_claims_per_paper(
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Extract structured claims from each paper's evidence using LLM.
 
     On LLM failure, falls back to extracting claims from finding summaries.
@@ -161,7 +161,7 @@ def extract_claims_per_paper(
     Returns a list of per-paper claim dicts with shape:
     ``[{paperId, claims: [{claim, section, confidence, sourceIds}]}]``
     """
-    claims_by_paper: List[Dict[str, Any]] = []
+    claims_by_paper: list[dict[str, Any]] = []
     for ctx in paper_contexts:
         pdf_id = clean_text(ctx.get("pdfId", ""))
         paper_evidence = [
@@ -207,17 +207,17 @@ def extract_claims_per_paper(
     return claims_by_paper
 
 def cross_paper_consistency_check(
-    claims_by_paper: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-) -> Dict[str, Any]:
+    claims_by_paper: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+) -> dict[str, Any]:
     """Check cross-paper consistency from extracted claims.
 
     Returns ``{aligned, contradictory, unique, summary}`` where each category
     lists claim pairs with sourceId references.
     """
-    aligned: List[Dict[str, Any]] = []
-    contradictory: List[Dict[str, Any]] = []
-    unique: List[Dict[str, Any]] = []
+    aligned: list[dict[str, Any]] = []
+    contradictory: list[dict[str, Any]] = []
+    unique: list[dict[str, Any]] = []
 
     # Build a simple keyword-overlap consistency matrix
     for i, paper_a in enumerate(claims_by_paper):
@@ -302,11 +302,11 @@ def cross_paper_consistency_check(
 
 def synthesize_llm_report(
     prompt: str,
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]],
-    open_questions: List[str],
-    advanced_analysis: Optional[Dict[str, Any]] = None,
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+    conflicts: list[dict[str, Any]],
+    open_questions: list[str],
+    advanced_analysis: dict[str, Any] | None = None,
 ) -> str:
     """Generate a structured research synthesis via multi-step reasoning.
 

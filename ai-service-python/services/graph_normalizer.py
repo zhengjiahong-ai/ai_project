@@ -6,9 +6,9 @@ learning path construction, and metadata attachment. Called by the main
 `get_background_knowledge` function in background_knowledge_service.py.
 """
 
-import re
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+import re
+from typing import Any
 
 from llm.client import get_llm
 from services.knowledge_graph_service import build_provenance_summary
@@ -99,12 +99,12 @@ RELATION_TYPE_MAP = {
 
 
 def _normalize_payload(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     paper_topic: str,
-    reader_profile: Dict[str, Any],
-    pdf_id: Optional[str],
-    rag_sources: List[dict],
-) -> Dict[str, Any]:
+    reader_profile: dict[str, Any],
+    pdf_id: str | None,
+    rag_sources: list[dict],
+) -> dict[str, Any]:
     user_level = str(reader_profile.get("user_knowledge_level") or DEFAULT_USER_LEVEL)
     graph, aliases = _normalize_graph(payload.get("graph"), paper_topic)
     background = _normalize_background(payload.get("background_knowledge"), graph, aliases)
@@ -147,14 +147,14 @@ def _normalize_payload(
     }
 
 
-def _normalize_graph(graph: Any, paper_topic: str) -> Tuple[Dict[str, list], Dict[str, str]]:
+def _normalize_graph(graph: Any, paper_topic: str) -> tuple[dict[str, list], dict[str, str]]:
     raw_nodes = graph.get("nodes") if isinstance(graph, dict) else []
     raw_links = graph.get("links") if isinstance(graph, dict) else []
     raw_edges = graph.get("edges") if isinstance(graph, dict) else []
     suppress_implicit_edges = bool(graph.get("suppressImplicitEdges")) if isinstance(graph, dict) else False
-    nodes_by_id: Dict[str, Dict[str, Any]] = {}
-    node_order: List[str] = []
-    aliases: Dict[str, str] = {}
+    nodes_by_id: dict[str, dict[str, Any]] = {}
+    node_order: list[str] = []
+    aliases: dict[str, str] = {}
 
     for index, node in enumerate(raw_nodes if isinstance(raw_nodes, list) else []):
         if not isinstance(node, dict):
@@ -215,7 +215,7 @@ def _normalize_graph(graph: Any, paper_topic: str) -> Tuple[Dict[str, list], Dic
 
     aliases.update(_build_aliases_from_graph({"nodes": [nodes_by_id[node_id] for node_id in node_order], "links": []}))
     node_ids = set(node_order)
-    links: List[dict] = []
+    links: list[dict] = []
     seen_links = set()
 
     for link in raw_links if isinstance(raw_links, list) else []:
@@ -261,11 +261,11 @@ def _normalize_graph(graph: Any, paper_topic: str) -> Tuple[Dict[str, list], Dic
 
 def _normalize_prerequisite_edges(
     raw_edges: Any,
-    links: List[dict],
-    aliases: Dict[str, str],
+    links: list[dict],
+    aliases: dict[str, str],
     node_ids: set,
-) -> List[dict]:
-    edges: List[dict] = []
+) -> list[dict]:
+    edges: list[dict] = []
     seen_edges = set()
 
     edge_candidates = raw_edges if isinstance(raw_edges, list) else []
@@ -307,14 +307,14 @@ def _normalize_prerequisite_edges(
     return edges
 
 
-def _normalize_background(value: Any, graph: Dict[str, list], aliases: Dict[str, str]) -> List[str]:
+def _normalize_background(value: Any, graph: dict[str, list], aliases: dict[str, str]) -> list[str]:
     nodes_by_id = {
         node.get("id"): node
         for node in graph.get("nodes", [])
         if isinstance(node, dict) and node.get("id")
     }
 
-    labels: List[str] = []
+    labels: list[str] = []
     seen = set()
     raw_items = value if isinstance(value, list) else []
     for item in raw_items:
@@ -344,10 +344,10 @@ def _normalize_background(value: Any, graph: Dict[str, list], aliases: Dict[str,
 
 def _normalize_learning_path_sections(
     value: Any,
-    graph: Dict[str, list],
-    aliases: Dict[str, str],
-    background: List[str],
-) -> List[dict]:
+    graph: dict[str, list],
+    aliases: dict[str, str],
+    background: list[str],
+) -> list[dict]:
     nodes_by_id = {
         node.get("id"): node
         for node in graph.get("nodes", [])
@@ -393,10 +393,10 @@ def _normalize_learning_item(
     item: Any,
     index: int,
     total: int,
-    nodes_by_id: Dict[str, Dict[str, Any]],
-    aliases: Dict[str, str],
+    nodes_by_id: dict[str, dict[str, Any]],
+    aliases: dict[str, str],
     valid_source_ids: set,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     if isinstance(item, dict):
         title = str(item.get("title") or item.get("label") or item.get("name") or f"第 {index + 1} 步").strip()
         goal = str(item.get("goal") or item.get("summary") or "").strip()
@@ -441,8 +441,8 @@ def _normalize_learning_item(
     }
 
 
-def _flatten_learning_path_sections(sections: List[dict]) -> List[dict]:
-    flattened: List[dict] = []
+def _flatten_learning_path_sections(sections: list[dict]) -> list[dict]:
+    flattened: list[dict] = []
     step = 1
     for section in sections:
         for item in section.get("items", []):
@@ -461,11 +461,11 @@ def _flatten_learning_path_sections(sections: List[dict]) -> List[dict]:
 
 def _fallback_payload(
     paper_topic: str,
-    reader_profile: Dict[str, Any],
-    pdf_id: Optional[str],
-    rag_sources: List[dict],
-    error: Optional[Exception] = None,
-) -> Dict[str, Any]:
+    reader_profile: dict[str, Any],
+    pdf_id: str | None,
+    rag_sources: list[dict],
+    error: Exception | None = None,
+) -> dict[str, Any]:
     # Lazy import to avoid circular dependency at module level.
     from services.background_knowledge_service import _parse_line_items
 
@@ -500,7 +500,7 @@ Return a short ordered list, one item per line.
     return payload
 
 
-def _linear_graph(paper_topic: str, background: List[str]) -> Dict[str, list]:
+def _linear_graph(paper_topic: str, background: list[str]) -> dict[str, list]:
     nodes = [{
         "id": ROOT_NODE_ID,
         "label": paper_topic or "当前论文",
@@ -551,7 +551,7 @@ def _linear_graph(paper_topic: str, background: List[str]) -> Dict[str, list]:
     return {"nodes": nodes, "links": links, "edges": edges}
 
 
-def _attach_graph_metadata(graph: Dict[str, list], rag_sources: List[dict]) -> Dict[str, list]:
+def _attach_graph_metadata(graph: dict[str, list], rag_sources: list[dict]) -> dict[str, list]:
     valid_source_ids = {
         item.get("sourceId")
         for item in rag_sources
@@ -594,13 +594,13 @@ def _attach_graph_metadata(graph: Dict[str, list], rag_sources: List[dict]) -> D
     return {"nodes": normalized_nodes, "links": graph.get("links", []), "edges": normalized_edges}
 
 
-def _attach_edge_metadata(edges: Any, nodes: List[dict], valid_source_ids: set) -> List[dict]:
+def _attach_edge_metadata(edges: Any, nodes: list[dict], valid_source_ids: set) -> list[dict]:
     node_map = {
         str(node.get("id")): node
         for node in nodes
         if isinstance(node, dict) and node.get("id")
     }
-    normalized_edges: List[dict] = []
+    normalized_edges: list[dict] = []
     seen_edges = set()
 
     for edge in edges if isinstance(edges, list) else []:
@@ -645,7 +645,7 @@ def _attach_edge_metadata(edges: Any, nodes: List[dict], valid_source_ids: set) 
     return normalized_edges
 
 
-def _resolve_provenance_status(value: Any, source_ids: List[str]) -> str:
+def _resolve_provenance_status(value: Any, source_ids: list[str]) -> str:
     if source_ids:
         return "current_paper_supported"
     normalized = str(value or "").strip()
@@ -669,7 +669,7 @@ def _coerce_confidence(value: Any, fallback: float) -> float:
         return round(max(0.0, min(1.0, float(fallback))), 2)
 
 
-def _build_source_coverage(graph: Dict[str, list]) -> Dict[str, Any]:
+def _build_source_coverage(graph: dict[str, list]) -> dict[str, Any]:
     concept_nodes = [
         node
         for node in graph.get("nodes", [])
@@ -687,7 +687,7 @@ def _build_source_coverage(graph: Dict[str, list]) -> Dict[str, Any]:
     }
 
 
-def _compute_overall_confidence(graph: Dict[str, list], source_coverage: Dict[str, Any]) -> float:
+def _compute_overall_confidence(graph: dict[str, list], source_coverage: dict[str, Any]) -> float:
     concept_nodes = [
         node
         for node in graph.get("nodes", [])
@@ -700,7 +700,7 @@ def _compute_overall_confidence(graph: Dict[str, list], source_coverage: Dict[st
     coverage_ratio = float(source_coverage.get("ratio") or 0.0)
     return round(min(0.99, average_node_confidence * 0.6 + coverage_ratio * 0.4), 2)
 
-def _merge_node(existing: Dict[str, Any], candidate: Dict[str, Any]) -> Dict[str, Any]:
+def _merge_node(existing: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
     merged = dict(existing)
     merged["label"] = candidate["label"] if len(candidate.get("label", "")) > len(existing.get("label", "")) else existing["label"]
     merged["type"] = _preferred_type(existing.get("type"), candidate.get("type"))
@@ -728,8 +728,8 @@ def _preferred_level(existing_level: Any, candidate_level: Any) -> str:
     return candidate if LEVEL_RANK.get(candidate, 0) > LEVEL_RANK.get(existing, 0) else existing
 
 
-def _build_aliases_from_graph(graph: Dict[str, list]) -> Dict[str, str]:
-    aliases: Dict[str, str] = {}
+def _build_aliases_from_graph(graph: dict[str, list]) -> dict[str, str]:
+    aliases: dict[str, str] = {}
     for node in graph.get("nodes", []):
         if not isinstance(node, dict):
             continue
@@ -743,7 +743,7 @@ def _build_aliases_from_graph(graph: Dict[str, list]) -> Dict[str, str]:
     return aliases
 
 
-def _alias_keys(value: Any) -> List[str]:
+def _alias_keys(value: Any) -> list[str]:
     text = str(value or "").strip()
     if not text:
         return []
@@ -757,15 +757,15 @@ def _alias_keys(value: Any) -> List[str]:
     return _dedupe_strings(keys)
 
 
-def _resolve_alias(aliases: Dict[str, str], value: Any) -> Optional[str]:
+def _resolve_alias(aliases: dict[str, str], value: Any) -> str | None:
     for key in _alias_keys(value):
         if key in aliases:
             return aliases[key]
     return None
 
 
-def _normalize_concept_ids(value: Any, aliases: Dict[str, str], nodes_by_id: Dict[str, Dict[str, Any]]) -> List[str]:
-    concept_ids: List[str] = []
+def _normalize_concept_ids(value: Any, aliases: dict[str, str], nodes_by_id: dict[str, dict[str, Any]]) -> list[str]:
+    concept_ids: list[str] = []
     raw_items = value if isinstance(value, list) else []
     for item in raw_items:
         resolved_id = _resolve_alias(aliases, item)
@@ -774,7 +774,7 @@ def _normalize_concept_ids(value: Any, aliases: Dict[str, str], nodes_by_id: Dic
     return concept_ids
 
 
-def _normalize_source_ids(value: Any, valid_source_ids: set) -> List[str]:
+def _normalize_source_ids(value: Any, valid_source_ids: set) -> list[str]:
     if not valid_source_ids:
         return []
     return [
@@ -784,7 +784,7 @@ def _normalize_source_ids(value: Any, valid_source_ids: set) -> List[str]:
     ]
 
 
-def _match_source_ids(node: Dict[str, Any], rag_sources: List[dict]) -> List[str]:
+def _match_source_ids(node: dict[str, Any], rag_sources: list[dict]) -> list[str]:
     label_key = _normalize_label_key(node.get("label"))
     if not label_key:
         return []
@@ -807,7 +807,7 @@ def _match_source_ids(node: Dict[str, Any], rag_sources: List[dict]) -> List[str
     return _dedupe_strings(matches)
 
 
-def _build_learning_item_from_node(node: Dict[str, Any]) -> Dict[str, Any]:
+def _build_learning_item_from_node(node: dict[str, Any]) -> dict[str, Any]:
     stage = _normalize_stage(node.get("stage")) or "foundation"
     title = str(node.get("label") or "概念")
     goal = str(node.get("why") or node.get("summary") or _default_goal(title, stage))
@@ -821,8 +821,8 @@ def _build_learning_item_from_node(node: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _background_from_sections(sections: List[dict]) -> List[str]:
-    background: List[str] = []
+def _background_from_sections(sections: list[dict]) -> list[str]:
+    background: list[str] = []
     seen = set()
     for section in sections:
         for item in section.get("items", []):
@@ -845,7 +845,7 @@ def _default_goal(title: str, stage: str) -> str:
     return f"从假设、局限和适用边界角度重新审视“{title}”。"
 
 
-def _normalize_stage(value: Any) -> Optional[str]:
+def _normalize_stage(value: Any) -> str | None:
     text = str(value or "").strip()
     return text if text in STAGE_TITLES else None
 
@@ -872,7 +872,7 @@ def _infer_stage_from_text(text: Any, index: int = 0, total: int = 1, is_root: b
     return "critical_perspective"
 
 
-def _compute_node_confidence(node: Dict[str, Any]) -> float:
+def _compute_node_confidence(node: dict[str, Any]) -> float:
     if node.get("id") == ROOT_NODE_ID:
         return 1.0
 
@@ -933,14 +933,14 @@ def _normalize_relation(value: Any) -> str:
     return "related"
 
 
-def _coerce_list_of_strings(value: Any) -> List[str]:
+def _coerce_list_of_strings(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return _dedupe_strings([str(item).strip() for item in value if str(item).strip()])
 
 
-def _dedupe_strings(values: List[str]) -> List[str]:
-    deduped: List[str] = []
+def _dedupe_strings(values: list[str]) -> list[str]:
+    deduped: list[str] = []
     seen = set()
     for value in values:
         key = str(value).strip()

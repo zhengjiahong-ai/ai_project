@@ -7,7 +7,6 @@ from __future__ import annotations
 import concurrent.futures
 from typing import Any
 
-
 MAX_PARALLEL_AGENTS = 6
 AGENT_TIMEOUT_S = 300  # 5 min per sub-agent
 
@@ -78,7 +77,10 @@ def _execute_single_agent(
 ) -> dict[str, Any]:
     """Run a single sub-agent using the existing research pipeline."""
     try:
-        from services.agent_orchestrator import collect_project_evidence, build_agent_outputs
+        from services.agent_orchestrator import (
+            build_agent_outputs,
+            collect_project_evidence,
+        )
 
         # Minimal execution: search → evidence → judge
         paper_contexts, tool_calls, evidence_items, _ = collect_project_evidence(
@@ -147,6 +149,7 @@ def _merge_parallel_findings(
 def _llm_merge(question: str, findings: list[dict[str, Any]]) -> str:
     try:
         from concurrent.futures import ThreadPoolExecutor
+
         from llm.client import get_llm
 
         f_str = "\n".join(

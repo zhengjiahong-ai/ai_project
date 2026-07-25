@@ -4,9 +4,10 @@ import hashlib
 import json
 import os
 import uuid
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 from code_worker.models import WorkerResult
 from services.code_execution_models import (
@@ -25,7 +26,6 @@ from services.code_execution_store import (
     save_code_execution_job,
 )
 
-
 MAX_ARTIFACT_BYTES = 1024 * 1024
 LOCAL_ACTOR = "local-user"
 
@@ -38,7 +38,7 @@ class ReviewConflictError(RuntimeError):
     pass
 
 
-def stage_csv_artifact(filename: str, content: bytes) -> Dict[str, Any]:
+def stage_csv_artifact(filename: str, content: bytes) -> dict[str, Any]:
     if not filename or not filename.lower().endswith(".csv"):
         raise ValueError("Only .csv artifacts are accepted.")
     if not content or len(content) > MAX_ARTIFACT_BYTES:
@@ -91,7 +91,7 @@ def resolve_artifact(artifact_id: str) -> Path:
     return path
 
 
-def create_job(artifact_id: str) -> Dict[str, Any]:
+def create_job(artifact_id: str) -> dict[str, Any]:
     path = resolve_artifact(artifact_id)
     metadata = _artifact_metadata(artifact_id)
     script = (Path(__file__).parents[1] / "code_worker" / "fixed_template.py").read_text(encoding="utf-8")
@@ -105,11 +105,11 @@ def create_job(artifact_id: str) -> Dict[str, Any]:
     return {"status": "success", "job": _job_view(job)}
 
 
-def list_jobs() -> Dict[str, Any]:
+def list_jobs() -> dict[str, Any]:
     return {"status": "success", "jobs": [_job_view(job) for job in list_code_execution_jobs()]}
 
 
-def get_job(job_id: str) -> Dict[str, Any]:
+def get_job(job_id: str) -> dict[str, Any]:
     return {"status": "success", "job": _job_view(load_code_execution_job(job_id))}
 
 
@@ -117,10 +117,10 @@ def review_execution(
     job_id: str,
     decision: str,
     expected_task_digest: str,
-    reason: Optional[str] = None,
+    reason: str | None = None,
     *,
-    runner: Optional[Callable[..., WorkerResult]] = None,
-) -> Dict[str, Any]:
+    runner: Callable[..., WorkerResult] | None = None,
+) -> dict[str, Any]:
     job = load_code_execution_job(job_id)
     if expected_task_digest != job.task_digest:
         raise ReviewConflictError("Execution task digest is stale.")
@@ -146,8 +146,8 @@ def review_execution(
 
 
 def review_publication(
-    job_id: str, decision: str, expected_publication_digest: str, reason: Optional[str] = None
-) -> Dict[str, Any]:
+    job_id: str, decision: str, expected_publication_digest: str, reason: str | None = None
+) -> dict[str, Any]:
     job = load_code_execution_job(job_id)
     if expected_publication_digest != job.publication_digest:
         raise ReviewConflictError("Publication digest is stale.")
@@ -159,7 +159,7 @@ def review_publication(
     return {"status": "success", "job": _job_view(reviewed)}
 
 
-def _job_view(job) -> Dict[str, Any]:
+def _job_view(job) -> dict[str, Any]:
     payload = job.model_dump(mode="json", by_alias=True)
     payload["publishable"] = job.publishable
     try:
@@ -169,7 +169,7 @@ def _job_view(job) -> Dict[str, Any]:
     return payload
 
 
-def _artifact_metadata(artifact_id: str) -> Dict[str, Any]:
+def _artifact_metadata(artifact_id: str) -> dict[str, Any]:
     resolve_artifact(artifact_id)
     return json.loads((_artifact_root() / f"{artifact_id}.json").read_text(encoding="utf-8"))
 
@@ -180,4 +180,4 @@ def _artifact_root() -> Path:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")

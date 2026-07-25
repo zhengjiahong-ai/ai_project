@@ -9,14 +9,15 @@ import hashlib
 import json
 import os
 import threading
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 _CACHE_TTL_SECONDS = 24 * 60 * 60  # 24 hours
 
 
 def _default_clock() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _cache_key(url: str) -> str:
@@ -41,7 +42,7 @@ class WebFetchCache:
         self._clock = clock
         self._lock = threading.RLock()
 
-    def get(self, url: str) -> Optional[Dict[str, Any]]:
+    def get(self, url: str) -> dict[str, Any] | None:
         """Return cached result for url if valid and unexpired, else None."""
         key = _cache_key(url)
         with self._lock:
@@ -58,7 +59,7 @@ class WebFetchCache:
                 return None
             return dict(entry.get("result") or {})
 
-    def put(self, url: str, result: Dict[str, Any]) -> None:
+    def put(self, url: str, result: dict[str, Any]) -> None:
         """Cache a fetch result. Blocked content is not cached."""
         if result.get("grade") == "blocked":
             return
@@ -73,7 +74,7 @@ class WebFetchCache:
             }
             self._write_entry(key, entry)
 
-    def _read_entry(self, key: str) -> Optional[Dict[str, Any]]:
+    def _read_entry(self, key: str) -> dict[str, Any] | None:
         try:
             with open(self._path, "r", encoding="utf-8") as fh:
                 data = json.load(fh)
@@ -81,8 +82,8 @@ class WebFetchCache:
             return None
         return data.get(key)
 
-    def _write_entry(self, key: str, entry: Dict[str, Any]) -> None:
-        data: Dict[str, Any] = {}
+    def _write_entry(self, key: str, entry: dict[str, Any]) -> None:
+        data: dict[str, Any] = {}
         try:
             with open(self._path, "r", encoding="utf-8") as fh:
                 data = json.load(fh)

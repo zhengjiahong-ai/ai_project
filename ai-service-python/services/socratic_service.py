@@ -1,16 +1,23 @@
 """Socratic guided-learning session service."""
 from __future__ import annotations
+
 import json
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any
+
 from llm.client import get_llm
 from rag.store import get_rag, retrieve_hybrid_for_vector
-from schemas.requests import SocraticQuestionRequest, SocraticSessionStartRequest, SocraticSessionAnswerRequest
+from schemas.requests import (
+    SocraticQuestionRequest,
+    SocraticSessionAnswerRequest,
+    SocraticSessionStartRequest,
+)
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.retrieval_judge_service import judge_evidence_quality
 from services.safety_service import build_guarded_messages
 from services.trace_service import record_counter, sanitize_text, trace_step
+
 _logger = logging.getLogger(__name__)
 
 
@@ -107,7 +114,7 @@ SOCRATIC_TOPIC_AXES = {
 
 # ── helpers (inlined from chat_service) ──
 
-def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any] | None) -> str:
+def _stringify_paper_skeleton(paper_skeleton: dict[str, Any] | None) -> str:
     if not paper_skeleton:
         return "暂无可用的论文结构摘要。"
 
@@ -131,7 +138,7 @@ def _retrieve_current_paper_evidence(
     pdf_id: str | None = None,
     current_top_k: int = 5,
     current_limit: int = 5,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     if not pdf_id:
         return []
 
@@ -161,7 +168,7 @@ def _retrieve_current_paper_evidence(
 
 # ── socratic session ──
 
-def _get_socratic_topic(index: int) -> Dict[str, Any]:
+def _get_socratic_topic(index: int) -> dict[str, Any]:
     normalized_index = max(1, min(int(index or 1), SOCRATIC_TOTAL_QUESTIONS))
     return SOCRATIC_TOPIC_AXES.get(normalized_index, SOCRATIC_TOPIC_AXES[SOCRATIC_TOTAL_QUESTIONS])
 
@@ -173,7 +180,7 @@ def _normalize_socratic_match_text(value: Any) -> str:
     return " ".join(text.split())
 
 
-def _normalize_socratic_strings(value: Any, limit: int = 5, max_chars: int = 32) -> List[str]:
+def _normalize_socratic_strings(value: Any, limit: int = 5, max_chars: int = 32) -> list[str]:
     if isinstance(value, list):
         raw_items = value
     elif isinstance(value, tuple):
@@ -200,7 +207,7 @@ def _normalize_socratic_strings(value: Any, limit: int = 5, max_chars: int = 32)
     return normalized
 
 
-def _contains_socratic_terms(normalized_text: str, terms: List[str]) -> bool:
+def _contains_socratic_terms(normalized_text: str, terms: list[str]) -> bool:
     for term in terms:
         normalized_term = _normalize_socratic_match_text(term)
         if normalized_term and normalized_term in normalized_text:
@@ -208,7 +215,7 @@ def _contains_socratic_terms(normalized_text: str, terms: List[str]) -> bool:
     return False
 
 
-def _compact_socratic_evidence_quality(judge_result: Dict[str, Any]) -> Dict[str, Any]:
+def _compact_socratic_evidence_quality(judge_result: dict[str, Any]) -> dict[str, Any]:
     return {
         "verdict": str(judge_result.get("verdict") or "INCORRECT"),
         "confidence": float(judge_result.get("confidence") or 0),
@@ -216,7 +223,7 @@ def _compact_socratic_evidence_quality(judge_result: Dict[str, Any]) -> Dict[str
     }
 
 
-def _format_socratic_evidence_quality(evidence_quality: Dict[str, Any]) -> str:
+def _format_socratic_evidence_quality(evidence_quality: dict[str, Any]) -> str:
     verdict = str(evidence_quality.get("verdict") or "").upper()
     label = SOCRATIC_EVIDENCE_LABELS.get(verdict, "证据判断")
     confidence = evidence_quality.get("confidence")
@@ -228,10 +235,10 @@ def _format_socratic_evidence_quality(evidence_quality: Dict[str, Any]) -> str:
 
 
 def _resolve_socratic_expected_aspects(
-    topic: Dict[str, Any],
-    evidence_items: List[Dict[str, Any]],
-    paper_skeleton: Dict[str, Any] | None = None,
-) -> List[Dict[str, Any]]:
+    topic: dict[str, Any],
+    evidence_items: list[dict[str, Any]],
+    paper_skeleton: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     source_text = "\n".join(
         [
             *(item.get("text", "") for item in evidence_items if item.get("text")),
@@ -253,11 +260,11 @@ def _resolve_socratic_expected_aspects(
 
 
 def _evaluate_socratic_answer_coverage(
-    topic: Dict[str, Any],
+    topic: dict[str, Any],
     answer: str,
-    evidence_items: List[Dict[str, Any]],
-    paper_skeleton: Dict[str, Any] | None = None,
-) -> tuple[List[str], List[str]]:
+    evidence_items: list[dict[str, Any]],
+    paper_skeleton: dict[str, Any] | None = None,
+) -> tuple[list[str], list[str]]:
     expected_aspects = _resolve_socratic_expected_aspects(topic, evidence_items, paper_skeleton=paper_skeleton)
     normalized_answer = _normalize_socratic_match_text(answer)
 
@@ -278,11 +285,11 @@ def _evaluate_socratic_answer_coverage(
 
 
 def _build_socratic_evidence_bundle(
-    topic: Dict[str, Any],
+    topic: dict[str, Any],
     pdf_id: str | None = None,
-    paper_skeleton: Dict[str, Any] | None = None,
+    paper_skeleton: dict[str, Any] | None = None,
     question: str | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     evidence_items = _retrieve_current_paper_evidence(
         topic.get("retrievalQuery") or topic.get("defaultQuestion") or "",
         pdf_id=pdf_id,
@@ -310,7 +317,7 @@ def _build_socratic_evidence_bundle(
     }
 
 
-def _extract_json_payload(text: str) -> Dict[str, Any]:
+def _extract_json_payload(text: str) -> dict[str, Any]:
     cleaned = (text or "").strip()
     cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
     cleaned = re.sub(r"\s*```$", "", cleaned)
@@ -324,7 +331,7 @@ def _extract_json_payload(text: str) -> Dict[str, Any]:
         return json.loads(match.group(0))
 
 
-def _call_json_llm(prompt: str, fallback: Dict[str, Any]) -> Dict[str, Any]:
+def _call_json_llm(prompt: str, fallback: dict[str, Any]) -> dict[str, Any]:
     try:
         raw_text = get_llm()._call(prompt)
         return _extract_json_payload(raw_text)
@@ -351,7 +358,7 @@ def _default_intro(reading_progress: str) -> str:
     )
 
 
-def _fallback_question(index: int, previous_missing_aspects: List[str] | None = None) -> str:
+def _fallback_question(index: int, previous_missing_aspects: list[str] | None = None) -> str:
     topic = _get_socratic_topic(index)
     question = str(topic.get("defaultQuestion") or "").strip()
     missing_aspects = _normalize_socratic_strings(previous_missing_aspects, limit=2, max_chars=20)
@@ -366,9 +373,9 @@ def _fallback_question(index: int, previous_missing_aspects: List[str] | None = 
 
 def _fallback_evaluation(
     answer: str,
-    missing_aspects: List[str] | None = None,
-    evidence_quality: Dict[str, Any] | None = None,
-) -> Dict[str, str]:
+    missing_aspects: list[str] | None = None,
+    evidence_quality: dict[str, Any] | None = None,
+) -> dict[str, str]:
     answer_length = len((answer or "").strip())
     normalized_missing = _normalize_socratic_strings(missing_aspects, limit=2, max_chars=20)
     missing_text = "、".join(normalized_missing) if normalized_missing else "关键概念和论证链条"
@@ -409,7 +416,7 @@ def _fallback_evaluation(
     }
 
 
-def _format_turns(turns: List[Dict[str, Any]]) -> str:
+def _format_turns(turns: list[dict[str, Any]]) -> str:
     if not turns:
         return "暂无历史轮次。"
 
@@ -433,8 +440,8 @@ def _format_turns(turns: List[Dict[str, Any]]) -> str:
 
 
 def _resolve_socratic_section_name(
-    paper_skeleton: Dict[str, Any] | None,
-    preferred_sections: List[str],
+    paper_skeleton: dict[str, Any] | None,
+    preferred_sections: list[str],
     fallback_label: str,
 ) -> str:
     if not paper_skeleton:
@@ -455,14 +462,14 @@ def _resolve_socratic_section_name(
 
 
 def _build_review_suggestions(
-    turns: List[Dict[str, Any]],
-    paper_skeleton: Dict[str, Any] | None = None,
+    turns: list[dict[str, Any]],
+    paper_skeleton: dict[str, Any] | None = None,
     max_items: int = 3,
-) -> List[str]:
+) -> list[str]:
     if not turns:
         return []
 
-    def sort_key(turn: Dict[str, Any]) -> tuple[int, int, int, int]:
+    def sort_key(turn: dict[str, Any]) -> tuple[int, int, int, int]:
         evidence_quality = turn.get("evidenceQuality") if isinstance(turn.get("evidenceQuality"), dict) else {}
         verdict = str(evidence_quality.get("verdict") or "").upper()
         evidence_rank = 0 if verdict == "INCORRECT" else 1 if verdict == "AMBIGUOUS" else 2
@@ -503,8 +510,8 @@ def _build_review_suggestions(
 
 
 def _fallback_final_summary(
-    turns: List[Dict[str, Any]],
-    review_suggestions: List[str] | None = None,
+    turns: list[dict[str, Any]],
+    review_suggestions: list[str] | None = None,
 ) -> str:
     if not turns:
         return "本轮引导学习已完成。你已经开始梳理论文的问题、方法、证据与局限，建议再结合原文细读关键方法与实验部分。"
@@ -543,7 +550,7 @@ def _fallback_final_summary(
     return summary
 
 
-def start_socratic_session(request: SocraticSessionStartRequest) -> Dict[str, Any]:
+def start_socratic_session(request: SocraticSessionStartRequest) -> dict[str, Any]:
     reading_progress = (request.readingProgress or "").strip()
     if not reading_progress:
         raise ValueError("Reading progress cannot be empty.")
@@ -612,7 +619,7 @@ JSON 格式：
     }
 
 
-def answer_socratic_question(request: SocraticSessionAnswerRequest) -> Dict[str, Any]:
+def answer_socratic_question(request: SocraticSessionAnswerRequest) -> dict[str, Any]:
     current_question = (request.currentQuestion or "").strip()
     user_answer = (request.userAnswer or "").strip()
     reading_progress = (request.readingProgress or "").strip()
@@ -649,7 +656,7 @@ def answer_socratic_question(request: SocraticSessionAnswerRequest) -> Dict[str,
         missing_aspects=missing_aspects,
         evidence_quality=evidence_quality,
     )
-    fallback_payload: Dict[str, Any] = {
+    fallback_payload: dict[str, Any] = {
         **fallback_evaluation,
         "nextQuestion": _fallback_question(current_index + 1, previous_missing_aspects=missing_aspects),
     }
@@ -789,7 +796,7 @@ JSON 格式：
     }
 
 
-def generate_socratic_questions(request: SocraticQuestionRequest) -> Dict[str, Any]:
+def generate_socratic_questions(request: SocraticQuestionRequest) -> dict[str, Any]:
     rag_query = (
         f"Generate Socratic questions for a paper. "
         f"Reading progress: {request.reading_progress}. "

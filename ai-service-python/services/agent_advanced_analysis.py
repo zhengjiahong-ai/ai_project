@@ -4,23 +4,23 @@ Runs adversarial review, hypothesis generation, meta-analysis,
 conflict adjudication, and cross-lingual search on agent findings.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 def run_advanced_analysis(
     prompt: str,
-    paper_ids: List[str],
-    evidence_items: List[Dict[str, Any]],
-    findings: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]],
-    open_questions: List[str],
-) -> Dict[str, Any]:
+    paper_ids: list[str],
+    evidence_items: list[dict[str, Any]],
+    findings: list[dict[str, Any]],
+    conflicts: list[dict[str, Any]],
+    open_questions: list[str],
+) -> dict[str, Any]:
     """Run optional advanced analysis tools on agent outputs.
 
     Returns a dict with keys for each analysis domain, or empty dict on failure.
     Each value is the structured result that frontend cards can render directly.
     """
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
 
     # 1. Adversarial review of findings
     if findings and evidence_items:
@@ -114,9 +114,9 @@ def run_advanced_analysis(
 
 
 def _extract_study_items(
-    evidence_items: List[Dict[str, Any]],
-    findings: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    evidence_items: list[dict[str, Any]],
+    findings: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Extract study-like items from evidence for meta-analysis."""
     studies = []
     for item in evidence_items:

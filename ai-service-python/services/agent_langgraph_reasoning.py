@@ -14,7 +14,7 @@ Extracted from ``agent_langgraph.py`` (19-2) to keep the main module under
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from services.agent_langgraph import AgentGraphState, _record
 from services.evidence_credibility import enrich_evidence_with_credibility
@@ -27,7 +27,7 @@ def evidence_weighing_node(state: AgentGraphState) -> AgentGraphState:
     same weights and formula are used by both the LangGraph and classic
     ``execute_run`` paths.
     """
-    evidence_items: List[Dict[str, Any]] = state.get("evidence_items", [])
+    evidence_items: list[dict[str, Any]] = state.get("evidence_items", [])
     _record(state, "evidence_weighing", f"Weighing {len(evidence_items)} evidence items")
 
     weighted = enrich_evidence_with_credibility(evidence_items)
@@ -51,12 +51,12 @@ def cross_paper_reasoning_node(state: AgentGraphState) -> AgentGraphState:
     Uses lightweight deterministic grouping + LLM flash-model call for
     semantic judgement (fails gracefully to rule-based fallback).
     """
-    weighted: List[Dict[str, Any]] = state.get("weighted_evidence", [])
-    paper_ids: List[str] = state.get("paper_ids", [])
+    weighted: list[dict[str, Any]] = state.get("weighted_evidence", [])
+    paper_ids: list[str] = state.get("paper_ids", [])
     _record(state, "cross_paper_reasoning",
             f"Reasoning across {len(paper_ids)} papers with {len(weighted)} weighted evidence items")
 
-    insights: Dict[str, Any] = {
+    insights: dict[str, Any] = {
         "consensus": [],
         "complementary": [],
         "contradictory": [],
@@ -73,13 +73,13 @@ def cross_paper_reasoning_node(state: AgentGraphState) -> AgentGraphState:
         return state
 
     # ── Deterministic grouping ────────────────────────────────────────────
-    by_paper: Dict[str, List[Dict[str, Any]]] = {}
+    by_paper: dict[str, list[dict[str, Any]]] = {}
     for item in weighted:
         pid = str(item.get("pdfId") or "unknown")
         by_paper.setdefault(pid, []).append(item)
 
     HIGH_THRESHOLD = 0.60
-    paper_claims: Dict[str, List[str]] = {}
+    paper_claims: dict[str, list[str]] = {}
     for pid, items in by_paper.items():
         high_cred = [it for it in items if it.get("credibility", {}).get("score", 0) >= HIGH_THRESHOLD]
         if high_cred:
@@ -106,7 +106,7 @@ def cross_paper_reasoning_node(state: AgentGraphState) -> AgentGraphState:
                             "claim_b": c2[:150],
                         })
 
-    covered_topics: Dict[str, set] = {}
+    covered_topics: dict[str, set] = {}
     for pid, claims in paper_claims.items():
         covered_topics[pid] = set()
         for c in claims:
@@ -189,14 +189,14 @@ def conflict_resolution_node(state: AgentGraphState) -> AgentGraphState:
     (14-3) — these MUST live in a real LangGraph *node* (not a conditional
     edge function) for state mutations to be persisted.
     """
-    conflicts: List[Dict[str, Any]] = state.get("conflicts", [])
-    weighted: List[Dict[str, Any]] = state.get("weighted_evidence", [])
+    conflicts: list[dict[str, Any]] = state.get("conflicts", [])
+    weighted: list[dict[str, Any]] = state.get("weighted_evidence", [])
     _record(state, "conflict_resolution", f"Resolving {len(conflicts)} conflicts")
 
-    resolved: List[Dict[str, Any]] = []
-    unresolved: List[Dict[str, Any]] = []
+    resolved: list[dict[str, Any]] = []
+    unresolved: list[dict[str, Any]] = []
 
-    cred_by_source: Dict[str, float] = {}
+    cred_by_source: dict[str, float] = {}
     for item in weighted:
         sid = str(item.get("sourceId") or "")
         if sid:

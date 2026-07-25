@@ -1,23 +1,24 @@
 import copy
 import hashlib
 import json
+import logging
 import os
 import re
 import threading
 import time
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
 _TRACE_LOCK = threading.RLock()
-_TRACE_STORE: Dict[str, Dict[str, Any]] = {}
-_CURRENT_TRACE_ID: ContextVar[Optional[str]] = ContextVar("current_trace_id", default=None)
+_TRACE_STORE: dict[str, dict[str, Any]] = {}
+_CURRENT_TRACE_ID: ContextVar[str | None] = ContextVar("current_trace_id", default=None)
 _PUBLIC_TRACE_STEP_LIMIT = 12
 _PUBLIC_SENSITIVE_KEYS = {
     "authorization",
@@ -69,7 +70,7 @@ def sanitize_text(value: Any, max_chars: int = 240) -> str:
     return f"{text[:max_chars].rstrip()}..."
 
 
-def summarize_external_search_query(query: Any) -> Dict[str, Any]:
+def summarize_external_search_query(query: Any) -> dict[str, Any]:
     text = " ".join(str(query or "").strip().split())
     return {
         "queryHash": hashlib.sha256(text.encode("utf-8")).hexdigest()[:16],
@@ -80,8 +81,8 @@ def summarize_external_search_query(query: Any) -> Dict[str, Any]:
 
 def start_trace(
     task_type: str,
-    request_meta: Optional[Dict[str, Any]] = None,
-    trace_id: Optional[str] = None,
+    request_meta: dict[str, Any] | None = None,
+    trace_id: str | None = None,
     activate: bool = True,
     initial_status: str = "running",
 ) -> str:
@@ -142,7 +143,7 @@ def start_trace(
 
 
 @contextmanager
-def use_trace(trace_id: Optional[str]) -> Iterator[Optional[str]]:
+def use_trace(trace_id: str | None) -> Iterator[str | None]:
     token = _CURRENT_TRACE_ID.set(trace_id)
     try:
         yield trace_id
@@ -154,10 +155,10 @@ def use_trace(trace_id: Optional[str]) -> Iterator[Optional[str]]:
 def trace_step(
     name: str,
     *,
-    input_size: Optional[int] = None,
-    output_size: Optional[int] = None,
-    meta: Optional[Dict[str, Any]] = None,
-) -> Iterator[Dict[str, Any]]:
+    input_size: int | None = None,
+    output_size: int | None = None,
+    meta: dict[str, Any] | None = None,
+) -> Iterator[dict[str, Any]]:
     start_time = time.perf_counter()
     step = {
         "name": str(name or "step"),
@@ -218,8 +219,8 @@ def record_metric(name: str, value: Any) -> None:
 def finalize_trace(
     status: str,
     error: Any = None,
-    response_meta: Optional[Dict[str, Any]] = None,
-) -> Optional[Dict[str, Any]]:
+    response_meta: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
     trace_id = get_current_trace_id()
     if not trace_id:
         return None
@@ -248,7 +249,7 @@ def finalize_trace(
     return snapshot
 
 
-def get_trace_snapshot(trace_id: str) -> Dict[str, Any]:
+def get_trace_snapshot(trace_id: str) -> dict[str, Any]:
     with _TRACE_LOCK:
         trace = _TRACE_STORE.get(str(trace_id or ""))
         if trace is None:
@@ -256,7 +257,7 @@ def get_trace_snapshot(trace_id: str) -> Dict[str, Any]:
         return copy.deepcopy(trace)
 
 
-def get_trace_summary(trace_id: str) -> Dict[str, Any]:
+def get_trace_summary(trace_id: str) -> dict[str, Any]:
     try:
         snapshot = get_trace_snapshot(trace_id)
     except KeyError as error:
@@ -268,7 +269,7 @@ def get_trace_summary(trace_id: str) -> Dict[str, Any]:
     return {"status": "success", "trace": build_public_trace_summary(snapshot)}
 
 
-def build_public_trace_summary(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+def build_public_trace_summary(snapshot: dict[str, Any]) -> dict[str, Any]:
     trace = {
         "traceId": sanitize_text(snapshot.get("traceId"), max_chars=120),
         "taskType": sanitize_text(snapshot.get("taskType"), max_chars=80),
@@ -286,7 +287,7 @@ def build_public_trace_summary(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     return trace
 
 
-def _load_persisted_trace_summary(trace_id: str) -> Optional[Dict[str, Any]]:
+def _load_persisted_trace_summary(trace_id: str) -> dict[str, Any] | None:
     try:
         from services import research_task_service
     except Exception:
@@ -317,11 +318,11 @@ def clear_traces() -> None:
     _CURRENT_TRACE_ID.set(None)
 
 
-def get_current_trace_id() -> Optional[str]:
+def get_current_trace_id() -> str | None:
     return _CURRENT_TRACE_ID.get()
 
 
-def _append_step(step: Dict[str, Any]) -> None:
+def _append_step(step: dict[str, Any]) -> None:
     trace_id = get_current_trace_id()
     if not trace_id:
         return
@@ -369,7 +370,7 @@ def _public_sanitize_meta(value: Any) -> Any:
     return sanitize_text(value, max_chars=120)
 
 
-def _public_sanitize_counters(value: Any) -> Dict[str, Any]:
+def _public_sanitize_counters(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         return {}
     counters = {}
@@ -384,7 +385,7 @@ def _public_sanitize_counters(value: Any) -> Dict[str, Any]:
     return counters
 
 
-def _public_sanitize_steps(value: Any) -> list[Dict[str, Any]]:
+def _public_sanitize_steps(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
     steps = []
@@ -416,7 +417,7 @@ def _is_sensitive_public_key(key: str) -> bool:
     )
 
 
-def _normalize_size(value: Any) -> Optional[int]:
+def _normalize_size(value: Any) -> int | None:
     if value is None:
         return None
     try:
@@ -426,13 +427,13 @@ def _normalize_size(value: Any) -> Optional[int]:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
-def _duration_ms(started_at: Any, finished_at: Any) -> Optional[int]:
+def _duration_ms(started_at: Any, finished_at: Any) -> int | None:
     try:
-        started = datetime.fromisoformat(str(started_at).replace("Z", "+00:00"))
-        finished = datetime.fromisoformat(str(finished_at).replace("Z", "+00:00"))
+        started = datetime.fromisoformat(str(started_at))
+        finished = datetime.fromisoformat(str(finished_at))
     except ValueError:
         return None
     return max(0, int((finished - started).total_seconds() * 1000))

@@ -5,8 +5,9 @@ descriptive statistics), structured data querying, image/chart analysis,
 browser automation, HTML table extraction, and meta-analysis.
 """
 
-from typing import Any, Dict
+from typing import Any
 
+from code_worker import FIXED_TEMPLATE_TEXT
 from services.browser_agent import browser_navigate, browser_screenshot
 from services.chart_analyzer import extract_chart_data
 from services.code_execution_models import IDENTIFIER_PATTERN, create_code_execution_job
@@ -15,10 +16,9 @@ from services.image_analyzer import analyze_image
 from services.meta_analysis import meta_analyze
 from services.structured_query import query_structured_data
 from services.table_extractor import extract_html_tables
-from services.trace_service import record_counter, trace_step
-from services.tools._common import _clean_text
 from services.tool_registry import ToolValidationError, _safety_scope
-from code_worker import FIXED_TEMPLATE_TEXT
+from services.tools._common import _clean_text
+from services.trace_service import record_counter, trace_step
 
 
 def register_tools(registry) -> None:
@@ -386,7 +386,7 @@ def register_tools(registry) -> None:
     )
 
 
-def _run_descriptive_statistics_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _run_descriptive_statistics_tool(payload: dict[str, Any]) -> dict[str, Any]:
     artifact_id = _clean_text(payload.get("artifactId"))
     if not artifact_id:
         raise ToolValidationError("run_descriptive_statistics requires a non-empty artifactId.")
@@ -416,7 +416,7 @@ def _run_descriptive_statistics_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
-def _execute_python_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _execute_python_tool(payload: dict[str, Any]) -> dict[str, Any]:
     code = (payload.get("code") or "").strip()
     if not code:
         raise ToolValidationError("execute_python requires a non-empty code string.")
@@ -444,7 +444,7 @@ def _execute_python_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _query_structured_data_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _query_structured_data_tool(payload: dict[str, Any]) -> dict[str, Any]:
     query = (payload.get("query") or "").strip()
     if not query:
         raise ToolValidationError("query_structured_data requires a non-empty query string.")
@@ -468,7 +468,7 @@ def _query_structured_data_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _analyze_image_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _analyze_image_tool(payload: dict[str, Any]) -> dict[str, Any]:
     image_url = (payload.get("imageUrl") or "").strip()
     if not image_url:
         raise ToolValidationError("analyze_image requires a non-empty imageUrl.")
@@ -489,7 +489,7 @@ def _analyze_image_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _browser_navigate_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _browser_navigate_tool(payload: dict[str, Any]) -> dict[str, Any]:
     url = (payload.get("url") or "").strip()
     if not url:
         raise ToolValidationError("browser_navigate requires a non-empty url.")
@@ -507,7 +507,7 @@ def _browser_navigate_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _browser_screenshot_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _browser_screenshot_tool(payload: dict[str, Any]) -> dict[str, Any]:
     with trace_step("tool_browser_screenshot", input_size=0) as step:
         record_counter("browserScreenshotCalls")
         try:
@@ -521,7 +521,7 @@ def _browser_screenshot_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _extract_chart_data_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_chart_data_tool(payload: dict[str, Any]) -> dict[str, Any]:
     image_url = (payload.get("imageUrl") or "").strip()
     if not image_url:
         raise ToolValidationError("extract_chart_data requires a non-empty imageUrl.")
@@ -534,7 +534,7 @@ def _extract_chart_data_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _extract_html_tables_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _extract_html_tables_tool(payload: dict[str, Any]) -> dict[str, Any]:
     html = (payload.get("html") or "").strip()
     if not html:
         raise ToolValidationError("extract_html_tables requires non-empty html.")
@@ -547,7 +547,7 @@ def _extract_html_tables_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _meta_analyze_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _meta_analyze_tool(payload: dict[str, Any]) -> dict[str, Any]:
     studies = payload.get("studies") or []
     if not studies:
         raise ToolValidationError("meta_analyze requires a non-empty studies array.")

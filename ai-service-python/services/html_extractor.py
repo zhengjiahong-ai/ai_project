@@ -7,12 +7,11 @@ Also extracts <img alt src> references for downstream image analysis.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup, CData, Comment
-
 
 # Tags to decompose (remove tag + all content/descendants).
 # These are container tags whose inner content must not leak.
@@ -42,10 +41,10 @@ _MULTI_SPACE_PATTERN = re.compile(r"[ \t]+")
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
-def extract_image_refs(html: str, *, max_images: int = 20) -> List[Dict[str, str]]:
+def extract_image_refs(html: str, *, max_images: int = 20) -> list[dict[str, str]]:
     """Extract ``<img alt src>`` references from raw HTML.
 
     Args:
@@ -60,7 +59,7 @@ def extract_image_refs(html: str, *, max_images: int = 20) -> List[Dict[str, str
         return []
 
     soup = BeautifulSoup(html, "lxml")
-    refs: List[Dict[str, str]] = []
+    refs: list[dict[str, str]] = []
 
     for img in soup.find_all("img"):
         if len(refs) >= max_images:
@@ -91,9 +90,9 @@ def extract_html_content(
     html: Any,
     *,
     url: str = "",
-    fetched_at: Optional[str] = None,
+    fetched_at: str | None = None,
     max_chars: int = _MAX_OUTPUT_CHARS,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Convert raw HTML to safe plain text.
 
     Args:
@@ -179,7 +178,7 @@ def _post_process_text(text: str, *, max_chars: int = _MAX_OUTPUT_CHARS) -> str:
     return text.rstrip()
 
 
-def _empty_result(url: str = "", fetched_at: Optional[str] = None) -> Dict[str, Any]:
+def _empty_result(url: str = "", fetched_at: str | None = None) -> dict[str, Any]:
     return {
         "text": "",
         "title": "",

@@ -8,16 +8,16 @@ except ModuleNotFoundError:  # pragma: no cover - test-only fallback
     )
 
 from schemas.requests import (
+    AgentClarificationRequest,
+    AgentFinalReviewRequest,
+    AgentPlanReviewRequest,
     AgentProjectCreateRequest,
     AgentProjectPapersRequest,
     AgentProjectUpdateRequest,
     AgentRunCreateRequest,
-    AgentClarificationRequest,
     AgentRunFinalReviewRequest,
     AgentRunPlanReviewRequest,
     AgentTaskCreateRequest,
-    AgentFinalReviewRequest,
-    AgentPlanReviewRequest,
 )
 from services import (
     agent_artifact_service,
@@ -282,6 +282,7 @@ async def create_agent_graph(request: AgentRunCreateRequest):
     Returns the current graph state as an API response.
     """
     import uuid as _uuid
+
     from services.agent_langgraph import (
         agent_graph_state_to_response,
         run_agent_graph,
@@ -369,9 +370,9 @@ async def get_agent_graph(thread_id: str):
 async def create_project_share(project_id: str):
     """Create a read-only share token for a project's latest report (16-4)."""
     try:
-        from services.share_service import get_share_service
-        from services.agent_workspace_service import build_workspace_view
         from services.agent_state_repository import AgentStateRepository
+        from services.agent_workspace_service import build_workspace_view
+        from services.share_service import get_share_service
 
         repo = AgentStateRepository()
         workspace = build_workspace_view(repo, project_id)

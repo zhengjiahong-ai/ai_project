@@ -1,15 +1,37 @@
 """Term explanation service."""
 from __future__ import annotations
+
 import logging
-from typing import Any, Dict, List
+from typing import Any
+
 from llm.client import get_llm
 from rag.store import get_rag
 from schemas.requests import TermExplainRequest
-from services.evidence_service import compact_evidence_for_response, format_evidence_context, normalize_evidence_items
+from services.chat_service import (
+    _evidence_context_title,
+    _evidence_quality_instruction,
+    _judge_and_retry_evidence,
+)
+from services.evidence_service import (
+    compact_evidence_for_response,
+    format_evidence_context,
+    normalize_evidence_items,
+)
 from services.query_service import build_retrieval_queries
-from services.safety_service import build_guarded_messages, summarize_safety_results, wrap_untrusted_context
-from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
-from services.chat_service import _evidence_context_title, _evidence_quality_instruction, _judge_and_retry_evidence
+from services.safety_service import (
+    build_guarded_messages,
+    summarize_safety_results,
+    wrap_untrusted_context,
+)
+from services.trace_service import (
+    finalize_trace,
+    record_counter,
+    record_metric,
+    sanitize_text,
+    start_trace,
+    trace_step,
+)
+
 _logger = logging.getLogger(__name__)
 
 
@@ -18,7 +40,7 @@ MATH_MARKDOWN_GUIDELINE = "如需表达数学公式，请使用 Markdown LaTeX �
 
 # ── helpers (inlined from chat_service) ──
 
-def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any] | None) -> str:
+def _stringify_paper_skeleton(paper_skeleton: dict[str, Any] | None) -> str:
     if not paper_skeleton:
         return "暂无可用的论文结构摘要。"
 
@@ -42,7 +64,7 @@ def _retrieve_current_paper_evidence(
     pdf_id: str | None = None,
     current_top_k: int = 5,
     current_limit: int = 5,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     if not pdf_id:
         return []
 
@@ -72,7 +94,7 @@ def _retrieve_current_paper_evidence(
 
 # ── term explanation ──
 
-def explain_term(request: TermExplainRequest) -> Dict[str, Any]:
+def explain_term(request: TermExplainRequest) -> dict[str, Any]:
     trace_id = start_trace(
         "chat",
         request_meta={

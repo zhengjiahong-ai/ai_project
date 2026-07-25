@@ -24,7 +24,6 @@ import os
 import sqlite3
 import threading
 import time
-from typing import Optional
 
 
 def _cache_db_path() -> str:
@@ -59,7 +58,7 @@ def _build_cache_key(
 class LLMCache:
     """Thread-safe, TTL-aware LLM response cache."""
 
-    def __init__(self, db_path: Optional[str] = None) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
         self._db_path = db_path or _cache_db_path()
         self._ttl = _cache_ttl_seconds()
         self._lock = threading.Lock()
@@ -73,7 +72,7 @@ class LLMCache:
         temperature: float,
         system_prompt: str,
         user_prompt: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return cached response or None if miss / expired."""
         if _cache_mode() not in ("exact", "semantic"):
             return None
@@ -167,7 +166,7 @@ class LLMCache:
 
 # ── module-level singleton ───────────────────────────────────────────────
 
-_cache: Optional[LLMCache] = None
+_cache: LLMCache | None = None
 
 
 def get_llm_cache() -> LLMCache:

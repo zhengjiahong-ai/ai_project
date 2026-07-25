@@ -4,15 +4,18 @@ import hashlib
 import json
 import os
 import sqlite3
+from collections.abc import Callable
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from code_worker.models import WorkerResult, failed
-from services.code_execution_models import CodeExecutionJob, transition_code_execution_job
+from services.code_execution_models import (
+    CodeExecutionJob,
+    transition_code_execution_job,
+)
 from services.trace_service import record_counter, trace_step
-
 
 ZERO_DIGEST = "0" * 64
 AUDIT_SCHEMA_VERSION = "1.0"
@@ -25,9 +28,9 @@ class AuditIntegrityError(RuntimeError):
 def save_code_execution_job(
     job: CodeExecutionJob,
     *,
-    event_type: Optional[str] = None,
-    result: Optional[WorkerResult] = None,
-    occurred_at: Optional[str] = None,
+    event_type: str | None = None,
+    result: WorkerResult | None = None,
+    occurred_at: str | None = None,
 ) -> None:
     database = _database_path()
     database.parent.mkdir(parents=True, exist_ok=True)
@@ -134,7 +137,7 @@ def load_code_execution_job(job_id: str) -> CodeExecutionJob:
         raise AuditIntegrityError("Code execution storage cannot be read.") from error
 
 
-def list_code_execution_audit_events(job_id: str) -> List[Dict[str, Any]]:
+def list_code_execution_audit_events(job_id: str) -> list[dict[str, Any]]:
     database = _database_path()
     with closing(sqlite3.connect(database)) as connection:
         connection.row_factory = sqlite3.Row
@@ -149,7 +152,7 @@ def list_code_execution_audit_events(job_id: str) -> List[Dict[str, Any]]:
         return [_public_event(row) for row in rows]
 
 
-def list_code_execution_jobs() -> List[CodeExecutionJob]:
+def list_code_execution_jobs() -> list[CodeExecutionJob]:
     database = _database_path()
     if not database.exists():
         return []
@@ -177,7 +180,7 @@ def execute_audited_job(
     job: CodeExecutionJob,
     input_path: Path,
     *,
-    runner: Optional[Callable[[CodeExecutionJob, Path], WorkerResult]] = None,
+    runner: Callable[[CodeExecutionJob, Path], WorkerResult] | None = None,
 ) -> WorkerResult:
     if job.status != "approved" or job.approval.decision != "approved":
         raise ValueError("Audited execution requires an approved job.")
@@ -256,7 +259,7 @@ def _append_event(
     connection: sqlite3.Connection,
     job: CodeExecutionJob,
     event_type: str,
-    result: Optional[WorkerResult],
+    result: WorkerResult | None,
     occurred_at: str,
 ) -> None:
     allowed = {
@@ -300,7 +303,7 @@ def _append_event(
 
 
 def _validate_persisted_transition(
-    existing_status: str, new_status: str, event_type: Optional[str]
+    existing_status: str, new_status: str, event_type: str | None
 ) -> None:
     if event_type is None and existing_status == new_status:
         return
@@ -322,8 +325,8 @@ def _validate_persisted_transition(
 
 
 def _event_payload(
-    job: CodeExecutionJob, event_type: str, result: Optional[WorkerResult]
-) -> Dict[str, Any]:
+    job: CodeExecutionJob, event_type: str, result: WorkerResult | None
+) -> dict[str, Any]:
     common = {
         "taskDigest": job.task_digest,
         "scriptDigest": job.script_digest,
@@ -375,7 +378,7 @@ def _event_payload(
 
 def _validated_events(
     connection: sqlite3.Connection, job_id: str, expected_count: int, expected_head: str
-) -> List[sqlite3.Row]:
+) -> list[sqlite3.Row]:
     rows = connection.execute(
         "SELECT * FROM code_execution_audit_events WHERE job_id = ? ORDER BY sequence",
         (job_id,),
@@ -407,7 +410,7 @@ def _validated_events(
     return rows
 
 
-def _public_event(row: sqlite3.Row) -> Dict[str, Any]:
+def _public_event(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "schemaVersion": AUDIT_SCHEMA_VERSION,
         "jobId": row["job_id"],
@@ -436,4 +439,4 @@ def _database_path() -> Path:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")

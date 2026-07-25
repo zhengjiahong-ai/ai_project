@@ -8,7 +8,7 @@ It is not part of the public API.
 import copy
 import os
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from services.external_search_provider import create_external_search_provider
 from services.trace_service import (
@@ -96,7 +96,7 @@ def _resolve_provider_names_list(provider: Any) -> list:
         return []
 
 
-def _external_search_budget_snapshot() -> Dict[str, int]:
+def _external_search_budget_snapshot() -> dict[str, int]:
     return {
         "callLimit": EXTERNAL_SEARCH_CALL_BUDGET,
         "callsUsed": _trace_counter_value("externalSearchCalls"),
@@ -116,7 +116,7 @@ def _external_search_budget_block_reason(requested_limit: int) -> str:
     return ""
 
 
-def _web_search_budget_snapshot() -> Dict[str, int]:
+def _web_search_budget_snapshot() -> dict[str, int]:
     return {
         "callLimit": WEB_SEARCH_CALL_BUDGET,
         "callsUsed": _trace_counter_value("webSearchCalls"),
@@ -136,7 +136,7 @@ def _web_search_budget_block_reason(requested_limit: int) -> str:
     return ""
 
 
-def _web_fetch_budget_snapshot() -> Dict[str, int]:
+def _web_fetch_budget_snapshot() -> dict[str, int]:
     return {
         "callLimit": WEB_FETCH_CALL_BUDGET,
         "callsUsed": _trace_counter_value("webFetchCalls"),
@@ -171,7 +171,7 @@ def _trace_counter_value(name: str) -> int:
         return 0
 
 
-def _normalize_payload(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def _normalize_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
     if payload is None:
         return {}
     return payload
@@ -185,8 +185,8 @@ def _coerce_positive_int(value: Any, default: int) -> int:
     return normalized if normalized > 0 else default
 
 
-def _ensure_stable_source_ids(items: List[Dict[str, Any]], fallback_prefix: str) -> List[Dict[str, Any]]:
-    stabilized: List[Dict[str, Any]] = []
+def _ensure_stable_source_ids(items: list[dict[str, Any]], fallback_prefix: str) -> list[dict[str, Any]]:
+    stabilized: list[dict[str, Any]] = []
     for index, item in enumerate(items or []):
         current = copy.deepcopy(item)
         base = str(current.get("sourceId") or "").strip()

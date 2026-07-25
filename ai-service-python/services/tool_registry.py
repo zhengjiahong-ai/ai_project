@@ -7,8 +7,9 @@ services.tools._common.
 
 import copy
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from services.tools._common import (
     _clean_text,
@@ -16,7 +17,7 @@ from services.tools._common import (
     reset_external_search_provider,
 )
 
-Handler = Callable[[Dict[str, Any]], Any]
+Handler = Callable[[dict[str, Any]], Any]
 
 _DEFAULT_TOOL_REGISTRY = None
 
@@ -34,9 +35,9 @@ class ToolDefinition:
     name: str
     version: str
     description: str
-    inputSchema: Dict[str, Any]
-    outputSchema: Dict[str, Any]
-    safetyScope: Dict[str, Any]
+    inputSchema: dict[str, Any]
+    outputSchema: dict[str, Any]
+    safetyScope: dict[str, Any]
     handler: Handler
 
 
@@ -44,17 +45,17 @@ class ToolRegistry:
     schemaVersion = "1.0"
 
     def __init__(self) -> None:
-        self._tools: Dict[str, ToolDefinition] = {}
+        self._tools: dict[str, ToolDefinition] = {}
 
     def register(
         self,
         name: str,
         description: str,
-        input_schema: Dict[str, Any],
+        input_schema: dict[str, Any],
         handler: Handler,
         version: str = "1.0.0",
-        output_schema: Optional[Dict[str, Any]] = None,
-        safety_scope: Optional[Dict[str, Any]] = None,
+        output_schema: dict[str, Any] | None = None,
+        safety_scope: dict[str, Any] | None = None,
     ) -> ToolDefinition:
         tool_name = _clean_text(name)
         if not tool_name:
@@ -95,7 +96,7 @@ class ToolRegistry:
             raise ToolNotFoundError(f"Unknown tool: {tool_name}")
         return definition
 
-    def list_tools(self) -> List[Dict[str, Any]]:
+    def list_tools(self) -> list[dict[str, Any]]:
         return [
             {
                 "name": definition.name,
@@ -109,7 +110,7 @@ class ToolRegistry:
             for definition in [self._tools[name]]
         ]
 
-    def invoke(self, name: str, payload: Optional[Dict[str, Any]] = None) -> Any:
+    def invoke(self, name: str, payload: dict[str, Any] | None = None) -> Any:
         definition = self.get(name)
         normalized_payload = _normalize_payload(payload)
         _validate_value(normalized_payload, definition.inputSchema, definition.name, "input", "$")
@@ -132,13 +133,13 @@ def reset_tool_registry() -> None:
 
 
 def _safety_scope(
-    data_scopes: List[str],
+    data_scopes: list[str],
     *,
     network_access: bool,
     sensitive_output: bool,
     access: str = "read_only",
     side_effects: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "access": access,
         "dataScopes": data_scopes,
@@ -148,7 +149,7 @@ def _safety_scope(
     }
 
 
-def _object_output(required: List[str], properties: Dict[str, Any]) -> Dict[str, Any]:
+def _object_output(required: list[str], properties: dict[str, Any]) -> dict[str, Any]:
     return {
         "type": "object",
         "required": required,
@@ -157,7 +158,7 @@ def _object_output(required: List[str], properties: Dict[str, Any]) -> Dict[str,
     }
 
 
-def _external_evidence_schema() -> Dict[str, Any]:
+def _external_evidence_schema() -> dict[str, Any]:
     return {
         "type": "object",
         "required": [
@@ -201,11 +202,13 @@ def _build_default_tool_registry() -> ToolRegistry:
     """Build the default tool registry by delegating to each sub-module."""
     registry = ToolRegistry()
 
-    from services.tools.retrieval_tools import register_tools as _reg_retrieval
-    from services.tools.paper_tools import register_tools as _reg_paper
     from services.tools.code_tools import register_tools as _reg_code
+    from services.tools.dialogue_monitor_tools import (
+        register_tools as _reg_dialogue_monitor,
+    )
+    from services.tools.paper_tools import register_tools as _reg_paper
     from services.tools.research_tools import register_tools as _reg_research
-    from services.tools.dialogue_monitor_tools import register_tools as _reg_dialogue_monitor
+    from services.tools.retrieval_tools import register_tools as _reg_retrieval
 
     _reg_retrieval(registry)
     _reg_paper(registry)
@@ -271,7 +274,7 @@ def _validate_schema_definition(schema: Any, label: str, *, require_object_root:
             raise ToolValidationError(f"{label}.{keyword} must be numeric.")
 
 
-def _schema_types(value: Any, label: str) -> List[str]:
+def _schema_types(value: Any, label: str) -> list[str]:
     if value is None:
         return []
     values = value if isinstance(value, list) else [value]
@@ -280,7 +283,7 @@ def _schema_types(value: Any, label: str) -> List[str]:
     return values
 
 
-def _validate_safety_scope(tool_name: str, safety_scope: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def _validate_safety_scope(tool_name: str, safety_scope: dict[str, Any] | None) -> dict[str, Any]:
     scope = copy.deepcopy(safety_scope or {})
     missing = sorted(_SAFETY_SCOPE_FIELDS - set(scope))
     if missing:
@@ -308,7 +311,7 @@ def _validate_safety_scope(tool_name: str, safety_scope: Optional[Dict[str, Any]
     return scope
 
 
-def _validate_value(value: Any, schema: Dict[str, Any], tool_name: str, direction: str, path: str) -> None:
+def _validate_value(value: Any, schema: dict[str, Any], tool_name: str, direction: str, path: str) -> None:
     types = _schema_types(schema.get("type"), f"tool '{tool_name}' {direction} schema at {path}")
     if types and not any(_matches_schema_type(value, expected_type) for expected_type in types):
         expected = " or ".join(types)

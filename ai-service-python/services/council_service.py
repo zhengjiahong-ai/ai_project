@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from llm.client import get_llm
 from llm.provider import LLMProvider, LLMRequest, LLMResult, LLMUsage
 from services.evidence_service import normalize_evidence_items
 from services.trace_service import record_counter, trace_step
 from services.utils import parse_json_from_llm
-
 
 VALID_VERDICTS = {"supported", "insufficient", "conflict", "abstain"}
 REVIEWERS = (
@@ -34,10 +33,10 @@ def _get_flash_provider() -> LLMProvider:
 def run_council(
     question: str,
     evidence_items: Any,
-    provider: Optional[LLMProvider] = None,
-    second_reviewer_provider: Optional[LLMProvider] = None,
+    provider: LLMProvider | None = None,
+    second_reviewer_provider: LLMProvider | None = None,
     conflict_only: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run the two-reviewer Council over evidence.
 
     Args:
@@ -116,7 +115,7 @@ def run_council(
 
 def _build_reviewer_prompt(
     question: str,
-    evidence: List[Dict[str, Any]],
+    evidence: list[dict[str, Any]],
     role: str,
     marker: str,
 ) -> str:
@@ -161,7 +160,7 @@ def _normalize_opinion(
     reviewer_id: str,
     role: str,
     allowed_source_ids: set[str],
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     usage = _usage_payload(result.usage)
     try:
         payload = parse_json_from_llm(result.content)
@@ -225,8 +224,8 @@ def _abstention(
     reason: str,
     provider: str = "unknown",
     model: str = "unknown",
-    usage: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    usage: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "reviewerId": reviewer_id,
         "role": role,
@@ -243,7 +242,7 @@ def _abstention(
     }
 
 
-def _aggregate(opinions: List[Dict[str, Any]], allowed_source_ids: List[str]) -> Dict[str, Any]:
+def _aggregate(opinions: list[dict[str, Any]], allowed_source_ids: list[str]) -> dict[str, Any]:
     active = [item for item in opinions if not item.get("abstain")]
     abstentions = [
         {
@@ -265,8 +264,8 @@ def _aggregate(opinions: List[Dict[str, Any]], allowed_source_ids: List[str]) ->
         "ratio": round(len(cited) / len(allowed_source_ids), 6) if allowed_source_ids else 0.0,
     }
 
-    agreements: List[Dict[str, Any]] = []
-    disagreements: List[Dict[str, Any]] = []
+    agreements: list[dict[str, Any]] = []
+    disagreements: list[dict[str, Any]] = []
     if len(active) == 2:
         if active[0]["verdict"] == active[1]["verdict"] and shared:
             agreements.append(
@@ -318,7 +317,7 @@ def _aggregate(opinions: List[Dict[str, Any]], allowed_source_ids: List[str]) ->
     }
 
 
-def _position(opinion: Dict[str, Any]) -> Dict[str, Any]:
+def _position(opinion: dict[str, Any]) -> dict[str, Any]:
     return {
         "reviewerId": opinion["reviewerId"],
         "verdict": opinion["verdict"],
@@ -328,19 +327,19 @@ def _position(opinion: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _shared_source_ids(active: List[Dict[str, Any]], allowed_source_ids: List[str]) -> List[str]:
+def _shared_source_ids(active: list[dict[str, Any]], allowed_source_ids: list[str]) -> list[str]:
     if len(active) != 2:
         return []
     shared = set(active[0].get("sourceIds") or []).intersection(active[1].get("sourceIds") or [])
     return [source_id for source_id in allowed_source_ids if source_id in shared]
 
 
-def _ordered_union(groups: List[List[str]], allowed_source_ids: List[str]) -> List[str]:
+def _ordered_union(groups: list[list[str]], allowed_source_ids: list[str]) -> list[str]:
     values = {source_id for group in groups for source_id in group}
     return [source_id for source_id in allowed_source_ids if source_id in values]
 
 
-def _usage_payload(usage: Optional[LLMUsage]) -> Dict[str, Any]:
+def _usage_payload(usage: LLMUsage | None) -> dict[str, Any]:
     if usage is None:
         return {"inputTokens": 0, "outputTokens": 0, "totalTokens": 0, "estimated": True}
     return {
@@ -351,7 +350,7 @@ def _usage_payload(usage: Optional[LLMUsage]) -> Dict[str, Any]:
     }
 
 
-def _confidence(value: Any) -> Optional[float]:
+def _confidence(value: Any) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
     return round(max(0.0, min(1.0, float(value))), 3)

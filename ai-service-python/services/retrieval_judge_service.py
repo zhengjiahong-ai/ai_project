@@ -1,13 +1,12 @@
 import logging
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from llm.client import get_llm
 from services.evidence_service import normalize_evidence_items
 
 _logger = logging.getLogger(__name__)
 from services.utils import parse_json_from_llm
-
 
 VALID_VERDICTS = {"CORRECT", "AMBIGUOUS", "INCORRECT"}
 
@@ -39,9 +38,9 @@ SOURCE_TRUST_DEFAULT = 0.30
 def judge_evidence_quality(
     question: str,
     evidence_items: Any,
-    keywords: Optional[List[str]] = None,
+    keywords: list[str] | None = None,
     use_llm: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     heuristic = _heuristic_judge(question, evidence_items, keywords=keywords)
     if not use_llm:
         return heuristic
@@ -53,7 +52,7 @@ def judge_evidence_quality(
         return heuristic
 
 
-def _heuristic_judge(question: str, evidence_items: Any, keywords: Optional[List[str]] = None) -> Dict[str, Any]:
+def _heuristic_judge(question: str, evidence_items: Any, keywords: list[str] | None = None) -> dict[str, Any]:
     evidence = normalize_evidence_items(evidence_items, limit=8, max_text_chars=900)
     keyword_terms = _normalize_terms(keywords) or _fallback_terms(question)
     if not evidence:
@@ -144,9 +143,9 @@ def _heuristic_judge(question: str, evidence_items: Any, keywords: Optional[List
 def _llm_judge(
     question: str,
     evidence_items: Any,
-    keywords: Optional[List[str]],
-    fallback: Dict[str, Any],
-) -> Dict[str, Any]:
+    keywords: list[str] | None,
+    fallback: dict[str, Any],
+) -> dict[str, Any]:
     evidence = normalize_evidence_items(evidence_items, limit=5, max_text_chars=600)
     evidence_text = "\n\n".join(
         f"{item.get('sourceId')}: {item.get('text', '')}"
@@ -228,12 +227,12 @@ def _result(
     verdict: str,
     confidence: float,
     reason: str,
-    missing_aspects: Optional[List[str]] = None,
-    should_retry: Optional[bool] = None,
-    coverage: Optional[Dict[str, Any]] = None,
+    missing_aspects: list[str] | None = None,
+    should_retry: bool | None = None,
+    coverage: dict[str, Any] | None = None,
     reflection: str = "",
-    suggested_queries: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    suggested_queries: list[str] | None = None,
+) -> dict[str, Any]:
     normalized_verdict = verdict if verdict in VALID_VERDICTS else "INCORRECT"
     normalized_confidence = round(max(0.0, min(1.0, float(confidence))), 2)
     normalized_missing = missing_aspects or []
@@ -260,10 +259,10 @@ def _result(
     }
 
 
-def _build_coverage(evidence: List[Dict[str, Any]], terms: List[str], matched_terms: List[str]) -> Dict[str, Any]:
+def _build_coverage(evidence: list[dict[str, Any]], terms: list[str], matched_terms: list[str]) -> dict[str, Any]:
     source_types = []
     seen_source_types = set()
-    source_type_counts: Dict[str, int] = {}
+    source_type_counts: dict[str, int] = {}
     for item in evidence:
         source_type = str(item.get("sourceType") or "").strip()
         if not source_type:
@@ -299,7 +298,7 @@ def _build_coverage(evidence: List[Dict[str, Any]], terms: List[str], matched_te
     }
 
 
-def _compute_shannon_diversity(source_type_counts: Dict[str, int], total_count: int) -> float:
+def _compute_shannon_diversity(source_type_counts: dict[str, int], total_count: int) -> float:
     if total_count == 0:
         return 0.0
     entropy = 0.0
@@ -316,7 +315,7 @@ def _compute_shannon_diversity(source_type_counts: Dict[str, int], total_count: 
     return entropy / max_entropy
 
 
-def _compute_source_trust_weighted(source_type_counts: Dict[str, int], total_count: int) -> float:
+def _compute_source_trust_weighted(source_type_counts: dict[str, int], total_count: int) -> float:
     if total_count == 0:
         return 0.0
     weights = _get_source_trust_weights()
@@ -329,14 +328,14 @@ def _compute_source_trust_weighted(source_type_counts: Dict[str, int], total_cou
 
 
 def _compute_cross_source_agreement(
-    evidence: List[Dict[str, Any]], source_type_counts: Dict[str, int]
-) -> Optional[float]:
+    evidence: list[dict[str, Any]], source_type_counts: dict[str, int]
+) -> float | None:
     unique_types = len(source_type_counts)
     if unique_types <= 1:
         return None
 
     # Extract meaningful text tokens per source type
-    source_texts: Dict[str, str] = {}
+    source_texts: dict[str, str] = {}
     for item in evidence:
         source_type = str(item.get("sourceType") or "").strip()
         if not source_type:
@@ -345,7 +344,7 @@ def _compute_cross_source_agreement(
         source_texts[source_type] = source_texts.get(source_type, "") + " " + text
 
     # Build keyword sets per source type
-    source_keyword_sets: Dict[str, set] = {}
+    source_keyword_sets: dict[str, set] = {}
     for source_type, text in source_texts.items():
         tokens = set(token.lower() for token in text.split() if len(token) >= 3)
         if tokens:
@@ -374,7 +373,7 @@ def _compute_cross_source_agreement(
     return round(agreeing_types / len(source_list), 4)
 
 
-def _normalize_coverage(value: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def _normalize_coverage(value: dict[str, Any] | None) -> dict[str, Any]:
     coverage = value if isinstance(value, dict) else {}
     return {
         "score": round(max(0.0, min(1.0, _coerce_float(coverage.get("score"), 0.0))), 2),
@@ -392,7 +391,7 @@ def _normalize_coverage(value: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def _judge_score(verdict: str, confidence: float, coverage: Dict[str, Any]) -> int:
+def _judge_score(verdict: str, confidence: float, coverage: dict[str, Any]) -> int:
     verdict_bonus = {"CORRECT": 16, "AMBIGUOUS": 4, "INCORRECT": -8}.get(verdict, -8)
     source_diversity = _coerce_float(coverage.get("sourceDiversityScore"), 0.0)
     default_w = _get_source_trust_default()
@@ -409,7 +408,7 @@ def _judge_score(verdict: str, confidence: float, coverage: Dict[str, Any]) -> i
     return int(round(max(0, min(100, raw_score))))
 
 
-def _retry_reason(should_retry: bool, missing_aspects: List[str], reason: str) -> str:
+def _retry_reason(should_retry: bool, missing_aspects: list[str], reason: str) -> str:
     if not should_retry:
         return ""
     if missing_aspects:
@@ -431,7 +430,7 @@ def _coerce_float(value: Any, fallback: float) -> float:
         return fallback
 
 
-def _coerce_float_or_none(value: Any) -> Optional[float]:
+def _coerce_float_or_none(value: Any) -> float | None:
     if value is None:
         return None
     try:
@@ -440,7 +439,7 @@ def _coerce_float_or_none(value: Any) -> Optional[float]:
         return None
 
 
-def _normalize_terms(value: Any) -> List[str]:
+def _normalize_terms(value: Any) -> list[str]:
     if isinstance(value, str):
         raw_terms = [item.strip() for item in value.replace("，", ",").split(",")]
     elif isinstance(value, list):
@@ -464,14 +463,14 @@ def _normalize_terms(value: Any) -> List[str]:
     return terms
 
 
-def _fallback_terms(question: str) -> List[str]:
+def _fallback_terms(question: str) -> list[str]:
     text = str(question or "")
     for separator in ",.;:，。；：、()[]{}<>《》/\\|!?！？\n\t'\"":
         text = text.replace(separator, " ")
     return _normalize_terms([token for token in text.split() if len(token) >= 2])
 
 
-def _matched_terms(terms: List[str], text: str) -> List[str]:
+def _matched_terms(terms: list[str], text: str) -> list[str]:
     lowered = str(text or "").lower()
     return [
         term
@@ -480,7 +479,7 @@ def _matched_terms(terms: List[str], text: str) -> List[str]:
     ]
 
 
-def _missing_aspects(terms: Optional[List[str]], matched_terms: List[str], default: str = "更多相关证据") -> List[str]:
+def _missing_aspects(terms: list[str] | None, matched_terms: list[str], default: str = "更多相关证据") -> list[str]:
     normalized_terms = _normalize_terms(terms)
     matched = {term.lower() for term in matched_terms}
     missing = [
@@ -491,7 +490,7 @@ def _missing_aspects(terms: Optional[List[str]], matched_terms: List[str], defau
     return missing or [default]
 
 
-def _best_number(evidence: List[Dict[str, Any]], field: str) -> Optional[float]:
+def _best_number(evidence: list[dict[str, Any]], field: str) -> float | None:
     values = [
         item.get(field)
         for item in evidence

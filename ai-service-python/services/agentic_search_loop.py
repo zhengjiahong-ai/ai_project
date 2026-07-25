@@ -7,8 +7,9 @@ max iterations, budget exhaustion, or cancellation.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 from services.trace_service import record_counter, trace_step
 
@@ -81,7 +82,7 @@ def run_agentic_search_loop(
     question: str,
     sub_question: str,
     missing_aspects: list,
-    query_plan: Dict[str, Any],
+    query_plan: dict[str, Any],
     *,
     max_iterations: int | None = None,
     max_tokens: int | None = None,
@@ -91,7 +92,7 @@ def run_agentic_search_loop(
     invoke_judge=None,
     fetch_cache=None,
     on_progress=None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run iterative search→fetch→judge loop.
 
     Each round: build queries → search_web → select top URLs → fetch_web_page → judge.
@@ -249,7 +250,7 @@ def run_agentic_search_loop(
                                 "searchQuery": str(item.get("query", "")),
                                 "searchIteration": iteration + 1,
                                 "sourceUrl": url,
-                                "retrievalTimestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                                "retrievalTimestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
                             },
                         })
                         total_pages_fetched += 1
@@ -369,19 +370,19 @@ def _select_top_urls(
     return [s["item"] for s in scored[:max_urls]]
 
 
-def _default_invoke_search(query: str, limit: int = 4) -> Dict[str, Any]:
+def _default_invoke_search(query: str, limit: int = 4) -> dict[str, Any]:
     from services.tool_registry import get_tool_registry
 
     return get_tool_registry().invoke("search_web", {"query": query, "limit": limit})
 
 
-def _default_invoke_fetch(url: str, max_chars: int = 8000) -> Dict[str, Any]:
+def _default_invoke_fetch(url: str, max_chars: int = 8000) -> dict[str, Any]:
     from services.tool_registry import get_tool_registry
 
     return get_tool_registry().invoke("fetch_web_page", {"url": url, "maxChars": max_chars})
 
 
-def _default_invoke_judge(question: str, evidence_items: list) -> Dict[str, Any]:
+def _default_invoke_judge(question: str, evidence_items: list) -> dict[str, Any]:
     from services.tool_registry import get_tool_registry
 
     return get_tool_registry().invoke("judge_evidence", {

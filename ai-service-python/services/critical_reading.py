@@ -7,10 +7,19 @@ the final structured critical reading report.
 
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from llm.client import get_llm
 from services.analysis_service import (
+    ANALYSIS_RESPONSE_SOURCE_LIMIT,
+    CLAIM_SUPPORT_LIMIT,
+    DECIMAL_RE,
+    METRIC_ALIASES,
+    NUMERIC_CHANGE_TERMS,
+    PERCENT_RE,
+    PLUS_MINUS_RE,
+    SUPPORT_SIGNAL_TERMS,
+    TABLE_FIGURE_LABEL_RE,
     _extract_query_terms,
     _fallback_claimed_contributions,
     _fallback_evidence_based_contributions,
@@ -21,15 +30,6 @@ from services.analysis_service import (
     _merge_evidence_lists,
     _normalize_list_items,
     _normalize_text_value,
-    ANALYSIS_RESPONSE_SOURCE_LIMIT,
-    CLAIM_SUPPORT_LIMIT,
-    DECIMAL_RE,
-    METRIC_ALIASES,
-    NUMERIC_CHANGE_TERMS,
-    PERCENT_RE,
-    PLUS_MINUS_RE,
-    SUPPORT_SIGNAL_TERMS,
-    TABLE_FIGURE_LABEL_RE,
 )
 from services.evidence_service import normalize_evidence_items
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE
@@ -41,11 +41,11 @@ _logger = logging.getLogger(__name__)
 
 
 def _fallback_critical_analysis(
-    axis_results: List[Dict[str, Any]],
+    axis_results: list[dict[str, Any]],
     claimed: str,
     evidence_based: str,
-    weaknesses: List[str],
-    missing_evidence: List[str],
+    weaknesses: list[str],
+    missing_evidence: list[str],
 ) -> str:
     parts = [
         claimed,
@@ -60,7 +60,7 @@ def _fallback_critical_analysis(
     return "\n\n".join(part for part in parts if str(part).strip())
 
 
-def _normalize_report_payload(raw_payload: Dict[str, Any], axis_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _normalize_report_payload(raw_payload: dict[str, Any], axis_results: list[dict[str, Any]]) -> dict[str, Any]:
     claimed = _normalize_text_value(raw_payload.get("claimed_contributions"), _fallback_claimed_contributions(axis_results))
     evidence_based = _normalize_text_value(
         raw_payload.get("evidence_based_contributions") or raw_payload.get("inferred_real_contributions"),
@@ -88,7 +88,7 @@ def _normalize_report_payload(raw_payload: Dict[str, Any], axis_results: List[Di
     }
 
 
-def _split_claim_candidates(value: Any) -> List[str]:
+def _split_claim_candidates(value: Any) -> list[str]:
     if isinstance(value, list):
         raw_items = value
     else:
@@ -112,18 +112,18 @@ def _split_claim_candidates(value: Any) -> List[str]:
     return claims
 
 
-def _axis_evidence_map(axis_results: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+def _axis_evidence_map(axis_results: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     return {
         item.get("key"): normalize_evidence_items(item.get("evidence") or [], source_type="current_paper", max_text_chars=900)
         for item in axis_results
     }
 
 
-def _claim_terms(claim: str) -> List[str]:
+def _claim_terms(claim: str) -> list[str]:
     return _extract_query_terms(claim)[:10]
 
 
-def _evidence_matches_claim(claim: str, evidence: Dict[str, Any]) -> bool:
+def _evidence_matches_claim(claim: str, evidence: dict[str, Any]) -> bool:
     terms = _claim_terms(claim)
     text = str(evidence.get("text") or "")
     core_claim = _normalize_claim_core(claim)
@@ -144,7 +144,7 @@ def _normalize_claim_core(claim: str) -> str:
     return text if len(text) >= 4 else ""
 
 
-def _matched_claim_terms(terms: List[str], text: str) -> List[str]:
+def _matched_claim_terms(terms: list[str], text: str) -> list[str]:
     lowered = str(text or "").lower()
     matched = [term for term in terms if term.lower() in lowered]
     if matched:
@@ -157,7 +157,7 @@ def _matched_claim_terms(terms: List[str], text: str) -> List[str]:
         for size in (2, 3, 4):
             if len(term) < size:
                 continue
-            chinese_units.extend(term[index:index + size] for index in range(0, len(term) - size + 1))
+            chinese_units.extend(term[index:index + size] for index in range(len(term) - size + 1))
 
     seen = set()
     for unit in chinese_units:
@@ -169,19 +169,19 @@ def _matched_claim_terms(terms: List[str], text: str) -> List[str]:
     return matched
 
 
-def _has_support_signal(evidence_items: List[Dict[str, Any]]) -> bool:
+def _has_support_signal(evidence_items: list[dict[str, Any]]) -> bool:
     combined = "\n".join(str(item.get("text") or "") for item in evidence_items).lower()
     return any(term.lower() in combined for term in SUPPORT_SIGNAL_TERMS)
 
 
-def _judge_for_axis(axis_results: List[Dict[str, Any]], axis_key: str) -> Dict[str, Any]:
+def _judge_for_axis(axis_results: list[dict[str, Any]], axis_key: str) -> dict[str, Any]:
     for item in axis_results:
         if item.get("key") == axis_key:
             return item.get("judge") or {}
     return {}
 
 
-def _source_ids(items: List[Dict[str, Any]]) -> List[str]:
+def _source_ids(items: list[dict[str, Any]]) -> list[str]:
     ids = []
     seen = set()
     for item in items:
@@ -199,9 +199,9 @@ def _normalize_number_token(value: str) -> str:
     return re.sub(r"\s+", "", str(value or "").replace("％", "%")).strip()
 
 
-def _extract_numeric_values(text: Any) -> List[str]:
+def _extract_numeric_values(text: Any) -> list[str]:
     value = str(text or "")
-    results: List[str] = []
+    results: list[str] = []
     seen = set()
     for pattern in (PLUS_MINUS_RE, PERCENT_RE, DECIMAL_RE):
         for match in pattern.findall(value):
@@ -213,9 +213,9 @@ def _extract_numeric_values(text: Any) -> List[str]:
     return results[:8]
 
 
-def _extract_metric_terms(text: Any) -> List[str]:
+def _extract_metric_terms(text: Any) -> list[str]:
     value = str(text or "").lower()
-    metrics: List[str] = []
+    metrics: list[str] = []
     seen = set()
     for canonical, aliases in METRIC_ALIASES.items():
         for alias in aliases:
@@ -238,7 +238,7 @@ def _has_numeric_change_term(text: Any) -> bool:
     return any(term.lower() in value for term in NUMERIC_CHANGE_TERMS)
 
 
-def _numeric_candidate_reason(label: str, metrics: List[str], numbers: List[str]) -> str:
+def _numeric_candidate_reason(label: str, metrics: list[str], numbers: list[str]) -> str:
     parts = []
     if label:
         parts.append(f"匹配到 {label}")
@@ -249,7 +249,7 @@ def _numeric_candidate_reason(label: str, metrics: List[str], numbers: List[str]
     return "；".join(parts) + "。候选片段仍需人工对照原表或图。" if parts else "候选片段仍需人工对照原表或图。"
 
 
-def _build_numeric_evidence_candidates(claim_text: str, rag_sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _build_numeric_evidence_candidates(claim_text: str, rag_sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
     claim_numbers = _extract_numeric_values(claim_text)
     if not claim_numbers:
         return []
@@ -299,9 +299,9 @@ def _build_numeric_evidence_candidates(claim_text: str, rag_sources: List[Dict[s
 
 
 def _attach_numeric_evidence_to_claims(
-    claims: List[Dict[str, Any]],
-    rag_sources: List[Dict[str, Any]],
-) -> Dict[str, Any]:
+    claims: list[dict[str, Any]],
+    rag_sources: list[dict[str, Any]],
+) -> dict[str, Any]:
     numeric_claim_count = 0
     candidate_count = 0
     for claim in claims:
@@ -334,7 +334,7 @@ def _attach_numeric_evidence_to_claims(
     }
 
 
-def _missing_evidence_for_support(level: str, has_method: bool, has_experiment: bool) -> List[str]:
+def _missing_evidence_for_support(level: str, has_method: bool, has_experiment: bool) -> list[str]:
     if level == "SUPPORTED":
         return []
     missing = []
@@ -347,9 +347,9 @@ def _missing_evidence_for_support(level: str, has_method: bool, has_experiment: 
 
 def _classify_claim_support(
     claim: str,
-    axis_results: List[Dict[str, Any]],
-    evidence_by_axis: Dict[str, List[Dict[str, Any]]],
-) -> Dict[str, Any]:
+    axis_results: list[dict[str, Any]],
+    evidence_by_axis: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
     contribution_evidence = [
         item for item in evidence_by_axis.get("contributions", []) if _evidence_matches_claim(claim, item)
     ]
@@ -407,7 +407,7 @@ def _classify_claim_support(
     }
 
 
-def _extract_claims_with_llm(report: Dict[str, Any], axis_results: List[Dict[str, Any]]) -> List[str]:
+def _extract_claims_with_llm(report: dict[str, Any], axis_results: list[dict[str, Any]]) -> list[str]:
     evidence_context = "\n".join(_format_axis_prompt_block(item) for item in axis_results)
     prompt = f"""
 你是一位审慎的论文审稿助手。请只根据给定批判阅读摘要和证据，提取 3-6 条作者核心论点或贡献主张。
@@ -435,7 +435,7 @@ evidence_based_contributions: {report.get("evidence_based_contributions")}
     return _split_claim_candidates(raw_claims)
 
 
-def _fallback_claim_candidates(report: Dict[str, Any], axis_results: List[Dict[str, Any]]) -> List[str]:
+def _fallback_claim_candidates(report: dict[str, Any], axis_results: list[dict[str, Any]]) -> list[str]:
     claims = _split_claim_candidates(report.get("claimed_contributions"))
     if claims:
         return claims
@@ -447,10 +447,10 @@ def _fallback_claim_candidates(report: Dict[str, Any], axis_results: List[Dict[s
 
 
 def _build_claim_support_items(
-    report: Dict[str, Any],
-    axis_results: List[Dict[str, Any]],
+    report: dict[str, Any],
+    axis_results: list[dict[str, Any]],
     use_llm: bool = False,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     try:
         claim_candidates = _extract_claims_with_llm(report, axis_results) if use_llm else []
     except Exception as error:
@@ -480,7 +480,7 @@ def _clamp_score(value: float) -> int:
     return max(0, min(100, int(round(value))))
 
 
-def _axis_has_usable_evidence(axis_results: List[Dict[str, Any]], axis_key: str) -> bool:
+def _axis_has_usable_evidence(axis_results: list[dict[str, Any]], axis_key: str) -> bool:
     for item in axis_results:
         if item.get("key") != axis_key:
             continue
@@ -511,7 +511,7 @@ def _score_level(score: int, *, risk: bool = False) -> str:
     return "low"
 
 
-def _support_ratio(claims: List[Dict[str, Any]]) -> float:
+def _support_ratio(claims: list[dict[str, Any]]) -> float:
     if not claims:
         return 0.0
     weights = {
@@ -524,10 +524,10 @@ def _support_ratio(claims: List[Dict[str, Any]]) -> float:
 
 
 def _build_contribution_assessment(
-    report: Dict[str, Any],
-    claims: List[Dict[str, Any]],
-    axis_results: List[Dict[str, Any]],
-) -> Dict[str, Any]:
+    report: dict[str, Any],
+    claims: list[dict[str, Any]],
+    axis_results: list[dict[str, Any]],
+) -> dict[str, Any]:
     support_ratio = _support_ratio(claims)
     supported_count = sum(1 for claim in claims if str(claim.get("supportLevel") or "").upper() == "SUPPORTED")
     partial_count = sum(1 for claim in claims if str(claim.get("supportLevel") or "").upper() == "PARTIAL")
@@ -661,10 +661,10 @@ def _build_contribution_assessment(
 
 
 def _generate_structured_critical_report(
-    axis_results: List[Dict[str, Any]],
+    axis_results: list[dict[str, Any]],
     analysis_context: str,
     resolved_from: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     analysis_context_safety = wrap_untrusted_context("Paper overview", analysis_context[:2200], max_tokens=1400)
     prompt = f"""
 你是一位严谨的中文学术批判阅读助手。请仅根据给定证据和 judge 结果，生成结构化批判阅读结果。
@@ -713,5 +713,5 @@ JSON 格式：
             return _normalize_report_payload({}, axis_results)
 
 
-def _collect_response_sources(axis_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _collect_response_sources(axis_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return _merge_evidence_lists(*[axis_result.get("evidence") or [] for axis_result in axis_results], limit=ANALYSIS_RESPONSE_SOURCE_LIMIT)

@@ -8,10 +8,10 @@ except ModuleNotFoundError:  # pragma: no cover - test-only fallback
     )
 
 from schemas.requests import (
-    ResearchTaskBriefPreviewRequest,
-    ResearchTaskCreateRequest,
     ResearchFinalReviewRequest,
     ResearchPlanReviewRequest,
+    ResearchTaskBriefPreviewRequest,
+    ResearchTaskCreateRequest,
 )
 from services import research_task_service
 

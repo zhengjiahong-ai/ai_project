@@ -14,14 +14,14 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 
 def cross_validate_evidence(
     evidence_items: list,
     *,
     use_llm: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Cross-validate evidence across multiple sources.
 
     Extracts claims, clusters them by topic, and scores agreement level
@@ -51,7 +51,7 @@ def cross_validate_evidence(
 # ── LLM path ──────────────────────────────────────────────────────────
 
 
-def _llm_cross_validate(items: list) -> Dict[str, Any]:
+def _llm_cross_validate(items: list) -> dict[str, Any]:
     """Extract claims via LLM, then cluster and score."""
     from llm.client import get_llm
 
@@ -162,7 +162,7 @@ def _parse_llm_claims(response: str) -> list:
 # ── Rule-based path ────────────────────────────────────────────────────
 
 
-def _rule_based_cross_validate(items: list) -> Dict[str, Any]:
+def _rule_based_cross_validate(items: list) -> dict[str, Any]:
     """Extract claims via keyword clustering and polarity detection."""
     # Extract keywords per item
     item_keywords = []
@@ -221,14 +221,14 @@ def _rule_based_cross_validate(items: list) -> Dict[str, Any]:
     return {"claims": claims, "summary": summary}
 
 
-def _extract_keywords(text: str, top_n: int = 5) -> List[str]:
+def _extract_keywords(text: str, top_n: int = 5) -> list[str]:
     """Extract top-N keywords from text by TF (simple word frequency)."""
     words = re.findall(r'[a-zA-Z]{3,}', text.lower())
     stopwords = {"the", "and", "for", "that", "this", "with", "from", "was", "are",
                  "not", "but", "have", "has", "had", "its", "can", "all", "been",
                  "which", "will", "also", "more", "than", "over", "about", "into",
                  "after", "other", "each", "only", "some", "such", "these", "when"}
-    word_freq: Dict[str, int] = {}
+    word_freq: dict[str, int] = {}
     for w in words:
         if w not in stopwords:
             word_freq[w] = word_freq.get(w, 0) + 1
@@ -236,7 +236,7 @@ def _extract_keywords(text: str, top_n: int = 5) -> List[str]:
     return [w for w, _ in sorted_words[:top_n]]
 
 
-def _cluster_by_keyword_overlap(item_keywords: list) -> List[list]:
+def _cluster_by_keyword_overlap(item_keywords: list) -> list[list]:
     """Cluster items by keyword Jaccard overlap."""
     if not item_keywords:
         return []
@@ -308,7 +308,7 @@ def _summarize_cluster(cluster: list) -> str:
     return text
 
 
-def _build_summary(claims: list) -> Dict[str, Any]:
+def _build_summary(claims: list) -> dict[str, Any]:
     """Build summary statistics from claims list."""
     confirmed = sum(1 for c in claims if c["agreement_level"] == "confirmed")
     supported = sum(1 for c in claims if c["agreement_level"] == "supported")
@@ -325,7 +325,7 @@ def _build_summary(claims: list) -> Dict[str, Any]:
     }
 
 
-def _empty_result() -> Dict[str, Any]:
+def _empty_result() -> dict[str, Any]:
     return {
         "claims": [],
         "summary": {

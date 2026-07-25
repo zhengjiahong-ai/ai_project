@@ -1,35 +1,49 @@
+import logging
 import os
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from llm.client import get_llm
 from rag.store import get_rag
 from schemas.requests import BackgroundKnowledgeRequest
-from services.evidence_service import compact_evidence_for_response, normalize_evidence_items
+from services.evidence_service import (
+    compact_evidence_for_response,
+    normalize_evidence_items,
+)
+from services.graph_normalizer import (
+    DEFAULT_PREFERRED_DEPTH,
+    DEFAULT_USER_LEVEL,
+    RELATION_TYPE_MAP,
+    ROOT_NODE_ID,
+    _coerce_confidence,
+    _coerce_list_of_strings,
+    _coerce_text,
+    _dedupe_strings,
+    _fallback_payload,
+    _normalize_label_key,
+    _normalize_payload,
+    _normalize_relation,
+    _stable_id,
+    _stringify_mapping,
+)
 from services.knowledge_graph_service import generate_current_paper_graph
 from services.knowledge_graph_store import save_graph_snapshot
-from services.graph_normalizer import (
-    _normalize_payload,
-    _fallback_payload,
-    _coerce_text,
-    _stringify_mapping,
-    _normalize_label_key,
-    _coerce_list_of_strings,
-    _normalize_relation,
-    _coerce_confidence,
-    _dedupe_strings,
-    _stable_id,
-    DEFAULT_USER_LEVEL,
-    DEFAULT_PREFERRED_DEPTH,
-    ROOT_NODE_ID,
-    RELATION_TYPE_MAP,
-)
 from services.query_service import build_retrieval_queries
-from services.safety_service import build_guarded_messages, summarize_safety_results, wrap_untrusted_context
-from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
+from services.safety_service import (
+    build_guarded_messages,
+    summarize_safety_results,
+    wrap_untrusted_context,
+)
+from services.trace_service import (
+    finalize_trace,
+    record_counter,
+    record_metric,
+    sanitize_text,
+    start_trace,
+    trace_step,
+)
 from services.utils import parse_json_from_llm
 
-import logging
 _logger = logging.getLogger(__name__)
 
 USER_LEVEL_ALIASES = {
@@ -62,7 +76,7 @@ PREFERRED_DEPTH_ALIASES = {
 }
 
 
-def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, Any]:
+def get_background_knowledge(request: BackgroundKnowledgeRequest) -> dict[str, Any]:
     reader_profile = _resolve_reader_profile(request)
     adaptation_reason = _build_adaptation_reason(reader_profile)
     trace_id = start_trace(
@@ -153,7 +167,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, A
         raise
 
 
-def _normalize_pdf_id(pdf_id: Optional[str]) -> Optional[str]:
+def _normalize_pdf_id(pdf_id: str | None) -> str | None:
     if not pdf_id:
         return None
 
@@ -163,10 +177,10 @@ def _normalize_pdf_id(pdf_id: Optional[str]) -> Optional[str]:
         return re.sub(r"[^a-zA-Z0-9.\-_]", "_", str(pdf_id)).lower()
 
 
-def _load_current_paper_context(request: BackgroundKnowledgeRequest, normalized_pdf_id: Optional[str]) -> Tuple[str, List[dict]]:
+def _load_current_paper_context(request: BackgroundKnowledgeRequest, normalized_pdf_id: str | None) -> tuple[str, list[dict]]:
     with trace_step("load_background_context", meta={"pdfId": sanitize_text(normalized_pdf_id, max_chars=80)}) as step:
-        parts: List[str] = []
-        sources: List[dict] = []
+        parts: list[str] = []
+        sources: list[dict] = []
 
         if isinstance(request.paperStructure, dict) and request.paperStructure:
             parts.append(f"Paper structure:\n{_stringify_mapping(request.paperStructure)}")
@@ -215,7 +229,7 @@ def _resolve_topic(request: BackgroundKnowledgeRequest, paper_context: str) -> s
     return "当前论文"
 
 
-def _retrieve_related_sources(query_plan: Dict[str, Any], normalized_pdf_id: Optional[str]) -> List[dict]:
+def _retrieve_related_sources(query_plan: dict[str, Any], normalized_pdf_id: str | None) -> list[dict]:
     query = query_plan.get("rewritten") or query_plan.get("original") or "prerequisite concepts background knowledge"
     if normalized_pdf_id:
         try:
@@ -234,7 +248,7 @@ def _retrieve_related_sources(query_plan: Dict[str, Any], normalized_pdf_id: Opt
     return []
 
 
-def _normalize_hybrid_sources(hybrid_results: Dict[str, List[dict]]) -> List[dict]:
+def _normalize_hybrid_sources(hybrid_results: dict[str, list[dict]]) -> list[dict]:
     vector_results = hybrid_results.get("vector", []) if isinstance(hybrid_results, dict) else []
     bm25_results = hybrid_results.get("bm25", []) if isinstance(hybrid_results, dict) else []
     evidence = normalize_evidence_items([*vector_results, *bm25_results], source_type="library", limit=10)
@@ -255,11 +269,11 @@ def _normalize_hybrid_sources(hybrid_results: Dict[str, List[dict]]) -> List[dic
 
 def _generate_graph_payload_legacy(
     paper_topic: str,
-    reader_profile: Dict[str, Any],
+    reader_profile: dict[str, Any],
     paper_context: str,
-    rag_sources: List[dict],
+    rag_sources: list[dict],
     request: BackgroundKnowledgeRequest,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     user_level = str(reader_profile.get("user_knowledge_level") or DEFAULT_USER_LEVEL)
     preferred_depth = str(reader_profile.get("preferredDepth") or DEFAULT_PREFERRED_DEPTH)
     learning_goal = str(reader_profile.get("learningGoal") or "").strip()
@@ -395,11 +409,11 @@ RAG snippets:
 
 def _generate_graph_payload(
     paper_topic: str,
-    reader_profile: Dict[str, Any],
+    reader_profile: dict[str, Any],
     paper_context: str,
-    rag_sources: List[dict],
+    rag_sources: list[dict],
     request: BackgroundKnowledgeRequest,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     cross_paper_sources = None
     if getattr(request, 'include_library_papers', False):
         # Retrieve cross-paper context from other papers in the library
@@ -415,7 +429,7 @@ def _generate_graph_payload(
     )
 
 
-def _load_cross_paper_sources(request: BackgroundKnowledgeRequest) -> Optional[List[Dict[str, Any]]]:
+def _load_cross_paper_sources(request: BackgroundKnowledgeRequest) -> list[dict[str, Any]] | None:
     """Load paper context from other papers in the library (opt-in only).
 
     Retrieves related papers from the knowledge graph store and returns their
@@ -438,7 +452,7 @@ def _load_cross_paper_sources(request: BackgroundKnowledgeRequest) -> Optional[L
         if neighborhood.get('status') == 'unavailable':
             return None
         # Extract paper-level context from neighbor graph nodes
-        sources: List[Dict[str, Any]] = []
+        sources: list[dict[str, Any]] = []
         for node in (neighborhood.get('nodes') or [])[:3]:
             node_pdf_id = str(node.get('pdfId') or '')
             if node_pdf_id and node_pdf_id != normalized_pdf_id:
@@ -456,7 +470,7 @@ def _load_cross_paper_sources(request: BackgroundKnowledgeRequest) -> Optional[L
 
 
 
-def _persist_optional_neo4j(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _persist_optional_neo4j(payload: dict[str, Any]) -> dict[str, Any]:
     with trace_step("persist_background_neo4j") as step:
         uri = os.environ.get("NEO4J_URI")
         user = os.environ.get("NEO4J_USER")
@@ -485,14 +499,14 @@ def _persist_optional_neo4j(payload: Dict[str, Any]) -> Dict[str, Any]:
             return {"enabled": True, "status": "error", "message": str(error)[:300]}
 
 
-def _persist_optional_sqlite(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _persist_optional_sqlite(payload: dict[str, Any]) -> dict[str, Any]:
     with trace_step("persist_background_sqlite") as step:
         result = save_graph_snapshot(payload)
         step["outputSize"] = len((payload.get("graph") or {}).get("nodes") or []) if result.get("status") == "success" else 0
         return result
 
 
-def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None:
+def _write_graph_tx(tx, payload: dict[str, Any], graph: dict[str, list]) -> None:
     paper_id = payload.get("pdfId") or _stable_id(payload.get("paper_topic") or ROOT_NODE_ID) or ROOT_NODE_ID
     tx.run(
         """
@@ -573,7 +587,7 @@ def _write_graph_tx(tx, payload: Dict[str, Any], graph: Dict[str, list]) -> None
         )
 
 
-def _parse_line_items(raw: str) -> List[str]:
+def _parse_line_items(raw: str) -> list[str]:
     return [
         item.strip("-* 0123456789.、").strip()
         for item in (raw or "").splitlines()
@@ -591,7 +605,7 @@ def _normalize_preferred_depth(value: Any) -> str:
     return PREFERRED_DEPTH_ALIASES.get(text, DEFAULT_PREFERRED_DEPTH)
 
 
-def _normalize_string_list(value: Any) -> List[str]:
+def _normalize_string_list(value: Any) -> list[str]:
     if isinstance(value, str):
         items = re.split(r"[\n,，;；、]+", value)
         return _dedupe_strings([item.strip() for item in items if item.strip()])
@@ -605,7 +619,7 @@ def _coerce_non_negative_int(value: Any) -> int:
         return 0
 
 
-def _resolve_reader_profile(request: BackgroundKnowledgeRequest) -> Dict[str, Any]:
+def _resolve_reader_profile(request: BackgroundKnowledgeRequest) -> dict[str, Any]:
     raw_profile = request.reader_profile if isinstance(request.reader_profile, dict) else {}
     behavior_signals = request.behavior_signals if isinstance(request.behavior_signals, dict) else {}
     self_assessed = _normalize_user_level(
@@ -652,7 +666,7 @@ def _resolve_reader_profile(request: BackgroundKnowledgeRequest) -> Dict[str, An
     }
 
 
-def _build_adaptation_reason(reader_profile: Dict[str, Any]) -> str:
+def _build_adaptation_reason(reader_profile: dict[str, Any]) -> str:
     reasons = []
     if reader_profile.get("selfAssessedFamiliarity") != reader_profile.get("user_knowledge_level"):
         reasons.append(

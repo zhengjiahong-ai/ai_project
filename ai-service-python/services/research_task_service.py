@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import re
 import sqlite3
@@ -7,16 +8,26 @@ import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from llm.client import get_llm
-from schemas.requests import ResearchFinalReviewRequest, ResearchPlanReviewRequest, ResearchTaskBriefPreviewRequest, ResearchTaskCreateRequest
+from schemas.requests import (
+    ResearchFinalReviewRequest,
+    ResearchPlanReviewRequest,
+    ResearchTaskBriefPreviewRequest,
+    ResearchTaskCreateRequest,
+)
+from services import research_aggregator, research_executor, research_planner
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.query_service import build_retrieval_queries
-from services import research_aggregator, research_executor, research_planner
-from services.research_conflict import _build_research_review_risks, _next_steps, _overall_assessment, _validate_risk_reviews
+from services.research_conflict import (
+    _build_research_review_risks,
+    _next_steps,
+    _overall_assessment,
+    _validate_risk_reviews,
+)
 from services.safety_service import (
     MAX_RESEARCH_SUB_QUESTIONS,
     MAX_RETRIEVAL_RETRIES,
@@ -25,6 +36,7 @@ from services.safety_service import (
     is_allowed_research_sub_question,
     wrap_untrusted_context,
 )
+from services.tool_registry import get_tool_registry
 from services.trace_service import (
     build_public_trace_summary,
     finalize_trace,
@@ -36,10 +48,8 @@ from services.trace_service import (
     trace_step,
     use_trace,
 )
-from services.tool_registry import get_tool_registry
 from services.utils import parse_json_from_llm
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -50,8 +60,8 @@ JUDGING_STAGE = "judging"
 SYNTHESIZING_STAGE = "synthesizing"
 DONE_STAGE = "done"
 
-_TASKS: Dict[str, Dict[str, Any]] = {}
-_TASK_CONTEXTS: Dict[str, Dict[str, Any]] = {}
+_TASKS: dict[str, dict[str, Any]] = {}
+_TASK_CONTEXTS: dict[str, dict[str, Any]] = {}
 _TASK_CANCELLATIONS: set[str] = set()
 _TASK_LOCK = threading.RLock()
 _TASK_EXECUTOR = ThreadPoolExecutor(max_workers=2)
@@ -72,7 +82,7 @@ class ResearchReviewConflictError(Exception):
 def create_research_task(
     request: ResearchTaskCreateRequest,
     start_async: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     _ensure_storage_loaded()
     question = " ".join(str(request.question or "").strip().split())
     pdf_id = " ".join(str(request.pdfId or "").strip().split())
@@ -137,7 +147,7 @@ def create_research_task(
     return {"status": "success", "task": _copy_task_snapshot(task_id)}
 
 
-def preview_research_brief(request: ResearchTaskBriefPreviewRequest) -> Dict[str, Any]:
+def preview_research_brief(request: ResearchTaskBriefPreviewRequest) -> dict[str, Any]:
     question = _clean_text(request.question)
     pdf_id = _clean_text(request.pdfId)
     if not question:
@@ -161,12 +171,12 @@ def preview_research_brief(request: ResearchTaskBriefPreviewRequest) -> Dict[str
     return {"status": "success", "briefPreview": preview}
 
 
-def get_research_task(task_id: str) -> Dict[str, Any]:
+def get_research_task(task_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     return {"status": "success", "task": _copy_task_snapshot(task_id)}
 
 
-def get_latest_research_task(pdf_id: str) -> Dict[str, Any]:
+def get_latest_research_task(pdf_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     normalized_pdf_id = _clean_text(pdf_id)
     if not normalized_pdf_id:
@@ -191,7 +201,7 @@ def get_latest_research_task(pdf_id: str) -> Dict[str, Any]:
         return {"status": "success", "task": copy.deepcopy(latest)}
 
 
-def get_persisted_trace_summary(trace_id: str) -> Dict[str, Any] | None:
+def get_persisted_trace_summary(trace_id: str) -> dict[str, Any] | None:
     _ensure_storage_loaded()
     normalized_trace_id = _clean_text(trace_id)
     if not normalized_trace_id:
@@ -206,7 +216,7 @@ def get_persisted_trace_summary(trace_id: str) -> Dict[str, Any] | None:
     return None
 
 
-def cancel_research_task(task_id: str) -> Dict[str, Any]:
+def cancel_research_task(task_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     with _TASK_LOCK:
         task = _TASKS.get(task_id)
@@ -258,7 +268,7 @@ def reload_research_tasks_from_storage() -> None:
     _ensure_storage_loaded()
 
 
-def run_research_task_now(task_id: str) -> Dict[str, Any]:
+def run_research_task_now(task_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     task = _copy_task_snapshot(task_id)
     context = _copy_task_context(task_id)
@@ -275,7 +285,7 @@ def run_research_task_now(task_id: str) -> Dict[str, Any]:
     return _copy_task_snapshot(task_id)
 
 
-def prepare_research_task_now(task_id: str) -> Dict[str, Any]:
+def prepare_research_task_now(task_id: str) -> dict[str, Any]:
     task = _copy_task_snapshot(task_id)
     context = _copy_task_context(task_id)
     _update_task_snapshot(task_id, status="running", stage=PLANNING_STAGE, progress=0.05)
@@ -297,7 +307,7 @@ def prepare_research_task_now(task_id: str) -> Dict[str, Any]:
     return _update_task_snapshot(task_id, status="awaiting_plan_review", stage=PLANNING_STAGE, progress=0.2, plan=plan_items)
 
 
-def review_research_plan(task_id: str, request: ResearchPlanReviewRequest) -> Dict[str, Any]:
+def review_research_plan(task_id: str, request: ResearchPlanReviewRequest) -> dict[str, Any]:
     task = _copy_task_snapshot(task_id)
     if task.get("status") != "awaiting_plan_review":
         if task.get("status") in {"running", "awaiting_final_review", "succeeded"}:
@@ -318,7 +328,7 @@ def review_research_plan(task_id: str, request: ResearchPlanReviewRequest) -> Di
     return {"status": "success", "task": updated}
 
 
-def review_research_final(task_id: str, request: ResearchFinalReviewRequest) -> Dict[str, Any]:
+def review_research_final(task_id: str, request: ResearchFinalReviewRequest) -> dict[str, Any]:
     task = _copy_task_snapshot(task_id)
     if task.get("status") == "succeeded":
         return {"status": "success", "task": task}
@@ -340,9 +350,9 @@ def _run_research_task(
     task_id: str,
     question: str,
     pdf_id: str,
-    paper_skeleton: Dict[str, Any],
+    paper_skeleton: dict[str, Any],
     user_constraints: str = "",
-    brief_preview: Dict[str, Any] | None = None,
+    brief_preview: dict[str, Any] | None = None,
     trace_id: str = "",
 ) -> None:
     if _is_cancelled(task_id):
@@ -380,7 +390,7 @@ def _run_research_task(
         if _is_cancelled(task_id):
             return
 
-        findings: List[Dict[str, Any]] = []
+        findings: list[dict[str, Any]] = []
         follow_up_count = 0
         index = 0
         while index < len(plan_items):
@@ -521,11 +531,11 @@ def _research_sub_question(
     sub_question: str,
     question: str,
     pdf_id: str,
-    paper_skeleton: Dict[str, Any],
-    documents: List[Dict[str, Any]],
+    paper_skeleton: dict[str, Any],
+    documents: list[dict[str, Any]],
     *,
     allow_web_search: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     research_context = _build_planning_context(question, paper_skeleton, documents)
     with trace_step(
         "research_query_plan",
@@ -545,7 +555,7 @@ def _research_sub_question(
         step["outputSize"] = len(judge.get("missingAspects") or [])
         _annotate_judge_step(step, judge, "try_library" if _should_try_library(judge) else "stop")
 
-    library_evidence: List[Dict[str, Any]] = []
+    library_evidence: list[dict[str, Any]] = []
     retry_reason = ""
     if _should_try_library(judge):
         library_evidence = _retrieve_library_evidence(
@@ -594,7 +604,7 @@ def _research_sub_question(
     }
 
 
-def _build_initial_plan_items(sub_questions: List[Any]) -> List[Dict[str, Any]]:
+def _build_initial_plan_items(sub_questions: list[Any]) -> list[dict[str, Any]]:
     items = []
     for index, raw_item in enumerate(sub_questions, start=1):
         if isinstance(raw_item, dict):
@@ -626,14 +636,14 @@ def _build_initial_plan_items(sub_questions: List[Any]) -> List[Dict[str, Any]]:
     return items
 
 
-def _should_create_follow_up(finding: Dict[str, Any]) -> bool:
+def _should_create_follow_up(finding: dict[str, Any]) -> bool:
     return (
         str(finding.get("verdict") or "").upper() == "INCORRECT"
         and bool(_normalize_missing_aspects(finding.get("missingAspects")))
     )
 
 
-def _build_follow_up_plan_item(finding: Dict[str, Any], index: int) -> Dict[str, Any]:
+def _build_follow_up_plan_item(finding: dict[str, Any], index: int) -> dict[str, Any]:
     source_question = _clean_text(finding.get("subQuestion"))
     missing_aspects = _normalize_missing_aspects(finding.get("missingAspects"))
     if not source_question or not missing_aspects:
@@ -657,7 +667,7 @@ def _build_follow_up_plan_item(finding: Dict[str, Any], index: int) -> Dict[str,
     }
 
 
-def _load_current_paper_documents(pdf_id: str) -> Tuple[List[Dict[str, Any]], str]:
+def _load_current_paper_documents(pdf_id: str) -> tuple[list[dict[str, Any]], str]:
     response = _invoke_tool(
         "retrieve_current_paper",
         {
@@ -673,10 +683,10 @@ def _load_current_paper_documents(pdf_id: str) -> Tuple[List[Dict[str, Any]], st
 
 def _build_research_plan(
     question: str,
-    paper_skeleton: Dict[str, Any],
-    documents: List[Dict[str, Any]],
+    paper_skeleton: dict[str, Any],
+    documents: list[dict[str, Any]],
     brief_override: str = "",
-) -> Tuple[str, List[Any]]:
+) -> tuple[str, list[Any]]:
     fallback_brief, fallback_sub_questions = _fallback_plan(question)
     skeleton_payload = _read_paper_skeleton(paper_skeleton, max_sections=6, max_chars_per_section=220)
     paper_skeleton_block = wrap_untrusted_context(
@@ -752,10 +762,10 @@ Current paper evidence:
 def _build_research_brief_preview(
     question: str,
     pdf_id: str,
-    paper_skeleton: Dict[str, Any],
-    documents: List[Dict[str, Any]],
+    paper_skeleton: dict[str, Any],
+    documents: list[dict[str, Any]],
     user_constraints: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     effective_question = _compose_research_question(question, user_constraints)
     fallback_brief, fallback_sub_questions = _fallback_plan(effective_question)
     fallback = _normalize_brief_preview(
@@ -857,8 +867,8 @@ def _normalize_brief_preview(
     *,
     question: str,
     pdf_id: str,
-    fallback: Dict[str, Any] | None = None,
-) -> Dict[str, Any]:
+    fallback: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     payload = value if isinstance(value, dict) else {}
     fallback_payload = fallback or {}
     brief = _clean_text(payload.get("brief")) or _clean_text(fallback_payload.get("brief"))
@@ -893,7 +903,7 @@ def _record_safety_budget_counters(*blocks: Any) -> None:
             record_counter("truncationCount")
 
 
-def _retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, limit: int = 5) -> List[Dict[str, Any]]:
+def _retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, limit: int = 5) -> list[dict[str, Any]]:
     response = _invoke_tool(
         "retrieve_current_paper",
         {
@@ -907,7 +917,7 @@ def _retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, li
     return list(response.get("items") or [])
 
 
-def _retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, top_k: int = 5, limit: int = 4) -> List[Dict[str, Any]]:
+def _retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, top_k: int = 5, limit: int = 4) -> list[dict[str, Any]]:
     response = _invoke_tool(
         "retrieve_library",
         {
@@ -921,8 +931,8 @@ def _retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, to
     return list(response.get("items") or [])
 
 
-def _merge_evidence_lists(*groups: List[Dict[str, Any]], limit: int = 8) -> List[Dict[str, Any]]:
-    merged: List[Dict[str, Any]] = []
+def _merge_evidence_lists(*groups: list[dict[str, Any]], limit: int = 8) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
     seen = set()
     for group in groups:
         for item in group or []:
@@ -940,8 +950,8 @@ def _merge_evidence_lists(*groups: List[Dict[str, Any]], limit: int = 8) -> List
     return merged
 
 
-def _ensure_stable_source_ids(items: List[Dict[str, Any]], fallback_prefix: str) -> List[Dict[str, Any]]:
-    stabilized: List[Dict[str, Any]] = []
+def _ensure_stable_source_ids(items: list[dict[str, Any]], fallback_prefix: str) -> list[dict[str, Any]]:
+    stabilized: list[dict[str, Any]] = []
     for index, item in enumerate(items or []):
         current = copy.deepcopy(item)
         base = str(current.get("sourceId") or "").strip()
@@ -957,7 +967,7 @@ def _ensure_stable_source_ids(items: List[Dict[str, Any]], fallback_prefix: str)
     return stabilized
 
 
-def _build_retry_query(sub_question: str, query_plan: Dict[str, Any], judge_result: Dict[str, Any]) -> str:
+def _build_retry_query(sub_question: str, query_plan: dict[str, Any], judge_result: dict[str, Any]) -> str:
     parts = [
         query_plan.get("original") or sub_question,
         query_plan.get("rewritten") or "",
@@ -979,7 +989,7 @@ def _build_retry_query(sub_question: str, query_plan: Dict[str, Any], judge_resu
     return " ".join(unique_parts)[:500] or sub_question
 
 
-def _build_finding_summary(sub_question: str, evidence: List[Dict[str, Any]], judge_result: Dict[str, Any]) -> str:
+def _build_finding_summary(sub_question: str, evidence: list[dict[str, Any]], judge_result: dict[str, Any]) -> str:
     verdict = str(judge_result.get("verdict") or "INCORRECT")
     missing_aspects = _normalize_missing_aspects(judge_result.get("missingAspects"))
     preview = _evidence_preview(evidence)
@@ -996,9 +1006,9 @@ def _build_finding_summary(sub_question: str, evidence: List[Dict[str, Any]], ju
 def _build_research_report(
     question: str,
     brief: str,
-    plan_items: List[Any],
-    findings: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]] | None = None,
+    plan_items: list[Any],
+    findings: list[dict[str, Any]],
+    conflicts: list[dict[str, Any]] | None = None,
 ) -> str:
     lines = [
         "## 研究 brief",
@@ -1040,7 +1050,7 @@ def _build_research_report(
         _next_steps(findings),
     ])
     return "\n".join(line for line in lines if line is not None).strip()
-def _annotate_judge_step(step: Dict[str, Any], judge_result: Dict[str, Any], decision: str) -> None:
+def _annotate_judge_step(step: dict[str, Any], judge_result: dict[str, Any], decision: str) -> None:
     meta = dict(step.get("meta") or {})
     coverage = _normalize_judge_coverage(judge_result.get("coverage"))
     meta.update(
@@ -1056,7 +1066,7 @@ def _annotate_judge_step(step: Dict[str, Any], judge_result: Dict[str, Any], dec
     step["meta"] = meta
 
 
-def _build_judge_trace_summary(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _build_judge_trace_summary(findings: list[dict[str, Any]]) -> dict[str, Any]:
     scores = [
         item.get("judgeScore")
         for item in findings
@@ -1077,7 +1087,7 @@ def _normalize_judge_score(value: Any) -> int:
     return max(0, min(100, score))
 
 
-def _normalize_judge_coverage(value: Any) -> Dict[str, Any]:
+def _normalize_judge_coverage(value: Any) -> dict[str, Any]:
     coverage = value if isinstance(value, dict) else {}
     return {
         "score": round(max(0.0, min(1.0, _coerce_float(coverage.get("score"), 0.0))), 2),
@@ -1102,17 +1112,17 @@ def _coerce_float(value: Any, fallback: float = 0.0) -> float:
         return fallback
 
 
-def _should_try_library(judge_result: Dict[str, Any]) -> bool:
+def _should_try_library(judge_result: dict[str, Any]) -> bool:
     return str(judge_result.get("verdict") or "") != "CORRECT" or float(judge_result.get("confidence") or 0) < 0.68
 
 
-def _should_retry(judge_result: Dict[str, Any]) -> bool:
+def _should_retry(judge_result: dict[str, Any]) -> bool:
     return MAX_RETRIEVAL_RETRIES > 0 and bool(judge_result.get("shouldRetry")) and (
         str(judge_result.get("verdict") or "") != "CORRECT" or float(judge_result.get("confidence") or 0) < 0.68
     )
 
 
-def _fallback_plan(question: str) -> Tuple[str, List[Dict[str, Any]]]:
+def _fallback_plan(question: str) -> tuple[str, list[dict[str, Any]]]:
     normalized_question = _clean_text(question) or "当前研究问题"
     return (
         f"围绕“{normalized_question}”，优先核对当前论文中的研究目标、方法证据、实验支撑与结论边界，再用内部文献库补充缺口。",
@@ -1136,7 +1146,7 @@ def _fallback_plan(question: str) -> Tuple[str, List[Dict[str, Any]]]:
     )
 
 
-def _build_planning_context(question: str, paper_skeleton: Dict[str, Any], documents: List[Dict[str, Any]]) -> str:
+def _build_planning_context(question: str, paper_skeleton: dict[str, Any], documents: list[dict[str, Any]]) -> str:
     skeleton_text = (_read_paper_skeleton(paper_skeleton, max_sections=6, max_chars_per_section=220).get("text") or "")[:1200]
     evidence_text = format_evidence_context(documents, title="当前论文证据", max_items=4, max_text_chars=260)
     return (
@@ -1146,17 +1156,17 @@ def _build_planning_context(question: str, paper_skeleton: Dict[str, Any], docum
     )
 
 
-def _invoke_tool(name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+def _invoke_tool(name: str, payload: dict[str, Any]) -> dict[str, Any]:
     response = get_tool_registry().invoke(name, payload)
     return response if isinstance(response, dict) else {}
 
 
 def _read_paper_skeleton(
-    paper_skeleton: Dict[str, Any],
+    paper_skeleton: dict[str, Any],
     *,
     max_sections: int = 6,
     max_chars_per_section: int = 220,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return _invoke_tool(
         "read_paper_skeleton",
         {
@@ -1167,7 +1177,7 @@ def _read_paper_skeleton(
     )
 
 
-def _judge_research_evidence(question: str, evidence_items: List[Dict[str, Any]], keywords: List[str] | None = None) -> Dict[str, Any]:
+def _judge_research_evidence(question: str, evidence_items: list[dict[str, Any]], keywords: list[str] | None = None) -> dict[str, Any]:
     return _invoke_tool(
         "judge_evidence",
         {
@@ -1178,7 +1188,7 @@ def _judge_research_evidence(question: str, evidence_items: List[Dict[str, Any]]
     )
 
 
-def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any]) -> str:
+def _stringify_paper_skeleton(paper_skeleton: dict[str, Any]) -> str:
     if not isinstance(paper_skeleton, dict) or not paper_skeleton:
         return ""
 
@@ -1193,7 +1203,7 @@ def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _normalize_sub_questions(value: Any, fallback: List[str]) -> List[str]:
+def _normalize_sub_questions(value: Any, fallback: list[str]) -> list[str]:
     if isinstance(value, list):
         raw_items = value
     elif isinstance(value, str):
@@ -1230,7 +1240,7 @@ def _normalize_sub_questions(value: Any, fallback: List[str]) -> List[str]:
     return questions[:MAX_RESEARCH_SUB_QUESTIONS]
 
 
-def _normalize_missing_aspects(value: Any) -> List[str]:
+def _normalize_missing_aspects(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     items = []
@@ -1249,7 +1259,7 @@ def _normalize_missing_aspects(value: Any) -> List[str]:
     return items
 
 
-def _normalize_string_list(value: Any, limit: int = 5, max_chars: int = 80) -> List[str]:
+def _normalize_string_list(value: Any, limit: int = 5, max_chars: int = 80) -> list[str]:
     if not isinstance(value, list):
         return []
     items = []
@@ -1268,7 +1278,7 @@ def _normalize_string_list(value: Any, limit: int = 5, max_chars: int = 80) -> L
     return items
 
 
-def _normalize_text_list(value: Any, limit: int = 5) -> List[str]:
+def _normalize_text_list(value: Any, limit: int = 5) -> list[str]:
     if isinstance(value, str):
         raw_items = [line.strip("-* 0123456789.、 \t") for line in value.splitlines()]
     elif isinstance(value, list):
@@ -1300,7 +1310,7 @@ def _compose_research_question(question: str, user_constraints: str = "") -> str
     return f"{normalized_question}\n用户补充约束：{normalized_constraints}"
 
 
-def _fallback_brief_assumptions(user_constraints: str = "") -> List[str]:
+def _fallback_brief_assumptions(user_constraints: str = "") -> list[str]:
     assumptions = [
         "优先依据当前论文中的结构、方法、实验和局限线索。",
         "当前论文证据不足时，仅使用内部文献库补充缺口提示。",
@@ -1311,7 +1321,7 @@ def _fallback_brief_assumptions(user_constraints: str = "") -> List[str]:
     return assumptions
 
 
-def _evidence_preview(evidence: List[Dict[str, Any]]) -> str:
+def _evidence_preview(evidence: list[dict[str, Any]]) -> str:
     snippets = []
     for item in evidence[:2]:
         text = _clean_text(item.get("text"))
@@ -1330,7 +1340,7 @@ def _slugify(value: Any) -> str:
     return text.strip("-") or "source"
 
 
-def _copy_task_snapshot(task_id: str) -> Dict[str, Any]:
+def _copy_task_snapshot(task_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     with _TASK_LOCK:
         task = _TASKS.get(task_id)
@@ -1339,13 +1349,13 @@ def _copy_task_snapshot(task_id: str) -> Dict[str, Any]:
         return copy.deepcopy(task)
 
 
-def _copy_task_context(task_id: str) -> Dict[str, Any]:
+def _copy_task_context(task_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     with _TASK_LOCK:
         return copy.deepcopy(_TASK_CONTEXTS.get(task_id) or {})
 
 
-def _update_task_snapshot(task_id: str, **updates: Any) -> Dict[str, Any]:
+def _update_task_snapshot(task_id: str, **updates: Any) -> dict[str, Any]:
     with _TASK_LOCK:
         task = _TASKS.get(task_id)
         if task is None:
@@ -1365,7 +1375,7 @@ def _update_task_snapshot(task_id: str, **updates: Any) -> Dict[str, Any]:
         _TASKS[task_id] = updated
         _persist_task_snapshot_locked(updated)
         return copy.deepcopy(updated)
-def _persist_trace_summary(task_id: str, trace_snapshot: Dict[str, Any] | None) -> None:
+def _persist_trace_summary(task_id: str, trace_snapshot: dict[str, Any] | None) -> None:
     if not trace_snapshot:
         return
     _update_task_snapshot(task_id, traceSummary=build_public_trace_summary(trace_snapshot))
@@ -1403,7 +1413,7 @@ def _ensure_storage_loaded() -> None:
         _STORAGE_LOADED = True
 
 
-def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
+def _restore_task_after_restart(task: dict[str, Any]) -> dict[str, Any]:
     status = str(task.get("status") or "")
     if status in TERMINAL_STATUSES or status in {"awaiting_plan_review", "awaiting_final_review"}:
         return task
@@ -1462,7 +1472,7 @@ def _initialize_storage_locked() -> None:
         connection.commit()
 
 
-def _load_persisted_tasks_locked() -> List[Dict[str, Any]]:
+def _load_persisted_tasks_locked() -> list[dict[str, Any]]:
     db_path = _research_task_db_path()
     if not db_path.exists():
         return []
@@ -1472,7 +1482,7 @@ def _load_persisted_tasks_locked() -> List[Dict[str, Any]]:
     return [_task_from_storage_row(row) for row in rows]
 
 
-def _persist_task_snapshot_locked(task: Dict[str, Any]) -> None:
+def _persist_task_snapshot_locked(task: dict[str, Any]) -> None:
     _initialize_storage_locked()
     snapshot = _normalize_task_for_storage(task)
     with closing(sqlite3.connect(_research_task_db_path())) as connection:
@@ -1534,7 +1544,7 @@ def _delete_persisted_tasks_locked() -> None:
         connection.commit()
 
 
-def _task_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
+def _task_from_storage_row(row: sqlite3.Row) -> dict[str, Any]:
     created_at = str(row["createdAt"] or _utc_now())
     updated_at = str(row["updatedAt"] or created_at)
     return {
@@ -1560,7 +1570,7 @@ def _task_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
     }
 
 
-def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_task_for_storage(task: dict[str, Any]) -> dict[str, Any]:
     now = _utc_now()
     created_at = str(task.get("createdAt") or now)
     updated_at = str(task.get("updatedAt") or created_at)
@@ -1586,7 +1596,7 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _safe_json_list(value: Any) -> List[Any]:
+def _safe_json_list(value: Any) -> list[Any]:
     try:
         parsed = json.loads(str(value or "[]"))
     except json.JSONDecodeError:
@@ -1594,7 +1604,7 @@ def _safe_json_list(value: Any) -> List[Any]:
     return parsed if isinstance(parsed, list) else []
 
 
-def _safe_json_dict(value: Any) -> Dict[str, Any]:
+def _safe_json_dict(value: Any) -> dict[str, Any]:
     try:
         parsed = json.loads(str(value or "{}"))
     except json.JSONDecodeError:
@@ -1610,7 +1620,7 @@ def _research_task_db_path() -> Path:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 _build_research_plan = research_planner.build_research_plan

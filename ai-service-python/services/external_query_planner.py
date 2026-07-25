@@ -1,7 +1,7 @@
-from typing import Any, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
 from services.safety_service import sanitize_external_academic_query_text
-
 
 MAX_EXTERNAL_QUERIES = 5
 MAX_EXTERNAL_QUERY_CHARS = 256
@@ -17,7 +17,7 @@ def build_external_academic_queries(
     planner_sub_questions: Any,
     missing_aspects: Any,
     search_keywords: Any = None,
-) -> List[str]:
+) -> list[str]:
     # Prioritize LLM-generated search keywords when available
     normalized_keywords = _normalize_items(search_keywords, _MISSING_ASPECT_CHARS) if search_keywords else []
     if normalized_keywords:
@@ -72,7 +72,7 @@ def build_llm_academic_queries(
     *,
     temperature: float = 0.3,
     max_queries: int = 3,
-) -> List[str]:
+) -> list[str]:
     """Use LLM (flash model) to generate precise academic search queries.
 
     Given a research question and evidence gaps (missing aspects), the LLM
@@ -132,7 +132,7 @@ def build_llm_academic_queries(
             missing_aspects=evidence_gaps,
         )
 
-    queries: List[str] = []
+    queries: list[str] = []
     seen: set = set()
     for line in raw_output.splitlines():
         line = line.strip()
@@ -168,7 +168,7 @@ def build_llm_academic_queries(
     return queries
 
 
-def _normalize_items(value: Any, max_chars: int) -> List[str]:
+def _normalize_items(value: Any, max_chars: int) -> list[str]:
     if isinstance(value, str):
         items: Iterable[Any] = [value]
     elif isinstance(value, (list, tuple)):
@@ -198,7 +198,7 @@ def build_web_search_queries(
     research_question: Any,
     missing_aspects: Any,
     search_keywords: Any = None,
-) -> List[str]:
+) -> list[str]:
     """Build web search queries from research question and missing aspects.
 
     Returns deduplicated, sanitized queries suitable for the search_web tool.
@@ -253,7 +253,7 @@ def build_web_search_queries(
     return queries
 
 
-def _normalize_web_aspects(value: Any, max_chars: int) -> List[str]:
+def _normalize_web_aspects(value: Any, max_chars: int) -> list[str]:
     """Normalize missing aspects into web-searchable query terms."""
     from services.safety_service import sanitize_web_search_query_text
 
@@ -282,7 +282,7 @@ def refine_search_queries(
     missing_aspects: list,
     *,
     temperature: float = 0.3,
-) -> List[str]:
+) -> list[str]:
     """Use LLM (flash model) to generate refined web search queries.
 
     Based on previous round results and remaining missing aspects,

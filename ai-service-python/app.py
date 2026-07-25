@@ -6,8 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from core.config import settings
+from core.error_responses import EXCEPTION_STATUS_MAP, error_response
 from core.logging_config import configure_logging
-from core.error_responses import error_response, EXCEPTION_STATUS_MAP
 from routes.api import router as api_router
 from routes.health import router as health_router
 from services.analysis_service import startup_warmup
@@ -28,7 +28,7 @@ async def _app_lifespan(_app: FastAPI):
         start_scheduler()
         _logger.info("Monitor scheduler started.")
     except Exception:
-        _logger.error("Failed to start monitor scheduler", exc_info=True)
+        _logger.exception("Failed to start monitor scheduler")
 
     yield
 
@@ -39,7 +39,7 @@ async def _app_lifespan(_app: FastAPI):
         stop_scheduler()
         _logger.info("Monitor scheduler stopped.")
     except Exception:
-        _logger.error("Failed to stop monitor scheduler", exc_info=True)
+        _logger.exception("Failed to stop monitor scheduler")
 
 
 def create_app() -> FastAPI:
@@ -81,7 +81,6 @@ def create_app() -> FastAPI:
                     error_code,
                     status_code,
                     exc,
-                    exc_info=True,
                 )
                 return JSONResponse(
                     error_response(status_code, error_code, str(exc)),
@@ -89,7 +88,7 @@ def create_app() -> FastAPI:
                 )
 
         # Unmapped / unexpected exception — hide internal details.
-        _logger.error("Unhandled exception: %s", exc, exc_info=True)
+        _logger.error("Unhandled exception: %s", exc)
         return JSONResponse(
             error_response(500, "internal_error", "服务器内部错误，请稍后重试。"),
             status_code=500,

@@ -16,7 +16,7 @@ import sqlite3
 import threading
 import time
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 def _share_db_path() -> str:
@@ -32,12 +32,12 @@ _SHARE_TTL_SECONDS = 7 * 24 * 3600  # 7 days
 class ShareService:
     """Manages read-only share tokens for agent project reports."""
 
-    def __init__(self, db_path: Optional[str] = None) -> None:
+    def __init__(self, db_path: str | None = None) -> None:
         self._db_path = db_path or _share_db_path()
         self._lock = threading.Lock()
         self._init_db()
 
-    def create_share(self, project_id: str, report: str, project_title: str = "") -> Dict[str, Any]:
+    def create_share(self, project_id: str, report: str, project_title: str = "") -> dict[str, Any]:
         """Create a share token for a project's latest report.
 
         Returns ``{token, expiresAt, url}``.  Cleans expired tokens first.
@@ -60,7 +60,7 @@ class ShareService:
             "url": f"/share/{token}",
         }
 
-    def get_share(self, token: str) -> Optional[Dict[str, Any]]:
+    def get_share(self, token: str) -> dict[str, Any] | None:
         """Retrieve a share by token; returns None if missing or expired."""
         with self._lock:
             row = self._db.execute(
@@ -117,7 +117,7 @@ class ShareService:
 
 # ── module-level singleton ───────────────────────────────────────────────
 
-_share_service: Optional[ShareService] = None
+_share_service: ShareService | None = None
 
 
 def get_share_service() -> ShareService:

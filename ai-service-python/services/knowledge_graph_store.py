@@ -3,13 +3,13 @@ import json
 import os
 import re
 import sqlite3
+from collections.abc import Iterable
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any
 
 from services.knowledge_graph_service import build_provenance_summary
-
 
 DEFAULT_MAX_NODES = 8
 DEFAULT_MAX_EDGES = 12
@@ -21,7 +21,7 @@ SEED_STOPWORDS = {
 }
 
 
-def save_graph_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
+def save_graph_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
     pdf_id = _clean_text(payload.get("pdfId"))
     graph = payload.get("graph")
     if not pdf_id or not isinstance(graph, dict):
@@ -44,7 +44,7 @@ def save_graph_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
                     pdf_id,
                     _clean_text(payload.get("paper_topic")),
                     json.dumps(graph, ensure_ascii=False),
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                 ),
             )
             connection.commit()
@@ -53,7 +53,7 @@ def save_graph_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
         return {"enabled": True, "status": "error", "message": str(error)[:300]}
 
 
-def read_graph_neighborhood(payload: Dict[str, Any]) -> Dict[str, Any]:
+def read_graph_neighborhood(payload: dict[str, Any]) -> dict[str, Any]:
     paper_ids = _string_list(payload.get("paperIds"))
     source_ids = _string_list(payload.get("sourceIds"))
     seed_terms = _string_list(payload.get("seedTerms"))
@@ -74,9 +74,9 @@ def read_graph_neighborhood(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not candidates:
         return _empty_result("partial" if invalid_count else "unavailable", paper_ids, seed_terms)
 
-    selected_nodes: List[Dict[str, Any]] = []
-    selected_edges: List[Dict[str, Any]] = []
-    matched_paper_ids: List[str] = []
+    selected_nodes: list[dict[str, Any]] = []
+    selected_edges: list[dict[str, Any]] = []
+    matched_paper_ids: list[str] = []
     seen_nodes = set()
     seen_edges = set()
 
@@ -142,7 +142,7 @@ def find_bridging_concepts(
     paper_b_id: str,
     max_nodes: int = DEFAULT_MAX_NODES,
     max_edges: int = DEFAULT_MAX_EDGES,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Find shared concepts and one-hop paths between two papers' knowledge graphs (16-2).
 
     Used by ``cross_paper_reasoning_node`` when two papers lack direct
@@ -151,7 +151,7 @@ def find_bridging_concepts(
 
     Returns ``{status, shared_nodes, bridge_edges, paper_ids}``.
     """
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "status": "unavailable",
         "shared_nodes": [],
         "bridge_edges": [],
@@ -195,7 +195,7 @@ def find_bridging_concepts(
     return result
 
 
-def enrich_conflicts_with_graph_context(conflicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def enrich_conflicts_with_graph_context(conflicts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     enriched = []
     for conflict in conflicts or []:
         current = copy.deepcopy(conflict)
@@ -224,7 +224,7 @@ def enrich_conflicts_with_graph_context(conflicts: List[Dict[str, Any]]) -> List
     return enriched
 
 
-def _conflict_seed_terms(conflict: Dict[str, Any]) -> List[str]:
+def _conflict_seed_terms(conflict: dict[str, Any]) -> list[str]:
     explicit_topic = _clean_text(conflict.get("topic"))
     text = " ".join(_clean_text(conflict.get(key)) for key in ("claim", "summary"))
     tokens = re.findall(r"[A-Za-z][A-Za-z0-9_-]{2,}|[\u4e00-\u9fff]{2,}", text)
@@ -249,7 +249,7 @@ def _initialize_storage(db_path: Path) -> None:
         connection.commit()
 
 
-def _load_snapshots() -> tuple[List[Dict[str, Any]], int]:
+def _load_snapshots() -> tuple[list[dict[str, Any]], int]:
     db_path = _knowledge_graph_db_path()
     if not db_path.exists():
         return [], 0
@@ -272,7 +272,7 @@ def _load_snapshots() -> tuple[List[Dict[str, Any]], int]:
     return snapshots, invalid_count
 
 
-def _snapshot_matches_scope(snapshot: Dict[str, Any], paper_ids: List[str], source_ids: List[str]) -> bool:
+def _snapshot_matches_scope(snapshot: dict[str, Any], paper_ids: list[str], source_ids: list[str]) -> bool:
     if paper_ids and snapshot["pdfId"] in paper_ids:
         return True
     if source_ids:
@@ -281,7 +281,7 @@ def _snapshot_matches_scope(snapshot: Dict[str, Any], paper_ids: List[str], sour
     return not paper_ids
 
 
-def _node_matches(node: Dict[str, Any], seed_terms: List[str], source_ids: List[str]) -> bool:
+def _node_matches(node: dict[str, Any], seed_terms: list[str], source_ids: list[str]) -> bool:
     if source_ids and set(source_ids).intersection(_string_list(node.get("sourceIds"))):
         return True
     searchable = " ".join(
@@ -291,7 +291,7 @@ def _node_matches(node: Dict[str, Any], seed_terms: List[str], source_ids: List[
     return any(term.lower() in searchable for term in seed_terms if term)
 
 
-def _normalized_edges(graph: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _normalized_edges(graph: dict[str, Any]) -> list[dict[str, Any]]:
     edges = [item for item in graph.get("edges", []) if isinstance(item, dict)]
     edges.extend(item for item in graph.get("links", []) if isinstance(item, dict))
     result = []
@@ -305,7 +305,7 @@ def _normalized_edges(graph: Dict[str, Any]) -> List[Dict[str, Any]]:
     return result
 
 
-def _public_node(node: Dict[str, Any]) -> Dict[str, Any]:
+def _public_node(node: dict[str, Any]) -> dict[str, Any]:
     return {
         key: node.get(key)
         for key in ("id", "label", "type", "level", "summary", "why", "sourceIds", "provenanceStatus", "confidence", "confidenceReason")
@@ -313,7 +313,7 @@ def _public_node(node: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _public_edge(edge: Dict[str, Any]) -> Dict[str, Any]:
+def _public_edge(edge: dict[str, Any]) -> dict[str, Any]:
     return {
         key: edge.get(key)
         for key in ("source", "target", "type", "relation", "label", "sourceIds", "provenanceStatus", "confidence", "confidenceReason")
@@ -321,7 +321,7 @@ def _public_edge(edge: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _empty_result(status: str, paper_ids: List[str], seed_terms: List[str]) -> Dict[str, Any]:
+def _empty_result(status: str, paper_ids: list[str], seed_terms: list[str]) -> dict[str, Any]:
     return {
         "status": status,
         "paperIds": paper_ids,
@@ -334,11 +334,11 @@ def _empty_result(status: str, paper_ids: List[str], seed_terms: List[str]) -> D
     }
 
 
-def _empty_provenance() -> Dict[str, Any]:
+def _empty_provenance() -> dict[str, Any]:
     return {"total": 0, "currentPaperSupported": 0, "modelInference": 0, "externalSupported": 0, "supportedRatio": 0.0}
 
 
-def _collect_source_ids(items: Iterable[Dict[str, Any]]) -> List[str]:
+def _collect_source_ids(items: Iterable[dict[str, Any]]) -> list[str]:
     values = []
     for item in items:
         if isinstance(item, dict):
@@ -346,13 +346,13 @@ def _collect_source_ids(items: Iterable[Dict[str, Any]]) -> List[str]:
     return _dedupe(values)
 
 
-def _string_list(value: Any) -> List[str]:
+def _string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return _dedupe(_clean_text(item) for item in value if _clean_text(item))
 
 
-def _dedupe(values: Iterable[str]) -> List[str]:
+def _dedupe(values: Iterable[str]) -> list[str]:
     result = []
     seen = set()
     for value in values:

@@ -114,7 +114,7 @@ def _score_side(sources: list[dict[str, Any]]) -> float:
         text = str(src.get("text") or "")
         if re.search(r"n\s*[=＝]\s*\d{3,}", text):
             s += 0.5  # explicit sample size
-        if re.search(r"(randomized|double.?blind|controlled.?trial|RCT)", text, re.I):
+        if re.search(r"(randomized|double.?blind|controlled.?trial|RCT)", text, re.IGNORECASE):
             s += 1.0  # rigorous methodology
         # Citation count
         citations = _safe_int(src.get("citationCount"))

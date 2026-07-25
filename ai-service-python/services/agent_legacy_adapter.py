@@ -1,10 +1,13 @@
 """Legacy task snapshot adapter for backward compatibility."""
 
 import copy
-from typing import Any, Dict, List
+from typing import Any
 
 from services.agent_artifact_service import build_artifacts_record
-from services.agent_review_service import build_final_review_packet, build_plan_review_packet
+from services.agent_review_service import (
+    build_final_review_packet,
+    build_plan_review_packet,
+)
 from services.agent_timeline_service import build_timeline_entry
 
 
@@ -12,8 +15,8 @@ class AgentProjectNotFoundError(Exception):
     pass
 
 
-def _copy_project(project_id: str) -> Dict[str, Any]:
-    from services.agent_project_service import _ensure_storage_loaded, _LOCK, _PROJECTS
+def _copy_project(project_id: str) -> dict[str, Any]:
+    from services.agent_project_service import _LOCK, _PROJECTS, _ensure_storage_loaded
 
     _ensure_storage_loaded()
     with _LOCK:
@@ -23,8 +26,8 @@ def _copy_project(project_id: str) -> Dict[str, Any]:
         return copy.deepcopy(project)
 
 
-def _copy_task(task_id: str) -> Dict[str, Any]:
-    from services.agent_project_service import _ensure_storage_loaded, _LOCK, _TASKS
+def _copy_task(task_id: str) -> dict[str, Any]:
+    from services.agent_project_service import _LOCK, _TASKS, _ensure_storage_loaded
 
     _ensure_storage_loaded()
     with _LOCK:
@@ -36,7 +39,7 @@ def _copy_task(task_id: str) -> Dict[str, Any]:
         return copy.deepcopy(task)
 
 
-def _build_legacy_task_snapshot_from_run_id(run_id: str) -> Dict[str, Any]:
+def _build_legacy_task_snapshot_from_run_id(run_id: str) -> dict[str, Any]:
     from services.agent_project_service import _clean_text
 
     task = _copy_task(_clean_text(run_id))
@@ -50,7 +53,7 @@ def _build_legacy_task_snapshot_from_run_id(run_id: str) -> Dict[str, Any]:
     )
 
 
-def _build_run_record(task: Dict[str, Any]) -> Dict[str, Any]:
+def _build_run_record(task: dict[str, Any]) -> dict[str, Any]:
     return {
         "runId": str(task.get("taskId") or ""),
         "projectId": str(task.get("projectId") or ""),
@@ -73,7 +76,7 @@ def _build_run_record(task: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _build_pending_review_record(task: Dict[str, Any]) -> Dict[str, Any] | None:
+def _build_pending_review_record(task: dict[str, Any]) -> dict[str, Any] | None:
     if task.get("status") == "awaiting_plan_review":
         return build_plan_review_packet(
             run={"runId": str(task.get("taskId") or "")},
@@ -92,7 +95,7 @@ def _build_pending_review_record(task: Dict[str, Any]) -> Dict[str, Any] | None:
     return None
 
 
-def _build_artifacts_resource(task: Dict[str, Any]) -> Dict[str, Any]:
+def _build_artifacts_resource(task: dict[str, Any]) -> dict[str, Any]:
     return build_artifacts_record(
         str(task.get("taskId") or ""),
         evidence_items=task.get("evidenceItems") or [],
@@ -105,7 +108,7 @@ def _build_artifacts_resource(task: Dict[str, Any]) -> Dict[str, Any]:
     )
 
 
-def _build_timeline_resource(task: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _build_timeline_resource(task: dict[str, Any]) -> list[dict[str, Any]]:
     entries = []
     for event in list(task.get("events") or []):
         if "id" in event and "eventId" not in event:
@@ -130,7 +133,7 @@ def _build_timeline_resource(task: Dict[str, Any]) -> List[Dict[str, Any]]:
     return entries
 
 
-def _build_legacy_events_from_timeline(timeline: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _build_legacy_events_from_timeline(timeline: list[dict[str, Any]]) -> list[dict[str, Any]]:
     events = []
     for entry in list(timeline or []):
         meta = dict(entry.get("meta") or {})
@@ -149,13 +152,13 @@ def _build_legacy_events_from_timeline(timeline: List[Dict[str, Any]]) -> List[D
 
 
 def _build_task_snapshot_from_resources(
-    project: Dict[str, Any],
-    run: Dict[str, Any],
-    plan_review: Dict[str, Any] | None,
-    final_review: Dict[str, Any] | None,
-    artifacts: Dict[str, Any] | None,
-    timeline: List[Dict[str, Any]],
-) -> Dict[str, Any]:
+    project: dict[str, Any],
+    run: dict[str, Any],
+    plan_review: dict[str, Any] | None,
+    final_review: dict[str, Any] | None,
+    artifacts: dict[str, Any] | None,
+    timeline: list[dict[str, Any]],
+) -> dict[str, Any]:
     pending_review = None
     if str(run.get("status") or "") == "awaiting_plan_review":
         pending_review = plan_review or {}
@@ -174,12 +177,12 @@ def _build_task_snapshot_from_resources(
 
 
 def _build_legacy_task_snapshot(
-    project: Dict[str, Any],
-    run: Dict[str, Any],
-    pending_review: Dict[str, Any] | None,
-    artifacts: Dict[str, Any] | None,
-    timeline: List[Dict[str, Any]],
-) -> Dict[str, Any]:
+    project: dict[str, Any],
+    run: dict[str, Any],
+    pending_review: dict[str, Any] | None,
+    artifacts: dict[str, Any] | None,
+    timeline: list[dict[str, Any]],
+) -> dict[str, Any]:
     return {
         "taskId": str(run.get("runId") or ""),
         "projectId": str(project.get("projectId") or ""),

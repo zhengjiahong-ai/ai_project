@@ -1,13 +1,13 @@
 import os
 import tempfile
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import UploadFile
 
 from rag.store import get_hybrid, get_rag
 
 
-async def add_literature(file: UploadFile, metadata: Optional[dict] = None) -> Dict[str, Any]:
+async def add_literature(file: UploadFile, metadata: dict | None = None) -> dict[str, Any]:
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
         temp_file.write(await file.read())
         temp_file_path = temp_file.name
@@ -25,7 +25,7 @@ async def add_literature(file: UploadFile, metadata: Optional[dict] = None) -> D
             os.unlink(temp_file_path)
 
 
-def retrieve(query: str, top_k: int = 5, filter_metadata: Optional[dict] = None) -> Dict[str, Any]:
+def retrieve(query: str, top_k: int = 5, filter_metadata: dict | None = None) -> dict[str, Any]:
     try:
         results = get_hybrid().retrieve(query, top_k=top_k)
     except Exception:

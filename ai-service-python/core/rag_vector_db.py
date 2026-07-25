@@ -1,19 +1,17 @@
 import logging
 import os
-import uuid
 import shutil
 import tempfile
+import uuid
 
-import chromadb  # noqa: E402
-from chromadb.config import Settings  # noqa: E402
+import chromadb
+from chromadb.config import Settings
+from grobid_client.grobid_client import GrobidClient
+from sentence_transformers import SentenceTransformer
 
-from sentence_transformers import SentenceTransformer  # noqa: E402
-
-from grobid_client.grobid_client import GrobidClient  # noqa: E402
-
-from core.document_parser import parse_tei_xml  # noqa: E402
-from rag.store import invalidate_hybrid_cache, normalize_id  # noqa: E402
-from core.smart_chunker import chunk_sections  # noqa: E402
+from core.document_parser import parse_tei_xml
+from core.smart_chunker import chunk_sections
+from rag.store import invalidate_hybrid_cache, normalize_id
 
 _logger = logging.getLogger(__name__)
 

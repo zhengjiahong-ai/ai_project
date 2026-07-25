@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, TypedDict
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
@@ -33,7 +33,7 @@ _logger = logging.getLogger(__name__)
 class AgentGraphState(TypedDict, total=False):
     # Input
     prompt: str
-    paper_ids: List[str]
+    paper_ids: list[str]
     constraints: str
     allow_external_search: bool
     allow_web_search: bool
@@ -41,35 +41,35 @@ class AgentGraphState(TypedDict, total=False):
     domain: str
 
     # Plan review (human-in-the-loop #1)
-    plan_items: List[Dict[str, Any]]
+    plan_items: list[dict[str, Any]]
     plan_approved: bool
     plan_review_notes: str
 
     # Execution
-    paper_contexts: List[Dict[str, Any]]
-    tool_calls: List[Dict[str, Any]]
-    evidence_items: List[Dict[str, Any]]
-    research_timeline: List[Dict[str, Any]]
+    paper_contexts: list[dict[str, Any]]
+    tool_calls: list[dict[str, Any]]
+    evidence_items: list[dict[str, Any]]
+    research_timeline: list[dict[str, Any]]
 
     # Evidence weighing (14-1)
-    weighted_evidence: List[Dict[str, Any]]
+    weighted_evidence: list[dict[str, Any]]
 
     # Cross-paper reasoning (14-1)
-    cross_paper_insights: Dict[str, Any]
+    cross_paper_insights: dict[str, Any]
 
     # Synthesis
-    findings: List[Dict[str, Any]]
-    comparison_table: Dict[str, Any]
-    conflicts: List[Dict[str, Any]]
-    open_questions: List[str]
+    findings: list[dict[str, Any]]
+    comparison_table: dict[str, Any]
+    conflicts: list[dict[str, Any]]
+    open_questions: list[str]
 
     # Conflict resolution (14-1)
-    resolved_conflicts: List[Dict[str, Any]]
-    unresolved_conflicts: List[Dict[str, Any]]
+    resolved_conflicts: list[dict[str, Any]]
+    unresolved_conflicts: list[dict[str, Any]]
 
     # Final review (human-in-the-loop #2)
     draft_report: str
-    review_risks: List[Dict[str, Any]]
+    review_risks: list[dict[str, Any]]
     final_approved: bool
     final_review_notes: str
 
@@ -80,7 +80,7 @@ class AgentGraphState(TypedDict, total=False):
     status: str
 
     # Observability
-    timeline: List[Dict[str, Any]]
+    timeline: list[dict[str, Any]]
     started_at: str
 
 
@@ -131,7 +131,7 @@ def plan_review_node(state: AgentGraphState) -> AgentGraphState:
               "plan_items": [...], "allow_external_search": True/False})
     """
     # Interrupt with plan data. The resume value is returned on the second invocation.
-    resume: Dict[str, Any] = interrupt({
+    resume: dict[str, Any] = interrupt({
         "type": "plan_review",
         "plan_items": state.get("plan_items", []),
         "message": "Please review and approve the research plan.",
@@ -234,7 +234,7 @@ def synthesize_node(state: AgentGraphState) -> AgentGraphState:
 # ── 14-1/14-2/14-3 Reasoning Nodes ───────────────────────────────────────────
 # Extracted to ``services/agent_langgraph_reasoning.py`` (19-2).
 # Re-exported here to keep existing import paths working.
-from services.agent_langgraph_reasoning import (  # noqa: E402 (lazy after the section)
+from services.agent_langgraph_reasoning import (
     conflict_resolution_node,
     cross_paper_reasoning_node,
     evidence_weighing_node,
@@ -260,7 +260,7 @@ def report_node(state: AgentGraphState) -> AgentGraphState:
         state["draft_report"] = f"Report generation failed: {exc}"
 
     # Build review risks
-    risks: List[Dict[str, Any]] = []
+    risks: list[dict[str, Any]] = []
     for i, c in enumerate(state.get("conflicts", [])[:5]):
         risks.append({
             "riskId": f"conflict:{i}",
@@ -336,7 +336,7 @@ def final_review_node(state: AgentGraphState) -> AgentGraphState:
     NOTE: LangGraph's ``interrupt()`` rolls back state. All mutations happen
     AFTER resume.
     """
-    resume: Dict[str, Any] = interrupt({
+    resume: dict[str, Any] = interrupt({
         "type": "final_review",
         "draft_report": state.get("draft_report", ""),
         "review_risks": state.get("review_risks", []),
@@ -347,7 +347,7 @@ def final_review_node(state: AgentGraphState) -> AgentGraphState:
     state["final_review_notes"] = str(resume.get("final_review_notes", ""))
 
     # Apply risk review updates
-    risk_reviews: List[Dict[str, Any]] = resume.get("risk_reviews", [])
+    risk_reviews: list[dict[str, Any]] = resume.get("risk_reviews", [])
     status_by_id = {r.get("riskId"): r.get("reviewStatus", "reviewed")
                     for r in risk_reviews}
     for risk in state.get("review_risks", []):
@@ -386,7 +386,7 @@ def success_node(state: AgentGraphState) -> AgentGraphState:
 
 
 # ── Shared checkpointer (module-level, survives across invocations) ──────────
-_checkpointer: Optional[MemorySaver] = None
+_checkpointer: MemorySaver | None = None
 
 
 def _get_checkpointer() -> MemorySaver:
@@ -396,7 +396,7 @@ def _get_checkpointer() -> MemorySaver:
     return _checkpointer
 
 
-def build_agent_graph(checkpointer: Optional[Any] = None):
+def build_agent_graph(checkpointer: Any | None = None):
     """Build the LangGraph agent research graph with human-in-the-loop.
 
     Graph structure (14-1 enhanced):
@@ -467,7 +467,7 @@ def build_agent_graph(checkpointer: Optional[Any] = None):
 # ── Public API ───────────────────────────────────────────────────────────────
 
 
-def _build_domain_config(domain: str) -> Dict[str, Any]:
+def _build_domain_config(domain: str) -> dict[str, Any]:
     """Build domain-specific config for evidence collection."""
     if not domain:
         return {}
@@ -476,7 +476,7 @@ def _build_domain_config(domain: str) -> Dict[str, Any]:
 
 def run_agent_graph(
     prompt: str,
-    paper_ids: Optional[List[str]] = None,
+    paper_ids: list[str] | None = None,
     *,
     constraints: str = "",
     allow_external_search: bool = False,
@@ -484,7 +484,7 @@ def run_agent_graph(
     allow_iterative_search: bool = False,
     domain: str = "",
     max_follow_up: int = 5,  # 14-3: raised from 2→5
-    thread_id: Optional[str] = None,
+    thread_id: str | None = None,
 ) -> AgentGraphState:
     """Run the agent graph and return the final state.
 
@@ -543,7 +543,7 @@ def run_agent_graph(
         "started_at": _now(),
     }
 
-    config: Dict[str, Any] = {"recursion_limit": 50}
+    config: dict[str, Any] = {"recursion_limit": 50}
     if thread_id:
         config["configurable"] = {"thread_id": thread_id}
 
@@ -551,7 +551,7 @@ def run_agent_graph(
 
 
 def resume_agent_graph(
-    resume_data: Dict[str, Any],
+    resume_data: dict[str, Any],
     *,
     thread_id: str,
 ) -> AgentGraphState:
@@ -599,7 +599,7 @@ def _infer_status(state: AgentGraphState, interrupted: bool = False) -> str:
 
 def agent_graph_state_to_response(
     state: AgentGraphState, interrupted: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Convert LangGraph state to the existing API response format.
 
     Args:

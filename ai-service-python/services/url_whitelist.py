@@ -10,11 +10,11 @@ All validation error messages are sanitized and never contain the original URL.
 import ipaddress
 import socket
 from fnmatch import fnmatch
-from typing import Any, Dict, List, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
 
-def _platform_getaddrinfo(host: str) -> List[Tuple]:
+def _platform_getaddrinfo(host: str) -> list[tuple]:
     """Thin wrapper for testability. Resolve hostname to (family, addr) tuples."""
     results = []
     for entry in socket.getaddrinfo(host, None, socket.AF_UNSPEC, socket.SOCK_STREAM):
@@ -27,7 +27,7 @@ def _platform_getaddrinfo(host: str) -> List[Tuple]:
 _getaddrinfo = _platform_getaddrinfo
 
 
-FETCH_URL_WHITELIST: Dict[str, List[str]] = {
+FETCH_URL_WHITELIST: dict[str, list[str]] = {
     "academic_publishers": [
         "*.nature.com",
         "*.science.org",
@@ -263,7 +263,6 @@ def validate_fetch_url(url: Any) -> str:
         if "IP address" in str(ValueError.__class__.__name__):
             raise
         # Not an IP address — continue with hostname validation
-        pass
 
     # Reject localhost
     if hostname in ("localhost", "localhost.localdomain"):

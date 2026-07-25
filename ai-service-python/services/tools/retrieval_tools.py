@@ -9,7 +9,7 @@ manageable.
 """
 
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from rag.store import get_rag, retrieve_hybrid_results
 from services.evidence_service import normalize_evidence_items
@@ -199,7 +199,7 @@ def register_tools(registry: Any) -> None:
     )
 
 
-def _retrieve_current_paper_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _retrieve_current_paper_tool(payload: dict[str, Any]) -> dict[str, Any]:
     pdf_id = _clean_text(payload.get("pdfId"))
     if not pdf_id:
         raise ToolValidationError("retrieve_current_paper requires a non-empty pdfId.")
@@ -245,7 +245,7 @@ def _retrieve_current_paper_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
-def _retrieve_library_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _retrieve_library_tool(payload: dict[str, Any]) -> dict[str, Any]:
     query = _clean_text(payload.get("query"))
     if not query:
         raise ToolValidationError("retrieve_library requires a non-empty query.")
@@ -269,7 +269,7 @@ def _retrieve_library_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         rag = get_rag()
         normalized_exclude = rag.normalize_id(exclude_pdf_id) if exclude_pdf_id else None
-        filtered: List[Dict[str, Any]] = []
+        filtered: list[dict[str, Any]] = []
         seen = set()
         for item in _ensure_stable_source_ids(normalized, fallback_prefix="library"):
             item_pdf_id = rag.normalize_id(item.get("pdfId")) if item.get("pdfId") else None
@@ -286,7 +286,7 @@ def _retrieve_library_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return {"items": filtered}
 
 
-def _retrieve_external_academic_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _retrieve_external_academic_tool(payload: dict[str, Any]) -> dict[str, Any]:
     query = _clean_text(payload.get("query"))
     safe_query = sanitize_external_academic_query_text(query, max_chars=256)
     if not query or safe_query != query:
@@ -386,7 +386,7 @@ def _retrieve_external_academic_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
-def _search_web_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _search_web_tool(payload: dict[str, Any]) -> dict[str, Any]:
     from services.safety_service import sanitize_web_search_query_text
 
     query = _clean_text(payload.get("query"))
@@ -481,7 +481,7 @@ def _search_web_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
-def _fetch_web_page_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _fetch_web_page_tool(payload: dict[str, Any]) -> dict[str, Any]:
     from services.url_whitelist import validate_fetch_url
     from services.web_fetcher import fetch_web_page as _fetch_page
 

@@ -39,7 +39,7 @@ def adversarial_review(
         return _error("At least one finding is required.")
 
     evidence = evidence_items or []
-    conflicts_list = conflicts or []  # noqa: F841
+    conflicts_list = conflicts or []
     reviewed: list[dict[str, Any]] = []
     all_counters: list[dict[str, Any]] = []
     total_adjusted = 0.0

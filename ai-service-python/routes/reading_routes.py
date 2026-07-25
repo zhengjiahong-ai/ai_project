@@ -18,9 +18,9 @@ from schemas.requests import (
     DeepAnalysisRequest,
     PageTranslationRequest,
     PaperDraftRequest,
+    SocraticQuestionRequest,
     SocraticSessionAnswerRequest,
     SocraticSessionStartRequest,
-    SocraticQuestionRequest,
     TermExplainRequest,
 )
 from services import analysis_service, chat_service

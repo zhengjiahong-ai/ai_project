@@ -3,13 +3,13 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - test-only fallback
     from tests.fastapi_stubs import APIRouter
 
+from routes.agent_routes import agent_router
 from routes.code_execution_routes import code_execution_router
 from routes.feedback_routes import router as feedback_router
-from routes.reading_routes import reading_router
-from routes.agent_routes import agent_router
-from routes.research_routes import research_router
 from routes.monitor_routes import monitor_router
 from routes.rag_routes import rag_router
+from routes.reading_routes import reading_router
+from routes.research_routes import research_router
 from routes.trace_routes import trace_router
 
 router = APIRouter(prefix="/api")

@@ -1,21 +1,21 @@
 """Research conflict detection and evidence comparison."""
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 
 def _detect_research_conflicts(findings):
-    from services.research_task_service import _coerce_float, MAX_RESEARCH_CONFLICTS
+    from services.research_task_service import MAX_RESEARCH_CONFLICTS, _coerce_float
 
     evidence_items = _collect_conflict_evidence(findings)
-    conflicts: List[Dict[str, Any]] = []
+    conflicts: list[dict[str, Any]] = []
     seen = set()
 
     numeric_claims = []
     for item in evidence_items:
         numeric_claims.extend(_extract_numeric_claims(item))
 
-    by_topic: Dict[str, List[Dict[str, Any]]] = {}
+    by_topic: dict[str, list[dict[str, Any]]] = {}
     for claim in numeric_claims:
         by_topic.setdefault(str(claim.get("topic") or ""), []).append(claim)
 
@@ -61,11 +61,11 @@ def _detect_research_conflicts(findings):
     return conflicts
 
 
-def _collect_conflict_evidence(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    from services.research_task_service import _clean_text
+def _collect_conflict_evidence(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     from services.evidence_service import normalize_evidence_items
+    from services.research_task_service import _clean_text
 
-    collected: List[Dict[str, Any]] = []
+    collected: list[dict[str, Any]] = []
     seen = set()
     for finding in findings or []:
         sources = finding.get("sources") if isinstance(finding, dict) else []
@@ -82,7 +82,7 @@ def _collect_conflict_evidence(findings: List[Dict[str, Any]]) -> List[Dict[str,
     return collected
 
 
-def _extract_numeric_claims(item: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _extract_numeric_claims(item: dict[str, Any]) -> list[dict[str, Any]]:
     text = str(item.get("text") or "")
     claims = []
     pattern = r"(?P<metric>accuracy|acc|f1|precision|recall|auc|bleu|rouge|map|ndcg|score|准确率|精度|召回率|得分|指标)[^。\n.;,，]{0,48}?(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>%|percent|分|倍)?"
@@ -100,7 +100,7 @@ def _extract_numeric_claims(item: Dict[str, Any]) -> List[Dict[str, Any]]:
     return claims
 
 
-def _build_numeric_conflict(index: int, topic: str, left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+def _build_numeric_conflict(index: int, topic: str, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     from services.research_task_service import _coerce_float
 
     left_value = _format_conflict_value(left)
@@ -120,7 +120,7 @@ def _build_numeric_conflict(index: int, topic: str, left: Dict[str, Any], right:
     }
 
 
-def _build_opposing_conflict(index: int, topic: str, left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+def _build_opposing_conflict(index: int, topic: str, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     source_ids = [str(left.get("sourceId") or ""), str(right.get("sourceId") or "")]
     return {
         "id": f"conflict-{index}",
@@ -134,7 +134,7 @@ def _build_opposing_conflict(index: int, topic: str, left: Dict[str, Any], right
     }
 
 
-def _format_conflict_value(claim: Dict[str, Any]) -> str:
+def _format_conflict_value(claim: dict[str, Any]) -> str:
     from services.research_task_service import _coerce_float
 
     value = _coerce_float(claim.get("value"), 0.0)
@@ -183,7 +183,7 @@ def _shared_conflict_topic(left: Any, right: Any) -> str:
     return shared[0] if shared else ""
 
 
-def _extract_conflict_terms(text: Any) -> List[str]:
+def _extract_conflict_terms(text: Any) -> list[str]:
     value = str(text or "").lower()
     stopwords = {
         "the", "and", "for", "with", "that", "this", "shows", "show", "method",
@@ -207,7 +207,7 @@ def _extract_conflict_terms(text: Any) -> List[str]:
     return terms[:12]
 
 
-def _build_research_review_risks(findings: List[Dict[str, Any]], conflicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _build_research_review_risks(findings: list[dict[str, Any]], conflicts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     from services.research_task_service import _clean_text, _normalize_missing_aspects
 
     risks = [{"riskId": f"conflict:{item.get('id') or index}", "type": "conflict", "label": "证据冲突", "detail": _clean_text(item.get("claim") or item.get("summary")), "sourceIds": list(item.get("sourceIds") or []), "reviewStatus": "pending"} for index, item in enumerate(conflicts, 1)]
@@ -218,7 +218,7 @@ def _build_research_review_risks(findings: List[Dict[str, Any]], conflicts: List
     return risks
 
 
-def _validate_risk_reviews(risks: List[Dict[str, Any]], reviews: List[Any]) -> List[Dict[str, Any]]:
+def _validate_risk_reviews(risks: list[dict[str, Any]], reviews: list[Any]) -> list[dict[str, Any]]:
     from services.research_task_service import _clean_text
 
     allowed = {str(item.get("riskId") or "") for item in risks}
@@ -232,7 +232,7 @@ def _validate_risk_reviews(risks: List[Dict[str, Any]], reviews: List[Any]) -> L
     return normalized
 
 
-def _overall_assessment(question: str, findings: List[Dict[str, Any]], planned_count: int) -> str:
+def _overall_assessment(question: str, findings: list[dict[str, Any]], planned_count: int) -> str:
     supported = [item for item in findings if item.get("verdict") == "CORRECT"]
     partial = [item for item in findings if item.get("verdict") == "AMBIGUOUS"]
     insufficient = [item for item in findings if item.get("verdict") == "INCORRECT"]
@@ -243,7 +243,7 @@ def _overall_assessment(question: str, findings: List[Dict[str, Any]], planned_c
     )
 
 
-def _next_steps(findings: List[Dict[str, Any]]) -> str:
+def _next_steps(findings: list[dict[str, Any]]) -> str:
     from services.research_task_service import _normalize_missing_aspects
 
     missing_lines = []

@@ -1,9 +1,8 @@
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from services.evidence_service import normalize_evidence_items
 from services.knowledge_graph_store import enrich_conflicts_with_graph_context
-
 
 MAX_RESEARCH_CONFLICTS = 5
 
@@ -11,10 +10,10 @@ MAX_RESEARCH_CONFLICTS = 5
 def build_research_report(
     question: str,
     brief: str,
-    plan_items: List[Any],
-    findings: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]] | None = None,
-    trace_summary: Dict[str, Any] | None = None,
+    plan_items: list[Any],
+    findings: list[dict[str, Any]],
+    conflicts: list[dict[str, Any]] | None = None,
+    trace_summary: dict[str, Any] | None = None,
 ) -> str:
     lines = [
         "## 研究 brief",
@@ -88,7 +87,7 @@ def build_research_report(
             lines.append("")
 
     # P6-18: multi-source evidence cross-validation
-    cv_result: Dict[str, Any] | None = None
+    cv_result: dict[str, Any] | None = None
     try:
         from services.evidence_cross_validator import cross_validate_evidence
 
@@ -157,16 +156,16 @@ def build_research_report(
     return "\n".join(line for line in lines if line is not None).strip()
 
 
-def detect_research_conflicts(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def detect_research_conflicts(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     evidence_items = collect_conflict_evidence(findings)
-    conflicts: List[Dict[str, Any]] = []
+    conflicts: list[dict[str, Any]] = []
     seen = set()
 
     numeric_claims = []
     for item in evidence_items:
         numeric_claims.extend(extract_numeric_claims(item))
 
-    by_topic: Dict[str, List[Dict[str, Any]]] = {}
+    by_topic: dict[str, list[dict[str, Any]]] = {}
     for claim in numeric_claims:
         by_topic.setdefault(str(claim.get("topic") or ""), []).append(claim)
 
@@ -212,11 +211,11 @@ def detect_research_conflicts(findings: List[Dict[str, Any]]) -> List[Dict[str, 
     return conflicts
 
 
-def enrich_research_conflicts(conflicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def enrich_research_conflicts(conflicts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return enrich_conflicts_with_graph_context(conflicts)
 
 
-def build_judge_trace_summary(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
+def build_judge_trace_summary(findings: list[dict[str, Any]]) -> dict[str, Any]:
     scores = [
         item.get("judgeScore")
         for item in findings
@@ -230,8 +229,8 @@ def build_judge_trace_summary(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def collect_conflict_evidence(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    collected: List[Dict[str, Any]] = []
+def collect_conflict_evidence(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    collected: list[dict[str, Any]] = []
     seen = set()
     for finding in findings or []:
         sources = finding.get("sources") if isinstance(finding, dict) else []
@@ -248,7 +247,7 @@ def collect_conflict_evidence(findings: List[Dict[str, Any]]) -> List[Dict[str, 
     return collected
 
 
-def extract_numeric_claims(item: Dict[str, Any]) -> List[Dict[str, Any]]:
+def extract_numeric_claims(item: dict[str, Any]) -> list[dict[str, Any]]:
     text = str(item.get("text") or "")
     claims = []
     pattern = r"(?P<metric>accuracy|acc|f1|precision|recall|auc|bleu|rouge|map|ndcg|score|准确率|精度|召回率|得分|指标)[^。\n.;,，]{0,48}?(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>%|percent|分|倍)?"
@@ -266,7 +265,7 @@ def extract_numeric_claims(item: Dict[str, Any]) -> List[Dict[str, Any]]:
     return claims
 
 
-def build_numeric_conflict(index: int, topic: str, left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+def build_numeric_conflict(index: int, topic: str, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     left_value = format_conflict_value(left)
     right_value = format_conflict_value(right)
     left_source = left.get("source") if isinstance(left.get("source"), dict) else {}
@@ -284,7 +283,7 @@ def build_numeric_conflict(index: int, topic: str, left: Dict[str, Any], right: 
     }
 
 
-def build_opposing_conflict(index: int, topic: str, left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+def build_opposing_conflict(index: int, topic: str, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     source_ids = [str(left.get("sourceId") or ""), str(right.get("sourceId") or "")]
     return {
         "id": f"conflict-{index}",
@@ -298,7 +297,7 @@ def build_opposing_conflict(index: int, topic: str, left: Dict[str, Any], right:
     }
 
 
-def format_conflict_value(claim: Dict[str, Any]) -> str:
+def format_conflict_value(claim: dict[str, Any]) -> str:
     value = coerce_float(claim.get("value"), 0.0)
     formatted = str(int(value)) if value.is_integer() else f"{value:.4f}".rstrip("0").rstrip(".")
     return f"{formatted}{claim.get('unit') or ''}"
@@ -358,7 +357,7 @@ def shared_conflict_topic(left_text: Any, right_text: Any) -> str:
     return sorted(shared)[0]
 
 
-def extract_conflict_keywords(text: Any) -> List[str]:
+def extract_conflict_keywords(text: Any) -> list[str]:
     value = str(text or "").lower()
     aliases = {
         "retrieval": "retrieval",
@@ -377,7 +376,7 @@ def extract_conflict_keywords(text: Any) -> List[str]:
     return found
 
 
-def overall_assessment(question: str, findings: List[Dict[str, Any]], planned_count: int) -> str:
+def overall_assessment(question: str, findings: list[dict[str, Any]], planned_count: int) -> str:
     supported = [item for item in findings if str(item.get("verdict") or "") == "CORRECT"]
     partial = [item for item in findings if str(item.get("verdict") or "") == "AMBIGUOUS"]
     insufficient = [item for item in findings if str(item.get("verdict") or "") == "INCORRECT"]
@@ -390,7 +389,7 @@ def overall_assessment(question: str, findings: List[Dict[str, Any]], planned_co
     )
 
 
-def next_steps(findings: List[Dict[str, Any]]) -> str:
+def next_steps(findings: list[dict[str, Any]]) -> str:
     missing_lines = []
     for finding in findings:
         missing = normalize_missing_aspects(finding.get("missingAspects"))
@@ -407,7 +406,7 @@ def next_steps(findings: List[Dict[str, Any]]) -> str:
     return "\n".join(missing_lines)
 
 
-def normalize_missing_aspects(value: Any) -> List[str]:
+def normalize_missing_aspects(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     items = []
@@ -437,7 +436,7 @@ def clean_text(value: Any) -> str:
     return " ".join(str(value or "").strip().split())
 
 
-def _format_source_line(finding: Dict[str, Any]) -> str:
+def _format_source_line(finding: dict[str, Any]) -> str:
     base = ", ".join(finding.get("sourceIds") or []) or "未检索到稳定证据来源"
     has_external = any(
         isinstance(src, dict) and str(src.get("sourceType") or "") == "external_academic"
@@ -457,8 +456,8 @@ def _format_source_line(finding: Dict[str, Any]) -> str:
     return base
 
 
-def _count_source_types(sources: List[Dict[str, Any]]) -> Dict[str, int]:
-    counts: Dict[str, int] = {}
+def _count_source_types(sources: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
     for src in sources:
         if isinstance(src, dict):
             st = str(src.get("sourceType") or "unknown")
@@ -466,12 +465,12 @@ def _count_source_types(sources: List[Dict[str, Any]]) -> Dict[str, int]:
     return counts
 
 
-def _build_evidence_summary(findings: List[Dict[str, Any]]) -> List[str]:
+def _build_evidence_summary(findings: list[dict[str, Any]]) -> list[str]:
     if not findings:
         return []
     lines = ["", "## 证据收集摘要"]
     total_evidence = 0
-    all_type_counts: Dict[str, int] = {}
+    all_type_counts: dict[str, int] = {}
     diversities = []
     trusts = []
     cross_evaluable = 0
@@ -506,7 +505,7 @@ def _build_evidence_summary(findings: List[Dict[str, Any]]) -> List[str]:
     return lines
 
 
-def _build_provenance_section(findings: List[Dict[str, Any]]) -> List[str]:
+def _build_provenance_section(findings: list[dict[str, Any]]) -> list[str]:
     provenance_items = []
     for finding in findings:
         for src in (finding.get("sources") or []):
@@ -554,7 +553,7 @@ def _build_provenance_section(findings: List[Dict[str, Any]]) -> List[str]:
     return lines
 
 
-def _build_exec_stats(trace_summary: Dict[str, Any]) -> List[str]:
+def _build_exec_stats(trace_summary: dict[str, Any]) -> list[str]:
     counters = trace_summary.get("counters") if isinstance(trace_summary.get("counters"), dict) else {}
     duration_ms = trace_summary.get("durationMs")
 
@@ -597,7 +596,7 @@ def _build_exec_stats(trace_summary: Dict[str, Any]) -> List[str]:
     return lines
 
 
-def _any_external_source(findings: List[Dict[str, Any]]) -> bool:
+def _any_external_source(findings: list[dict[str, Any]]) -> bool:
     return any(
         isinstance(src, dict) and str(src.get("sourceType") or "") == "external_academic"
         for finding in findings
@@ -607,7 +606,7 @@ def _any_external_source(findings: List[Dict[str, Any]]) -> bool:
 
 # ── 3-2: Report depth upgrade ───────────────────────────────────────────────
 
-def _build_hierarchical_citations(findings: List[Dict[str, Any]]) -> str:
+def _build_hierarchical_citations(findings: list[dict[str, Any]]) -> str:
     """Build a multi-level citation index ``[N]`` / ``[N.M]`` from findings."""
     lines: list[str] = []
     main_idx = 0
@@ -635,7 +634,7 @@ def _build_hierarchical_citations(findings: List[Dict[str, Any]]) -> str:
     return "## 引用索引\n\n" + "\n".join(lines) + "\n"
 
 
-def _build_evidence_comparison_table(findings: List[Dict[str, Any]]) -> str:
+def _build_evidence_comparison_table(findings: list[dict[str, Any]]) -> str:
     """Build a Markdown evidence comparison table across source types."""
     source_types = ["current_paper", "library", "external_academic", "web_search", "web_page", "image_analysis"]
     type_labels = {
@@ -682,8 +681,8 @@ def _build_evidence_comparison_table(findings: List[Dict[str, Any]]) -> str:
 
 
 def _build_dispute_map(
-    conflicts: List[Dict[str, Any]] | None,
-    cv_result: Dict[str, Any] | None = None,
+    conflicts: list[dict[str, Any]] | None,
+    cv_result: dict[str, Any] | None = None,
 ) -> str:
     """Build a dispute map with consensus / disagreement / unverified zones."""
     if not conflicts and not cv_result:
@@ -734,8 +733,8 @@ def _build_dispute_map(
 
 def _build_executive_summary(
     question: str,
-    findings: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]] | None = None,
+    findings: list[dict[str, Any]],
+    conflicts: list[dict[str, Any]] | None = None,
 ) -> str:
     """Generate a ~500-character executive summary via LLM, falling back to rules."""
     try:

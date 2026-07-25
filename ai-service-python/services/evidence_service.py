@@ -1,6 +1,6 @@
 import re
-from typing import Any, Dict, Iterable, List, Optional
-
+from collections.abc import Iterable
+from typing import Any
 
 VALID_SOURCE_TYPES = {"current_paper", "library", "external_academic", "web_search", "web_page", "image_analysis", "unknown"}
 EXTERNAL_EVIDENCE_FIELDS = (
@@ -22,12 +22,12 @@ MIN_CITATION_SCORE = 0.12
 
 def normalize_evidence_items(
     items: Any,
-    source_type: Optional[str] = None,
-    pdf_id: Optional[str] = None,
-    limit: Optional[int] = None,
+    source_type: str | None = None,
+    pdf_id: str | None = None,
+    limit: int | None = None,
     max_text_chars: int = 900,
-) -> List[Dict[str, Any]]:
-    normalized: List[Dict[str, Any]] = []
+) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
     resolved_source_type = _normalize_source_type(source_type)
 
     for item in _iter_items(items):
@@ -95,7 +95,7 @@ def compact_evidence_for_response(
     items: Any,
     max_items: int = 5,
     max_text_chars: int = 700,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     evidence_items = normalize_evidence_items(items, limit=max_items, max_text_chars=max_text_chars)
     compacted = []
 
@@ -127,7 +127,7 @@ def build_sentence_source_map(
     target: str = "message",
     max_sentences: int = 8,
     max_sources_per_sentence: int = 2,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     evidence_items = normalize_evidence_items(sources, max_text_chars=1200)
     source_terms = []
     valid_source_ids = set()
@@ -185,10 +185,10 @@ def build_sentence_source_map(
 
 
 def build_field_sentence_source_map(
-    fields: Dict[str, Any],
+    fields: dict[str, Any],
     sources: Any,
     max_sentences_per_field: int = 3,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     references = []
     for target, value in fields.items():
         field_references = build_sentence_source_map(
@@ -215,7 +215,7 @@ def _iter_items(items: Any) -> Iterable[Any]:
     return [items]
 
 
-def _split_reference_sentences(content: Any) -> List[str]:
+def _split_reference_sentences(content: Any) -> list[str]:
     if isinstance(content, list):
         raw_text = "\n".join(str(item) for item in content)
     else:
@@ -264,13 +264,13 @@ def _extract_citation_terms(text: Any) -> set[str]:
         for size in (2, 3, 4):
             if len(segment) < size:
                 continue
-            for index in range(0, len(segment) - size + 1):
+            for index in range(len(segment) - size + 1):
                 terms.add(segment[index:index + size])
 
     return terms
 
 
-def _extract_text(item: Dict[str, Any]) -> str:
+def _extract_text(item: dict[str, Any]) -> str:
     for key in ("text", "document", "content", "page_content", "abstract"):
         value = item.get(key)
         if value is not None:
@@ -280,7 +280,7 @@ def _extract_text(item: Dict[str, Any]) -> str:
     return ""
 
 
-def _resolve_pdf_id(item: Dict[str, Any], pdf_id: Optional[str]) -> Optional[str]:
+def _resolve_pdf_id(item: dict[str, Any], pdf_id: str | None) -> str | None:
     if pdf_id:
         return str(pdf_id)
 
@@ -298,7 +298,7 @@ def _resolve_pdf_id(item: Dict[str, Any], pdf_id: Optional[str]) -> Optional[str
     return None
 
 
-def _resolve_source_id(item: Dict[str, Any], pdf_id: Optional[str], chunk_index: Optional[int], fallback_index: int) -> str:
+def _resolve_source_id(item: dict[str, Any], pdf_id: str | None, chunk_index: int | None, fallback_index: int) -> str:
     for key in ("sourceId", "source_id", "id"):
         value = item.get(key)
         if value:
@@ -310,7 +310,7 @@ def _resolve_source_id(item: Dict[str, Any], pdf_id: Optional[str], chunk_index:
     return f"source-{fallback_index}"
 
 
-def _resolve_chunk_index(item: Dict[str, Any]) -> Optional[int]:
+def _resolve_chunk_index(item: dict[str, Any]) -> int | None:
     metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
     value = item.get("chunkIndex") if item.get("chunkIndex") is not None else item.get("chunk_index")
     if value is None:
@@ -318,7 +318,7 @@ def _resolve_chunk_index(item: Dict[str, Any]) -> Optional[int]:
     return _coerce_int(value)
 
 
-def _resolve_page_index(item: Dict[str, Any]) -> Optional[int]:
+def _resolve_page_index(item: dict[str, Any]) -> int | None:
     metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
     value = item.get("pageIndex") if item.get("pageIndex") is not None else item.get("page_index")
     if value is None:
@@ -326,7 +326,7 @@ def _resolve_page_index(item: Dict[str, Any]) -> Optional[int]:
     return _coerce_int(value)
 
 
-def _resolve_section_id(item: Dict[str, Any]) -> Optional[str]:
+def _resolve_section_id(item: dict[str, Any]) -> str | None:
     metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
     value = item.get("sectionId") or item.get("section_id")
     if not value:
@@ -348,7 +348,7 @@ def _truncate(text: str, max_chars: int) -> str:
     return value[:max_chars].rstrip()
 
 
-def _coerce_number(value: Any) -> Optional[float]:
+def _coerce_number(value: Any) -> float | None:
     if value is None or value == "":
         return None
     try:
@@ -357,7 +357,7 @@ def _coerce_number(value: Any) -> Optional[float]:
         return None
 
 
-def _coerce_int(value: Any) -> Optional[int]:
+def _coerce_int(value: Any) -> int | None:
     if value is None or value == "":
         return None
     try:

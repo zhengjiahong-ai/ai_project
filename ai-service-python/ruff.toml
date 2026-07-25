@@ -1,8 +1,35 @@
 # Ruff configuration for Pixiu AI service
-# Pre-existing refactoring issues (v0.6.15-v0.6.22) are documented below.
-# These per-file-ignores should be removed as each file is properly fixed.
+target-version = "py311"
 
 [lint]
+# Pre-existing issues tracked for incremental resolution.
+# UP/BLE/I/SIM/PIE/TRY/PL/ASYNC rules newly enabled by ruff >=0.16.
+ignore = [
+  "BLE001",   # blind-except (194 instances)
+  "S110",     # try-except-pass (32 instances)
+  "SIM118",   # in-dict-keys (14 instances)
+  "SIM103",   # needless-bool
+  "SIM102",   # collapsible-if
+  "B005",     # strip-with-multi-characters
+  "RUF046",   # unnecessary-cast-to-int
+  "PLW1510",  # subprocess-run-without-check
+  "RUF059",   # unused-unpacked-variable
+  "B008",     # function-call-in-default-argument
+  "B023",     # function-uses-loop-variable
+  "C401",     # unnecessary-generator-set
+  "PIE810",   # multiple-starts-ends-with
+  "S112",     # try-except-continue
+  "TRY004",   # type-check-without-type-error
+  "ASYNC230", # blocking-open-call-in-async-function
+  "FURB192",  # sorted-min-max
+  "ASYNC210", # blocking-http-call-in-async-function
+  "PLW0602",  # global-variable-not-assigned
+  "SIM113",   # enumerate-for-loop
+  "SIM115",   # open-file-with-context-handler
+  "TRY002",   # raise-vanilla-class
+  "UP028",    # yield-in-for-loop
+]
+
 [lint.per-file-ignores]
 # ── Fixed in 11-1 (ruff F821 豁免清零) ──────────────────────────────────────
 

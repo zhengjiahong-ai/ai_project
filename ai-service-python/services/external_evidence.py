@@ -1,8 +1,8 @@
 import hashlib
 import re
-from typing import Any, Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-
 
 EXTERNAL_SOURCE_TYPE = "external_academic"
 WEB_SEARCH_SOURCE_TYPE = "web_search"
@@ -35,11 +35,11 @@ def build_external_source_id(item: Any) -> str:
     else:
         raise ValueError("External evidence requires an identity field or title.")
 
-    digest = hashlib.sha256(f"{identity_type}:{identity}".encode("utf-8")).hexdigest()[:24]
+    digest = hashlib.sha256(f"{identity_type}:{identity}".encode()).hexdigest()[:24]
     return f"external-{identity_type}-{digest}"
 
 
-def normalize_external_evidence(item: Any, *, source_type: str = EXTERNAL_SOURCE_TYPE) -> Dict[str, Any]:
+def normalize_external_evidence(item: Any, *, source_type: str = EXTERNAL_SOURCE_TYPE) -> dict[str, Any]:
     raw = _require_mapping(item)
     provider = _normalize_provider(raw.get("provider"))
     if not provider:
@@ -70,7 +70,7 @@ def normalize_external_evidence(item: Any, *, source_type: str = EXTERNAL_SOURCE
     return normalized
 
 
-def normalize_external_evidence_items(items: Any, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+def normalize_external_evidence_items(items: Any, limit: int | None = None) -> list[dict[str, Any]]:
     if limit is not None and limit <= 0:
         return []
 
@@ -84,8 +84,8 @@ def normalize_external_evidence_items(items: Any, limit: Optional[int] = None) -
 
 def deduplicate_external_evidence(
     items: Any,
-    limit: Optional[int] = None,
-) -> List[Dict[str, Any]]:
+    limit: int | None = None,
+) -> list[dict[str, Any]]:
     if limit is not None and limit <= 0:
         return []
 
@@ -121,7 +121,7 @@ def deduplicate_external_evidence(
     return deduplicated
 
 
-def _require_mapping(item: Any) -> Dict[str, Any]:
+def _require_mapping(item: Any) -> dict[str, Any]:
     if not isinstance(item, dict):
         raise ValueError("External evidence must be a mapping.")
     return item
@@ -149,7 +149,7 @@ def _normalize_title(value: Any) -> str:
     return " ".join(_clean_string(value).split())
 
 
-def _normalize_authors(value: Any) -> List[str]:
+def _normalize_authors(value: Any) -> list[str]:
     if value is None:
         return []
     values = value if isinstance(value, (list, tuple)) else [value]
@@ -161,7 +161,7 @@ def _normalize_authors(value: Any) -> List[str]:
     return authors
 
 
-def _normalize_year(value: Any) -> Optional[int]:
+def _normalize_year(value: Any) -> int | None:
     if value is None or value == "":
         return None
     try:

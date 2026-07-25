@@ -1,8 +1,9 @@
 import json
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-from typing import Any, Dict, List
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
+from typing import Any
 
 _logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ STRUCTURED_INDIVIDUAL_RETRY_LIMIT = 4
 STRUCTURED_INDIVIDUAL_RETRY_WORKERS = 4
 
 
-def _stringify_paper_skeleton(paper_skeleton: Dict[str, Any] | None) -> str:
+def _stringify_paper_skeleton(paper_skeleton: dict[str, Any] | None) -> str:
     if not paper_skeleton:
         return "暂无可用的论文结构摘要。"
 
@@ -33,7 +34,7 @@ def _trim_page_text(page_text: str, max_chars: int = 12000) -> str:
     return text[:max_chars].rstrip() + "\n\n[内容过长，已截断后翻译]"
 
 
-def _trim_translation_reference(paper_skeleton: Dict[str, Any] | None, max_chars: int = 1200) -> str:
+def _trim_translation_reference(paper_skeleton: dict[str, Any] | None, max_chars: int = 1200) -> str:
     reference = _stringify_paper_skeleton(paper_skeleton)
     if len(reference) <= max_chars:
         return reference
@@ -66,9 +67,9 @@ def _extract_json_payload(text: str) -> Any:
         return json.loads(match.group(0))
 
 
-def _normalize_layout_blocks(page_layout: Dict[str, Any] | None) -> List[Dict[str, Any]]:
+def _normalize_layout_blocks(page_layout: dict[str, Any] | None) -> list[dict[str, Any]]:
     blocks = page_layout.get("blocks") if isinstance(page_layout, dict) else []
-    normalized: List[Dict[str, Any]] = []
+    normalized: list[dict[str, Any]] = []
 
     for index, block in enumerate(blocks or []):
         block_id = str(block.get("id") or f"block-{index + 1}").strip()
@@ -109,7 +110,7 @@ def _build_plain_translation_prompt(page_index: int, skeleton_text: str, trimmed
 """
 
 
-def _build_structured_translation_prompt(page_index: int, skeleton_text: str, blocks: List[Dict[str, Any]]) -> str:
+def _build_structured_translation_prompt(page_index: int, skeleton_text: str, blocks: list[dict[str, Any]]) -> str:
     block_payload = json.dumps(
         [{"id": block["id"], "text": block["text"], "style": block.get("style") or {}} for block in blocks],
         ensure_ascii=False,
@@ -146,7 +147,7 @@ JSON 格式：
 """
 
 
-def _normalize_translated_blocks(payload: Any, source_blocks: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def _normalize_translated_blocks(payload: Any, source_blocks: list[dict[str, Any]]) -> list[dict[str, str]]:
     if isinstance(payload, dict):
         candidate_blocks = payload.get("translatedBlocks")
     elif isinstance(payload, list):
@@ -158,7 +159,7 @@ def _normalize_translated_blocks(payload: Any, source_blocks: List[Dict[str, Any
         return []
 
     source_by_id = {block["id"]: block for block in source_blocks}
-    translated_by_id: Dict[str, str] = {}
+    translated_by_id: dict[str, str] = {}
 
     for item in candidate_blocks:
         block_id = str(item.get("id") or "").strip()
@@ -175,12 +176,12 @@ def _normalize_translated_blocks(payload: Any, source_blocks: List[Dict[str, Any
 
 
 def _chunk_layout_blocks(
-    blocks: List[Dict[str, Any]],
+    blocks: list[dict[str, Any]],
     max_blocks: int = STRUCTURED_MAX_BLOCKS_PER_BATCH,
     max_chars: int = STRUCTURED_MAX_CHARS_PER_BATCH,
-) -> List[List[Dict[str, Any]]]:
-    batches: List[List[Dict[str, Any]]] = []
-    current_batch: List[Dict[str, Any]] = []
+) -> list[list[dict[str, Any]]]:
+    batches: list[list[dict[str, Any]]] = []
+    current_batch: list[dict[str, Any]] = []
     current_chars = 0
 
     for block in blocks:
@@ -204,14 +205,14 @@ def _chunk_layout_blocks(
     return batches
 
 
-def _translate_block_batch(page_index: int, skeleton_text: str, blocks: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def _translate_block_batch(page_index: int, skeleton_text: str, blocks: list[dict[str, Any]]) -> list[dict[str, str]]:
     prompt = _build_structured_translation_prompt(page_index, skeleton_text, blocks)
     raw_response = _call_translation_with_timeout(prompt, timeout_seconds=STRUCTURED_BATCH_TIMEOUT_SECONDS)
     payload = _extract_json_payload(raw_response)
     return _normalize_translated_blocks(payload, blocks)
 
 
-def _build_single_block_translation_prompt(page_index: int, skeleton_text: str, block: Dict[str, Any]) -> str:
+def _build_single_block_translation_prompt(page_index: int, skeleton_text: str, block: dict[str, Any]) -> str:
     return f"""Translate one PDF text box into Simplified Chinese.
 
 Rules:
@@ -241,7 +242,7 @@ def _clean_single_block_translation(raw_text: str) -> str:
     return cleaned
 
 
-def _translate_single_block(page_index: int, skeleton_text: str, block: Dict[str, Any]) -> Dict[str, str] | None:
+def _translate_single_block(page_index: int, skeleton_text: str, block: dict[str, Any]) -> dict[str, str] | None:
     prompt = _build_single_block_translation_prompt(page_index, skeleton_text, block)
     translated_text = _clean_single_block_translation(
         _call_translation_with_timeout(prompt, timeout_seconds=STRUCTURED_SINGLE_BLOCK_TIMEOUT_SECONDS)
@@ -254,12 +255,12 @@ def _translate_single_block(page_index: int, skeleton_text: str, block: Dict[str
 def _translate_missing_blocks_individually(
     page_index: int,
     skeleton_text: str,
-    missing_blocks: List[Dict[str, Any]],
-) -> List[Dict[str, str]]:
+    missing_blocks: list[dict[str, Any]],
+) -> list[dict[str, str]]:
     if not missing_blocks or len(missing_blocks) > STRUCTURED_INDIVIDUAL_RETRY_LIMIT:
         return []
 
-    def translate_one(block: Dict[str, Any]) -> Dict[str, str] | None:
+    def translate_one(block: dict[str, Any]) -> dict[str, str] | None:
         try:
             return _translate_single_block(page_index, skeleton_text, block)
         except Exception as error:
@@ -274,13 +275,13 @@ def _translate_missing_blocks_individually(
 def _translate_blocks(
     page_index: int,
     skeleton_text: str,
-    page_layout: Dict[str, Any] | None,
-) -> List[Dict[str, str]]:
+    page_layout: dict[str, Any] | None,
+) -> list[dict[str, str]]:
     blocks = _normalize_layout_blocks(page_layout)
     if not blocks:
         return []
 
-    translated_blocks: List[Dict[str, str]] = []
+    translated_blocks: list[dict[str, str]] = []
     batches = _chunk_layout_blocks(blocks)
     max_workers = min(STRUCTURED_BATCH_WORKERS, len(batches))
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -311,7 +312,7 @@ def _translate_blocks(
     return ordered_translated_blocks if len(ordered_translated_blocks) >= minimum_expected else []
 
 
-def translate_page(request: PageTranslationRequest) -> Dict[str, Any]:
+def translate_page(request: PageTranslationRequest) -> dict[str, Any]:
     page_text = (request.pageText or "").strip()
     if not page_text:
         raise ValueError("Page text cannot be empty.")

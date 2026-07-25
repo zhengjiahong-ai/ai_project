@@ -20,7 +20,7 @@ Usage in ``app.py``::
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -66,7 +66,7 @@ class TokenBucket:
         self.tokens = float(self.burst)
         self.last_refill = time.monotonic()
 
-    def consume(self, tokens: int = 1) -> Tuple[bool, float]:
+    def consume(self, tokens: int = 1) -> tuple[bool, float]:
         """Return (allowed, retry_after_seconds)."""
         now = time.monotonic()
         elapsed = now - self.last_refill
@@ -92,8 +92,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         self._enabled = str(
             settings.pixiu_rate_limit_enabled if settings else "true"
         ).strip().lower() in ("1", "true", "yes", "on")
-        self._buckets: Dict[str, TokenBucket] = {}
-        self._rates: Dict[str, int] = {
+        self._buckets: dict[str, TokenBucket] = {}
+        self._rates: dict[str, int] = {
             "global": int(settings.pixiu_rate_limit_global_rpm) if settings else 60,
             "agent": int(settings.pixiu_rate_limit_agent_rpm) if settings else 10,
             "chat": int(settings.pixiu_rate_limit_chat_rpm) if settings else 30,

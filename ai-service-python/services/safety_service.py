@@ -1,7 +1,7 @@
 import math
 import re
-from typing import Any, Dict, Iterable, List, Optional
-
+from collections.abc import Iterable
+from typing import Any
 
 MAX_PROMPT_TOKENS = 8000
 MAX_PROMPT_CHARS = MAX_PROMPT_TOKENS * 4
@@ -123,7 +123,7 @@ def estimate_tokens(value: Any) -> int:
     return max(1, int(math.ceil(len(text) / 4)))
 
 
-def clamp_text_by_tokens(value: Any, max_tokens: int = MAX_PROMPT_TOKENS) -> Dict[str, Any]:
+def clamp_text_by_tokens(value: Any, max_tokens: int = MAX_PROMPT_TOKENS) -> dict[str, Any]:
     text = str(value or "")
     max_chars = max(0, int(max_tokens or 0) * 4)
     if not text or max_chars <= 0:
@@ -152,7 +152,7 @@ def clamp_text_by_tokens(value: Any, max_tokens: int = MAX_PROMPT_TOKENS) -> Dic
     }
 
 
-def detect_prompt_injection(value: Any) -> Dict[str, Any]:
+def detect_prompt_injection(value: Any) -> dict[str, Any]:
     text = str(value or "")
     if not text:
         return {"flags": [], "matchedPatterns": [], "matchedLines": [], "sanitizedSegments": 0}
@@ -187,7 +187,7 @@ def detect_prompt_injection(value: Any) -> Dict[str, Any]:
     }
 
 
-def sanitize_untrusted_text(value: Any, max_tokens: int = MAX_PROMPT_TOKENS) -> Dict[str, Any]:
+def sanitize_untrusted_text(value: Any, max_tokens: int = MAX_PROMPT_TOKENS) -> dict[str, Any]:
     text = str(value or "")
     if not text:
         return {
@@ -238,7 +238,7 @@ def wrap_untrusted_context(
     *,
     max_tokens: int = MAX_PROMPT_TOKENS,
     empty_placeholder: str = "(empty)",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     sanitized = sanitize_untrusted_text(value, max_tokens=max_tokens)
     flags = sanitized.get("flags") or []
     issues = ", ".join(flags) if flags else "none"
@@ -261,8 +261,8 @@ def wrap_untrusted_context(
 def build_guarded_messages(
     user_prompt: str,
     *,
-    extra_system_instruction: Optional[str] = None,
-) -> List[Dict[str, str]]:
+    extra_system_instruction: str | None = None,
+) -> list[dict[str, str]]:
     system_instruction = SYSTEM_GUARDRAIL
     if extra_system_instruction and str(extra_system_instruction).strip():
         system_instruction = f"{system_instruction}\n\n{str(extra_system_instruction).strip()}"
@@ -272,7 +272,7 @@ def build_guarded_messages(
     ]
 
 
-def summarize_safety_results(*results: Any) -> Dict[str, Any]:
+def summarize_safety_results(*results: Any) -> dict[str, Any]:
     flags = set()
     sanitized_segments = 0
     budget_clamped = False
@@ -403,7 +403,7 @@ def _iter_results(results: Iterable[Any]) -> Iterable[Any]:
             yield item
 
 
-def _dedupe_strings(values: List[str]) -> List[str]:
+def _dedupe_strings(values: list[str]) -> list[str]:
     deduped = []
     seen = set()
     for value in values:

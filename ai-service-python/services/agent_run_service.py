@@ -1,8 +1,6 @@
 import copy
-from typing import Dict, Set
 
-
-ALLOWED_RUN_TRANSITIONS: Dict[str, Set[str]] = {
+ALLOWED_RUN_TRANSITIONS: dict[str, set[str]] = {
     "draft": {"awaiting_plan_review"},
     "awaiting_plan_review": {"queued", "cancelled"},
     "queued": {"running", "failed", "cancelled"},

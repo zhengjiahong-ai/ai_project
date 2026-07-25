@@ -5,10 +5,13 @@ reproducibility verification.
 All tool handlers and their registrations extracted from tool_registry.py.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from services.reproducibility_checker import verify_reproducibility
-from services.research_dialogue import generate_clarification_question, incorporate_user_feedback
+from services.research_dialogue import (
+    generate_clarification_question,
+    incorporate_user_feedback,
+)
 from services.research_monitor import (
     check_new_publications,
     create_monitor,
@@ -16,15 +19,14 @@ from services.research_monitor import (
     get_monitor_digest,
     list_monitors,
 )
-from services.trace_service import record_counter, trace_step
 from services.tool_registry import ToolValidationError, _safety_scope
-
+from services.trace_service import record_counter, trace_step
 
 # ---------------------------------------------------------------------------
 # Handler functions
 # ---------------------------------------------------------------------------
 
-def _generate_clarification_question_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_clarification_question_tool(payload: dict[str, Any]) -> dict[str, Any]:
     question = (payload.get("question") or "").strip()
     if not question:
         raise ToolValidationError("generate_clarification_question requires a non-empty question.")
@@ -42,7 +44,7 @@ def _generate_clarification_question_tool(payload: Dict[str, Any]) -> Dict[str, 
         return result
 
 
-def _incorporate_user_feedback_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _incorporate_user_feedback_tool(payload: dict[str, Any]) -> dict[str, Any]:
     question = (payload.get("question") or "").strip()
     user_answer = (payload.get("userAnswer") or "").strip()
     if not question:
@@ -60,7 +62,7 @@ def _incorporate_user_feedback_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _create_research_monitor_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _create_research_monitor_tool(payload: dict[str, Any]) -> dict[str, Any]:
     question = (payload.get("question") or "").strip()
     if not question:
         raise ToolValidationError("create_research_monitor requires a non-empty question.")
@@ -76,7 +78,7 @@ def _create_research_monitor_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _check_new_publications_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _check_new_publications_tool(payload: dict[str, Any]) -> dict[str, Any]:
     monitor_id = (payload.get("monitorId") or "").strip()
     if not monitor_id:
         raise ToolValidationError("check_new_publications requires a non-empty monitorId.")
@@ -90,7 +92,7 @@ def _check_new_publications_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _get_monitor_digest_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _get_monitor_digest_tool(payload: dict[str, Any]) -> dict[str, Any]:
     monitor_id = (payload.get("monitorId") or "").strip()
     if not monitor_id:
         raise ToolValidationError("get_monitor_digest requires a non-empty monitorId.")
@@ -104,7 +106,7 @@ def _get_monitor_digest_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _list_research_monitors_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _list_research_monitors_tool(payload: dict[str, Any]) -> dict[str, Any]:
     with trace_step("tool_list_monitors", input_size=0) as step:
         record_counter("monitorListCalls")
         monitors = list_monitors()
@@ -118,7 +120,7 @@ def _list_research_monitors_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return {"status": "success", "monitors": serializable, "error": ""}
 
 
-def _deactivate_research_monitor_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _deactivate_research_monitor_tool(payload: dict[str, Any]) -> dict[str, Any]:
     monitor_id = (payload.get("monitorId") or "").strip()
     if not monitor_id:
         raise ToolValidationError("deactivate_research_monitor requires a non-empty monitorId.")
@@ -130,7 +132,7 @@ def _deactivate_research_monitor_tool(payload: Dict[str, Any]) -> Dict[str, Any]
         return {"status": "success" if ok else "error", "monitorId": monitor_id, "error": "" if ok else "Monitor not found."}
 
 
-def _verify_reproducibility_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _verify_reproducibility_tool(payload: dict[str, Any]) -> dict[str, Any]:
     paper_id = (payload.get("paperId") or "").strip()
     if not paper_id:
         raise ToolValidationError("verify_reproducibility requires a non-empty paperId.")

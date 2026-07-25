@@ -7,7 +7,7 @@ as structured JSON for operational visibility.  No sensitive data
 """
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 try:
     from fastapi import APIRouter, Request
@@ -46,9 +46,9 @@ async def submit_feedback(payload: FeedbackPayload, request: Request):
         "error": _sanitize(payload.error),
         "componentStack": _sanitize(payload.component_stack),
         "area": payload.area[:200] if payload.area else "",
-        "clientTimestamp": payload.timestamp or datetime.now(timezone.utc).isoformat(),
+        "clientTimestamp": payload.timestamp or datetime.now(UTC).isoformat(),
         "clientIp": request.client.host if request.client else "unknown",
-        "receivedAt": datetime.now(timezone.utc).isoformat(),
+        "receivedAt": datetime.now(UTC).isoformat(),
     }
     logger.warning("feedback.received", extra={"feedback": entry})
     return {"status": "received"}

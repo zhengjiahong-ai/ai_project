@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any
 
 from bs4 import BeautifulSoup
 
@@ -36,8 +36,8 @@ def _coerce_page_index(value: Any, fallback: int | None = None) -> int | None:
     return fallback
 
 
-def _collect_page_sizes(soup: BeautifulSoup) -> Dict[int, Dict[str, float]]:
-    page_sizes: Dict[int, Dict[str, float]] = {}
+def _collect_page_sizes(soup: BeautifulSoup) -> dict[int, dict[str, float]]:
+    page_sizes: dict[int, dict[str, float]] = {}
 
     for index, surface in enumerate(soup.find_all("surface")):
         page_index = _coerce_page_index(surface.get("n") or surface.get("xml:id"), index)
@@ -57,8 +57,8 @@ def _collect_page_sizes(soup: BeautifulSoup) -> Dict[int, Dict[str, float]]:
     return page_sizes
 
 
-def _parse_coords_attribute(raw_value: Any) -> List[Dict[str, float]]:
-    coords: List[Dict[str, float]] = []
+def _parse_coords_attribute(raw_value: Any) -> list[dict[str, float]]:
+    coords: list[dict[str, float]] = []
     text = str(raw_value or "").strip()
     if not text:
         return coords
@@ -89,18 +89,18 @@ def _parse_coords_attribute(raw_value: Any) -> List[Dict[str, float]]:
     return coords
 
 
-def _collect_element_coords(element) -> List[Dict[str, float]]:
+def _collect_element_coords(element) -> list[dict[str, float]]:
     coords = _parse_coords_attribute(element.get("coords"))
     if coords:
         return coords
 
-    nested_coords: List[Dict[str, float]] = []
+    nested_coords: list[dict[str, float]] = []
     for child in element.find_all(attrs={"coords": True}):
         nested_coords.extend(_parse_coords_attribute(child.get("coords")))
     return nested_coords
 
 
-def _union_boxes(boxes: List[Dict[str, float]]) -> Dict[str, float] | None:
+def _union_boxes(boxes: list[dict[str, float]]) -> dict[str, float] | None:
     if not boxes:
         return None
 
@@ -117,7 +117,7 @@ def _union_boxes(boxes: List[Dict[str, float]]) -> Dict[str, float] | None:
     }
 
 
-def _normalize_box(box: Dict[str, float], page_size: Dict[str, float] | None) -> Dict[str, float] | None:
+def _normalize_box(box: dict[str, float], page_size: dict[str, float] | None) -> dict[str, float] | None:
     if not page_size:
         return None
 
@@ -145,19 +145,19 @@ def _resolve_zone_type(element) -> str:
     return "figure"
 
 
-def extract_translation_layout_index(tei_path: str) -> Dict[int, Dict[str, Any]]:
+def extract_translation_layout_index(tei_path: str) -> dict[int, dict[str, Any]]:
     with open(tei_path, "r", encoding="utf-8") as handle:
         soup = BeautifulSoup(handle, "xml")
 
     page_sizes = _collect_page_sizes(soup)
-    layout_index: Dict[int, Dict[str, Any]] = defaultdict(lambda: {"excludedZones": []})
+    layout_index: dict[int, dict[str, Any]] = defaultdict(lambda: {"excludedZones": []})
 
     for element in soup.find_all(["figure", "formula"]):
         coords = _collect_element_coords(element)
         if not coords:
             continue
 
-        per_page_coords: Dict[int, List[Dict[str, float]]] = defaultdict(list)
+        per_page_coords: dict[int, list[dict[str, float]]] = defaultdict(list)
         for coord in coords:
             per_page_coords[coord["pageIndex"]].append(coord)
 

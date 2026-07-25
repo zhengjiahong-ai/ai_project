@@ -7,7 +7,7 @@ code execution, cross-validation, source provenance, conflicts).
 """
 
 import copy
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from services.agent_reasoning import build_conclusion_lines, clean_text
 from services.external_evidence import EXTERNAL_SOURCE_TYPE
@@ -15,13 +15,13 @@ from services.external_evidence import EXTERNAL_SOURCE_TYPE
 
 def build_minimal_report(
     prompt: str,
-    project: Dict[str, Any],
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]],
-    open_questions: List[str],
-    code_execution_results: Optional[List[Dict[str, Any]]] = None,
-    execute_python_results: Optional[List[Dict[str, Any]]] = None,
+    project: dict[str, Any],
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+    conflicts: list[dict[str, Any]],
+    open_questions: list[str],
+    code_execution_results: list[dict[str, Any]] | None = None,
+    execute_python_results: list[dict[str, Any]] | None = None,
 ) -> str:
     paper_lines = "\n".join(build_scope_lines(paper_contexts)) or "- No project papers selected"
     evidence_lines = "\n".join(build_evidence_snapshot_lines(evidence_items)) or "- No evidence snippets yet"
@@ -84,7 +84,7 @@ def build_minimal_report(
     )
 
 
-def evidence_preview(evidence_items: List[Dict[str, Any]]) -> str:
+def evidence_preview(evidence_items: list[dict[str, Any]]) -> str:
     snippets = []
     for item in evidence_items[:2]:
         text = clean_text(item.get("text"))
@@ -93,7 +93,7 @@ def evidence_preview(evidence_items: List[Dict[str, Any]]) -> str:
     return " | ".join(snippets)
 
 
-def stabilize_source_ids(items: List[Dict[str, Any]], fallback_prefix: str) -> List[Dict[str, Any]]:
+def stabilize_source_ids(items: list[dict[str, Any]], fallback_prefix: str) -> list[dict[str, Any]]:
     stabilized = []
     for index, item in enumerate(items):
         current = copy.deepcopy(item)
@@ -105,7 +105,7 @@ def stabilize_source_ids(items: List[Dict[str, Any]], fallback_prefix: str) -> L
     return stabilized
 
 
-def build_paper_judgement(paper_context: Dict[str, Any]) -> str:
+def build_paper_judgement(paper_context: dict[str, Any]) -> str:
     evidence_count = int(paper_context.get("evidenceCount") or 0)
     status = clean_text(paper_context.get("status")) or "unknown"
     if evidence_count >= 3 and status == "succeeded":
@@ -115,7 +115,7 @@ def build_paper_judgement(paper_context: Dict[str, Any]) -> str:
     return "Evidence is too sparse for a confident judgement."
 
 
-def build_scope_lines(paper_contexts: List[Dict[str, Any]]) -> List[str]:
+def build_scope_lines(paper_contexts: list[dict[str, Any]]) -> list[str]:
     lines = []
     for item in paper_contexts:
         pdf_id = clean_text(item.get("pdfId")) or "unknown-paper"
@@ -126,7 +126,7 @@ def build_scope_lines(paper_contexts: List[Dict[str, Any]]) -> List[str]:
     return lines
 
 
-def build_evidence_snapshot_lines(evidence_items: List[Dict[str, Any]]) -> List[str]:
+def build_evidence_snapshot_lines(evidence_items: list[dict[str, Any]]) -> list[str]:
     lines = []
     for item in evidence_items[:6]:
         source_type = str(item.get("sourceType") or "")
@@ -144,7 +144,7 @@ def build_evidence_snapshot_lines(evidence_items: List[Dict[str, Any]]) -> List[
     return lines
 
 
-def _build_external_evidence_section_lines(evidence_items: List[Dict[str, Any]]) -> str:
+def _build_external_evidence_section_lines(evidence_items: list[dict[str, Any]]) -> str:
     external_items = [
         item for item in evidence_items
         if str(item.get("sourceType") or "") in {EXTERNAL_SOURCE_TYPE, "web_search"}
@@ -169,7 +169,7 @@ def _build_external_evidence_section_lines(evidence_items: List[Dict[str, Any]])
     return "\n".join(lines)
 
 
-def _build_code_execution_section_lines(results: List[Dict[str, Any]]) -> str:
+def _build_code_execution_section_lines(results: list[dict[str, Any]]) -> str:
     if not results:
         return ""
     lines = []
@@ -186,7 +186,7 @@ def _build_code_execution_section_lines(results: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def _build_python_execution_section_lines(results: List[Dict[str, Any]]) -> str:
+def _build_python_execution_section_lines(results: list[dict[str, Any]]) -> str:
     if not results:
         return ""
     lines = []
@@ -205,7 +205,7 @@ def _build_python_execution_section_lines(results: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def _build_cross_validation_lines(conflicts: List[Dict[str, Any]]) -> str:
+def _build_cross_validation_lines(conflicts: list[dict[str, Any]]) -> str:
     """Build cross-validation report section from conflicts list."""
     cv_conflicts = [c for c in (conflicts or []) if c.get("conflictType") == "cross-validation"]
     if not cv_conflicts:
@@ -237,7 +237,7 @@ def _build_cross_validation_lines(conflicts: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def _build_agent_provenance_lines(evidence_items: List[Dict[str, Any]]) -> str:
+def _build_agent_provenance_lines(evidence_items: list[dict[str, Any]]) -> str:
     """Build source provenance section from external evidence items."""
     provenance_items = []
     for item in (evidence_items or []):
@@ -280,7 +280,7 @@ def _build_agent_provenance_lines(evidence_items: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def build_conflict_lines(conflicts: List[Dict[str, Any]]) -> List[str]:
+def build_conflict_lines(conflicts: list[dict[str, Any]]) -> list[str]:
     lines = []
     for item in conflicts[:4]:
         severity = clean_text(item.get("severity")) or "unknown"
@@ -301,11 +301,11 @@ def build_conflict_lines(conflicts: List[Dict[str, Any]]) -> List[str]:
     return lines
 
 
-def detect_conflicts(paper_contexts: List[Dict[str, Any]], evidence_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def detect_conflicts(paper_contexts: list[dict[str, Any]], evidence_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if len(paper_contexts) < 2:
         return []
 
-    conflicts: List[Dict[str, Any]] = []
+    conflicts: list[dict[str, Any]] = []
     sparse = [item for item in paper_contexts if int(item.get("evidenceCount") or 0) <= 1]
     strong = [item for item in paper_contexts if int(item.get("evidenceCount") or 0) >= 3]
     fallback_contexts = [item for item in paper_contexts if item.get("status") == "fallback"]

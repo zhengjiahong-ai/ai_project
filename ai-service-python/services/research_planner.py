@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from llm.client import get_llm
 from services.evidence_service import format_evidence_context
@@ -12,17 +12,17 @@ from services.safety_service import (
 )
 
 _logger = logging.getLogger(__name__)
-from services.trace_service import record_counter, trace_step
 from services.tool_registry import get_tool_registry
+from services.trace_service import record_counter, trace_step
 from services.utils import parse_json_from_llm
 
 
 def build_research_plan(
     question: str,
-    paper_skeleton: Dict[str, Any],
-    documents: List[Dict[str, Any]],
+    paper_skeleton: dict[str, Any],
+    documents: list[dict[str, Any]],
     brief_override: str = "",
-) -> Tuple[str, List[str]]:
+) -> tuple[str, list[str]]:
     fallback_brief, fallback_sub_questions = fallback_plan(question)
     skeleton_payload = read_paper_skeleton(paper_skeleton, max_sections=6, max_chars_per_section=220)
     paper_skeleton_block = wrap_untrusted_context(
@@ -94,7 +94,7 @@ Current paper evidence:
             return clean_text(brief_override) or fallback_brief, fallback_sub_questions
 
 
-def build_initial_plan_items(sub_questions: List[Any]) -> List[Dict[str, Any]]:
+def build_initial_plan_items(sub_questions: list[Any]) -> list[dict[str, Any]]:
     items = []
     for index, raw_item in enumerate(sub_questions, start=1):
         if isinstance(raw_item, dict):
@@ -126,14 +126,14 @@ def build_initial_plan_items(sub_questions: List[Any]) -> List[Dict[str, Any]]:
     return items
 
 
-def should_create_follow_up(finding: Dict[str, Any]) -> bool:
+def should_create_follow_up(finding: dict[str, Any]) -> bool:
     return (
         str(finding.get("verdict") or "").upper() == "INCORRECT"
         and bool(normalize_missing_aspects(finding.get("missingAspects")))
     )
 
 
-def build_follow_up_plan_item(finding: Dict[str, Any], index: int) -> Dict[str, Any]:
+def build_follow_up_plan_item(finding: dict[str, Any], index: int) -> dict[str, Any]:
     source_question = clean_text(finding.get('subQuestion'))
     missing_aspects = normalize_missing_aspects(finding.get('missingAspects'))
     if not source_question or not missing_aspects:
@@ -158,11 +158,11 @@ def build_follow_up_plan_item(finding: Dict[str, Any], index: int) -> Dict[str, 
 
 
 def read_paper_skeleton(
-    paper_skeleton: Dict[str, Any],
+    paper_skeleton: dict[str, Any],
     *,
     max_sections: int = 6,
     max_chars_per_section: int = 220,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     response = get_tool_registry().invoke(
         "read_paper_skeleton",
         {
@@ -182,7 +182,7 @@ def record_safety_budget_counters(*blocks: Any) -> None:
             record_counter("truncationCount")
 
 
-def fallback_plan(question: str) -> Tuple[str, List[Dict[str, Any]]]:
+def fallback_plan(question: str) -> tuple[str, list[dict[str, Any]]]:
     normalized_question = clean_text(question) or "当前研究问题"
     return (
         f"围绕“{normalized_question}”，优先核对当前论文中的研究目标、方法证据、实验支撑与结论边界，再用内部文献库补充缺口。",
@@ -206,7 +206,7 @@ def fallback_plan(question: str) -> Tuple[str, List[Dict[str, Any]]]:
     )
 
 
-def normalize_sub_questions(value: Any, fallback: List[str]) -> List[str]:
+def normalize_sub_questions(value: Any, fallback: list[str]) -> list[str]:
     if isinstance(value, list):
         raw_items = value
     elif isinstance(value, str):
@@ -243,7 +243,7 @@ def normalize_sub_questions(value: Any, fallback: List[str]) -> List[str]:
     return questions[:MAX_RESEARCH_SUB_QUESTIONS]
 
 
-def normalize_missing_aspects(value: Any) -> List[str]:
+def normalize_missing_aspects(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     items = []
@@ -262,7 +262,7 @@ def normalize_missing_aspects(value: Any) -> List[str]:
     return items
 
 
-def _normalize_string_list(value: Any, limit: int = 5, max_chars: int = 80) -> List[str]:
+def _normalize_string_list(value: Any, limit: int = 5, max_chars: int = 80) -> list[str]:
     if not isinstance(value, list):
         return []
     items = []
@@ -281,7 +281,7 @@ def _normalize_string_list(value: Any, limit: int = 5, max_chars: int = 80) -> L
     return items
 
 
-def _normalize_structured_sub_questions(raw_value: Any, fallback: List[Any]) -> List[Any]:
+def _normalize_structured_sub_questions(raw_value: Any, fallback: list[Any]) -> list[Any]:
     """Normalize LLM output — accepts both old (string list) and new (object list) formats."""
     if isinstance(raw_value, list) and raw_value:
         # Check if new format (list of dicts with 'question' key)
@@ -294,10 +294,10 @@ def _normalize_structured_sub_questions(raw_value: Any, fallback: List[Any]) -> 
 
 
 def replan_if_needed(
-    finding: Dict[str, Any],
+    finding: dict[str, Any],
     question: str,
     next_index: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Evaluate current finding and generate new plan items if evidence is insufficient.
 
     Returns a list of new plan items (empty list if no replan needed).
@@ -361,7 +361,7 @@ Verdict: {verdict}
         return [fallback_item] if fallback_item else []
 
 
-def build_initial_plan_items_for_replan(raw_items: List[Any], start_index: int) -> List[Dict[str, Any]]:
+def build_initial_plan_items_for_replan(raw_items: list[Any], start_index: int) -> list[dict[str, Any]]:
     """Build plan items from replan output, using 'replan' kind."""
     items = []
     for offset, raw_item in enumerate(raw_items):

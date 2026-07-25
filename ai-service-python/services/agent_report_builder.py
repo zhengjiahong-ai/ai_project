@@ -8,16 +8,16 @@ lines, conflict lines, and detect conflicts from paper contexts and evidence.
 
 import copy
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 
 def _build_minimal_report(
     prompt: str,
-    project: Dict[str, Any],
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]],
-    open_questions: List[str],
+    project: dict[str, Any],
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+    conflicts: list[dict[str, Any]],
+    open_questions: list[str],
 ) -> str:
     paper_lines = "\n".join(_build_scope_lines(paper_contexts)) or "- No project papers selected"
     evidence_lines = "\n".join(_build_evidence_snapshot_lines(evidence_items)) or "- No evidence snippets yet"
@@ -41,7 +41,7 @@ def _build_minimal_report(
     )
 
 
-def _build_finding_summary(prompt: str, paper_contexts: List[Dict[str, Any]], evidence_items: List[Dict[str, Any]]) -> str:
+def _build_finding_summary(prompt: str, paper_contexts: list[dict[str, Any]], evidence_items: list[dict[str, Any]]) -> str:
 
     paper_count = len(paper_contexts)
     evidence_count = len(evidence_items)
@@ -61,7 +61,7 @@ def _build_finding_summary(prompt: str, paper_contexts: List[Dict[str, Any]], ev
     )
 
 
-def _evidence_preview(evidence_items: List[Dict[str, Any]]) -> str:
+def _evidence_preview(evidence_items: list[dict[str, Any]]) -> str:
     from services.agent_reasoning import clean_text
 
     snippets = []
@@ -72,7 +72,7 @@ def _evidence_preview(evidence_items: List[Dict[str, Any]]) -> str:
     return " | ".join(snippets)
 
 
-def _stabilize_source_ids(items: List[Dict[str, Any]], fallback_prefix: str) -> List[Dict[str, Any]]:
+def _stabilize_source_ids(items: list[dict[str, Any]], fallback_prefix: str) -> list[dict[str, Any]]:
     from services.agent_reasoning import clean_text
 
     stabilized = []
@@ -86,7 +86,7 @@ def _stabilize_source_ids(items: List[Dict[str, Any]], fallback_prefix: str) -> 
     return stabilized
 
 
-def _build_paper_judgement(paper_context: Dict[str, Any]) -> str:
+def _build_paper_judgement(paper_context: dict[str, Any]) -> str:
     from services.agent_reasoning import clean_text
 
     evidence_count = int(paper_context.get("evidenceCount") or 0)
@@ -98,7 +98,7 @@ def _build_paper_judgement(paper_context: Dict[str, Any]) -> str:
     return "Evidence is too sparse for a confident judgement."
 
 
-def _build_scope_lines(paper_contexts: List[Dict[str, Any]]) -> List[str]:
+def _build_scope_lines(paper_contexts: list[dict[str, Any]]) -> list[str]:
     from services.agent_reasoning import clean_text
 
     lines = []
@@ -111,7 +111,7 @@ def _build_scope_lines(paper_contexts: List[Dict[str, Any]]) -> List[str]:
     return lines
 
 
-def _build_evidence_snapshot_lines(evidence_items: List[Dict[str, Any]]) -> List[str]:
+def _build_evidence_snapshot_lines(evidence_items: list[dict[str, Any]]) -> list[str]:
     from services.agent_reasoning import clean_text
 
     lines = []
@@ -124,12 +124,12 @@ def _build_evidence_snapshot_lines(evidence_items: List[Dict[str, Any]]) -> List
 
 
 def _build_paper_support_profiles(
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     from services.agent_reasoning import clean_text
 
-    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    grouped: dict[str, list[dict[str, Any]]] = {}
     for item in evidence_items:
         pdf_id = clean_text(item.get("pdfId"))
         if not pdf_id:
@@ -153,9 +153,9 @@ def _build_paper_support_profiles(
 
 def _build_conclusion_lines(
     prompt: str,
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-) -> List[str]:
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+) -> list[str]:
     if not paper_contexts:
         return ["- No project papers are attached yet, so a project-level conclusion cannot be formed."]
 
@@ -204,10 +204,10 @@ def _build_conclusion_lines(
 
 def _build_executive_summary(
     prompt: str,
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]],
-    open_questions: List[str],
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+    conflicts: list[dict[str, Any]],
+    open_questions: list[str],
 ) -> str:
     """Generate an executive summary (~300 chars) via LLM flash model.
 
@@ -269,9 +269,9 @@ def _build_executive_summary(
 
 def _build_structured_conclusion(
     prompt: str,
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-    conflicts: List[Dict[str, Any]],
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+    conflicts: list[dict[str, Any]],
 ) -> str:
     """Build a 14-4 structured conclusion with three sub-sections.
 
@@ -287,7 +287,7 @@ def _build_structured_conclusion(
     other_conflicts = [c for c in conflicts if "resolution_status" not in c]
 
     # Build confidence data per paper.
-    paper_cred: Dict[str, Dict[str, Any]] = {}
+    paper_cred: dict[str, dict[str, Any]] = {}
     for item in evidence_items:
         pdf_id = str(item.get("pdfId") or "")
         if not pdf_id:
@@ -299,10 +299,10 @@ def _build_structured_conclusion(
         paper_cred[pdf_id]["total_score"] += float(cred.get("score", 0.5))
         paper_cred[pdf_id]["cross_sources"].add(str(item.get("sourceType") or ""))
 
-    parts: List[str] = []
+    parts: list[str] = []
 
     # ── Consensus Findings ────────────────────────────────────────────
-    consensus_items: List[str] = []
+    consensus_items: list[str] = []
     for pdf_id, data in paper_cred.items():
         if data["count"] >= 2 and len(data["cross_sources"]) >= 1:
             avg_score = data["total_score"] / data["count"]
@@ -336,7 +336,7 @@ def _build_structured_conclusion(
         )
 
     # ── Contested Findings ────────────────────────────────────────────
-    contested_items: List[str] = []
+    contested_items: list[str] = []
     for c in resolved_conflicts[:4]:
         contested_items.append(
             f"- [{c.get('severity', '?')}] {c.get('summary', c.get('claim', ''))[:200]} "
@@ -365,7 +365,7 @@ def _build_structured_conclusion(
         )
 
     # ── Single-Source Findings ────────────────────────────────────────
-    single_items: List[str] = []
+    single_items: list[str] = []
     for pdf_id, data in paper_cred.items():
         if data["count"] == 1:
             single_items.append(
@@ -392,7 +392,7 @@ def _build_structured_conclusion(
     return "\n\n".join(parts)
 
 
-def _build_conflict_lines(conflicts: List[Dict[str, Any]]) -> List[str]:
+def _build_conflict_lines(conflicts: list[dict[str, Any]]) -> list[str]:
     from services.agent_reasoning import clean_text
 
     lines = []
@@ -407,7 +407,7 @@ def _build_conflict_lines(conflicts: List[Dict[str, Any]]) -> List[str]:
     return lines
 
 
-def _infer_theme_from_evidence(evidence_items: List[Dict[str, Any]]) -> str:
+def _infer_theme_from_evidence(evidence_items: list[dict[str, Any]]) -> str:
     from services.agent_reasoning import clean_text
 
     if not evidence_items:
@@ -429,8 +429,8 @@ def _infer_theme_from_evidence(evidence_items: List[Dict[str, Any]]) -> str:
     return "paper-level evidence"
 
 
-def _extract_common_themes(profiles: List[Dict[str, Any]]) -> List[str]:
-    counts: Dict[str, int] = {}
+def _extract_common_themes(profiles: list[dict[str, Any]]) -> list[str]:
+    counts: dict[str, int] = {}
     for profile in profiles:
         for part in [item.strip() for item in str(profile.get("theme") or "").split(",")]:
             if not part or part == "limited evidence":
@@ -441,13 +441,13 @@ def _extract_common_themes(profiles: List[Dict[str, Any]]) -> List[str]:
     return [item[0] for item in ordered]
 
 
-def _extract_keywords(text: str) -> List[str]:
+def _extract_keywords(text: str) -> list[str]:
     stopwords = {
         "the", "and", "for", "with", "that", "this", "from", "into", "about", "their",
         "method", "methods", "result", "results", "paper", "study", "using", "used",
         "shows", "show", "based", "current", "evidence", "section", "discussion",
     }
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     for token in re.findall(r"[a-zA-Z][a-zA-Z_-]{3,}", text.lower()):
         if token in stopwords:
             continue
@@ -457,11 +457,11 @@ def _extract_keywords(text: str) -> List[str]:
     return [item[0].replace("_", " ").replace("-", " ") for item in ordered[:5]]
 
 
-def _detect_conflicts(paper_contexts: List[Dict[str, Any]], evidence_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _detect_conflicts(paper_contexts: list[dict[str, Any]], evidence_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if len(paper_contexts) < 2:
         return []
 
-    conflicts: List[Dict[str, Any]] = []
+    conflicts: list[dict[str, Any]] = []
     sparse = [item for item in paper_contexts if int(item.get("evidenceCount") or 0) <= 1]
     strong = [item for item in paper_contexts if int(item.get("evidenceCount") or 0) >= 3]
     fallback_contexts = [item for item in paper_contexts if item.get("status") == "fallback"]

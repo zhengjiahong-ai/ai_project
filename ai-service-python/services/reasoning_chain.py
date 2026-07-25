@@ -119,7 +119,9 @@ def _summarize_chain(claim: str, chain_nodes: list[dict[str, Any]]) -> str:
 def _classify_relation(claim: str, text: str, title: str) -> dict[str, Any]:
     """Use LLM to classify the paper's stance toward the claim."""
     try:
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import TimeoutError as FutureTimeout
+
         from llm.client import get_llm
 
         prompt = (

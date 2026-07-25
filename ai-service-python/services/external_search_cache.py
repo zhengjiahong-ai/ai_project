@@ -5,11 +5,11 @@ import os
 import tempfile
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from services.external_evidence import normalize_external_evidence
-
 
 CACHE_SCHEMA_VERSION = "1.0"
 DEFAULT_CACHE_TTL_SECONDS = 3600
@@ -29,7 +29,7 @@ CACHEABLE_EVIDENCE_FIELDS = (
 )
 
 _LOCKS_GUARD = threading.Lock()
-_PATH_LOCKS: Dict[str, threading.RLock] = {}
+_PATH_LOCKS: dict[str, threading.RLock] = {}
 
 
 def normalize_external_search_query(query: Any) -> str:
@@ -54,7 +54,7 @@ class ExternalSearchCache:
         self._clock = clock
         self._lock = _path_lock(self.path)
 
-    def get(self, provider: str, query: str, limit: int) -> Optional[List[Dict[str, Any]]]:
+    def get(self, provider: str, query: str, limit: int) -> list[dict[str, Any]] | None:
         normalized_provider = _normalize_provider(provider)
         normalized_query = normalize_external_search_query(query)
         _validate_limit(limit)
@@ -103,7 +103,7 @@ class ExternalSearchCache:
             }
             self._write_payload(payload)
 
-    def _read_payload(self) -> Dict[str, Any]:
+    def _read_payload(self) -> dict[str, Any]:
         try:
             payload = json.loads(self.path.read_text(encoding="utf-8"))
         except (FileNotFoundError, OSError, UnicodeDecodeError, json.JSONDecodeError):
@@ -112,7 +112,7 @@ class ExternalSearchCache:
             return _empty_payload()
         return payload
 
-    def _write_payload(self, payload: Dict[str, Any]) -> None:
+    def _write_payload(self, payload: dict[str, Any]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary_path = None
         try:
@@ -148,7 +148,7 @@ def _path_lock(path: Path) -> threading.RLock:
         return lock
 
 
-def _empty_payload() -> Dict[str, Any]:
+def _empty_payload() -> dict[str, Any]:
     return {"schemaVersion": CACHE_SCHEMA_VERSION, "entries": {}}
 
 
@@ -178,7 +178,7 @@ def _valid_entry(entry: Any) -> bool:
     return all(set(item).issubset(CACHEABLE_EVIDENCE_FIELDS) for item in results)
 
 
-def _sanitize_results(results: Any) -> List[Dict[str, Any]]:
+def _sanitize_results(results: Any) -> list[dict[str, Any]]:
     if not isinstance(results, list):
         return []
     safe_results = []
@@ -209,4 +209,4 @@ def _validate_limit(limit: Any) -> None:
 
 
 def _cache_key(provider: str, normalized_query: str) -> str:
-    return hashlib.sha256(f"{provider}\0{normalized_query}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{provider}\0{normalized_query}".encode()).hexdigest()

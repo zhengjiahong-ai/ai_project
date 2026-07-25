@@ -5,9 +5,9 @@ import sqlite3
 import threading
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from schemas.requests import (
     AgentFinalReviewRequest,
@@ -21,13 +21,6 @@ from schemas.requests import (
     AgentTaskCreateRequest,
 )
 from services import agent_orchestrator
-from services.agent_report_builder import (
-    _build_finding_summary,
-    _build_paper_judgement,
-    _detect_conflicts,
-    _evidence_preview,
-    _stabilize_source_ids,
-)
 from services.agent_legacy_adapter import (
     AgentProjectNotFoundError,
     _build_artifacts_resource,
@@ -36,6 +29,13 @@ from services.agent_legacy_adapter import (
     _build_run_record,
     _build_task_snapshot_from_resources,
     _build_timeline_resource,
+)
+from services.agent_report_builder import (
+    _build_finding_summary,
+    _build_paper_judgement,
+    _detect_conflicts,
+    _evidence_preview,
+    _stabilize_source_ids,
 )
 from services.agent_state_repository import AgentStateRepository
 from services.agent_workspace_service import build_workspace_view
@@ -51,7 +51,6 @@ from services.trace_service import (
     use_trace,
 )
 
-
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled"}
 PLANNING_STAGE = "planning"
 RETRIEVING_STAGE = "retrieving"
@@ -61,8 +60,8 @@ AGENT_STEP_DELAY_SECONDS = 0.12
 INTERRUPTED_RESTART_ERROR = "Agent task was interrupted by service restart."
 
 _LOCK = threading.RLock()
-_PROJECTS: Dict[str, Dict[str, Any]] = {}
-_TASKS: Dict[str, Dict[str, Any]] = {}
+_PROJECTS: dict[str, dict[str, Any]] = {}
+_TASKS: dict[str, dict[str, Any]] = {}
 _STORAGE_LOADED = False
 
 
@@ -86,7 +85,7 @@ class AgentReviewConflictError(Exception):
     pass
 
 
-def create_agent_project(request: AgentProjectCreateRequest) -> Dict[str, Any]:
+def create_agent_project(request: AgentProjectCreateRequest) -> dict[str, Any]:
     _ensure_storage_loaded()
     title = _clean_text(request.title) or "Agent Research Project"
     goal = _clean_text(request.goal) or "Build a project-scoped research workspace across multiple papers."
@@ -109,7 +108,7 @@ def create_agent_project(request: AgentProjectCreateRequest) -> Dict[str, Any]:
     return {"status": "success", "project": copy.deepcopy(project)}
 
 
-def list_agent_projects() -> Dict[str, Any]:
+def list_agent_projects() -> dict[str, Any]:
     _ensure_storage_loaded()
     with _LOCK:
         projects = sorted(
@@ -120,11 +119,11 @@ def list_agent_projects() -> Dict[str, Any]:
     return {"status": "success", "projects": projects}
 
 
-def get_agent_project(project_id: str) -> Dict[str, Any]:
+def get_agent_project(project_id: str) -> dict[str, Any]:
     return {"status": "success", "project": _copy_project(project_id)}
 
 
-def update_agent_project(project_id: str, request: AgentProjectUpdateRequest) -> Dict[str, Any]:
+def update_agent_project(project_id: str, request: AgentProjectUpdateRequest) -> dict[str, Any]:
     _ensure_storage_loaded()
     with _LOCK:
         project = _PROJECTS.get(project_id)
@@ -142,7 +141,7 @@ def update_agent_project(project_id: str, request: AgentProjectUpdateRequest) ->
     return {"status": "success", "project": _copy_project(project_id)}
 
 
-def delete_agent_project(project_id: str) -> Dict[str, Any]:
+def delete_agent_project(project_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     normalized_project_id = _clean_text(project_id)
     with _LOCK:
@@ -160,7 +159,7 @@ def delete_agent_project(project_id: str) -> Dict[str, Any]:
     return {"status": "success", "projectId": normalized_project_id}
 
 
-def add_project_papers(project_id: str, request: AgentProjectPapersRequest) -> Dict[str, Any]:
+def add_project_papers(project_id: str, request: AgentProjectPapersRequest) -> dict[str, Any]:
     _ensure_storage_loaded()
     incoming_ids = _normalize_id_list(request.paperIds)
     with _LOCK:
@@ -176,7 +175,7 @@ def add_project_papers(project_id: str, request: AgentProjectPapersRequest) -> D
     return {"status": "success", "project": _copy_project(project_id)}
 
 
-def remove_project_paper(project_id: str, pdf_id: str) -> Dict[str, Any]:
+def remove_project_paper(project_id: str, pdf_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     normalized_pdf_id = _clean_text(pdf_id)
     with _LOCK:
@@ -192,7 +191,7 @@ def remove_project_paper(project_id: str, pdf_id: str) -> Dict[str, Any]:
     return {"status": "success", "project": _copy_project(project_id)}
 
 
-def create_agent_run(project_id: str, request: AgentRunCreateRequest | Dict[str, Any]) -> Dict[str, Any]:
+def create_agent_run(project_id: str, request: AgentRunCreateRequest | dict[str, Any]) -> dict[str, Any]:
     _ensure_storage_loaded()
     project = _copy_project(project_id)
     normalized_request = _normalize_run_request(request)
@@ -270,7 +269,7 @@ def create_agent_run(project_id: str, request: AgentRunCreateRequest | Dict[str,
     return {"status": "success", "run": _build_run_record(_copy_task(task_id))}
 
 
-def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> Dict[str, Any]:
+def create_agent_task(project_id: str, request: AgentTaskCreateRequest) -> dict[str, Any]:
     created = create_agent_run(project_id, request)
     return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(created["run"]["runId"])}
 
@@ -280,7 +279,7 @@ def _start_agent_worker(target, task_id: str) -> None:
     worker.start()
 
 
-def prepare_agent_task_now(task_id: str) -> Dict[str, Any]:
+def prepare_agent_task_now(task_id: str) -> dict[str, Any]:
     task = _copy_task(task_id)
     paper_ids = list(task.get("focusedPaperIds") or [])
     plan_items = agent_orchestrator.build_review_plan_items(task.get("prompt") or "", paper_ids, task.get("constraints") or "")
@@ -288,12 +287,12 @@ def prepare_agent_task_now(task_id: str) -> Dict[str, Any]:
     return _update_task(task_id, status="awaiting_plan_review", stage=PLANNING_STAGE, progress=0.2, planItems=plan_items, events=events)
 
 
-def review_agent_plan(task_id: str, request: AgentPlanReviewRequest) -> Dict[str, Any]:
+def review_agent_plan(task_id: str, request: AgentPlanReviewRequest) -> dict[str, Any]:
     reviewed = review_agent_run_plan(task_id, request)
     return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(reviewed["run"]["runId"])}
 
 
-def review_agent_run_plan(run_id: str, request: AgentRunPlanReviewRequest | AgentPlanReviewRequest) -> Dict[str, Any]:
+def review_agent_run_plan(run_id: str, request: AgentRunPlanReviewRequest | AgentPlanReviewRequest) -> dict[str, Any]:
     task_id = _clean_text(run_id)
     task = _copy_task(task_id)
     if task.get("status") != "awaiting_plan_review":
@@ -317,12 +316,12 @@ def review_agent_run_plan(run_id: str, request: AgentRunPlanReviewRequest | Agen
     return {"status": "success", "run": _build_run_record(updated), "pendingReview": _build_pending_review_record(updated)}
 
 
-def review_agent_final(task_id: str, request: AgentFinalReviewRequest) -> Dict[str, Any]:
+def review_agent_final(task_id: str, request: AgentFinalReviewRequest) -> dict[str, Any]:
     reviewed = review_agent_run_final(task_id, request)
     return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(reviewed["run"]["runId"])}
 
 
-def review_agent_run_final(run_id: str, request: AgentRunFinalReviewRequest | AgentFinalReviewRequest) -> Dict[str, Any]:
+def review_agent_run_final(run_id: str, request: AgentRunFinalReviewRequest | AgentFinalReviewRequest) -> dict[str, Any]:
     task_id = _clean_text(run_id)
     task = _copy_task(task_id)
     if task.get("status") == "succeeded":
@@ -343,10 +342,10 @@ def review_agent_run_final(run_id: str, request: AgentRunFinalReviewRequest | Ag
     return {"status": "success", "run": _build_run_record(finalized_task), "artifacts": _build_artifacts_resource(finalized_task)}
 
 
-def answer_agent_clarification(run_id: str, request) -> Dict[str, Any]:
+def answer_agent_clarification(run_id: str, request) -> dict[str, Any]:
     """Process user's answer to a clarification question and resume the run."""
-    from services.research_dialogue import incorporate_user_feedback
     from services.agent_run_service import transition_run_status
+    from services.research_dialogue import incorporate_user_feedback
 
     task_id = _clean_text(run_id)
     task = _copy_task(task_id)
@@ -354,7 +353,7 @@ def answer_agent_clarification(run_id: str, request) -> Dict[str, Any]:
         raise AgentReviewConflictError("Agent task is not awaiting clarification.")
 
     user_answer = _clean_text(request.userAnswer)
-    question = _clean_text((request.question or task.get("pendingClarificationQuestion") or ""))
+    question = _clean_text(request.question or task.get("pendingClarificationQuestion") or "")
     current_direction = _clean_text(request.currentDirection or task.get("prompt") or "")
 
     # Incorporate user feedback
@@ -391,7 +390,7 @@ def answer_agent_clarification(run_id: str, request) -> Dict[str, Any]:
 
 
 
-def get_latest_agent_task(project_id: str) -> Dict[str, Any]:
+def get_latest_agent_task(project_id: str) -> dict[str, Any]:
     project = _copy_project(project_id)
     task_id = _clean_text(project.get("latestTaskId"))
     if not task_id:
@@ -399,7 +398,7 @@ def get_latest_agent_task(project_id: str) -> Dict[str, Any]:
     return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(task_id)}
 
 
-def list_agent_project_tasks(project_id: str, limit: Any = 20) -> Dict[str, Any]:
+def list_agent_project_tasks(project_id: str, limit: Any = 20) -> dict[str, Any]:
     project = _copy_project(project_id)
     normalized_project_id = _clean_text(project.get("projectId"))
     normalized_limit = _normalize_history_limit(limit)
@@ -423,26 +422,26 @@ def list_agent_project_tasks(project_id: str, limit: Any = 20) -> Dict[str, Any]
     }
 
 
-def get_agent_task(task_id: str) -> Dict[str, Any]:
+def get_agent_task(task_id: str) -> dict[str, Any]:
     return {"status": "success", "task": _build_legacy_task_snapshot_from_run_id(task_id)}
 
 
-def get_agent_run(run_id: str) -> Dict[str, Any]:
+def get_agent_run(run_id: str) -> dict[str, Any]:
     task = _copy_task(_clean_text(run_id))
     return {"status": "success", "run": _build_run_record(task)}
 
 
-def get_agent_run_artifacts(run_id: str) -> Dict[str, Any]:
+def get_agent_run_artifacts(run_id: str) -> dict[str, Any]:
     task = _copy_task(_clean_text(run_id))
     return {"status": "success", "artifacts": _build_artifacts_resource(task)}
 
 
-def get_agent_run_timeline(run_id: str) -> Dict[str, Any]:
+def get_agent_run_timeline(run_id: str) -> dict[str, Any]:
     task = _copy_task(_clean_text(run_id))
     return {"status": "success", "timeline": _build_timeline_resource(task)}
 
 
-def get_agent_workspace(project_id: str) -> Dict[str, Any]:
+def get_agent_workspace(project_id: str) -> dict[str, Any]:
     project = _copy_project(project_id)
     recent_tasks = _list_project_tasks(project_id)
     active_task = recent_tasks[0] if recent_tasks else None
@@ -469,7 +468,7 @@ def get_agent_workspace(project_id: str) -> Dict[str, Any]:
     return {"status": "success", "workspace": workspace}
 
 
-def get_persisted_trace_summary(trace_id: str) -> Dict[str, Any] | None:
+def get_persisted_trace_summary(trace_id: str) -> dict[str, Any] | None:
     _ensure_storage_loaded()
     normalized_trace_id = _clean_text(trace_id)
     if not normalized_trace_id:
@@ -484,7 +483,7 @@ def get_persisted_trace_summary(trace_id: str) -> Dict[str, Any] | None:
     return None
 
 
-def cancel_agent_task(task_id: str) -> Dict[str, Any]:
+def cancel_agent_task(task_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     should_finalize_cancelled = False
     with _LOCK:
@@ -691,10 +690,10 @@ def _run_minimal_agent_task(task_id: str) -> None:
             _persist_trace_summary(task_id, trace_snapshot)
 
 
-def _collect_project_evidence(task_id: str, prompt: str, paper_ids: List[str]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
-    paper_contexts: List[Dict[str, Any]] = []
-    tool_calls: List[Dict[str, Any]] = []
-    evidence_items: List[Dict[str, Any]] = []
+def _collect_project_evidence(task_id: str, prompt: str, paper_ids: list[str]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    paper_contexts: list[dict[str, Any]] = []
+    tool_calls: list[dict[str, Any]] = []
+    evidence_items: list[dict[str, Any]] = []
 
     for index, pdf_id in enumerate(paper_ids):
         if _is_task_cancelled(task_id):
@@ -760,9 +759,9 @@ def _collect_project_evidence(task_id: str, prompt: str, paper_ids: List[str]) -
 
 def _build_agent_outputs(
     prompt: str,
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-) -> Tuple[Dict[str, Any], Dict[str, Any], List[Dict[str, Any]], List[str]]:
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]], list[str]]:
     source_ids = [item.get("sourceId") for item in evidence_items if item.get("sourceId")]
     paper_ids = [item.get("pdfId") for item in paper_contexts if item.get("pdfId")]
 
@@ -799,7 +798,7 @@ def _build_agent_outputs(
     return finding, comparison_table, conflicts, open_questions[:5]
 
 
-def _invoke_agent_tool(name: str, payload: Dict[str, Any], fallback: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def _invoke_agent_tool(name: str, payload: dict[str, Any], fallback: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     record_counter("retrievalCalls")
     registry = get_tool_registry()
     definition = registry.get(name)
@@ -820,7 +819,7 @@ def _invoke_agent_tool(name: str, payload: Dict[str, Any], fallback: Dict[str, A
         }
 
 
-def _fallback_tool_result(pdf_id: str) -> Dict[str, Any]:
+def _fallback_tool_result(pdf_id: str) -> dict[str, Any]:
     return {
         "items": [
             {
@@ -836,7 +835,7 @@ def _fallback_tool_result(pdf_id: str) -> Dict[str, Any]:
     }
 
 
-def _build_plan_items(paper_ids: List[str], active_step: str = "scope") -> List[Dict[str, Any]]:
+def _build_plan_items(paper_ids: list[str], active_step: str = "scope") -> list[dict[str, Any]]:
     status_by_step = {
         "scope": "pending",
         "retrieve": "pending",
@@ -860,7 +859,7 @@ def _build_plan_items(paper_ids: List[str], active_step: str = "scope") -> List[
     ]
 
 
-def _build_planning_context(project: Dict[str, Any], paper_ids: List[str], constraints: str) -> str:
+def _build_planning_context(project: dict[str, Any], paper_ids: list[str], constraints: str) -> str:
     parts = [
         f"project={project.get('title')}",
         f"goal={project.get('goal')}",
@@ -871,7 +870,7 @@ def _build_planning_context(project: Dict[str, Any], paper_ids: List[str], const
     return "\n".join(parts)
 
 
-def _copy_project(project_id: str) -> Dict[str, Any]:
+def _copy_project(project_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     with _LOCK:
         project = _PROJECTS.get(project_id)
@@ -880,7 +879,7 @@ def _copy_project(project_id: str) -> Dict[str, Any]:
         return copy.deepcopy(project)
 
 
-def _copy_task(task_id: str) -> Dict[str, Any]:
+def _copy_task(task_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
     with _LOCK:
         task = _TASKS.get(task_id)
@@ -889,7 +888,7 @@ def _copy_task(task_id: str) -> Dict[str, Any]:
         return copy.deepcopy(task)
 
 
-def _list_project_tasks(project_id: str) -> List[Dict[str, Any]]:
+def _list_project_tasks(project_id: str) -> list[dict[str, Any]]:
     normalized_project_id = _clean_text(project_id)
     with _LOCK:
         tasks = [
@@ -904,7 +903,7 @@ def _list_project_tasks(project_id: str) -> List[Dict[str, Any]]:
     return tasks
 
 
-def _update_task(task_id: str, **updates: Any) -> Dict[str, Any]:
+def _update_task(task_id: str, **updates: Any) -> dict[str, Any]:
     _ensure_storage_loaded()
     with _LOCK:
         task = _TASKS.get(task_id)
@@ -918,11 +917,11 @@ def _update_task(task_id: str, **updates: Any) -> Dict[str, Any]:
         return copy.deepcopy(next_task)
 
 
-def _plan_item(item_id: str, label: str, detail: str, status: str) -> Dict[str, Any]:
+def _plan_item(item_id: str, label: str, detail: str, status: str) -> dict[str, Any]:
     return {"id": item_id, "label": label, "detail": detail, "status": status}
 
 
-def _event(event_type: str, task_id: str, stage: str, summary: str) -> Dict[str, Any]:
+def _event(event_type: str, task_id: str, stage: str, summary: str) -> dict[str, Any]:
     return {
         "eventId": str(uuid.uuid4()),
         "type": event_type,
@@ -934,7 +933,7 @@ def _event(event_type: str, task_id: str, stage: str, summary: str) -> Dict[str,
     }
 
 
-def _paper_stub(pdf_id: str) -> Dict[str, Any]:
+def _paper_stub(pdf_id: str) -> dict[str, Any]:
     return {"pdfId": pdf_id, "title": pdf_id, "indexed": True}
 
 
@@ -949,9 +948,9 @@ def _agent_step_delay() -> None:
     time.sleep(AGENT_STEP_DELAY_SECONDS)
 
 
-def _normalize_id_list(value: Any) -> List[str]:
+def _normalize_id_list(value: Any) -> list[str]:
     raw_items = value if isinstance(value, list) else []
-    items: List[str] = []
+    items: list[str] = []
     seen = set()
     for raw_item in raw_items:
         text = _clean_text(raw_item)
@@ -972,7 +971,7 @@ def _normalize_history_limit(value: Any) -> int:
     return min(limit, 100)
 
 
-def _normalize_run_request(value: AgentRunCreateRequest | AgentTaskCreateRequest | Dict[str, Any]) -> AgentRunCreateRequest:
+def _normalize_run_request(value: AgentRunCreateRequest | AgentTaskCreateRequest | dict[str, Any]) -> AgentRunCreateRequest:
     if isinstance(value, AgentRunCreateRequest):
         return value
     if isinstance(value, AgentTaskCreateRequest):
@@ -1015,7 +1014,7 @@ def _ensure_storage_loaded() -> None:
         _STORAGE_LOADED = True
 
 
-def _restore_task_after_restart(task: Dict[str, Any]) -> Dict[str, Any]:
+def _restore_task_after_restart(task: dict[str, Any]) -> dict[str, Any]:
     status = _clean_text(task.get("status"))
     if status in TERMINAL_STATUSES or status in {"awaiting_plan_review", "awaiting_final_review", "awaiting_tool_approval", "awaiting_clarification"}:
         return task
@@ -1063,7 +1062,7 @@ def _recover_queued_task(task_id: str) -> None:
         pass
 
 
-def _build_agent_review_risks(conflicts: List[Dict[str, Any]], open_questions: List[str]) -> List[Dict[str, Any]]:
+def _build_agent_review_risks(conflicts: list[dict[str, Any]], open_questions: list[str]) -> list[dict[str, Any]]:
     risks = [
         {"riskId": f"conflict:{item.get('id') or index}", "type": "conflict", "label": "冲突候选", "detail": _clean_text(item.get("claim") or item.get("summary")), "sourceIds": list(item.get("sourceIds") or []), "reviewStatus": "pending"}
         for index, item in enumerate(conflicts, 1)
@@ -1075,7 +1074,7 @@ def _build_agent_review_risks(conflicts: List[Dict[str, Any]], open_questions: L
     return risks
 
 
-def _validate_agent_risk_reviews(risks: List[Dict[str, Any]], reviews: List[Any]) -> List[Dict[str, Any]]:
+def _validate_agent_risk_reviews(risks: list[dict[str, Any]], reviews: list[Any]) -> list[dict[str, Any]]:
     allowed = {_clean_text(item.get("riskId")) for item in risks}
     normalized = []
     for item in reviews:
@@ -1087,7 +1086,7 @@ def _validate_agent_risk_reviews(risks: List[Dict[str, Any]], reviews: List[Any]
     return normalized
 
 
-def _persist_trace_summary(task_id: str, trace_snapshot: Dict[str, Any] | None) -> None:
+def _persist_trace_summary(task_id: str, trace_snapshot: dict[str, Any] | None) -> None:
     if not trace_snapshot:
         return
     _update_task(task_id, traceSummary=build_public_trace_summary(trace_snapshot))
@@ -1097,7 +1096,7 @@ def _initialize_storage_locked() -> None:
     _get_agent_state_repository()
 
 
-def _load_persisted_state_locked() -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def _load_persisted_state_locked() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     repository = _get_agent_state_repository()
     projects = repository.list_projects()
     tasks = []
@@ -1131,12 +1130,12 @@ def _load_persisted_state_locked() -> Tuple[List[Dict[str, Any]], List[Dict[str,
     return projects, tasks
 
 
-def _persist_project_locked(project: Dict[str, Any]) -> None:
+def _persist_project_locked(project: dict[str, Any]) -> None:
     repository = _get_agent_state_repository()
     repository.save_project(_normalize_project_for_storage(project))
 
 
-def _persist_task_locked(task: Dict[str, Any]) -> None:
+def _persist_task_locked(task: dict[str, Any]) -> None:
     repository = _get_agent_state_repository()
     run_record = _build_run_record(task)
     repository.save_run(run_record)
@@ -1169,7 +1168,7 @@ def _delete_persisted_state_locked() -> None:
     repository.clear()
 
 
-def _project_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
+def _project_from_storage_row(row: sqlite3.Row) -> dict[str, Any]:
     created_at = str(row["createdAt"] or _utc_now())
     updated_at = str(row["updatedAt"] or created_at)
     paper_ids = _safe_json_list(row["paperIds"])
@@ -1187,7 +1186,7 @@ def _project_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
     }
 
 
-def _task_from_storage_row(row: sqlite3.Row, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _task_from_storage_row(row: sqlite3.Row, events: list[dict[str, Any]]) -> dict[str, Any]:
     created_at = str(row["createdAt"] or _utc_now())
     updated_at = str(row["updatedAt"] or created_at)
     return {
@@ -1221,7 +1220,7 @@ def _task_from_storage_row(row: sqlite3.Row, events: List[Dict[str, Any]]) -> Di
     }
 
 
-def _event_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
+def _event_from_storage_row(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "eventId": str(row["eventId"] or ""),
         "type": str(row["type"] or ""),
@@ -1233,7 +1232,7 @@ def _event_from_storage_row(row: sqlite3.Row) -> Dict[str, Any]:
     }
 
 
-def _normalize_project_for_storage(project: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_project_for_storage(project: dict[str, Any]) -> dict[str, Any]:
     now = _utc_now()
     paper_ids = _normalize_id_list(project.get("paperIds"))
     return {
@@ -1249,7 +1248,7 @@ def _normalize_project_for_storage(project: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_task_for_storage(task: dict[str, Any]) -> dict[str, Any]:
     now = _utc_now()
     created_at = str(task.get("createdAt") or now)
     return {
@@ -1283,7 +1282,7 @@ def _normalize_task_for_storage(task: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _normalize_event_for_storage(event: Dict[str, Any], fallback_task_id: str) -> Dict[str, Any]:
+def _normalize_event_for_storage(event: dict[str, Any], fallback_task_id: str) -> dict[str, Any]:
     return {
         "eventId": _clean_text(event.get("eventId")) or str(uuid.uuid4()),
         "type": _clean_text(event.get("type")),
@@ -1295,7 +1294,7 @@ def _normalize_event_for_storage(event: Dict[str, Any], fallback_task_id: str) -
     }
 
 
-def _safe_json_list(value: Any) -> List[Any]:
+def _safe_json_list(value: Any) -> list[Any]:
     try:
         parsed = json.loads(str(value or "[]"))
     except json.JSONDecodeError:
@@ -1303,7 +1302,7 @@ def _safe_json_list(value: Any) -> List[Any]:
     return parsed if isinstance(parsed, list) else []
 
 
-def _safe_json_dict(value: Any) -> Dict[str, Any]:
+def _safe_json_dict(value: Any) -> dict[str, Any]:
     try:
         parsed = json.loads(str(value or "{}"))
     except json.JSONDecodeError:
@@ -1319,5 +1318,5 @@ def _agent_state_db_path() -> Path:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 

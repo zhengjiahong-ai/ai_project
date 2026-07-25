@@ -11,9 +11,10 @@ import os
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -310,7 +311,7 @@ def cancel_session(session_id: str) -> bool:
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:

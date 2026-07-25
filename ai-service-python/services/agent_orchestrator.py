@@ -1,5 +1,6 @@
 import copy
-from typing import Any, Callable, Dict, List, Tuple
+from collections.abc import Callable
+from typing import Any
 
 from services.agent_evidence_collector import (
     collect_project_evidence,
@@ -12,9 +13,10 @@ from services.agent_report_sections import (
 from services.external_evidence import EXTERNAL_SOURCE_TYPE
 from services.knowledge_graph_store import enrich_conflicts_with_graph_context
 
-
-ProgressCallback = Callable[[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], float, str], None]
+ProgressCallback = Callable[[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], float, str], None]
 CancelCheck = Callable[[], bool]
+from datetime import UTC
+
 from services.agent_advanced_analysis import run_advanced_analysis
 from services.agent_reasoning import (
     build_finding_summary,
@@ -23,7 +25,7 @@ from services.agent_reasoning import (
 )
 
 
-def build_plan_items(paper_ids: List[str], active_step: str = "scope") -> List[Dict[str, Any]]:
+def build_plan_items(paper_ids: list[str], active_step: str = "scope") -> list[dict[str, Any]]:
     status_by_step = {
         "scope": "pending",
         "retrieve": "pending",
@@ -47,7 +49,7 @@ def build_plan_items(paper_ids: List[str], active_step: str = "scope") -> List[D
     ]
 
 
-def build_review_plan_items(prompt: str, paper_ids: List[str], constraints: str = "") -> List[Dict[str, Any]]:
+def build_review_plan_items(prompt: str, paper_ids: list[str], constraints: str = "") -> list[dict[str, Any]]:
     return normalize_review_plan_items([
         {"id": "evidence", "label": "Collect claim-level evidence", "detail": f"Retrieve evidence for: {clean_text(prompt)}"},
         {"id": "compare", "label": "Compare focused papers", "detail": f"Compare methods and results across {len(paper_ids)} papers."},
@@ -57,7 +59,7 @@ def build_review_plan_items(prompt: str, paper_ids: List[str], constraints: str 
     ])
 
 
-def normalize_review_plan_items(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def normalize_review_plan_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized = []
     for index, item in enumerate(items or [], 1):
         label = clean_text(item.get("label"))
@@ -79,11 +81,11 @@ def normalize_review_plan_items(items: List[Dict[str, Any]]) -> List[Dict[str, A
     return normalized
 
 
-def update_plan_status(items: List[Dict[str, Any]], status: str) -> List[Dict[str, Any]]:
+def update_plan_status(items: list[dict[str, Any]], status: str) -> list[dict[str, Any]]:
     return [{**copy.deepcopy(item), "status": status} for item in items]
 
 
-def build_execution_prompt(prompt: str, plan_items: List[Dict[str, Any]], constraints: str) -> str:
+def build_execution_prompt(prompt: str, plan_items: list[dict[str, Any]], constraints: str) -> str:
     directives = "; ".join(f"{clean_text(item.get('label'))}: {clean_text(item.get('detail'))}" for item in plan_items)
     parts = [clean_text(prompt), f"Approved plan: {directives}"]
     if clean_text(constraints):
@@ -91,7 +93,7 @@ def build_execution_prompt(prompt: str, plan_items: List[Dict[str, Any]], constr
     return "\n".join(item for item in parts if item)
 
 
-def build_planning_context(project: Dict[str, Any], paper_ids: List[str], constraints: str) -> str:
+def build_planning_context(project: dict[str, Any], paper_ids: list[str], constraints: str) -> str:
     parts = [
         f"project={project.get('title')}",
         f"goal={project.get('goal')}",
@@ -104,9 +106,9 @@ def build_planning_context(project: Dict[str, Any], paper_ids: List[str], constr
 
 def build_agent_outputs(
     prompt: str,
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-) -> Tuple[Dict[str, Any], Dict[str, Any], List[Dict[str, Any]], List[str]]:
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]], list[str]]:
     source_ids = [item.get("sourceId") for item in evidence_items if item.get("sourceId")]
     paper_ids = [item.get("pdfId") for item in paper_contexts if item.get("pdfId")]
     external_evidence_count = sum(
@@ -177,7 +179,7 @@ def build_agent_outputs(
 def build_code_execution_proposal(
     artifact_id: str,
     description: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Generate a structured code execution proposal for Agent review."""
     return {
         "artifactId": clean_text(artifact_id),
@@ -188,19 +190,19 @@ def build_code_execution_proposal(
 
 
 def _utc_now() -> str:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def execute_run(
     prompt: str,
-    paper_ids: List[str],
+    paper_ids: list[str],
     allow_external_search: bool = False,
     allow_web_search: bool = False,
     allow_iterative_search: bool = False,
     domain: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     # Activate domain specialist if a domain is selected
     domain_config = {}
     if domain and domain.strip():
@@ -342,7 +344,7 @@ def _timeline_step(
     detail: str = "",
     status: str = "success",
     duration_ms: int = 0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     import uuid
     return {
         "stepId": uuid.uuid4().hex[:12],
@@ -354,11 +356,11 @@ def _timeline_step(
     }
 
 
-def _plan_item(item_id: str, label: str, detail: str, status: str) -> Dict[str, Any]:
+def _plan_item(item_id: str, label: str, detail: str, status: str) -> dict[str, Any]:
     return {"id": item_id, "label": label, "detail": detail, "status": status}
 
 
-def _should_follow_up(open_questions: List[str], evidence_items: List[Dict[str, Any]]) -> bool:
+def _should_follow_up(open_questions: list[str], evidence_items: list[dict[str, Any]]) -> bool:
     """Decide whether another follow-up round is warranted.
 
     Uses LLM semantic evaluation when API key is available; falls back to
@@ -383,15 +385,16 @@ def _should_follow_up(open_questions: List[str], evidence_items: List[Dict[str, 
 
 
 def _llm_should_follow_up(
-    open_questions: List[str],
-    evidence_items: List[Dict[str, Any]],
+    open_questions: list[str],
+    evidence_items: list[dict[str, Any]],
 ) -> bool | None:
     """Use flash LLM to assess whether evidence gaps warrant another round (18-2).
 
     Returns True/False, or None when the LLM is unavailable (caller should fall back).
     """
     try:
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import TimeoutError as FutureTimeout
 
         from llm.client import get_translation_llm
         from services.llm_cache import get_llm_cache
@@ -431,9 +434,9 @@ def _llm_should_follow_up(
 
 def _build_follow_up_queries(
     prompt: str,
-    open_questions: List[str],
-    paper_contexts: List[Dict[str, Any]],
-) -> List[str]:
+    open_questions: list[str],
+    paper_contexts: list[dict[str, Any]],
+) -> list[str]:
     """Build refined queries for supplementary evidence retrieval."""
     sparse_pdfs = [
         clean_text(ctx.get("pdfId", ""))
@@ -449,9 +452,9 @@ def _build_follow_up_queries(
 
 
 def _merge_evidence(
-    existing: List[Dict[str, Any]],
-    new_items: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    existing: list[dict[str, Any]],
+    new_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Merge new evidence items into existing, deduplicating by sourceId."""
     seen = {str(item.get("sourceId", "")) for item in existing if item.get("sourceId")}
     merged = list(existing)

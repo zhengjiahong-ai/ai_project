@@ -1,14 +1,18 @@
 import re
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 from xml.etree import ElementTree
 
 import requests
 from bs4 import BeautifulSoup
 
-from services.external_evidence import deduplicate_external_evidence, normalize_external_evidence
+from services.external_evidence import (
+    deduplicate_external_evidence,
+    normalize_external_evidence,
+)
 from services.external_search_cache import (
     ExternalSearchCache,
     default_external_search_cache_path,
@@ -39,7 +43,7 @@ _ARXIV_NS = "{http://arxiv.org/schemas/atom}"
 
 
 class ArxivProviderError(RuntimeError):
-    def __init__(self, code: str, status_code: Optional[int] = None):
+    def __init__(self, code: str, status_code: int | None = None):
         self.code = code
         self.status_code = status_code
         super().__init__(f"ArXiv request failed ({code}).")
@@ -53,15 +57,15 @@ class ArxivProvider:
 
     def __init__(
         self,
-        session: Optional[requests.Session] = None,
-        clock: Optional[Callable[[], datetime]] = None,
-        cache: Optional[ExternalSearchCache] = None,
+        session: requests.Session | None = None,
+        clock: Callable[[], datetime] | None = None,
+        cache: ExternalSearchCache | None = None,
         sleep_fn: Callable[[float], None] = time.sleep,
         monotonic_clock: Callable[[], float] = time.monotonic,
         min_interval_seconds: float = DEFAULT_MIN_INTERVAL_SECONDS,
     ):
         self._session = session or requests.Session()
-        self._clock = clock or (lambda: datetime.now(timezone.utc))
+        self._clock = clock or (lambda: datetime.now(UTC))
         self._cache = cache or ExternalSearchCache(default_external_search_cache_path())
         self._sleep = sleep_fn
         self._monotonic_clock = monotonic_clock
@@ -69,14 +73,14 @@ class ArxivProvider:
         self._rate_limit_lock = threading.Lock()
         self._next_request_at = 0.0
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         return {
             "enabled": True,
             "status": "ready",
             "provider": self.name,
         }
 
-    def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         normalized_query = normalize_external_search_query(_validate_query(query))
         normalized_limit = _validate_limit(limit)
         cached = self._cache.get(self.name, normalized_query, normalized_limit)
@@ -151,7 +155,7 @@ def build_arxiv_provider(_config: Any) -> ArxivProvider:
     )
 
 
-def _retry_delay(headers: Any, attempt: int, clock: Callable[[], datetime]) -> Optional[float]:
+def _retry_delay(headers: Any, attempt: int, clock: Callable[[], datetime]) -> float | None:
     retry_after = ""
     if hasattr(headers, "get"):
         retry_after = str(headers.get("Retry-After") or headers.get("retry-after") or "").strip()
@@ -163,7 +167,7 @@ def _retry_delay(headers: Any, attempt: int, clock: Callable[[], datetime]) -> O
     return max(0.0, delay)
 
 
-def _parse_retry_after(value: str, clock: Callable[[], datetime]) -> Optional[float]:
+def _parse_retry_after(value: str, clock: Callable[[], datetime]) -> float | None:
     from email.utils import parsedate_to_datetime
 
     try:
@@ -174,10 +178,10 @@ def _parse_retry_after(value: str, clock: Callable[[], datetime]) -> Optional[fl
     try:
         retry_at = parsedate_to_datetime(value)
         if retry_at.tzinfo is None:
-            retry_at = retry_at.replace(tzinfo=timezone.utc)
+            retry_at = retry_at.replace(tzinfo=UTC)
         now = clock()
         if now.tzinfo is None:
-            now = now.replace(tzinfo=timezone.utc)
+            now = now.replace(tzinfo=UTC)
         return max(0.0, (retry_at - now).total_seconds())
     except (TypeError, ValueError, OverflowError):
         return None
@@ -221,7 +225,7 @@ def _parse_atom_entries(
     query: str,
     retrieved_at: str,
     limit: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     try:
         root = ElementTree.fromstring(raw_bytes.decode("utf-8"))
     except (ElementTree.ParseError, UnicodeDecodeError):
@@ -253,7 +257,7 @@ def _is_valid_entry(entry: ElementTree.Element) -> bool:
     return True
 
 
-def _map_entry(entry: ElementTree.Element, query: str, retrieved_at: str) -> Dict[str, Any]:
+def _map_entry(entry: ElementTree.Element, query: str, retrieved_at: str) -> dict[str, Any]:
     arxiv_id = _entry_id(entry)
     return {
         "provider": "ArXiv",
@@ -288,7 +292,7 @@ def _entry_title(entry: ElementTree.Element) -> str:
     return _sanitize_untrusted_metadata(raw, MAX_TITLE_CHARS)
 
 
-def _entry_authors(entry: ElementTree.Element) -> List[str]:
+def _entry_authors(entry: ElementTree.Element) -> list[str]:
     authors = []
     for author_elem in entry.findall(f"{_ATOM_NS}author"):
         name = _clean_text(_child_text(author_elem, f"{_ATOM_NS}name"))
@@ -300,7 +304,7 @@ def _entry_authors(entry: ElementTree.Element) -> List[str]:
     return authors
 
 
-def _entry_year(entry: ElementTree.Element) -> Optional[int]:
+def _entry_year(entry: ElementTree.Element) -> int | None:
     published = _clean_text(_child_text(entry, f"{_ATOM_NS}published"))
     match = re.match(r"(\d{4})", published)
     if match:
@@ -367,5 +371,5 @@ def _bounded_text(value: Any, limit: int) -> str:
 
 def _format_timestamp(value: datetime) -> str:
     if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")

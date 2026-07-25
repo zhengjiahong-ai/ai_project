@@ -4,11 +4,9 @@ import hashlib
 import json
 import re
 from copy import deepcopy
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
-
 
 SCHEMA_VERSION = "1.0"
 WORKER_IMAGE_DIGEST = "sha256:a86ea9eda049b10d4958ee67d7c6284d07ecbcab3a50d5778c44809318b6e237"
@@ -106,27 +104,27 @@ class ExecutionCleanup(_ExecutionModel):
 class ExecutionResult(_ExecutionModel):
     status: Literal["succeeded", "failed", "cancelled"]
     reason_code: str = Field(alias="reasonCode", pattern=r"^[a-z][a-z0-9_]{0,63}$")
-    exit_code: Optional[int] = Field(default=None, alias="exitCode")
-    outputs: List[ExecutionOutput] = Field(default_factory=list, max_length=1)
+    exit_code: int | None = Field(default=None, alias="exitCode")
+    outputs: list[ExecutionOutput] = Field(default_factory=list, max_length=1)
     cleanup: ExecutionCleanup = Field(default_factory=ExecutionCleanup)
 
 
 class ExecutionApproval(_ExecutionModel):
     decision: Literal["pending", "approved", "rejected"] = "pending"
-    approved_by: Optional[str] = Field(default=None, alias="approvedBy", max_length=128)
-    approved_at: Optional[str] = Field(default=None, alias="approvedAt", max_length=40)
-    approved_task_digest: Optional[str] = Field(default=None, alias="approvedTaskDigest")
-    reason: Optional[str] = Field(default=None, max_length=500)
+    approved_by: str | None = Field(default=None, alias="approvedBy", max_length=128)
+    approved_at: str | None = Field(default=None, alias="approvedAt", max_length=40)
+    approved_task_digest: str | None = Field(default=None, alias="approvedTaskDigest")
+    reason: str | None = Field(default=None, max_length=500)
 
     @field_validator("approved_by")
     @classmethod
-    def validate_approved_by(cls, value: Optional[str]) -> Optional[str]:
+    def validate_approved_by(cls, value: str | None) -> str | None:
         if value is not None and not IDENTIFIER_PATTERN.fullmatch(value):
             raise ValueError("approvedBy must be a bounded opaque identifier.")
         return value
 
     @model_validator(mode="after")
-    def validate_decision_fields(self) -> "ExecutionApproval":
+    def validate_decision_fields(self) -> ExecutionApproval:
         bound = (self.approved_by, self.approved_at, self.approved_task_digest)
         if self.decision == "approved":
             if not all(bound) or not SHA256_PATTERN.fullmatch(self.approved_task_digest or ""):
@@ -143,20 +141,20 @@ class ExecutionApproval(_ExecutionModel):
 
 class PublicationApproval(_ExecutionModel):
     decision: Literal["pending", "approved", "rejected"] = "pending"
-    reviewed_by: Optional[str] = Field(default=None, alias="reviewedBy", max_length=128)
-    reviewed_at: Optional[str] = Field(default=None, alias="reviewedAt", max_length=40)
-    approved_publication_digest: Optional[str] = Field(default=None, alias="approvedPublicationDigest")
-    reason: Optional[str] = Field(default=None, max_length=500)
+    reviewed_by: str | None = Field(default=None, alias="reviewedBy", max_length=128)
+    reviewed_at: str | None = Field(default=None, alias="reviewedAt", max_length=40)
+    approved_publication_digest: str | None = Field(default=None, alias="approvedPublicationDigest")
+    reason: str | None = Field(default=None, max_length=500)
 
     @field_validator("reviewed_by")
     @classmethod
-    def validate_reviewer(cls, value: Optional[str]) -> Optional[str]:
+    def validate_reviewer(cls, value: str | None) -> str | None:
         if value is not None and not IDENTIFIER_PATTERN.fullmatch(value):
             raise ValueError("reviewedBy must be a bounded opaque identifier.")
         return value
 
     @model_validator(mode="after")
-    def validate_binding(self) -> "PublicationApproval":
+    def validate_binding(self) -> PublicationApproval:
         if self.decision == "pending":
             if any((self.reviewed_by, self.reviewed_at, self.approved_publication_digest, self.reason)):
                 raise ValueError("pending publication approval cannot retain review fields.")
@@ -173,12 +171,12 @@ class AuditSummary(_ExecutionModel):
     created_at: str = Field(default="", alias="createdAt", max_length=40)
     updated_at: str = Field(default="", alias="updatedAt", max_length=40)
     event: Literal["code_execution_job_created"] = "code_execution_job_created"
-    warnings: List[str] = Field(default_factory=list, max_length=20)
-    audit_head_digest: Optional[str] = Field(default=None, alias="auditHeadDigest")
+    warnings: list[str] = Field(default_factory=list, max_length=20)
+    audit_head_digest: str | None = Field(default=None, alias="auditHeadDigest")
 
     @field_validator("warnings")
     @classmethod
-    def validate_warnings(cls, values: List[str]) -> List[str]:
+    def validate_warnings(cls, values: list[str]) -> list[str]:
         if any(not value or len(value) > 500 for value in values):
             raise ValueError("warnings must contain non-empty strings of at most 500 characters.")
         return values
@@ -198,21 +196,21 @@ class CodeExecutionJob(_ExecutionModel):
         "cancelled",
         "rejected",
     ] = "awaiting_approval"
-    input_artifacts: List[InputArtifact] = Field(alias="inputArtifacts", min_length=1, max_length=1)
+    input_artifacts: list[InputArtifact] = Field(alias="inputArtifacts", min_length=1, max_length=1)
     script_text: str = Field(alias="scriptText", min_length=1, max_length=256 * 1024)
     script_digest: str = Field(alias="scriptDigest")
     runtime: RuntimeSpec = Field(default_factory=RuntimeSpec)
     image: Literal[WORKER_IMAGE_DIGEST] = WORKER_IMAGE_DIGEST
     limits: ResourceLimits = Field(default_factory=ResourceLimits)
     network_policy: Literal["none"] = Field(default="none", alias="networkPolicy")
-    expected_outputs: List[ExpectedOutput] = Field(
+    expected_outputs: list[ExpectedOutput] = Field(
         default_factory=lambda: [ExpectedOutput()], alias="expectedOutputs", min_length=1, max_length=1
     )
     approval: ExecutionApproval = Field(default_factory=ExecutionApproval)
     audit_summary: AuditSummary = Field(default_factory=AuditSummary, alias="auditSummary")
     task_digest: str = Field(default="", alias="taskDigest")
-    execution_result: Optional[ExecutionResult] = Field(default=None, alias="executionResult")
-    publication_digest: Optional[str] = Field(default=None, alias="publicationDigest")
+    execution_result: ExecutionResult | None = Field(default=None, alias="executionResult")
+    publication_digest: str | None = Field(default=None, alias="publicationDigest")
     publication_approval: PublicationApproval = Field(default_factory=PublicationApproval, alias="publicationApproval")
 
     @field_validator("job_id")
@@ -223,7 +221,7 @@ class CodeExecutionJob(_ExecutionModel):
         return value
 
     @model_validator(mode="after")
-    def validate_digests_and_approval(self) -> "CodeExecutionJob":
+    def validate_digests_and_approval(self) -> CodeExecutionJob:
         script_digest = hashlib.sha256(self.script_text.encode("utf-8")).hexdigest()
         if self.script_digest != script_digest:
             raise ValueError("scriptDigest does not match scriptText.")
@@ -268,7 +266,7 @@ class CodeExecutionJob(_ExecutionModel):
             and self.publication_approval.approved_publication_digest == self.publication_digest
         )
 
-    def approval_payload(self) -> Dict[str, Any]:
+    def approval_payload(self) -> dict[str, Any]:
         return {
             "schemaVersion": self.schema_version,
             "jobId": self.job_id,
@@ -294,7 +292,7 @@ def create_code_execution_job(
     runtime_version: str = BENCHMARK_RUNTIME_VERSION,
     image: str = WORKER_IMAGE_DIGEST,
     network_policy: str = "none",
-    limits: Optional[Dict[str, Any]] = None,
+    limits: dict[str, Any] | None = None,
     expected_output_format: str = "json",
 ) -> CodeExecutionJob:
     script_digest = hashlib.sha256(script_text.encode("utf-8")).hexdigest()
@@ -337,7 +335,7 @@ def approve_code_execution_job(
 
 
 def reject_code_execution_job(
-    job: CodeExecutionJob, *, rejected_by: str, rejected_at: str, reason: Optional[str] = None
+    job: CodeExecutionJob, *, rejected_by: str, rejected_at: str, reason: str | None = None
 ) -> CodeExecutionJob:
     if job.status != "awaiting_approval" or job.approval.decision != "pending":
         raise ValueError("Only a pending awaiting_approval job can be rejected.")
@@ -374,7 +372,7 @@ def review_code_execution_publication(
     reviewed_by: str,
     reviewed_at: str,
     expected_publication_digest: str,
-    reason: Optional[str] = None,
+    reason: str | None = None,
 ) -> CodeExecutionJob:
     if job.status != "succeeded" or job.execution_result is None or job.execution_result.status != "succeeded":
         raise ValueError("Publication approval requires a successful execution result.")
@@ -393,7 +391,7 @@ def review_code_execution_publication(
     return CodeExecutionJob.model_validate(snapshot)
 
 
-def update_code_execution_job(job: CodeExecutionJob, changes: Dict[str, Any]) -> CodeExecutionJob:
+def update_code_execution_job(job: CodeExecutionJob, changes: dict[str, Any]) -> CodeExecutionJob:
     snapshot = job.model_dump(mode="json", by_alias=True)
     _deep_update(snapshot, deepcopy(changes))
     if "scriptText" in changes and "scriptDigest" not in changes:
@@ -426,7 +424,7 @@ def transition_code_execution_job(job: CodeExecutionJob, status: str) -> CodeExe
     return CodeExecutionJob.model_validate(snapshot)
 
 
-def _deep_update(target: Dict[str, Any], changes: Dict[str, Any]) -> None:
+def _deep_update(target: dict[str, Any], changes: dict[str, Any]) -> None:
     for key, value in changes.items():
         if isinstance(value, dict) and isinstance(target.get(key), dict):
             _deep_update(target[key], value)
@@ -434,6 +432,6 @@ def _deep_update(target: Dict[str, Any], changes: Dict[str, Any]) -> None:
             target[key] = value
 
 
-def _canonical_digest(payload: Dict[str, Any]) -> str:
+def _canonical_digest(payload: dict[str, Any]) -> str:
     serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

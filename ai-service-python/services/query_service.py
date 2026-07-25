@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from llm.client import get_llm
 from services.safety_service import (
@@ -12,7 +12,6 @@ from services.safety_service import (
 _logger = logging.getLogger(__name__)
 from services.utils import parse_json_from_llm
 
-
 MAX_KEYWORDS = 8
 VALID_CHAT_INTENTS = {"解释方法", "总结实验", "批判分析", "背景补课", "自由问答"}
 VALID_ANSWER_STYLES = {"concise", "detailed"}
@@ -20,9 +19,9 @@ VALID_ANSWER_STYLES = {"concise", "detailed"}
 
 def rewrite_academic_query(
     question: str,
-    context: Optional[str] = None,
+    context: str | None = None,
     task_type: str = "chat",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     original = _clean_query(question)
     if not original:
         return _fallback_plan(original, task_type)
@@ -84,18 +83,18 @@ Context:
 
 def build_retrieval_queries(
     question: str,
-    context: Optional[str] = None,
+    context: str | None = None,
     task_type: str = "chat",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return rewrite_academic_query(question, context=context, task_type=task_type)
 
 
 def build_chat_query_plan(
     question: str,
-    context: Optional[str] = None,
+    context: str | None = None,
     task_type: str = "chat",
     has_pdf: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     original = _clean_query(question)
     if not original:
         return _fallback_chat_plan(original, context=context, task_type=task_type, has_pdf=has_pdf)
@@ -167,7 +166,7 @@ Context:
         return _fallback_chat_plan(original, context=context, task_type=task_type, has_pdf=has_pdf)
 
 
-def _fallback_plan(question: str, task_type: str) -> Dict[str, Any]:
+def _fallback_plan(question: str, task_type: str) -> dict[str, Any]:
     original = _clean_query(question)
     return {
         "original": original,
@@ -180,10 +179,10 @@ def _fallback_plan(question: str, task_type: str) -> Dict[str, Any]:
 
 def _fallback_chat_plan(
     question: str,
-    context: Optional[str] = None,
+    context: str | None = None,
     task_type: str = "chat",
     has_pdf: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     base_plan = _fallback_plan(question, task_type)
     intent = _infer_chat_intent(base_plan["original"], context=context)
     needs_retrieval = _infer_needs_retrieval(base_plan["original"])
@@ -207,11 +206,11 @@ def _fallback_chat_plan(
 def _normalize_chat_plan(
     payload: Any,
     original: str,
-    context: Optional[str],
+    context: str | None,
     task_type: str,
     has_pdf: bool,
     source: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     base_plan = _fallback_plan(original, task_type)
     fallback_intent = _infer_chat_intent(original, context=context)
     rewritten = _clean_query(payload.get("rewritten")) if isinstance(payload, dict) else ""
@@ -257,7 +256,7 @@ def _normalize_chat_plan(
     }
 
 
-def _normalize_keywords(value: Any, fallback_text: str = "") -> List[str]:
+def _normalize_keywords(value: Any, fallback_text: str = "") -> list[str]:
     if isinstance(value, str):
         raw_items = [item.strip() for item in value.replace("，", ",").split(",")]
     elif isinstance(value, list):
@@ -265,7 +264,7 @@ def _normalize_keywords(value: Any, fallback_text: str = "") -> List[str]:
     else:
         raw_items = []
 
-    keywords: List[str] = []
+    keywords: list[str] = []
     seen = set()
     for item in raw_items:
         cleaned = item.strip(" \t\r\n,.;:，。；：、")
@@ -295,8 +294,8 @@ def _normalize_keywords(value: Any, fallback_text: str = "") -> List[str]:
 def _normalize_chat_intent(
     value: Any,
     question: str,
-    context: Optional[str] = None,
-    fallback: Optional[str] = None,
+    context: str | None = None,
+    fallback: str | None = None,
 ) -> str:
     text = _clean_query(value)
     if text in VALID_CHAT_INTENTS:
@@ -317,7 +316,7 @@ def _normalize_chat_queries(
     intent: str,
     has_pdf: bool,
     needs_retrieval: bool,
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     if not needs_retrieval:
         return []
 
@@ -328,7 +327,7 @@ def _normalize_chat_queries(
     else:
         raw_items = [value]
 
-    normalized: List[Dict[str, str]] = []
+    normalized: list[dict[str, str]] = []
     seen = set()
     for raw_item in raw_items:
         if isinstance(raw_item, dict):
@@ -375,12 +374,12 @@ def _normalize_chat_queries(
     return ordered[:MAX_CHAT_QUERIES]
 
 
-def _default_chat_queries(query: str, intent: str, has_pdf: bool, needs_retrieval: bool) -> List[Dict[str, str]]:
+def _default_chat_queries(query: str, intent: str, has_pdf: bool, needs_retrieval: bool) -> list[dict[str, str]]:
     retrieval_query = _clean_query(query)
     if not needs_retrieval or not retrieval_query:
         return []
 
-    queries: List[Dict[str, str]] = []
+    queries: list[dict[str, str]] = []
     if has_pdf:
         queries.append({
             "query": retrieval_query[:180],
@@ -403,7 +402,7 @@ def _default_chat_queries(query: str, intent: str, has_pdf: bool, needs_retrieva
     return queries[:MAX_CHAT_QUERIES]
 
 
-def _tokenize_fallback_keywords(text: str) -> List[str]:
+def _tokenize_fallback_keywords(text: str) -> list[str]:
     cleaned = _clean_query(text)
     if not cleaned:
         return []
@@ -440,7 +439,7 @@ def _default_query_reason(scope: str, intent: str) -> str:
     return "补充与当前问题相关的文献证据。"
 
 
-def _infer_chat_intent(question: str, context: Optional[str] = None) -> str:
+def _infer_chat_intent(question: str, context: str | None = None) -> str:
     text = f"{question}\n{context or ''}".lower()
     if any(token in text for token in ("局限", "缺点", "不足", "质疑", "批判", "weakness", "limitation", "overclaim")):
         return "批判分析"

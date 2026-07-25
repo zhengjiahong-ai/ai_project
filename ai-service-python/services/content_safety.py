@@ -5,7 +5,7 @@ URL trust marking, and token-bounded text truncation.
 """
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from services.safety_service import detect_prompt_injection
 
@@ -40,7 +40,7 @@ def sanitize_fetched_web_content(
     *,
     url: str = "",
     max_tokens: int = _DEFAULT_MAX_TOKENS,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Validate safety of fetched web page content.
 
     Args:

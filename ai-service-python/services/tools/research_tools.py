@@ -5,7 +5,7 @@ recall, cross-lingual search, adversarial review, and domain specialists.
 All tool handlers and their registrations extracted from tool_registry.py.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from services.adversarial_reviewer import adversarial_review
 from services.citation_graph import traverse_citation_graph
@@ -16,15 +16,14 @@ from services.hypothesis_engine import generate_and_verify_hypotheses
 from services.parallel_research import dispatch_parallel_research
 from services.reasoning_chain import build_reasoning_chain
 from services.research_memory import recall_relevant_past_research
-from services.trace_service import record_counter, trace_step
 from services.tool_registry import ToolValidationError, _safety_scope
-
+from services.trace_service import record_counter, trace_step
 
 # ---------------------------------------------------------------------------
 # Handler functions
 # ---------------------------------------------------------------------------
 
-def _expand_citation_graph_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _expand_citation_graph_tool(payload: dict[str, Any]) -> dict[str, Any]:
     paper_id = (payload.get("paperId") or "").strip()
     if not paper_id:
         raise ToolValidationError("expand_citation_graph requires a non-empty paperId.")
@@ -52,7 +51,7 @@ def _expand_citation_graph_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _trace_reasoning_chain_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _trace_reasoning_chain_tool(payload: dict[str, Any]) -> dict[str, Any]:
     claim = (payload.get("claim") or "").strip()
     if not claim:
         raise ToolValidationError("trace_reasoning_chain requires a non-empty claim.")
@@ -70,7 +69,7 @@ def _trace_reasoning_chain_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _adjudicate_conflict_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _adjudicate_conflict_tool(payload: dict[str, Any]) -> dict[str, Any]:
     claim = (payload.get("claim") or "").strip()
     if not claim:
         raise ToolValidationError("adjudicate_conflict requires a non-empty claim.")
@@ -90,7 +89,7 @@ def _adjudicate_conflict_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _generate_hypotheses_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_hypotheses_tool(payload: dict[str, Any]) -> dict[str, Any]:
     question = (payload.get("question") or "").strip()
     if not question:
         raise ToolValidationError("generate_and_verify_hypotheses requires a non-empty question.")
@@ -110,7 +109,7 @@ def _generate_hypotheses_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _execute_tool_pipeline_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _execute_tool_pipeline_tool(payload: dict[str, Any]) -> dict[str, Any]:
     goal = (payload.get("goal") or "").strip()
     if not goal:
         raise ToolValidationError("execute_tool_pipeline requires a non-empty goal.")
@@ -129,7 +128,7 @@ def _execute_tool_pipeline_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _parallel_research_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _parallel_research_tool(payload: dict[str, Any]) -> dict[str, Any]:
     question = (payload.get("question") or "").strip()
     sub_questions = payload.get("subQuestions") or []
     max_agents = int(payload.get("maxAgents") or 4)
@@ -146,7 +145,7 @@ def _parallel_research_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _recall_past_research_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _recall_past_research_tool(payload: dict[str, Any]) -> dict[str, Any]:
     question = (payload.get("question") or "").strip()
     domain = (payload.get("domain") or "").strip()
     if not question:
@@ -160,7 +159,7 @@ def _recall_past_research_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _cross_lingual_search_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _cross_lingual_search_tool(payload: dict[str, Any]) -> dict[str, Any]:
     query = (payload.get("query") or "").strip()
     if not query:
         raise ToolValidationError("cross_lingual_search requires a query.")
@@ -175,7 +174,7 @@ def _cross_lingual_search_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _adversarial_review_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _adversarial_review_tool(payload: dict[str, Any]) -> dict[str, Any]:
     question = (payload.get("question") or "").strip()
     if not question:
         raise ToolValidationError("adversarial_review requires a question.")
@@ -192,7 +191,7 @@ def _adversarial_review_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _activate_domain_specialist_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _activate_domain_specialist_tool(payload: dict[str, Any]) -> dict[str, Any]:
     domain = (payload.get("domain") or "").strip()
     if not domain:
         raise ToolValidationError("activate_domain_specialist requires a domain.")

@@ -5,17 +5,23 @@ critical-analysis, page-translation, knowledge-graph-neighborhood, and paper-dra
 tools from the central tool registry into a dedicated module.
 """
 
-from typing import Any, Dict
+from typing import Any
 
-import services.analysis_service as analysis_service
-import services.background_knowledge_service as background_knowledge_service
-import services.knowledge_graph_store as knowledge_graph_store
-import services.page_translation_service as page_translation_service
-from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest, PageTranslationRequest
+from schemas.requests import (
+    BackgroundKnowledgeRequest,
+    DeepAnalysisRequest,
+    PageTranslationRequest,
+)
+from services import (
+    analysis_service,
+    background_knowledge_service,
+    knowledge_graph_store,
+    page_translation_service,
+)
 from services.retrieval_judge_service import judge_evidence_quality
-from services.trace_service import record_counter, trace_step
-from services.tools._common import _clean_text, _coerce_positive_int
 from services.tool_registry import ToolValidationError, _object_output, _safety_scope
+from services.tools._common import _clean_text, _coerce_positive_int
+from services.trace_service import record_counter, trace_step
 
 
 def register_tools(registry) -> None:
@@ -233,7 +239,7 @@ def register_tools(registry) -> None:
     )
 
 
-def _read_paper_skeleton_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _read_paper_skeleton_tool(payload: dict[str, Any]) -> dict[str, Any]:
     paper_skeleton = payload.get("paperSkeleton") if isinstance(payload.get("paperSkeleton"), dict) else {}
     max_sections = _coerce_positive_int(payload.get("maxSections"), 6)
     max_chars_per_section = _coerce_positive_int(payload.get("maxCharsPerSection"), 220)
@@ -258,7 +264,7 @@ def _read_paper_skeleton_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
-def _judge_evidence_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _judge_evidence_tool(payload: dict[str, Any]) -> dict[str, Any]:
     question = _clean_text(payload.get("question"))
     evidence_items = payload.get("evidenceItems")
     if not question:
@@ -272,35 +278,35 @@ def _judge_evidence_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
 
-def _read_knowledge_graph_neighborhood_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _read_knowledge_graph_neighborhood_tool(payload: dict[str, Any]) -> dict[str, Any]:
     with trace_step("tool_read_knowledge_graph_neighborhood", input_size=len(payload)) as step:
         result = knowledge_graph_store.read_graph_neighborhood(payload)
         step["outputSize"] = len(result.get("nodes") or [])
         return result
 
 
-def _generate_background_graph_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_background_graph_tool(payload: dict[str, Any]) -> dict[str, Any]:
     with trace_step("tool_generate_background_graph", input_size=len(payload)) as step:
         response = background_knowledge_service.get_background_knowledge(BackgroundKnowledgeRequest(**payload))
         step["outputSize"] = len(response.get("background_knowledge") or [])
         return response
 
 
-def _run_critical_analysis_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _run_critical_analysis_tool(payload: dict[str, Any]) -> dict[str, Any]:
     with trace_step("tool_run_critical_analysis", input_size=len(payload)) as step:
         response = analysis_service.deep_analysis(DeepAnalysisRequest(**payload))
         step["outputSize"] = len(response.get("rag_sources") or [])
         return response
 
 
-def _translate_page_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _translate_page_tool(payload: dict[str, Any]) -> dict[str, Any]:
     with trace_step("tool_translate_page", input_size=len(str(payload.get("pageText") or ""))) as step:
         response = page_translation_service.translate_page(PageTranslationRequest(**payload))
         step["outputSize"] = len(str(response.get("translatedText") or ""))
         return response
 
 
-def _generate_paper_draft_tool(payload: Dict[str, Any]) -> Dict[str, Any]:
+def _generate_paper_draft_tool(payload: dict[str, Any]) -> dict[str, Any]:
     from services.paper_writer import generate_paper_draft
     question = (payload.get("question") or "").strip()
     if not question:

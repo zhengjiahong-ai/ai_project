@@ -1,6 +1,7 @@
 import copy
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 
 from services.external_evidence import deduplicate_external_evidence
 
@@ -18,17 +19,17 @@ class ExternalSearchProviderRegistry:
 
     def __init__(
         self,
-        providers: Dict[str, Any],
+        providers: dict[str, Any],
         *,
         max_workers: int = 4,
-        dedup_key_fn: Optional[Callable[[Dict[str, Any]], str]] = None,
+        dedup_key_fn: Callable[[dict[str, Any]], str] | None = None,
     ):
         if not isinstance(providers, dict) or not providers:
             raise ValueError("providers must be a non-empty dict mapping name -> provider instance.")
-        self._providers: Dict[str, Any] = dict(providers)
+        self._providers: dict[str, Any] = dict(providers)
         self._max_workers = max(1, int(max_workers))
         self._dedup_key_fn = dedup_key_fn or _default_dedup_key
-        self._provider_names: Set[str] = set(self._providers)
+        self._provider_names: set[str] = set(self._providers)
 
         any_enabled = any(
             getattr(p, "enabled", False) is True for p in self._providers.values()
@@ -50,13 +51,13 @@ class ExternalSearchProviderRegistry:
         )
 
     @property
-    def provider_names(self) -> List[str]:
+    def provider_names(self) -> list[str]:
         return sorted(self._provider_names)
 
-    def get_provider(self, name: str) -> Optional[Any]:
+    def get_provider(self, name: str) -> Any | None:
         return self._providers.get(name.strip().lower())
 
-    def list_providers(self) -> List[Dict[str, Any]]:
+    def list_providers(self) -> list[dict[str, Any]]:
         return sorted(
             [
                 {
@@ -71,7 +72,7 @@ class ExternalSearchProviderRegistry:
             key=lambda item: item["name"],
         )
 
-    def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         """Search across all enabled providers, merge and deduplicate results."""
         enabled = {
             name: p
@@ -81,7 +82,7 @@ class ExternalSearchProviderRegistry:
         if not enabled:
             return []
 
-        all_raw: List[Dict[str, Any]] = []
+        all_raw: list[dict[str, Any]] = []
         with ThreadPoolExecutor(max_workers=min(self._max_workers, len(enabled))) as executor:
             future_to_name = {
                 executor.submit(_safe_search, p, query, limit): name
@@ -97,15 +98,15 @@ class ExternalSearchProviderRegistry:
 
         return deduplicate_external_evidence(all_raw, limit=limit)
 
-    def search_all(self, query: str, limit: int = 5) -> Dict[str, Any]:
+    def search_all(self, query: str, limit: int = 5) -> dict[str, Any]:
         """Search across all providers, returning per-provider results and merged list."""
         enabled = {
             name: p
             for name, p in self._providers.items()
             if getattr(p, "enabled", False) is True
         }
-        per_provider: Dict[str, Dict[str, Any]] = {}
-        all_raw: List[Dict[str, Any]] = []
+        per_provider: dict[str, dict[str, Any]] = {}
+        all_raw: list[dict[str, Any]] = []
 
         if not enabled:
             return {
@@ -138,7 +139,7 @@ class ExternalSearchProviderRegistry:
             "providers": per_provider,
         }
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         return {
             "enabled": self.enabled,
             "status": "ready" if self.enabled else "all_disabled",
@@ -147,7 +148,7 @@ class ExternalSearchProviderRegistry:
         }
 
 
-def _safe_search(provider: Any, query: str, limit: int) -> Optional[List[Dict[str, Any]]]:
+def _safe_search(provider: Any, query: str, limit: int) -> list[dict[str, Any]] | None:
     """Call provider.search, returning None on any failure."""
     try:
         result = provider.search(query, limit)
@@ -156,7 +157,7 @@ def _safe_search(provider: Any, query: str, limit: int) -> Optional[List[Dict[st
         return None
 
 
-def _safe_status(provider: Any) -> Dict[str, Any]:
+def _safe_status(provider: Any) -> dict[str, Any]:
     try:
         status = provider.status()
         return copy.deepcopy(status) if isinstance(status, dict) else {}
@@ -164,7 +165,7 @@ def _safe_status(provider: Any) -> Dict[str, Any]:
         return {}
 
 
-def _default_dedup_key(item: Dict[str, Any]) -> str:
+def _default_dedup_key(item: dict[str, Any]) -> str:
     doi = str(item.get("doi") or "").strip().lower()
     if doi:
         return f"doi:{doi}"

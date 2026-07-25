@@ -1,8 +1,9 @@
 import json
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 import requests
 
@@ -18,7 +19,6 @@ from services.external_search_cache import (
 )
 from services.safety_service import sanitize_untrusted_text
 from services.trace_service import record_counter
-
 
 BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 REQUEST_TIMEOUT = (3.05, 10.0)
@@ -38,7 +38,7 @@ BRAVE_SEARCH_API_KEY_ENV = "BRAVE_SEARCH_API_KEY"
 
 
 class BraveSearchProviderError(RuntimeError):
-    def __init__(self, code: str, status_code: Optional[int] = None):
+    def __init__(self, code: str, status_code: int | None = None):
         self.code = code
         self.status_code = status_code
         super().__init__(f"Brave Search request failed ({code}).")
@@ -52,20 +52,20 @@ class BraveSearchProvider:
 
     def __init__(
         self,
-        session: Optional[requests.Session] = None,
-        clock: Optional[Callable[[], datetime]] = None,
-        cache: Optional[ExternalSearchCache] = None,
+        session: requests.Session | None = None,
+        clock: Callable[[], datetime] | None = None,
+        cache: ExternalSearchCache | None = None,
         sleep_fn: Callable[[float], None] = time.sleep,
         monotonic_clock: Callable[[], float] = time.monotonic,
         min_interval_seconds: float = DEFAULT_MIN_INTERVAL_SECONDS,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
     ):
         effective_key = api_key.strip() if isinstance(api_key, str) and api_key.strip() else None
         if not effective_key:
             raise ValueError("Brave Search API key is required.")
 
         self._session = session or requests.Session()
-        self._clock = clock or (lambda: datetime.now(timezone.utc))
+        self._clock = clock or (lambda: datetime.now(UTC))
         self._cache = cache or ExternalSearchCache(
             default_external_search_cache_path(), ttl_seconds=CACHE_TTL_SECONDS
         )
@@ -76,14 +76,14 @@ class BraveSearchProvider:
         self._rate_limit_lock = threading.Lock()
         self._next_request_at = 0.0
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         return {
             "enabled": True,
             "status": "ready",
             "provider": self.name,
         }
 
-    def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         normalized_query = normalize_external_search_query(_validate_query(query))
         normalized_limit = _validate_limit(limit)
         cached = self._cache.get(self.name, normalized_query, normalized_limit)
@@ -138,7 +138,7 @@ class BraveSearchProvider:
 
         raise BraveSearchProviderError("http_error")
 
-    def _build_headers(self) -> Dict[str, str]:
+    def _build_headers(self) -> dict[str, str]:
         return {
             "User-Agent": USER_AGENT,
             "Accept": "application/json",
@@ -172,7 +172,7 @@ def build_brave_search_provider(config: Any) -> BraveSearchProvider:
     )
 
 
-def _retry_delay(headers: Any, attempt: int, clock: Callable[[], datetime]) -> Optional[float]:
+def _retry_delay(headers: Any, attempt: int, clock: Callable[[], datetime]) -> float | None:
     retry_after = ""
     if hasattr(headers, "get"):
         retry_after = str(headers.get("Retry-After") or headers.get("retry-after") or "").strip()
@@ -184,7 +184,7 @@ def _retry_delay(headers: Any, attempt: int, clock: Callable[[], datetime]) -> O
     return max(0.0, delay)
 
 
-def _parse_retry_after(value: str, clock: Callable[[], datetime]) -> Optional[float]:
+def _parse_retry_after(value: str, clock: Callable[[], datetime]) -> float | None:
     from email.utils import parsedate_to_datetime
 
     try:
@@ -195,10 +195,10 @@ def _parse_retry_after(value: str, clock: Callable[[], datetime]) -> Optional[fl
     try:
         retry_at = parsedate_to_datetime(value)
         if retry_at.tzinfo is None:
-            retry_at = retry_at.replace(tzinfo=timezone.utc)
+            retry_at = retry_at.replace(tzinfo=UTC)
         now = clock()
         if now.tzinfo is None:
-            now = now.replace(tzinfo=timezone.utc)
+            now = now.replace(tzinfo=UTC)
         return max(0.0, (retry_at - now).total_seconds())
     except (TypeError, ValueError, OverflowError):
         return None
@@ -216,7 +216,7 @@ def _validate_limit(limit: Any) -> int:
     return limit
 
 
-def _read_json_response(response: Any) -> Dict[str, Any]:
+def _read_json_response(response: Any) -> dict[str, Any]:
     content_length = response.headers.get("Content-Length") or response.headers.get("content-length")
     if content_length:
         try:
@@ -244,11 +244,11 @@ def _read_json_response(response: Any) -> Dict[str, Any]:
 
 
 def _normalize_items(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     query: str,
     retrieved_at: str,
     limit: int,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     web = payload.get("web")
     if not isinstance(web, dict):
         raise BraveSearchProviderError("invalid_response")
@@ -272,7 +272,7 @@ def _normalize_items(
     return results
 
 
-def _map_web_result(item: Dict[str, Any], query: str, retrieved_at: str) -> Dict[str, Any]:
+def _map_web_result(item: dict[str, Any], query: str, retrieved_at: str) -> dict[str, Any]:
     return {
         "provider": "Brave Search",
         "providerId": _bounded_text(item.get("url"), MAX_URL_CHARS),
@@ -305,5 +305,5 @@ def _bounded_text(value: Any, limit: int) -> str:
 
 def _format_timestamp(value: datetime) -> str:
     if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")

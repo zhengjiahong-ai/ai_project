@@ -1,7 +1,11 @@
 import os
+from collections.abc import Callable, Mapping
 from types import MappingProxyType
-from typing import Any, Callable, Dict, List, Mapping, Optional, Protocol, runtime_checkable
-
+from typing import (
+    Any,
+    Protocol,
+    runtime_checkable,
+)
 
 EXTERNAL_SEARCH_ENABLED_ENV = "PIXIU_EXTERNAL_SEARCH_ENABLED"
 EXTERNAL_SEARCH_PROVIDER_ENV = "PIXIU_EXTERNAL_SEARCH_PROVIDER"
@@ -21,10 +25,10 @@ class ExternalSearchProvider(Protocol):
     supports_web_search: bool
     supports_page_fetch: bool
 
-    def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         ...
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         ...
 
 
@@ -34,10 +38,10 @@ class DisabledExternalSearchProvider:
     supports_web_search = False
     supports_page_fetch = False
 
-    def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         return []
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         return {
             "enabled": False,
             "status": "disabled",
@@ -61,7 +65,9 @@ def _build_arxiv_provider(config: Mapping[str, str]) -> ExternalSearchProvider:
 
 
 def _build_semantic_scholar_provider(config: Mapping[str, str]) -> ExternalSearchProvider:
-    from services.providers.semantic_scholar_provider import build_semantic_scholar_provider
+    from services.providers.semantic_scholar_provider import (
+        build_semantic_scholar_provider,
+    )
 
     return build_semantic_scholar_provider(config)
 
@@ -79,8 +85,8 @@ def _build_tavily_search_provider(config: Mapping[str, str]) -> ExternalSearchPr
 
 
 def create_external_search_provider(
-    environ: Optional[Mapping[str, str]] = None,
-    builders: Optional[Mapping[str, ProviderBuilder]] = None,
+    environ: Mapping[str, str] | None = None,
+    builders: Mapping[str, ProviderBuilder] | None = None,
 ) -> ExternalSearchProvider:
     source = os.environ if environ is None else environ
     enabled = str(source.get(EXTERNAL_SEARCH_ENABLED_ENV, "")).strip().lower() in ENABLED_VALUES
@@ -162,7 +168,7 @@ def _auto_enable_semantic_scholar(
 def _create_multi_provider(
     providers_env: str,
     source: Mapping[str, str],
-    builders: Optional[Mapping[str, ProviderBuilder]] = None,
+    builders: Mapping[str, ProviderBuilder] | None = None,
 ) -> ExternalSearchProvider:
     from services.external_search_registry import ExternalSearchProviderRegistry
 
@@ -196,7 +202,7 @@ def _create_multi_provider(
         )
 
     config = MappingProxyType(dict(source))
-    instances: Dict[str, ExternalSearchProvider] = {}
+    instances: dict[str, ExternalSearchProvider] = {}
     for name in unique_names:
         try:
             provider = registry[name](config)

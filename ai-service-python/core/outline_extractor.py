@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 import statistics
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable
+from typing import Any
 
 from bs4 import BeautifulSoup
 
 from core.document_parser import _collect_element_coords, _union_boxes
 
-import logging
 _logger = logging.getLogger(__name__)
 
 try:
@@ -126,7 +127,7 @@ class OutlineCandidate:
     confidence: float = 0.7
     page_index: int | None = None
     page: int | None = None
-    bbox: Dict[str, float] | None = None
+    bbox: dict[str, float] | None = None
     anchor_y: float | None = None
     preview: str = ""
     source_key: str = ""
@@ -458,7 +459,7 @@ def _extract_pdf_text_lines(pdf_path: str) -> list[PdfTextLine]:
     order = 0
 
     for page_index, page in enumerate(reader.pages):
-        _page_width = float(page.mediabox.width or 0)  # noqa: F841
+        _page_width = float(page.mediabox.width or 0)
         page_height = float(page.mediabox.height or 0)
 
         def visitor_text(text, _cm, tm, font_dict, font_size):
@@ -1661,5 +1662,5 @@ def _build_outline_id(candidate: OutlineCandidate, index: int) -> str:
 def _stable_source_key(prefix: str, text: str, bbox: dict | None, index: int) -> str:
     page = "" if not bbox else str(bbox.get("pageIndex", ""))
     y = "" if not bbox else str(round(float(bbox.get("y") or 0), 1))
-    digest = hashlib.sha1(f"{text}|{page}|{y}|{index}".encode("utf-8")).hexdigest()[:10]
+    digest = hashlib.sha1(f"{text}|{page}|{y}|{index}".encode()).hexdigest()[:10]
     return f"{prefix}-{digest}"

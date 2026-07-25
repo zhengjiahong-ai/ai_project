@@ -7,12 +7,12 @@ from __future__ import annotations
 
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import requests
-
 
 # ---- Error codes (sanitized, never leak raw URL or response body) ----
 
@@ -61,7 +61,7 @@ _MIN_INTERVAL_PER_HOST_SECONDS = 2.0
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 # ---- Concurrency control ----
@@ -98,7 +98,7 @@ class _HostRateLimiter:
             return max(0.0, (started_at - now) * 1000)
 
 
-_host_rate_limiters: Dict[str, _HostRateLimiter] = {}
+_host_rate_limiters: dict[str, _HostRateLimiter] = {}
 _host_rate_limiters_lock = threading.Lock()
 
 
@@ -125,11 +125,11 @@ def _get_host_rate_limiter(
 def fetch_web_page(
     url: str,
     *,
-    session: Optional[requests.Session] = None,
+    session: requests.Session | None = None,
     max_chars: int = 50000,
     clock: Callable[[], float] = time.monotonic,
     sleep_fn: Callable[[float], None] = time.sleep,
-    cache: Optional[Any] = None,
+    cache: Any | None = None,
 ) -> FetchResult:
     """Fetch a web page through the full security chain.
 
@@ -206,7 +206,7 @@ def _perform_fetch(
     url: str,
     hostname: str,
     *,
-    session: Optional[requests.Session] = None,
+    session: requests.Session | None = None,
     max_chars: int = 50000,
     clock: Callable[[], float] = time.monotonic,
     sleep_fn: Callable[[float], None] = time.sleep,

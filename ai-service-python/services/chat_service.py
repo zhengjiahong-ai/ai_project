@@ -1,16 +1,19 @@
-from typing import Any, Dict, List
+import logging
+from typing import Any
 
 from rag.store import get_rag, retrieve_hybrid_results
 from schemas.requests import (
     ChatRequest,
     PageTranslationRequest,
 )
-from services.math_markdown import MATH_MARKDOWN_GUIDELINE as SHARED_MATH_MARKDOWN_GUIDELINE
 from services.evidence_service import (
     build_sentence_source_map,
     compact_evidence_for_response,
     format_evidence_context,
     normalize_evidence_items,
+)
+from services.math_markdown import (
+    MATH_MARKDOWN_GUIDELINE as SHARED_MATH_MARKDOWN_GUIDELINE,
 )
 from services.page_translation_service import translate_page as translate_page_v2
 from services.query_service import build_chat_query_plan
@@ -29,7 +32,7 @@ from services.trace_service import (
     start_trace,
     trace_step,
 )
-import logging
+
 _logger = logging.getLogger(__name__)
 
 
@@ -135,7 +138,7 @@ def _retrieve_current_paper_evidence(
     pdf_id: str | None = None,
     current_top_k: int = 5,
     current_limit: int = 5,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     if not pdf_id:
         return []
     try:
@@ -156,7 +159,7 @@ def _retrieve_current_paper_evidence(
         return []
 
 
-def _deduplicate_evidence(items: List[Dict[str, Any]], limit: int | None = None) -> List[Dict[str, Any]]:
+def _deduplicate_evidence(items: list[dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
     deduped = []
     seen = set()
     for item in items:
@@ -174,7 +177,7 @@ def _retrieve_library_evidence(
     retrieval_query: str,
     library_top_k: int = 3,
     library_limit: int = 3,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     with trace_step("retrieve_library", input_size=len(str(retrieval_query or ""))) as step:
         record_counter("retrievalCalls")
         raw_results = retrieve_hybrid_results(retrieval_query, top_k=library_top_k)
@@ -190,7 +193,7 @@ def _retrieve_evidence_for_query(
     library_top_k: int = 3,
     current_limit: int = 5,
     library_limit: int = 3,
-) -> tuple[List[Dict[str, Any]], str]:
+) -> tuple[list[dict[str, Any]], str]:
     evidence = _retrieve_current_paper_evidence(
         retrieval_query,
         pdf_id=pdf_id,
@@ -208,13 +211,13 @@ def _retrieve_evidence_for_query(
     return evidence, "library" if evidence else ""
 
 
-def _should_retry_retrieval(judge_result: Dict[str, Any]) -> bool:
+def _should_retry_retrieval(judge_result: dict[str, Any]) -> bool:
     return MAX_RETRIEVAL_RETRIES > 0 and bool(judge_result.get("shouldRetry")) and (
         judge_result.get("verdict") != "CORRECT" or float(judge_result.get("confidence") or 0) < 0.68
     )
 
 
-def _build_retry_query(base_question: str, query_plan: Dict[str, Any], judge_result: Dict[str, Any]) -> str:
+def _build_retry_query(base_question: str, query_plan: dict[str, Any], judge_result: dict[str, Any]) -> str:
     parts = [
         query_plan.get("original") or base_question,
         query_plan.get("rewritten") or "",
@@ -240,13 +243,13 @@ def _build_retry_query(base_question: str, query_plan: Dict[str, Any], judge_res
 def _judge_and_retry_evidence(
     question: str,
     retrieval_query: str,
-    query_plan: Dict[str, Any],
+    query_plan: dict[str, Any],
     pdf_id: str | None = None,
     current_top_k: int = 5,
     library_top_k: int = 3,
     current_limit: int = 5,
     library_limit: int = 3,
-) -> tuple[List[Dict[str, Any]], str, Dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], str, dict[str, Any]]:
     evidence, scope = _retrieve_evidence_for_query(
         retrieval_query,
         pdf_id=pdf_id,
@@ -302,14 +305,14 @@ def _judge_and_retry_evidence(
 
 
 def _merge_chat_evidence(
-    current_evidence: List[Dict[str, Any]],
-    library_evidence: List[Dict[str, Any]],
+    current_evidence: list[dict[str, Any]],
+    library_evidence: list[dict[str, Any]],
     limit: int | None = None,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     return _deduplicate_evidence([*current_evidence, *library_evidence], limit=limit)
 
 
-def _build_chat_keywords(query_plan: Dict[str, Any], extra_terms: List[str] | None = None) -> List[str]:
+def _build_chat_keywords(query_plan: dict[str, Any], extra_terms: list[str] | None = None) -> list[str]:
     keywords = []
     seen = set()
     for raw_term in [*(query_plan.get("keywords") or []), *(extra_terms or [])]:
@@ -324,7 +327,7 @@ def _build_chat_keywords(query_plan: Dict[str, Any], extra_terms: List[str] | No
     return keywords
 
 
-def _build_no_retrieval_judge(reason: str = "规划阶段判断该问题不需要额外检索。") -> Dict[str, Any]:
+def _build_no_retrieval_judge(reason: str = "规划阶段判断该问题不需要额外检索。") -> dict[str, Any]:
     return {
         "verdict": "CORRECT",
         "confidence": 0.55,
@@ -335,13 +338,13 @@ def _build_no_retrieval_judge(reason: str = "规划阶段判断该问题不需�
 
 
 def _execute_chat_query_step(
-    step: Dict[str, Any],
+    step: dict[str, Any],
     pdf_id: str | None = None,
     current_top_k: int = 12,
     library_top_k: int = 5,
     current_limit: int = 12,
     library_limit: int = 5,
-) -> tuple[List[Dict[str, Any]], str]:
+) -> tuple[list[dict[str, Any]], str]:
     query = " ".join(str(step.get("query") or "").strip().split())
     scope = str(step.get("scope") or "").strip() or ("current_paper" if pdf_id else "library")
     if not query:
@@ -364,7 +367,7 @@ def _execute_chat_query_step(
     ), "library"
 
 
-def _resolve_chat_scope(current_evidence: List[Dict[str, Any]], library_evidence: List[Dict[str, Any]]) -> str:
+def _resolve_chat_scope(current_evidence: list[dict[str, Any]], library_evidence: list[dict[str, Any]]) -> str:
     if current_evidence and library_evidence:
         return "mixed"
     if current_evidence:
@@ -374,7 +377,7 @@ def _resolve_chat_scope(current_evidence: List[Dict[str, Any]], library_evidence
     return ""
 
 
-def _should_run_follow_up_query(step: Dict[str, Any], judge_result: Dict[str, Any]) -> bool:
+def _should_run_follow_up_query(step: dict[str, Any], judge_result: dict[str, Any]) -> bool:
     scope = str(step.get("scope") or "").strip()
     if scope != "library":
         return True
@@ -382,10 +385,10 @@ def _should_run_follow_up_query(step: Dict[str, Any], judge_result: Dict[str, An
 
 
 def _select_retry_scope(
-    attempted_scopes: List[str],
+    attempted_scopes: list[str],
     pdf_id: str | None,
-    current_evidence: List[Dict[str, Any]],
-    library_evidence: List[Dict[str, Any]],
+    current_evidence: list[dict[str, Any]],
+    library_evidence: list[dict[str, Any]],
 ) -> str:
     normalized_attempts = [scope for scope in attempted_scopes if scope]
     if pdf_id and "current_paper" not in normalized_attempts:
@@ -401,13 +404,13 @@ def _select_retry_scope(
 
 def _run_chat_agentic_retrieval(
     question: str,
-    query_plan: Dict[str, Any],
+    query_plan: dict[str, Any],
     pdf_id: str | None = None,
     current_top_k: int = 12,
     library_top_k: int = 5,
     current_limit: int = 12,
     library_limit: int = 5,
-) -> tuple[List[Dict[str, Any]], str, Dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], str, dict[str, Any]]:
     if not query_plan.get("needsRetrieval", True):
         return [], "", _build_no_retrieval_judge()
 
@@ -419,9 +422,9 @@ def _run_chat_agentic_retrieval(
             "reason": "默认检索计划。",
         }]
 
-    current_evidence: List[Dict[str, Any]] = []
-    library_evidence: List[Dict[str, Any]] = []
-    attempted_scopes: List[str] = []
+    current_evidence: list[dict[str, Any]] = []
+    library_evidence: list[dict[str, Any]] = []
+    attempted_scopes: list[str] = []
 
     primary_evidence, primary_scope = _execute_chat_query_step(
         planned_queries[0],
@@ -539,7 +542,7 @@ def _chat_intent_instruction(intent: str) -> str:
     return instructions.get(intent, instructions["自由问答"])
 
 
-def _format_query_plan_summary(query_plan: Dict[str, Any]) -> str:
+def _format_query_plan_summary(query_plan: dict[str, Any]) -> str:
     queries = query_plan.get("queries") or []
     if not queries:
         return "检索计划：当前问题无需额外检索。"
@@ -557,7 +560,7 @@ def _format_query_plan_summary(query_plan: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _evidence_quality_instruction(judge_result: Dict[str, Any]) -> str:
+def _evidence_quality_instruction(judge_result: dict[str, Any]) -> str:
     verdict = judge_result.get("verdict")
     if verdict == "INCORRECT":
         return (
@@ -574,10 +577,10 @@ def _evidence_quality_instruction(judge_result: Dict[str, Any]) -> str:
 
 
 def _build_chat_query_context(
-    history: List[Dict[str, Any]], paper_skeleton: Dict[str, Any]
+    history: list[dict[str, Any]], paper_skeleton: dict[str, Any]
 ) -> str:
     """Build a minimal context string from paper skeleton for query planning."""
-    parts: List[str] = []
+    parts: list[str] = []
     abstract = str(paper_skeleton.get("abstract") or "").strip()
     if abstract:
         parts.append(f"Abstract: {abstract[:1200]}")
@@ -587,7 +590,7 @@ def _build_chat_query_context(
     return "\n\n".join(parts)
 
 
-def chat(request: ChatRequest) -> Dict[str, Any]:
+def chat(request: ChatRequest) -> dict[str, Any]:
     message = request.message or ""
     if not message.strip():
         raise ValueError("Message cannot be empty.")
@@ -714,5 +717,5 @@ def chat(request: ChatRequest) -> Dict[str, Any]:
         raise
 
 
-def translate_page(request: PageTranslationRequest) -> Dict[str, Any]:
+def translate_page(request: PageTranslationRequest) -> dict[str, Any]:
     return translate_page_v2(request)

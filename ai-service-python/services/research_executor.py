@@ -1,24 +1,27 @@
 import copy
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.external_query_planner import build_external_academic_queries
 from services.query_service import build_retrieval_queries
-from services.safety_service import MAX_RETRIEVAL_RETRIES, external_search_degradation_reason
-from services.trace_service import record_counter, sanitize_text, trace_step
+from services.safety_service import (
+    MAX_RETRIEVAL_RETRIES,
+    external_search_degradation_reason,
+)
 from services.tool_registry import get_tool_registry
+from services.trace_service import record_counter, sanitize_text, trace_step
 
 
 def research_sub_question(
     sub_question: str,
     question: str,
     pdf_id: str,
-    paper_skeleton: Dict[str, Any],
-    documents: List[Dict[str, Any]],
+    paper_skeleton: dict[str, Any],
+    documents: list[dict[str, Any]],
     *,
     allow_web_search: bool = False,
     allow_iterative_search: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     research_context = build_planning_context(question, paper_skeleton, documents)
     with trace_step(
         "research_query_plan",
@@ -38,7 +41,7 @@ def research_sub_question(
         step["outputSize"] = len(judge.get("missingAspects") or [])
         annotate_judge_step(step, judge, "try_library" if should_try_library(judge) else "stop")
 
-    library_evidence: List[Dict[str, Any]] = []
+    library_evidence: list[dict[str, Any]] = []
     retry_reason = ""
     if should_try_library(judge):
         library_evidence = retrieve_library_evidence(
@@ -197,7 +200,7 @@ def research_sub_question(
     }
 
 
-def retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, limit: int = 5) -> List[Dict[str, Any]]:
+def retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, limit: int = 5) -> list[dict[str, Any]]:
     response = invoke_tool(
         "retrieve_current_paper",
         {
@@ -211,7 +214,7 @@ def retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, lim
     return list(response.get("items") or [])
 
 
-def retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, top_k: int = 5, limit: int = 4) -> List[Dict[str, Any]]:
+def retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, top_k: int = 5, limit: int = 4) -> list[dict[str, Any]]:
     response = invoke_tool(
         "retrieve_library",
         {
@@ -225,8 +228,8 @@ def retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, top
     return list(response.get("items") or [])
 
 
-def merge_evidence_lists(*groups: List[Dict[str, Any]], limit: int = 8) -> List[Dict[str, Any]]:
-    merged: List[Dict[str, Any]] = []
+def merge_evidence_lists(*groups: list[dict[str, Any]], limit: int = 8) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
     seen = set()
     for group in groups:
         for item in group or []:
@@ -244,8 +247,8 @@ def merge_evidence_lists(*groups: List[Dict[str, Any]], limit: int = 8) -> List[
     return merged
 
 
-def ensure_stable_source_ids(items: List[Dict[str, Any]], fallback_prefix: str) -> List[Dict[str, Any]]:
-    stabilized: List[Dict[str, Any]] = []
+def ensure_stable_source_ids(items: list[dict[str, Any]], fallback_prefix: str) -> list[dict[str, Any]]:
+    stabilized: list[dict[str, Any]] = []
     for index, item in enumerate(items or []):
         current = copy.deepcopy(item)
         base = str(current.get("sourceId") or "").strip()
@@ -261,7 +264,7 @@ def ensure_stable_source_ids(items: List[Dict[str, Any]], fallback_prefix: str) 
     return stabilized
 
 
-def build_retry_query(sub_question: str, query_plan: Dict[str, Any], judge_result: Dict[str, Any]) -> str:
+def build_retry_query(sub_question: str, query_plan: dict[str, Any], judge_result: dict[str, Any]) -> str:
     parts = [
         query_plan.get("original") or sub_question,
         query_plan.get("rewritten") or "",
@@ -283,7 +286,7 @@ def build_retry_query(sub_question: str, query_plan: Dict[str, Any], judge_resul
     return " ".join(unique_parts)[:500] or sub_question
 
 
-def build_finding_summary(sub_question: str, evidence: List[Dict[str, Any]], judge_result: Dict[str, Any]) -> str:
+def build_finding_summary(sub_question: str, evidence: list[dict[str, Any]], judge_result: dict[str, Any]) -> str:
     verdict = str(judge_result.get("verdict") or "INCORRECT")
     missing_aspects = normalize_missing_aspects(judge_result.get("missingAspects"))
     preview = evidence_preview(evidence)
@@ -297,7 +300,7 @@ def build_finding_summary(sub_question: str, evidence: List[Dict[str, Any]], jud
     return f"围绕“{sub_question}”，当前没有检索到足够直接的证据。"
 
 
-def build_planning_context(question: str, paper_skeleton: Dict[str, Any], documents: List[Dict[str, Any]]) -> str:
+def build_planning_context(question: str, paper_skeleton: dict[str, Any], documents: list[dict[str, Any]]) -> str:
     skeleton_text = (read_paper_skeleton(paper_skeleton, max_sections=6, max_chars_per_section=220).get("text") or "")[:1200]
     evidence_text = format_evidence_context(documents, title="当前论文证据", max_items=4, max_text_chars=260)
     return (
@@ -308,11 +311,11 @@ def build_planning_context(question: str, paper_skeleton: Dict[str, Any], docume
 
 
 def read_paper_skeleton(
-    paper_skeleton: Dict[str, Any],
+    paper_skeleton: dict[str, Any],
     *,
     max_sections: int = 6,
     max_chars_per_section: int = 220,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return invoke_tool(
         "read_paper_skeleton",
         {
@@ -323,7 +326,7 @@ def read_paper_skeleton(
     )
 
 
-def judge_research_evidence(question: str, evidence_items: List[Dict[str, Any]], keywords: List[str] | None = None) -> Dict[str, Any]:
+def judge_research_evidence(question: str, evidence_items: list[dict[str, Any]], keywords: list[str] | None = None) -> dict[str, Any]:
     return invoke_tool(
         "judge_evidence",
         {
@@ -334,7 +337,7 @@ def judge_research_evidence(question: str, evidence_items: List[Dict[str, Any]],
     )
 
 
-def annotate_judge_step(step: Dict[str, Any], judge_result: Dict[str, Any], decision: str) -> None:
+def annotate_judge_step(step: dict[str, Any], judge_result: dict[str, Any], decision: str) -> None:
     meta = dict(step.get("meta") or {})
     coverage = normalize_judge_coverage(judge_result.get("coverage"))
     meta.update(
@@ -350,23 +353,23 @@ def annotate_judge_step(step: Dict[str, Any], judge_result: Dict[str, Any], deci
     step["meta"] = meta
 
 
-def should_try_library(judge_result: Dict[str, Any]) -> bool:
+def should_try_library(judge_result: dict[str, Any]) -> bool:
     return str(judge_result.get("verdict") or "") != "CORRECT" or float(judge_result.get("confidence") or 0) < 0.68
 
 
-def should_retry(judge_result: Dict[str, Any]) -> bool:
+def should_retry(judge_result: dict[str, Any]) -> bool:
     return MAX_RETRIEVAL_RETRIES > 0 and bool(judge_result.get("shouldRetry")) and (
         str(judge_result.get("verdict") or "") != "CORRECT" or float(judge_result.get("confidence") or 0) < 0.68
     )
 
 
-def should_try_external(judge_result: Dict[str, Any]) -> bool:
+def should_try_external(judge_result: dict[str, Any]) -> bool:
     if str(judge_result.get("verdict") or "") == "CORRECT":
         return False
     return bool(normalize_missing_aspects(judge_result.get("missingAspects")))
 
 
-def should_try_web_search(judge_result: Dict[str, Any], *, allow_web_search: bool = False) -> bool:
+def should_try_web_search(judge_result: dict[str, Any], *, allow_web_search: bool = False) -> bool:
     """Web search triggers only when academic+external is insufficient."""
     if not allow_web_search:
         return False
@@ -379,7 +382,7 @@ def retrieve_web_search_evidence(
     research_question: str,
     missing_aspects: list,
     limit_per_query: int = 4,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     from services.external_query_planner import build_web_search_queries
 
     queries = build_web_search_queries(
@@ -425,7 +428,7 @@ def retrieve_external_academic_evidence(
     sub_question: str,
     missing_aspects: list,
     limit_per_query: int = 3,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     queries = build_external_academic_queries(
         research_question=research_question,
         planner_sub_questions=[sub_question],
@@ -473,7 +476,7 @@ def normalize_judge_score(value: Any) -> int:
     return max(0, min(100, score))
 
 
-def normalize_judge_coverage(value: Any) -> Dict[str, Any]:
+def normalize_judge_coverage(value: Any) -> dict[str, Any]:
     coverage = value if isinstance(value, dict) else {}
     return {
         "score": round(max(0.0, min(1.0, coerce_float(coverage.get("score"), 0.0))), 2),
@@ -487,7 +490,7 @@ def normalize_judge_coverage(value: Any) -> Dict[str, Any]:
     }
 
 
-def normalize_missing_aspects(value: Any) -> List[str]:
+def normalize_missing_aspects(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     items = []
@@ -506,7 +509,7 @@ def normalize_missing_aspects(value: Any) -> List[str]:
     return items
 
 
-def normalize_text_list(value: Any, limit: int = 5) -> List[str]:
+def normalize_text_list(value: Any, limit: int = 5) -> list[str]:
     if isinstance(value, str):
         raw_items = [line.strip("-* 0123456789.、 \t") for line in value.splitlines()]
     elif isinstance(value, list):
@@ -530,7 +533,7 @@ def normalize_text_list(value: Any, limit: int = 5) -> List[str]:
     return items
 
 
-def evidence_preview(evidence: List[Dict[str, Any]]) -> str:
+def evidence_preview(evidence: list[dict[str, Any]]) -> str:
     snippets = []
     for item in evidence[:2]:
         text = clean_text(item.get("text"))
@@ -539,7 +542,7 @@ def evidence_preview(evidence: List[Dict[str, Any]]) -> str:
     return "；".join(snippets)
 
 
-def invoke_tool(name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+def invoke_tool(name: str, payload: dict[str, Any]) -> dict[str, Any]:
     response = get_tool_registry().invoke(name, payload)
     return response if isinstance(response, dict) else {}
 
@@ -558,7 +561,7 @@ def coerce_float(value: Any, fallback: float = 0.0) -> float:
         return fallback
 
 
-def coerce_float_or_none(value: Any) -> Optional[float]:
+def coerce_float_or_none(value: Any) -> float | None:
     if value is None:
         return None
     try:

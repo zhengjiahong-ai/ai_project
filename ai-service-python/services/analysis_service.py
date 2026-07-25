@@ -1,8 +1,8 @@
 import os
+import re
 import shutil
 import tempfile
-import re
-from typing import Any, Dict, List
+from typing import Any
 
 from bs4 import BeautifulSoup
 from fastapi import UploadFile
@@ -12,12 +12,16 @@ try:
 except ImportError:  # pragma: no cover - deployment dependency guard
     PdfReader = None
 
+import logging
+
 from core.document_parser import extract_translation_layout_index, parse_tei_xml
 from core.outline_extractor import OUTLINE_VERSION, build_document_outline
 from llm.client import get_llm
 from rag.store import get_rag, is_rag_available, normalize_id, preload_rag
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
-from services.background_knowledge_service import get_background_knowledge as build_background_knowledge
+from services.background_knowledge_service import (
+    get_background_knowledge as build_background_knowledge,
+)
 from services.evidence_service import (
     build_field_sentence_source_map,
     compact_evidence_for_response,
@@ -31,10 +35,16 @@ from services.safety_service import (
     summarize_safety_results,
     wrap_untrusted_context,
 )
-from services.trace_service import finalize_trace, record_counter, record_metric, sanitize_text, start_trace, trace_step
+from services.trace_service import (
+    finalize_trace,
+    record_counter,
+    record_metric,
+    sanitize_text,
+    start_trace,
+    trace_step,
+)
 from services.utils import parse_json_from_llm
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -159,8 +169,8 @@ class PaperNotIndexedError(RuntimeError):
         self.error_code = error_code
         self.trace_id: str | None = None
 
-    def to_response(self) -> Dict[str, Any]:
-        response: Dict[str, Any] = {
+    def to_response(self) -> dict[str, Any]:
+        response: dict[str, Any] = {
             "status": "error",
             "errorCode": self.error_code,
             "message": self.message,
@@ -264,7 +274,7 @@ def _count_non_whitespace_characters(value: str) -> int:
     return len(re.sub(r"\s+", "", str(value or "")))
 
 
-def _extract_pdf_text_stats(file_path: str) -> Dict[str, int]:
+def _extract_pdf_text_stats(file_path: str) -> dict[str, int]:
     if PdfReader is None:
         raise RuntimeError("PyPDF2 is required to diagnose PDF text content.")
     reader = PdfReader(file_path)
@@ -282,13 +292,13 @@ def _extract_pdf_text_stats(file_path: str) -> Dict[str, int]:
 
 def _build_parse_diagnostics(
     *, page_count: int, pdf_text_char_count: int, tei_text_char_count: int
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     threshold = min(max(200, max(0, int(page_count or 0)) * 50), 2000)
     max_text_char_count = max(
         max(0, int(pdf_text_char_count or 0)),
         max(0, int(tei_text_char_count or 0)),
     )
-    diagnostics: Dict[str, Any] = {
+    diagnostics: dict[str, Any] = {
         "parseStatus": PARSE_STATUS_PARSED
         if max_text_char_count >= threshold
         else PARSE_STATUS_SCANNED_OR_LOW_TEXT,
@@ -299,7 +309,7 @@ def _build_parse_diagnostics(
     return diagnostics
 
 
-def _build_low_text_upload_response(filename: str, pdf_stats: Dict[str, int]) -> Dict[str, Any]:
+def _build_low_text_upload_response(filename: str, pdf_stats: dict[str, int]) -> dict[str, Any]:
     diagnostics = _build_parse_diagnostics(
         page_count=pdf_stats.get("pageCount", 0),
         pdf_text_char_count=pdf_stats.get("textCharCount", 0),
@@ -331,7 +341,7 @@ def _build_low_text_upload_response(filename: str, pdf_stats: Dict[str, int]) ->
     }
 
 
-async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
+async def analyze_pdf(file: UploadFile) -> dict[str, Any]:
     input_dir = tempfile.mkdtemp()
     output_dir = tempfile.mkdtemp()
 
@@ -416,7 +426,7 @@ async def analyze_pdf(file: UploadFile) -> Dict[str, Any]:
             if len(text.strip()) > 50:
                 combined_context += f"### Section: {name.upper()}\nContent: {text.strip()[:2500]}\n\n"
 
-        paper_structure: Dict[str, Any] = {}
+        paper_structure: dict[str, Any] = {}
         if combined_context:
             summary_prompt = f"""
 You are a rigorous paper reader.
@@ -532,11 +542,11 @@ Paper context:
             shutil.rmtree(output_dir)
 
 
-def get_background_knowledge(request: BackgroundKnowledgeRequest) -> Dict[str, Any]:
+def get_background_knowledge(request: BackgroundKnowledgeRequest) -> dict[str, Any]:
     return build_background_knowledge(request)
 
 
-def _chunk_text(text: str, chunk_size: int = ANALYSIS_CHUNK_SIZE, overlap: int = ANALYSIS_CHUNK_OVERLAP) -> List[str]:
+def _chunk_text(text: str, chunk_size: int = ANALYSIS_CHUNK_SIZE, overlap: int = ANALYSIS_CHUNK_OVERLAP) -> list[str]:
     value = str(text or "").strip()
     if not value:
         return []
@@ -557,7 +567,7 @@ def _chunk_text(text: str, chunk_size: int = ANALYSIS_CHUNK_SIZE, overlap: int =
     return chunks
 
 
-def _build_inline_documents(paper_content: str) -> List[Dict[str, Any]]:
+def _build_inline_documents(paper_content: str) -> list[dict[str, Any]]:
     documents = []
     for index, chunk in enumerate(_chunk_text(paper_content)):
         documents.append({
@@ -570,7 +580,7 @@ def _build_inline_documents(paper_content: str) -> List[Dict[str, Any]]:
     return normalize_evidence_items(documents, source_type="current_paper", max_text_chars=1800)
 
 
-def _load_analysis_source(request: DeepAnalysisRequest) -> tuple[List[Dict[str, Any]], str, str | None, str]:
+def _load_analysis_source(request: DeepAnalysisRequest) -> tuple[list[dict[str, Any]], str, str | None, str]:
     with trace_step(
         "load_analysis_source",
         meta={"hasInlineContent": bool(request.paper_content), "pdfId": sanitize_text(request.pdf_id, max_chars=80)},
@@ -615,7 +625,7 @@ def resolve_paper_content(request: DeepAnalysisRequest) -> tuple[str, str, str |
     return paper_content, resolved_from, normalized_id
 
 
-def _build_analysis_context(documents: List[Dict[str, Any]], max_docs: int = 4, max_chars: int = 2400) -> str:
+def _build_analysis_context(documents: list[dict[str, Any]], max_docs: int = 4, max_chars: int = 2400) -> str:
     parts = []
     for item in documents[:max_docs]:
         text = str(item.get("text") or "").strip()
@@ -624,7 +634,7 @@ def _build_analysis_context(documents: List[Dict[str, Any]], max_docs: int = 4, 
     return "\n\n".join(parts)[:max_chars]
 
 
-def _extract_query_terms(text: str) -> List[str]:
+def _extract_query_terms(text: str) -> list[str]:
     tokens = re.findall(r"[A-Za-z0-9][A-Za-z0-9._-]{1,31}|[\u4e00-\u9fff]{2,12}", str(text or ""))
     results = []
     seen = set()
@@ -644,7 +654,7 @@ def _extract_query_terms(text: str) -> List[str]:
     return results[:12]
 
 
-def _deduplicate_evidence(items: List[Dict[str, Any]], limit: int | None = None) -> List[Dict[str, Any]]:
+def _deduplicate_evidence(items: list[dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
     deduped = []
     seen = set()
     for item in items:
@@ -658,14 +668,14 @@ def _deduplicate_evidence(items: List[Dict[str, Any]], limit: int | None = None)
     return deduped
 
 
-def _merge_evidence_lists(*groups: List[Dict[str, Any]], limit: int | None = None) -> List[Dict[str, Any]]:
+def _merge_evidence_lists(*groups: list[dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
     merged = []
     for group in groups:
         merged.extend(group or [])
     return _deduplicate_evidence(merged, limit=limit)
 
 
-def _build_axis_terms(query_plan: Dict[str, Any], axis: Dict[str, Any]) -> List[str]:
+def _build_axis_terms(query_plan: dict[str, Any], axis: dict[str, Any]) -> list[str]:
     terms = []
     seen = set()
     for raw in [
@@ -687,7 +697,7 @@ def _build_axis_terms(query_plan: Dict[str, Any], axis: Dict[str, Any]) -> List[
     return terms
 
 
-def _score_document(text: str, terms: List[str]) -> tuple[float, List[str]]:
+def _score_document(text: str, terms: list[str]) -> tuple[float, list[str]]:
     lowered = str(text or "").lower()
     matched_terms = []
     for term in terms:
@@ -705,11 +715,11 @@ def _score_document(text: str, terms: List[str]) -> tuple[float, List[str]]:
 
 
 def _retrieve_axis_evidence(
-    documents: List[Dict[str, Any]],
-    query_plan: Dict[str, Any],
-    axis: Dict[str, Any],
+    documents: list[dict[str, Any]],
+    query_plan: dict[str, Any],
+    axis: dict[str, Any],
     limit: int = ANALYSIS_RETRIEVAL_LIMIT,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     with trace_step(
         f"axis_{axis.get('key')}_retrieve",
         input_size=len(documents),
@@ -752,13 +762,13 @@ def _retrieve_axis_evidence(
         return deduped
 
 
-def _should_retry_retrieval(judge_result: Dict[str, Any]) -> bool:
+def _should_retry_retrieval(judge_result: dict[str, Any]) -> bool:
     return MAX_RETRIEVAL_RETRIES > 0 and bool(judge_result.get("shouldRetry")) and (
         judge_result.get("verdict") != "CORRECT" or float(judge_result.get("confidence") or 0) < 0.68
     )
 
 
-def _build_retry_query(question: str, query_plan: Dict[str, Any], axis: Dict[str, Any], judge_result: Dict[str, Any]) -> str:
+def _build_retry_query(question: str, query_plan: dict[str, Any], axis: dict[str, Any], judge_result: dict[str, Any]) -> str:
     parts = [
         query_plan.get("original") or question,
         query_plan.get("rewritten") or "",
@@ -783,10 +793,10 @@ def _build_retry_query(question: str, query_plan: Dict[str, Any], axis: Dict[str
 
 
 def _analyze_axis(
-    axis: Dict[str, Any],
-    documents: List[Dict[str, Any]],
+    axis: dict[str, Any],
+    documents: list[dict[str, Any]],
     analysis_context: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     question = axis["question"]
     with trace_step(
         f"axis_{axis.get('key')}_query_plan",
@@ -849,7 +859,7 @@ def _analyze_axis(
     }
 
 
-def _format_axis_prompt_block(axis_result: Dict[str, Any]) -> str:
+def _format_axis_prompt_block(axis_result: dict[str, Any]) -> str:
     judge = axis_result.get("judge") or {}
     evidence_block = format_evidence_context(
         axis_result.get("evidence") or [],
@@ -873,7 +883,7 @@ def _format_axis_prompt_block(axis_result: Dict[str, Any]) -> str:
     )
 
 
-def _normalize_list_items(value: Any, fallback: List[str]) -> List[str]:
+def _normalize_list_items(value: Any, fallback: list[str]) -> list[str]:
     if isinstance(value, list):
         raw_items = [str(item).strip() for item in value]
     elif isinstance(value, str):
@@ -905,11 +915,11 @@ def _normalize_text_value(value: Any, fallback: str) -> str:
     return text or fallback
 
 
-def _axis_result_map(axis_results: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+def _axis_result_map(axis_results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {item["key"]: item for item in axis_results}
 
 
-def _fallback_claimed_contributions(axis_results: List[Dict[str, Any]]) -> str:
+def _fallback_claimed_contributions(axis_results: list[dict[str, Any]]) -> str:
     contributions = _axis_result_map(axis_results).get("contributions", {})
     evidence = contributions.get("evidence") or []
     if not evidence:
@@ -921,7 +931,7 @@ def _fallback_claimed_contributions(axis_results: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def _fallback_evidence_based_contributions(axis_results: List[Dict[str, Any]]) -> str:
+def _fallback_evidence_based_contributions(axis_results: list[dict[str, Any]]) -> str:
     axis_map = _axis_result_map(axis_results)
     evidence = _merge_evidence_lists(
         axis_map.get("contributions", {}).get("evidence") or [],
@@ -938,7 +948,7 @@ def _fallback_evidence_based_contributions(axis_results: List[Dict[str, Any]]) -
     return "\n".join(lines)
 
 
-def _fallback_weaknesses(axis_results: List[Dict[str, Any]]) -> List[str]:
+def _fallback_weaknesses(axis_results: list[dict[str, Any]]) -> list[str]:
     axis_map = _axis_result_map(axis_results)
     weaknesses = []
     if (axis_map.get("methods", {}).get("judge") or {}).get("verdict") != "CORRECT":
@@ -950,7 +960,7 @@ def _fallback_weaknesses(axis_results: List[Dict[str, Any]]) -> List[str]:
     return weaknesses
 
 
-def _fallback_overclaim_risks(axis_results: List[Dict[str, Any]]) -> List[str]:
+def _fallback_overclaim_risks(axis_results: list[dict[str, Any]]) -> list[str]:
     axis_map = _axis_result_map(axis_results)
     risks = []
     if (axis_map.get("contributions", {}).get("judge") or {}).get("verdict") != "CORRECT":
@@ -964,7 +974,7 @@ def _fallback_overclaim_risks(axis_results: List[Dict[str, Any]]) -> List[str]:
     return risks
 
 
-def _fallback_missing_evidence(axis_results: List[Dict[str, Any]]) -> List[str]:
+def _fallback_missing_evidence(axis_results: list[dict[str, Any]]) -> list[str]:
     missing = []
     seen = set()
     for axis_result in axis_results:
@@ -989,7 +999,8 @@ from services.critical_reading import (
     _generate_structured_critical_report,
 )
 
-def deep_analysis(request: DeepAnalysisRequest) -> Dict[str, Any]:
+
+def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
     trace_id = start_trace(
         "critical",
         request_meta={

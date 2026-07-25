@@ -220,7 +220,7 @@ def _check_dependencies(install_cmd: str, path: str) -> dict[str, Any]:
         with open(req_path, encoding="utf-8") as handle:
             lines = [
                 ln.split("#")[0].strip()
-                for ln in handle.readlines()
+                for ln in handle
                 if ln.strip() and not ln.strip().startswith("#")
             ]
     except Exception:

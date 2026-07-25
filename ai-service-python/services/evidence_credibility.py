@@ -13,10 +13,10 @@ overridden through environment variables (e.g. ``PIXIU_CREDIBILITY_CURRENT_PAPER
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 
-def get_source_trust_weights() -> Dict[str, float]:
+def get_source_trust_weights() -> dict[str, float]:
     """Return the current source-type → trust-weight mapping.
 
     Reads from the centralised ``Settings`` object so that weights can be
@@ -59,9 +59,9 @@ def get_source_trust_default() -> float:
 
 
 def compute_credibility(
-    evidence: Dict[str, Any],
-    all_evidence: List[Dict[str, Any]],
-) -> Dict[str, Any]:
+    evidence: dict[str, Any],
+    all_evidence: list[dict[str, Any]],
+) -> dict[str, Any]:
     """Compute structured credibility score for a single evidence item.
 
     Deterministic weighting; does **not** call an LLM.
@@ -129,10 +129,10 @@ def compute_credibility(
 
 
 def enrich_evidence_with_credibility(
-    evidence_items: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    evidence_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Return a new list where every evidence item carries a ``credibility`` field."""
-    weighted: List[Dict[str, Any]] = []
+    weighted: list[dict[str, Any]] = []
     for item in evidence_items:
         enriched = dict(item)
         enriched["credibility"] = compute_credibility(item, evidence_items)

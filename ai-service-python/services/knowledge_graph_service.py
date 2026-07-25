@@ -1,13 +1,15 @@
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from llm.client import get_llm
 from services.external_evidence import normalize_external_evidence
-from services.external_search_provider import ExternalSearchProvider, create_external_search_provider
+from services.external_search_provider import (
+    ExternalSearchProvider,
+    create_external_search_provider,
+)
 from services.safety_service import build_guarded_messages, wrap_untrusted_context
 from services.trace_service import trace_step
 from services.utils import parse_json_from_llm
-
 
 ROOT_NODE_ID = "current-paper"
 PROVENANCE_CURRENT_PAPER = "current_paper_supported"
@@ -26,14 +28,14 @@ def generate_current_paper_graph(
     *,
     paper_topic: str,
     paper_context: str,
-    paper_structure: Dict[str, Any],
-    rag_sources: List[Dict[str, Any]],
-    reader_profile: Dict[str, Any],
-    pdf_id: Optional[str],
+    paper_structure: dict[str, Any],
+    rag_sources: list[dict[str, Any]],
+    reader_profile: dict[str, Any],
+    pdf_id: str | None,
     llm: Any = None,
-    external_provider: Optional[ExternalSearchProvider] = None,
-    cross_paper_sources: Optional[List[Dict[str, Any]]] = None,
-) -> Dict[str, Any]:
+    external_provider: ExternalSearchProvider | None = None,
+    cross_paper_sources: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     provider = external_provider if external_provider is not None else create_external_search_provider()
     model = llm or get_llm()
     allowed_source_ids = {
@@ -107,8 +109,8 @@ def generate_current_paper_graph(
         "confidence": 0.6,
         "confidenceReason": "当前论文目标节点。",
     }
-    warnings: List[str] = []
-    edges: List[Dict[str, Any]] = []
+    warnings: list[str] = []
+    edges: list[dict[str, Any]] = []
     resolver_failed = False
     if concepts:
         resolver_prompt = _resolver_prompt(
@@ -169,7 +171,7 @@ def generate_current_paper_graph(
     }
 
 
-def build_provenance_summary(graph: Dict[str, Any]) -> Dict[str, Any]:
+def build_provenance_summary(graph: dict[str, Any]) -> dict[str, Any]:
     nodes = [node for node in graph.get("nodes", []) if node.get("id") != ROOT_NODE_ID]
     edges = list(graph.get("edges", []))
     return {
@@ -179,14 +181,14 @@ def build_provenance_summary(graph: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _enrich_concepts_external(
-    concepts: List[Dict[str, Any]],
+    concepts: list[dict[str, Any]],
     provider: ExternalSearchProvider,
     paper_topic: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     if not provider or not getattr(provider, "enabled", False):
         return concepts
 
-    enriched: List[Dict[str, Any]] = []
+    enriched: list[dict[str, Any]] = []
     for concept in concepts:
         if concept.get("provenanceStatus") != PROVENANCE_MODEL:
             enriched.append(concept)
@@ -229,11 +231,11 @@ def _enrich_concepts_external(
 
 
 def _enrich_edges_external(
-    edges: List[Dict[str, Any]],
-    concepts: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    edges: list[dict[str, Any]],
+    concepts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     concept_map = {node["id"]: node for node in concepts}
-    enriched: List[Dict[str, Any]] = []
+    enriched: list[dict[str, Any]] = []
     for edge in edges:
         if edge.get("provenanceStatus") != PROVENANCE_MODEL:
             enriched.append(edge)
@@ -268,7 +270,7 @@ def _enrich_edges_external(
     return enriched
 
 
-def _provenance_counts(items: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _provenance_counts(items: list[dict[str, Any]]) -> dict[str, Any]:
     total = len(items)
     current = sum(item.get("provenanceStatus") == PROVENANCE_CURRENT_PAPER for item in items)
     inferred = sum(item.get("provenanceStatus") == PROVENANCE_MODEL for item in items)
@@ -282,9 +284,9 @@ def _provenance_counts(items: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def _normalize_concepts(value: Any, *, allowed_source_ids: set, has_current_paper: bool, cross_paper_source_ids: Optional[set] = None) -> List[Dict[str, Any]]:
+def _normalize_concepts(value: Any, *, allowed_source_ids: set, has_current_paper: bool, cross_paper_source_ids: set | None = None) -> list[dict[str, Any]]:
     cross_ids = cross_paper_source_ids or set()
-    concepts: List[Dict[str, Any]] = []
+    concepts: list[dict[str, Any]] = []
     seen = set()
     for index, item in enumerate(value if isinstance(value, list) else []):
         if not isinstance(item, dict):
@@ -329,8 +331,8 @@ def _cross_provenance_reason(provenance: str, has_source_ids: bool) -> str:
     return "模型根据当前论文推断的隐含前置概念。"
 
 
-def _normalize_edges(value: Any, *, node_ids: set, allowed_source_ids: set, has_current_paper: bool) -> List[Dict[str, Any]]:
-    edges: List[Dict[str, Any]] = []
+def _normalize_edges(value: Any, *, node_ids: set, allowed_source_ids: set, has_current_paper: bool) -> list[dict[str, Any]]:
+    edges: list[dict[str, Any]] = []
     seen = set()
     for item in value if isinstance(value, list) else []:
         if not isinstance(item, dict):
@@ -384,7 +386,7 @@ Evidence: {values['sources']}
 """
 
 
-def _build_learning_path(concepts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _build_learning_path(concepts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {
             "step": index + 1,
@@ -398,11 +400,11 @@ def _build_learning_path(concepts: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     ]
 
 
-def _valid_source_ids(value: Any, allowed: set) -> List[str]:
+def _valid_source_ids(value: Any, allowed: set) -> list[str]:
     return [item for item in _string_list(value) if item in allowed]
 
 
-def _string_list(value: Any) -> List[str]:
+def _string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     result = []

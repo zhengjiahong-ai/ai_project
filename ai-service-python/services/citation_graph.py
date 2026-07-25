@@ -16,13 +16,13 @@ import os
 import sqlite3
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-
-from core.config import settings
-from typing import Any, Optional
+from typing import Any
 
 import requests
+
+from core.config import settings
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -94,7 +94,7 @@ class _RateLimiter:
             self._next = time.monotonic() + self._min
 
 
-def _api_key() -> Optional[str]:
+def _api_key() -> str | None:
     key = settings.semantic_scholar_api_key.strip()
     return key or None
 
@@ -158,8 +158,8 @@ def _parse_retry_after(raw: str) -> float:
     try:
         dt = parsedate_to_datetime(raw)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return max(0.0, (dt - datetime.now(timezone.utc)).total_seconds())
+            dt = dt.replace(tzinfo=UTC)
+        return max(0.0, (dt - datetime.now(UTC)).total_seconds())
     except Exception:
         return 0.0
 
@@ -274,7 +274,7 @@ def traverse_citation_graph(
 
 def _fetch_paper_meta(
     paper_id: str, db: sqlite3.Connection, limiter: _RateLimiter,
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     # Check cache
     for rel in ("cites", "cited_by"):
         rows = db.execute(
@@ -374,7 +374,7 @@ def _normalize_paper(paper: dict[str, Any]) -> dict[str, Any]:
 
 
 def _cache_paper(paper_id: str, paper: dict[str, Any], db: sqlite3.Connection) -> None:
-    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     with db:
         db.execute(
             "INSERT OR REPLACE INTO citation_cache(source_id, target_id, relation, direction, paper_json, cached_at) "
@@ -383,7 +383,7 @@ def _cache_paper(paper_id: str, paper: dict[str, Any], db: sqlite3.Connection) -
         )
 
 
-def _safe_int(value: Any) -> Optional[int]:
+def _safe_int(value: Any) -> int | None:
     try:
         v = int(value)
         return v if 1000 <= v <= 2100 else None

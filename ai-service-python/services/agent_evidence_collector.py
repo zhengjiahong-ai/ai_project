@@ -7,7 +7,8 @@ collection with progress reporting and cancellation support.
 """
 
 import copy
-from typing import Any, Callable, Dict, List, Tuple
+from collections.abc import Callable
+from typing import Any
 
 from services.evidence_service import normalize_evidence_items
 from services.external_evidence import normalize_external_evidence_items
@@ -15,8 +16,7 @@ from services.external_query_planner import build_external_academic_queries
 from services.safety_service import external_search_degradation_reason
 from services.trace_service import record_counter, sanitize_text, trace_step
 
-
-ProgressCallback = Callable[[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], float, str], None]
+ProgressCallback = Callable[[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], float, str], None]
 CancelCheck = Callable[[], bool]
 
 
@@ -26,7 +26,7 @@ def _get_tool_registry():
     return _get_tool_registry_inner()
 
 
-def invoke_agent_tool(name: str, payload: Dict[str, Any], fallback: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def invoke_agent_tool(name: str, payload: dict[str, Any], fallback: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     record_counter("retrievalCalls")
     registry = _get_tool_registry()
     definition = registry.get(name)
@@ -47,7 +47,7 @@ def invoke_agent_tool(name: str, payload: Dict[str, Any], fallback: Dict[str, An
         }
 
 
-def fallback_tool_result(pdf_id: str) -> Dict[str, Any]:
+def fallback_tool_result(pdf_id: str) -> dict[str, Any]:
     return {
         "items": [
             {
@@ -64,7 +64,7 @@ def fallback_tool_result(pdf_id: str) -> Dict[str, Any]:
 
 
 def should_try_external_search(
-    paper_contexts: List[Dict[str, Any]],
+    paper_contexts: list[dict[str, Any]],
     allow_external_search: bool,
 ) -> bool:
     if not allow_external_search:
@@ -78,9 +78,9 @@ def should_try_external_search(
 
 def build_external_search_queries(
     prompt: str,
-    paper_contexts: List[Dict[str, Any]],
-    evidence_items: List[Dict[str, Any]],
-) -> List[str]:
+    paper_contexts: list[dict[str, Any]],
+    evidence_items: list[dict[str, Any]],
+) -> list[str]:
     # Lazy import to avoid circular dependency at module level.
     from services.agent_reasoning import clean_text
 
@@ -124,9 +124,9 @@ def build_external_search_queries(
 
 
 def retrieve_external_agent_evidence(
-    queries: List[str],
+    queries: list[str],
     limit_per_query: int = 3,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if not queries:
         return {"status": "no_queries", "provider": "disabled", "items": [], "degradation": "", "external_tool_calls": []}
 
@@ -187,7 +187,7 @@ def retrieve_external_agent_evidence(
 
 
 def should_try_web_search_agent(
-    paper_contexts: List[Dict[str, Any]],
+    paper_contexts: list[dict[str, Any]],
     allow_web_search: bool,
 ) -> bool:
     if not allow_web_search:
@@ -201,11 +201,13 @@ def should_try_web_search_agent(
 
 def build_web_search_queries_agent(
     prompt: str,
-    paper_contexts: List[Dict[str, Any]],
-) -> List[str]:
+    paper_contexts: list[dict[str, Any]],
+) -> list[str]:
     # Lazy import to avoid circular dependency at module level.
     from services.agent_reasoning import clean_text
-    from services.external_query_planner import build_web_search_queries as _build_web_search_queries
+    from services.external_query_planner import (
+        build_web_search_queries as _build_web_search_queries,
+    )
     from services.external_query_planner import refine_search_queries
 
     sparse_papers = [
@@ -239,9 +241,9 @@ def build_web_search_queries_agent(
 
 
 def retrieve_web_agent_evidence(
-    queries: List[str],
+    queries: list[str],
     limit_per_query: int = 4,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if not queries:
         return {"status": "no_queries", "provider": "disabled", "items": [], "degradation": "", "web_tool_calls": []}
 
@@ -299,7 +301,7 @@ def retrieve_web_agent_evidence(
 
 def collect_project_evidence(
     prompt: str,
-    paper_ids: List[str],
+    paper_ids: list[str],
     *,
     allow_external_search: bool = False,
     allow_web_search: bool = False,
@@ -308,16 +310,16 @@ def collect_project_evidence(
     should_cancel: CancelCheck | None = None,
     on_progress: ProgressCallback | None = None,
     domain_config: dict | None = None,
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     # Lazy imports to avoid circular dependency with agent_orchestrator.
-    from services.agent_reasoning import clean_text
     from services.agent_orchestrator import _timeline_step
+    from services.agent_reasoning import clean_text
     from services.agent_report_sections import evidence_preview, stabilize_source_ids
 
-    paper_contexts: List[Dict[str, Any]] = []
-    tool_calls: List[Dict[str, Any]] = []
-    evidence_items: List[Dict[str, Any]] = []
-    research_timeline: List[Dict[str, Any]] = []
+    paper_contexts: list[dict[str, Any]] = []
+    tool_calls: list[dict[str, Any]] = []
+    evidence_items: list[dict[str, Any]] = []
+    research_timeline: list[dict[str, Any]] = []
 
     # Apply domain-specific search queries if available
     domain_queries = (domain_config or {}).get("searchQueries") or []

@@ -9,7 +9,6 @@ from __future__ import annotations
 import math
 from typing import Any
 
-
 # ── Public API ───────────────────────────────────────────────────────────────
 
 def meta_analyze(studies: list[dict[str, Any]]) -> dict[str, Any]:

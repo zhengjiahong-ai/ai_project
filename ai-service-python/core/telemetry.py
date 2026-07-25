@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Dict, Iterator
+from typing import Any
 
 from core.config import settings
 
@@ -81,7 +82,7 @@ class RequestMetricsMiddleware:
     def __init__(self, app: Any) -> None:
         self.app = app
 
-    async def __call__(self, scope: Dict[str, Any], receive: Any, send: Any) -> None:
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
@@ -89,7 +90,7 @@ class RequestMetricsMiddleware:
         started = time.perf_counter()
         status_code = 500
 
-        async def _send(message: Dict[str, Any]) -> None:
+        async def _send(message: dict[str, Any]) -> None:
             nonlocal status_code
             if message["type"] == "http.response.start":
                 status_code = message.get("status", 500)

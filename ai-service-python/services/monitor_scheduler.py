@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 _logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ _stop_event = threading.Event()
 
 
 def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _run_loop() -> None:
@@ -66,7 +66,7 @@ def _tick() -> None:
         # Skip if checked within the window
         if last_checked_str:
             try:
-                last_checked = datetime.fromisoformat(last_checked_str.replace("Z", "+00:00"))
+                last_checked = datetime.fromisoformat(last_checked_str)
                 if last_checked > threshold:
                     continue
             except (ValueError, TypeError):

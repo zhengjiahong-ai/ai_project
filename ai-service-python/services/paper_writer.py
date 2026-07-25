@@ -5,10 +5,9 @@ research findings in Markdown and LaTeX formats.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 OUTPUT_DIR = os.environ.get(
     "PAPER_DRAFT_DIR",
@@ -63,7 +62,7 @@ def generate_paper_draft(
     latex = _render_latex(title, sections, references)
 
     # Write to disk
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     out_path = Path(OUTPUT_DIR) / timestamp
     out_path.mkdir(parents=True, exist_ok=True)
     (out_path / "paper.md").write_text(markdown, encoding="utf-8")
@@ -198,6 +197,7 @@ def _build_references(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _llm_abstract(question: str, findings: list[dict[str, Any]], conflicts: list[dict[str, Any]]) -> str:
     try:
         from concurrent.futures import ThreadPoolExecutor
+
         from llm.client import get_llm
 
         f_str = "; ".join(f.get("summary", "")[:100] for f in findings[:5])
@@ -221,6 +221,7 @@ def _llm_abstract(question: str, findings: list[dict[str, Any]], conflicts: list
 def _llm_conclusion(question: str, findings: list[dict[str, Any]]) -> str:
     try:
         from concurrent.futures import ThreadPoolExecutor
+
         from llm.client import get_llm
 
         f_str = "; ".join(f.get("summary", "")[:120] for f in findings[:5])

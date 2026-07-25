@@ -10,7 +10,7 @@ unknown exceptions propagate to the global handler registered in ``app.py``.
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, Tuple, Type
+from typing import Any
 
 # ── public helpers ────────────────────────────────────────────────────────
 
@@ -19,7 +19,7 @@ def error_response(
     status_code: int,
     error_code: str,
     user_message: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a standardised error envelope."""
     return {
         "status": "error",
@@ -39,17 +39,17 @@ def generate_trace_id() -> str:
 # and machine-readable errorCode string.  The global exception handler walks
 # this mapping in order; the first ``isinstance`` match wins.
 
-_EXC = Type[Exception]
-_SPEC = Tuple[int, str]
+_EXC = type[Exception]
+_SPEC = tuple[int, str]
 
-EXCEPTION_STATUS_MAP: Dict[_EXC, _SPEC] = {}
+EXCEPTION_STATUS_MAP: dict[_EXC, _SPEC] = {}
 
 # Import lazily to avoid coupling every module that imports error_responses.
 try:
     from services.agent_project_service import (
         AgentProjectNotFoundError,
-        AgentTaskNotFoundError,
         AgentReviewConflictError,
+        AgentTaskNotFoundError,
     )
 
     EXCEPTION_STATUS_MAP.update(
@@ -64,8 +64,8 @@ except ImportError:
 
 try:
     from services.research_task_service import (
-        ResearchTaskNotFoundError,
         ResearchReviewConflictError,
+        ResearchTaskNotFoundError,
     )
 
     EXCEPTION_STATUS_MAP.update(
