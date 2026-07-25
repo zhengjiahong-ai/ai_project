@@ -1,5 +1,4 @@
 """Tests for core/config.py"""
-import pytest
 from core.config import Settings, settings
 
 

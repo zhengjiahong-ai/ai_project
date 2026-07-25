@@ -6,8 +6,6 @@ requiring Docker. They test the code-level security enforcement points.
 
 import hashlib
 import os
-import tempfile
-from pathlib import Path
 
 from services.code_execution_models import (
     WORKER_IMAGE_DIGEST,

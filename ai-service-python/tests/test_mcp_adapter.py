@@ -321,7 +321,6 @@ class McpSseBoundaryTests(unittest.TestCase):
     def test_sse_session_registry_isolation(self):
         """Multiple SSE sessions should be independently tracked via _active_sessions."""
         from mcp_adapter.server import get_session_count
-        import asyncio
 
         # Session count should start at 0 (with fresh import state)
         initial = get_session_count()

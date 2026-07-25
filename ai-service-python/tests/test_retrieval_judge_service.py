@@ -1,4 +1,3 @@
-import math
 import unittest
 
 from services.retrieval_judge_service import (

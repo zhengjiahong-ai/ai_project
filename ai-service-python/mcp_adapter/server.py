@@ -134,7 +134,7 @@ def build_sse_app(
     try:
         from starlette.applications import Starlette
         from starlette.responses import JSONResponse
-        from starlette.routing import Mount, Route
+        from starlette.routing import Route
         from starlette.requests import Request
     except ImportError as exc:  # pragma: no cover
         raise ImportError(

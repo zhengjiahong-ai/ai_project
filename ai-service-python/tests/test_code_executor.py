@@ -11,13 +11,11 @@ Integration tests that require Docker are skipped automatically when
 the Docker daemon is not reachable.
 """
 
-import os
 import subprocess
 import unittest
 
 from services.code_executor import (
     ALLOWED_MODULES,
-    DEFAULT_TIMEOUT,
     MAX_CODE_LENGTH,
     execute_python_sandbox,
     validate_code_safety,

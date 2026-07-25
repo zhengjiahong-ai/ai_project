@@ -5,7 +5,6 @@ evidence collection → report generation — works correctly with web search
 enabled. All tests use mock providers so no network access is required.
 """
 import unittest
-from unittest import mock
 
 
 class WebSearchE2EPipelineTests(unittest.TestCase):

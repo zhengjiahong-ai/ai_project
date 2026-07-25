@@ -3,7 +3,7 @@
 import os
 import tempfile
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from services.reproducibility_checker import (
     _check_dependencies,

@@ -8,13 +8,11 @@ with a LangGraph-based orchestrator.
 Usage:
     PYTHONPATH=. python tests/poc_langgraph_agent.py
 """
-import json
 import time
-from dataclasses import dataclass, field
-from typing import Annotated, Any, Dict, List, Optional, TypedDict
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, TypedDict
 
 from langgraph.graph import END, StateGraph
-from langgraph.graph.message import add_messages
 
 # ── State definition ────────────────────────────────────────────────────────
 

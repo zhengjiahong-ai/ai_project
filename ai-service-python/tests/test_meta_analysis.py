@@ -1,10 +1,8 @@
 """Tests for services/meta_analysis.py"""
 from services.meta_analysis import (
-    _chi2_cdf,
     _eggers_test,
     _error,
     _grade_assessment,
-    _norm_cdf,
     _parse_studies,
     _safe_float,
     meta_analyze,

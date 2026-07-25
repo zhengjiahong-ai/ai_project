@@ -20,7 +20,6 @@ class _FakeMonotonic:
 
 class ConcurrencyControlTests(unittest.TestCase):
     def test_semaphore_limits_concurrent_fetches(self):
-        import threading
         from services.web_fetcher import _fetch_concurrency_semaphore, _MAX_CONCURRENT_FETCHES
 
         sem = _fetch_concurrency_semaphore

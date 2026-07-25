@@ -1,5 +1,4 @@
 """Tests for the /api/health endpoint."""
-import json
 
 import pytest
 

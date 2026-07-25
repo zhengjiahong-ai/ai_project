@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -12,8 +13,6 @@ from routes.health import router as health_router
 from services.analysis_service import startup_warmup
 
 configure_logging()
-
-import logging
 
 _logger = logging.getLogger(__name__)
 

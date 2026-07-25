@@ -223,7 +223,7 @@ class AgenticSearchLoopTests(unittest.TestCase):
             fetch_log.append(url)
             return {"status": "success", "content": f"content from {url}"}
 
-        result = run_agentic_search_loop(
+        _ = run_agentic_search_loop(
             question="test",
             sub_question="test sub",
             missing_aspects=["aspect1"],
@@ -268,7 +268,7 @@ class AgenticSearchLoopTests(unittest.TestCase):
                     "missingAspects": ["still missing"],
                     "coverage": {"score": 0.3}}
 
-        result = run_agentic_search_loop(
+        _ = run_agentic_search_loop(
             question="test",
             sub_question="test sub",
             missing_aspects=["aspect1"],
@@ -295,7 +295,7 @@ class AgenticSearchLoopTests(unittest.TestCase):
         def on_progress(iteration, pages_fetched, confidence):
             progress_log.append((iteration, pages_fetched, confidence))
 
-        result = run_agentic_search_loop(
+        _ = run_agentic_search_loop(
             question="test",
             sub_question="test sub",
             missing_aspects=["aspect1"],
@@ -461,7 +461,7 @@ class AgenticSearchLoopTests(unittest.TestCase):
         from services.trace_service import start_trace, record_counter, clear_traces
 
         clear_traces()
-        trace_id = start_trace("unit_test")
+        _ = start_trace("unit_test")
         # Simulate high token usage to trigger budget exhaustion
         record_counter("estimatedInputTokens", 800)
 

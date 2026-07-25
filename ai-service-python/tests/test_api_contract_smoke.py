@@ -1,6 +1,5 @@
 import asyncio
 import json
-import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -9,8 +8,8 @@ from tests.fastapi_stubs import install_fastapi_stubs
 
 install_fastapi_stubs()
 
-from routes import api
-from schemas.requests import (
+from routes import api  # noqa: E402 (stubs installed above)
+from schemas.requests import (  # noqa: E402 (stubs installed above)
     AgentFinalReviewRequest,
     AgentPlanItemRequest,
     AgentPlanReviewRequest,

@@ -6,7 +6,6 @@ API key leak prevention, budget exhaustion, and web-search-disabled fallback.
 """
 import os
 import unittest
-from unittest import mock
 
 
 class SecurityBoundaryUrlWhitelistTests(unittest.TestCase):

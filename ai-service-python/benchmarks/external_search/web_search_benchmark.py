@@ -9,7 +9,6 @@ Usage:
     python -m benchmarks.external_search.web_search_benchmark --live   # live API
 """
 import json
-import math
 import sys
 from pathlib import Path
 

@@ -1,6 +1,5 @@
 """Unit tests for paper_writer — covers draft generation with and without inputs."""
 
-import pytest
 from services.paper_writer import generate_paper_draft
 
 

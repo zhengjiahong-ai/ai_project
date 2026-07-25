@@ -407,7 +407,6 @@ class ToolRegistryContractTests(unittest.TestCase):
                     registry.invoke("run_descriptive_statistics", {"artifactId": artifact_id})
 
     def test_descriptive_statistics_tool_creates_job_reference_with_fixed_template(self):
-        import hashlib
         from code_worker import FIXED_TEMPLATE_TEXT
 
         registry = get_tool_registry()

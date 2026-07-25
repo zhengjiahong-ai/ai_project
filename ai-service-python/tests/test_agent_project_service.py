@@ -715,9 +715,6 @@ class AgentProjectPersistenceTests(unittest.TestCase):
         cancelled = agent_project_service.cancel_agent_task(task["taskId"])["task"]
         self.assertEqual(cancelled["status"], "cancelled")
 
-        paper_contexts = [
-            {"pdfId": "paper-a", "evidenceCount": 1, "sourceIds": ["a-1"], "preview": "sparse", "status": "succeeded"},
-        ]
         partial_tool_calls = [
             {
                 "id": "retrieve-current-paper-1",

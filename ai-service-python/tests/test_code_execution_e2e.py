@@ -10,19 +10,10 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
-from code_worker.models import WorkerCleanup, WorkerOutput, WorkerResult
+from code_worker.models import WorkerOutput, WorkerResult
 from services import code_execution_service
-from services.code_execution_models import (
-    approve_code_execution_job,
-    create_code_execution_job,
-    reject_code_execution_job,
-)
 from services.code_execution_store import (
-    load_code_execution_job,
-    save_code_execution_job,
-    execute_audited_job,
     list_code_execution_audit_events,
 )
 

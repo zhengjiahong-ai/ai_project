@@ -2,10 +2,6 @@ import unittest
 from unittest.mock import patch
 
 from services.research_aggregator import (
-    _build_dispute_map,
-    _build_evidence_comparison_table,
-    _build_executive_summary,
-    _build_hierarchical_citations,
     build_judge_trace_summary,
     build_research_report,
 )
