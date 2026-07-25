@@ -2,6 +2,16 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-25 v0.6.64
+
+**轨道二十：多 Agent 辩论与交叉校验**
+
+1. **多 Agent 辩论编排器**：新建 `services/agent_debate.py`，`DebateOrchestrator` 支持 2-3 个独立 Agent 并行分析（不同 temperature 0.3/0.7/1.0），最多 2 轮交叉辩论，确定性 Jaccard 相似度计算与聚类，输出 consensus/dissent/unresolved 三类结果。
+2. **辩论 API**：新增 `POST /api/agent-projects/{projectId}/debate` 和 `GET /api/agent-projects/{projectId}/debate/{runId}` 端点，支持异步辩论执行与结果查询。
+3. **对抗性校验节点**：在 LangGraph 推理链 `conflict_resolution → report` 之间插入 `adversarial_verification_node`，对每个 finding 通过 LLM 生成反驳假设，结合证据强度评级为 verified/falsified/unverifiable，LLM 超时 8s 不阻塞主流程。
+4. **共识合成算法**：`synthesize_consensus` 确定性聚类 + 置信度计算公式（复用 `evidence_credibility.py` 的 credibility 评分），按置信度 ≥0.7/0.4-0.7/<0.4 分入 Consensus/Contested/Single-Source 三档，无额外 LLM 调用。
+5. **前端辩论可视化**：新建 `DebateView.jsx`，展示各方立场卡片（credibility 均值徽标）、证据对齐矩阵（✓/✗/~ 三态）、共识（绿）/争议（琥珀）/未解决（灰）三色区域，暗色模式兼容。
+
 ### 2026-07-25 v0.6.63
 
 1. **前端 E2E 测试扩展（18-3）**：新增 3 个 Playwright E2E spec 文件——`agent-report-confidence.spec.js`（置信度徽标颜色与子标题边框验证）、`knowledge-graph-toggle.spec.js`（图谱开关状态与请求体验证）、`shared-report.spec.js`（分享页面有效/过期/无效 token 三态验证）；E2E 测试总数从 10 个扩展至 19 个。
