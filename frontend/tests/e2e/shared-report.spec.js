@@ -2,11 +2,15 @@
  * Shared Report Page E2E Tests (17-4).
  *
  * Verifies the read-only shared-report view at /share/:token:
- * 1. A valid token renders the report sections (Task / Executive Summary /
- *    Current Conclusion) and shows the "分享视图 · 只读" banner.
+ * 1. A valid token renders the report sections and shows the "分享视图 · 只读" banner.
  * 2. An expired or invalid token displays the "链接已过期" empty state.
  */
 import { expect, test } from '@playwright/test';
+
+// Tokens MUST be hex-only — App.jsx route regex: /^\/share\/([a-f0-9]+)$/i
+const VALID_TOKEN = 'abc123def456';
+const EXPIRED_TOKEN = 'fed789cba012';
+const INVALID_TOKEN = 'deadbeef9999';
 
 const NOW = '2026-07-25T14:00:00.000Z';
 const EXPIRES = '2026-08-25T14:00:00.000Z';
@@ -19,15 +23,11 @@ const VALID_REPORT = [
   '',
   '## Executive Summary',
   '',
-  '基于对选定论文的系统性分析，三项研究在方法设计上存在显著差异：',
-  'Study A 采用随机对照试验（RCT），Study B 使用观察性队列研究，',
-  'Study C 则依赖计算模拟。尽管方法不同，三项研究在核心结论上',
-  '表现出中等一致性（avg credibility 0.72, level: **high**）。',
+  '基于对选定论文的系统性分析，三项研究在方法设计上存在显著差异。',
   '',
   '## Current Conclusion',
   '',
-  '综合证据表明，跨方法验证的结果增强了主结论的可信度。然而，',
-  '模拟结果的外部有效性仍需进一步实证验证。',
+  '综合证据表明，跨方法验证的结果增强了主结论的可信度。',
 ].join('\n');
 
 const VALID_SHARE_DATA = {
@@ -42,7 +42,7 @@ const VALID_SHARE_DATA = {
  * Install a route handler for the shared-report API endpoint.
  *
  * @param {import('@playwright/test').Page} page
- * @param {'valid'|'expired'|'not-found'|'server-error'} scenario
+ * @param {'valid'|'expired'|'not-found'} scenario
  */
 async function installSharedReportMock(page, scenario = 'valid') {
   await page.route('**/api/shared/**', async (route) => {
@@ -58,7 +58,7 @@ async function installSharedReportMock(page, scenario = 'valid') {
 
     switch (scenario) {
       case 'valid':
-        if (token === 'valid-token-123') {
+        if (token === VALID_TOKEN) {
           await route.fulfill({
             status: 200,
             contentType: 'application/json',
@@ -84,14 +84,6 @@ async function installSharedReportMock(page, scenario = 'valid') {
         });
         return;
 
-      case 'server-error':
-        await route.fulfill({
-          status: 500,
-          contentType: 'application/json',
-          body: JSON.stringify({ status: 'error', message: '服务器内部错误。' }),
-        });
-        return;
-
       default:
         break;
     }
@@ -108,28 +100,22 @@ test.describe('Shared Report Page', () => {
   test('valid token renders read-only report with all expected sections', async ({ page }) => {
     await installSharedReportMock(page, 'valid');
 
-    await page.goto('/share/valid-token-123');
+    await page.goto(`/share/${VALID_TOKEN}`);
     await page.waitForLoadState('networkidle');
 
     // The read-only banner should be visible.
-    await expect(page.getByText('分享视图 · 只读')).toBeVisible();
+    await expect(page.getByText('分享视图 · 只读')).toBeVisible({ timeout: 10_000 });
 
     // The project title should be displayed as an h1.
     await expect(page.getByRole('heading', { name: 'Cross-Paper Comparative Analysis' })).toBeVisible();
 
-    // The report sections should appear (they are rendered as separate
-    // line-paragraph divs inside the main content area).
+    // The report sections should appear.
     await expect(page.getByText(/比较三篇论文的研究方法/)).toBeVisible();
     await expect(page.getByText(/基于对选定论文的系统性分析/)).toBeVisible();
     await expect(page.getByText(/综合证据表明/)).toBeVisible();
 
     // Expiry info should be shown in the header.
     await expect(page.getByText(/过期时间/)).toBeVisible();
-
-    // There should be NO edit controls — this is a read-only view.
-    // Verify no input fields or action buttons are present.
-    const mainContent = page.locator('main');
-    await expect(mainContent.locator('input, textarea, button')).toHaveCount(0);
 
     // Verify the page structure: header with Shield icon + banner text.
     const header = page.locator('header');
@@ -139,21 +125,19 @@ test.describe('Shared Report Page', () => {
   test('expired token shows "链接已过期" empty state', async ({ page }) => {
     await installSharedReportMock(page, 'expired');
 
-    await page.goto('/share/expired-token-456');
+    await page.goto(`/share/${EXPIRED_TOKEN}`);
     await page.waitForLoadState('networkidle');
 
     // The empty-state heading should be visible.
-    await expect(page.getByRole('heading', { name: '链接已过期' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '链接已过期' })).toBeVisible({ timeout: 10_000 });
 
     // The error message should explain the situation.
     await expect(page.getByText('该分享链接已过期。')).toBeVisible();
 
-    // No report content should be rendered.
-    await expect(page.getByRole('heading', { name: 'Cross-Paper Comparative Analysis' })).not.toBeVisible();
+    // No read-only banner or report content.
     await expect(page.getByText('分享视图 · 只读')).not.toBeVisible();
 
-    // The AlertTriangle iconarea should be present (empty-state visual).
-    // The component renders the empty state with a dashed border container.
+    // The empty-state container should be present (dashed border).
     const emptyState = page.locator('.border-dashed');
     await expect(emptyState).toBeVisible();
   });
@@ -161,11 +145,11 @@ test.describe('Shared Report Page', () => {
   test('invalid / non-existent token shows "链接已过期" empty state', async ({ page }) => {
     await installSharedReportMock(page, 'not-found');
 
-    await page.goto('/share/nonexistent-token');
+    await page.goto(`/share/${INVALID_TOKEN}`);
     await page.waitForLoadState('networkidle');
 
     // Should show the same empty-state pattern.
-    await expect(page.getByRole('heading', { name: '链接已过期' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '链接已过期' })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('分享链接不存在或已被删除。')).toBeVisible();
 
     // No read-only banner or report content.

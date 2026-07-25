@@ -147,7 +147,10 @@ const toWorkspace = (project, task) => ({
   uiHints: {},
 });
 
-export const installMockApi = async (page) => {
+export const installMockApi = async (page, options = {}) => {
+  const customDraftReport = options.draftReport || null;
+  const customEvidenceItems = options.evidenceItems || null;
+
   const state = {
     project: null,
     task: null,
@@ -157,6 +160,14 @@ export const installMockApi = async (page) => {
     taskPayload: null,
     planReviewPayload: null,
     finalReviewPayload: null,
+  };
+
+  // Apply custom overrides to completed/draft task templates when provided.
+  const _applyCustoms = (task) => {
+    const t = { ...task };
+    if (customDraftReport !== null) t.draftReport = customDraftReport;
+    if (customEvidenceItems !== null) t.evidenceItems = customEvidenceItems;
+    return t;
   };
 
   await page.route('http://localhost:8081/api/**', async (route) => {
@@ -222,7 +233,7 @@ export const installMockApi = async (page) => {
       if (state.task
         && !['succeeded', 'failed', 'cancelled', 'awaiting_plan_review'].includes(state.task.status)) {
         state.task = state.workspacePollCount >= 2
-          ? { ...draftTask, prompt: state.taskPayload?.prompt || state.task.prompt }
+          ? { ..._applyCustoms(draftTask), prompt: state.taskPayload?.prompt || state.task.prompt }
           : { ...runningTask, prompt: state.taskPayload?.prompt || state.task.prompt };
       }
       await json(route, { status: 'success', workspace: toWorkspace(state.project, state.task) });
@@ -291,7 +302,7 @@ export const installMockApi = async (page) => {
     if (request.method() === 'GET' && path === '/api/agent-tasks/task-smoke-1') {
       state.taskPollCount += 1;
       state.task = state.taskPollCount >= 2
-        ? { ...draftTask, prompt: state.taskPayload.prompt }
+        ? { ..._applyCustoms(draftTask), prompt: state.taskPayload.prompt }
         : { ...runningTask, prompt: state.taskPayload.prompt };
       await json(route, { status: 'success', task: state.task });
       return;
@@ -300,7 +311,7 @@ export const installMockApi = async (page) => {
     if (request.method() === 'POST' && path === '/api/agent-runs/task-smoke-1/final-review') {
       state.finalReviewPayload = request.postDataJSON();
       state.task = {
-        ...completedTask,
+        ..._applyCustoms(completedTask),
         prompt: state.taskPayload.prompt,
         reviewRisks: draftTask.reviewRisks.map((risk) => ({ ...risk, reviewStatus: 'reviewed' })),
       };
@@ -311,7 +322,7 @@ export const installMockApi = async (page) => {
     if (request.method() === 'POST' && path === '/api/agent-tasks/task-smoke-1/final-review') {
       state.finalReviewPayload = request.postDataJSON();
       state.task = {
-        ...completedTask,
+        ..._applyCustoms(completedTask),
         prompt: state.taskPayload.prompt,
         reviewRisks: draftTask.reviewRisks.map((risk) => ({ ...risk, reviewStatus: 'reviewed' })),
       };
