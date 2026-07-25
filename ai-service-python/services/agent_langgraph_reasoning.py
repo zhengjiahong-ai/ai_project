@@ -294,3 +294,165 @@ def conflict_resolution_node(state: AgentGraphState) -> AgentGraphState:
     _record(state, "conflict_resolution",
             f"{len(resolved)} resolved, {len(unresolved)} need manual review")
     return state
+
+
+# ── Adversarial Verification Node (20-2) ─────────────────────────────
+
+
+def _generate_counter_hypotheses(
+    finding_summary: str,
+    timeout_seconds: int = 8,
+) -> list:
+    """Generate 1-2 counter-hypotheses for a finding.
+
+    Uses the translation (cheaper) LLM. On timeout or failure,
+    returns an empty list (fail-open: don't block the main pipeline).
+    """
+    try:
+        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import TimeoutError as FutureTimeout
+
+        from llm.client import get_translation_llm
+        from services.llm_cache import get_llm_cache
+
+        cache = get_llm_cache()
+        cached = cache.get(
+            "adversarial-counter-hypothesis", 0.1, "",
+            finding_summary[:200],
+        )
+        if cached is not None:
+            # cached is a JSON list of hypothesis strings
+            import json
+            try:
+                parsed = json.loads(cached)
+                if isinstance(parsed, list):
+                    return parsed[:2]
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        prompt = (
+            "You are a rigorous scientific reviewer. For the following "
+            "research finding, generate 1-2 specific counter-hypotheses "
+            "or potential weaknesses. Consider: sample size limitations, "
+            "methodological flaws, alternative explanations, confounding "
+            "variables, or generalizability concerns.\n\n"
+            f"Finding: {finding_summary}\n\n"
+            "Return ONLY the counter-hypotheses, one per line, "
+            "prefixed with '- '. Max 2 hypotheses."
+        )
+
+        llm = get_translation_llm()
+
+        def _call():
+            return llm._call(prompt)
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_call)
+            result = future.result(timeout=timeout_seconds)
+
+        hypotheses = []
+        if result:
+            for line in str(result).split("\n"):
+                stripped = line.strip()
+                if stripped.startswith("- "):
+                    hypotheses.append(stripped[2:].strip())
+                elif stripped.startswith("-"):
+                    hypotheses.append(stripped[1:].strip())
+
+        result_list = hypotheses[:2]
+
+        # Cache result
+        import json
+        cache.put(
+            "adversarial-counter-hypothesis", 0.1, "",
+            finding_summary[:200],
+            json.dumps(result_list),
+        )
+
+        return result_list
+
+    except (FutureTimeout, Exception):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            "Counter-hypothesis generation failed for finding: %s",
+            finding_summary[:100],
+        )
+        return []
+
+
+def adversarial_verification_node(state: dict) -> dict:
+    """Adversarial verification node for the LangGraph agent pipeline.
+
+    For each finding:
+    1. Generate counter-hypotheses using cheaper LLM (8s timeout, fail-open).
+    2. Check evidence items for support/contradiction.
+    3. Assign status: verified | falsified | unverifiable.
+
+    Inserted between conflict_resolution's follow_up_decision "final_review"
+    path and the report node.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    findings = state.get("findings") or []
+    weighted_evidence = state.get("weighted_evidence") or []
+
+    verification_results = []
+
+    for finding in findings:
+        finding_id = finding.get("finding_id", "")
+        summary = finding.get("summary", "")
+        credibility = finding.get("credibility", 0.5)
+
+        # Generate counter-hypotheses (may use LLM or cache)
+        counter_hypotheses = _generate_counter_hypotheses(summary)
+
+        # Determine status based on evidence strength and credibility
+        source_ids = set(finding.get("sourceIds") or [])
+        supporting_evidence_count = 0
+        for ev in weighted_evidence:
+            if ev.get("sourceId") in source_ids:
+                ev_cred = ev.get("credibility", 0)
+                if isinstance(ev_cred, (int, float)) and ev_cred >= 0.5:
+                    supporting_evidence_count += 1
+
+        if counter_hypotheses and supporting_evidence_count == 0:
+            # Counter-hypotheses exist AND no supporting evidence
+            status = "unverifiable"
+        elif credibility < 0.4 and supporting_evidence_count == 0:
+            # Very low credibility with no supporting evidence
+            status = "falsified"
+        else:
+            # Sufficient evidence and credibility to verify
+            status = "verified"
+
+        verification_results.append({
+            "finding_id": finding_id,
+            "status": status,
+            "counter_hypothesis": (
+                counter_hypotheses[0] if counter_hypotheses else ""
+            ),
+            "evidence_ref": list(source_ids),
+        })
+
+    new_state = dict(state)
+    new_state["verification_results"] = verification_results
+
+    verified_count = sum(
+        1 for v in verification_results if v["status"] == "verified"
+    )
+    falsified_count = sum(
+        1 for v in verification_results if v["status"] == "falsified"
+    )
+    unverifiable_count = sum(
+        1 for v in verification_results if v["status"] == "unverifiable"
+    )
+    logger.info(
+        "Adversarial verification: %d verified, %d falsified, %d unverifiable",
+        verified_count,
+        falsified_count,
+        unverifiable_count,
+    )
+
+    return new_state

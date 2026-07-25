@@ -1,9 +1,13 @@
 """Tests for LangGraph-based agent orchestrator (10-5)."""
-import uuid
 import unittest
+import uuid
 from unittest.mock import patch
 
 from langgraph.checkpoint.memory import MemorySaver
+
+# Force-load agent_langgraph_reasoning through the proper import chain
+# so that @patch("services.agent_langgraph_reasoning.xxx") can resolve.
+from services.agent_langgraph import conflict_resolution_node
 
 
 class AgentLangGraphErrorHandlingTests(unittest.TestCase):
@@ -11,7 +15,10 @@ class AgentLangGraphErrorHandlingTests(unittest.TestCase):
 
     def test_run_with_empty_prompt_fails_gracefully(self):
         """Empty or whitespace-only prompt should still produce a valid state (caught downstream)."""
-        from services.agent_langgraph import run_agent_graph, agent_graph_state_to_response
+        from services.agent_langgraph import (
+            agent_graph_state_to_response,
+            run_agent_graph,
+        )
 
         for bad_prompt in ("", "   "):
             with self.subTest(prompt=repr(bad_prompt)):
@@ -61,7 +68,11 @@ class AgentLangGraphErrorHandlingTests(unittest.TestCase):
         The execute_node catches errors, sets empty evidence, and the graph proceeds
         to synthesize → report → final_review (where the user can see the partial result).
         """
-        from services.agent_langgraph import run_agent_graph, resume_agent_graph, agent_graph_state_to_response
+        from services.agent_langgraph import (
+            agent_graph_state_to_response,
+            resume_agent_graph,
+            run_agent_graph,
+        )
 
         thread_id = f"test-exec-err-{uuid.uuid4().hex[:8]}"
 
@@ -95,7 +106,11 @@ class AgentLangGraphErrorHandlingTests(unittest.TestCase):
         The synthesize_node catches errors, and the graph proceeds to report → final_review
         with whatever was produced before the error.
         """
-        from services.agent_langgraph import run_agent_graph, resume_agent_graph, agent_graph_state_to_response
+        from services.agent_langgraph import (
+            agent_graph_state_to_response,
+            resume_agent_graph,
+            run_agent_graph,
+        )
 
         thread_id = f"test-synth-err-{uuid.uuid4().hex[:8]}"
 
@@ -130,7 +145,7 @@ class AgentLangGraphErrorHandlingTests(unittest.TestCase):
 
     def test_resume_with_malformed_input_is_handled(self):
         """Missing required fields in resume should not crash."""
-        from services.agent_langgraph import run_agent_graph, resume_agent_graph
+        from services.agent_langgraph import resume_agent_graph, run_agent_graph
 
         thread_id = f"test-malform-{uuid.uuid4().hex[:8]}"
 
@@ -145,7 +160,10 @@ class AgentLangGraphErrorHandlingTests(unittest.TestCase):
 
     def test_state_to_response_without_plan_items(self):
         """Response converter handles missing optional fields gracefully."""
-        from services.agent_langgraph import agent_graph_state_to_response, AgentGraphState
+        from services.agent_langgraph import (
+            AgentGraphState,
+            agent_graph_state_to_response,
+        )
 
         state: AgentGraphState = {}
         response = agent_graph_state_to_response(state)
@@ -181,6 +199,7 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
         required = {"init", "plan_review", "plan_rejected", "execute",
                     "evidence_weighing", "cross_paper_reasoning",
                     "synthesize", "conflict_resolution",
+                    "adversarial_verification",
                     "report", "final_review",
                     "final_rejected", "success", "__start__"}
         for node in required:
@@ -200,7 +219,10 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
         but plan_approved is still False because plan_review_node was interrupted
         before it could set it.
         """
-        from services.agent_langgraph import run_agent_graph, agent_graph_state_to_response
+        from services.agent_langgraph import (
+            agent_graph_state_to_response,
+            run_agent_graph,
+        )
 
         with patch("services.agent_orchestrator.build_plan_items",
                    return_value=[{"id": "test", "label": "Test", "detail": "", "status": "pending"}]):
@@ -219,7 +241,7 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
 
     def test_resume_from_plan_review_rejected(self):
         """Rejecting the plan should cancel the research."""
-        from services.agent_langgraph import run_agent_graph, resume_agent_graph
+        from services.agent_langgraph import resume_agent_graph, run_agent_graph
 
         thread_id = f"test-reject-{uuid.uuid4().hex[:8]}"
 
@@ -240,7 +262,7 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
 
     def test_full_pipeline_with_plan_approval(self):
         """Approve plan → execute → synthesize → final review interrupt."""
-        from services.agent_langgraph import run_agent_graph, resume_agent_graph
+        from services.agent_langgraph import resume_agent_graph, run_agent_graph
 
         thread_id = f"test-full-{uuid.uuid4().hex[:8]}"
 
@@ -282,7 +304,7 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
 
     def test_resume_from_final_review_approved(self):
         """Approve the final draft → succeeded."""
-        from services.agent_langgraph import run_agent_graph, resume_agent_graph
+        from services.agent_langgraph import resume_agent_graph, run_agent_graph
 
         thread_id = f"test-final-{uuid.uuid4().hex[:8]}"
 
@@ -319,7 +341,10 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
 
     def test_state_to_response_maps_all_fields(self):
         """agent_graph_state_to_response produces backward-compatible output."""
-        from services.agent_langgraph import agent_graph_state_to_response, AgentGraphState
+        from services.agent_langgraph import (
+            AgentGraphState,
+            agent_graph_state_to_response,
+        )
 
         state: AgentGraphState = {
             "prompt": "Test",
@@ -345,7 +370,10 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
 
     def test_state_to_response_pending_reviews(self):
         """Response converter infers correct status from flags + interrupted."""
-        from services.agent_langgraph import agent_graph_state_to_response, AgentGraphState
+        from services.agent_langgraph import (
+            AgentGraphState,
+            agent_graph_state_to_response,
+        )
 
         # After plan_review interrupt (not yet approved)
         state: AgentGraphState = {
@@ -393,7 +421,7 @@ class AgentLangGraphConstructionTests(unittest.TestCase):
 
     def test_plan_review_with_edited_plan_items(self):
         """Resume with edited plan items should update the state."""
-        from services.agent_langgraph import run_agent_graph, resume_agent_graph
+        from services.agent_langgraph import resume_agent_graph, run_agent_graph
 
         thread_id = f"test-edit-{uuid.uuid4().hex[:8]}"
 
@@ -520,7 +548,7 @@ class AgentLangGraph14ReasoningTests(unittest.TestCase):
 
     def test_conflict_resolution_auto_resolves_clear_case(self):
         """Conflict with weight diff ≥0.4 and max credibility ≥0.8 is auto-resolved."""
-        from services.agent_langgraph import AgentGraphState, conflict_resolution_node
+        from services.agent_langgraph import AgentGraphState
 
         state: AgentGraphState = {
             "conflicts": [
@@ -549,7 +577,7 @@ class AgentLangGraph14ReasoningTests(unittest.TestCase):
 
     def test_conflict_resolution_needs_manual_review_when_close(self):
         """Conflict with small weight diff → needs_manual_review."""
-        from services.agent_langgraph import AgentGraphState, conflict_resolution_node
+        from services.agent_langgraph import AgentGraphState
 
         state: AgentGraphState = {
             "conflicts": [
@@ -574,7 +602,7 @@ class AgentLangGraph14ReasoningTests(unittest.TestCase):
 
     def test_conflict_resolution_no_source_ids(self):
         """Conflict with no sourceIds → needs_manual_review."""
-        from services.agent_langgraph import AgentGraphState, conflict_resolution_node
+        from services.agent_langgraph import AgentGraphState
 
         state: AgentGraphState = {
             "conflicts": [{"id": "orphan", "conflictType": "unknown", "label": "No sources"}],
@@ -587,7 +615,10 @@ class AgentLangGraph14ReasoningTests(unittest.TestCase):
 
     def test_response_includes_new_14_1_fields(self):
         """agent_graph_state_to_response includes weightedEvidence, crossPaperInsights, resolved/unresolved conflicts."""
-        from services.agent_langgraph import agent_graph_state_to_response, AgentGraphState
+        from services.agent_langgraph import (
+            AgentGraphState,
+            agent_graph_state_to_response,
+        )
 
         state: AgentGraphState = {
             "prompt": "test",
@@ -604,6 +635,120 @@ class AgentLangGraph14ReasoningTests(unittest.TestCase):
         self.assertIn("consensus", response.get("crossPaperInsights", {}))
         self.assertEqual(len(response.get("resolvedConflicts", [])), 1)
         self.assertEqual(len(response.get("unresolvedConflicts", [])), 1)
+
+
+class TestAdversarialVerification(unittest.TestCase):
+    """Tests for the adversarial verification node (20-2)."""
+
+    def setUp(self):
+        self.base_state = {
+            "findings": [
+                {
+                    "finding_id": "f-1",
+                    "summary": "Treatment X reduces mortality by 30%",
+                    "sourceIds": ["paper-1", "paper-2"],
+                    "credibility": 0.85,
+                },
+                {
+                    "finding_id": "f-2",
+                    "summary": "Side effects are minimal",
+                    "sourceIds": ["paper-3"],
+                    "credibility": 0.45,
+                },
+            ],
+            "weighted_evidence": [
+                {
+                    "sourceId": "paper-1",
+                    "credibility": 0.90,
+                    "sourceType": "current_paper",
+                },
+                {
+                    "sourceId": "paper-3",
+                    "credibility": 0.30,
+                    "sourceType": "external_academic",
+                },
+            ],
+        }
+
+    @patch(
+        "services.agent_langgraph_reasoning._generate_counter_hypotheses"
+    )
+    def test_verified_finding(self, mock_generate):
+        """Finding with strong evidence and no counter-evidence is verified."""
+        mock_generate.return_value = [
+            "Sample size may be insufficient"
+        ]
+        from services.agent_langgraph_reasoning import (
+            adversarial_verification_node,
+        )
+
+        state = dict(self.base_state)
+        result = adversarial_verification_node(state)
+
+        self.assertIn("verification_results", result)
+        f1_result = next(
+            r for r in result["verification_results"]
+            if r["finding_id"] == "f-1"
+        )
+        self.assertEqual(f1_result["status"], "verified")
+
+    @patch(
+        "services.agent_langgraph_reasoning._generate_counter_hypotheses"
+    )
+    def test_unverifiable_finding(self, mock_generate):
+        """Finding with weak evidence is unverifiable."""
+        mock_generate.return_value = [
+            "Insufficient data to verify this claim"
+        ]
+        from services.agent_langgraph_reasoning import (
+            adversarial_verification_node,
+        )
+
+        state = dict(self.base_state)
+        result = adversarial_verification_node(state)
+
+        f2_result = next(
+            r for r in result["verification_results"]
+            if r["finding_id"] == "f-2"
+        )
+        self.assertEqual(f2_result["status"], "unverifiable")
+
+    @patch(
+        "services.agent_langgraph_reasoning._generate_counter_hypotheses"
+    )
+    def test_verification_results_structure(self, mock_generate):
+        """Each verification result has required fields."""
+        mock_generate.return_value = ["Counter hypothesis text"]
+        from services.agent_langgraph_reasoning import (
+            adversarial_verification_node,
+        )
+
+        state = dict(self.base_state)
+        result = adversarial_verification_node(state)
+
+        for vr in result["verification_results"]:
+            self.assertIn("finding_id", vr)
+            self.assertIn("status", vr)
+            self.assertIn("counter_hypothesis", vr)
+            self.assertIn("evidence_ref", vr)
+            self.assertIn(vr["status"], {
+                "verified", "falsified", "unverifiable"
+            })
+
+    @patch(
+        "services.agent_langgraph_reasoning._generate_counter_hypotheses"
+    )
+    def test_empty_findings_no_error(self, mock_generate):
+        """Node handles empty findings gracefully."""
+        mock_generate.return_value = []
+        from services.agent_langgraph_reasoning import (
+            adversarial_verification_node,
+        )
+
+        state = {**self.base_state, "findings": [], "weighted_evidence": []}
+        result = adversarial_verification_node(state)
+
+        self.assertEqual(result["verification_results"], [])
 
 
 if __name__ == "__main__":

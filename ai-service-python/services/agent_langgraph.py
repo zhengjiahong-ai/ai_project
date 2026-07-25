@@ -235,6 +235,7 @@ def synthesize_node(state: AgentGraphState) -> AgentGraphState:
 # Extracted to ``services/agent_langgraph_reasoning.py`` (19-2).
 # Re-exported here to keep existing import paths working.
 from services.agent_langgraph_reasoning import (
+    adversarial_verification_node,
     conflict_resolution_node,
     cross_paper_reasoning_node,
     evidence_weighing_node,
@@ -421,6 +422,7 @@ def build_agent_graph(checkpointer: Any | None = None):
     graph.add_node("cross_paper_reasoning", cross_paper_reasoning_node)
     graph.add_node("synthesize", synthesize_node)
     graph.add_node("conflict_resolution", conflict_resolution_node)
+    graph.add_node("adversarial_verification", adversarial_verification_node)
     graph.add_node("report", report_node)
     graph.add_node("final_review", final_review_node)
     graph.add_node("final_rejected", final_rejected_node)
@@ -448,10 +450,11 @@ def build_agent_graph(checkpointer: Any | None = None):
     graph.add_conditional_edges(
         "conflict_resolution",
         follow_up_decision,
-        {"execute": "execute", "final_review": "report"},
+        {"execute": "execute", "final_review": "adversarial_verification"},
     )
 
-    # report → final_review → decision (approved → success, rejected → final_rejected)
+    # adversarial_verification → report → final_review
+    graph.add_edge("adversarial_verification", "report")
     graph.add_edge("report", "final_review")
     graph.add_conditional_edges(
         "final_review",
