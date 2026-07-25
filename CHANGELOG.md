@@ -2,6 +2,10 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-25 v0.6.62
+
+1. **CI LangGraph 测试修复（18-1）**：`requirements.txt` 中 `langgraph` 版本约束从 `<1.0` 放宽至 `<2.0`，兼容 LangGraph 1.0.7；`run_agent_graph` 和 `resume_agent_graph` 均显式设置 `recursion_limit=50`，28 个 LangGraph agent 测试全通过。
+
 ### 2026-07-23 v0.6.61
 
 1. **部署与运维指南（19-4）**：新建 `docs/DEPLOYMENT.md`——覆盖裸机（gunicorn+nginx+systemd）和 Docker 两种部署方式；所有 `PIXIU_*` / `DEEPSEEK_*` 环境变量按必填/可选/默认值分类；6 个 SQLite 数据库持久化路径和备份策略；7 条安全建议。
