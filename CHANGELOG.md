@@ -2,6 +2,12 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-25 v0.6.63
+
+1. **前端 E2E 测试扩展（18-3）**：新增 3 个 Playwright E2E spec 文件——`agent-report-confidence.spec.js`（置信度徽标颜色与子标题边框验证）、`knowledge-graph-toggle.spec.js`（图谱开关状态与请求体验证）、`shared-report.spec.js`（分享页面有效/过期/无效 token 三态验证）；E2E 测试总数从 10 个扩展至 19 个。
+2. **文档与 benchmark 刷新（18-4）**：`README.md` 补充 Agent 推理管线、LLM 缓存、API 限流和分享功能说明；`ARCHITECTURE.md` 补充 Agent 推理管线（evidence_weighing/cross_paper_reasoning/conflict_resolution）和 follow-up 信息增益自适应终止逻辑；`docs/USER_GUIDE.md` 新增 Agent 报告阅读指南和分享功能使用说明；重跑 layout parser benchmark，更新 `docs/layout_parser_benchmark.md` 记录 16-1 修复后中文 PDF 章节检测现状。
+3. **PDF 阅读体验优化（19-3）**：`PdfViewer.tsx` 新增高亮偏移 scale 补偿、扫描件 PDF 文本选择禁用+提示、PDF 加载骨架屏（`PdfSkeleton.tsx`）、1024px 断点响应式侧边栏折叠；`App.jsx` / `ReadingIDE.jsx` 传递 `parseStatus` 和 `onNarrowScreenChange` 回调；`index.css` 新增骨架屏样式和响应式媒体查询。
+
 ### 2026-07-25 v0.6.62
 
 1. **CI LangGraph 测试修复（18-1）**：`requirements.txt` 中 `langgraph` 版本约束从 `<1.0` 放宽至 `<2.0`，兼容 LangGraph 1.0.7；`run_agent_graph` 和 `resume_agent_graph` 均显式设置 `recursion_limit=50`，28 个 LangGraph agent 测试全通过。

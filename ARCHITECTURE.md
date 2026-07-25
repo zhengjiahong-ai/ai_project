@@ -458,6 +458,49 @@ Agent 面板不再只展示最终答案快照，而是开始展示研究过程�
 - 哪里存在冲突或证据覆盖不均衡。
 - 当前证据能支持什么草稿结论。
 
+### Agent 推理管线（14-1 增强）
+
+Agent 执行阶段 `synthesizing` 内部已拆分为三个独立推理节点，由 LangGraph StateGraph 串联：
+
+```
+execute → evidence_weighing → cross_paper_reasoning → synthesize → conflict_resolution
+                                                                          ↓
+                                                              follow_up_decision
+                                                              ↙ loop / proceed ↘
+```
+
+**evidence_weighing**：对每条证据计算四维确定性可信度评分（0.0-1.0）：
+- 来源类型信任度（权重 0.35）：`current_paper=1.0`, `library=0.85`, `external_academic=0.65`, `web_search=0.45`
+- 页码锚定覆盖（权重 0.20）：有页码 1.0，无页码 0.65
+- 跨来源一致性（权重 0.20）：基于与其他证据的关键词重叠
+- JUDGE 评分（权重 0.25）：从检索 judge 归一化
+- 综合评分 ≥ 0.75 为 high，≥ 0.50 为 medium，≥ 0.30 为 low，< 0.30 为 insufficient
+
+**cross_paper_reasoning**：基于加权证据的确定性跨论文分析，产出四类洞察：
+- **consensus**：两篇论文的高可信度（≥ 0.60）主张共享 ≥ 4 个关键词
+- **complementary**：两篇论文话题交集小（< 3 个共享词），各自覆盖互补主题
+- **contradictory**：一篇论文的低可信度（≤ 0.35）主张与另一篇高可信度主张共享 ≥ 3 个关键词
+- **gaps**：论文无高可信度证据时记录 `high` 缺口；完全无证据时记录 `critical` 缺口
+
+**conflict_resolution**：双重职责——
+- 冲突自动裁决：当冲突双方的可信度差距 ≥ 0.4 且高权重方来源可信度 ≥ 0.8 时自动判定；否则标记为 `needs_manual_review`
+- follow-up 循环状态管理：计算信息增益率并更新计数器
+
+### Follow-Up 循环与信息增益自适应终止
+
+Agent 在执行后可能进入 follow-up 循环，根据信息增益自适应决定是否继续检索：
+
+| 终止条件 | 参数 | 效果 |
+|---|---|---|
+| 安全上限 | `max_follow_up = 5` | 最多 5 轮后强制停止 |
+| 信息增益停滞 | < 10% 新增证据持续 2 轮 | 边际价值不足时自动停止 |
+| 证据饱和 | ≥ 12 条证据 | 已收集足够证据 |
+| 无缺口信号 | `open_questions` 无缺口关键词且无 high/critical gap | 缺口已覆盖 |
+
+信息增益计算：`gain_rate = (new_count - old_count) / max(old_count, 1)`。增益 < 0.10 时递增 `low_gain_count`，≥ 0.10 时重置为 0。`low_gain_count ≥ 2` 时终止循环。该逻辑在 LangGraph 路径（`agent_langgraph.py` `conflict_resolution_node` + `follow_up_decision`）和经典 `execute_run` 路径（`agent_orchestrator.py`）中保持一致。
+
+所有推理节点实现位于 `ai-service-python/services/agent_langgraph_reasoning.py`，可信度评分位于 `ai-service-python/services/evidence_credibility.py`。
+
 ## 持久化边界
 
 ### 浏览器

@@ -1250,6 +1250,9 @@ export default function App() {
     workspaceTabSections.find((section) => section.id === activeWorkspaceSectionId) || workspaceTabSections[0];
   const visibleWorkspaceTabs = workspaceTabs.filter((tab) => activeWorkspaceSection.tabIds.includes(tab.id));
   const currentPaperStatus = pdfFile ? (isDeconstructing ? '解析中' : '已载入') : '待上传';
+  const currentParseStatus = pdfId
+    ? (papersList.find((paper) => paper.id === pdfId)?.parseStatus || null)
+    : null;
   const currentResearchProgress = Math.round((currentDeepResearchState.task?.progress || 0) * 100);
   const paperOutlineModel = buildPaperOutlineModel(deconstructData);
   const paperOutlineItems = paperOutlineModel.items;
@@ -1419,6 +1422,7 @@ export default function App() {
               pdfPageState={pdfPageState}
               currentPaperStatus={currentPaperStatus}
               readingProgress={readingProgress}
+              parseStatus={currentParseStatus}
               notes={notes}
               papersList={papersList}
               handleSelectPaper={handleSelectPaper}

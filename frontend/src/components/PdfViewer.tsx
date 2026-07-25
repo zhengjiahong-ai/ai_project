@@ -21,6 +21,7 @@ import { buildExplainSelectionPayload } from '../utils/pdfFormulaSelection';
 import { buildPageLayout } from '../utils/pdfTranslationLayout.js';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
+import PdfSkeleton from './PdfSkeleton';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,7 @@ interface ApiResponse {
 
 const workerUrl: string = pdfWorkerUrl;
 const EXPLAIN_CONTEXT_MAX_CHARS: number = 4500;
+const SCANNED_OR_LOW_TEXT_STATUS: string = 'scanned_or_low_text';
 
 interface InlineActionDef {
   id: string;
@@ -275,6 +277,25 @@ const buildInlineActionPayload = (
 };
 
 // ── Sub-components ─────────────────────────────────────────────────────────
+
+interface ScannedPdfSelectionNoticeProps {
+  selectionRegion: PdfViewerSelectionRegion;
+}
+
+const ScannedPdfSelectionNotice: React.FC<ScannedPdfSelectionNoticeProps> = ({ selectionRegion }) => (
+  <div
+    className="scanned-pdf-notice absolute z-50 rounded-full px-4 py-2 text-xs font-semibold"
+    style={{
+      top: `${selectionRegion.top + selectionRegion.height}%`,
+      left: `${selectionRegion.left}%`,
+      transform: 'translateY(10px)',
+    }}
+  >
+    <span className="theme-text-muted">
+      扫描件 PDF，文本选择不可用
+    </span>
+  </div>
+);
 
 interface InlineContextMenuProps {
   selectionRegion: PdfViewerSelectionRegion;
@@ -526,6 +547,8 @@ interface PdfViewerProps {
   focusedSourceAnchorId?: string | null;
   focusedSourceAnchorToken?: number;
   theme?: string;
+  parseStatus?: string | null;
+  onNarrowScreenChange?: (isNarrow: boolean) => void;
 }
 
 const PdfViewer: React.FC<PdfViewerProps> = ({
@@ -543,21 +566,31 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   focusedSourceAnchorId = null,
   focusedSourceAnchorToken = 0,
   theme = 'light',
+  parseStatus = null,
+  onNarrowScreenChange,
 }) => {
   const [highlights, setHighlights] = useState<PdfViewerHighlight[]>([]);
   const [activeHighlightId, setActiveHighlightId] = useState<number | null>(null);
+  const [isPdfLoading, setIsPdfLoading] = useState<boolean>(true);
 
   const pdfDocRef = useRef<unknown>(null);
   const currentPageRef = useRef<number>(0);
   const isFirstRender = useRef<boolean>(true);
   const latestPdfIdRef = useRef<string | undefined>(pdfId);
   const pageTextByIndexRef = useRef<Record<number, string>>({});
+  const scaleRef = useRef<number>(1);
   const initialViewerPage: number = Number.isFinite(targetPageIndex) ? Math.max(0, targetPageIndex as number) : 0;
   const viewerKey: string = `${pdfId || 'empty'}-${initialViewerPage}-${targetPageJumpToken}`;
 
   useEffect(() => {
     latestPdfIdRef.current = pdfId;
   }, [pdfId]);
+
+  useEffect(() => {
+    if (fileUrl) {
+      setIsPdfLoading(true);
+    }
+  }, [fileUrl]);
 
   useEffect(() => {
     setActiveHighlightId(null);
@@ -592,6 +625,28 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
       setActiveHighlightId(targetHighlight.id);
     }
   }, [focusedSourceAnchorId, focusedSourceAnchorToken, highlights]);
+
+  // Responsive layout: detect narrow screens (< 1024px) and notify parent
+  useEffect(() => {
+    if (!onNarrowScreenChange) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(max-width: 1023px)');
+
+    const handleChange = (event: MediaQueryListEvent | MediaQueryList): void => {
+      onNarrowScreenChange(event.matches);
+    };
+
+    // Initial check
+    handleChange(mediaQuery);
+
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, [onNarrowScreenChange]);
 
   const extractPageText = useCallback(
     async (pageIndex: number, doc: unknown = pdfDocRef.current): Promise<void> => {
@@ -642,6 +697,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
         ? Math.max(0, Math.min(targetPageIndex as number, maxPageIndex))
         : currentPageRef.current;
       currentPageRef.current = initialPageIndex;
+      setIsPdfLoading(false);
       onPageChange?.({
         pageIndex: initialPageIndex,
         totalPages: doc?.numPages || 0,
@@ -849,47 +905,74 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   // highlightPlugin has return-type mismatch with React 19 JSX.Element
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const highlightPluginInstance = (highlightPlugin as any)({
-    renderHighlightTarget: (props: RenderHighlightTargetProps) =>
-      !activeHighlightId ? (
+    renderHighlightTarget: (props: RenderHighlightTargetProps) => {
+      if (parseStatus === SCANNED_OR_LOW_TEXT_STATUS) {
+        return (
+          <ScannedPdfSelectionNotice
+            selectionRegion={props.selectionRegion}
+          />
+        );
+      }
+
+      return !activeHighlightId ? (
         <InlineContextMenu
           selectionRegion={props.selectionRegion}
           onAction={(actionId: string) => handleSelectionAction(actionId, props as unknown as Record<string, unknown>)}
         />
-      ) : null,
+      ) : null;
+    },
     renderHighlights: (props: RenderHighlightsProps) => (
       <div>
         {highlights.map((highlightEntity: PdfViewerHighlight) => (
           <React.Fragment key={highlightEntity.id}>
             {highlightEntity.highlightAreas
               .filter((area: HighlightArea) => area.pageIndex === props.pageIndex)
-              .map((area: HighlightArea, index: number) => (
-                <div
-                  key={index}
-                  style={Object.assign(
-                    {},
-                    {
-                      background:
-                        activeHighlightId === highlightEntity.id
-                          ? themeColorWithAlpha('--accent-strong', 0.4, 'rgba(77,0,153,0.4)')
-                          : themeColorWithAlpha('--accent-strong', 0.2, 'rgba(77,0,153,0.2)'),
-                      border:
-                        activeHighlightId === highlightEntity.id
-                          ? `1px solid ${themeColorWithAlpha('--accent-strong', 0.6, 'rgba(77,0,153,0.6)')}`
-                          : 'none',
-                      cursor: 'pointer',
-                      mixBlendMode: 'multiply' as const,
-                      zIndex: 10,
-                      pointerEvents: 'auto' as const,
-                    },
-                    props.getCssProperties(area, props.rotation),
-                  )}
-                  onClick={(event: React.MouseEvent) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    setActiveHighlightId(highlightEntity.id);
-                  }}
-                />
-              ))}
+              .map((area: HighlightArea, index: number) => {
+                // Adjust highlight area based on current scale and rotation
+                // Scale factor compensates for pixel-level alignment differences
+                // at various zoom levels, while rotation is handled by getCssProperties.
+                const currentScale = scaleRef.current || 1;
+                const scaleAdjustment: number = 1 + (currentScale - 1) * 0.002;
+                const adjustedArea: HighlightArea =
+                  Math.abs(currentScale - 1) > 0.001
+                    ? {
+                        ...area,
+                        top: area.top * scaleAdjustment,
+                        left: area.left * scaleAdjustment,
+                        width: area.width * scaleAdjustment,
+                        height: area.height * scaleAdjustment,
+                      }
+                    : area;
+
+                return (
+                  <div
+                    key={index}
+                    style={Object.assign(
+                      {},
+                      {
+                        background:
+                          activeHighlightId === highlightEntity.id
+                            ? themeColorWithAlpha('--accent-strong', 0.4, 'rgba(77,0,153,0.4)')
+                            : themeColorWithAlpha('--accent-strong', 0.2, 'rgba(77,0,153,0.2)'),
+                        border:
+                          activeHighlightId === highlightEntity.id
+                            ? `1px solid ${themeColorWithAlpha('--accent-strong', 0.6, 'rgba(77,0,153,0.6)')}`
+                            : 'none',
+                        cursor: 'pointer',
+                        mixBlendMode: 'multiply' as const,
+                        zIndex: 10,
+                        pointerEvents: 'auto' as const,
+                      },
+                      props.getCssProperties(adjustedArea, props.rotation),
+                    )}
+                    onClick={(event: React.MouseEvent) => {
+                      event.stopPropagation();
+                      event.preventDefault();
+                      setActiveHighlightId(highlightEntity.id);
+                    }}
+                  />
+                );
+              })}
           </React.Fragment>
         ))}
       </div>
@@ -903,17 +986,25 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   return (
     <div className="relative h-full w-full">
       {fileUrl ? (
-        <Worker workerUrl={workerUrl}>
-          <Viewer
-            key={viewerKey}
-            fileUrl={fileUrl}
-            initialPage={initialViewerPage}
-            plugins={[highlightPluginInstance]}
-            theme={theme}
-            onDocumentLoad={handleDocumentLoad}
-            onPageChange={handleViewerPageChange}
-          />
-        </Worker>
+        <>
+          {isPdfLoading && <PdfSkeleton />}
+          <div style={{ display: isPdfLoading ? 'none' : 'block', height: '100%', width: '100%' }}>
+            <Worker workerUrl={workerUrl}>
+              <Viewer
+                key={viewerKey}
+                fileUrl={fileUrl}
+                initialPage={initialViewerPage}
+                plugins={[highlightPluginInstance]}
+                theme={theme}
+                onDocumentLoad={handleDocumentLoad}
+                onPageChange={handleViewerPageChange}
+                onZoom={(event: { scale: number }) => {
+                  scaleRef.current = event.scale;
+                }}
+              />
+            </Worker>
+          </div>
+        </>
       ) : (
         <div className="theme-empty-state flex h-full flex-col items-center justify-center">
           <p>暂无预览内容</p>

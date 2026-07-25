@@ -64,6 +64,7 @@ export default function ReadingIDE({
   pdfPageState,
   currentPaperStatus,
   readingProgress,
+  parseStatus,
   notes,
   papersList,
   handleSelectPaper,
@@ -188,7 +189,7 @@ export default function ReadingIDE({
   return (
     <>
       <aside
-        className={`workspace-sidebar theme-panel theme-border hidden shrink-0 flex-col border-r transition-[width] duration-200 xl:flex ${
+        className={`workspace-sidebar theme-panel theme-border hidden shrink-0 flex-col border-r transition-[width] duration-200 lg:flex ${
           isSidebarCollapsed ? 'w-14' : 'w-64'
         }`}
       >
@@ -464,6 +465,8 @@ export default function ReadingIDE({
                         targetPageJumpToken={targetPageJumpToken}
                         focusedSourceAnchorId={focusedSourceRequest.anchorId}
                         focusedSourceAnchorToken={focusedSourceRequest.token}
+                        parseStatus={parseStatus}
+                        onNarrowScreenChange={setIsSidebarCollapsed}
                       />
                     </div>
                   </div>

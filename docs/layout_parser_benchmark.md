@@ -102,6 +102,42 @@ npm.cmd run test:layout-benchmark
 
 若 GROBID 不可访问，Python runner 对每篇文档记录 `grobid_unavailable` 且 `metrics=null`。Infinity-Parser 当前固定记录为 `not_runnable`，不生成候选分数。
 
+## 16-1 中文标题增强修复后对比（2026-07-25 重跑）
+
+### 运行环境
+
+Windows 11、Python 3.13.9、GROBID 0.7.2（Docker）。
+
+### 可用样本
+
+5 个固定样本中，3 个因 PDF 文件未在期望路径下而标记为 `missing`：
+
+| 样本 | 状态 | 原因 |
+|---|---|---|
+| Active RIS | missing | 文件路径 `ai_project/docs/test/...` 不存在 |
+| Semantic Code Translation | missing | 文件路径 `ai_project/test/...` 不存在 |
+| DeepResearch 项目论文 | missing | 文件不存在 |
+| 升级技术详解 | success | 正常解析 |
+| 自主性研究 | success | 正常解析 |
+
+### GROBID 结果对比
+
+| 样本 | 上次章节数 | 本次章节数 | 上次章节 F1 | 本次章节 F1 | 变化说明 |
+|---|---|---|---|---|---|
+| 升级技术详解 | 0 | 0 | 0 | 0 | 无变化：GROBID 仍未从此中文 PDF 提取章节，16-1 PDF-only CJK fallback 也未检测到章节标题 |
+| 自主性研究 | 1 | 1 | 0 | 0 | 无变化：仍仅检测到 1 个章节标题（`2025-2026年自主性论文阅读智能体架构与`），但该标题未匹配任何 gold heading |
+| DeepResearch 项目论文 | 0 | N/A（missing） | 0 | N/A | 本次无法评估 |
+
+### 分析
+
+16-1 增强（`outline_extractor.py` `_build_pdf_only_outline_cjk`）在 GROBID 返回零 TEI 标题时自动回退到 PDF 原生文本的 CJK 增强路径，支持中文数字标题（一、/ 二、）、混合中英文编号、括号编号（（一）/（1））以及常见中文无编号标题（摘要、引言、结论、方法 等）。该增强代码已在本次运行中生效，但对以上两个中文 PDF 仍未改善章节检测结果，可能原因：
+
+- 这两个中文 PDF 的标题字号/加粗特征与正文字体差异不足以通过样式阈值过滤。
+- PDF 文本层中的标题文本格式（如全角数字、特殊空白字符）导致正则匹配失败。
+- 标题文本被跨页或跨栏拆分，未能形成完整标题行。
+
+**结论**：16-1 修复已落地且代码路径可执行，但针对这两个特定中文 PDF 的章节 F1 仍为 0。后续若需进一步提升，需针对这些 PDF 的具体标题排版特征（字号阈值、跨栏重组、标题前缀变体）做更有针对性的适配，并在更多中文论文上验证。GROBID 对中文论文的章节提取能力仍然有限，当前不宜将 GROBID 章节解析作为中文论文结构分析的主要依赖。
+
 ## 后续门槛
 
 - **keep GROBID**：当前默认；现有接口和解析流程不变。

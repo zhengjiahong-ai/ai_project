@@ -55,8 +55,38 @@ Agent 工作区已经不再只是静态原型壳。当前已经具备第一版�
 - Agent 终态任务会保存脱敏 trace summary，服务重启后仍可按 `traceId` 恢复关键调用、预算和耗时计数。
 - Deep Research 和 Agent 都支持在任务创建及计划审查阶段显式授权只读外部学术检索；只有内部证据不足时才会调用白名单 Crossref，并在来源卡和报告引用中区分外部证据。
 - 外部 Provider 失败、超时或预算耗尽时任务会保留内部证据和未解决缺口，以脱敏原因降级，并继续进入最终人工审查。
+- Agent 推理管线已拆分为三个独立节点：`evidence_weighing` 对每条证据计算四维可信度（来源类型信任度、页码锚定覆盖、跨来源一致性、JUDGE 评分），输出加权证据；`cross_paper_reasoning` 在加权证据上做确定性跨论文分析，产出共识（consensus）、互补（complementary）、矛盾（contradictory）和证据缺口（gaps）四类洞察；`conflict_resolution` 对冲突候选进行自动裁决（可信度差距 ≥ 0.4 且高权重方 ≥ 0.8 时自动判定），并负责 follow-up 循环的信息增益跟踪与计数器更新。
+- follow-up 循环采用信息增益驱动的自适应终止策略：每轮计算新增证据占比，连续两轮增益低于 10% 时自动停止；同时受安全上限（max 5 轮）、证据饱和（≥ 12 条）和无缺口信号三重保护。节点实现位于 `agent_langgraph_reasoning.py`，确定性可信度公式位于 `evidence_credibility.py`。
 - 前端快照仍按项目保存任务历史，作为旧接口或临时失败时的 fallback。
 - Agent 报告草稿、跨论文对比表和单条关键证据可以加入工作台；报告与对比表归入进入 Agent 时的当前论文，证据卡同时保留来源论文、页码、章节、项目和任务标识。未打开当前论文时保存入口会禁用。
+
+### LLM 缓存
+
+为减少重复 LLM 调用开销，Python AI 服务内置了基于 SHA-256 + SQLite 的响应缓存：
+
+- 以 `(model, temperature, system_prompt, user_prompt)` 拼接后取 SHA-256 作为缓存键，命中时直接返回缓存响应，跳过实际 API 调用。
+- 默认 TTL 60 分钟（可通过 `PIXIU_LLM_CACHE_TTL_MINUTES` 调整），过期条目自动逐出。
+- 缓存模式通过 `PIXIU_LLM_CACHE_MODE` 控制，默认 `exact` 启用精确匹配；设为其他值则禁用缓存。
+- 数据库默认路径 `ai-service-python/data/llm_cache.sqlite3`，可通过 `PIXIU_LLM_CACHE_PATH` 指定。
+- 线程安全，所有读写操作由 `threading.Lock()` 保护；LLM 客户端每次调用自动记录 `llmCacheHits` / `llmCacheMisses` 计数。
+
+### API 限流
+
+FastAPI 层已集成基于 token bucket 算法的请求限流中间件：
+
+- 按请求路径自动分桶：`/api/agent-*tasks|runs` 对应 Agent 桶（默认 10 RPM），`/chat|/explain|/socratic` 对应聊天桶（默认 30 RPM），`/translate` 对应翻译桶（默认 10 RPM），其余路径归入全局桶（默认 60 RPM）。
+- 每个 IP 在每个桶中独立计费，burst 容量为 `rate / 2`（最少 1 个 token）。
+- 令牌按时间线性恢复；超限时返回 `429` 并附带 `Retry-After` 头。
+- 通过 `PIXIU_RATE_LIMIT_ENABLED` 全局开关；各桶 RPM 分别通过 `PIXIU_RATE_LIMIT_GLOBAL_RPM`、`PIXIU_RATE_LIMIT_AGENT_RPM`、`PIXIU_RATE_LIMIT_CHAT_RPM`、`PIXIU_RATE_LIMIT_TRANSLATE_RPM` 配置。
+
+### 分享功能
+
+支持将完成的 Agent 研究报告生成为只读分享链接：
+
+- 前端 Agent 面板可对已完成报告生成分享 token（UUID4 十六进制字符串）。
+- Token 及其关联的项目标题、报告正文保存到 SQLite（默认 `ai-service-python/data/shares.sqlite3`），7 天自动过期。
+- 分享页面 `/share/{token}` 为独立只读视图：仅展示报告 Markdown 正文、项目标题和过期时间，不暴露 PDF 正文、完整证据、API key、trace、聊天历史或工作台内容。
+- 过期或无效 token 返回中文提示“分享链接不存在或已过期”。
 
 当前 AI 效果边界：
 

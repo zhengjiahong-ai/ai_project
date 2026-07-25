@@ -1548,3 +1548,39 @@ html[data-theme='dark'] .socratic-gap-block {
     padding: 0.8rem 0.85rem;
   }
 }
+
+/* ── PDF Skeleton ─────────────────────────────────────────────────────────── */
+
+.pdf-skeleton {
+  background: var(--panel-bg);
+}
+
+.pdf-skeleton-page {
+  min-height: 520px;
+}
+
+/* ── Scanned PDF Selection Notice ─────────────────────────────────────────── */
+
+.scanned-pdf-notice {
+  border: 1px solid var(--border-subtle);
+  background: var(--panel-overlay);
+  box-shadow: var(--shadow-elevated);
+  backdrop-filter: blur(12px);
+}
+
+/* ── Responsive Layout: Collapse sidebar when screen < 1024px ─────────────── */
+
+@media (max-width: 1023px) {
+  .workspace-sidebar {
+    display: flex !important;
+    width: 3.5rem !important; /* w-14 */
+  }
+
+  .workspace-sidebar > .theme-border.p-3 .min-w-0,
+  .workspace-sidebar > .flex-1 section,
+  .workspace-sidebar > .theme-border.p-3 .theme-text-muted,
+  .workspace-sidebar > .theme-border.p-3 .rounded-full,
+  .workspace-sidebar > .theme-border.p-3 .theme-input {
+    display: none !important;
+  }
+}
