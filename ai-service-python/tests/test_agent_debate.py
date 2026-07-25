@@ -10,6 +10,10 @@ from services.agent_debate import (
     _compute_jaccard_similarity,
     synthesize_consensus,
 )
+from services.agent_project_service import (
+    create_debate_run,
+    get_debate_result,
+)
 
 
 class TestJaccardSimilarity(unittest.TestCase):
@@ -276,3 +280,82 @@ class TestSynthesizeConsensus(unittest.TestCase):
         self.assertEqual(result1["consensus_findings"], result2["consensus_findings"])
         self.assertEqual(result1["minority_dissent"], result2["minority_dissent"])
         self.assertEqual(result1["unresolved"], result2["unresolved"])
+
+
+class TestDebateAPI(unittest.TestCase):
+    """Tests for debate API endpoint and service layer."""
+
+    def setUp(self):
+        self.project_id = "test-project-debate-api"
+
+    @patch("services.agent_debate.DebateOrchestrator.run_debate")
+    @patch("services.agent_project_service.get_agent_project")
+    def test_create_debate_run_success(self, mock_get_project, mock_run_debate):
+        """create_debate_run returns debate result when project exists."""
+        mock_get_project.return_value = {
+            "id": self.project_id,
+            "title": "Test Project",
+            "paperIds": ["paper-1", "paper-2"],
+        }
+        mock_run_debate.return_value = {
+            "run_id": "debate-run-1",
+            "status": "completed",
+            "agent_analyses": [],
+            "debate_turns": [],
+            "consensus_findings": [],
+            "minority_dissent": [],
+            "unresolved": [],
+            "jaccard_matrix": [],
+            "rounds": 0,
+            "duration_seconds": 1.5,
+            "research_prompt": "test",
+            "paper_ids": ["paper-1", "paper-2"],
+        }
+
+        result = create_debate_run(
+            self.project_id,
+            research_prompt="test prompt",
+            paper_ids=["paper-1", "paper-2"],
+            num_agents=3,
+        )
+
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["run_id"], "debate-run-1")
+        mock_run_debate.assert_called_once()
+
+    @patch("services.agent_project_service.get_agent_project")
+    def test_create_debate_run_project_not_found(self, mock_get_project):
+        """Raises ValueError when project does not exist."""
+        mock_get_project.return_value = None
+
+        with self.assertRaises(ValueError):
+            create_debate_run(
+                "nonexistent-project",
+                research_prompt="test",
+                paper_ids=["paper-1"],
+            )
+
+    @patch("services.agent_debate.DebateOrchestrator.run_debate")
+    @patch("services.agent_project_service.get_agent_project")
+    def test_create_debate_run_default_num_agents(self, mock_get_project, mock_run_debate):
+        """Default num_agents=3 when not specified."""
+        mock_get_project.return_value = {
+            "id": self.project_id,
+            "title": "Test",
+            "paperIds": ["p1"],
+        }
+        mock_run_debate.return_value = {
+            "run_id": "r1", "status": "completed",
+            "agent_analyses": [], "debate_turns": [],
+            "consensus_findings": [], "minority_dissent": [],
+            "unresolved": [], "jaccard_matrix": [],
+            "rounds": 0, "duration_seconds": 0.5,
+            "research_prompt": "test", "paper_ids": ["p1"],
+        }
+
+        result = create_debate_run(
+            self.project_id,
+            research_prompt="test",
+            paper_ids=["p1"],
+        )
+        self.assertEqual(result["status"], "completed")

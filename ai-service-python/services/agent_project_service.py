@@ -1320,3 +1320,69 @@ def _agent_state_db_path() -> Path:
 def _utc_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
+
+# ── Multi-Agent Debate ───────────────────────────────────────────────
+
+def create_debate_run(
+    project_id: str,
+    research_prompt: str,
+    paper_ids: list,
+    constraints: dict | None = None,
+    num_agents: int = 3,
+):
+    """Create and execute a multi-agent debate run.
+
+    Args:
+        project_id: The agent project ID.
+        research_prompt: The research question.
+        paper_ids: List of paper IDs to analyze.
+        constraints: Optional constraints dict.
+        num_agents: Number of agents in the debate (1-5).
+
+    Returns:
+        DebateResult dict.
+
+    Raises:
+        ValueError: If project does not exist.
+    """
+    project = get_agent_project(project_id)
+    if project is None:
+        raise ValueError(f"Project not found: {project_id}")
+
+    from services.agent_debate import DebateOrchestrator
+
+    orchestrator = DebateOrchestrator(
+        research_prompt=research_prompt,
+        paper_ids=paper_ids,
+        constraints=constraints,
+        num_agents=num_agents,
+        max_debate_rounds=2,
+    )
+
+    result = orchestrator.run_debate()
+
+    # Store result keyed by run_id for later retrieval
+    _debate_results: dict = getattr(
+        create_debate_run, "_results", {}
+    )
+    _debate_results[result["run_id"]] = result
+    create_debate_run._results = _debate_results
+
+    return result
+
+
+def get_debate_result(project_id: str, run_id: str):
+    """Retrieve a stored debate result by run_id.
+
+    Args:
+        project_id: The agent project ID.
+        run_id: The debate run ID.
+
+    Returns:
+        DebateResult dict or None.
+    """
+    _debate_results: dict = getattr(
+        create_debate_run, "_results", {}
+    )
+    return _debate_results.get(run_id)
+
