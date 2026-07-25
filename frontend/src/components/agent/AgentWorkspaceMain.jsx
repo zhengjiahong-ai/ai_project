@@ -1,5 +1,7 @@
 import React from 'react';
 
+import DebateView from './DebateView';
+
 import AgentTaskComposer, {
   AgentResponseCard,
   AgentWorkspaceHeader,
@@ -44,6 +46,7 @@ const AgentWorkspaceMain = ({
   onAllowKnowledgeGraphChange,
   domain,
   onDomainChange,
+  theme = 'light',
 }) => (
   <main className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[26px]">
     <AgentWorkspaceHeader
@@ -76,13 +79,17 @@ const AgentWorkspaceMain = ({
                 <AgentConflictSection currentTask={currentTask} onJumpToSource={onJumpToSource} />
                 <AgentCodeExecutionSection currentTask={currentTask} />
                 <AgentToolCallsSection currentTask={currentTask} />
-                <AgentDraftReportSection
-                  activeProject={activeProject}
-                  currentTask={currentTask}
-                  activePaperId={activePaperId}
-                  onCaptureArtifact={onCaptureArtifact}
-                  onJumpToSource={onJumpToSource}
-                />
+                {currentTask?.debateResult?.agent_analyses?.length > 0 ? (
+                  <DebateView debateResult={currentTask.debateResult} theme={theme} />
+                ) : (
+                  <AgentDraftReportSection
+                    activeProject={activeProject}
+                    currentTask={currentTask}
+                    activePaperId={activePaperId}
+                    onCaptureArtifact={onCaptureArtifact}
+                    onJumpToSource={onJumpToSource}
+                  />
+                )}
                 {currentTask.status === 'awaiting_final_review' && (
                   <AgentHumanFinalReview currentTask={currentTask} onReviewFinal={onReviewFinal} />
                 )}

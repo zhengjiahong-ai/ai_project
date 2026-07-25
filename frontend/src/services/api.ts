@@ -202,6 +202,16 @@ export interface ApiService {
   runAgentGraph: (payload: AgentRunPayload) => Promise<unknown>;
   resumeAgentGraph: (threadId: string, payload: Record<string, unknown>) => Promise<unknown>;
   getAgentGraphState: (threadId: string) => Promise<unknown>;
+
+  // Multi-Agent Debate
+  createDebateRun(projectId: string, body: {
+    research_prompt: string;
+    paper_ids: string[];
+    constraints?: Record<string, unknown>;
+    num_agents?: number;
+  }): Promise<{ status: string; data: any }>;
+
+  getDebateResult(projectId: string, runId: string): Promise<{ status: string; data: any }>;
 }
 
 // ── Implementation ──────────────────────────────────────────────────────────
@@ -646,6 +656,13 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
 
   getAgentGraphState: async (threadId) =>
     agentPrimaryClient.get(`/agent-graph/${encodeURIComponent(threadId)}`),
+
+  // Multi-Agent Debate
+  createDebateRun: (projectId, body) =>
+    client.post(`/agent-projects/${projectId}/debate`, body),
+
+  getDebateResult: (projectId, runId) =>
+    client.get(`/agent-projects/${projectId}/debate/${runId}`),
 
   } as ApiService;
 };
