@@ -11,7 +11,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test-setup.js'],
-    include: ['src/**/*.test.jsx', 'src/**/*.test.tsx'],
+    include: ['src/**/*.test.jsx', 'src/**/*.test.tsx', 'src/services/highlightStore.test.js'],
     exclude: ['node_modules'],
     css: false,
   },
