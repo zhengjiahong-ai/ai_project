@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Plus, Trash2, Save, ChevronRight, FileText, Hash } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Save, ChevronRight, FileText, Hash, Download } from 'lucide-react';
 import { loadNotes, upsertNote, deleteNote } from '../services/notesStore';
+import { loadHighlights, getBookmarks } from '../services/highlightStore';
 
 /**
  * ReadingNotesPanel – Per-paper reading notes organized by section.
@@ -24,6 +25,7 @@ export default function ReadingNotesPanel({
   const [editingNote, setEditingNote] = useState(null); // { id?, sectionId, content }
   const [isLoading, setIsLoading] = useState(true);
   const [subTab, setSubTab] = useState('notes'); // 'notes' | 'bookmarks'
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const isDark = theme === 'dark';
   const sections = paperSkeleton?.sections || [];
@@ -76,6 +78,64 @@ export default function ReadingNotesPanel({
     });
   }, [editingNote, currentPageIndex]);
 
+  // Export notes as Markdown or JSON
+  const handleExport = useCallback(async (format) => {
+    const highlights = await loadHighlights(pdfId);
+    const bookmarks = await getBookmarks(pdfId);
+    const title = paperSkeleton?.title || pdfId || 'Untitled';
+
+    let content, mimeType, filename;
+
+    if (format === 'markdown') {
+      content = [
+        `# ${title}`,
+        '',
+        '## Highlights',
+        ...(highlights.length > 0
+          ? highlights.map((h) => {
+              const page = (h.pageIndex ?? h.position?.pageIndex ?? 0) + 1;
+              const color = h.color || 'yellow';
+              return `- [p.${page}] ${h.text || '(no text)'} (${color})`;
+            })
+          : ['- No highlights']),
+        '',
+        '## Notes',
+        ...notes.map((n) => {
+          const sectionLabel = sections.find(
+            (s) => (s.id || s.title) === n.sectionId
+          )?.title || 'General';
+          return `### ${sectionLabel}\n${n.content}${n.pageIndex != null ? `\n\n[p.${n.pageIndex + 1}]` : ''}\n`;
+        }),
+        bookmarks.length > 0 ? '\n## Bookmarks' : '',
+        ...bookmarks.map((b) => `- [p.${b.pageIndex + 1}] ${b.label || ''}`),
+      ].join('\n');
+      mimeType = 'text/markdown';
+      filename = `${title.replace(/[^a-zA-Z0-9一-鿿]/g, '_')}_notes.md`;
+    } else {
+      // JSON
+      content = JSON.stringify({
+        title,
+        pdfId,
+        exportedAt: new Date().toISOString(),
+        highlights,
+        notes,
+        bookmarks,
+      }, null, 2);
+      mimeType = 'application/json';
+      filename = `${title.replace(/[^a-zA-Z0-9一-鿿]/g, '_')}_notes.json`;
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [pdfId, notes, paperSkeleton, sections]);
+
   // Group notes by section
   const notesBySection = {};
   sections.forEach((s) => { notesBySection[s.id || s.title] = []; });
@@ -124,12 +184,36 @@ export default function ReadingNotesPanel({
               <BookOpen size={16} />
               Reading Notes
             </h3>
-            <button
-              onClick={() => startEdit('__unsorted__', null)}
-              className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400"
-            >
-              <Plus size={14} /> New Note
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Export dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  title="Export"
+                >
+                  <Download size={14} /> Export
+                </button>
+                {showExportMenu && (
+                  <div className={`absolute right-0 top-full z-20 mt-1 rounded border shadow-lg ${isDark ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-white'}`}>
+                    <button onClick={() => { handleExport('markdown'); setShowExportMenu(false); }}
+                      className="block w-full px-4 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-600">
+                      Export as Markdown
+                    </button>
+                    <button onClick={() => { handleExport('json'); setShowExportMenu(false); }}
+                      className="block w-full px-4 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-600">
+                      Export as JSON
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => startEdit('__unsorted__', null)}
+                className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400"
+              >
+                <Plus size={14} /> New Note
+              </button>
+            </div>
           </div>
 
           {sections.length === 0 && (
