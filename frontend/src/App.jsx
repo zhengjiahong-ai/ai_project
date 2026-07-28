@@ -1351,7 +1351,7 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary area="主应用">
+    <>
       <CodeExecutionApprovalCenter />
       <LibrarySidebar
         isOpen={isLibraryOpen}
@@ -1416,15 +1416,6 @@ export default function App() {
           appMode={appMode}
           onAppModeChange={setAppMode}
         />
-
-        {!isOnline && (
-          <div style={{
-            backgroundColor: '#f97316', color: '#fff', textAlign: 'center',
-            padding: '6px 12px', fontSize: '13px', fontWeight: 500,
-          }}>
-            网络连接已断开，部分功能不可用
-          </div>
-        )}
 
         <main className="workspace-main flex min-h-0 flex-1 overflow-hidden" aria-label="论文阅读工作区">
           <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-muted">加载中...</div>}>
@@ -1545,7 +1536,7 @@ export default function App() {
           </Suspense>
         </main>
       </div>
-    </ErrorBoundary>
+    </>
   );
 }
 
