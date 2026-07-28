@@ -264,6 +264,44 @@ const withAgentFallback = async <T>(primaryRequest: () => Promise<T>, fallbackRe
   }
 };
 
+/**
+ * Generic retry wrapper for API calls.
+ * Retries on 5xx errors and network errors with exponential backoff.
+ * 4xx errors are thrown immediately (client errors should not be retried).
+ */
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: { maxRetries?: number; backoffMs?: number } = {},
+): Promise<T> {
+  const { maxRetries = 2, backoffMs = 1000 } = options;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+
+      // Don't retry 4xx client errors
+      const status = error?.response?.status || error?.status;
+      if (status >= 400 && status < 500) {
+        throw error;
+      }
+
+      // Don't retry on last attempt
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Exponential backoff: 1s, 2s
+      const delay = backoffMs * Math.pow(2, attempt);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
+
 interface CreateApiServiceOptions {
   agentDirect?: boolean;
 }
