@@ -57,8 +57,7 @@ services:
       - NEO4J_USER=${NEO4J_USER:-}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-}
     depends_on:
-      grobid:
-        condition: service_healthy
+      - grobid
 
   # --- GROBID 服务（用于PDF解析） ---
   neo4j:
@@ -77,22 +76,17 @@ services:
   grobid:
     image: lfoppiano/grobid:0.7.2
     container_name: grobid_service
+    restart: unless-stopped
     ports:
       - "8070:8070"
     environment:
-      - JAVA_OPTS=-Xmx4g -Xms2g # 🔥 增加内存，防止频繁 GC 导致卡顿
+      - JAVA_OPTS=-Xmx2g -Xms512m
     volumes:
       - grobid_data:/opt/grobid/home
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8070/api/isalive"]
-      interval: 15s
-      timeout: 10s
-      retries: 12
-      start_period: 60s
     deploy:
       resources:
         limits:
-          memory: 4G # 建议至少 4G
+          memory: 3G
 
 volumes:
   grobid_data:
