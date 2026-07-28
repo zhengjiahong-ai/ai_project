@@ -633,12 +633,14 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
 
   useEffect(() => {
     setActiveHighlightId(null);
+    // Restore highlights from parent first so the PDF renders immediately,
+    // then overlay any saved highlights from IndexedDB asynchronously.
+    setHighlights(normalizeHighlightCollection(initialHighlights));
     pdfDocRef.current = null;
     currentPageRef.current = 0;
     pageTextByIndexRef.current = {};
 
     if (!pdfId) {
-      setHighlights([]);
       return;
     }
 
@@ -647,8 +649,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
       if (cancelled || pdfId !== latestPdfIdRef.current) return;
       if (saved && saved.length > 0) {
         setHighlights(normalizeHighlightCollection(saved));
-      } else {
-        setHighlights(normalizeHighlightCollection(initialHighlights));
       }
     });
 
