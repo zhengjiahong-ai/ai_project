@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ChevronDown,
   ChevronLeft,
@@ -187,6 +187,23 @@ export default function ReadingIDE({
   handleSaveArtifactAsNote,
   handleDeleteNote,
 }) {
+  // Restore reading progress when a paper is opened
+  useEffect(() => {
+    if (!pdfId) return;
+    import('../services/highlightStore').then(({ getProgress }) => {
+      getProgress(pdfId).then((progress) => {
+        if (progress && progress.pageIndex > 0) {
+          const confirmed = window.confirm(
+            `恢复上次阅读位置（第 ${progress.pageIndex + 1} 页）？`
+          );
+          if (confirmed) {
+            handleJumpToSource?.({ pageIndex: progress.pageIndex });
+          }
+        }
+      });
+    });
+  }, [pdfId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <aside

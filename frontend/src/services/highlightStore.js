@@ -55,10 +55,71 @@ export async function getHighlights(pdfId) {
   return loadHighlights(pdfId);
 }
 
+// ── Bookmarks ─────────────────────────────────────────────────────
+
+/**
+ * Get bookmarks for a PDF.
+ * Bookmarks are stored as: { pdfId, bookmarks: [{pageIndex, label, createdAt}] }
+ * @param {string} pdfId
+ * @returns {Promise<Array>}
+ */
+export async function getBookmarks(pdfId) {
+  const db = await initDB();
+  const raw = await db.get(STORE_NAME, `bookmarks_${pdfId}`);
+  return raw?.bookmarks || [];
+}
+
+/**
+ * Toggle bookmark for a page. Removes if exists, adds if not.
+ * @param {string} pdfId
+ * @param {number} pageIndex
+ * @param {string} label
+ * @returns {Promise<Array>}
+ */
+export async function toggleBookmark(pdfId, pageIndex, label) {
+  const bookmarks = await getBookmarks(pdfId);
+  const existing = bookmarks.findIndex((b) => b.pageIndex === pageIndex);
+  if (existing >= 0) {
+    bookmarks.splice(existing, 1);
+  } else {
+    bookmarks.push({ pageIndex, label: label || `Page ${pageIndex + 1}`, createdAt: new Date().toISOString() });
+  }
+  const db = await initDB();
+  await db.put(STORE_NAME, { pdfId, bookmarks }, `bookmarks_${pdfId}`);
+  return bookmarks;
+}
+
+// ── Reading Progress ──────────────────────────────────────────────
+
+/**
+ * Save reading progress.
+ * Progress is stored as: { pdfId, pageIndex, timestamp }
+ * @param {string} pdfId
+ * @param {number} pageIndex
+ */
+export async function saveProgress(pdfId, pageIndex) {
+  const db = await initDB();
+  await db.put(STORE_NAME, { pdfId, pageIndex, timestamp: new Date().toISOString() }, `progress_${pdfId}`);
+}
+
+/**
+ * Get saved reading progress.
+ * @param {string} pdfId
+ * @returns {Promise<Object|null>}
+ */
+export async function getProgress(pdfId) {
+  const db = await initDB();
+  return await db.get(STORE_NAME, `progress_${pdfId}`) || null;
+}
+
 export default {
   loadHighlights,
   saveHighlights,
   addHighlight,
   deleteHighlight,
   getHighlights,
+  getBookmarks,
+  toggleBookmark,
+  saveProgress,
+  getProgress,
 };

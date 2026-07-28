@@ -23,6 +23,7 @@ export default function ReadingNotesPanel({
   const [activeSectionId, setActiveSectionId] = useState(null);
   const [editingNote, setEditingNote] = useState(null); // { id?, sectionId, content }
   const [isLoading, setIsLoading] = useState(true);
+  const [subTab, setSubTab] = useState('notes'); // 'notes' | 'bookmarks'
 
   const isDark = theme === 'dark';
   const sections = paperSkeleton?.sections || [];
@@ -90,134 +91,207 @@ export default function ReadingNotesPanel({
 
   return (
     <div className={`flex h-full flex-col ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between border-b p-3 dark:border-gray-700">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <BookOpen size={16} />
-          Reading Notes
-        </h3>
+      {/* Sub-tab bar */}
+      <div className="flex items-center border-b dark:border-gray-700">
         <button
-          onClick={() => startEdit('__unsorted__', null)}
-          className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400"
+          onClick={() => setSubTab('notes')}
+          className={`flex-1 px-3 py-2 text-xs font-medium ${
+            subTab === 'notes'
+              ? 'border-b-2 border-blue-500 text-blue-600'
+              : 'text-gray-400'
+          }`}
         >
-          <Plus size={14} /> New Note
+          Notes
+        </button>
+        <button
+          onClick={() => setSubTab('bookmarks')}
+          className={`flex-1 px-3 py-2 text-xs font-medium ${
+            subTab === 'bookmarks'
+              ? 'border-b-2 border-blue-500 text-blue-600'
+              : 'text-gray-400'
+          }`}
+        >
+          Bookmarks
         </button>
       </div>
 
       {/* Section + Notes List */}
-      <div className="flex-1 overflow-y-auto">
-        {sections.length === 0 && (
-          <p className="p-4 text-center text-xs text-gray-400">
-            No sections available. Upload a paper to see its outline.
-          </p>
-        )}
+      {subTab === 'notes' && (
+        <div className="flex-1 overflow-y-auto">
+          {/* New Note button */}
+          <div className="flex items-center justify-between border-b p-3 dark:border-gray-700">
+            <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <BookOpen size={16} />
+              Reading Notes
+            </h3>
+            <button
+              onClick={() => startEdit('__unsorted__', null)}
+              className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400"
+            >
+              <Plus size={14} /> New Note
+            </button>
+          </div>
 
-        {sections.map((section) => {
-          const sectionNotes = notesBySection[section.id || section.title] || [];
-          const isActive = activeSectionId === (section.id || section.title);
+          {sections.length === 0 && (
+            <p className="p-4 text-center text-xs text-gray-400">
+              No sections available. Upload a paper to see its outline.
+            </p>
+          )}
 
-          return (
-            <div key={section.id || section.title} className="border-b dark:border-gray-700">
-              {/* Section Header */}
-              <button
-                onClick={() => setActiveSectionId(isActive ? null : (section.id || section.title))}
-                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                  isActive ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                }`}
-              >
-                {isActive ? <ChevronRight size={12} className="rotate-90" /> : <ChevronRight size={12} />}
-                <span className="truncate">{section.title || `Section ${section.pageIndex + 1}`}</span>
-                <span className="ml-auto text-gray-400">{sectionNotes.length}</span>
-              </button>
+          {sections.map((section) => {
+            const sectionNotes = notesBySection[section.id || section.title] || [];
+            const isActive = activeSectionId === (section.id || section.title);
 
-              {/* Section Notes + Editor */}
-              {isActive && (
-                <div className="px-3 pb-3">
-                  {sectionNotes.map((note) => (
-                    <div key={note.id} className="mb-2 rounded border p-2 text-xs dark:border-gray-700">
-                      {editingNote?.id === note.id ? (
-                        /* Edit existing */
-                        <div className="space-y-2">
-                          <textarea
-                            value={editingNote.content}
-                            onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                            className={`w-full rounded border p-2 text-xs ${isDark ? 'bg-gray-700 border-gray-600 text-gray-100' : 'border-gray-300 bg-white'}`}
-                            rows={4}
-                            placeholder="Write your note..."
-                          />
-                          <div className="flex items-center gap-2">
-                            <button onClick={handleSave} className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">
-                              <Save size={12} /> Save
-                            </button>
-                            <button onClick={insertPageRef} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
-                              <Hash size={12} /> p.{currentPageIndex + 1}
-                            </button>
-                            <button onClick={() => setEditingNote(null)} className="ml-auto text-xs text-gray-400">Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Display note */
-                        <div>
-                          <p className="whitespace-pre-wrap leading-relaxed">{note.content}</p>
-                          <div className="mt-1 flex items-center gap-2 text-gray-400">
-                            {note.pageIndex != null && (
-                              <button
-                                onClick={() => onJumpToPage?.(note.pageIndex)}
-                                className="text-blue-500 hover:underline"
-                              >
-                                [p.{note.pageIndex + 1}]
+            return (
+              <div key={section.id || section.title} className="border-b dark:border-gray-700">
+                {/* Section Header */}
+                <button
+                  onClick={() => setActiveSectionId(isActive ? null : (section.id || section.title))}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                    isActive ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  }`}
+                >
+                  {isActive ? <ChevronRight size={12} className="rotate-90" /> : <ChevronRight size={12} />}
+                  <span className="truncate">{section.title || `Section ${section.pageIndex + 1}`}</span>
+                  <span className="ml-auto text-gray-400">{sectionNotes.length}</span>
+                </button>
+
+                {/* Section Notes + Editor */}
+                {isActive && (
+                  <div className="px-3 pb-3">
+                    {sectionNotes.map((note) => (
+                      <div key={note.id} className="mb-2 rounded border p-2 text-xs dark:border-gray-700">
+                        {editingNote?.id === note.id ? (
+                          /* Edit existing */
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingNote.content}
+                              onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+                              className={`w-full rounded border p-2 text-xs ${isDark ? 'bg-gray-700 border-gray-600 text-gray-100' : 'border-gray-300 bg-white'}`}
+                              rows={4}
+                              placeholder="Write your note..."
+                            />
+                            <div className="flex items-center gap-2">
+                              <button onClick={handleSave} className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">
+                                <Save size={12} /> Save
                               </button>
-                            )}
-                            <span className="text-[10px]">
-                              {note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : ''}
-                            </span>
-                            <button onClick={() => startEdit(section.id || section.title, note)} className="ml-auto text-gray-400 hover:text-blue-500">Edit</button>
-                            <button onClick={() => handleDelete(note.id)} className="text-gray-400 hover:text-red-500">
-                              <Trash2 size={12} />
-                            </button>
+                              <button onClick={insertPageRef} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <Hash size={12} /> p.{currentPageIndex + 1}
+                              </button>
+                              <button onClick={() => setEditingNote(null)} className="ml-auto text-xs text-gray-400">Cancel</button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {/* New note button for this section */}
-                  {(!editingNote || editingNote.sectionId !== (section.id || section.title)) && (
-                    <button
-                      onClick={() => startEdit(section.id || section.title, null)}
-                      className="flex w-full items-center gap-1 rounded border border-dashed p-2 text-xs text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:border-gray-600"
-                    >
-                      <Plus size={12} /> Add note to this section
-                    </button>
-                  )}
-
-                  {/* New note editor */}
-                  {editingNote && !editingNote.id && editingNote.sectionId === (section.id || section.title) && (
-                    <div className="mt-2 space-y-2">
-                      <textarea
-                        value={editingNote.content}
-                        onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                        className={`w-full rounded border p-2 text-xs ${isDark ? 'bg-gray-700 border-gray-600 text-gray-100' : 'border-gray-300 bg-white'}`}
-                        rows={3}
-                        placeholder="Write your note for this section..."
-                      />
-                      <div className="flex items-center gap-2">
-                        <button onClick={handleSave} className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">
-                          <Save size={12} /> Save
-                        </button>
-                        <button onClick={insertPageRef} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
-                          <Hash size={12} /> p.{currentPageIndex + 1}
-                        </button>
-                        <button onClick={() => setEditingNote(null)} className="ml-auto text-xs text-gray-400">Cancel</button>
+                        ) : (
+                          /* Display note */
+                          <div>
+                            <p className="whitespace-pre-wrap leading-relaxed">{note.content}</p>
+                            <div className="mt-1 flex items-center gap-2 text-gray-400">
+                              {note.pageIndex != null && (
+                                <button
+                                  onClick={() => onJumpToPage?.(note.pageIndex)}
+                                  className="text-blue-500 hover:underline"
+                                >
+                                  [p.{note.pageIndex + 1}]
+                                </button>
+                              )}
+                              <span className="text-[10px]">
+                                {note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : ''}
+                              </span>
+                              <button onClick={() => startEdit(section.id || section.title, note)} className="ml-auto text-gray-400 hover:text-blue-500">Edit</button>
+                              <button onClick={() => handleDelete(note.id)} className="text-gray-400 hover:text-red-500">
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                    ))}
+
+                    {/* New note button for this section */}
+                    {(!editingNote || editingNote.sectionId !== (section.id || section.title)) && (
+                      <button
+                        onClick={() => startEdit(section.id || section.title, null)}
+                        className="flex w-full items-center gap-1 rounded border border-dashed p-2 text-xs text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:border-gray-600"
+                      >
+                        <Plus size={12} /> Add note to this section
+                      </button>
+                    )}
+
+                    {/* New note editor */}
+                    {editingNote && !editingNote.id && editingNote.sectionId === (section.id || section.title) && (
+                      <div className="mt-2 space-y-2">
+                        <textarea
+                          value={editingNote.content}
+                          onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+                          className={`w-full rounded border p-2 text-xs ${isDark ? 'bg-gray-700 border-gray-600 text-gray-100' : 'border-gray-300 bg-white'}`}
+                          rows={3}
+                          placeholder="Write your note for this section..."
+                        />
+                        <div className="flex items-center gap-2">
+                          <button onClick={handleSave} className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">
+                            <Save size={12} /> Save
+                          </button>
+                          <button onClick={insertPageRef} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <Hash size={12} /> p.{currentPageIndex + 1}
+                          </button>
+                          <button onClick={() => setEditingNote(null)} className="ml-auto text-xs text-gray-400">Cancel</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {subTab === 'bookmarks' && (
+        <BookmarkList pdfId={pdfId} onJumpToPage={onJumpToPage} theme={theme} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * BookmarkList – renders saved bookmarks for a PDF, each clickable to jump to page.
+ */
+function BookmarkList({ pdfId, onJumpToPage, theme }) {
+  const [bookmarks, setBookmarks] = useState([]);
+  const isDark = theme === 'dark';
+
+  useEffect(() => {
+    if (!pdfId) return;
+    import('../services/highlightStore').then(({ getBookmarks }) => {
+      getBookmarks(pdfId).then(setBookmarks);
+    });
+  }, [pdfId]);
+
+  if (bookmarks.length === 0) {
+    return (
+      <p className="p-4 text-center text-xs text-gray-400">
+        No bookmarks yet. Click ☆ in the PDF toolbar to add.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto p-2">
+      {bookmarks.map((b) => (
+        <button
+          key={b.pageIndex}
+          onClick={() => onJumpToPage?.(b.pageIndex)}
+          className={`flex w-full items-center gap-2 rounded p-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800 ${
+            isDark ? 'text-gray-300' : 'text-gray-700'
+          }`}
+        >
+          <span>⭐</span>
+          <span>{b.label || `Page ${b.pageIndex + 1}`}</span>
+          <span className="ml-auto text-[10px] text-gray-400">
+            {b.createdAt ? new Date(b.createdAt).toLocaleDateString() : ''}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
