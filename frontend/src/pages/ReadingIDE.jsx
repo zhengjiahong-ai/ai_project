@@ -23,6 +23,7 @@ import SocraticQuestionsPanel from '../components/SocraticQuestionsPanel';
 import TranslationPanel from '../components/TranslationPanel';
 import PaperWriterPanel from '../components/PaperWriterPanel.jsx';
 import ReadingNotesPanel from '../components/ReadingNotesPanel';
+const ReadingStatsPanel = React.lazy(() => import('../components/ReadingStatsPanel.jsx'));
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 import { renderHighlightedText } from '../utils/appHelpers.js';
@@ -49,7 +50,7 @@ const workspaceTabSections = [
     id: 'assets',
     label: '资产沉淀',
     description: '查看当前论文的长期沉淀与工作台入口。',
-    tabIds: ['notes'],
+    tabIds: ['notes', 'stats'],
   },
 ];
 
@@ -836,6 +837,13 @@ export default function ReadingIDE({
                             handleJumpToSource?.({ pageIndex });
                           }}
                           theme={theme}
+                        />
+                      )}
+
+                      {activeTab === 'stats' && (
+                        <ReadingStatsPanel
+                          pdfId={pdfId}
+                          isDark={theme === 'dark'}
                         />
                       )}
                     </div>

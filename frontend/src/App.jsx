@@ -17,8 +17,8 @@ import {
   summarizeReaderProfile,
 } from './components/backgroundKnowledgePanelModel.ts';
 import CodeExecutionApprovalCenter from './components/CodeExecutionApprovalCenter.jsx';
-import LibrarySidebar from './components/LibrarySidebar';
-import Navbar from './components/Navbar';
+const LibrarySidebar = React.lazy(() => import('./components/LibrarySidebar.jsx'));
+const Navbar = React.lazy(() => import('./components/Navbar.jsx'));
 import { ToastProvider, useToast } from './components/Toast.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 const ReadingIDE = React.lazy(() => import('./pages/ReadingIDE.jsx'));
@@ -1353,6 +1353,7 @@ export default function App() {
   return (
     <ErrorBoundary area="主应用">
       <CodeExecutionApprovalCenter />
+      <Suspense fallback={<div className="w-64 border-r" />}>
       <LibrarySidebar
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}
@@ -1364,6 +1365,7 @@ export default function App() {
         onSelectPaper={handleSelectPaper}
         onDeletePaper={handleDeletePaper}
       />
+      </Suspense>
 
       {isAboutOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/35 p-4 backdrop-blur-sm">
@@ -1405,6 +1407,7 @@ export default function App() {
       )}
 
       <div className="theme-app-shell flex h-screen flex-col font-sans">
+        <Suspense fallback={<div className="h-12 border-b" />}>
         <Navbar
           isReady={isAiReady}
           theme={theme}
@@ -1416,6 +1419,7 @@ export default function App() {
           appMode={appMode}
           onAppModeChange={setAppMode}
         />
+        </Suspense>
 
         {!isOnline && (
           <div style={{

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { BookOpen, Plus, Trash2, Save, ChevronRight, FileText, Hash, Download } from 'lucide-react';
 import { loadNotes, upsertNote, deleteNote } from '../services/notesStore';
 import { loadHighlights, getBookmarks } from '../services/highlightStore';
+import MarkdownNoteEditor from './MarkdownNoteEditor.jsx';
 
 /**
  * ReadingNotesPanel – Per-paper reading notes organized by section.
@@ -257,24 +258,16 @@ export default function ReadingNotesPanel({
                       <div key={note.id} className="mb-2 rounded border p-2 text-xs dark:border-gray-700">
                         {editingNote?.id === note.id ? (
                           /* Edit existing */
-                          <div className="space-y-2">
-                            <textarea
-                              value={editingNote.content}
-                              onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                              className={`w-full rounded border p-2 text-xs ${isDark ? 'bg-gray-700 border-gray-600 text-gray-100' : 'border-gray-300 bg-white'}`}
-                              rows={4}
-                              placeholder="Write your note..."
-                            />
-                            <div className="flex items-center gap-2">
-                              <button onClick={handleSave} className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">
-                                <Save size={12} /> Save
-                              </button>
-                              <button onClick={insertPageRef} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <Hash size={12} /> p.{currentPageIndex + 1}
-                              </button>
-                              <button onClick={() => setEditingNote(null)} className="ml-auto text-xs text-gray-400">Cancel</button>
-                            </div>
-                          </div>
+                          <MarkdownNoteEditor
+                            value={editingNote.content}
+                            onChange={(val) => setEditingNote({ ...editingNote, content: val })}
+                            onSave={handleSave}
+                            onCancel={() => setEditingNote(null)}
+                            onInsertPageRef={insertPageRef}
+                            currentPage={currentPageIndex}
+                            isDark={isDark}
+                            rows={4}
+                          />
                         ) : (
                           /* Display note */
                           <div>
@@ -313,23 +306,18 @@ export default function ReadingNotesPanel({
 
                     {/* New note editor */}
                     {editingNote && !editingNote.id && editingNote.sectionId === (section.id || section.title) && (
-                      <div className="mt-2 space-y-2">
-                        <textarea
+                      <div className="mt-2">
+                        <MarkdownNoteEditor
                           value={editingNote.content}
-                          onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
-                          className={`w-full rounded border p-2 text-xs ${isDark ? 'bg-gray-700 border-gray-600 text-gray-100' : 'border-gray-300 bg-white'}`}
+                          onChange={(val) => setEditingNote({ ...editingNote, content: val })}
+                          onSave={handleSave}
+                          onCancel={() => setEditingNote(null)}
+                          onInsertPageRef={insertPageRef}
+                          currentPage={currentPageIndex}
+                          isDark={isDark}
                           rows={3}
                           placeholder="Write your note for this section..."
                         />
-                        <div className="flex items-center gap-2">
-                          <button onClick={handleSave} className="flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700">
-                            <Save size={12} /> Save
-                          </button>
-                          <button onClick={insertPageRef} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <Hash size={12} /> p.{currentPageIndex + 1}
-                          </button>
-                          <button onClick={() => setEditingNote(null)} className="ml-auto text-xs text-gray-400">Cancel</button>
-                        </div>
                       </div>
                     )}
                   </div>
