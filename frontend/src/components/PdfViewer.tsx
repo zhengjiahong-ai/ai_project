@@ -22,9 +22,6 @@ import {
   loadHighlights,
   addHighlight,
   deleteHighlight,
-  getBookmarks,
-  toggleBookmark,
-  saveProgress,
 } from '../services/highlightStore';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
@@ -608,11 +605,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   const [highlights, setHighlights] = useState<PdfViewerHighlight[]>([]);
   const [activeHighlightId, setActiveHighlightId] = useState<number | null>(null);
   const [isPdfLoading, setIsPdfLoading] = useState<boolean>(true);
-  const [currentPage, setCurrentPage] = useState<number>(0);
-  const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
 
   const pdfDocRef = useRef<unknown>(null);
-  const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentPageRef = useRef<number>(0);
   const isFirstRender = useRef<boolean>(true);
   const latestPdfIdRef = useRef<string | undefined>(pdfId);
@@ -680,25 +674,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
       setActiveHighlightId(targetHighlight.id);
     }
   }, [focusedSourceAnchorId, focusedSourceAnchorToken, highlights]);
-
-  // Update bookmark status when page or pdf changes
-  useEffect(() => {
-    if (!pdfId) {
-      setIsBookmarked(false);
-      return;
-    }
-    getBookmarks(pdfId).then((bookmarks: Array<{ pageIndex: number }>) => {
-      setIsBookmarked(bookmarks.some((b: { pageIndex: number }) => b.pageIndex === currentPage));
-    });
-  }, [pdfId, currentPage]);
-
-  // Toggle bookmark for the current page
-  const handleToggleBookmark = useCallback(async () => {
-    if (!pdfId) return;
-    const pageLabel = `Page ${currentPage + 1}`;
-    await toggleBookmark(pdfId, currentPage, pageLabel);
-    setIsBookmarked((prev: boolean) => !prev);
-  }, [pdfId, currentPage]);
 
   // Responsive layout: detect narrow screens (< 1024px) and notify parent
   useEffect(() => {
@@ -784,24 +759,14 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   const handleViewerPageChange = useCallback(
     (event: { currentPage: number; doc?: { numPages?: number } }) => {
       currentPageRef.current = event.currentPage;
-      setCurrentPage(event.currentPage);
       const doc = event.doc || pdfDocRef.current;
-
-      // Debounce progress save
-      if (progressTimerRef.current) clearTimeout(progressTimerRef.current);
-      progressTimerRef.current = setTimeout(() => {
-        if (pdfId) {
-          saveProgress(pdfId, event.currentPage);
-        }
-      }, 2000);
-
       onPageChange?.({
         pageIndex: event.currentPage,
         totalPages: (doc as { numPages?: number })?.numPages || 0,
       });
       extractPageText(event.currentPage, event.doc || pdfDocRef.current);
     },
-    [extractPageText, onPageChange, pdfId],
+    [extractPageText, onPageChange],
   );
 
   const syncSelectionMessage = useCallback(
@@ -1172,17 +1137,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
         <>
           {isPdfLoading && <PdfSkeleton />}
           <div style={{ display: isPdfLoading ? 'none' : 'block', height: '100%', width: '100%' }}>
-            {/* PDF Toolbar */}
-            <div className="pdf-toolbar flex items-center justify-end gap-2 border-b px-2 py-1 theme-border" style={{ height: 32 }}>
-              <button
-                onClick={handleToggleBookmark}
-                title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}
-              >
-                {isBookmarked ? '⭐' : '☆'}
-              </button>
-            </div>
-            <div style={{ height: 'calc(100% - 32px)', width: '100%' }}>
+            <div style={{ height: '100%', width: '100%' }}>
               <Worker workerUrl={workerUrl}>
                 <Viewer
                   key={viewerKey}
