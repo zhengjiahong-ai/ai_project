@@ -965,10 +965,10 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
           sourceActionLabel: requestPayload.actionLabel,
         });
 
-        const noteHighlight = {
+        const noteHighlight: PdfViewerHighlight = {
           ...nextHighlight,
           chatHistory: [
-            { role: 'ai', content: '已保存为边注笔记。你可以稍后在笔记区查看，也可以继续围绕这一段追问。' },
+            { role: 'ai' as const, content: '已保存为边注笔记。你可以稍后在笔记区查看，也可以继续围绕这一段追问。' },
           ],
         };
         setHighlights((prev: PdfViewerHighlight[]) => [
