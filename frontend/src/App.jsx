@@ -20,6 +20,7 @@ import CodeExecutionApprovalCenter from './components/CodeExecutionApprovalCente
 import LibrarySidebar from './components/LibrarySidebar';
 import Navbar from './components/Navbar';
 import { ToastProvider, useToast } from './components/Toast.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary';
 const ReadingIDE = React.lazy(() => import('./pages/ReadingIDE.jsx'));
 const AgentResearchPage = React.lazy(() => import('./pages/AgentResearchPage.jsx'));
 const SharedReportPage = React.lazy(() => import('./pages/SharedReportPage.jsx'));
@@ -189,6 +190,7 @@ export default function App() {
 
   const { theme, toggleTheme: handleToggleTheme } = useThemePreference(THEME_STORAGE_KEY);
   const { addToast } = useToast();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [appMode, setAppMode] = useState('reader');
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
@@ -283,6 +285,17 @@ export default function App() {
   useEffect(() => {
     currentPdfIdRef.current = pdfId;
   }, [pdfId]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     setActiveWorkspaceSectionId(getWorkspaceSectionId(activeTab));
@@ -1338,7 +1351,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <ErrorBoundary area="主应用">
       <CodeExecutionApprovalCenter />
       <LibrarySidebar
         isOpen={isLibraryOpen}
@@ -1403,6 +1416,15 @@ export default function App() {
           appMode={appMode}
           onAppModeChange={setAppMode}
         />
+
+        {!isOnline && (
+          <div style={{
+            backgroundColor: '#f97316', color: '#fff', textAlign: 'center',
+            padding: '6px 12px', fontSize: '13px', fontWeight: 500,
+          }}>
+            网络连接已断开，部分功能不可用
+          </div>
+        )}
 
         <main className="workspace-main flex min-h-0 flex-1 overflow-hidden" aria-label="论文阅读工作区">
           <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-muted">加载中...</div>}>
@@ -1523,7 +1545,7 @@ export default function App() {
           </Suspense>
         </main>
       </div>
-    </>
+    </ErrorBoundary>
   );
 }
 

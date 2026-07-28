@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ChevronDown,
   ChevronLeft,
@@ -22,6 +22,7 @@ import PdfViewer from '../components/PdfViewer';
 import SocraticQuestionsPanel from '../components/SocraticQuestionsPanel';
 import TranslationPanel from '../components/TranslationPanel';
 import PaperWriterPanel from '../components/PaperWriterPanel.jsx';
+import ReadingNotesPanel from '../components/ReadingNotesPanel';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 import { renderHighlightedText } from '../utils/appHelpers.js';
@@ -186,6 +187,27 @@ export default function ReadingIDE({
   handleSaveArtifactAsNote,
   handleDeleteNote,
 }) {
+  // Restore reading progress when a paper is opened
+  useEffect(() => {
+    if (!pdfId) return;
+    let cancelled = false;
+    import('../services/highlightStore').then(({ getProgress }) => {
+      if (cancelled) return;
+      getProgress(pdfId).then((progress) => {
+        if (cancelled) return;
+        if (progress && progress.pageIndex > 0) {
+          const confirmed = window.confirm(
+            `恢复上次阅读位置（第 ${progress.pageIndex + 1} 页）？`
+          );
+          if (confirmed && !cancelled) {
+            handleJumpToSource?.({ pageIndex: progress.pageIndex });
+          }
+        }
+      });
+    });
+    return () => { cancelled = true; };
+  }, [pdfId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <aside
@@ -806,32 +828,15 @@ export default function ReadingIDE({
                       )}
 
                       {activeTab === 'notes' && (
-                        <div className="theme-panel-muted flex h-full flex-col items-center justify-center p-8 text-center">
-                          <div className="theme-panel theme-border w-full max-w-2xl rounded-3xl border p-8 shadow-sm">
-                            <div className="theme-text-primary text-lg font-bold">资产总览入口</div>
-                            <div className="theme-text-secondary mt-3 text-sm leading-7">
-                              P3 已经把长期资产主阵地移动到底部工作台。
-                              这里保留为概览入口，方便你查看当前论文已经沉淀的卡片与边注规模。
-                            </div>
-                            <div className="mt-6 grid gap-3 text-left md:grid-cols-2">
-                              <div className="theme-card-soft rounded-2xl p-4">
-                                <div className="theme-text-primary text-sm font-semibold">Workbench Cards</div>
-                                <div className="theme-text-secondary mt-1 text-sm">{workbenchCards.length} 张</div>
-                              </div>
-                              <div className="theme-card-soft rounded-2xl p-4">
-                                <div className="theme-text-primary text-sm font-semibold">Margin Notes</div>
-                                <div className="theme-text-secondary mt-1 text-sm">{notes.length} 条</div>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setIsWorkbenchCollapsed(false)}
-                              className="mt-6 rounded-full bg-pixiu px-4 py-2 text-sm font-semibold text-white"
-                            >
-                              展开底部工作台
-                            </button>
-                          </div>
-                        </div>
+                        <ReadingNotesPanel
+                          pdfId={pdfId}
+                          paperSkeleton={deconstructData?.paper_skeleton || null}
+                          currentPageIndex={pdfPageState?.pageIndex ?? 0}
+                          onJumpToPage={(pageIndex) => {
+                            handleJumpToSource?.({ pageIndex });
+                          }}
+                          theme={theme}
+                        />
                       )}
                     </div>
                   </div>
