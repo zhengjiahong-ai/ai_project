@@ -17,6 +17,8 @@ from core.pdf_quality import (
     _extract_authors,
     _extract_pdf_text_stats,
     _extract_title,
+    _format_axis_prompt_block,  # noqa: F401 (re-exported for critical_reading)
+    _normalize_list_items,  # noqa: F401 (re-exported for critical_reading)
     _score_document,
     get_grobid_client,
 )
