@@ -627,26 +627,10 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
 
   useEffect(() => {
     setActiveHighlightId(null);
-    // Restore highlights from parent first so the PDF renders immediately,
-    // then overlay any saved highlights from IndexedDB asynchronously.
     setHighlights(normalizeHighlightCollection(initialHighlights));
     pdfDocRef.current = null;
     currentPageRef.current = 0;
     pageTextByIndexRef.current = {};
-
-    if (!pdfId) {
-      return;
-    }
-
-    let cancelled = false;
-    loadHighlights(pdfId).then((saved) => {
-      if (cancelled || pdfId !== latestPdfIdRef.current) return;
-      if (saved && saved.length > 0) {
-        setHighlights(normalizeHighlightCollection(saved));
-      }
-    });
-
-    return () => { cancelled = true; };
     // We only want to reset annotations when switching papers, not when parent persistence echoes state back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfId]);
