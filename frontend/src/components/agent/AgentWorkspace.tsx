@@ -129,7 +129,18 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     () => getProjectTasks(state.tasksByProjectId, state.activeProjectId),
     [state.tasksByProjectId, state.activeProjectId],
   );
-  const currentTask: AgentTask | null = state.currentTask || projectTasks[0] || null;
+
+  const [debateResult, setDebateResult] = useState<any>(null);
+
+  const handleDebateComplete = (result: any): void => {
+    setDebateResult(result);
+  };
+
+
+  const currentTask: any = (() => {
+    const base: any = state.currentTask || projectTasks[0] || null;
+    return base && debateResult ? { ...base, debateResult } : base;
+  })();
 
   useEffect(() => {
     saveAgentWorkspaceSnapshot({
@@ -624,7 +635,13 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     }
   };
 
+  // 24-3: Handle debate completion
   const handleRefresh = async (): Promise<void> => {
+
+  const currentTaskBase: any = state.currentTask || projectTasks[0] || null;
+  const currentTask: any = currentTaskBase && debateResult
+    ? { ...currentTaskBase, debateResult }
+    : currentTaskBase;
     if (!state.activeProjectId) return;
 
     try {
@@ -881,6 +898,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           onAllowKnowledgeGraphChange={setAllowKnowledgeGraph}    onAllowIterativeSearchChange={setAllowIterativeSearch}
           domain={domain}
           onDomainChange={setDomain}
+          onDebateComplete={handleDebateComplete}
         />
 
         {rightCollapsed ? (

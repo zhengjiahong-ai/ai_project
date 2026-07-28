@@ -59,6 +59,16 @@ class AgentStateRepository:
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS debate_results (
+                    run_id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    result_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
             connection.commit()
 
     def save_project(self, project: dict):
@@ -183,7 +193,73 @@ class AgentStateRepository:
                     "DELETE FROM agent_run_timeline_entries_v2 WHERE run_id = ?",
                     (run_id,),
                 )
+            connection.execute(
+                "DELETE FROM debate_results WHERE project_id = ?",
+                (normalized_project_id,),
+            )
             connection.commit()
+
+    # ── Debate result persistence (24-2) ────────────────────────────────────
+
+    def save_debate_result(self, run_id: str, project_id: str, result: dict) -> None:
+        """Persist a completed debate result."""
+        from datetime import UTC, datetime
+
+        normalized_run_id = str(run_id or "").strip()
+        if not normalized_run_id:
+            raise ValueError("debate_results requires a non-empty run_id.")
+        created_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO debate_results (run_id, project_id, result_json, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    normalized_run_id,
+                    str(project_id or "").strip(),
+                    json.dumps(result, ensure_ascii=False),
+                    created_at,
+                ),
+            )
+            connection.commit()
+
+    def get_debate_result(self, run_id: str) -> dict | None:
+        """Retrieve a persisted debate result, or None if not found."""
+        normalized_run_id = str(run_id or "").strip()
+        if not normalized_run_id:
+            return None
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            row = connection.execute(
+                "SELECT result_json FROM debate_results WHERE run_id = ?",
+                (normalized_run_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return json.loads(row[0])
+
+    def list_debate_results(self, project_id: str) -> list[dict]:
+        """List all persisted debate results for a project, newest first."""
+        normalized_project_id = str(project_id or "").strip()
+        if not normalized_project_id:
+            return []
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            rows = connection.execute(
+                """
+                SELECT run_id, result_json, created_at
+                FROM debate_results
+                WHERE project_id = ?
+                ORDER BY created_at DESC
+                """,
+                (normalized_project_id,),
+            ).fetchall()
+        results: list[dict] = []
+        for row in rows:
+            item = json.loads(row[1])
+            item["run_id"] = row[0]
+            item["created_at"] = row[2]
+            results.append(item)
+        return results
 
     def clear(self) -> None:
         with closing(sqlite3.connect(self.db_path)) as connection:
@@ -193,6 +269,7 @@ class AgentStateRepository:
             connection.execute("DELETE FROM agent_final_reviews_v2")
             connection.execute("DELETE FROM agent_run_artifacts_v2")
             connection.execute("DELETE FROM agent_run_timeline_entries_v2")
+            connection.execute("DELETE FROM debate_results")
             connection.commit()
 
     def _save_payload(self, table_name: str, id_column: str, item_id: str, payload: dict):

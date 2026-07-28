@@ -271,26 +271,53 @@ class DebateOrchestrator:
             if not agent_a.get("findings"):
                 continue
             rebuttals, supplements = [], []
+
+            # 24-1: Try LLM-driven review first, fall back to deterministic Jaccard.
+            other_summaries: list[str] = []
             for agent_b in analyses:
                 if agent_b["agent_index"] == agent_a["agent_index"] or not agent_b.get("findings"):
                     continue
-                for f_b in agent_b["findings"]:
-                    for f_a in agent_a["findings"]:
-                        sim = _compute_finding_similarity(f_a, f_b)
-                        sources_a = set(f_a.get("sourceIds", []) or [])
-                        sources_b = set(f_b.get("sourceIds", []) or [])
-                        if sim >= 0.5 and sources_a != sources_b:
-                            supplements.append({
-                                "from_agent": agent_b["agent_index"],
-                                "finding_id": f_b.get("finding_id", ""),
-                                "summary": (f_b.get("summary", "") or "")[:200],
-                                "reason": "Corroborating evidence from different sources"})
-                        elif sim < 0.2 and sources_a & sources_b:
-                            rebuttals.append({
-                                "from_agent": agent_b["agent_index"],
-                                "finding_id": f_b.get("finding_id", ""),
-                                "summary": (f_b.get("summary", "") or "")[:200],
-                                "reason": "Conflicting interpretation of shared sources"})
+                for f_b in agent_b["findings"][:5]:
+                    other_summaries.append(
+                        f'[Agent {agent_b["agent_index"]}] finding_id={f_b.get("finding_id", "")}: '
+                        f'{(f_b.get("summary", "") or "")[:200]}'
+                    )
+            other_block = "\n".join(other_summaries)
+            llm_results = _llm_debate_review(agent_a["findings"], other_block) if other_block else None
+
+            if llm_results:
+                for item in llm_results:
+                    if item["type"] == "rebut":
+                        rebuttals.append({
+                            "from_agent": "llm", "finding_id": item["finding_id"],
+                            "summary": "", "reason": item["reason"]})
+                    elif item["type"] == "support":
+                        supplements.append({
+                            "from_agent": "llm", "finding_id": item["finding_id"],
+                            "summary": "", "reason": item["reason"]})
+            else:
+                # Deterministic Jaccard fallback (original logic).
+                for agent_b in analyses:
+                    if agent_b["agent_index"] == agent_a["agent_index"] or not agent_b.get("findings"):
+                        continue
+                    for f_b in agent_b["findings"]:
+                        for f_a in agent_a["findings"]:
+                            sim = _compute_finding_similarity(f_a, f_b)
+                            sources_a = set(f_a.get("sourceIds", []) or [])
+                            sources_b = set(f_b.get("sourceIds", []) or [])
+                            if sim >= 0.5 and sources_a != sources_b:
+                                supplements.append({
+                                    "from_agent": agent_b["agent_index"],
+                                    "finding_id": f_b.get("finding_id", ""),
+                                    "summary": (f_b.get("summary", "") or "")[:200],
+                                    "reason": "Corroborating evidence from different sources"})
+                            elif sim < 0.2 and sources_a & sources_b:
+                                rebuttals.append({
+                                    "from_agent": agent_b["agent_index"],
+                                    "finding_id": f_b.get("finding_id", ""),
+                                    "summary": (f_b.get("summary", "") or "")[:200],
+                                    "reason": "Conflicting interpretation of shared sources"})
+
             turns.append({"round_index": round_idx, "agent_index": agent_a["agent_index"],
                           "rebuttals": rebuttals[:10], "supplements": supplements[:10]})
         return turns
@@ -395,3 +422,161 @@ def synthesize_consensus(analyses):
                     "reason": f"Low confidence single-source finding (confidence={confidence:.2f})"})
 
     return {"consensus_findings": consensus_findings, "minority_dissent": minority_dissent, "unresolved": unresolved}
+
+
+# ── LLM-driven debate review (24-1) ─────────────────────────────────────────
+
+
+def _llm_debate_review(
+    agent_findings: list[dict],
+    other_findings_summary: str,
+    timeout_seconds: float = 10.0,
+) -> list[dict] | None:
+    """Use the flash LLM to classify each agent finding as rebut, support, or unrelated.
+
+    Args:
+        agent_findings: List of findings from the current agent.
+        other_findings_summary: Concise summary of other agents' findings.
+        timeout_seconds: Maximum seconds to wait for the LLM response.
+
+    Returns:
+        List of dicts with keys ``finding_id``, ``type`` (rebut/support/unrelated),
+        and ``reason``, or ``None`` when the LLM is unavailable or times out.
+    """
+    if not agent_findings or not other_findings_summary.strip():
+        return None
+
+    findings_json_lines: list[str] = []
+    for f in agent_findings[:8]:
+        fid = f.get("finding_id", "")
+        summary = (f.get("summary", "") or "")[:300]
+        findings_json_lines.append(f'{{"finding_id": "{fid}", "summary": "{summary}"}}')
+    findings_block = "[\n" + ",\n".join(findings_json_lines) + "\n]"
+
+    prompt = f"""你是严谨的学术审稿人。阅读以下两个 Agent 的研究发现，对于 Agent A 的每条发现，判断 Agent B 的发现是反驳（rebut）、补充支撑（support）、还是无关（unrelated）。
+
+Agent A 的发现：
+{findings_block}
+
+Agent B 的发现摘要：
+{other_findings_summary}
+
+仅返回 JSON 数组，每条格式为：
+{{"finding_id": "...", "type": "rebut|support|unrelated", "reason": "简要中文理由"}}
+"""
+
+    try:
+        import json as _json
+        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import TimeoutError as FutureTimeoutError
+
+        from llm.client import get_translation_llm
+
+        llm = get_translation_llm()
+
+        def _call_llm():
+            return llm._call(prompt)
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_call_llm)
+            try:
+                raw = future.result(timeout=timeout_seconds)
+            except FutureTimeoutError:
+                logger.warning("LLM debate review timed out after %.1fs", timeout_seconds)
+                return None
+
+        raw = (raw or "").strip()
+        if not raw:
+            return None
+
+        # Tolerate markdown code fences.
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1]
+            raw = raw.removesuffix("```")
+        parsed = _json.loads(raw) if raw else []
+        if not isinstance(parsed, list):
+            return None
+
+        results: list[dict] = []
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            t = str(item.get("type") or "").lower()
+            if t not in {"rebut", "support", "unrelated"}:
+                t = "unrelated"
+            results.append({
+                "finding_id": str(item.get("finding_id") or ""),
+                "type": t,
+                "reason": str(item.get("reason") or "")[:200],
+            })
+        return results if results else None
+    except Exception:
+        logger.warning("LLM debate review failed, falling back to deterministic logic", exc_info=True)
+        return None
+
+
+# ── Debate run API (moved from agent_project_service.py for 23-3) ──────────
+
+
+def create_debate_run(
+    project_id: str,
+    research_prompt: str,
+    paper_ids: list,
+    constraints: dict | None = None,
+    num_agents: int = 3,
+):
+    """Create and execute a multi-agent debate run.
+
+    The result is persisted to SQLite so it survives process restarts (24-2).
+    """
+    from services.agent_project_service import get_agent_project, _get_agent_state_repository
+
+    project = get_agent_project(project_id)
+    if project is None:
+        raise ValueError(f"Project not found: {project_id}")
+
+    orchestrator = DebateOrchestrator(
+        research_prompt=research_prompt,
+        paper_ids=paper_ids,
+        constraints=constraints,
+        num_agents=num_agents,
+        max_debate_rounds=2,
+    )
+
+    result = orchestrator.run_debate()
+
+    # Persist to SQLite (24-2).
+    try:
+        repo = _get_agent_state_repository()
+        repo.initialize()
+        repo.save_debate_result(result["run_id"], project_id, result)
+    except Exception:
+        logger.warning("Failed to persist debate result, keeping in-memory only", exc_info=True)
+        # Keep in-memory fallback for backward compatibility.
+        _debate_results: dict = getattr(create_debate_run, "_results", {})
+        _debate_results[result["run_id"]] = result
+        create_debate_run._results = _debate_results
+
+    return result
+
+
+def get_debate_result(project_id: str, run_id: str):
+    """Retrieve a stored debate result by run_id.
+
+    Queries SQLite first; falls back to in-memory storage (24-2).
+    """
+    from services.agent_project_service import _get_agent_state_repository
+
+    # Try SQLite first (24-2 persistence).
+    try:
+        repo = _get_agent_state_repository()
+        repo.initialize()
+        db_result = repo.get_debate_result(run_id)
+        if db_result is not None:
+            return db_result
+    except Exception:
+        pass
+
+    # Fallback to in-memory for backward compatibility.
+    _debate_results: dict = getattr(create_debate_run, "_results", {})
+    return _debate_results.get(run_id)

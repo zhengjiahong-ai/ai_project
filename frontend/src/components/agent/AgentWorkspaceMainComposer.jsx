@@ -9,6 +9,7 @@ export const AgentWorkspaceHeader = ({
   currentStageLabel,
   projectTaskCount = 0,
   onRefresh,
+  extraActions,
 }) => (
   <div className="agent-header flex items-center justify-between border-b px-5 py-3">
     <div>
@@ -21,6 +22,7 @@ export const AgentWorkspaceHeader = ({
       <span className="agent-chip-accent px-2.5 py-1 text-[11px] font-semibold">
         {currentTask?.traceId ? '可追踪' : '原型阶段'}
       </span>
+      {extraActions}
       <button
         type="button"
         onClick={onRefresh}

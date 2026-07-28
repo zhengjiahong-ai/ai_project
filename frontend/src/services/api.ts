@@ -159,6 +159,8 @@ export interface ApiService {
   getAgentWorkspace: (projectId: string) => Promise<unknown>;
   getAgentRunArtifacts: (runId: string) => Promise<unknown>;
   getAgentRunTimeline: (runId: string) => Promise<unknown>;
+  startAgentDebate: (projectId: string, payload: Record<string, unknown>) => Promise<unknown>;
+  getAgentDebateResult: (projectId: string, runId: string) => Promise<unknown>;
   createResearchTask: (question: string, pdfId: string, paperSkeleton?: Record<string, unknown> | null, userConstraints?: string, briefPreview?: Record<string, unknown> | null, allowExternalSearch?: boolean, allowWebSearch?: boolean) => Promise<unknown>;
   getResearchTask: (taskId: string) => Promise<unknown>;
   createAgentTask: (projectId: string, payload: Record<string, unknown>) => Promise<unknown>;
@@ -421,6 +423,23 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
       () => agentPrimaryClient.post(`/agent-projects/${encodeURIComponent(projectId)}/tasks`, payload, { skipErrorLog: true }),
       agentSecondaryClient
         ? () => agentSecondaryClient.post(`/agent-projects/${encodeURIComponent(projectId)}/tasks`, payload)
+        : null,
+    ),
+
+  // 24-3: Agent debate API
+  startAgentDebate: async (projectId, payload) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-projects/${encodeURIComponent(projectId)}/debate`, payload, { skipErrorLog: true }),
+      agentSecondaryClient
+        ? () => agentSecondaryClient.post(`/agent-projects/${encodeURIComponent(projectId)}/debate`, payload)
+        : null,
+    ),
+
+  getAgentDebateResult: async (projectId, runId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.get(`/agent-projects/${encodeURIComponent(projectId)}/debate/${encodeURIComponent(runId)}`, { skipErrorLog: true }),
+      agentSecondaryClient
+        ? () => agentSecondaryClient.get(`/agent-projects/${encodeURIComponent(projectId)}/debate/${encodeURIComponent(runId)}`)
         : null,
     ),
 

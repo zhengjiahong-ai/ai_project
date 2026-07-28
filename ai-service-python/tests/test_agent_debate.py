@@ -359,3 +359,142 @@ class TestDebateAPI(unittest.TestCase):
             paper_ids=["p1"],
         )
         self.assertEqual(result["status"], "completed")
+
+
+class TestLLMDebateReview(unittest.TestCase):
+    """24-1: LLM-driven debate rebuttal tests."""
+
+    def setUp(self):
+        self.agent_findings = [
+            {"finding_id": "f1", "summary": "Method X outperforms Y on benchmark Z", "sourceIds": ["src-1"]},
+            {"finding_id": "f2", "summary": "Dataset size is a limiting factor", "sourceIds": ["src-2"]},
+        ]
+        self.other_summary = (
+            "[Agent 1] finding_id=g1: Method X fails on edge cases. "
+            "[Agent 1] finding_id=g2: Data augmentation helps mitigate dataset size issues."
+        )
+
+    def test_llm_debate_review_returns_none_on_empty_input(self):
+        """Returns None when inputs are empty."""
+        from services.agent_debate import _llm_debate_review
+        result = _llm_debate_review([], "")
+        self.assertIsNone(result)
+        result = _llm_debate_review(self.agent_findings, "")
+        self.assertIsNone(result)
+
+    def test_llm_debate_review_falls_back_on_llm_unavailable(self):
+        """Returns None when LLM is unavailable, triggering deterministic fallback."""
+        from unittest.mock import patch
+        from services.agent_debate import _llm_debate_review
+        with patch("llm.client.get_translation_llm", side_effect=ValueError("no key")):
+            result = _llm_debate_review(self.agent_findings, self.other_summary)
+        self.assertIsNone(result)
+
+    def test_llm_debate_review_parses_valid_json_response(self):
+        """Correctly parses a valid JSON response from the LLM."""
+        from unittest.mock import MagicMock, patch
+        from services.agent_debate import _llm_debate_review
+        mock_llm = MagicMock()
+        mock_llm._call.return_value = (
+            '[{"finding_id": "f1", "type": "rebut", "reason": "Agent 1 finds X fails"},'
+            ' {"finding_id": "f2", "type": "support", "reason": "Data augmentation aligns"}]'
+        )
+        with patch("llm.client.get_translation_llm", return_value=mock_llm):
+            result = _llm_debate_review(self.agent_findings, self.other_summary)
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]["type"], "rebut")
+        self.assertEqual(result[1]["type"], "support")
+
+    def test_llm_debate_review_tolerates_markdown_fence(self):
+        """Strips markdown code fences from the LLM response."""
+        from unittest.mock import MagicMock, patch
+        from services.agent_debate import _llm_debate_review
+        mock_llm = MagicMock()
+        mock_llm._call.return_value = (
+            '```json\n[{"finding_id": "f1", "type": "unrelated", "reason": "No connection"}]\n```'
+        )
+        with patch("llm.client.get_translation_llm", return_value=mock_llm):
+            result = _llm_debate_review(self.agent_findings, self.other_summary)
+        self.assertIsNotNone(result)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["type"], "unrelated")
+
+    def test_run_single_debate_round_uses_llm_when_available(self):
+        """Debate round uses LLM results when _llm_debate_review returns data."""
+        from unittest.mock import patch
+        from services.agent_debate import DebateOrchestrator
+        llm_result = [
+            {"finding_id": "f1", "type": "rebut", "reason": "Edge case failure"},
+            {"finding_id": "f2", "type": "support", "reason": "Data augmentation aligns"},
+        ]
+        with patch("services.agent_debate._llm_debate_review", return_value=llm_result):
+            orchestrator = DebateOrchestrator(
+                research_prompt="test", paper_ids=["p1"], num_agents=2, max_debate_rounds=1
+            )
+            analyses = [
+                {"agent_index": 0, "findings": [
+                    {"finding_id": "f1", "summary": "X > Y", "sourceIds": ["s1"]},
+                    {"finding_id": "f2", "summary": "data limit", "sourceIds": ["s2"]},
+                ]},
+                {"agent_index": 1, "findings": [
+                    {"finding_id": "g1", "summary": "X fails", "sourceIds": ["s3"]},
+                ]},
+            ]
+            turns = orchestrator._run_single_debate_round(0, analyses)
+        self.assertEqual(len(turns), 2)
+        agent0_turn = turns[0]
+        self.assertTrue(len(agent0_turn["rebuttals"]) > 0 or len(agent0_turn["supplements"]) > 0)
+
+
+class TestDebatePersistence(unittest.TestCase):
+    """24-2: Debate result persistence tests."""
+
+    def setUp(self):
+        import tempfile
+        from services.agent_state_repository import AgentStateRepository
+        self.tmpdir = tempfile.mkdtemp()
+        db_path = f"{self.tmpdir}/test_debate.db"
+        self.repo = AgentStateRepository(db_path)
+        self.repo.initialize()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_save_and_retrieve_debate_result(self):
+        """Debate result can be saved and retrieved from SQLite."""
+        run_id = "debate-run-1"
+        project_id = "proj-1"
+        result = {
+            "run_id": run_id, "status": "completed", "rounds": 2,
+            "consensus_findings": [{"finding_id": "f1", "summary": "Test finding"}],
+            "agent_analyses": [], "debate_turns": [], "minority_dissent": [],
+            "unresolved": [], "jaccard_matrix": [], "duration_seconds": 1.5,
+            "research_prompt": "test", "paper_ids": ["p1"],
+        }
+        self.repo.save_debate_result(run_id, project_id, result)
+        retrieved = self.repo.get_debate_result(run_id)
+        self.assertIsNotNone(retrieved)
+        self.assertEqual(retrieved["run_id"], run_id)
+        self.assertEqual(retrieved["status"], "completed")
+        self.assertEqual(len(retrieved["consensus_findings"]), 1)
+
+    def test_get_nonexistent_debate_result_returns_none(self):
+        """Returns None for a non-existent debate run_id."""
+        result = self.repo.get_debate_result("nonexistent-run")
+        self.assertIsNone(result)
+
+    def test_list_debate_results_by_project(self):
+        """Can list all debate results for a project, newest first."""
+        self.repo.save_debate_result("run-1", "proj-a", {"run_id": "run-1", "status": "completed"})
+        self.repo.save_debate_result("run-2", "proj-a", {"run_id": "run-2", "status": "completed"})
+        self.repo.save_debate_result("run-3", "proj-b", {"run_id": "run-3", "status": "completed"})
+
+        proj_a_results = self.repo.list_debate_results("proj-a")
+        self.assertEqual(len(proj_a_results), 2)
+        # Newest first
+        self.assertIn("run_id", proj_a_results[0])
+
+        proj_b_results = self.repo.list_debate_results("proj-b")
+        self.assertEqual(len(proj_b_results), 1)
