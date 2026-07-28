@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { BookOpen, Plus, Trash2, Save, ChevronRight, FileText, Hash, Download } from 'lucide-react';
 import { loadNotes, upsertNote, deleteNote } from '../services/notesStore';
 import { loadHighlights, getBookmarks } from '../services/highlightStore';
@@ -28,17 +28,27 @@ export default function ReadingNotesPanel({
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   const isDark = theme === 'dark';
-  const sections = paperSkeleton?.sections || [];
+  const sections = useMemo(() => paperSkeleton?.sections || [], [paperSkeleton?.sections]);
+  const loadedPdfRef = useRef(null);
 
   // Load notes on mount / pdfId change
   useEffect(() => {
     if (!pdfId) return;
-    setIsLoading(true);
-    loadNotes(pdfId)
-      .then((data) => setNotes(data || []))
-      .finally(() => setIsLoading(false));
-    setActiveSectionId(null);
-    setEditingNote(null);
+    let cancelled = false;
+    loadedPdfRef.current = null;
+
+    loadNotes(pdfId).then((data) => {
+      if (cancelled) return;
+      setNotes(data || []);
+      setIsLoading(false);
+      setActiveSectionId(null);
+      setEditingNote(null);
+      loadedPdfRef.current = pdfId;
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [pdfId]);
 
   // Start editing a new or existing note

@@ -1,19 +1,26 @@
-const { test, expect } = require('@playwright/test');
+/**
+ * PDF Annotation E2E Tests (21-1, 21-2).
+ */
+import { expect, test } from '@playwright/test';
 
 test.describe('PDF Annotation', () => {
   test('highlight store exports all required functions', async () => {
-    const { loadHighlights, saveHighlights, addHighlight, deleteHighlight } = require('../../src/services/highlightStore.js');
-    expect(typeof loadHighlights).toBe('function');
-    expect(typeof saveHighlights).toBe('function');
-    expect(typeof addHighlight).toBe('function');
-    expect(typeof deleteHighlight).toBe('function');
+    const store = await import('../../src/services/highlightStore.js');
+    expect(typeof store.loadHighlights).toBe('function');
+    expect(typeof store.saveHighlights).toBe('function');
+    expect(typeof store.addHighlight).toBe('function');
+    expect(typeof store.deleteHighlight).toBe('function');
+    expect(typeof store.getBookmarks).toBe('function');
+    expect(typeof store.toggleBookmark).toBe('function');
+    expect(typeof store.saveProgress).toBe('function');
+    expect(typeof store.getProgress).toBe('function');
   });
 
   test('notes store exports all required functions', async () => {
-    const { loadNotes, saveNotes, upsertNote, deleteNote } = require('../../src/services/notesStore.js');
-    expect(typeof loadNotes).toBe('function');
-    expect(typeof saveNotes).toBe('function');
-    expect(typeof upsertNote).toBe('function');
-    expect(typeof deleteNote).toBe('function');
+    const store = await import('../../src/services/notesStore.js');
+    expect(typeof store.loadNotes).toBe('function');
+    expect(typeof store.saveNotes).toBe('function');
+    expect(typeof store.upsertNote).toBe('function');
+    expect(typeof store.deleteNote).toBe('function');
   });
 });

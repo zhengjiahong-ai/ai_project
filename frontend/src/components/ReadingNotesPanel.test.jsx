@@ -15,7 +15,7 @@ vi.mock('../services/highlightStore', () => ({
   getBookmarks: vi.fn(),
 }));
 
-import { loadNotes, upsertNote, deleteNote } from '../services/notesStore';
+import { loadNotes, upsertNote } from '../services/notesStore';
 import { loadHighlights, getBookmarks } from '../services/highlightStore';
 
 describe('ReadingNotesPanel', () => {

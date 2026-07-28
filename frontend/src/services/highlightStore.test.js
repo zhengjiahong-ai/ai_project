@@ -6,7 +6,6 @@ import {
   getBookmarks,
   toggleBookmark,
   getHighlights,
-  saveHighlights,
   saveProgress,
   getProgress,
 } from './highlightStore.js';
