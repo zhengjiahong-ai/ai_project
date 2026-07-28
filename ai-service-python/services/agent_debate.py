@@ -529,7 +529,10 @@ def create_debate_run(
 
     The result is persisted to SQLite so it survives process restarts (24-2).
     """
-    from services.agent_project_service import get_agent_project, _get_agent_state_repository
+    from services.agent_project_service import (
+        _get_agent_state_repository,
+        get_agent_project,
+    )
 
     project = get_agent_project(project_id)
     if project is None:
