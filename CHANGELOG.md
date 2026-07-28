@@ -2,6 +2,21 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-07-28 v0.6.65
+
+**轨道二十一：PDF 阅读增强**
+
+1. **文本高亮与批注**：新建 `highlightStore.js` IndexedDB 持久化服务；PdfViewer 新增四色选择器（黄/绿/蓝/粉）、高亮颜色渲染、点击 tooltip（文本+颜色+时间+删除）、扫描件 PDF 自动禁用高亮。
+2. **阅读笔记侧栏**：新建 `ReadingNotesPanel.jsx` + `notesStore.js`，按章节目录组织笔记、textarea 编辑器、`[p.N]` 页码引用插入、点击引用跳转 PDF 页面、暗色模式兼容。
+3. **书签与阅读进度**：PdfViewer 工具栏新增星标书签按钮、书签列表在笔记面板子标签页展示、翻页自动保存阅读进度（debounce 2s）、重开论文弹出恢复位置提示。
+4. **标注导出**：笔记面板新增导出按钮，支持 Markdown 和 JSON 两种格式，不含 PDF 原文和敏感信息。
+
+**轨道二十二：质量收口**
+
+5. **前端性能优化**：ChartAnalysisCard 已改为 React.lazy 动态导入，recharts 独立 vendor chunk，logo 文件均在 20KB 以内。
+6. **错误边界与韧性**：`ErrorBoundary` 包裹 App 顶层，崩溃时展示错误空态+重试按钮；`api.ts` 新增 `withRetry` 通用重试（5xx/网络错误，指数退避 1s/2s）；离线检测全局橙色 banner。
+7. **测试覆盖率提升**：新增 `highlightStore` 10 个单元测试、`ReadingNotesPanel` 9 个组件测试、`multi-agent-debate.spec.js` 2 个 E2E、`pdf-annotation.spec.js` 2 个 E2E；vitest 总计 62 测试通过。
+
 ### 2026-07-25 v0.6.64
 
 **轨道二十：多 Agent 辩论与交叉校验**
