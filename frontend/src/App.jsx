@@ -20,7 +20,6 @@ import CodeExecutionApprovalCenter from './components/CodeExecutionApprovalCente
 import LibrarySidebar from './components/LibrarySidebar';
 import Navbar from './components/Navbar';
 import { ToastProvider, useToast } from './components/Toast.jsx';
-import { ErrorBoundary } from './components/ErrorBoundary';
 const ReadingIDE = React.lazy(() => import('./pages/ReadingIDE.jsx'));
 const AgentResearchPage = React.lazy(() => import('./pages/AgentResearchPage.jsx'));
 const SharedReportPage = React.lazy(() => import('./pages/SharedReportPage.jsx'));
@@ -190,7 +189,6 @@ export default function App() {
 
   const { theme, toggleTheme: handleToggleTheme } = useThemePreference(THEME_STORAGE_KEY);
   const { addToast } = useToast();
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [appMode, setAppMode] = useState('reader');
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
@@ -318,17 +316,6 @@ export default function App() {
       lastNonTranslationTabRef.current = activeTab;
     }
   }, [activeTab]);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   const commitTranslationState = useCallback((nextStateOrUpdater) => {
     if (typeof nextStateOrUpdater === 'function') {

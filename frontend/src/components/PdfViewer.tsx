@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
+import { themeColorWithAlpha } from '../utils/themeColor';
 import { highlightPlugin, type RenderHighlightTargetProps, type RenderHighlightsProps } from '@react-pdf-viewer/highlight';
 import {
   Bookmark,
@@ -18,11 +19,6 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url';
 import { apiService } from '../services/api';
 import { buildExplainSelectionPayload } from '../utils/pdfFormulaSelection';
 import { buildPageLayout } from '../utils/pdfTranslationLayout.js';
-import {
-  loadHighlights,
-  addHighlight,
-  deleteHighlight,
-} from '../services/highlightStore';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 import PdfSkeleton from './PdfSkeleton';
@@ -74,8 +70,6 @@ interface PdfViewerHighlight {
   sourceActionLabel?: string;
   sourceText?: string;
   sourcePageIndex?: number;
-  color?: string;
-  createdAt?: string;
 }
 
 interface InlineActionPayload {
@@ -131,13 +125,6 @@ interface ApiResponse {
 const workerUrl: string = pdfWorkerUrl;
 const EXPLAIN_CONTEXT_MAX_CHARS: number = 4500;
 const SCANNED_OR_LOW_TEXT_STATUS: string = 'scanned_or_low_text';
-
-const HIGHLIGHT_COLORS = [
-  { value: 'yellow', hex: '#fef08a', label: '黄色' },
-  { value: 'green',  hex: '#bbf7d0', label: '绿色' },
-  { value: 'blue',   hex: '#bfdbfe', label: '蓝色' },
-  { value: 'pink',   hex: '#fbcfe8', label: '粉色' },
-];
 
 interface InlineActionDef {
   id: string;
@@ -447,26 +434,6 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
             </span>
             <span className="source-link-chip shrink-0">p.{highlight.position.pageIndex + 1}</span>
           </div>
-          {highlight.color && (
-            <div className="flex items-center gap-1.5 text-[10px] theme-text-muted">
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  backgroundColor: HIGHLIGHT_COLORS.find((c) => c.value === highlight.color)?.hex || '#fef08a',
-                  border: '1px solid rgba(0,0,0,0.15)',
-                }}
-              />
-              <span>{HIGHLIGHT_COLORS.find((c) => c.value === highlight.color)?.label || highlight.color}</span>
-              {highlight.createdAt && (
-                <span className="ml-1">
-                  {new Date(highlight.createdAt).toLocaleString()}
-                </span>
-              )}
-            </div>
-          )}
           <div className="theme-text-secondary line-clamp-2 text-[11px] leading-5">
             {originalText}
           </div>
@@ -897,8 +864,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
         position: selectionPosition as unknown as PdfViewerHighlightPosition,
         actionId,
         actionLabel: requestPayload.actionLabel,
-        color: 'yellow',
-        createdAt: new Date().toISOString(),
         chatHistory: [{ role: 'user', content: requestPayload.displayMessage }],
         isLoading: actionId !== 'note',
       };
@@ -914,72 +879,27 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
           sourceActionLabel: requestPayload.actionLabel,
         });
 
-        const noteHighlight: PdfViewerHighlight = {
-          ...nextHighlight,
-          chatHistory: [
-            { role: 'ai' as const, content: '已保存为边注笔记。你可以稍后在笔记区查看，也可以继续围绕这一段追问。' },
-          ],
-        };
         setHighlights((prev: PdfViewerHighlight[]) => [
           ...prev,
-          noteHighlight,
+          {
+            ...nextHighlight,
+            chatHistory: [
+              { role: 'ai', content: '已保存为边注笔记。你可以稍后在笔记区查看，也可以继续围绕这一段追问。' },
+            ],
+          },
         ]);
         setActiveHighlightId(highlightId);
         (props.cancel as () => void)();
-        if (pdfId) {
-          addHighlight(pdfId, noteHighlight);
-        }
         return;
       }
 
       setHighlights((prev: PdfViewerHighlight[]) => [...prev, nextHighlight]);
       setActiveHighlightId(highlightId);
       (props.cancel as () => void)();
-      if (pdfId) {
-        addHighlight(pdfId, nextHighlight);
-      }
       syncSelectionMessage(requestPayload.displayMessage, 'user', nextHighlight);
       handleInitialAsk(highlightId, requestPayload, pageIndex, context);
     },
     [handleInitialAsk, onSaveNote, syncSelectionMessage],
-  );
-
-  const handleColorHighlight = useCallback(
-    (color: string, props: Record<string, unknown>): void => {
-      const selectedText: string = props.selectedText as string;
-      const highlightAreas = props.highlightAreas as HighlightArea[] | undefined;
-      const selectionRegion = props.selectionRegion as Record<string, number> | undefined;
-      const pageIndex: number =
-        highlightAreas?.[0]?.pageIndex ?? selectionRegion?.pageIndex ?? currentPageRef.current;
-      const selectionPosition: Record<string, number> = {
-        ...(selectionRegion || {}),
-        pageIndex,
-      };
-      const sourceAnchorId: string = `highlight-${Date.now()}`;
-      const highlightId: number = Date.now();
-
-      const newHighlight: PdfViewerHighlight = {
-        id: highlightId,
-        sourceAnchorId,
-        text: selectedText,
-        highlightAreas: highlightAreas || [],
-        position: selectionPosition as unknown as PdfViewerHighlightPosition,
-        actionId: 'highlight',
-        actionLabel: '高亮标记',
-        color,
-        createdAt: new Date().toISOString(),
-        chatHistory: [{ role: 'ai' as const, content: '文本高亮标记' }],
-        isLoading: false,
-      };
-
-      setHighlights((prev: PdfViewerHighlight[]) => [...prev, newHighlight]);
-      (props.cancel as () => void)();
-
-      if (pdfId) {
-        addHighlight(pdfId, newHighlight);
-      }
-    },
-    [pdfId],
   );
 
   // highlightPlugin has return-type mismatch with React 19 JSX.Element
@@ -994,61 +914,12 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
         );
       }
 
-      if (activeHighlightId) return null;
-
-      const region = props.selectionRegion;
-
-      return (
-        <div
-          className="absolute z-50"
-          style={{
-            top: `${region.top + region.height}%`,
-            left: `${region.left}%`,
-            transform: 'translateY(10px)',
-          }}
-        >
-          {/* Color picker dots */}
-          <div style={{ display: 'flex', gap: 6, padding: '0 8px 4px', justifyContent: 'center' }}>
-            {HIGHLIGHT_COLORS.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                onClick={() => handleColorHighlight(c.value, props as unknown as Record<string, unknown>)}
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: '50%',
-                  backgroundColor: c.hex,
-                  border: '2px solid #fff',
-                  boxShadow: '0 0 0 1px rgba(0,0,0,0.2)',
-                  cursor: 'pointer',
-                }}
-                title={c.label}
-              />
-            ))}
-          </div>
-          {/* Action buttons */}
-          <div className="flex items-center gap-1.5">
-            {INLINE_ACTIONS.map((action: InlineActionDef) => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.id}
-                  type="button"
-                  onClick={() =>
-                    handleSelectionAction(action.id, props as unknown as Record<string, unknown>)
-                  }
-                  className="inline-context-button"
-                  title={action.label}
-                >
-                  <Icon size={14} />
-                  <span>{action.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      );
+      return !activeHighlightId ? (
+        <InlineContextMenu
+          selectionRegion={props.selectionRegion}
+          onAction={(actionId: string) => handleSelectionAction(actionId, props as unknown as Record<string, unknown>)}
+        />
+      ) : null;
     },
     renderHighlights: (props: RenderHighlightsProps) => (
       <div>
@@ -1073,22 +944,19 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
                       }
                     : area;
 
-                const colorHex = HIGHLIGHT_COLORS.find(
-                  (c) => c.value === (highlightEntity.color || 'yellow'),
-                )?.hex || '#fef08a';
-
                 return (
                   <div
                     key={index}
                     style={Object.assign(
                       {},
                       {
-                        background: colorHex,
-                        opacity:
-                          activeHighlightId === highlightEntity.id ? 0.5 : 0.25,
+                        background:
+                          activeHighlightId === highlightEntity.id
+                            ? themeColorWithAlpha('--accent-strong', 0.4, 'rgba(77,0,153,0.4)')
+                            : themeColorWithAlpha('--accent-strong', 0.2, 'rgba(77,0,153,0.2)'),
                         border:
                           activeHighlightId === highlightEntity.id
-                            ? `1px solid ${colorHex}`
+                            ? `1px solid ${themeColorWithAlpha('--accent-strong', 0.6, 'rgba(77,0,153,0.6)')}`
                             : 'none',
                         cursor: 'pointer',
                         mixBlendMode: 'multiply' as const,
@@ -1120,23 +988,21 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
       {fileUrl ? (
         <>
           {isPdfLoading && <PdfSkeleton />}
-          <div style={{ display: isPdfLoading ? 'none' : 'block', height: '100%', width: '100%' }}>
-            <div style={{ height: '100%', width: '100%' }}>
-              <Worker workerUrl={workerUrl}>
-                <Viewer
-                  key={viewerKey}
-                  fileUrl={fileUrl}
-                  initialPage={initialViewerPage}
-                  plugins={[highlightPluginInstance]}
-                  theme={theme}
-                  onDocumentLoad={handleDocumentLoad}
-                  onPageChange={handleViewerPageChange}
-                  onZoom={(event: { scale: number }) => {
-                    scaleRef.current = event.scale;
-                  }}
-                />
-              </Worker>
-            </div>
+          <div style={{ visibility: isPdfLoading ? 'hidden' : 'visible', height: '100%', width: '100%' }}>
+            <Worker workerUrl={workerUrl}>
+              <Viewer
+                key={viewerKey}
+                fileUrl={fileUrl}
+                initialPage={initialViewerPage}
+                plugins={[highlightPluginInstance]}
+                theme={theme}
+                onDocumentLoad={handleDocumentLoad}
+                onPageChange={handleViewerPageChange}
+                onZoom={(event: { scale: number }) => {
+                  scaleRef.current = event.scale;
+                }}
+              />
+            </Worker>
           </div>
         </>
       ) : (
@@ -1154,9 +1020,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
             setHighlights((prev: PdfViewerHighlight[]) =>
               prev.filter((highlight: PdfViewerHighlight) => highlight.id !== activeHighlightId),
             );
-            if (pdfId && activeHighlightId !== null) {
-              deleteHighlight(pdfId, activeHighlightId);
-            }
             setActiveHighlightId(null);
           }}
           onSaveNote={onSaveNote}
