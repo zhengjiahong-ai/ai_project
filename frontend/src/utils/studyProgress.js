@@ -121,11 +121,11 @@ const resolveStudySummary = ({
     if (userMessageCount > 0 || translatedPageCount > 0 || pageCoverage >= 25) {
       return '已完成浅读，建议进入补课、批判或引导学习。';
     }
-    return '已完成篇章解构，建议先用问答或翻译进入正文。';
+    return '篇章解构已完成';
   }
 
   if (!hasSynthesis) {
-    return '已进入深度探究，下一步适合沉淀笔记或工作台卡片。';
+    return '深度探究中';
   }
 
   if (totalScore >= 85) {

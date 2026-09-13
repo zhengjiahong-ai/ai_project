@@ -56,6 +56,7 @@ def _build_legacy_task_snapshot_from_run_id(run_id: str) -> dict[str, Any]:
 def _build_run_record(task: dict[str, Any]) -> dict[str, Any]:
     return {
         "runId": str(task.get("taskId") or ""),
+        "taskId": str(task.get("conversationId") or task.get("taskId") or ""),
         "projectId": str(task.get("projectId") or ""),
         "traceId": str(task.get("traceId") or ""),
         "status": str(task.get("status") or ""),
@@ -185,6 +186,7 @@ def _build_legacy_task_snapshot(
 ) -> dict[str, Any]:
     return {
         "taskId": str(run.get("runId") or ""),
+        "conversationId": str(run.get("taskId") or run.get("runId") or ""),
         "projectId": str(project.get("projectId") or ""),
         "status": str(run.get("status") or ""),
         "stage": str(run.get("executionPhase") or ""),
@@ -193,6 +195,7 @@ def _build_legacy_task_snapshot(
         "prompt": str(run.get("prompt") or ""),
         "focusedPaperIds": list(run.get("focusedPaperIds") or []),
         "constraints": str(run.get("constraints") or ""),
+        "context": copy.deepcopy(run.get("context") or {}),
         "planItems": list((pending_review or {}).get("planItems") or []),
         "toolCalls": list((artifacts or {}).get("toolCallSummary") or []),
         "evidenceItems": list((artifacts or {}).get("evidenceItems") or []),

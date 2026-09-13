@@ -36,18 +36,15 @@ const sectionLabels = {
 const readingModes = [
   {
     id: 'overview',
-    label: '先看全局',
-    description: '先判断这篇论文值不值得继续深读。',
+    label: '概览',
   },
   {
     id: 'outline',
-    label: '再看目录',
-    description: '顺着目录决定接下来精读哪里。',
+    label: '目录',
   },
   {
     id: 'sections',
-    label: '最后进细节',
-    description: '按章节逐步展开，而不是一次看完所有骨架。',
+    label: '章节',
   },
 ];
 
@@ -74,7 +71,7 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
     }
 
     return {
-      summary: `系统已经整理出 ${availableSections.length} 个核心章节。建议先看摘要与结论，再决定是否深入方法和实验。`,
+      summary: `已识别 ${availableSections.length} 个核心章节。`,
       keyPoints: [
         outlineItems.length > 0 ? `已识别 ${outlineItems.length} 个可导航章节` : '目录仍在补全中',
         availableSections.slice(0, 3).map((section) => section.label).join(' / '),
@@ -87,17 +84,14 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
     {
       label: '进入问答',
       icon: MessageSquare,
-      hint: '先问一个最想弄明白的问题。',
     },
     {
       label: '继续批判阅读',
       icon: Network,
-      hint: '把结构理解推进到论证判断。',
     },
     {
       label: '跳到原文',
       icon: ArrowRight,
-      hint: '从目录直接进入 PDF 对应位置。',
     },
   ];
   const captureSection = (section) => {
@@ -126,7 +120,7 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
     return (
       <div className="theme-empty-state flex h-full flex-col items-center justify-center p-8 font-medium">
         <Loader2 className="mb-4 animate-spin text-pixiu" size={40} />
-        <p className="text-sm font-medium">正在生成论文骨架，先给你一个可浏览的结构，再逐步补齐章节内容。</p>
+        <p className="text-sm font-medium">正在生成论文骨架...</p>
       </div>
     );
   }
@@ -135,7 +129,7 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
     return (
       <div className="theme-empty-state flex h-full flex-col items-center justify-center p-8">
         <FileText size={48} className="mb-4 opacity-20" />
-        <p>先上传一篇 PDF，系统会把篇章结构整理成可进入阅读的起点。</p>
+        <p>请上传 PDF。</p>
       </div>
     );
   }
@@ -152,7 +146,6 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
               <LayoutDashboard size={18} className="text-pixiu" />
               <h2 className="theme-text-primary text-lg font-bold">篇章解构</h2>
             </div>
-            <p className="theme-text-secondary mt-1 text-xs">把后端给出的骨架拆成三步：先看结论，再看目录，最后按需展开章节。</p>
           </div>
           <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${parseWarning ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-500'}`}>
             {parseWarning ? '需 OCR' : '已解构'}
@@ -166,7 +159,6 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
               type="button"
               onClick={() => setActiveMode(mode.id)}
               className={`workspace-section-tab ${activeMode === mode.id ? 'workspace-section-tab-active' : ''}`}
-              title={mode.description}
             >
               {mode.label}
             </button>
@@ -198,7 +190,7 @@ const PaperAnalysis = ({ data, isLoading, outlineItems = [], pdfId, onSelectOutl
                 {quickActions.map((action) => {
                   const Icon = action.icon;
                   return (
-                    <span key={action.label} className="source-link-chip inline-flex items-center gap-1" title={action.hint}>
+                    <span key={action.label} className="source-link-chip inline-flex items-center gap-1">
                       <Icon size={12} />
                       {action.label}
                     </span>

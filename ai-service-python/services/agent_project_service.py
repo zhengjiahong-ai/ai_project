@@ -186,6 +186,14 @@ def create_agent_run(project_id: str, request: AgentRunCreateRequest | dict[str,
     prompt = _clean_text(normalized_request.prompt)
     if not prompt:
         raise ValueError("Prompt cannot be empty.")
+    idempotency_key = _clean_text(normalized_request.idempotencyKey)
+    if idempotency_key:
+        with _LOCK:
+            existing = next((copy.deepcopy(item) for item in _TASKS.values()
+                             if item.get("projectId") == project_id
+                             and (item.get("context") or {}).get("idempotencyKey") == idempotency_key), None)
+        if existing:
+            return {"status": "success", "run": _build_run_record(existing), "deduplicated": True}
     focused_paper_ids = _normalize_id_list(normalized_request.focusedPaperIds) or list(project.get("paperIds") or [])
     trace_id = start_trace(
         "agent_research",
@@ -199,8 +207,18 @@ def create_agent_run(project_id: str, request: AgentRunCreateRequest | dict[str,
     )
     now = _utc_now()
     task_id = str(uuid.uuid4())
+    from services import agent_conversation_service
+    conversation = agent_conversation_service.start_turn(
+        project_id,
+        _clean_text(normalized_request.taskId),
+        task_id,
+        prompt,
+        focused_paper_ids,
+        record_user_message=not bool((normalized_request.context or {}).get("retryOfRunId")),
+    )
     task = {
         "taskId": task_id,
+        "conversationId": conversation["taskId"],
         "projectId": project_id,
         "traceId": trace_id,
         "status": "running",
@@ -212,6 +230,8 @@ def create_agent_run(project_id: str, request: AgentRunCreateRequest | dict[str,
         "context": {
             **dict(normalized_request.context or {}),
             "domain": _clean_text(getattr(normalized_request, "domain", "") or ""),
+            "reviewMode": normalized_request.reviewMode,
+            "idempotencyKey": idempotency_key,
         },
         "planItems": [],
         "events": [_event("task_created", task_id, PLANNING_STAGE, "Created an Agent research task.")],
@@ -266,8 +286,17 @@ def _start_agent_worker(target, task_id: str) -> None:
 
 def prepare_agent_task_now(task_id: str) -> dict[str, Any]:
     task = _copy_task(task_id)
+    if task.get("status") != "running":
+        return task
     paper_ids = list(task.get("focusedPaperIds") or [])
     plan_items = agent_orchestrator.build_review_plan_items(task.get("prompt") or "", paper_ids, task.get("constraints") or "")
+    if (task.get("context") or {}).get("reviewMode") == "auto":
+        events = [*task.get("events", []), _event("plan_generated", task_id, PLANNING_STAGE, "已生成研究计划，开始执行。")]
+        human_review = copy.deepcopy(task.get("humanReview") or {})
+        human_review["plan"] = {"status": "not_required", "reviewNotes": "", "reviewedAt": ""}
+        updated = _update_task(task_id, progress=0.2, planItems=plan_items, events=events, humanReview=human_review)
+        _start_agent_worker(_run_minimal_agent_task, task_id)
+        return updated
     events = [*task.get("events", []), _event("plan_generated", task_id, PLANNING_STAGE, "Generated a research plan for human review.")]
     return _update_task(task_id, status="awaiting_plan_review", stage=PLANNING_STAGE, progress=0.2, planItems=plan_items, events=events)
 
@@ -437,6 +466,32 @@ def get_agent_workspace(project_id: str) -> dict[str, Any]:
         timeline=_build_timeline_resource(active_task) if active_task else [],
         pending_clarification=pending_clarification,
     )
+    from services import agent_conversation_service
+    repository = _get_agent_state_repository()
+    research_tasks = agent_conversation_service.list_tasks(project_id)
+    runs_by_id = {
+        str(item.get("taskId") or ""): item
+        for item in recent_tasks
+    }
+    research_task_summaries = []
+    for research_task in research_tasks:
+        summary = copy.deepcopy(research_task)
+        latest_run = runs_by_id.get(str(summary.get("latestRunId") or ""))
+        if latest_run:
+            summary.update({
+                "status": str(latest_run.get("status") or "pending"),
+                "stage": str(latest_run.get("stage") or "planning"),
+                "progress": float(latest_run.get("progress") or 0.0),
+                "updatedAt": str(latest_run.get("updatedAt") or summary.get("updatedAt") or ""),
+            })
+        research_task_summaries.append(summary)
+    active_research_task_id = str((active_task or {}).get("conversationId") or "")
+    workspace["tasks"] = research_task_summaries
+    workspace["activeTaskId"] = active_research_task_id
+    workspace["messages"] = (
+        agent_conversation_service.list_messages(repository, active_research_task_id)
+        if active_research_task_id else []
+    )
     return {"status": "success", "workspace": workspace}
 
 def get_persisted_trace_summary(trace_id: str) -> dict[str, Any] | None:
@@ -474,6 +529,27 @@ def cancel_agent_task(task_id: str) -> dict[str, Any]:
             trace_snapshot = finalize_trace("cancelled", response_meta={"taskId": task_id, "projectId": task.get("projectId")})
             _persist_trace_summary(task_id, trace_snapshot)
     return {"status": "success", "task": _copy_task(task_id)}
+
+def cancel_agent_run(run_id: str) -> dict[str, Any]:
+    cancelled = cancel_agent_task(run_id)["task"]
+    return {"status": "success", "run": _build_run_record(cancelled)}
+
+def retry_agent_run(run_id: str) -> dict[str, Any]:
+    source = _copy_task(_clean_text(run_id))
+    if source.get("status") not in {"failed", "cancelled"}:
+        raise AgentReviewConflictError("Only failed or cancelled Agent runs can be retried.")
+    context = copy.deepcopy(source.get("context") or {})
+    context["retryOfRunId"] = run_id
+    context.pop("idempotencyKey", None)
+    return create_agent_run(source["projectId"], AgentRunCreateRequest(
+        prompt=source["prompt"], taskId=source.get("conversationId", ""),
+        focusedPaperIds=source.get("focusedPaperIds"),
+        constraints=source.get("constraints", ""), context=context,
+        reviewMode=context.get("reviewMode", "auto"), idempotencyKey=f"retry:{run_id}",
+        allowExternalSearch=bool((source.get("externalSearchConfig") or {}).get("allowExternalSearch")),
+        allowWebSearch=bool((source.get("externalSearchConfig") or {}).get("allowWebSearch")),
+        allowIterativeSearch=bool((source.get("externalSearchConfig") or {}).get("allowIterativeSearch")),
+    ))
 
 def clear_agent_state(clear_storage: bool = False) -> None:
     global _STORAGE_LOADED
@@ -608,22 +684,46 @@ def _run_minimal_agent_task(task_id: str) -> None:
             if _is_task_cancelled(task_id):
                 return
             _update_task(task_id, stage=SYNTHESIZING_STAGE, progress=0.86)
-            finding, comparison_table, conflicts, open_questions = agent_orchestrator.build_agent_outputs(execution_prompt, paper_contexts, evidence_items)
-            draft_report = agent_orchestrator.build_minimal_report(execution_prompt, project, paper_contexts, evidence_items, conflicts, open_questions)
+            automatic = (task.get("context") or {}).get("reviewMode") == "auto"
+            if automatic:
+                from services.agent_grounded_answer import synthesize_grounded_answer
+                from services import agent_conversation_service
+                messages = agent_conversation_service.list_messages(
+                    _get_agent_state_repository(), task.get("conversationId")
+                )
+                history = [
+                    {"role": item.get("role"), "content": item.get("content")}
+                    for item in messages[:-1]
+                ]
+                answer = synthesize_grounded_answer(prompt, evidence_items, paper_ids, history)
+                findings = answer["findings"]
+                comparison_table, conflicts = answer["comparisonTable"], answer["conflicts"]
+                open_questions, draft_report = answer["openQuestions"], answer["draftReport"]
+            else:
+                finding, comparison_table, conflicts, open_questions = agent_orchestrator.build_agent_outputs(execution_prompt, paper_contexts, evidence_items)
+                findings = [finding]
+                draft_report = agent_orchestrator.build_minimal_report(execution_prompt, project, paper_contexts, evidence_items, conflicts, open_questions)
             events = [
                 *_copy_task(task_id).get("events", []),
                 _event("judgement_completed", task_id, SYNTHESIZING_STAGE, "Built cross-paper judgements and conflict candidates."),
                 _event("report_updated", task_id, SYNTHESIZING_STAGE, "Built a project-level draft report."),
                 _event("task_completed", task_id, DONE_STAGE, "Completed staged Agent orchestration."),
             ]
-            _update_task(
+            automatic = (task.get("context") or {}).get("reviewMode") == "auto"
+            human_review = copy.deepcopy(_copy_task(task_id).get("humanReview") or {})
+            if automatic:
+                human_review["final"] = {"status": "not_required", "reviewNotes": "", "reviewedAt": "", "riskReviews": []}
+            if _is_task_cancelled(task_id):
+                return
+            completed_task = _update_task(
                 task_id,
-                status="awaiting_final_review",
-                stage=SYNTHESIZING_STAGE,
-                progress=0.95,
+                status="succeeded" if automatic else "awaiting_final_review",
+                stage=DONE_STAGE if automatic else SYNTHESIZING_STAGE,
+                progress=1.0 if automatic else 0.95,
+                humanReview=human_review,
                 events=events,
                 planItems=agent_orchestrator.update_plan_status(approved_plan, "done"),
-                findings=[finding],
+                findings=findings,
                 comparisonTable=comparison_table,
                 conflicts=conflicts,
                 openQuestions=open_questions,
@@ -631,19 +731,28 @@ def _run_minimal_agent_task(task_id: str) -> None:
                 reviewRisks=_build_agent_review_risks(conflicts, open_questions),
                 error="",
             )
-            record_metric("awaitingFinalReview", True)
+            from services import agent_conversation_service
+            agent_conversation_service.append_assistant_message(completed_task, draft_report, findings)
+            record_metric("awaitingFinalReview", not automatic)
+            if automatic:
+                trace_snapshot = finalize_trace("success", response_meta={"taskId": task_id, "projectId": task.get("projectId")})
+                _persist_trace_summary(task_id, trace_snapshot)
         except Exception as error:
             try:
                 current_task = _copy_task(task_id)
             except AgentTaskNotFoundError:
                 return
-            _update_task(
+            failed_task = _update_task(
                 task_id,
                 status="failed",
                 stage=DONE_STAGE,
                 progress=1.0,
                 error=_clean_text(error)[:240] or "Agent task failed.",
                 events=[*current_task.get("events", []), _event("task_failed", task_id, DONE_STAGE, "Agent task failed.")],
+            )
+            from services import agent_conversation_service
+            agent_conversation_service.append_assistant_message(
+                failed_task, f"研究运行失败：{failed_task.get('error') or '未知错误'}", []
             )
             trace_snapshot = finalize_trace(
                 "error",
@@ -783,19 +892,8 @@ def _invoke_agent_tool(name: str, payload: dict[str, Any], fallback: dict[str, A
         }
 
 def _fallback_tool_result(pdf_id: str) -> dict[str, Any]:
-    return {
-        "items": [
-            {
-                "sourceId": f"{pdf_id}-fallback-1",
-                "text": f"Fallback project evidence placeholder for {pdf_id}. Indexed retrieval can replace this in later rounds.",
-                "pdfId": pdf_id,
-                "chunkIndex": None,
-                "pageIndex": None,
-                "sectionId": None,
-                "metadata": {"fallback": True, "stage": "round_2"},
-            }
-        ]
-    }
+    return {"items": [], "status": "failed", "reason": "indexed_retrieval_unavailable"}
+
 
 def _build_plan_items(paper_ids: list[str], active_step: str = "scope") -> list[dict[str, Any]]:
     status_by_step = {

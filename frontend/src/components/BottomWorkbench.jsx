@@ -330,7 +330,7 @@ const BottomWorkbench = ({
     if (!selectedArtifact) {
       return (
         <div className="theme-empty-state rounded-3xl p-5 text-sm">
-          当前筛选下没有可查看的卡片。你可以先在右侧功能区把结果加入工作台，或清空筛选条件。
+          暂无卡片
         </div>
       );
     }
@@ -492,7 +492,7 @@ const BottomWorkbench = ({
     if (!selectedNote) {
       return (
         <div className="theme-empty-state rounded-3xl p-5 text-sm">
-          当前筛选下没有可查看的边注。你可以先在 PDF 中划词或收藏对话，边注会在这里沉淀下来。
+          暂无边注
         </div>
       );
     }
@@ -833,7 +833,7 @@ const BottomWorkbench = ({
                   </div>
                 ) : (
                   <div className="theme-empty-state mt-3 rounded-2xl p-5 text-sm">
-                    边注会保留你和原文绑定的理解痕迹。你可以从 PDF 划词解释或收藏对话开始。
+                    暂无边注
                   </div>
                 )}
               </section>

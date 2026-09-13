@@ -8,9 +8,9 @@ from fastapi.responses import JSONResponse
 from core.config import settings
 from core.error_responses import EXCEPTION_STATUS_MAP, error_response
 from core.logging_config import configure_logging
+from core.pdf_quality import startup_warmup
 from routes.api import router as api_router
 from routes.health import router as health_router
-from services.analysis_service import startup_warmup
 
 configure_logging()
 

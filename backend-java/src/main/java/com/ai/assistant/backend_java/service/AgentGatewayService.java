@@ -87,6 +87,18 @@ public class AgentGatewayService {
         return fwdPost("/agent-projects/" + enc(projectId) + "/runs", request);
     }
 
+    public ResponseEntity<Map<String, Object>> listAgentResearchTasks(String projectId) {
+        return fwdGet("/agent-projects/" + enc(projectId) + "/research-tasks");
+    }
+
+    public ResponseEntity<Map<String, Object>> getAgentTaskMessages(String taskId) {
+        return fwdGet("/agent-tasks/" + enc(taskId) + "/messages");
+    }
+
+    public ResponseEntity<Map<String, Object>> createAgentTaskRun(String taskId, Map<String, Object> request) {
+        return fwdPost("/agent-tasks/" + enc(taskId) + "/runs", request);
+    }
+
     public ResponseEntity<Map<String, Object>> getAgentWorkspace(String projectId) {
         return fwdGet("/agent-projects/" + enc(projectId) + "/workspace");
     }
@@ -119,6 +131,14 @@ public class AgentGatewayService {
 
     public ResponseEntity<Map<String, Object>> cancelAgentTask(String taskId) {
         return fwdPost("/agent-tasks/" + enc(taskId) + "/cancel", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> cancelAgentRun(String runId) {
+        return fwdPost("/agent-runs/" + enc(runId) + "/cancel", null);
+    }
+
+    public ResponseEntity<Map<String, Object>> retryAgentRun(String runId) {
+        return fwdPost("/agent-runs/" + enc(runId) + "/retry", null);
     }
 
     public ResponseEntity<Map<String, Object>> reviewAgentRunPlan(String runId, Map<String, Object> request) {

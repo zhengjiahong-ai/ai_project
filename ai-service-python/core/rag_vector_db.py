@@ -11,6 +11,7 @@ from sentence_transformers import SentenceTransformer
 
 from core.document_parser import parse_tei_xml
 from core.smart_chunker import chunk_sections
+from core.pdf_evidence_pages import extract_evidence_pages
 from rag.store import invalidate_hybrid_cache, normalize_id
 
 _logger = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ class LiteratureRAG:
 
             grobid = GrobidClient(
                 grobid_server="http://grobid:8070",
-                batch_size=1
+                queue_size=1
             )
 
             grobid.process(
@@ -96,9 +97,14 @@ class LiteratureRAG:
 
     def add_sections_to_db(self, sections, file_path, literature_metadata=None):
         """ New method: Accept already parsed sections to save time """
-        metadata = literature_metadata or {}
+        metadata = dict(literature_metadata or {})
         metadata["file_name"] = os.path.basename(file_path)
-
+        # Index actual page text so snippets never inherit synthetic author metadata.
+        if os.path.isfile(file_path):
+            page_sections = extract_evidence_pages(file_path)
+            if page_sections:
+                sections = page_sections
+        sections = [section for section in sections if section.get("section") != "Front Matter (Metadata)"]
         chunks = chunk_sections(sections)
         
         # --- 核心改进：兜底逻辑 ---
@@ -147,6 +153,7 @@ class LiteratureRAG:
                     chunk_metadata[key] = value
             metadatas.append(chunk_metadata)
 
+        previous_ids = self.collection.get(where={"id": metadata["id"]}, include=[])["ids"] if metadata.get("id") else []
         self.collection.add(
             ids=ids,
             documents=texts,
@@ -154,6 +161,8 @@ class LiteratureRAG:
             metadatas=metadatas
         )
 
+        if previous_ids:
+            self.collection.delete(ids=previous_ids)
         invalidate_hybrid_cache()
 
         return len(texts)

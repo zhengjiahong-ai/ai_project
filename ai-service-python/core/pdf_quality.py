@@ -14,6 +14,7 @@ PAPER_NOT_INDEXED_ERROR_CODE = "paper_not_indexed"
 RAG_INDEX_EMPTY_MESSAGE = "论文已解析，但没有可入库的正文片段，批判阅读暂不可用。请重新上传，或确认 PDF 是可提取文字的版本。"
 
 _logger = logging.getLogger(__name__)
+_grobid_client = None
 
 try:
     from PyPDF2 import PdfReader
@@ -32,7 +33,7 @@ def get_grobid_client():
 
         _grobid_client = GrobidClient(
             grobid_server=os.environ.get("GROBID_SERVER_URL", "http://grobid:8070"),
-            batch_size=1,
+            queue_size=1,
             sleep_time=1,
             timeout=60,
         )
@@ -42,7 +43,8 @@ def get_grobid_client():
 def startup_warmup() -> None:
     _logger.info("Starting AI service warmup...")
     try:
-        from services.analysis_service import preload_rag
+        from rag.store import preload_rag
+
         preload_rag()
         _logger.info("RAG backend is ready.")
     except Exception as error:

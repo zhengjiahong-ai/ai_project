@@ -38,7 +38,7 @@ import {
 } from './criticalAnalysisData.ts';
 
 const readingSteps = [
-  { id: 'summary', label: '先看判断' },
+  { id: 'summary', label: '判断' },
   { id: 'claims', label: '再看主张' },
   { id: 'evidence', label: '最后看证据' },
 ];
@@ -80,9 +80,6 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
           <LayoutDashboard className="text-pixiu" size={40} />
         </div>
         <h3 className="theme-text-primary text-xl font-bold">开启批判性阅读</h3>
-        <p className="theme-text-secondary mb-8 mt-2 max-w-xs text-sm">
-          系统会先给你一版整体判断，再逐步展开主张、风险和证据。
-        </p>
         <button
           type="button"
           onClick={onAnalyze}
@@ -105,7 +102,6 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
           </div>
         </div>
         <p className="theme-text-primary text-lg font-medium">正在检查主张与证据链</p>
-        <p className="theme-text-secondary mt-2 text-xs">先给总体判断，再展示具体风险点和证据依据。</p>
       </div>
     );
   }
@@ -119,7 +115,6 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
               <FileText className="text-pixiu" size={20} />
               批判阅读
             </h2>
-            <p className="theme-text-secondary mt-1 text-xs">不要一次吞下所有分析结果，先看判断，再决定要不要追证据。</p>
           </div>
           <button
             type="button"
@@ -206,7 +201,6 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
             <div className="theme-card rounded-2xl p-5">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="theme-text-muted text-xs font-bold uppercase tracking-wider">多维评分</h3>
-                <span className="theme-text-muted text-[10px] italic">先看分，再决定看哪一项</span>
               </div>
 
               <div className="h-64 w-full">

@@ -7,6 +7,7 @@ collection with progress reporting and cancellation support.
 """
 
 import copy
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -18,6 +19,14 @@ from services.trace_service import record_counter, sanitize_text, trace_step
 
 ProgressCallback = Callable[[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], float, str], None]
 CancelCheck = Callable[[], bool]
+
+PROJECT_EVIDENCE_ASPECTS = (
+    "dynamic scene method architecture representation deformation training strategy incremental frame",
+    "experiments quantitative results efficiency speed memory storage",
+    "challenges limitations future work bottlenecks failure cases assumptions",
+)
+PROJECT_EVIDENCE_PER_QUERY = 2
+PROJECT_EVIDENCE_PER_PAPER = 6
 
 
 def _get_tool_registry():
@@ -48,19 +57,37 @@ def invoke_agent_tool(name: str, payload: dict[str, Any], fallback: dict[str, An
 
 
 def fallback_tool_result(pdf_id: str) -> dict[str, Any]:
-    return {
-        "items": [
-            {
-                "sourceId": f"{pdf_id}-fallback-1",
-                "text": f"Fallback project evidence placeholder for {pdf_id}. Indexed retrieval can replace this in later rounds.",
-                "pdfId": pdf_id,
-                "chunkIndex": None,
-                "pageIndex": None,
-                "sectionId": None,
-                "metadata": {"fallback": True, "stage": "round_2"},
-            }
-        ]
-    }
+    return {"items": [], "status": "failed", "reason": "indexed_retrieval_unavailable"}
+
+
+def _build_project_evidence_queries(prompt: str) -> list[str]:
+    question = str(prompt or "").strip()
+    # The current embedding model is English-first. A long Chinese question can
+    # dominate the embedding and push exact method/results sections behind the
+    # references. For Chinese questions, use stable English aspect queries; the
+    # per-paper filter already provides the document context.
+    if re.search(r"[\u3400-\u9fff]", question):
+        return list(PROJECT_EVIDENCE_ASPECTS)
+    return [f"{question} {aspect}".strip() for aspect in PROJECT_EVIDENCE_ASPECTS]
+
+
+def _deduplicate_evidence(items: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    unique: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in items:
+        key = str(item.get("sourceId") or "").strip()
+        if not key:
+            key = "|".join(
+                str(item.get(field) if item.get(field) is not None else "")
+                for field in ("pdfId", "pageIndex", "chunkIndex", "text")
+            )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+        if len(unique) >= limit:
+            break
+    return unique
 
 
 def should_try_external_search(
@@ -338,25 +365,39 @@ def collect_project_evidence(
             input_size=len(prompt),
             meta={"pdfId": sanitize_text(pdf_id, max_chars=80)},
         ) as step:
-            tool_result, tool_call = invoke_agent_tool(
-                "retrieve_current_paper",
-                {
-                    "pdfId": pdf_id,
-                    "query": prompt,
-                    "topK": 6,
-                    "limit": 3,
-                    "maxTextChars": 420,
-                },
-                fallback=fallback_tool_result(pdf_id),
+            query_calls: list[dict[str, Any]] = []
+            candidate_items: list[dict[str, Any]] = []
+            for query in _build_project_evidence_queries(prompt):
+                tool_result, query_call = invoke_agent_tool(
+                    "retrieve_current_paper",
+                    {
+                        "pdfId": pdf_id,
+                        "query": query,
+                        "topK": 8,
+                        "limit": PROJECT_EVIDENCE_PER_QUERY,
+                        "maxTextChars": 700,
+                    },
+                    fallback=fallback_tool_result(pdf_id),
+                )
+                query_calls.append(query_call)
+                candidate_items.extend(normalize_evidence_items(
+                    tool_result.get("items") or [],
+                    source_type="current_paper",
+                    pdf_id=pdf_id,
+                    limit=PROJECT_EVIDENCE_PER_QUERY,
+                    max_text_chars=700,
+                ))
+            items = stabilize_source_ids(
+                _deduplicate_evidence(candidate_items, PROJECT_EVIDENCE_PER_PAPER),
+                fallback_prefix=pdf_id,
             )
-            items = normalize_evidence_items(
-                tool_result.get("items") or [],
-                source_type="current_paper",
-                pdf_id=pdf_id,
-                limit=3,
-                max_text_chars=420,
-            )
-            items = stabilize_source_ids(items, fallback_prefix=pdf_id)
+            succeeded_calls = [call for call in query_calls if call.get("status") != "fallback"]
+            tool_call = copy.deepcopy(succeeded_calls[0] if succeeded_calls else query_calls[0])
+            tool_call["meta"] = {
+                **(tool_call.get("meta") or {}),
+                "queryCount": len(query_calls),
+                "failedQueryCount": sum(call.get("status") == "fallback" for call in query_calls),
+            }
             evidence_items.extend(items)
             paper_contexts.append(
                 {

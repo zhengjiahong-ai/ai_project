@@ -93,7 +93,7 @@ export const AgentProjectListSection = ({
       ))}
       {projectOptions.length === 0 && (
         <div className="agent-empty-state rounded-[18px] border-dashed px-4 py-5 text-xs leading-6">
-          还没有 Agent 项目。你可以在下面填写标题、目标和论文 ID，先创建一个研究项目。
+          暂无研究项目
         </div>
       )}
     </div>
@@ -185,7 +185,7 @@ export const AgentProjectCreateForm = ({
             </div>
           ) : (
             <div className="agent-empty-state rounded-xl border-dashed px-3 py-3 text-[11px] leading-5">
-              未选择论文；仍可创建空项目，后续再补充论文。
+              未选择论文
             </div>
           )}
         </div>

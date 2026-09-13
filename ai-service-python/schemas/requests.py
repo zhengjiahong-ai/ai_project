@@ -135,6 +135,9 @@ class AgentTaskCreateRequest(BaseModel):
 
 class AgentRunCreateRequest(BaseModel):
     prompt: str
+    taskId: Optional[str] = ""
+    reviewMode: Literal["auto", "manual"] = "manual"
+    idempotencyKey: Optional[str] = ""
     focusedPaperIds: Optional[List[str]] = None
     constraints: Optional[str] = ""
     context: Optional[Dict[str, Any]] = None

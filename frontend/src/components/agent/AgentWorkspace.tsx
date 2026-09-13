@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiService, type AgentRunPayload, type FinalReviewPayload } from '../../services/api';
-import AgentWorkspaceEvidencePanel, { AgentWorkspaceRightRail } from './AgentWorkspaceEvidencePanel.jsx';
 import AgentWorkspaceMain from './AgentWorkspaceMain.jsx';
 import AgentWorkspaceSidebar, { AgentWorkspaceLeftRail } from './AgentWorkspaceSidebar.jsx';
 import {
@@ -10,6 +9,7 @@ import {
   buildAgentPlanReviewPayload,
   appendAgentTaskForProject,
   buildTaskFromRunWorkspace,
+  mergeAgentRunFallback,
   createEmptyAgentWorkspaceState,
   getProjectTasks,
   normalizeAgentProject,
@@ -19,12 +19,15 @@ import {
   normalizeAgentTaskListResponse,
   normalizeAgentTaskResponse,
   normalizeAgentWorkspaceResponse,
-  normalizeAgentGraphResponse,
+  normalizeAgentMessage,
+  normalizeAgentResearchTask,
   removeAgentProjectFromState,
   removeSelectedAgentPaperId,
   resolveInitialAgentPaperSelection,
   resolveNextAgentProjectNumber,
   type AgentProject,
+  type AgentMessage,
+  type AgentResearchTask,
   type AgentTask,
   type AgentWorkspaceState,
 } from './agentWorkspaceModel.ts';
@@ -87,6 +90,18 @@ const resolveInitialState = (): AgentWorkspaceState => {
       (Array.isArray(tasks) ? tasks : []).map((t: unknown) => normalizeAgentTask(t) as AgentTask).filter((task: AgentTask) => task.taskId),
     ]),
   ) as Record<string, AgentTask[]>;
+  const researchTasksByProjectId = Object.fromEntries(
+    Object.entries(snapshot?.researchTasksByProjectId || {}).map(([projectId, tasks]: [string, unknown]) => [
+      projectId,
+      (Array.isArray(tasks) ? tasks : []).map(normalizeAgentResearchTask).filter((task) => task.taskId),
+    ]),
+  ) as Record<string, AgentResearchTask[]>;
+  const messagesByTaskId = Object.fromEntries(
+    Object.entries(snapshot?.messagesByTaskId || {}).map(([taskId, messages]: [string, unknown]) => [
+      taskId,
+      (Array.isArray(messages) ? messages : []).map(normalizeAgentMessage).filter((message) => message.messageId),
+    ]),
+  ) as Record<string, AgentMessage[]>;
   return {
     ...createEmptyAgentWorkspaceState(),
     ...(snapshot || {}),
@@ -96,6 +111,8 @@ const resolveInitialState = (): AgentWorkspaceState => {
     latestTask: snapshot?.latestTask ? normalizeAgentTask(snapshot.latestTask) : null,
     currentTask: snapshot?.currentTask ? normalizeAgentTask(snapshot.currentTask) : null,
     tasksByProjectId,
+    researchTasksByProjectId,
+    messagesByTaskId,
     nextProjectNumber: resolveNextAgentProjectNumber(projects, snapshot?.nextProjectNumber),
   } as AgentWorkspaceState;
 };
@@ -110,6 +127,7 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
 }) => {
   const [state, setState] = useState<AgentWorkspaceState>(resolveInitialState);
   const initialWorkspaceStateRef = useRef<AgentWorkspaceState>(state);
+  const pendingSubmissionRef = useRef<{ signature: string; key: string } | null>(null);
   const [projectTitle, setProjectTitle] = useState<string>('');
   const [projectGoal, setProjectGoal] = useState<string>('');
   const [selectedPaperIds, setSelectedPaperIds] = useState<string[]>(() =>
@@ -122,13 +140,19 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   const [domain, setDomain] = useState<string>('');
   const [allowIterativeSearch, setAllowIterativeSearch] = useState<boolean>(false);
   const [leftCollapsed, setLeftCollapsed] = useState<boolean>(false);
-  const [rightCollapsed, setRightCollapsed] = useState<boolean>(false);
 
   const activeProject: AgentProject | null = state.activeProject;
   const projectTasks: AgentTask[] = useMemo(
     () => getProjectTasks(state.tasksByProjectId, state.activeProjectId),
     [state.tasksByProjectId, state.activeProjectId],
   );
+  const projectResearchTasks: AgentResearchTask[] = useMemo(
+    () => state.researchTasksByProjectId[state.activeProjectId] || [],
+    [state.researchTasksByProjectId, state.activeProjectId],
+  );
+  const currentMessages: AgentMessage[] = state.activeResearchTaskId
+    ? state.messagesByTaskId[state.activeResearchTaskId] || []
+    : [];
 
   const [debateResult, setDebateResult] = useState<any>(null);
 
@@ -151,6 +175,9 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
       latestTask: state.latestTask,
       currentTask: state.currentTask,
       tasksByProjectId: state.tasksByProjectId,
+      researchTasksByProjectId: state.researchTasksByProjectId,
+      messagesByTaskId: state.messagesByTaskId,
+      activeResearchTaskId: state.activeResearchTaskId,
       nextProjectNumber: state.nextProjectNumber,
     });
   }, [state]);
@@ -219,12 +246,27 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
             : [],
       }) as AgentTask,
     ).filter(Boolean) as AgentTask[];
-
+    const researchTasks = ((workspace.tasks as unknown[]) || [])
+      .map(normalizeAgentResearchTask)
+      .filter((task: AgentResearchTask) => task.taskId);
+    const workspaceActiveTaskId = `${workspace.activeTaskId ?? ''}`.trim();
+    const selectedResearchTaskId =
+      researchTasks.find((task: AgentResearchTask) => task.taskId === preferredTaskId || task.latestRunId === preferredTaskId)?.taskId ||
+      workspaceActiveTaskId ||
+      researchTasks[0]?.taskId ||
+      '';
+    const messages = ((workspace.messages as unknown[]) || []).map(normalizeAgentMessage);
+    const workspaceProjectId = `${(workspace.project as { projectId?: string })?.projectId ?? ''}`;
     setState((prev: AgentWorkspaceState) => {
+      const cachedPreferredTask = preferredTaskId
+        ? getProjectTasks(prev.tasksByProjectId, workspaceProjectId).find((task: AgentTask) => task.taskId === preferredTaskId) || null
+        : null;
       const selectedTask: AgentTask | null =
         recentTasks.find((task: AgentTask) => task.taskId === preferredTaskId) ||
         activeTask ||
+        cachedPreferredTask ||
         recentTasks[0] ||
+        prev.currentTask ||
         null;
       return {
         ...prev,
@@ -234,9 +276,21 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           : prev.activeProject,
         currentTask: selectedTask,
         latestTask: activeTask || selectedTask || prev.latestTask,
-        tasksByProjectId: (workspace.project as { projectId?: string })?.projectId
-          ? replaceProjectTasks(prev.tasksByProjectId, (workspace.project as { projectId: string }).projectId, recentTasks)
+        tasksByProjectId: workspaceProjectId
+          ? recentTasks.length
+            ? replaceProjectTasks(prev.tasksByProjectId, workspaceProjectId, recentTasks)
+            : prev.tasksByProjectId
           : prev.tasksByProjectId,
+        researchTasksByProjectId: (workspace.project as { projectId?: string })?.projectId
+          ? {
+              ...prev.researchTasksByProjectId,
+              [(workspace.project as { projectId: string }).projectId]: researchTasks,
+            }
+          : prev.researchTasksByProjectId,
+        activeResearchTaskId: selectedResearchTaskId,
+        messagesByTaskId: workspaceActiveTaskId
+          ? { ...prev.messagesByTaskId, [workspaceActiveTaskId]: messages }
+          : prev.messagesByTaskId,
         error: '',
       };
     });
@@ -444,33 +498,37 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
 
     const pollTask = async (): Promise<void> => {
       let prevStatus: string | null = null;
-      const threadId: string = (currentTask as { threadId?: string }).threadId || '';
-      // Try LangGraph graph state if we have a threadId
-      if (threadId) {
+      const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
+
+      // 轮询优先读取项目 workspace，失败时并行读取 run 元数据、artifacts 和 timeline
+      try {
+        const workspaceResponse = await apiService.getAgentWorkspace(projectId);
+        if (stopped) return;
+        const activeRun = (workspaceResponse as { workspace?: { activeRun?: { status?: string; taskStatus?: string } } })
+          ?.workspace?.activeRun;
+        prevStatus = activeRun?.status ?? activeRun?.taskStatus ?? null;
+        applyWorkspaceState(workspaceResponse, currentTask.taskId);
+      } catch {
+        // workspace 暂时不可用时并行读取 run、artifacts 和 timeline，保留完整产物
         try {
-          const graphResponse = await apiService.getAgentGraphState(threadId);
+          const [runResponse, artifactsResponse, timelineResponse] = await Promise.all([
+            apiService.getAgentRun(runId),
+            apiService.getAgentRunArtifacts(runId).catch(() => null),
+            apiService.getAgentRunTimeline(runId).catch(() => null),
+          ]);
           if (stopped) return;
-          const normalized = normalizeAgentGraphResponse(graphResponse);
-          const graphTask = normalized.task as AgentTask & { threadId?: string };
-          prevStatus = graphTask?.status;
-          cacheTask(graphTask as AgentTask, true);
-        } catch { /* fall through to legacy */ }
-      }
-      if (!prevStatus) {
-        try {
-          const workspaceResponse = await apiService.getAgentWorkspace(projectId);
-          if (stopped) return;
-          const activeRun = (workspaceResponse as { workspace?: { activeRun?: { status?: string; taskStatus?: string } } })
-            ?.workspace?.activeRun;
-          prevStatus = activeRun?.status ?? activeRun?.taskStatus ?? null;
-          applyWorkspaceState(workspaceResponse, currentTask.taskId);
-        } catch {
-        try {
-          const response = await apiService.getAgentTask(currentTask.taskId);
-          if (stopped) return;
-          const task: AgentTask = normalizeAgentTaskResponse(response).task as unknown as AgentTask;
-          prevStatus = task?.status;
-          cacheTask(task, true);
+
+          const run = (runResponse as { run?: Record<string, unknown> })?.run;
+          const task = mergeAgentRunFallback({
+            previousTask: currentTask as ReturnType<typeof buildTaskFromRunWorkspace>,
+            run,
+            artifacts: (artifactsResponse as { artifacts?: Record<string, unknown> } | null)?.artifacts ?? null,
+            timeline: (timelineResponse as { timeline?: unknown[] } | null)?.timeline ?? null,
+          }) as AgentTask | null;
+          if (task) {
+            prevStatus = task.status;
+            cacheTask(task, true);
+          }
         } catch (error: unknown) {
           if (stopped || (error as { response?: { status?: number } })?.response?.status === 404) return;
           setState((prev: AgentWorkspaceState) => ({
@@ -481,7 +539,6 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           }));
         }
       }
-      } // end if(!prevStatus)
 
       if (stopped) return;
 
@@ -511,16 +568,6 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   }, [activeProject?.projectId, state.activeProjectId, currentTask?.taskId, currentTask?.status]);
 
   const projectOptions: AgentProject[] = useMemo(() => state.projects, [state.projects]);
-  const taskCountsByProjectId: Record<string, number> = useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(state.tasksByProjectId || {}).map(([projectId, tasks]: [string, AgentTask[]]) => [
-          projectId,
-          tasks.length,
-        ]),
-      ),
-    [state.tasksByProjectId],
-  );
   const currentStageLabel: string = (STAGE_LABELS as Record<string, string>)[currentTask?.stage || ''] || '等待中';
 
   const handleCreateProject = async (): Promise<void> => {
@@ -590,41 +637,96 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     const nextPrompt: string = prompt.trim();
     if (!activeProject?.projectId || !nextPrompt) return;
 
+    const targetProjectId: string = activeProject.projectId;
+    const targetResearchTaskId: string = state.activeResearchTaskId;
+    const submissionSignature: string = `${targetProjectId}\n${targetResearchTaskId}\n${nextPrompt}`;
+    if (pendingSubmissionRef.current?.signature !== submissionSignature) {
+      pendingSubmissionRef.current = {
+        signature: submissionSignature,
+        key: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+      };
+    }
+
     try {
       const runPayload: Record<string, unknown> = {
         prompt: nextPrompt,
+        reviewMode: 'auto',
+        idempotencyKey: pendingSubmissionRef.current.key,
         focusedPaperIds: activeProject.paperIds,
         constraints: activeProject.defaultConstraints || '',
         allowExternalSearch,
         allowWebSearch,
         allowIterativeSearch,
-        allowKnowledgeGraph,  domain: domain || '',
+        allowKnowledgeGraph,
+        domain: domain || '',
         context: {
           activePaperId,
         },
       };
-      // Try LangGraph agent-graph first, fall back to legacy run/task path
-      let langGraphTask: (AgentTask & { threadId?: string }) | null = null;
-      try {
-        const graphResponse = await apiService.runAgentGraph(runPayload as unknown as AgentRunPayload);
-        const normalized = normalizeAgentGraphResponse(graphResponse);
-        langGraphTask = normalized.task as AgentTask & { threadId?: string };
-        cacheTask(langGraphTask as AgentTask, true);
-      } catch {
-        langGraphTask = null;
+
+      // 通过项目持久化 run 接口创建任务
+      const response = targetResearchTaskId
+        ? await apiService.createAgentTaskRun(
+            targetResearchTaskId,
+            runPayload as unknown as AgentRunPayload,
+          )
+        : await apiService.createAgentRun(
+            targetProjectId,
+            runPayload as unknown as AgentRunPayload,
+          );
+
+      // 校验返回的 run 契约
+      const returnedRun = (response as { run?: Record<string, unknown> })?.run;
+      const returnedRunId: string = `${returnedRun?.runId ?? ''}`.trim();
+      const returnedProjectId: string = `${returnedRun?.projectId ?? ''}`.trim();
+      const returnedResearchTaskId: string = `${returnedRun?.taskId ?? ''}`.trim();
+
+      if (!returnedRunId) {
+        throw new Error('创建 Agent 任务失败：后端未返回 runId');
       }
-      if (!langGraphTask) {
-        try {
-          await apiService.createAgentRun(activeProject.projectId, runPayload as unknown as AgentRunPayload);
-          await loadWorkspace(activeProject.projectId);
-        } catch {
-          const response = await apiService.createAgentTask(activeProject.projectId, runPayload);
-          const task: AgentTask = normalizeAgentTaskResponse(response).task as unknown as AgentTask;
-          cacheTask(task, true);
-        }
+      if (!returnedProjectId) {
+        throw new Error('创建 Agent 任务失败：后端未返回 projectId');
       }
+      if (returnedProjectId !== targetProjectId) {
+        throw new Error(
+          `创建 Agent 任务失败：run 归属项目 ${returnedProjectId} 与当前项目 ${targetProjectId} 不一致`,
+        );
+      }
+      if (!returnedResearchTaskId) {
+        throw new Error('创建 Agent 任务失败：后端未返回 taskId');
+      }
+      if (targetResearchTaskId && returnedResearchTaskId !== targetResearchTaskId) {
+        throw new Error('创建 Agent 任务失败：run 未归入当前研究任务');
+      }
+
+      // 立即缓存新任务，确保它进入当前项目任务列表
+      const createdTask = buildTaskFromRunWorkspace({ run: returnedRun }) as AgentTask | null;
+      if (createdTask) {
+        cacheTask(createdTask, true);
+      }
+      setState((prev: AgentWorkspaceState) => ({
+        ...prev,
+        activeResearchTaskId: returnedResearchTaskId,
+      }));
+      pendingSubmissionRef.current = null;
+
+      // 清空输入，避免用户以为没有提交
       setPrompt('');
-      setState((prev: AgentWorkspaceState) => ({ ...prev, error: '' }));
+
+      // 刷新 workspace 以获取最新状态；刷新失败不影响已创建的任务
+      try {
+        await loadWorkspace(targetProjectId, returnedRunId);
+        setState((prev: AgentWorkspaceState) => ({ ...prev, error: '' }));
+      } catch (refreshError: unknown) {
+        const originalMessage: string =
+          (refreshError as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+          (refreshError as { message?: string })?.message ||
+          '';
+        setState((prev: AgentWorkspaceState) => ({
+          ...prev,
+          error: `任务已创建，但工作区刷新失败${originalMessage ? `：${originalMessage}` : ''}`,
+        }));
+      }
     } catch (error: unknown) {
       setState((prev: AgentWorkspaceState) => ({
         ...prev,
@@ -637,11 +739,6 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
 
   // 24-3: Handle debate completion
   const handleRefresh = async (): Promise<void> => {
-
-  const currentTaskBase: any = state.currentTask || projectTasks[0] || null;
-  const currentTask: any = currentTaskBase && debateResult
-    ? { ...currentTaskBase, debateResult }
-    : currentTaskBase;
     if (!state.activeProjectId) return;
 
     try {
@@ -699,8 +796,13 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     if (!currentTask?.taskId) return;
 
     try {
-      const response = await apiService.cancelAgentTask(currentTask.taskId);
-      cacheTask(normalizeAgentTaskResponse(response).task as unknown as AgentTask, true);
+      const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
+      const response = await apiService.cancelAgentRun(runId);
+      const cancelled = mergeAgentRunFallback({
+        previousTask: currentTask,
+        run: (response as { run?: Record<string, unknown> }).run,
+      }) as AgentTask | null;
+      if (cancelled) cacheTask(cancelled, true);
       setState((prev: AgentWorkspaceState) => ({ ...prev, error: '' }));
     } catch (error: unknown) {
       setState((prev: AgentWorkspaceState) => ({
@@ -708,6 +810,29 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
         error: (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
           (error as { message?: string })?.message ||
           '取消 Agent 任务失败',
+      }));
+    }
+  };
+
+  const handleRetryTask = async (): Promise<void> => {
+    if (!currentTask?.taskId) return;
+    try {
+      const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
+      const response = await apiService.retryAgentRun(runId);
+      const retried = buildTaskFromRunWorkspace({
+        run: (response as { run?: Record<string, unknown> }).run,
+      }) as AgentTask | null;
+      if (!retried?.taskId || retried.projectId !== currentTask.projectId) {
+        throw new Error('重试失败：后端返回了无效的运行记录');
+      }
+      cacheTask(retried, true);
+      await loadWorkspace(retried.projectId, retried.taskId);
+      setState((prev: AgentWorkspaceState) => ({ ...prev, error: '' }));
+    } catch (error: unknown) {
+      setState((prev: AgentWorkspaceState) => ({
+        ...prev,
+        error: (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+          (error as { message?: string })?.message || '重试 Agent 任务失败',
       }));
     }
   };
@@ -723,6 +848,12 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
     const normalizedProject: AgentProject = normalizeAgentProject(project);
     setState((prev: AgentWorkspaceState) => {
       const nextTasks: AgentTask[] = getProjectTasks(prev.tasksByProjectId, normalizedProject.projectId);
+      const nextResearchTasks = prev.researchTasksByProjectId[normalizedProject.projectId] || [];
+      const nextResearchTaskId = nextResearchTasks[0]?.taskId || '';
+      const nextRun =
+        nextTasks.find((task) => task.taskId === nextResearchTasks[0]?.latestRunId) ||
+        nextTasks[0] ||
+        null;
       return {
         ...prev,
         activeProjectId: normalizedProject.projectId,
@@ -731,55 +862,83 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           (prev.activeWorkspace as { project?: { projectId?: string } })?.project?.projectId === normalizedProject.projectId
             ? prev.activeWorkspace
             : null,
-        currentTask: nextTasks[0] || null,
-        latestTask: nextTasks[0] || prev.latestTask,
+        activeResearchTaskId: nextResearchTaskId,
+        currentTask: nextRun,
+        latestTask: nextRun || prev.latestTask,
         error: '',
       };
     });
   };
 
-  const handleSelectTask = (task: AgentTask): void => {
+  const handleStartNewResearchTask = (): void => {
+    pendingSubmissionRef.current = null;
     setState((prev: AgentWorkspaceState) => ({
       ...prev,
-      currentTask: task,
-      latestTask: task,
+      activeResearchTaskId: '',
+      currentTask: null,
+      error: '',
     }));
+  };
+
+  const handleSelectTask = async (researchTask: AgentResearchTask): Promise<void> => {
+    const cachedRun = projectTasks.find((task) => task.taskId === researchTask.latestRunId) || null;
+    setState((prev: AgentWorkspaceState) => ({
+      ...prev,
+      activeResearchTaskId: researchTask.taskId,
+      currentTask: cachedRun,
+      latestTask: cachedRun || prev.latestTask,
+      error: '',
+    }));
+    try {
+      const [messageResponse, runResponse, artifactsResponse, timelineResponse] = await Promise.all([
+        apiService.getAgentTaskMessages(researchTask.taskId),
+        apiService.getAgentRun(researchTask.latestRunId),
+        apiService.getAgentRunArtifacts(researchTask.latestRunId).catch(() => null),
+        apiService.getAgentRunTimeline(researchTask.latestRunId).catch(() => null),
+      ]);
+      const messages = Array.isArray((messageResponse as { messages?: unknown[] })?.messages)
+        ? (messageResponse as { messages: unknown[] }).messages.map(normalizeAgentMessage)
+        : [];
+      const selectedRun = buildTaskFromRunWorkspace({
+        run: (runResponse as { run?: Record<string, unknown> })?.run,
+        latestArtifacts: (artifactsResponse as { artifacts?: Record<string, unknown> } | null)?.artifacts,
+        timeline: (timelineResponse as { timeline?: unknown[] } | null)?.timeline,
+      }) as AgentTask | null;
+      setState((prev: AgentWorkspaceState) => ({
+        ...prev,
+        activeResearchTaskId: researchTask.taskId,
+        messagesByTaskId: {
+          ...prev.messagesByTaskId,
+          [researchTask.taskId]: messages,
+        },
+        currentTask: selectedRun || prev.currentTask,
+        latestTask: selectedRun || prev.latestTask,
+        tasksByProjectId: selectedRun
+          ? appendAgentTaskForProject(prev.tasksByProjectId, selectedRun) as Record<string, AgentTask[]>
+          : prev.tasksByProjectId,
+        error: '',
+      }));
+    } catch (error: unknown) {
+      setState((prev: AgentWorkspaceState) => ({
+        ...prev,
+        error:
+          (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+          (error as { message?: string })?.message ||
+          '加载研究任务失败',
+      }));
+    }
   };
 
   const handleReviewPlan = async (payload: Record<string, unknown>): Promise<void> => {
     if (!currentTask?.taskId) return;
     try {
-      const threadId: string = (currentTask as { threadId?: string }).threadId || '';
+      const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
       const reviewPayload = buildAgentPlanReviewPayload(payload);
-      // Try LangGraph resume first; fall back to legacy run/task review
-      let reviewed = false;
-      if (threadId) {
-        try {
-          const resumeData = {
-            plan_approved: true,
-            plan_review_notes: `${payload.reviewNotes || ''}`,
-            plan_items: payload.planItems || [],
-            allow_external_search: !!(payload as any).allowExternalSearch,
-            allow_web_search: !!(payload as any).allowWebSearch,
-            allow_iterative_search: !!(payload as any).allowIterativeSearch,
-            allow_knowledge_graph: (payload as any).allowKnowledgeGraph !== false,
-          };
-          const graphResponse = await apiService.resumeAgentGraph(threadId, resumeData);
-          const normalized = normalizeAgentGraphResponse(graphResponse);
-          cacheTask(normalized.task as AgentTask & { threadId?: string }, true);
-          reviewed = true;
-        } catch { /* fall through to legacy */ }
-      }
-      if (!reviewed) {
-        const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
-        try {
-          await apiService.reviewAgentRunPlan(runId, reviewPayload);
-          await loadWorkspace(currentTask.projectId, currentTask.taskId);
-        } catch {
-          const response = await apiService.reviewAgentPlan(currentTask.taskId, reviewPayload);
-          cacheTask(normalizeAgentTaskResponse(response).task as unknown as AgentTask, true);
-        }
-      }
+
+      // 计划审核通过 run API 提交
+      await apiService.reviewAgentRunPlan(runId, reviewPayload);
+      await loadWorkspace(currentTask.projectId, currentTask.taskId);
+
       setState((prev: AgentWorkspaceState) => ({ ...prev, error: '' }));
     } catch (error: unknown) {
       setState((prev: AgentWorkspaceState) => ({
@@ -794,32 +953,12 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   const handleReviewFinal = async (payload: Record<string, unknown>): Promise<void> => {
     if (!currentTask?.taskId) return;
     try {
-      const threadId: string = (currentTask as { threadId?: string }).threadId || '';
-      // Try LangGraph resume first; fall back to legacy run/task review
-      let reviewed = false;
-      if (threadId) {
-        try {
-          const resumeData = {
-            final_approved: true,
-            final_review_notes: `${payload.reviewNotes || ''}`,
-            risk_reviews: payload.riskReviews || [],
-          };
-          const graphResponse = await apiService.resumeAgentGraph(threadId, resumeData);
-          const normalized = normalizeAgentGraphResponse(graphResponse);
-          cacheTask(normalized.task as AgentTask & { threadId?: string }, true);
-          reviewed = true;
-        } catch { /* fall through to legacy */ }
-      }
-      if (!reviewed) {
-        const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
-        try {
-          await apiService.reviewAgentRunFinal(runId, payload as unknown as FinalReviewPayload);
-          await loadWorkspace(currentTask.projectId, currentTask.taskId);
-        } catch {
-          const response = await apiService.reviewAgentFinal(currentTask.taskId, payload);
-          cacheTask(normalizeAgentTaskResponse(response).task as unknown as AgentTask, true);
-        }
-      }
+      const runId: string = (currentTask as { runId?: string }).runId || currentTask.taskId;
+
+      // 最终审核通过 run API 提交
+      await apiService.reviewAgentRunFinal(runId, payload as unknown as FinalReviewPayload);
+      await loadWorkspace(currentTask.projectId, currentTask.taskId);
+
       setState((prev: AgentWorkspaceState) => ({ ...prev, error: '' }));
     } catch (error: unknown) {
       setState((prev: AgentWorkspaceState) => ({
@@ -842,11 +981,11 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
   };
 
   return (
-    <div className="agent-shell flex h-full min-h-0 min-w-0 flex-1 overflow-hidden p-3">
+    <div className="agent-shell flex h-full min-h-0 min-w-0 flex-1 overflow-hidden">
       <div
-        className="grid h-full min-h-0 min-w-0 flex-1 gap-3 overflow-hidden"
+        className="grid h-full min-h-0 min-w-0 flex-1 overflow-hidden"
         style={{
-          gridTemplateColumns: `${leftCollapsed ? '48px' : '300px'} minmax(0,1fr) ${rightCollapsed ? '48px' : '360px'}`,
+          gridTemplateColumns: `${leftCollapsed ? '48px' : '292px'} minmax(0,1fr)`,
         }}
       >
         {leftCollapsed ? (
@@ -855,9 +994,10 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           <AgentWorkspaceSidebar
             activeProject={activeProject}
             currentTask={currentTask}
+            projectTasks={projectResearchTasks}
+            activeResearchTaskId={state.activeResearchTaskId}
             projectOptions={projectOptions}
             activeProjectId={state.activeProjectId}
-            taskCountsByProjectId={taskCountsByProjectId}
             projectTitle={projectTitle}
             projectGoal={projectGoal}
             selectedPaperIds={selectedPaperIds}
@@ -868,6 +1008,8 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
             onRemoveSelectedPaper={handleRemoveSelectedPaper}
             onCreateProject={handleCreateProject}
             onSelectProject={handleSelectProject}
+            onSelectTask={handleSelectTask}
+            onStartNewTask={handleStartNewResearchTask}
             onDeleteProject={handleDeleteProject}
             onCollapse={() => setLeftCollapsed(true)}
           />
@@ -876,14 +1018,17 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
         <AgentWorkspaceMain
           activeProject={activeProject}
           currentTask={currentTask}
-          projectTasks={projectTasks}
+          stateError={state.error}
+          projectTasks={projectResearchTasks}
+          messages={currentMessages}
           currentStageLabel={currentStageLabel}
           prompt={prompt}
           onPromptChange={setPrompt}
           onQuickPrompt={handleQuickPrompt}
           onCreateTask={handleCreateTask}
           onRefresh={handleRefresh}
-          onSelectTask={handleSelectTask}
+          onCancelTask={handleCancelTask}
+          onRetryTask={handleRetryTask}
           onReviewPlan={handleReviewPlan}
           onReviewFinal={handleReviewFinal}
           activePaperId={activePaperId}
@@ -901,20 +1046,6 @@ const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           onDebateComplete={handleDebateComplete}
         />
 
-        {rightCollapsed ? (
-          <AgentWorkspaceRightRail onExpand={() => setRightCollapsed(false)} />
-        ) : (
-          <AgentWorkspaceEvidencePanel
-            activeProject={activeProject}
-            currentTask={currentTask}
-            activePaperId={activePaperId}
-            stateError={state.error}
-            onCancelTask={handleCancelTask}
-            onCaptureArtifact={onCaptureArtifact}
-            onJumpToSource={onJumpToSource}
-            onCollapse={() => setRightCollapsed(true)}
-          />
-        )}
       </div>
     </div>
   );

@@ -1,0 +1,192 @@
+{
+  "first": {
+    "status": "success",
+    "run": {
+      "runId": "a2a83303-9fde-476d-b2c3-93614692df6d",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+      "traceId": "619b7898-4eb0-40c8-80c9-4e5f64ec81c3",
+      "status": "running",
+      "executionPhase": "planning",
+      "progress": 0.2,
+      "prompt": "简要比较两篇论文对动态场景效率的描述，并引用证据。",
+      "focusedPaperIds": [
+        "2403.01444v4.pdf",
+        "2401.03890v8.pdf"
+      ],
+      "constraints": "只用项目论文。",
+      "context": {
+        "domain": "",
+        "reviewMode": "auto",
+        "idempotencyKey": "demo-cancel-retry-v1"
+      },
+      "humanReview": {
+        "plan": {
+          "status": "not_required",
+          "reviewNotes": "",
+          "reviewedAt": ""
+        },
+        "final": {
+          "status": "pending",
+          "reviewNotes": "",
+          "reviewedAt": "",
+          "riskReviews": []
+        }
+      },
+      "reviewRisks": [],
+      "traceSummary": {},
+      "externalSearchConfig": {
+        "allowExternalSearch": false,
+        "allowWebSearch": false,
+        "allowIterativeSearch": false,
+        "provider": "disabled",
+        "budget": {
+          "callLimit": 3,
+          "evidenceLimit": 15,
+          "callsUsed": 0,
+          "evidenceUsed": 0
+        },
+        "status": "disabled",
+        "degradation": ""
+      },
+      "codeExecutionConfig": {
+        "allowCodeExecution": false,
+        "proposal": null,
+        "jobId": null,
+        "jobStatus": null,
+        "publishable": false,
+        "degradation": ""
+      },
+      "error": "",
+      "createdAt": "2026-09-13T06:14:54.307784Z",
+      "updatedAt": "2026-09-13T06:14:54.434467Z"
+    }
+  },
+  "second": {
+    "status": "success",
+    "run": {
+      "runId": "a2a83303-9fde-476d-b2c3-93614692df6d",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+      "traceId": "619b7898-4eb0-40c8-80c9-4e5f64ec81c3",
+      "status": "running",
+      "executionPhase": "planning",
+      "progress": 0.15,
+      "prompt": "简要比较两篇论文对动态场景效率的描述，并引用证据。",
+      "focusedPaperIds": [
+        "2403.01444v4.pdf",
+        "2401.03890v8.pdf"
+      ],
+      "constraints": "只用项目论文。",
+      "context": {
+        "domain": "",
+        "reviewMode": "auto",
+        "idempotencyKey": "demo-cancel-retry-v1"
+      },
+      "humanReview": {
+        "plan": {
+          "status": "not_required",
+          "reviewNotes": "",
+          "reviewedAt": ""
+        },
+        "final": {
+          "status": "pending",
+          "reviewNotes": "",
+          "reviewedAt": "",
+          "riskReviews": []
+        }
+      },
+      "reviewRisks": [],
+      "traceSummary": {},
+      "externalSearchConfig": {
+        "allowExternalSearch": false,
+        "allowWebSearch": false,
+        "allowIterativeSearch": false,
+        "provider": "disabled",
+        "budget": {
+          "callLimit": 3,
+          "evidenceLimit": 15,
+          "callsUsed": 0,
+          "evidenceUsed": 0
+        },
+        "status": "disabled",
+        "degradation": ""
+      },
+      "codeExecutionConfig": {
+        "allowCodeExecution": false,
+        "proposal": null,
+        "jobId": null,
+        "jobStatus": null,
+        "publishable": false,
+        "degradation": ""
+      },
+      "error": "",
+      "createdAt": "2026-09-13T06:14:54.307784Z",
+      "updatedAt": "2026-09-13T06:14:54.50217Z"
+    },
+    "deduplicated": true
+  },
+  "cancel": {
+    "status": "success",
+    "run": {
+      "runId": "a2a83303-9fde-476d-b2c3-93614692df6d",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+      "traceId": "619b7898-4eb0-40c8-80c9-4e5f64ec81c3",
+      "status": "cancelled",
+      "executionPhase": "done",
+      "progress": 1.0,
+      "prompt": "简要比较两篇论文对动态场景效率的描述，并引用证据。",
+      "focusedPaperIds": [
+        "2403.01444v4.pdf",
+        "2401.03890v8.pdf"
+      ],
+      "constraints": "只用项目论文。",
+      "context": {
+        "domain": "",
+        "reviewMode": "auto",
+        "idempotencyKey": "demo-cancel-retry-v1"
+      },
+      "humanReview": {
+        "plan": {
+          "status": "not_required",
+          "reviewNotes": "",
+          "reviewedAt": ""
+        },
+        "final": {
+          "status": "pending",
+          "reviewNotes": "",
+          "reviewedAt": "",
+          "riskReviews": []
+        }
+      },
+      "reviewRisks": [],
+      "traceSummary": {},
+      "externalSearchConfig": {
+        "allowExternalSearch": false,
+        "allowWebSearch": false,
+        "allowIterativeSearch": false,
+        "provider": "disabled",
+        "budget": {
+          "callLimit": 3,
+          "evidenceLimit": 15,
+          "callsUsed": 0,
+          "evidenceUsed": 0
+        },
+        "status": "disabled",
+        "degradation": ""
+      },
+      "codeExecutionConfig": {
+        "allowCodeExecution": false,
+        "proposal": null,
+        "jobId": null,
+        "jobStatus": null,
+        "publishable": false,
+        "degradation": ""
+      },
+      "error": "",
+      "createdAt": "2026-09-13T06:14:54.307784Z",
+      "updatedAt": "2026-09-13T06:14:54.817219Z"
+    }
+  }
+}

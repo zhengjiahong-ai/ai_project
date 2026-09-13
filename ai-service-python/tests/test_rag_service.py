@@ -49,6 +49,14 @@ class FakeCollection:
 class FakeAddCollection:
     def __init__(self):
         self.added = None
+        self.deleted = []
+
+    def get(self, where, include):
+        return {"ids": ["previous-version"]}
+
+    def delete(self, ids):
+        assert self.added is not None
+        self.deleted = ids
 
     def add(self, ids, documents, embeddings, metadatas):
         self.added = {
@@ -195,6 +203,7 @@ class RagServiceTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(chunk_count, 1)
         self.assertIn("fresh indexed chunk", rag.collection.added["documents"][0])
+        self.assertEqual(rag.collection.deleted, ["previous-version"])
         self.assertEqual(rag.collection.added["metadatas"][0]["id"], "paper_one")
         invalidate.assert_called_once_with()
 

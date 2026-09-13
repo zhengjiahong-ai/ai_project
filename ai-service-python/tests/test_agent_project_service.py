@@ -14,7 +14,7 @@ from schemas.requests import (
     AgentFinalReviewRequest,
     AgentPlanReviewRequest,
 )
-from services import agent_legacy_adapter, agent_project_service, trace_service
+from services import agent_conversation_service, agent_legacy_adapter, agent_project_service, trace_service
 
 
 class _NoopThread:
@@ -67,6 +67,96 @@ class AgentProjectPersistenceTests(unittest.TestCase):
                 ),
             )
         return response["task"]
+
+    def test_auto_run_completes_without_review_and_survives_reload(self):
+        project = self._create_project()
+        evidence = [{"sourceId": "source-a", "text": "A measured result", "pdfId": "paper-a", "pageIndex": 0}]
+        with patch.object(agent_project_service, "_start_agent_worker") as worker:
+            created = agent_project_service.create_agent_run(project["projectId"], AgentRunCreateRequest(
+                prompt="Compare project papers", reviewMode="auto"))
+            run_id = created["run"]["runId"]
+            planned = agent_project_service.prepare_agent_task_now(run_id)
+            self.assertEqual(planned["status"], "running")
+            self.assertTrue(planned["planItems"])
+            worker.assert_called_with(agent_project_service._run_minimal_agent_task, run_id)
+        with (
+            patch.object(agent_project_service, "_agent_step_delay"),
+            patch.object(agent_project_service.agent_orchestrator, "collect_project_evidence", return_value=([], [], evidence, [])),
+            patch("services.agent_grounded_answer.synthesize_grounded_answer", return_value={
+                "findings": [{"summary": "Measured result", "sourceIds": ["source-a"]}],
+                "draftReport": "Measured result [source-a]", "comparisonTable": {"columns": [], "rows": []},
+                "conflicts": [], "openQuestions": [],
+            }),
+        ):
+            agent_project_service._run_minimal_agent_task(run_id)
+        completed = agent_project_service.get_agent_run(run_id)["run"]
+        self.assertEqual(completed["status"], "succeeded")
+        self.assertEqual(completed["humanReview"]["final"]["status"], "not_required")
+        agent_project_service.reload_agent_state_from_storage()
+        restored = agent_project_service.get_agent_run(run_id)["run"]
+        self.assertEqual(restored["status"], "succeeded")
+        self.assertEqual(restored["context"]["reviewMode"], "auto")
+        self.assertTrue(agent_project_service.get_agent_run_artifacts(run_id)["artifacts"]["draftReport"])
+
+    def test_run_creation_is_idempotent_within_project(self):
+        project = self._create_project()
+        request = AgentRunCreateRequest(prompt="same submission", reviewMode="auto", idempotencyKey="submit-1")
+        with patch.object(agent_project_service, "_start_agent_worker"):
+            first = agent_project_service.create_agent_run(project["projectId"], request)
+            second = agent_project_service.create_agent_run(project["projectId"], request)
+        self.assertEqual(first["run"]["runId"], second["run"]["runId"])
+        self.assertTrue(second["deduplicated"])
+        self.assertEqual(len(agent_project_service.list_agent_project_tasks(project["projectId"])["tasks"]), 1)
+        conversation = agent_conversation_service.get_task(first["run"]["taskId"])
+        self.assertEqual([message["role"] for message in conversation["messages"]], ["user"])
+
+    def test_follow_up_run_reuses_research_task_and_persists_messages(self):
+        project = self._create_project()
+        with patch.object(agent_project_service, "_start_agent_worker"):
+            first = agent_project_service.create_agent_run(
+                project["projectId"], AgentRunCreateRequest(prompt="Compare the two methods", reviewMode="auto")
+            )
+            research_task_id = first["run"]["taskId"]
+            second = agent_project_service.create_agent_run(
+                project["projectId"],
+                AgentRunCreateRequest(
+                    prompt="Now compare their limitations",
+                    taskId=research_task_id,
+                    reviewMode="auto",
+                ),
+            )
+
+        self.assertEqual(second["run"]["taskId"], research_task_id)
+        view = agent_conversation_service.get_task(research_task_id)
+        self.assertEqual(view["task"]["latestRunId"], second["run"]["runId"])
+        self.assertEqual([message["content"] for message in view["messages"]], [
+            "Compare the two methods", "Now compare their limitations",
+        ])
+        workspace = agent_project_service.get_agent_workspace(project["projectId"])["workspace"]
+        self.assertEqual(workspace["activeTaskId"], research_task_id)
+        self.assertEqual(workspace["tasks"][0]["latestRunId"], second["run"]["runId"])
+        self.assertEqual(len(workspace["messages"]), 2)
+
+        agent_project_service.reload_agent_state_from_storage()
+        restored = agent_conversation_service.get_task(research_task_id)
+        self.assertEqual(len(restored["messages"]), 2)
+
+    def test_cancel_and_retry_use_run_contract_and_retry_is_idempotent(self):
+        project = self._create_project()
+        with patch.object(agent_project_service, "_start_agent_worker"):
+            created = agent_project_service.create_agent_run(project["projectId"], AgentRunCreateRequest(
+                prompt="retry this", reviewMode="auto"))
+            cancelled = agent_project_service.cancel_agent_run(created["run"]["runId"])
+            agent_project_service.reload_agent_state_from_storage()
+            first_retry = agent_project_service.retry_agent_run(created["run"]["runId"])
+            second_retry = agent_project_service.retry_agent_run(created["run"]["runId"])
+        self.assertEqual(cancelled["run"]["status"], "cancelled")
+        self.assertNotEqual(first_retry["run"]["runId"], created["run"]["runId"])
+        self.assertEqual(first_retry["run"]["runId"], second_retry["run"]["runId"])
+        self.assertEqual(first_retry["run"]["taskId"], created["run"]["taskId"])
+        self.assertEqual(first_retry["run"]["context"]["retryOfRunId"], created["run"]["runId"])
+        messages = agent_conversation_service.get_task(created["run"]["taskId"])["messages"]
+        self.assertEqual([message["role"] for message in messages], ["user"])
 
     def test_agent_task_requires_plan_and_final_review(self):
         project = self._create_project()

@@ -9,12 +9,7 @@ export const normalizeHistoryMessages = (messages = []) =>
     timestamp: message.timestamp ?? null,
   }));
 
-export const createReadyMessages = (filename) => [
-  {
-    role: 'ai',
-    content: `已成功加载论文：${filename}。我现在可以为您分析这篇文章了。`,
-  },
-];
+export const createReadyMessages = () => [];
 
 export const loadLibraryEntries = async (db) => {
   const list = await db.getAll('libraryStore');

@@ -100,6 +100,9 @@ export interface AgentProjectPayload {
 }
 
 export interface AgentRunPayload {
+  taskId?: string;
+  reviewMode?: 'auto' | 'manual';
+  idempotencyKey?: string;
   prompt: string;
   focusedPaperIds?: string[];
   constraints?: string;
@@ -154,11 +157,16 @@ export interface ApiService {
   generatePaperDraft: (payload: PaperDraftPayload) => Promise<unknown>;
   createAgentProject: (payload: AgentProjectPayload) => Promise<unknown>;
   createAgentRun: (projectId: string, payload: AgentRunPayload) => Promise<unknown>;
+  listAgentResearchTasks: (projectId: string) => Promise<unknown>;
+  getAgentTaskMessages: (taskId: string) => Promise<unknown>;
+  createAgentTaskRun: (taskId: string, payload: AgentRunPayload) => Promise<unknown>;
   reviewAgentRunPlan: (runId: string, payload: PlanReviewPayload) => Promise<unknown>;
   reviewAgentRunFinal: (runId: string, payload: FinalReviewPayload) => Promise<unknown>;
   getAgentWorkspace: (projectId: string) => Promise<unknown>;
   getAgentRunArtifacts: (runId: string) => Promise<unknown>;
   getAgentRunTimeline: (runId: string) => Promise<unknown>;
+  cancelAgentRun: (runId: string) => Promise<unknown>;
+  retryAgentRun: (runId: string) => Promise<unknown>;
   startAgentDebate: (projectId: string, payload: Record<string, unknown>) => Promise<unknown>;
   getAgentDebateResult: (projectId: string, runId: string) => Promise<unknown>;
   createResearchTask: (question: string, pdfId: string, paperSkeleton?: Record<string, unknown> | null, userConstraints?: string, briefPreview?: Record<string, unknown> | null, allowExternalSearch?: boolean, allowWebSearch?: boolean) => Promise<unknown>;
@@ -410,6 +418,26 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
         : null,
     ),
 
+  listAgentResearchTasks: async (projectId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.get(`/agent-projects/${encodeURIComponent(projectId)}/research-tasks`, { skipErrorLog: true }),
+      agentSecondaryClient
+        ? () => agentSecondaryClient.get(`/agent-projects/${encodeURIComponent(projectId)}/research-tasks`)
+        : null,
+    ),
+
+  getAgentTaskMessages: async (taskId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.get(`/agent-tasks/${encodeURIComponent(taskId)}/messages`, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.get(`/agent-tasks/${encodeURIComponent(taskId)}/messages`) : null,
+    ),
+
+  createAgentTaskRun: async (taskId, payload) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/runs`, payload, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.post(`/agent-tasks/${encodeURIComponent(taskId)}/runs`, payload) : null,
+    ),
+
   getAgentWorkspace: async (projectId) =>
     withAgentFallback(
       () => agentPrimaryClient.get(`/agent-projects/${encodeURIComponent(projectId)}/workspace`, { skipErrorLog: true }),
@@ -482,6 +510,18 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
     withAgentFallback(
       () => agentPrimaryClient.get(`/agent-runs/${encodeURIComponent(runId)}/timeline`, { skipErrorLog: true }),
       agentSecondaryClient ? () => agentSecondaryClient.get(`/agent-runs/${encodeURIComponent(runId)}/timeline`) : null,
+    ),
+
+  cancelAgentRun: async (runId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-runs/${encodeURIComponent(runId)}/cancel`, null, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.post(`/agent-runs/${encodeURIComponent(runId)}/cancel`) : null,
+    ),
+
+  retryAgentRun: async (runId) =>
+    withAgentFallback(
+      () => agentPrimaryClient.post(`/agent-runs/${encodeURIComponent(runId)}/retry`, null, { skipErrorLog: true }),
+      agentSecondaryClient ? () => agentSecondaryClient.post(`/agent-runs/${encodeURIComponent(runId)}/retry`) : null,
     ),
 
   cancelAgentTask: async (taskId) =>

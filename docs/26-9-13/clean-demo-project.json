@@ -1,0 +1,28 @@
+{
+  "status": "success",
+  "project": {
+    "projectId": "324d50ec-764f-4473-85cd-d8063b38cabf",
+    "title": "样例：3DGStream 与动态 3DGS 综合研究",
+    "goal": "基于两篇真实论文完成有页码证据的比较",
+    "paperIds": [
+      "2403.01444v4.pdf",
+      "2401.03890v8.pdf"
+    ],
+    "papers": [
+      {
+        "pdfId": "2403.01444v4.pdf",
+        "title": "2403.01444v4.pdf",
+        "indexed": true
+      },
+      {
+        "pdfId": "2401.03890v8.pdf",
+        "title": "2401.03890v8.pdf",
+        "indexed": true
+      }
+    ],
+    "latestTaskId": "",
+    "defaultConstraints": "",
+    "createdAt": "2026-09-13T06:27:02.800525Z",
+    "updatedAt": "2026-09-13T06:27:02.800525Z"
+  }
+}

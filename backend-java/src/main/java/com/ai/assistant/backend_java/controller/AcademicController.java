@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ai.assistant.backend_java.service.AiService;
 
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"}, allowCredentials = "true")
 @RestController
 @RequestMapping("/api")
 public class AcademicController {
@@ -176,6 +176,22 @@ public class AcademicController {
         return aiService.createAgentRun(projectId, request);
     }
 
+    @GetMapping("/agent-projects/{projectId}/research-tasks")
+    public ResponseEntity<Map<String, Object>> listAgentResearchTasks(@PathVariable String projectId) {
+        return aiService.listAgentResearchTasks(projectId);
+    }
+
+    @GetMapping("/agent-tasks/{taskId}/messages")
+    public ResponseEntity<Map<String, Object>> getAgentTaskMessages(@PathVariable String taskId) {
+        return aiService.getAgentTaskMessages(taskId);
+    }
+
+    @PostMapping("/agent-tasks/{taskId}/runs")
+    public ResponseEntity<Map<String, Object>> createAgentTaskRun(
+            @PathVariable String taskId, @RequestBody Map<String, Object> request) {
+        return aiService.createAgentTaskRun(taskId, request);
+    }
+
     @GetMapping("/agent-projects/{projectId}/workspace")
     public ResponseEntity<Map<String, Object>> getAgentWorkspace(@PathVariable String projectId) {
         return aiService.getAgentWorkspace(projectId);
@@ -215,6 +231,16 @@ public class AcademicController {
     @PostMapping("/agent-tasks/{taskId}/cancel")
     public ResponseEntity<Map<String, Object>> cancelAgentTask(@PathVariable String taskId) {
         return aiService.cancelAgentTask(taskId);
+    }
+
+    @PostMapping("/agent-runs/{runId}/cancel")
+    public ResponseEntity<Map<String, Object>> cancelAgentRun(@PathVariable String runId) {
+        return aiService.cancelAgentRun(runId);
+    }
+
+    @PostMapping("/agent-runs/{runId}/retry")
+    public ResponseEntity<Map<String, Object>> retryAgentRun(@PathVariable String runId) {
+        return aiService.retryAgentRun(runId);
     }
 
     @PostMapping("/agent-runs/{runId}/plan-review")

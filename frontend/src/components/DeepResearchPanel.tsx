@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, ChevronDown, ChevronUp, FileSearch, Link2, Loader2, RefreshCw, Search, Square, ArrowRight } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronUp, FileSearch, Link2, Loader2, RefreshCw, Search, Square } from 'lucide-react';
 
 import InsightCard from './InsightCard';
 import MarkdownContent from './MarkdownContent';
@@ -472,12 +472,6 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
     };
   }, [hasActiveTask, latestFinding?.summary, normalizedTask?.findings?.length, normalizedTask?.question, progressPercent, stageMeta.label]);
 
-  const topActions: string[] = [
-    '先给一页 brief，再决定是否启动任务',
-    '可在任务运行中刷新状态或取消',
-    '结果完成后可回到批判阅读核对结论',
-  ];
-
   if (!hasActiveTask && !panelBusy) {
     return (
       <div className="theme-panel-muted flex h-full flex-col items-center justify-center p-8 text-center">
@@ -485,9 +479,6 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
           <FileSearch className="text-pixiu" size={40} />
         </div>
         <h3 className="theme-text-primary text-xl font-bold">发起深度研究</h3>
-        <p className="theme-text-secondary mb-8 mt-2 max-w-xs text-sm">
-          输入一个足够具体的问题后，系统会自动规划子问题、检索与综合阶段，并逐步输出 findings。
-        </p>
         <button
           type="button"
           onClick={() => onStart?.()}
@@ -510,7 +501,6 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
           </div>
         </div>
         <p className="theme-text-primary text-lg font-medium">正在整理深度研究任务</p>
-        <p className="theme-text-secondary mt-2 text-xs">系统会先规划，再检索，最后综合输出结果。</p>
       </div>
     );
   }
@@ -534,17 +524,7 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
           <div className="theme-text-primary mb-2 text-sm font-bold">当前研究上下文</div>
           <div className="theme-card-soft rounded-xl px-4 py-3">
             <div className="theme-text-primary text-sm font-semibold">{pdfFileName || '尚未选择论文'}</div>
-            <div className="theme-text-secondary mt-2 text-sm leading-6">
-              {paperHint || '围绕当前论文提出一个足够清晰的问题，系统会按规划、检索、判断和综合四个阶段逐步生成结果。'}
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {topActions.map((item: string) => (
-              <span key={item} className="source-link-chip inline-flex items-center gap-1">
-                <ArrowRight size={12} />
-                {item}
-              </span>
-            ))}
+            {paperHint && <div className="theme-text-secondary mt-2 text-sm leading-6">{paperHint}</div>}
           </div>
           <div className="theme-text-muted mt-3 text-xs">
             已结束任务会保存为服务端快照，刷新页面后可按当前论文恢复。
@@ -671,7 +651,7 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
               <div>
                 <div className="theme-text-primary text-sm font-bold">brief preview</div>
                 <div className="theme-text-secondary mt-1 text-xs">
-                  {briefPreview.needsClarification ? '建议先补足约束再启动任务。' : '可以直接接受该 brief。'}
+                  {briefPreview.needsClarification ? '需要补充约束' : 'Brief 可用'}
                 </div>
               </div>
               <span className="theme-card-soft rounded-full px-3 py-1 text-[11px] font-semibold">
@@ -764,9 +744,6 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
               <FileSearch className="text-pixiu" size={32} />
             </div>
             <div className="theme-text-primary text-lg font-semibold">等待启动深度研究任务</div>
-            <div className="theme-text-secondary mt-2 max-w-sm text-sm leading-7">
-              输入研究问题后，系统会先规划，再检索，最后综合输出 findings 和 Markdown 报告。
-            </div>
           </div>
         )}
 

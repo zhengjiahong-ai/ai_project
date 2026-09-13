@@ -1,0 +1,63 @@
+{
+  "status": "success",
+  "run": {
+    "runId": "e2f002a4-34ad-4943-acb6-c671565a14a2",
+    "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+    "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+    "traceId": "789d0283-3355-4e81-8f19-d2b2385d17b0",
+    "status": "running",
+    "executionPhase": "planning",
+    "progress": 0.2,
+    "prompt": "继续完善比较：分别从两篇论文中提取动态场景的表示或变形机制、训练或逐帧更新方式、FPS/训练时间/存储等效率数据，以及作者明确写出的限制或适用条件；最后给出有证据的异同。",
+    "focusedPaperIds": [
+      "2403.01444v4.pdf",
+      "2401.03890v8.pdf"
+    ],
+    "constraints": "只使用项目内两篇论文，并继承上一轮对话上下文。",
+    "context": {
+      "domain": "",
+      "reviewMode": "auto",
+      "idempotencyKey": "demo-two-paper-turn-2-v1"
+    },
+    "humanReview": {
+      "plan": {
+        "status": "not_required",
+        "reviewNotes": "",
+        "reviewedAt": ""
+      },
+      "final": {
+        "status": "pending",
+        "reviewNotes": "",
+        "reviewedAt": "",
+        "riskReviews": []
+      }
+    },
+    "reviewRisks": [],
+    "traceSummary": {},
+    "externalSearchConfig": {
+      "allowExternalSearch": false,
+      "allowWebSearch": false,
+      "allowIterativeSearch": false,
+      "provider": "disabled",
+      "budget": {
+        "callLimit": 3,
+        "evidenceLimit": 15,
+        "callsUsed": 0,
+        "evidenceUsed": 0
+      },
+      "status": "disabled",
+      "degradation": ""
+    },
+    "codeExecutionConfig": {
+      "allowCodeExecution": false,
+      "proposal": null,
+      "jobId": null,
+      "jobStatus": null,
+      "publishable": false,
+      "degradation": ""
+    },
+    "error": "",
+    "createdAt": "2026-09-13T05:56:33.254411Z",
+    "updatedAt": "2026-09-13T05:56:33.317185Z"
+  }
+}

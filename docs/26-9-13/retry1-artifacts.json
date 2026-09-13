@@ -1,0 +1,218 @@
+{
+  "status": "success",
+  "artifacts": {
+    "runId": "80d2afb0-5594-4472-a114-00af2fb48434",
+    "version": 1,
+    "evidenceItems": [
+      {
+        "sourceId": "2403.01444v4.pdf-chunk-90",
+        "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 13\n\nContent:\nng of moving people from\nmonocular video. In Proceedings of the IEEE/CVF Con-\nference on Computer Vision and Pattern Recognition , pages\n16210–16220, 2022. 3\n[64] Felix Wimbauer, Nan Yang, Christian Rupprecht, and Daniel\nCremers. Behind the scenes: Density fields for single view\nreconstruction. In Proceedings of the IEEE/CVF Conference\non Computer Vision and Pattern Recognition , pages 9076–\n9086, 2023. 2\n[65] Suttisak Wizadwongsa, Pakkapon Phongthawee, Jiraphon\nYenphraphai, and Supasorn Suwajanakorn. Nex: Real-time\nview synthesis with neural basi",
+        "metadata": {
+          "section_id": "page-13",
+          "section_title": "Page 13",
+          "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+          "id": "2403.01444v4.pdf",
+          "chunk_index": 90,
+          "file_name": "target_paper.pdf",
+          "page": 13,
+          "page_index": 12
+        },
+        "similarity": 0.7270813584327698,
+        "score": null,
+        "pdfId": "2403.01444v4.pdf",
+        "chunkIndex": 90,
+        "pageIndex": 12,
+        "sectionId": "page-13",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2403.01444v4.pdf-chunk-72",
+        "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 11\n\nContent:\nnce\non Computer Vision (ICCV) , pages 14124–14133, 2021. 2\n[12] Anpei Chen, Zexiang Xu, Andreas Geiger, Jingyi Yu, and\nHao Su. Tensorf: Tensorial radiance fields. In European\nConference on Computer Vision (ECCV) , 2022. 2\n[13] Anpei Chen, Zexiang Xu, Xinyue Wei, Siyu Tang, Hao Su,\nand Andreas Geiger. Dictionary fields: Learning a neural\nbasis decomposition. ACM Trans. Graph. , 2023. 2\n[14] Zhiqin Chen, Thomas Funkhouser, Peter Hedman, and An-\ndrea Tagliasacchi. Mobilenerf: Exploiting the polygon ras-\nterization pipeline for efficient neural field",
+        "metadata": {
+          "file_name": "target_paper.pdf",
+          "section_title": "Page 11",
+          "page_index": 10,
+          "section_id": "page-11",
+          "id": "2403.01444v4.pdf",
+          "chunk_index": 72,
+          "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+          "page": 11
+        },
+        "similarity": 0.7175155878067017,
+        "score": null,
+        "pdfId": "2403.01444v4.pdf",
+        "chunkIndex": 72,
+        "pageIndex": 10,
+        "sectionId": "page-11",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2401.03890v8.pdf-chunk-206",
+        "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 33\n\nContent:\nPattern Recognit. 4578–4587.\n[273] Heng Yu, Joel Julin, Zoltán Á Milacski, Koichiro Niinuma, and László A Jeni. 2024. CoGS: Controllable Gaussian Splatting. In Proc. IEEE Conf.\nComput. Vis. Pattern Recognit.\n[274] Mulin Yu, Tao Lu, Linning Xu, Lihan Jiang, Yuanbo Xiangli, and Bo Dai. 2024. GSDF: 3DGS Meets SDF for Improved Rendering and Reconstruction.\narXiv preprint arXiv:2403.16964 (2024).\n[275] Tao Yu, Zerong Zheng, Kaiwen Guo, Pengpeng Liu, Qionghai Dai, and Yebin Liu. 2021. Function4d: Real-time human volumetric capture from very\nsparse consumer rgbd sensors. In Proc. IEEE Conf. Comput. Vis. Pattern Recognit. 5746–5756",
+        "metadata": {
+          "page_index": 32,
+          "file_name": "target_paper.pdf",
+          "chunk_index": 206,
+          "section_title": "Page 33",
+          "page": 33,
+          "section_id": "page-33",
+          "id": "2401.03890v8.pdf",
+          "title": "A Survey on 3D Gaussian Splatting"
+        },
+        "similarity": 0.7145015001296997,
+        "score": null,
+        "pdfId": "2401.03890v8.pdf",
+        "chunkIndex": 206,
+        "pageIndex": 32,
+        "sectionId": "page-33",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2401.03890v8.pdf-chunk-202",
+        "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 33\n\nContent:\nint arXiv:2402.10259 (2024).\n[259] Chen Yang, Kailing Wang, Yuehao Wang, Xiaokang Yang, and Wei Shen. 2023. Neural lerplane representations for fast 4d reconstruction of\ndeformable tissues. In Proc. Int. Conf. Med. Image Comput. Comput. Assist. Interv. 46–56.\n[260] Guoqing Yang, Fuyou Xue, Qi Zhang, Ke Xie, Chi-Wing Fu, and Hui Huang. 2023. UrbanBIS: a large-scale benchmark for fine-grained urban\nbuilding instance segmentation. In Proc. ACM Spec. Interest Group Comput. Graph. Interact. Tech. 1–11.\n[261] Xiaofeng Yang, Yiwen Chen, Cheng Chen, Chi Zhang, Yi Xu, Xulei Yang, Fayao Liu, and Guosheng Lin. 2023. Learn to Optimize",
+        "metadata": {
+          "title": "A Survey on 3D Gaussian Splatting",
+          "page_index": 32,
+          "id": "2401.03890v8.pdf",
+          "chunk_index": 202,
+          "section_title": "Page 33",
+          "section_id": "page-33",
+          "page": 33,
+          "file_name": "target_paper.pdf"
+        },
+        "similarity": 0.7125159502029419,
+        "score": null,
+        "pdfId": "2401.03890v8.pdf",
+        "chunkIndex": 202,
+        "pageIndex": 32,
+        "sectionId": "page-33",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2401.03890v8.pdf-chunk-104",
+        "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 20\n\nContent:\n.49 35.17\n1.33 SSIM↑ 0.97 0.98 0.98 0.98 0.99 0.96 0.96 0.98 0.97\nLPIPS↓ 0.11 0.12 0.11 0.10 0.12 0.16 0.13 0.14 0.12\nSplaTAM [95] [CVPR24] ✓PSNR↑ 32.86 33.89 35.25 38.26 39.17 31.97 29.70 31.81 34.11\n- SSIM↑ 0.98 0.97 0.98 0.98 0.98 0.97 0.95 0.95 0.97\nLPIPS↓ 0.07 0.10 0.08 0.09 0.09 0.10 0.12 0.15 0.10\nGS-SLAM [254] [CVPR24] ✓PSNR↑ 31.56 32.86 32.59 38.70 41.17 32.36 32.03 32.92 34.27\n- SSIM↑ 0.97 0.97 0.97 0.99 0.99 0.98 0.97 0.97 0.97\nLPIPS↓ 0.09 0.07 0.09 0.05 0.03 0.09 0.11 0.11 0.08\nGSSLAM [149] [CVPR24] ✓PSNR↑ 34.83 36.43 37.49 39.95 42.09 36.24 36.70 36.07 37.50\n769 SSIM↑ 0.95 0.96 0.96 0.97 0.98 0.96 0.96 0.96 0.9",
+        "metadata": {
+          "page": 20,
+          "section_id": "page-20",
+          "file_name": "target_paper.pdf",
+          "id": "2401.03890v8.pdf",
+          "chunk_index": 104,
+          "section_title": "Page 20",
+          "title": "A Survey on 3D Gaussian Splatting",
+          "page_index": 19
+        },
+        "similarity": 0.7125773429870605,
+        "score": null,
+        "pdfId": "2401.03890v8.pdf",
+        "chunkIndex": 104,
+        "pageIndex": 19,
+        "sectionId": "page-20",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      }
+    ],
+    "toolCallSummary": [
+      {
+        "name": "retrieve_current_paper",
+        "status": "succeeded",
+        "meta": {
+          "queryCount": 3,
+          "failedQueryCount": 0
+        },
+        "version": "1.0.0",
+        "safetyScope": {
+          "access": "read_only",
+          "dataScopes": [
+            "current_paper_index"
+          ],
+          "networkAccess": false,
+          "sideEffects": false,
+          "sensitiveOutput": true
+        },
+        "id": "retrieve-current-paper-1",
+        "target": "2403.01444v4.pdf",
+        "result": "Collected 2 evidence items for 2403.01444v4.pdf."
+      },
+      {
+        "name": "retrieve_current_paper",
+        "status": "succeeded",
+        "meta": {
+          "queryCount": 3,
+          "failedQueryCount": 0
+        },
+        "version": "1.0.0",
+        "safetyScope": {
+          "access": "read_only",
+          "dataScopes": [
+            "current_paper_index"
+          ],
+          "networkAccess": false,
+          "sideEffects": false,
+          "sensitiveOutput": true
+        },
+        "id": "retrieve-current-paper-2",
+        "target": "2401.03890v8.pdf",
+        "result": "Collected 3 evidence items for 2401.03890v8.pdf."
+      }
+    ],
+    "findings": [],
+    "comparisonTable": {
+      "columns": [],
+      "rows": []
+    },
+    "conflicts": [],
+    "openQuestions": [],
+    "draftReport": "",
+    "externalEvidenceSummary": {},
+    "graphContextSummary": {}
+  }
+}

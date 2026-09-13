@@ -1,0 +1,6 @@
+{
+  "question": "LightGaussian 通过哪些步骤压缩 3D Gaussian Splatting？解释每一步的作用，并说明现有证据不能支持哪些性能结论。",
+  "projectId": "b1a9758b-d2d7-4fd5-999c-2427e8ad9585",
+  "runId": "35deaf9d-e6d8-412e-80a7-17c6425c0f58",
+  "paperId": "2311.17245v6.pdf"
+}

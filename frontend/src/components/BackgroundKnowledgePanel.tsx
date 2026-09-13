@@ -279,9 +279,7 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
         const whyText: string =
           normalizeText(node?.why) ||
           normalizeText(node?.summary) ||
-          (stageLabel
-            ? `建议先补这一部分的 ${stageLabel}，再继续精读正文。`
-            : '建议先补这一部分背景，再继续精读正文。');
+          (stageLabel ? stageLabel : '背景知识');
 
         return {
           title: item,
@@ -324,9 +322,6 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
       <div className="theme-panel flex h-full flex-col items-center justify-center p-8 text-center">
         <Loader2 className="mb-5 animate-spin text-pixiu" size={48} />
         <p className="theme-text-primary text-lg font-medium">正在构建背景知识图谱</p>
-        <p className="theme-text-secondary mt-2 text-xs">
-          系统会结合你的自评、卡点和最近阅读行为，先梳理依赖关系，再生成可执行的补课顺序。
-        </p>
       </div>
     );
   }

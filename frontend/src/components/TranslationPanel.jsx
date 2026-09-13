@@ -402,7 +402,6 @@ const TranslationPanel = ({ pdfId, pdfFileName, currentPage = 0, pageData = null
             <Loader2 size={18} className="animate-spin text-pixiu" />
             <div>
               <p className="theme-text-primary text-sm font-semibold">正在生成当前页译文...</p>
-              <p className="theme-text-secondary text-xs">系统会优先保留标题和双栏正文结构，图片区域不会进入译文。</p>
             </div>
           </div>
         )}

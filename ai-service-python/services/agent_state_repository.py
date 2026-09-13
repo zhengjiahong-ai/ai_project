@@ -27,6 +27,24 @@ class AgentStateRepository:
             )
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS agent_research_tasks_v3 (
+                    task_id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS agent_messages_v3 (
+                    message_id TEXT PRIMARY KEY,
+                    task_id TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS agent_plan_reviews_v2 (
                     run_id TEXT PRIMARY KEY,
                     payload TEXT NOT NULL
@@ -82,6 +100,30 @@ class AgentStateRepository:
     def save_run(self, run: dict):
         self._save_payload("agent_runs_v2", "run_id", run.get("runId"), run)
 
+    def save_research_task(self, task: dict):
+        task_id = str(task.get("taskId") or "").strip()
+        project_id = str(task.get("projectId") or "").strip()
+        if not task_id or not project_id:
+            raise ValueError("Research task requires taskId and projectId.")
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            connection.execute(
+                "INSERT OR REPLACE INTO agent_research_tasks_v3 (task_id, project_id, payload) VALUES (?, ?, ?)",
+                (task_id, project_id, json.dumps(task, ensure_ascii=False)),
+            )
+            connection.commit()
+
+    def save_message(self, message: dict):
+        message_id = str(message.get("messageId") or "").strip()
+        task_id = str(message.get("taskId") or "").strip()
+        if not message_id or not task_id:
+            raise ValueError("Agent message requires messageId and taskId.")
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            connection.execute(
+                "INSERT OR REPLACE INTO agent_messages_v3 (message_id, task_id, payload) VALUES (?, ?, ?)",
+                (message_id, task_id, json.dumps(message, ensure_ascii=False)),
+            )
+            connection.commit()
+
     def save_plan_review(self, review: dict):
         self._save_payload(
             "agent_plan_reviews_v2",
@@ -123,6 +165,25 @@ class AgentStateRepository:
 
     def get_run(self, run_id: str) -> dict:
         return self._get_payload("agent_runs_v2", "run_id", run_id)
+
+    def get_research_task(self, task_id: str) -> dict:
+        return self._get_payload("agent_research_tasks_v3", "task_id", task_id)
+
+    def list_research_tasks(self, project_id: str) -> list[dict]:
+        normalized = str(project_id or "").strip()
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            rows = connection.execute(
+                "SELECT payload FROM agent_research_tasks_v3 WHERE project_id = ? ORDER BY rowid DESC", (normalized,)
+            ).fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    def list_messages(self, task_id: str) -> list[dict]:
+        normalized = str(task_id or "").strip()
+        with closing(sqlite3.connect(self.db_path)) as connection:
+            rows = connection.execute(
+                "SELECT payload FROM agent_messages_v3 WHERE task_id = ? ORDER BY rowid ASC", (normalized,)
+            ).fetchall()
+        return [json.loads(row[0]) for row in rows]
 
     def get_project(self, project_id: str) -> dict:
         return self._get_payload("agent_projects_v2", "project_id", project_id)
@@ -197,6 +258,12 @@ class AgentStateRepository:
                 "DELETE FROM debate_results WHERE project_id = ?",
                 (normalized_project_id,),
             )
+            task_rows = connection.execute(
+                "SELECT task_id FROM agent_research_tasks_v3 WHERE project_id = ?", (normalized_project_id,)
+            ).fetchall()
+            for row in task_rows:
+                connection.execute("DELETE FROM agent_messages_v3 WHERE task_id = ?", (row[0],))
+            connection.execute("DELETE FROM agent_research_tasks_v3 WHERE project_id = ?", (normalized_project_id,))
             connection.commit()
 
     # ── Debate result persistence (24-2) ────────────────────────────────────
@@ -265,6 +332,8 @@ class AgentStateRepository:
         with closing(sqlite3.connect(self.db_path)) as connection:
             connection.execute("DELETE FROM agent_projects_v2")
             connection.execute("DELETE FROM agent_runs_v2")
+            connection.execute("DELETE FROM agent_messages_v3")
+            connection.execute("DELETE FROM agent_research_tasks_v3")
             connection.execute("DELETE FROM agent_plan_reviews_v2")
             connection.execute("DELETE FROM agent_final_reviews_v2")
             connection.execute("DELETE FROM agent_run_artifacts_v2")
