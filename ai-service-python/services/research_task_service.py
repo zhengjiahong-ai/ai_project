@@ -494,8 +494,10 @@ def _run_research_task(
         final_skeleton_block = wrap_untrusted_context("Research paper skeleton", _stringify_paper_skeleton(paper_skeleton), max_tokens=1000)
         final_evidence_block = wrap_untrusted_context(
             "Research current paper evidence",
-            format_evidence_context(documents, title="当前论文证据", max_items=4, max_text_chars=260),
-            max_tokens=1400,
+            # 旧值 max_items=4 / max_text_chars=260 / max_tokens=1400 让最终报告只能看到约 1040 字符原文，
+            # 这是深度研究报告“漏写论文内容”的主因。
+            format_evidence_context(documents, title="当前论文证据", max_items=8, max_text_chars=2000),
+            max_tokens=8000,
         )
         _record_safety_budget_counters(final_skeleton_block, final_evidence_block)
         record_metric("awaitingFinalReview", True)

@@ -102,4 +102,8 @@ public class AiService {
     public ResponseEntity<Map<String, Object>> createAgentGraph(Map<String, Object> r)                           { return agentService.createAgentGraph(r); }
     public ResponseEntity<Map<String, Object>> resumeAgentGraph(String id, Map<String, Object> r)                { return agentService.resumeAgentGraph(id, r); }
     public ResponseEntity<Map<String, Object>> getAgentGraph(String id)                                           { return agentService.getAgentGraph(id); }
+
+    // ── Health ─────────────────────────────────────────────────────────────
+
+    public ResponseEntity<Map<String, Object>> healthCheck()                                                     { return agentService.healthCheck(); }
 }

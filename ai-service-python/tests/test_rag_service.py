@@ -92,7 +92,7 @@ class FakeHybridRAG:
     def __init__(self, documents):
         self.collection = FakeHybridCollection(documents)
 
-    def retrieve(self, query, top_k=5):
+    def retrieve(self, query, top_k=5, filter_metadata=None):
         return []
 
 
@@ -101,11 +101,15 @@ class FakeHybridRetriever:
         self.rag = rag
         self.docs = rag.collection.get()["documents"]
 
-    def retrieve(self, query, top_k=5):
+    def retrieve(self, query, top_k=5, filter_metadata=None):
         ranked = [doc for doc in self.docs if query in doc] or list(self.docs)
+        bm25 = [{"text": doc, "score": 1.0} for doc in ranked[:top_k]]
         return {
             "vector": [],
-            "bm25": [{"text": doc, "score": 1.0} for doc in ranked[:top_k]],
+            "bm25": bm25,
+            # 真实实现会同时返回 fused（向量主导 + BM25 补召回）；
+            # fake 缺这个键会让走 rag_service.retrieve 的测试静默降级到 except 分支。
+            "fused": list(bm25),
         }
 
 
@@ -321,6 +325,51 @@ class RagServiceTests(unittest.IsolatedAsyncioTestCase):
         finally:
             store._rag = original_rag
             store._hybrid = original_hybrid
+
+
+class RagRouteFilterParamTests(unittest.TestCase):
+    """/rag/retrieve 与 /rag/add-literature 的对象参数必须真的能传到后端。
+
+    回归背景：两个路由原本都声明 `xxx: dict | None = None`，而 FastAPI 无法把 dict
+    当查询参数 —— 它会把该参数从 OpenAPI 里整个丢掉，并且无论客户端传什么都恒传
+    None。实测传一个根本不存在的 pdf id，返回结果与完全不传过滤条件一模一样
+    （7 条 vs 7 条），“只在这篇论文里检索”被静默跳过，解析失败也不报错，
+    调用方无从察觉。改成 JSON 字符串 + 解析失败显式 400 后，bogus id 返回 0 条。
+    """
+
+    def test_parse_json_object_accepts_object_and_rejects_others(self):
+        from routes.rag_routes import _parse_json_object
+
+        self.assertIsNone(_parse_json_object(None, "filter_metadata"))
+        self.assertIsNone(_parse_json_object("", "filter_metadata"))
+        self.assertEqual(
+            _parse_json_object('{"id": "paper-1"}', "filter_metadata"),
+            {"id": "paper-1"},
+        )
+        # 空对象等价于“不过滤”；把空的 where 传下去会把检索限成 0 条
+        self.assertIsNone(_parse_json_object("{}", "filter_metadata"))
+
+        for bad in ("not json", "[1, 2]", '"scalar"', "42"):
+            with self.assertRaises(ValueError):
+                _parse_json_object(bad, "filter_metadata")
+
+    def test_route_params_are_not_declared_as_dict(self):
+        """FastAPI 会静默丢弃 dict 类型的查询参数，注解里不得再出现 dict。"""
+        import inspect
+
+        from routes import rag_routes
+
+        for handler in (rag_routes.rag_retrieve, rag_routes.rag_add_literature):
+            for name, param in inspect.signature(handler).parameters.items():
+                annotation = param.annotation
+                if annotation is inspect.Parameter.empty:
+                    continue
+                self.assertNotIn(
+                    "dict",
+                    str(annotation),
+                    f"{handler.__name__}({name}) 声明为 {annotation}：FastAPI 无法把 dict "
+                    "当查询参数，会把它从 OpenAPI 删掉并恒传 None，过滤静默失效",
+                )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,597 @@
+{
+  "schemaVersion": "1.0",
+  "measuredAt": "2026-09-13T15:01:44+00:00",
+  "endpoint": "http://127.0.0.1:8000/api/rag/retrieve",
+  "collection": "literature_collection_v4_e5_small",
+  "topK": 5,
+  "corpusLabels": [
+    "3DGS",
+    "3DGV",
+    "4DGS",
+    "MVSplat",
+    "SPaGS",
+    "Scaffold-GS",
+    "pixelSplat"
+  ],
+  "collapseRatioThreshold": 0.4,
+  "metrics": {
+    "chinese": {
+      "total": 10,
+      "skipped": 0,
+      "top1": 10,
+      "top3": 10,
+      "effectiveTop1": 10,
+      "collapseTarget": null,
+      "collapseRatio": 0.2,
+      "collapsed": false,
+      "suspectedFalsePositives": [],
+      "top1Distribution": {
+        "Scaffold-GS": 2,
+        "pixelSplat": 1,
+        "MVSplat": 2,
+        "4DGS": 1,
+        "SPaGS": 1,
+        "3DGS": 2,
+        "3DGV": 1
+      },
+      "bm25NonZero": 10,
+      "rewritten": 10
+    },
+    "chineseEnglishEquivalent": {
+      "total": 10,
+      "skipped": 0,
+      "top1": 10,
+      "top3": 10,
+      "effectiveTop1": 10,
+      "collapseTarget": null,
+      "collapseRatio": 0.2,
+      "collapsed": false,
+      "suspectedFalsePositives": [],
+      "top1Distribution": {
+        "Scaffold-GS": 2,
+        "pixelSplat": 1,
+        "MVSplat": 2,
+        "4DGS": 1,
+        "SPaGS": 1,
+        "3DGS": 2,
+        "3DGV": 1
+      },
+      "bm25NonZero": 10,
+      "rewritten": 0
+    },
+    "english": {
+      "total": 6,
+      "skipped": 0,
+      "top1": 6,
+      "top3": 6,
+      "effectiveTop1": 6,
+      "collapseTarget": null,
+      "collapseRatio": 0.167,
+      "collapsed": false,
+      "suspectedFalsePositives": [],
+      "top1Distribution": {
+        "3DGS": 1,
+        "MVSplat": 1,
+        "Scaffold-GS": 1,
+        "4DGS": 1,
+        "SPaGS": 1,
+        "3DGV": 1
+      },
+      "bm25NonZero": 6,
+      "rewritten": 0
+    }
+  },
+  "records": {
+    "chinese": [
+      {
+        "id": "zh-scaffold-anchor-grow",
+        "query": "锚点高斯如何自适应生长与剪枝",
+        "expect": "Scaffold-GS",
+        "skipped": false,
+        "top": [
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "How Do Anchor Gaussians Adaptively Grow and Prune?",
+        "queryRewritten": true
+      },
+      {
+        "id": "zh-pixelsplat-two-images",
+        "query": "如何仅用两张图像预测高斯参数",
+        "expect": "pixelSplat",
+        "skipped": false,
+        "top": [
+          "pixelSplat",
+          "pixelSplat",
+          "pixelSplat",
+          "pixelSplat",
+          "MVSplat"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "How to Predict Gaussian Parameters Using Only Two Images",
+        "queryRewritten": true
+      },
+      {
+        "id": "zh-mvsplat-cost-volume",
+        "query": "稀疏多视角下的极线成本体积与深度预测",
+        "expect": "MVSplat",
+        "skipped": false,
+        "top": [
+          "MVSplat",
+          "MVSplat",
+          "MVSplat",
+          "MVSplat",
+          "MVSplat"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "Epipolar Cost Volume and Depth Prediction under Sparse Multi-View",
+        "queryRewritten": true
+      },
+      {
+        "id": "zh-4dgs-deformation",
+        "query": "动态场景的时间变形场与正则化",
+        "expect": "4DGS",
+        "skipped": false,
+        "top": [
+          "4DGS",
+          "4DGS",
+          "4DGS",
+          "3DGS",
+          "4DGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "Temporal Deformation Fields and Regularization for Dynamic Scenes",
+        "queryRewritten": true
+      },
+      {
+        "id": "zh-spags-equirectangular",
+        "query": "球面全景等距柱状投影的畸变如何处理",
+        "expect": "SPaGS",
+        "skipped": false,
+        "top": [
+          "SPaGS",
+          "SPaGS",
+          "SPaGS",
+          "SPaGS",
+          "SPaGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "How to handle distortion in spherical panoramic equirectangular projection?",
+        "queryRewritten": true
+      },
+      {
+        "id": "zh-3dgs-density-control",
+        "query": "自适应密度控制的分裂与克隆策略",
+        "expect": "3DGS",
+        "skipped": false,
+        "top": [
+          "3DGS",
+          "3DGS",
+          "3DGS",
+          "3DGS",
+          "SPaGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "Split and Clone Strategies for Adaptive Density Control",
+        "queryRewritten": true
+      },
+      {
+        "id": "zh-3dgv-bandwidth",
+        "query": "全息视频流在无线网络上的带宽分配",
+        "expect": "3DGV",
+        "skipped": false,
+        "top": [
+          "3DGV",
+          "3DGV",
+          "3DGV",
+          "3DGV",
+          "3DGV"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "Bandwidth Allocation for Holographic Video Streaming over Wireless Networks",
+        "queryRewritten": true
+      },
+      {
+        "id": "zh-3dgs-covariance",
+        "query": "各向异性协方差的缩放与旋转四元数参数化",
+        "expect": "3DGS",
+        "skipped": false,
+        "top": [
+          "3DGS",
+          "3DGS",
+          "MVSplat",
+          "3DGV",
+          "3DGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "Scale and Rotation Quaternion Parameterization of Anisotropic Covariance",
+        "queryRewritten": true
+      },
+      {
+        "id": "zh-scaffold-voxel-hash",
+        "query": "体素哈希与神经高斯的锚点生成",
+        "expect": "Scaffold-GS",
+        "skipped": false,
+        "top": [
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "Voxel Hashing and Anchor Generation for Neural Gaussians",
+        "queryRewritten": true
+      },
+      {
+        "id": "zh-mvsplat-feedforward",
+        "query": "前馈网络避免逐场景优化以加快推理",
+        "expect": "MVSplat",
+        "skipped": false,
+        "top": [
+          "MVSplat",
+          "SPaGS",
+          "MVSplat",
+          "MVSplat",
+          "SPaGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "Feedforward networks avoid per-scenario optimization to accelerate inference.",
+        "queryRewritten": true
+      }
+    ],
+    "chineseEnglishEquivalent": [
+      {
+        "id": "zh-scaffold-anchor-grow",
+        "query": "how anchor gaussians grow and get pruned adaptively",
+        "expect": "Scaffold-GS",
+        "skipped": false,
+        "top": [
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "how anchor gaussians grow and get pruned adaptively",
+        "queryRewritten": false
+      },
+      {
+        "id": "zh-pixelsplat-two-images",
+        "query": "predict gaussian parameters from a pair of images",
+        "expect": "pixelSplat",
+        "skipped": false,
+        "top": [
+          "pixelSplat",
+          "pixelSplat",
+          "MVSplat",
+          "MVSplat",
+          "pixelSplat"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "predict gaussian parameters from a pair of images",
+        "queryRewritten": false
+      },
+      {
+        "id": "zh-mvsplat-cost-volume",
+        "query": "epipolar cost volume for sparse multi-view depth prediction",
+        "expect": "MVSplat",
+        "skipped": false,
+        "top": [
+          "MVSplat",
+          "MVSplat",
+          "MVSplat",
+          "MVSplat",
+          "MVSplat"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "epipolar cost volume for sparse multi-view depth prediction",
+        "queryRewritten": false
+      },
+      {
+        "id": "zh-4dgs-deformation",
+        "query": "deformation field and temporal regularization for dynamic scenes",
+        "expect": "4DGS",
+        "skipped": false,
+        "top": [
+          "4DGS",
+          "4DGS",
+          "4DGS",
+          "4DGS",
+          "4DGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "deformation field and temporal regularization for dynamic scenes",
+        "queryRewritten": false
+      },
+      {
+        "id": "zh-spags-equirectangular",
+        "query": "equirectangular projection distortion in spherical panorama",
+        "expect": "SPaGS",
+        "skipped": false,
+        "top": [
+          "SPaGS",
+          "SPaGS",
+          "SPaGS",
+          "SPaGS",
+          "SPaGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "equirectangular projection distortion in spherical panorama",
+        "queryRewritten": false
+      },
+      {
+        "id": "zh-3dgs-density-control",
+        "query": "adaptive density control split and clone strategy",
+        "expect": "3DGS",
+        "skipped": false,
+        "top": [
+          "3DGS",
+          "3DGS",
+          "3DGS",
+          "3DGS",
+          "SPaGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "adaptive density control split and clone strategy",
+        "queryRewritten": false
+      },
+      {
+        "id": "zh-3dgv-bandwidth",
+        "query": "bandwidth allocation for holographic video streaming over wireless networks",
+        "expect": "3DGV",
+        "skipped": false,
+        "top": [
+          "3DGV",
+          "3DGV",
+          "3DGV",
+          "3DGV",
+          "3DGV"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "bandwidth allocation for holographic video streaming over wireless networks",
+        "queryRewritten": false
+      },
+      {
+        "id": "zh-3dgs-covariance",
+        "query": "anisotropic covariance parameterized by scaling and rotation quaternion",
+        "expect": "3DGS",
+        "skipped": false,
+        "top": [
+          "3DGS",
+          "3DGV",
+          "3DGS",
+          "3DGS",
+          "3DGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "anisotropic covariance parameterized by scaling and rotation quaternion",
+        "queryRewritten": false
+      },
+      {
+        "id": "zh-scaffold-voxel-hash",
+        "query": "voxel hash and anchor-based neural gaussian generation",
+        "expect": "Scaffold-GS",
+        "skipped": false,
+        "top": [
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "voxel hash and anchor-based neural gaussian generation",
+        "queryRewritten": false
+      },
+      {
+        "id": "zh-mvsplat-feedforward",
+        "query": "feed-forward network avoiding per-scene optimization for fast inference",
+        "expect": "MVSplat",
+        "skipped": false,
+        "top": [
+          "MVSplat",
+          "MVSplat",
+          "MVSplat",
+          "MVSplat",
+          "MVSplat"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "feed-forward network avoiding per-scene optimization for fast inference",
+        "queryRewritten": false
+      }
+    ],
+    "english": [
+      {
+        "id": "en-covariance",
+        "query": "anisotropic covariance scaling rotation quaternion",
+        "expect": "3DGS",
+        "skipped": false,
+        "top": [
+          "3DGS",
+          "3DGS",
+          "3DGV",
+          "3DGS",
+          "3DGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "anisotropic covariance scaling rotation quaternion",
+        "queryRewritten": false
+      },
+      {
+        "id": "en-cost-volume",
+        "query": "epipolar cost volume depth prediction feed-forward",
+        "expect": "MVSplat",
+        "skipped": false,
+        "top": [
+          "MVSplat",
+          "MVSplat",
+          "pixelSplat",
+          "MVSplat",
+          "pixelSplat"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "epipolar cost volume depth prediction feed-forward",
+        "queryRewritten": false
+      },
+      {
+        "id": "en-anchor-growing",
+        "query": "anchor growing neural gaussians voxel hash",
+        "expect": "Scaffold-GS",
+        "skipped": false,
+        "top": [
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS",
+          "Scaffold-GS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "anchor growing neural gaussians voxel hash",
+        "queryRewritten": false
+      },
+      {
+        "id": "en-deformation",
+        "query": "deformation field canonical space temporal regularization",
+        "expect": "4DGS",
+        "skipped": false,
+        "top": [
+          "4DGS",
+          "4DGS",
+          "4DGS",
+          "4DGS",
+          "4DGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "deformation field canonical space temporal regularization",
+        "queryRewritten": false
+      },
+      {
+        "id": "en-equirectangular",
+        "query": "equirectangular projection spherical panorama distortion",
+        "expect": "SPaGS",
+        "skipped": false,
+        "top": [
+          "SPaGS",
+          "SPaGS",
+          "SPaGS",
+          "SPaGS",
+          "SPaGS"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "equirectangular projection spherical panorama distortion",
+        "queryRewritten": false
+      },
+      {
+        "id": "en-holographic",
+        "query": "holographic video streaming bandwidth wireless network",
+        "expect": "3DGV",
+        "skipped": false,
+        "top": [
+          "3DGV",
+          "3DGV",
+          "3DGV",
+          "3DGV",
+          "3DGV"
+        ],
+        "hitTop1": true,
+        "hitTop3": true,
+        "bm25Count": 5,
+        "bm25NonZero": true,
+        "searchQuery": "holographic video streaming bandwidth wireless network",
+        "queryRewritten": false
+      }
+    ]
+  },
+  "baseline": {
+    "measuredAt": "2026-09-13",
+    "config": "intfloat/multilingual-e5-small + literature_collection_v4_e5_small，7 篇 3DGS 论文 / 352 chunk，查询侧跨语言改写上线之前",
+    "endpoint": "POST /api/rag/retrieve",
+    "zhTop1Nominal": "5/10",
+    "zhTop1Effective": "3/10",
+    "zhTop1Collapse": "MVSplat 占 7/10（该论文仅占库 15% chunk），其中 2 个名义命中是坍缩造成的假阳性",
+    "zhBm25NonZero": "0/10",
+    "enTop1": "6/6",
+    "enTop3": "6/6"
+  }
+}

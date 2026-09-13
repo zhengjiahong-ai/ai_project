@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from rag.store import get_rag, retrieve_hybrid_results
+from rag.store import get_rag, retrieve_fused_evidence, retrieve_hybrid_results
 from schemas.requests import (
     ChatRequest,
     PageTranslationRequest,
@@ -156,9 +156,22 @@ SOCRATIC_TOPIC_AXES = {
 
 
 
-def _normalize_hybrid_evidence(raw_results, limit=None):
+# 单条证据片段与整体证据上下文的字符/token 预算。
+# 旧值（900 字符/条、2200 token 封顶）意味着 12 条片段最多只能送 8800 字符进模型，
+# 而 chunk 本身就是 900 字符，等于每条片段都被二次截断；
+# 这是“阅读助手经常遗漏论文内容”的直接夹口之一。
+CHAT_EVIDENCE_MAX_TEXT_CHARS = 2400
+CHAT_EVIDENCE_CONTEXT_MAX_TOKENS = 16000
+
+
+def _normalize_hybrid_evidence(raw_results, limit=None, max_text_chars: int = CHAT_EVIDENCE_MAX_TEXT_CHARS):
     """Normalize hybrid/library retrieval results."""
-    return normalize_evidence_items(raw_results, source_type="library", limit=limit)
+    return normalize_evidence_items(
+        raw_results,
+        source_type="library",
+        limit=limit,
+        max_text_chars=max_text_chars,
+    )
 
 
 def _retrieve_current_paper_evidence(
@@ -178,8 +191,21 @@ def _retrieve_current_paper_evidence(
             record_counter("retrievalCalls")
             rag = get_rag()
             clean_pdf_id = rag.normalize_id(pdf_id)
-            raw_results = rag.retrieve(retrieval_query, top_k=current_top_k, filter_metadata={"id": clean_pdf_id})
-            normalized = normalize_evidence_items(raw_results, source_type="current_paper", pdf_id=clean_pdf_id, limit=current_limit)
+            # 走混合检索：论文问答经常问精确术语（公式符号、专有名词），
+            # 纯向量对这类查询不稳，BM25 的词汇匹配正好补上；
+            # filter_metadata 限定在当前论文，避开库里其他论文的干扰。
+            raw_results = retrieve_fused_evidence(
+                retrieval_query,
+                top_k=current_top_k,
+                filter_metadata={"id": clean_pdf_id},
+            )
+            normalized = normalize_evidence_items(
+                raw_results,
+                source_type="current_paper",
+                pdf_id=clean_pdf_id,
+                limit=current_limit,
+                max_text_chars=CHAT_EVIDENCE_MAX_TEXT_CHARS,
+            )
             step["outputSize"] = len(normalized)
             return normalized
     except Exception as error:
@@ -817,9 +843,13 @@ def chat(request: ChatRequest) -> dict[str, Any]:
                     mixed_title="Paper and library evidence",
                 ),
                 max_items=max_items,
-                max_text_chars=900,
+                max_text_chars=CHAT_EVIDENCE_MAX_TEXT_CHARS,
             )
-            evidence_safety = wrap_untrusted_context("Retrieved paper/library evidence", context, max_tokens=2200)
+            evidence_safety = wrap_untrusted_context(
+                "Retrieved paper/library evidence",
+                context,
+                max_tokens=CHAT_EVIDENCE_CONTEXT_MAX_TOKENS,
+            )
 
         history_str = ""
         for item in history[-5:]:

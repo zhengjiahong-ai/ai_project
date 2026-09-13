@@ -249,9 +249,18 @@ def _retrieve_related_sources(query_plan: dict[str, Any], normalized_pdf_id: str
 
 
 def _normalize_hybrid_sources(hybrid_results: dict[str, list[dict]]) -> list[dict]:
-    vector_results = hybrid_results.get("vector", []) if isinstance(hybrid_results, dict) else []
-    bm25_results = hybrid_results.get("bm25", []) if isinstance(hybrid_results, dict) else []
-    evidence = normalize_evidence_items([*vector_results, *bm25_results], source_type="library", limit=10)
+    if not isinstance(hybrid_results, dict):
+        return []
+
+    # fused 已按文本去重且向量优先；直接拼 vector + bm25 会让两路重叠的片段
+    # 先吃掉 limit 名额，再去重就凑不满下面的 5 条。
+    items = hybrid_results.get("fused") or []
+    if not items:
+        items = [
+            *(hybrid_results.get("vector") or []),
+            *(hybrid_results.get("bm25") or []),
+        ]
+    evidence = normalize_evidence_items(items, source_type="library", limit=10)
 
     deduped = []
     seen = set()

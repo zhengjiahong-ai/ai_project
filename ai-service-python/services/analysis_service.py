@@ -32,6 +32,7 @@ import logging
 
 from core.document_parser import extract_translation_layout_index, parse_tei_xml
 from core.outline_extractor import OUTLINE_VERSION, build_document_outline
+from core.smart_chunker import normalize_section_titles
 from llm.client import get_llm
 from rag.store import get_rag, is_rag_available, normalize_id
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
@@ -68,6 +69,13 @@ ANALYSIS_CHUNK_OVERLAP = 200
 ANALYSIS_RETRIEVAL_LIMIT = 4
 ANALYSIS_RESPONSE_SOURCE_LIMIT = 10
 CLAIM_SUPPORT_LIMIT = 6
+# 精读上下文预算。旧实现是 6 个关键词桶 × [:2500] 字符（约 3.75k token），
+# 实测某篇论文只有 38.6% 的正文进入模型，被扔掉的 57.8% 里包含整个“提出方法”章节。
+# DeepSeek 系长上下文模型，这里按 120k 字符（约 30k token）给足空间。
+FULL_PAPER_CONTEXT_MAX_CHARS = 120_000
+FULL_PAPER_SECTION_MAX_CHARS = 8_000
+FULL_PAPER_SECTION_MIN_CHARS = 40
+_TRIM_MARKER = "\n...[section trimmed]...\n"
 PAPER_NOT_INDEXED_ERROR_CODE = "paper_not_indexed"
 RAG_INDEX_UNAVAILABLE_ERROR_CODE = "rag_index_unavailable"
 PAPER_NOT_INDEXED_MESSAGE = "当前论文尚未完成全文索引，请重新上传或重新解析后再试。"
@@ -191,6 +199,59 @@ class PaperNotIndexedError(RuntimeError):
             response["traceId"] = self.trace_id
         return response
 
+
+def _trim_section_text(text: str, limit: int) -> str:
+    """按 6:4 保留章节首尾，避免只截开头导致小节结论被切掉。"""
+    if limit <= 0 or len(text) <= limit:
+        return text
+
+    body_budget = max(0, limit - len(_TRIM_MARKER))
+    head_budget = int(body_budget * 0.6)
+    tail_budget = body_budget - head_budget
+    if tail_budget <= 0:
+        return text[:body_budget].rstrip()
+
+    return f"{text[:head_budget].rstrip()}{_TRIM_MARKER}{text[-tail_budget:].lstrip()}"
+
+
+def _build_full_paper_context(parsed_sections, abstract: str = "") -> str:
+    """把论文全部正文章节拼成精读上下文，超预算时等比压缩而不是整节丢弃。"""
+    blocks: list[tuple[str, str]] = []
+    if abstract and abstract.strip():
+        blocks.append(("ABSTRACT", abstract.strip()))
+
+    for section in normalize_section_titles(parsed_sections):
+        content = str(section.get("content") or "").strip()
+        if len(content) < FULL_PAPER_SECTION_MIN_CHARS:
+            continue
+        title = str(section.get("section") or "").strip() or "Body Text"
+        blocks.append((title, content))
+
+    if not blocks:
+        return ""
+
+    total_chars = sum(len(content) for _, content in blocks)
+    per_section_limit = FULL_PAPER_SECTION_MAX_CHARS
+    if total_chars > FULL_PAPER_CONTEXT_MAX_CHARS:
+        # 等比压缩每个章节的配额，保证每一节都还有内容进入模型
+        per_section_limit = max(
+            FULL_PAPER_SECTION_MIN_CHARS,
+            int(FULL_PAPER_CONTEXT_MAX_CHARS / len(blocks)),
+        )
+
+    _logger.info(
+        "精读上下文覆盖 %d 个章节，原文 %d 字符，单节配额 %d 字符。",
+        len(blocks),
+        total_chars,
+        per_section_limit,
+    )
+
+    context = ""
+    for title, content in blocks:
+        context += f"### Section: {title}\nContent: {_trim_section_text(content, per_section_limit)}\n\n"
+    return context
+
+
 async def analyze_pdf(file: UploadFile) -> dict[str, Any]:
     input_dir = tempfile.mkdtemp()
     output_dir = tempfile.mkdtemp()
@@ -256,25 +317,16 @@ async def analyze_pdf(file: UploadFile) -> dict[str, Any]:
             if abstract_tag:
                 sections_for_summary["abstract"] = abstract_tag.get_text(separator=" ", strip=True)
 
-        for section in parsed_sections:
-            heading = section.get("section", "").lower()
-            content = section.get("content", "")
-
-            if any(keyword in heading for keyword in ["intro", "background", "preliminar"]):
-                sections_for_summary["introduction"] += content
-            elif any(keyword in heading for keyword in ["method", "approach", "model", "design", "implementation"]):
-                sections_for_summary["methods"] += content
-            elif any(keyword in heading for keyword in ["result", "experiment", "evaluation", "finding"]):
-                sections_for_summary["results"] += content
-            elif any(keyword in heading for keyword in ["discuss", "limitation", "related work"]):
-                sections_for_summary["discussion"] += content
-            elif any(keyword in heading for keyword in ["conclu", "summary", "future"]):
-                sections_for_summary["conclusion"] += content
-
-        combined_context = ""
-        for name, text in sections_for_summary.items():
-            if len(text.strip()) > 50:
-                combined_context += f"### Section: {name.upper()}\nContent: {text.strip()[:2500]}\n\n"
+        # 精读上下文直接覆盖全部正文章节。
+        # 旧实现先用关键词把章节分到 6 个桶（intro/method/result/discuss/conclu），
+        # 匹配不上的整节丢弃，再对每个桶 [:2500] 硬截断；
+        # 实测某篇论文只有 38.6% 的正文进入模型，被扔掉的包括
+        # “C. Problem Formulation”、“D. Reflection Coefficients Optimization” 等整节贡献。
+        # sections_for_summary 仅作为摘要 JSON 的键约定与空文本兜底分支使用。
+        combined_context = _build_full_paper_context(
+            parsed_sections,
+            abstract=sections_for_summary["abstract"],
+        )
 
         paper_structure: dict[str, Any] = {}
         if combined_context:

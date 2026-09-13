@@ -234,7 +234,7 @@ def collect_conflict_evidence(findings: list[dict[str, Any]]) -> list[dict[str, 
     seen = set()
     for finding in findings or []:
         sources = finding.get("sources") if isinstance(finding, dict) else []
-        for item in normalize_evidence_items(sources, max_text_chars=700):
+        for item in normalize_evidence_items(sources, max_text_chars=2000):
             source_id = str(item.get("sourceId") or "")
             text = clean_text(item.get("text"))
             if not source_id or not text:

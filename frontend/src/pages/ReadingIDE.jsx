@@ -52,6 +52,13 @@ const workspaceTabSections = [
 const getWorkspaceSectionId = (tabId) =>
   workspaceTabSections.find((section) => section.tabIds.includes(tabId))?.id || workspaceTabSections[0].id;
 
+const assistantMainTabs = [
+  ['chat', '问答'],
+  ['deconstruct', '精读'],
+  ['translation', '翻译'],
+  ['notes', '笔记'],
+];
+
 const assistantMoreTabs = [
   ['analysis', '批判分析'],
   ['background', '背景补课'],
@@ -464,11 +471,33 @@ export default function ReadingIDE({
                 <ErrorBoundary area="功能面板区">
                   <div className="panel-shell flex h-full flex-col">
                     <div className="reading-assistant-nav theme-panel theme-border shrink-0 border-b">
-                      <div className="flex h-14 items-center justify-between px-5">
+                      <div className="flex h-12 items-center px-5">
                         <h2 className="theme-text-primary text-base font-bold">阅读助手</h2>
-                        <details className="relative">
-                          <summary className="pixiu-nav-action h-8 cursor-pointer list-none text-[11px]">更多工具 · {activeTabMeta.label}</summary>
-                          <div className="theme-card absolute right-0 top-9 z-30 w-40 rounded-md p-1.5">
+                      </div>
+                      <div className="flex h-10 items-end gap-1 px-4">
+                        {assistantMainTabs.map(([tabId, label]) => (
+                          <button
+                            key={tabId}
+                            type="button"
+                            onClick={() => {
+                              setActiveWorkspaceSectionId(getWorkspaceSectionId(tabId));
+                              setActiveTab(tabId);
+                            }}
+                            className={`reading-assistant-tab shrink-0 ${activeTab === tabId ? 'reading-assistant-tab-active' : ''}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                        <details className="relative shrink-0">
+                          <summary
+                            className={`reading-assistant-tab reading-assistant-more flex cursor-pointer list-none items-center gap-1 ${
+                              assistantMoreTabs.some(([id]) => id === activeTab) ? 'reading-assistant-tab-active' : ''
+                            }`}
+                          >
+                            更多工具
+                            <ChevronDown size={12} />
+                          </summary>
+                          <div className="theme-card absolute left-0 top-full z-30 mt-1 w-40 rounded-md p-1.5 shadow-lg">
                             {assistantMoreTabs.map(([tabId, label]) => (
                               <button
                                 key={tabId}
@@ -477,33 +506,17 @@ export default function ReadingIDE({
                                   setActiveWorkspaceSectionId(getWorkspaceSectionId(tabId));
                                   setActiveTab(tabId);
                                 }}
-                                className={`w-full rounded px-3 py-2 text-left text-xs ${activeTab === tabId ? 'bg-[color:var(--accent-soft)] text-[color:var(--accent-strong)]' : 'theme-text-secondary hover:bg-[color:var(--panel-muted)]'}`}
+                                className={`w-full rounded px-3 py-2 text-left text-xs ${
+                                  activeTab === tabId
+                                    ? 'bg-[color:var(--accent-soft)] text-[color:var(--accent-strong)]'
+                                    : 'theme-text-secondary hover:bg-[color:var(--panel-muted)]'
+                                }`}
                               >
                                 {label}
                               </button>
                             ))}
                           </div>
                         </details>
-                      </div>
-                      <div className="flex h-10 items-end px-4">
-                        {[
-                          ['chat', '问答'],
-                          ['deconstruct', '精读'],
-                          ['translation', '翻译'],
-                          ['notes', '笔记'],
-                        ].map(([tabId, label]) => (
-                          <button
-                            key={tabId}
-                            type="button"
-                            onClick={() => {
-                              setActiveWorkspaceSectionId(getWorkspaceSectionId(tabId));
-                              setActiveTab(tabId);
-                            }}
-                            className={`reading-assistant-tab ${activeTab === tabId ? 'reading-assistant-tab-active' : ''}`}
-                          >
-                            {label}
-                          </button>
-                        ))}
                       </div>
                     </div>
                     <div className="theme-panel theme-border hidden shrink-0 flex-col border-b">

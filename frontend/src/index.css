@@ -730,7 +730,7 @@ body {
 }
 
 .pdf-stage {
-  background: #eef2f7;
+  background: var(--app-bg);
 }
 
 html[data-theme='dark'] .workspace-main {
@@ -740,7 +740,7 @@ html[data-theme='dark'] .workspace-main {
 }
 
 html[data-theme='dark'] .pdf-stage {
-  background: #0f172a;
+  background: var(--app-bg);
 }
 
 html[data-theme='dark'] .bottom-workbench {
@@ -1334,7 +1334,8 @@ html[data-theme='dark'] .agent-timeline-dot {
 
 /* 2026-09-11 workspace reference: shared flat hierarchy */
 .pixiu-topbar {
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--panel-overlay);
+  backdrop-filter: saturate(140%) blur(6px);
 }
 
 .pixiu-brand {
@@ -1346,6 +1347,7 @@ html[data-theme='dark'] .agent-timeline-dot {
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: var(--panel-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .pixiu-mode-tab {
@@ -1353,16 +1355,30 @@ html[data-theme='dark'] .agent-timeline-dot {
   padding: 0 20px;
   border-bottom: 3px solid transparent;
   color: var(--text-secondary);
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
 .pixiu-mode-tab + .pixiu-mode-tab { border-left: 1px solid var(--border-subtle); }
-.pixiu-mode-tab:hover { color: var(--accent-strong); }
+.pixiu-mode-tab:hover { color: var(--accent-strong); background: var(--accent-soft); }
 .pixiu-mode-tab-active {
   border-bottom-color: var(--accent-strong);
   background: var(--accent-soft);
   color: var(--accent-strong);
+}
+
+html[data-theme='dark'] .pixiu-mode-switch {
+  background: var(--panel-muted);
+  border-color: var(--border-subtle);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme='dark'] .pixiu-mode-tab-active {
+  background: var(--accent-soft);
+  box-shadow: inset 0 -1px 0 rgba(198, 156, 255, 0.35);
 }
 
 .pixiu-nav-action,
@@ -1383,6 +1399,241 @@ html[data-theme='dark'] .agent-timeline-dot {
 .pixiu-service-state { padding: 0 7px; color: var(--text-secondary); font-weight: 500; }
 .pixiu-nav-action:hover,
 .pixiu-icon-action:hover { background: var(--accent-soft); color: var(--accent-strong); }
+
+/* ── Service state button + popover (连接状态弹窗) ───────────────────────── */
+.pixiu-status-anchor { position: relative; display: inline-flex; }
+
+.pixiu-service-state-button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.pixiu-service-state-button:hover,
+.pixiu-service-state-button[aria-expanded="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.pixiu-status-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 100;
+  min-width: 340px;
+  max-width: 420px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--panel-bg);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+}
+
+.pixiu-status-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--accent-soft);
+}
+.pixiu-status-popover-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+.pixiu-status-close { width: 24px; height: 24px; }
+
+.pixiu-status-popover-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pixiu-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pixiu-status-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.pixiu-status-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.pixiu-status-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.pixiu-status-badge.ok { background: rgba(16, 185, 129, 0.14); color: #059669; }
+.pixiu-status-badge.error { background: rgba(239, 68, 68, 0.14); color: #dc2626; }
+
+.pixiu-status-test-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.pixiu-status-test-button:hover:not(:disabled) {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+.pixiu-status-test-button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.pixiu-status-test-result {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 11px;
+}
+.pixiu-status-test-result.ok {
+  border-color: rgba(16, 185, 129, 0.32);
+  background: rgba(16, 185, 129, 0.06);
+}
+.pixiu-status-test-result.error {
+  border-color: rgba(239, 68, 68, 0.32);
+  background: rgba(239, 68, 68, 0.06);
+}
+.pixiu-status-test-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.pixiu-status-latency {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.pixiu-status-check-list {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pixiu-status-check-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.pixiu-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+.pixiu-status-dot.ok { background: #10b981; }
+.pixiu-status-dot.degraded { background: #f59e0b; }
+.pixiu-status-dot.unavailable { background: #ef4444; }
+.pixiu-status-check-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 52px;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.pixiu-status-check-msg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pixiu-status-uptime {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.pixiu-status-endpoint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-subtle);
+}
+.pixiu-status-endpoint-url {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: var(--accent-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pixiu-status-fallback-note {
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 2px solid #f59e0b;
+  color: #b45309;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.pixiu-status-error-detail {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.06);
+  color: var(--text-secondary);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 10px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.pixiu-status-resolved-endpoint {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-subtle);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .workspace-side-title {
   line-height: 1;
@@ -1501,6 +1752,9 @@ html[data-theme='dark'] .agent-timeline-dot {
 }
 .reading-assistant-tab:hover { color: var(--accent-strong); }
 .reading-assistant-tab-active { border-bottom-color: var(--accent-strong); color: var(--accent-strong); }
+.reading-assistant-more { padding-right: 8px; }
+.reading-assistant-more svg { opacity: 0.7; transition: transform 0.15s ease; }
+details[open] > .reading-assistant-more svg { transform: rotate(180deg); }
 .workflow-context-card,
 .workflow-profile-card,
 .workflow-next-card,

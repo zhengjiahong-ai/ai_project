@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0",
+  "description": "本地 RAG 检索质量基准。核心指标是跨语言召回：用中文提问检索英文论文语料，看 top-1/top-3 是否落在正确论文，并检测 top-1 目标分布是否坍缩到单一文档。",
+  "corpusNote": "期望论文用标题关键词（小写包含匹配）而不是 pdf id 标注，因此换一批论文后只要标题含该关键词仍可复用；库中找不到期望论文的 case 会被标记 skipped 且不计入命中率，避免语料变动污染指标。",
+  "papers": [
+    { "matchTitle": "radiance field", "label": "3DGS" },
+    { "matchTitle": "scaffold-gs", "label": "Scaffold-GS" },
+    { "matchTitle": "pixelsplat", "label": "pixelSplat" },
+    { "matchTitle": "mvsplat", "label": "MVSplat" },
+    { "matchTitle": "dynamic scene", "label": "4DGS" },
+    { "matchTitle": "spags", "label": "SPaGS" },
+    { "matchTitle": "3dgv", "label": "3DGV" }
+  ],
+  "chineseCases": [
+    {
+      "id": "zh-scaffold-anchor-grow",
+      "query": "锚点高斯如何自适应生长与剪枝",
+      "expectPaper": "scaffold-gs",
+      "englishEquivalent": "how anchor gaussians grow and get pruned adaptively"
+    },
+    {
+      "id": "zh-pixelsplat-two-images",
+      "query": "如何仅用两张图像预测高斯参数",
+      "expectPaper": "pixelsplat",
+      "englishEquivalent": "predict gaussian parameters from a pair of images"
+    },
+    {
+      "id": "zh-mvsplat-cost-volume",
+      "query": "稀疏多视角下的极线成本体积与深度预测",
+      "expectPaper": "mvsplat",
+      "englishEquivalent": "epipolar cost volume for sparse multi-view depth prediction"
+    },
+    {
+      "id": "zh-4dgs-deformation",
+      "query": "动态场景的时间变形场与正则化",
+      "expectPaper": "dynamic scene",
+      "englishEquivalent": "deformation field and temporal regularization for dynamic scenes"
+    },
+    {
+      "id": "zh-spags-equirectangular",
+      "query": "球面全景等距柱状投影的畸变如何处理",
+      "expectPaper": "spags",
+      "englishEquivalent": "equirectangular projection distortion in spherical panorama"
+    },
+    {
+      "id": "zh-3dgs-density-control",
+      "query": "自适应密度控制的分裂与克隆策略",
+      "expectPaper": "radiance field",
+      "englishEquivalent": "adaptive density control split and clone strategy"
+    },
+    {
+      "id": "zh-3dgv-bandwidth",
+      "query": "全息视频流在无线网络上的带宽分配",
+      "expectPaper": "3dgv",
+      "englishEquivalent": "bandwidth allocation for holographic video streaming over wireless networks"
+    },
+    {
+      "id": "zh-3dgs-covariance",
+      "query": "各向异性协方差的缩放与旋转四元数参数化",
+      "expectPaper": "radiance field",
+      "englishEquivalent": "anisotropic covariance parameterized by scaling and rotation quaternion"
+    },
+    {
+      "id": "zh-scaffold-voxel-hash",
+      "query": "体素哈希与神经高斯的锚点生成",
+      "expectPaper": "scaffold-gs",
+      "englishEquivalent": "voxel hash and anchor-based neural gaussian generation"
+    },
+    {
+      "id": "zh-mvsplat-feedforward",
+      "query": "前馈网络避免逐场景优化以加快推理",
+      "expectPaper": "mvsplat",
+      "englishEquivalent": "feed-forward network avoiding per-scene optimization for fast inference"
+    }
+  ],
+  "englishCases": [
+    { "id": "en-covariance", "query": "anisotropic covariance scaling rotation quaternion", "expectPaper": "radiance field" },
+    { "id": "en-cost-volume", "query": "epipolar cost volume depth prediction feed-forward", "expectPaper": "mvsplat" },
+    { "id": "en-anchor-growing", "query": "anchor growing neural gaussians voxel hash", "expectPaper": "scaffold-gs" },
+    { "id": "en-deformation", "query": "deformation field canonical space temporal regularization", "expectPaper": "dynamic scene" },
+    { "id": "en-equirectangular", "query": "equirectangular projection spherical panorama distortion", "expectPaper": "spags" },
+    { "id": "en-holographic", "query": "holographic video streaming bandwidth wireless network", "expectPaper": "3dgv" }
+  ],
+  "baseline": {
+    "measuredAt": "2026-09-13",
+    "config": "intfloat/multilingual-e5-small + literature_collection_v4_e5_small，7 篇 3DGS 论文 / 352 chunk，查询侧跨语言改写上线之前",
+    "endpoint": "POST /api/rag/retrieve",
+    "zhTop1Nominal": "5/10",
+    "zhTop1Effective": "3/10",
+    "zhTop1Collapse": "MVSplat 占 7/10（该论文仅占库 15% chunk），其中 2 个名义命中是坍缩造成的假阳性",
+    "zhBm25NonZero": "0/10",
+    "enTop1": "6/6",
+    "enTop3": "6/6"
+  }
+}

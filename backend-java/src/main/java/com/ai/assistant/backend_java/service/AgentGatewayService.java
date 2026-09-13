@@ -47,6 +47,22 @@ public class AgentGatewayService {
         return GatewayHelper.encode(value);
     }
 
+    // ── Health ────────────────────────────────────────────────────────────
+
+    /**
+     * Forward to Python /health (mounted at root, not under /api).
+     * Strips the trailing "/api" from PYTHON_SERVICE_URL before appending "/health".
+     */
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        String base = PYTHON_SERVICE_URL;
+        if (base.endsWith("/api")) {
+            base = base.substring(0, base.length() - 4);
+        } else if (base.endsWith("/api/")) {
+            base = base.substring(0, base.length() - 5);
+        }
+        return GatewayHelper.forward(restTemplate, base, HttpMethod.GET, "/health", null);
+    }
+
     // ── Agent Projects ────────────────────────────────────────────────────
 
     public ResponseEntity<Map<String, Object>> createAgentProject(Map<String, Object> request) {

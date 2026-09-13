@@ -11,7 +11,7 @@ manageable.
 import time
 from typing import Any
 
-from rag.store import get_rag, retrieve_hybrid_results
+from rag.store import get_rag, retrieve_fused_evidence, retrieve_hybrid_results
 from services.evidence_service import normalize_evidence_items
 from services.external_evidence import normalize_external_evidence_items
 from services.safety_service import sanitize_external_academic_query_text
@@ -228,7 +228,12 @@ def _retrieve_current_paper_tool(payload: dict[str, Any]) -> dict[str, Any]:
                 raise ToolValidationError("retrieve_current_paper requires a non-empty query when includeAll is false.")
             top_k = _coerce_positive_int(payload.get("topK"), 8)
             normalize_limit = _coerce_positive_int(payload.get("limit"), 5)
-            raw_items = rag.retrieve(query, top_k=top_k, filter_metadata={"id": normalized_pdf_id})
+            # 混合检索：公式符号与专有名词这类精确术语靠 BM25 补，语义改写靠向量补
+            raw_items = retrieve_fused_evidence(
+                query,
+                top_k=top_k,
+                filter_metadata={"id": normalized_pdf_id},
+            )
 
         normalized_items = normalize_evidence_items(
             raw_items,
@@ -258,10 +263,16 @@ def _retrieve_library_tool(payload: dict[str, Any]) -> dict[str, Any]:
     with trace_step("tool_retrieve_library", input_size=len(query)) as step:
         record_counter("retrievalCalls")
         hybrid_results = retrieve_hybrid_results(query, top_k=top_k)
-        vector_items = hybrid_results.get("vector", []) if isinstance(hybrid_results, dict) else []
-        bm25_items = hybrid_results.get("bm25", []) if isinstance(hybrid_results, dict) else []
+        # fused 是向量主导排序 + BM25 补召回，已按文本去重，
+        # 比两路直接拼接少了重复片段挤占 limit 名额的问题
+        fused_items = hybrid_results.get("fused") or []
+        if not fused_items:
+            fused_items = [
+                *(hybrid_results.get("vector") or []),
+                *(hybrid_results.get("bm25") or []),
+            ]
         normalized = normalize_evidence_items(
-            [*vector_items, *bm25_items],
+            fused_items,
             source_type="library",
             limit=limit * 2,
             max_text_chars=max_text_chars,

@@ -7,7 +7,7 @@ import re
 from typing import Any
 
 from llm.client import get_llm
-from rag.store import get_rag, retrieve_hybrid_for_vector
+from rag.store import get_rag, retrieve_fused_evidence
 from schemas.requests import (
     SocraticQuestionRequest,
     SocraticSessionAnswerRequest,
@@ -802,7 +802,9 @@ def generate_socratic_questions(request: SocraticQuestionRequest) -> dict[str, A
         f"Reading progress: {request.reading_progress}. "
         f"Paper content: {request.paper_content[:300]}"
     )
-    rag_results = retrieve_hybrid_for_vector(rag_query, top_k=3)
+    # 融合结果长度可达 2 × top_k，这里显式截回 3 条：向量满 3 条时行为与改动前一致，
+    # 向量不足时才用 BM25 补位，不会把这里的 prompt 预算翻倍。
+    rag_results = retrieve_fused_evidence(rag_query, top_k=3)[:3]
 
     rag_context = "\n\nAdditional literature context:\n"
     for result in rag_results:

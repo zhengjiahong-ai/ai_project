@@ -32,8 +32,10 @@ def build_research_plan(
     )
     current_evidence_block = wrap_untrusted_context(
         "Current paper evidence",
-        format_evidence_context(documents, title="当前论文线索", max_items=4, max_text_chars=260),
-        max_tokens=1400,
+        # 旧值 max_items=4 / max_text_chars=260 / max_tokens=1400 只能送约 1040 字符证据，
+        # 规划阶段看到的论文正文不足一个 chunk，子问题因而经常遗漏方法/实验细节。
+        format_evidence_context(documents, title="当前论文线索", max_items=8, max_text_chars=2000),
+        max_tokens=8000,
     )
     record_safety_budget_counters(paper_skeleton_block, current_evidence_block)
     prompt = f"""

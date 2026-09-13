@@ -205,6 +205,9 @@ def build_field_sentence_source_map(
     return references
 
 
+_HYBRID_CHANNELS = ("vector", "bm25")
+
+
 def _iter_items(items: Any) -> Iterable[Any]:
     if items is None:
         return []
@@ -212,6 +215,16 @@ def _iter_items(items: Any) -> Iterable[Any]:
         return items
     if isinstance(items, tuple):
         return list(items)
+    if isinstance(items, dict):
+        # rag.store 的混合检索返回 {"vector": [...], "bm25": [...], "fused": [...]}。
+        # 旧实现把整个 dict 当成一条证据，而 _extract_text 只认 text/document/content
+        # 等键，于是整批结果被静默丢弃 —— chat_service 的库级检索因此永远返回空列表。
+        fused = items.get("fused")
+        if isinstance(fused, list) and fused:
+            return fused
+        channels = [items[key] for key in _HYBRID_CHANNELS if isinstance(items.get(key), list)]
+        if channels:
+            return [entry for channel in channels for entry in channel]
     return [items]
 
 

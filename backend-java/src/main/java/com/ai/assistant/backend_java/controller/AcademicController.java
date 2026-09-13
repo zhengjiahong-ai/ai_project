@@ -363,4 +363,15 @@ public class AcademicController {
     public ResponseEntity<Map<String, Object>> getAgentGraph(@PathVariable String threadId) {
         return aiService.getAgentGraph(threadId);
     }
+
+    // ── Health ─────────────────────────────────────────────────────────────
+
+    /**
+     * Proxy to Python /health (mounted at root on the AI service).
+     * Used by the frontend Navbar "测试连通性" button.
+     */
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        return aiService.healthCheck();
+    }
 }
