@@ -104,12 +104,21 @@ def _normalize_payload(
     reader_profile: dict[str, Any],
     pdf_id: str | None,
     rag_sources: list[dict],
+    paper_title: str = "",
 ) -> dict[str, Any]:
     user_level = str(reader_profile.get("user_knowledge_level") or DEFAULT_USER_LEVEL)
-    graph, aliases = _normalize_graph(payload.get("graph"), paper_topic)
+    # 根节点在图谱里代表“这篇论文”（type=paper / level=target），标签应该是论文的名字。
+    # 而 paper_topic 常常是研究问题 —— 前端做过篇章解构时传的就是 research_problem，
+    # 实测根节点于是显示 "How to efficiently reconstruct 3D scenes from sparse
+    # multi-view images"，一句英文问句夹在九个中文概念名中间。标题解析不到时仍回落
+    # paper_topic：宁可用研究问题，也不能让根节点空着或只剩“当前论文”。
+    # paper_topic 本身继续用于概念抽取 prompt 与检索查询，也继续作为响应的
+    # paper_topic 字段返回 —— 研究问题在那三个地方是有价值的上下文。
+    root_label = _coerce_text(paper_title) or paper_topic
+    graph, aliases = _normalize_graph(payload.get("graph"), root_label)
     background = _normalize_background(payload.get("background_knowledge"), graph, aliases)
     if len(graph.get("nodes", [])) <= 1 and background:
-        graph = _linear_graph(paper_topic, background)
+        graph = _linear_graph(root_label, background)
         aliases = _build_aliases_from_graph(graph)
 
     graph = _attach_graph_metadata(graph, rag_sources)
@@ -147,7 +156,7 @@ def _normalize_payload(
     }
 
 
-def _normalize_graph(graph: Any, paper_topic: str) -> tuple[dict[str, list], dict[str, str]]:
+def _normalize_graph(graph: Any, root_label: str) -> tuple[dict[str, list], dict[str, str]]:
     raw_nodes = graph.get("nodes") if isinstance(graph, dict) else []
     raw_links = graph.get("links") if isinstance(graph, dict) else []
     raw_edges = graph.get("edges") if isinstance(graph, dict) else []
@@ -172,7 +181,7 @@ def _normalize_graph(graph: Any, paper_topic: str) -> tuple[dict[str, list], dic
 
         normalized = {
             "id": node_id,
-            "label": paper_topic if node_id == ROOT_NODE_ID else label,
+            "label": root_label if node_id == ROOT_NODE_ID else label,
             "type": "paper" if node_id == ROOT_NODE_ID else str(node.get("type") or "concept"),
             "level": str(node.get("level") or ("target" if node_id == ROOT_NODE_ID else "basic")),
             "stage": _normalize_stage(node.get("stage")) or _infer_stage_from_text(
@@ -203,7 +212,7 @@ def _normalize_graph(graph: Any, paper_topic: str) -> tuple[dict[str, list], dic
     if ROOT_NODE_ID not in nodes_by_id:
         nodes_by_id[ROOT_NODE_ID] = {
             "id": ROOT_NODE_ID,
-            "label": paper_topic or "当前论文",
+            "label": root_label or "当前论文",
             "type": "paper",
             "level": "target",
             "stage": "critical_perspective",
@@ -465,6 +474,7 @@ def _fallback_payload(
     pdf_id: str | None,
     rag_sources: list[dict],
     error: Exception | None = None,
+    paper_title: str = "",
 ) -> dict[str, Any]:
     # Lazy import to avoid circular dependency at module level.
     from services.background_knowledge_service import _parse_line_items
@@ -495,15 +505,16 @@ Return a short ordered list, one item per line.
         reader_profile=reader_profile,
         pdf_id=pdf_id,
         rag_sources=rag_sources,
+        paper_title=paper_title,
     )
     payload["fallback_reason"] = str(error)[:300] if error else ""
     return payload
 
 
-def _linear_graph(paper_topic: str, background: list[str]) -> dict[str, list]:
+def _linear_graph(root_label: str, background: list[str]) -> dict[str, list]:
     nodes = [{
         "id": ROOT_NODE_ID,
-        "label": paper_topic or "当前论文",
+        "label": root_label or "当前论文",
         "type": "paper",
         "level": "target",
         "stage": "critical_perspective",

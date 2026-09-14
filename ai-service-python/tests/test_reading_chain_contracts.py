@@ -6,6 +6,8 @@
 1. 背景补课的知识图谱根节点标签是一段 240 字的英文检索原文（_resolve_topic 的
    兜底把九千字 paper_context 压成一行截 240 返回），而前端只在做过篇章解构时
    才传得上 paper_topic，所以“没先解构就点背景补课”这条最常见路径必然踩中。
+   而做过解构时传上来的是 research_problem，根节点于是变成一句英文研究问句夹在
+   一堆中文概念名中间 —— 根节点代表“这篇论文”，标签该是论文名。
 2. 引导式学习老入口把给 LLM 的整条 prompt 指令当检索式，既稀释向量，又因为
    指令里夹了中文 reading_progress 而白付一次跨语言改写的 LLM 调用。
 
@@ -23,6 +25,7 @@ from unittest import mock
 from schemas.requests import BackgroundKnowledgeRequest, SocraticQuestionRequest
 from services import background_knowledge_service as background_service
 from services import socratic_service
+from services.graph_normalizer import _normalize_payload
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 
@@ -123,6 +126,74 @@ class SocraticRetrievalQueryTests(unittest.TestCase):
     def test_long_content_is_clamped_to_prompt_budget(self):
         captured, _ = self._run("word " * 400, "摘要")
         self.assertLessEqual(len(captured["query"]), 300)
+
+
+class RootNodeLabelTests(unittest.TestCase):
+    """图谱根节点代表“这篇论文”，标签必须是论文名，不能是研究问题句。
+
+    实测（浏览器里真实点出来的）：前端做过篇章解构，把 research_problem 当
+    paper_topic 传上来，根节点于是显示 "How to efficiently reconstruct 3D scenes
+    from sparse multi-view images" —— 一句英文问句，周围九个节点却全是中文概念名。
+    """
+
+    RESEARCH_PROBLEM = "How to efficiently reconstruct 3D scenes from sparse multi-view images"
+    TITLE = "MVSplat: Efficient 3D Gaussian Splatting from Sparse Multi-View Images"
+    CONTEXT = (
+        "Current indexed paper excerpts:\n"
+        f"Paper: {TITLE}\n\n"
+        "Section: Method\n\n"
+        "Content: We predict 3D Gaussians from sparse views via a cost volume.\n"
+    )
+
+    def _payload(self, paper_title: str) -> dict:
+        return _normalize_payload(
+            {
+                "graph": {"nodes": [], "links": [], "edges": []},
+                "background_knowledge": ["三维高斯泼溅", "新视角合成"],
+            },
+            paper_topic=self.RESEARCH_PROBLEM,
+            reader_profile={},
+            pdf_id="2403.14627v2.pdf",
+            rag_sources=[],
+            paper_title=paper_title,
+        )
+
+    @staticmethod
+    def _root_label(payload: dict) -> str:
+        root = next(
+            node for node in payload["graph"]["nodes"] if node.get("id") == "current-paper"
+        )
+        return str(root.get("label"))
+
+    def test_structure_title_wins_over_indexed_line(self):
+        request = BackgroundKnowledgeRequest(
+            paper_topic=self.RESEARCH_PROBLEM, paperStructure={"title": "Attention Is All You Need"}
+        )
+        self.assertEqual(
+            background_service._resolve_paper_title(request, self.CONTEXT),
+            "Attention Is All You Need",
+        )
+
+    def test_indexed_paper_line_is_used_when_structure_has_no_title(self):
+        request = BackgroundKnowledgeRequest(paper_topic=self.RESEARCH_PROBLEM)
+        self.assertEqual(background_service._resolve_paper_title(request, self.CONTEXT), self.TITLE)
+
+    def test_research_problem_and_file_name_are_never_a_title(self):
+        """研究问题与 arXiv 编号都不是论文名；取不到就返回空串让调用方回落。"""
+        request = BackgroundKnowledgeRequest(
+            pdfId="2403.14627v2.pdf", paper_topic=self.RESEARCH_PROBLEM
+        )
+        self.assertEqual(background_service._resolve_paper_title(request, "no paper line"), "")
+
+    def test_root_label_is_the_title_while_topic_stays_the_research_problem(self):
+        payload = self._payload(self.TITLE)
+        self.assertEqual(self._root_label(payload), self.TITLE)
+        # 研究问题仍要作为 paper_topic 原样返回：它是概念抽取 prompt 与检索查询的上下文。
+        self.assertEqual(payload["paper_topic"], self.RESEARCH_PROBLEM)
+
+    def test_root_label_falls_back_to_topic_when_no_title_anywhere(self):
+        """宁可用研究问题，也不能让根节点空着或只剩“当前论文”。"""
+        self.assertEqual(self._root_label(self._payload("")), self.RESEARCH_PROBLEM)
 
 
 class ReadingChainImportTests(unittest.TestCase):

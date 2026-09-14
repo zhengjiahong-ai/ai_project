@@ -89,6 +89,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> dict[str, A
         normalized_pdf_id = _normalize_pdf_id(request.pdfId)
         paper_context, current_paper_sources = _load_current_paper_context(request, normalized_pdf_id)
         paper_topic = _resolve_topic(request, paper_context)
+        paper_title = _resolve_paper_title(request, paper_context)
         with trace_step("build_background_query_plan", input_size=len(paper_context) + len(paper_topic)) as step:
             query_plan = build_retrieval_queries(paper_topic, context=paper_context, task_type="background")
             step["outputSize"] = len(query_plan.get("keywords") or [])
@@ -120,6 +121,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> dict[str, A
                     reader_profile=reader_profile,
                     pdf_id=normalized_pdf_id,
                     rag_sources=response_rag_sources,
+                    paper_title=paper_title,
                 )
                 step["outputSize"] = len((payload.get("graph") or {}).get("nodes") or [])
         except Exception as error:
@@ -130,6 +132,7 @@ def get_background_knowledge(request: BackgroundKnowledgeRequest) -> dict[str, A
                 pdf_id=normalized_pdf_id,
                 rag_sources=response_rag_sources,
                 error=error,
+                paper_title=paper_title,
             )
 
         payload["rag_sources"] = response_rag_sources
@@ -272,6 +275,28 @@ def _resolve_topic(request: BackgroundKnowledgeRequest, paper_context: str) -> s
         return " ".join(paper_context.split())[:80]
 
     return "当前论文"
+
+
+def _resolve_paper_title(request: BackgroundKnowledgeRequest, paper_context: str) -> str:
+    """只认标题级来源，取不到就返回空串（由调用方回落 paper_topic）。
+
+    与 _resolve_topic 的分工：_resolve_topic 要的是“能喂 prompt、能当检索主题”的文本，
+    所以它有研究问题、摘要、检索原文这一串兜底；这里要的是图谱根节点上给用户看的
+    “这篇论文叫什么”，所以只认 structure.title 与索引片段自带的 Paper: 行这两个
+    确定的标题来源。
+
+    刻意不接 request.paper_topic：前端做过篇章解构时传的是 research_problem
+    （App.jsx 取 research_problem/core_hypothesis），实测根节点因此显示
+    "How to efficiently reconstruct 3D scenes from sparse multi-view images" ——
+    一句英文问句夹在九个中文概念名中间，用户看不出它代表的是当前论文。
+    也不接文件名：arXiv 编号（"2403.14627v2"）当论文名同样没有信息量，
+    不如回落到研究问题。
+    """
+    structure = request.paperStructure if isinstance(request.paperStructure, dict) else {}
+    title = _coerce_text(structure.get("title"))
+    if title:
+        return title[:120]
+    return _extract_indexed_paper_title(paper_context)
 
 
 def _retrieve_related_sources(query_plan: dict[str, Any], normalized_pdf_id: str | None) -> list[dict]:
