@@ -18,6 +18,11 @@ EXTERNAL_EVIDENCE_FIELDS = (
     "provenance",
 )
 MIN_CITATION_SCORE = 0.12
+# 只在句子与证据不共享书写系统（中文报告句 × 英文证据）时生效的额外门槛。
+# 跨语言配对下唯一可用的信号是共享的专名与数值，单个 token 极可能是巧合：
+# 实测 “实验在 Tanks and Temples 上…” 只靠一个连词 and 就能对无关证据拿到
+# 1/3 = 0.33（远超 0.12）。同语言配对不触发此门槛，分数因此保持不变。
+MIN_CROSS_SCRIPT_OVERLAP = 2
 
 
 def normalize_evidence_items(
@@ -139,7 +144,7 @@ def build_sentence_source_map(
         if not terms:
             continue
         valid_source_ids.add(source_id)
-        source_terms.append((source_id, terms))
+        source_terms.append((source_id, *_partition_citation_terms(terms)))
 
     if not source_terms:
         return []
@@ -149,13 +154,23 @@ def build_sentence_source_map(
         sentence_terms = _extract_citation_terms(sentence)
         if not sentence_terms:
             continue
+        sentence_latin, sentence_cjk = _partition_citation_terms(sentence_terms)
 
         scored_sources = []
-        for source_id, terms in source_terms:
-            overlap = sentence_terms.intersection(terms)
+        sentence_scripts = (bool(sentence_latin), bool(sentence_cjk))
+        for source_id, source_latin, source_cjk in source_terms:
+            overlap = (sentence_latin & source_latin) | (sentence_cjk & source_cjk)
             if not overlap:
                 continue
-            score = len(overlap) / max(len(sentence_terms), 1)
+            eligible = (len(sentence_latin) if source_latin else 0) + (
+                len(sentence_cjk) if source_cjk else 0
+            )
+            if not eligible:
+                continue
+            cross_script = sentence_scripts != (bool(source_latin), bool(source_cjk))
+            if cross_script and len(overlap) < MIN_CROSS_SCRIPT_OVERLAP:
+                continue
+            score = len(overlap) / eligible
             if score >= MIN_CITATION_SCORE:
                 scored_sources.append((source_id, score))
 
@@ -281,6 +296,21 @@ def _extract_citation_terms(text: Any) -> set[str]:
                 terms.add(segment[index:index + size])
 
     return terms
+
+
+def _partition_citation_terms(terms: set[str]) -> tuple[set[str], set[str]]:
+    """把词项按书写系统分成（拉丁/数字, 中文）两类。
+
+    _extract_citation_terms 的两条正则产出天然不相交（ASCII token 不含汉字，
+    中文 n-gram 只含汉字），所以按 isascii 分类是精确的，不是启发式。
+
+    分类的唯一用途是给引用打分挑分母：跨语言配对时中文 n-gram 永远不可能与
+    英文证据相交，把它们算进分母会让分数结构性趋零 —— 实测 3DGS 那篇 29 个
+    报告句 0 条通过、最高仅 0.0597（阈值 0.12），“结论引用”卡片因此从不出现。
+    同语言配对下两类都在，分母仍等于 len(terms)，分数与分类之前逐位一致。
+    """
+    latin = {term for term in terms if term.isascii()}
+    return latin, terms - latin
 
 
 def _extract_text(item: dict[str, Any]) -> str:
