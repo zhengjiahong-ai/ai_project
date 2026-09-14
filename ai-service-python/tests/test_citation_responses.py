@@ -1053,6 +1053,187 @@ class EvidenceNodeLabelTests(unittest.TestCase):
         self.assertEqual(critical_reading._evidence_node_label(bare), "片段 7")
 
 
+class AxisEvidenceDiversityTests(unittest.TestCase):
+    """轴证据的章节多样性。
+
+    这一组本来没有任何测试覆盖（grep 全仓无 _retrieve_axis_evidence 引用），所以
+    “top_k == 每轴保留数” 这个缺陷能一直绿着：fuse_evidence 是向量排前 + BM25 追加
+    在后，两者同为 4 时 BM25 的补召回被 100% 截掉，实测 4 次轴检索 BM25 各命中
+    4 条（方法章节、结论章节、93fps 数据表格）全部丢弃，最终 7 条证据里 5 条是引言。
+    夹具的字段位置照实测形状写（metadata.section_title、BM25 条目排在尾部）。
+    """
+
+    PDF_ID = "2308.04079v1.pdf"
+
+    @staticmethod
+    def _fused_item(chunk: int, section: str | None) -> dict:
+        metadata = {"chunk_index": chunk, "page": chunk // 10}
+        if section is not None:
+            metadata["section_title"] = section
+        return {
+            "text": f"chunk {chunk} body text about gaussian splatting.",
+            "metadata": metadata,
+            "similarity": 0.8,
+        }
+
+    def _retrieve(self, fused: list[dict], **kwargs) -> tuple[list[dict], object]:
+        query_plan = {"original": "这篇论文宣称了哪些贡献？", "rewritten": "claimed contributions"}
+        axis = {"key": "contributions", "label": "贡献与创新", "question": "贡献是什么？"}
+        with patch.object(analysis_service, "retrieve_fused_evidence", return_value=fused) as retrieve:
+            evidence = analysis_service._retrieve_axis_evidence([], query_plan, axis, pdf_id=self.PDF_ID, **kwargs)
+        return evidence, retrieve
+
+    def test_bm25_appended_items_are_no_longer_truncated_away(self):
+        """核心回归：排在融合结果尾部的 BM25 补召回必须能进入最终证据。
+
+        旧实现把 top_k 与归一化 limit 都卡在 4，这四条向量命中的引言占满名额，
+        尾部四个不同章节的条目全被截掉。现在应该全部保留（同章节只留 1 条）。
+        """
+        fused = [
+            *(self._fused_item(chunk, "INTRODUCTION") for chunk in (1, 2, 3, 4)),
+            self._fused_item(20, "DIFFERENTIABLE 3D GAUSSIAN SPLATTING"),
+            self._fused_item(30, "DISCUSSION AND CONCLUSIONS"),
+            self._fused_item(40, "Ours (93 fps)"),
+            self._fused_item(50, "Results and Evaluation"),
+        ]
+
+        evidence, retrieve = self._retrieve(fused)
+        chunks = {item["chunkIndex"] for item in evidence}
+
+        # 检索侧必须比保留侧宽，否则补召回根本没机会进来。
+        self.assertEqual(retrieve.call_args.kwargs["top_k"], analysis_service.ANALYSIS_RETRIEVAL_TOP_K)
+        self.assertGreater(analysis_service.ANALYSIS_RETRIEVAL_TOP_K, analysis_service.ANALYSIS_AXIS_EVIDENCE_LIMIT)
+        self.assertLessEqual(len(evidence), analysis_service.ANALYSIS_AXIS_EVIDENCE_LIMIT)
+        # 尾部四条全部存活，而同章节的四条引言只留下第一条。
+        self.assertTrue({20, 30, 40, 50}.issubset(chunks), f"BM25 补召回仍被截掉: {sorted(chunks)}")
+        self.assertEqual(chunks, {1, 20, 30, 40, 50})
+        self.assertEqual(len({analysis_service._evidence_section_key(item) for item in evidence}), 5)
+
+    def test_section_cap_is_configurable_and_counts_per_section(self):
+        """限额可调：cap=2 时同章节允许两条，但仍不会把名额全给一个章节。"""
+        fused = [
+            *(self._fused_item(chunk, "INTRODUCTION") for chunk in (1, 2, 3)),
+            self._fused_item(20, "Ablations"),
+        ]
+
+        evidence, _ = self._retrieve(fused, limit=3)
+        self.assertEqual([item["chunkIndex"] for item in evidence], [1, 20])
+
+        with patch.object(analysis_service, "ANALYSIS_AXIS_SECTION_CAP", 2):
+            evidence_capped, _ = self._retrieve(fused, limit=3)
+        self.assertEqual([item["chunkIndex"] for item in evidence_capped], [1, 2, 20])
+
+    def test_corpus_without_section_metadata_degrades_to_plain_truncation(self):
+        """没有章节元数据时限额不得生效。
+
+        这是护栏：如果给无章节信息的条目也算一个“空章节”桶，整批语料会被砍到只剩
+        1 条，比修之前还差。
+        """
+        fused = [self._fused_item(chunk, None) for chunk in range(1, 9)]
+
+        evidence, _ = self._retrieve(fused)
+
+        self.assertIsNone(analysis_service._evidence_section_key(fused[0]))
+        self.assertEqual(len(evidence), analysis_service.ANALYSIS_AXIS_EVIDENCE_LIMIT)
+        self.assertEqual([item["chunkIndex"] for item in evidence], [1, 2, 3, 4, 5, 6])
+
+    def test_section_key_prefers_real_title_then_internal_id(self):
+        """章节键的优先级：真实标题 > 内部编号 > None。
+
+        编号（"section-2"）虽然看不懂，但同章节的多个片段共用一个，仍能当区分键；
+        加 "id:" 前缀是为了不与恰好叫这个名字的真实标题撞上。
+        """
+        titled = {"metadata": {"section_title": "Results  and Evaluation"}, "sectionId": "section-9"}
+        self.assertEqual(
+            analysis_service._evidence_section_key(titled),
+            "results and evaluation",
+        )
+        self.assertEqual(
+            analysis_service._evidence_section_key({"metadata": {}, "sectionId": "section-2"}),
+            "id:section-2",
+        )
+        self.assertIsNone(analysis_service._evidence_section_key({"metadata": None}))
+
+
+class ResponseSourcePriorityTests(unittest.TestCase):
+    """主张引用的证据必须在响应里能找到。
+
+    实测章节感知选取上线后证据池变大，响应证据截断到 10 条时把 claim-6 引用的
+    chunk-71 丢了：引文逐字回查从 6/6 变成 5/6，证据关系图也从 6 条边变成 5 条。
+    改动前池子只有 7 条、未触及预算，所以从未截断，这个隐患一直测不出来。
+    """
+
+    LIMIT = analysis_service.ANALYSIS_RESPONSE_SOURCE_LIMIT
+
+    @staticmethod
+    def _evidence(chunk: int) -> dict:
+        return {
+            "sourceId": f"p.pdf-chunk-{chunk}",
+            "text": f"evidence body number {chunk}",
+            "metadata": {"chunk_index": chunk},
+        }
+
+    def _axes(self, total: int) -> list[dict]:
+        chunks = list(range(1, total + 1))
+        mid = len(chunks) // 2
+        return [
+            {"key": "contributions", "evidence": [self._evidence(c) for c in chunks[:mid]]},
+            {"key": "methods", "evidence": [self._evidence(c) for c in chunks[mid:]]},
+        ]
+
+    def test_claim_referenced_source_survives_response_truncation(self):
+        axis_results = self._axes(self.LIMIT + 3)
+        tail_id = f"p.pdf-chunk-{self.LIMIT + 3}"
+        claims = [{"id": "claim-1", "evidenceSourceIds": [tail_id]}]
+
+        plain = critical_reading._collect_response_sources(axis_results)
+        prioritized = critical_reading._collect_response_sources(axis_results, claims)
+
+        # 先证明夹具真的触发了截断，否则“保住了”没有意义。
+        self.assertNotIn(tail_id, {item["sourceId"] for item in plain})
+        self.assertIn(tail_id, {item["sourceId"] for item in prioritized})
+        self.assertEqual(len(prioritized), self.LIMIT)
+
+    def test_order_is_untouched_when_referenced_sources_already_fit(self):
+        """名额装得下时不得重排：响应证据的顺序是用户看到的列表顺序。"""
+        axis_results = self._axes(4)
+        claims = [{"id": "claim-1", "evidenceSourceIds": ["p.pdf-chunk-4"]}]
+
+        plain = critical_reading._collect_response_sources(axis_results)
+        prioritized = critical_reading._collect_response_sources(axis_results, claims)
+
+        self.assertEqual(
+            [item["sourceId"] for item in prioritized],
+            [item["sourceId"] for item in plain],
+        )
+
+    def test_dangling_reference_does_not_permanently_force_reorder(self):
+        """护栏：主张引用了证据池里根本不存在的 id 时，不能因此每次都重排。
+
+        不先把 priority 与实有 id 取交集的话，悬空引用会让 wanted 永远不是已选
+        集合的子集，于是每一次调用都走重排分支。
+        """
+        axis_results = self._axes(4)
+        claims = [{"id": "claim-1", "evidenceSourceIds": ["p.pdf-chunk-does-not-exist"]}]
+
+        prioritized = critical_reading._collect_response_sources(axis_results, claims)
+
+        self.assertEqual(
+            [item["sourceId"] for item in prioritized],
+            ["p.pdf-chunk-1", "p.pdf-chunk-2", "p.pdf-chunk-3", "p.pdf-chunk-4"],
+        )
+
+    def test_merge_without_priority_ids_keeps_previous_behaviour(self):
+        """爆炸半径：不传 priority_ids 时逐位等于改动前（先去重再取前 limit 条）。"""
+        groups = [[{"sourceId": f"s{i}", "text": f"body {i}"}] for i in range(5)]
+
+        self.assertEqual(
+            [item["sourceId"] for item in analysis_service._merge_evidence_lists(*groups, limit=3)],
+            ["s0", "s1", "s2"],
+        )
+        self.assertEqual(len(analysis_service._merge_evidence_lists(*groups)), 5)
+
+
 class AxisQueryPlanDeterminismTests(unittest.TestCase):
     """轴检索计划必须是确定性的，且不得把非确定性从第二层改写放回来。
 

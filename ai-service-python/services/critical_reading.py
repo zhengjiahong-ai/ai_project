@@ -1250,5 +1250,38 @@ JSON 格式：
             return _normalize_report_payload({}, axis_results)
 
 
-def _collect_response_sources(axis_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return _merge_evidence_lists(*[axis_result.get("evidence") or [] for axis_result in axis_results], limit=ANALYSIS_RESPONSE_SOURCE_LIMIT)
+def _claim_referenced_source_ids(claims: list[dict[str, Any]] | None) -> list[str]:
+    """按主张出现顺序收集它们引用的证据 id（去重）。"""
+    source_ids: list[str] = []
+    for claim in claims or []:
+        if not isinstance(claim, dict):
+            continue
+        for raw_source_id in claim.get("evidenceSourceIds") or []:
+            source_id = str(raw_source_id or "").strip()
+            if source_id and source_id not in source_ids:
+                source_ids.append(source_id)
+    return source_ids
+
+
+def _collect_response_sources(
+    axis_results: list[dict[str, Any]],
+    claims: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """汇总响应里的证据，并让被主张引用的条目优先占名额。
+
+    必须优先：响应证据截断到 ANALYSIS_RESPONSE_SOURCE_LIMIT 条，而主张是在截断之前
+    针对每轴证据池（最多 4 轴 × 6 条）对齐的。实测章节感知选取上线后证据池从 16 条
+    涨到 20+ 条，截断真的开始丢东西：claim-6 引用的 chunk-71 被丢掉，用户看到一条
+    带引文的 SUPPORTED 主张却点不到出处，证据关系图也少一条边（_build_evidence_graph
+    只画落在响应证据里的边）。改动前池子只有 7 条、根本没碰到 10 条预算，所以这个
+    隐患一直潜伏着，是这次把证据多样性修好之后才暴露出来的。
+
+    实测代价：保住 chunk-71 会顶掉一条 Results and Evaluation，响应章节覆盖从 8 降到 7
+    （仍远高于改动前的 3）。这是有意为之的取舍：引文能不能点开是正确性问题，
+    少一个章节只是丰富度问题；换来的是引文逐字回查 5/6 → 6/6、关系图边数 5 → 6。
+    """
+    return _merge_evidence_lists(
+        *[axis_result.get("evidence") or [] for axis_result in axis_results],
+        limit=ANALYSIS_RESPONSE_SOURCE_LIMIT,
+        priority_ids=_claim_referenced_source_ids(claims),
+    )

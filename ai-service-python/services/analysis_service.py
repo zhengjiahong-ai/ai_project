@@ -80,7 +80,20 @@ _logger = logging.getLogger(__name__)
 _grobid_client = None
 ANALYSIS_CHUNK_SIZE = 1200
 ANALYSIS_CHUNK_OVERLAP = 200
-ANALYSIS_RETRIEVAL_LIMIT = 4
+# 检索侧宽度。必须大于每轴最终保留数：fuse_evidence 是“向量排前 + BM25 追加在后”，
+# 长度可达 2×top_k（rag/store.py 里有明确警告）。旧实现把 top_k 与保留数都设成 4，
+# 等于把 BM25 的补召回整段截掉 —— 实测 3DGS(2308.04079v1) 那篇 4 次轴检索 BM25
+# 各命中 4 条（方法、结论、93fps 数据表格），一条都没能进入最终证据。
+ANALYSIS_RETRIEVAL_TOP_K = 8
+# 每轴最终保留的证据条数。取 6 是为了与重试合并上限（_merge_evidence_lists(..., limit=6)）
+# 对齐，旧值 4 与它不一致，等于“取 4 条却给 6 条预算”。
+ANALYSIS_AXIS_EVIDENCE_LIMIT = 6
+# 同一章节每轴最多取几条。实测不加这个限额时，4 次轴检索拿回的 27 条证据里
+# 14 条来自 INTRODUCTION，合并去重后 7 条中 5 条仍是引言，而检索其实已经拿到了
+# Results、Ablations、Conclusions 和 93fps 表格 —— 全被引言挤掉了。加限额后同样
+# 10 条预算覆盖 8 个章节（原来 3 个），judge 输入只从 16825 涨到 18385 字符（+9%）；
+# 而单纯放大 limit 要付 65%–163% 的成本只换到 5–6 个章节。
+ANALYSIS_AXIS_SECTION_CAP = 1
 # 轴证据单条正文上限，与 _load_analysis_source 预加载 documents 时保持一致。
 ANALYSIS_EVIDENCE_MAX_TEXT_CHARS = 1800
 # 精读上下文预算。旧实现是 6 个关键词桶 × [:2500] 字符（约 3.75k token），
@@ -543,11 +556,64 @@ def _build_axis_query_plan(axis: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _evidence_section_key(item: dict[str, Any]) -> str | None:
+    """取证据所属章节的归一化标识，定位不到就返回 None。
+
+    真实章节标题住在 metadata.section_title —— 这是实测校准过的：检索归一化后顶层
+    并没有 sectionTitle，而 sectionId 只是 "section-2" 这种内部编号。编号虽然看不懂，
+    但同章节的多个片段共用一个编号，仍可作为区分章节的兜底键（加 "id:" 前缀避免与
+    恰好叫这个名字的标题撞上）。
+
+    返回 None 表示这条证据无法定位章节，调用方必须让它不占章节限额 —— 否则一批
+    没有章节元数据的语料会被限额砍到只剩 1 条。
+    """
+    metadata = item.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("section_title", "sectionTitle", "section"):
+            value = " ".join(str(metadata.get(key) or "").lower().split())
+            if value:
+                return value
+    section_id = " ".join(str(item.get("sectionId") or "").lower().split())
+    return f"id:{section_id}" if section_id else None
+
+
+def _select_section_diverse_evidence(
+    items: list[dict[str, Any]],
+    limit: int,
+    section_cap: int | None = None,
+) -> list[dict[str, Any]]:
+    """按章节多样化选取：同一章节最多 section_cap 条，按检索顺序取到 limit 为止。
+
+    刻意不做“挑不满就放宽限额补足名额”。这个改进实测过并被数据否决：补足把同章节
+    的重复片段又放回来，每轴条数 17→24、judge 输入 18385→25841 字符（+40%），章节
+    覆盖反而从 8 掉到 7 —— 因为合并阶段按轴顺序截断到 10 条，前面的轴多拿的重复片段
+    会把后面轴的独有章节挤掉。宁可某轴少几条，也不拿重复换条数。
+
+    章节信息缺失的条目不占限额（见 _evidence_section_key），所以没有章节元数据的语料
+    在这里退化成普通截断。
+    """
+    selected: list[dict[str, Any]] = []
+    per_section: dict[str, int] = {}
+    # 在调用时读常量而不是当默认参数：默认值在定义时绑定，会让运行期的配置与测试
+    # 补丁全部失效。
+    resolved_cap = ANALYSIS_AXIS_SECTION_CAP if section_cap is None else section_cap
+    for item in items:
+        if len(selected) >= limit:
+            break
+        section = _evidence_section_key(item)
+        if section is not None:
+            if per_section.get(section, 0) >= resolved_cap:
+                continue
+            per_section[section] = per_section.get(section, 0) + 1
+        selected.append(item)
+    return selected
+
+
 def _retrieve_axis_evidence(
     documents: list[dict[str, Any]],
     query_plan: dict[str, Any],
     axis: dict[str, Any],
-    limit: int = ANALYSIS_RETRIEVAL_LIMIT,
+    limit: int = ANALYSIS_AXIS_EVIDENCE_LIMIT,
     pdf_id: str | None = None,
 ) -> list[dict[str, Any]]:
     """按轴取证据。
@@ -575,15 +641,27 @@ def _retrieve_axis_evidence(
     ) as step:
         if pdf_id and query:
             record_counter("retrievalCalls")
-            retrieved = retrieve_fused_evidence(query, top_k=limit, filter_metadata={"id": pdf_id})
-            evidence = normalize_evidence_items(
+            retrieved = retrieve_fused_evidence(
+                query,
+                top_k=ANALYSIS_RETRIEVAL_TOP_K,
+                filter_metadata={"id": pdf_id},
+            )
+            # 先全量归一化、再按章节挑：归一化时就截断等于把 BM25 追加在后半段的
+            # 补召回又砍掉，那就回到改动前的行为了。所以这里不传 limit。
+            normalized = normalize_evidence_items(
                 retrieved,
                 source_type="current_paper",
                 pdf_id=pdf_id,
-                limit=limit,
                 max_text_chars=ANALYSIS_EVIDENCE_MAX_TEXT_CHARS,
             )
+            evidence = _select_section_diverse_evidence(normalized, limit=limit)
             step["outputSize"] = len(evidence)
+            # 章节覆盖必须可观测：这个缺陷之所以能长期存活，就是因为 trace 里只看得到
+            # “取到几条”，看不到“全来自同一章节”。
+            step["meta"]["retrievedCount"] = len(normalized)
+            step["meta"]["sectionCount"] = len(
+                {key for key in (_evidence_section_key(item) for item in evidence) if key is not None}
+            )
             return evidence
 
         terms = _build_axis_terms(query_plan, axis)
@@ -735,7 +813,7 @@ def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
         report = _generate_structured_critical_report(axis_results, analysis_context or paper_content[:2400], resolved_from)
         claims = _build_claim_support_items(report, axis_results, use_llm=True)
         assessment = _build_contribution_assessment(report, claims, axis_results)
-        response_sources = _collect_response_sources(axis_results)
+        response_sources = _collect_response_sources(axis_results, claims)
         rag_sources = compact_evidence_for_response(
             response_sources,
             max_items=ANALYSIS_RESPONSE_SOURCE_LIMIT,
