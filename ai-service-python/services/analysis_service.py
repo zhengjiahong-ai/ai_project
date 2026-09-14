@@ -16,6 +16,7 @@ from core.pdf_quality import (
     _count_non_whitespace_characters,
     _extract_authors,
     _extract_pdf_text_stats,
+    _extract_query_terms,  # noqa: F401 (下沉到 core 后继续再导出给 critical_reading)
     _extract_title,
     _format_axis_prompt_block,  # noqa: F401 (re-exported for critical_reading)
     _normalize_list_items,  # noqa: F401 (re-exported for critical_reading)
@@ -34,7 +35,7 @@ from core.document_parser import extract_translation_layout_index, parse_tei_xml
 from core.outline_extractor import OUTLINE_VERSION, build_document_outline
 from core.smart_chunker import normalize_section_titles
 from llm.client import get_llm
-from rag.store import get_rag, is_rag_available, normalize_id
+from rag.store import get_rag, is_rag_available, normalize_id, retrieve_fused_evidence
 from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
 from services.background_knowledge_service import (
     get_background_knowledge as build_background_knowledge,
@@ -67,6 +68,8 @@ _grobid_client = None
 ANALYSIS_CHUNK_SIZE = 1200
 ANALYSIS_CHUNK_OVERLAP = 200
 ANALYSIS_RETRIEVAL_LIMIT = 4
+# 轴证据单条正文上限，与 _load_analysis_source 预加载 documents 时保持一致。
+ANALYSIS_EVIDENCE_MAX_TEXT_CHARS = 1800
 ANALYSIS_RESPONSE_SOURCE_LIMIT = 10
 CLAIM_SUPPORT_LIMIT = 6
 # 精读上下文预算。旧实现是 6 个关键词桶 × [:2500] 字符（约 3.75k token），
@@ -143,7 +146,11 @@ TABLE_FIGURE_LABEL_RE = re.compile(
 )
 PERCENT_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*[%％]")
 PLUS_MINUS_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*(?:±|\+/-)\s*\d+(?:\.\d+)?")
-DECIMAL_RE = re.compile(r"(?<![A-Za-z])\b[+-]?\d+\.\d+\b")
+# 小数边界刻意不用 \b：Python 的 \w 含 CJK，“25.2条”里 2 与 条 之间没有词边界，
+# 会把“PSNR 25.2条件下”整个漏掉，而“PSNR 25.2 下达到”（多一个空格）却能识别 ——
+# 同一个事实的识别结果取决于模型有没有多打一个空格。改成显式排除 ASCII 字母数字与点，
+# 既恢复中文紧邻的命中，也仍能挡住 2308.04079v1 这类 arXiv 版本号。
+DECIMAL_RE = re.compile(r"(?<![A-Za-z0-9.])[+-]?\d+\.\d+(?![A-Za-z0-9.])")
 METRIC_ALIASES = {
     "accuracy": ["accuracy", "acc", "准确率"],
     "f1": ["f1", "f1-score", "f1 score", "f1值", "f1 值"],
@@ -529,25 +536,6 @@ def _build_analysis_context(documents: list[dict[str, Any]], max_docs: int = 4, 
             parts.append(text[:600])
     return "\n\n".join(parts)[:max_chars]
 
-def _extract_query_terms(text: str) -> list[str]:
-    tokens = re.findall(r"[A-Za-z0-9][A-Za-z0-9._-]{1,31}|[\u4e00-\u9fff]{2,12}", str(text or ""))
-    results = []
-    seen = set()
-    for token in tokens:
-        values = [token]
-        if re.fullmatch(r"[\u4e00-\u9fff]{9,12}", token):
-            values = [token[:8], token[-8:]]
-        for value in values:
-            cleaned = str(value).strip()
-            if len(cleaned) < 2:
-                continue
-            key = cleaned.lower()
-            if key in seen:
-                continue
-            seen.add(key)
-            results.append(cleaned)
-    return results[:12]
-
 def _deduplicate_evidence(items: list[dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
     deduped = []
     seen = set()
@@ -567,18 +555,62 @@ def _merge_evidence_lists(*groups: list[dict[str, Any]], limit: int | None = Non
         merged.extend(group or [])
     return _deduplicate_evidence(merged, limit=limit)
 
+def _build_axis_query(query_plan: dict[str, Any], axis: dict[str, Any]) -> str:
+    """组轴检索查询：优先用规划器改写后的检索式，退回轴问题原文。
+
+    刻意不把 keywords 全拼进去：向量检索要的是简洁自然查询，堆词会稀释语义；
+    精确术语召回交给 BM25 那一路（HybridRetriever 内部已按论文分片建索引）。
+    """
+    for candidate in (query_plan.get("rewritten"), query_plan.get("original"), axis.get("question")):
+        query = " ".join(str(candidate or "").split())
+        if query:
+            return query[:300]
+    return ""
+
+
 def _retrieve_axis_evidence(
     documents: list[dict[str, Any]],
     query_plan: dict[str, Any],
     axis: dict[str, Any],
     limit: int = ANALYSIS_RETRIEVAL_LIMIT,
+    pdf_id: str | None = None,
 ) -> list[dict[str, Any]]:
+    """按轴取证据。
+
+    有 pdf_id 时走真检索：HybridRetriever 的向量 + BM25 + 融合，按论文分片建索引，
+    中文轴问题会被自动改写成英文，similarity 是真实余弦。
+
+    旧实现在预加载的 documents 上做子串计数，similarity 由 0.42 + coverage*0.4 合成，
+    既不反映语义相关性，也让“轴问题中文 × 论文英文”这个组合恒零命中：
+    实测 3DGS(2308.04079v1) 那篇 5 条主张里 3 条被判 UNSUPPORTED，而支撑原句
+    就在返回的 10 条证据里（chunk-2 写着 sparse points produced during camera
+    calibration），支持等级实际由“主张里有没有英文专名”决定。
+
+    内联 paper_content 路径从未入库、没有可检索的索引，保留词项匹配兜底。
+    """
+    query = _build_axis_query(query_plan, axis)
     with trace_step(
         f"axis_{axis.get('key')}_retrieve",
         input_size=len(documents),
-        meta={"label": axis.get("label")},
+        meta={
+            "label": axis.get("label"),
+            "scoped": bool(pdf_id),
+            "query": sanitize_text(query, max_chars=120),
+        },
     ) as step:
-        record_counter("retrievalCalls")
+        if pdf_id and query:
+            record_counter("retrievalCalls")
+            retrieved = retrieve_fused_evidence(query, top_k=limit, filter_metadata={"id": pdf_id})
+            evidence = normalize_evidence_items(
+                retrieved,
+                source_type="current_paper",
+                pdf_id=pdf_id,
+                limit=limit,
+                max_text_chars=ANALYSIS_EVIDENCE_MAX_TEXT_CHARS,
+            )
+            step["outputSize"] = len(evidence)
+            return evidence
+
         terms = _build_axis_terms(query_plan, axis)
         if not terms:
             step["outputSize"] = 0
@@ -593,23 +625,15 @@ def _retrieve_axis_evidence(
             if score <= 0:
                 continue
 
-            coverage = len(matched_terms) / len(terms) if terms else 0.0
-            similarity = min(0.95, 0.42 + coverage * 0.4 + min(score / 12, 0.12))
             metadata = dict(item.get("metadata") or {})
             metadata["matched_terms"] = matched_terms[:8]
-
-            scored_item = {
+            scored_items.append({
                 **item,
                 "metadata": metadata,
                 "score": round(score, 3),
-                "similarity": round(max(float(item.get("similarity") or 0), similarity), 3),
-            }
-            scored_items.append(scored_item)
+            })
 
-        scored_items.sort(
-            key=lambda current: (float(current.get("score") or 0), float(current.get("similarity") or 0)),
-            reverse=True,
-        )
+        scored_items.sort(key=lambda current: float(current.get("score") or 0), reverse=True)
         deduped = _deduplicate_evidence(scored_items, limit=limit)
         step["outputSize"] = len(deduped)
         return deduped
@@ -646,6 +670,7 @@ def _analyze_axis(
     axis: dict[str, Any],
     documents: list[dict[str, Any]],
     analysis_context: str,
+    pdf_id: str | None = None,
 ) -> dict[str, Any]:
     question = axis["question"]
     with trace_step(
@@ -655,7 +680,7 @@ def _analyze_axis(
     ) as step:
         query_plan = build_retrieval_queries(question, context=analysis_context, task_type="critical")
         step["outputSize"] = len(query_plan.get("keywords") or [])
-    evidence = _retrieve_axis_evidence(documents, query_plan, axis)
+    evidence = _retrieve_axis_evidence(documents, query_plan, axis, pdf_id=pdf_id)
     with trace_step(
         f"axis_{axis.get('key')}_judge",
         input_size=len(evidence),
@@ -680,7 +705,7 @@ def _analyze_axis(
             input_size=len(str(retry_query or "")),
             meta={"missingAspects": judge.get("missingAspects") or []},
         ):
-            retry_evidence = _retrieve_axis_evidence(documents, retry_plan, axis)
+            retry_evidence = _retrieve_axis_evidence(documents, retry_plan, axis, pdf_id=pdf_id)
         if retry_evidence:
             evidence = _merge_evidence_lists(evidence, retry_evidence, limit=6)
         with trace_step(
@@ -786,6 +811,7 @@ from services.critical_reading import (
     _attach_numeric_evidence_to_claims,
     _build_claim_support_items,
     _build_contribution_assessment,
+    _build_evidence_graph,
     _collect_response_sources,
     _generate_structured_critical_report,
 )
@@ -803,7 +829,12 @@ def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
         documents, resolved_from, normalized_id, paper_content = _load_analysis_source(request)
         analysis_context = _build_analysis_context(documents)
         axis_results = [
-            _analyze_axis(axis_config, documents, analysis_context or paper_content[:2400])
+            _analyze_axis(
+                axis_config,
+                documents,
+                analysis_context or paper_content[:2400],
+                pdf_id=normalized_id,
+            )
             for axis_config in ANALYSIS_AXIS_CONFIGS
         ]
         report = _generate_structured_critical_report(axis_results, analysis_context or paper_content[:2400], resolved_from)
@@ -830,11 +861,13 @@ def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
         for claim in claims:
             sentence_source_fields[f"claims.{claim['id']}"] = claim.get("claim", "")
 
+        evidence_graph = _build_evidence_graph(claims, rag_sources)
+        contribution_basis = assessment["contributionScore"]["basis"]
+
         response = {
             "status": "success",
             "claimed_contributions": report["claimed_contributions"],
             "evidence_based_contributions": report["evidence_based_contributions"],
-            "inferred_real_contributions": report["inferred_real_contributions"],
             "weaknesses": report["weaknesses"],
             "overclaim_risks": report["overclaim_risks"],
             "missing_evidence": report["missing_evidence"],
@@ -844,7 +877,11 @@ def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
             "riskScore": assessment["riskScore"],
             "noveltyDimensions": assessment["noveltyDimensions"],
             "numericEvidenceSummary": numeric_evidence_summary,
+            # citationGraph 继续给 None：真实引用网络需 Semantic Scholar，而本项目
+            # 未配 API key（匿名请求实测 429），且项目约定无 key 时不启用该 provider。
+            # 前端卡片叫“证据关系图”，它真正需要的是下面这个离线构造的主张—证据图。
             "citationGraph": None,
+            "evidenceGraph": evidence_graph,
             "rag_sources": rag_sources,
             "sentenceSourceMap": build_field_sentence_source_map(sentence_source_fields, rag_sources),
             "resolved_from": resolved_from,
@@ -854,6 +891,14 @@ def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
         record_metric("axisCount", len(axis_results))
         record_metric("responseSources", len(response_sources))
         record_metric("numericEvidenceCandidates", numeric_evidence_summary["candidateCount"])
+        # 把本次结果的核心量写进 trace，让改前/改后能直接对比而不必重跑一次 160s。
+        record_metric("claimCount", len(claims))
+        record_metric("supportedClaims", contribution_basis["supportedClaims"])
+        record_metric("unsupportedClaims", contribution_basis["unsupportedClaims"])
+        record_metric("contributionScore", assessment["contributionScore"]["score"])
+        record_metric("riskScore", assessment["riskScore"]["score"])
+        record_metric("evidenceGraphNodes", len(evidence_graph["nodes"]) if evidence_graph else 0)
+        record_metric("evidenceGraphLinks", len(evidence_graph["links"]) if evidence_graph else 0)
         finalize_trace(
             "success",
             response_meta={

@@ -177,17 +177,39 @@ def _build_low_text_upload_response(filename: str, pdf_stats: dict[str, int]) ->
         "parseMessage": diagnostics["parseMessage"],
     }
 
+def _extract_query_terms(text: str) -> list[str]:
+    """从自然语言文本里抽词面检索词项。
+
+    原本住在 services/analysis_service.py，而本模块的 _build_axis_terms 需要它，
+    只能在函数体里反向 import services（core → services 分层倒置），副作用是
+    本函数无法被单独导入和测试。现在下沉到 core，倒置边消除。
+    """
+    tokens = re.findall(r"[A-Za-z0-9][A-Za-z0-9._-]{1,31}|[\u4e00-\u9fff]{2,12}", str(text or ""))
+    results = []
+    seen = set()
+    for token in tokens:
+        values = [token]
+        if re.fullmatch(r"[\u4e00-\u9fff]{9,12}", token):
+            values = [token[:8], token[-8:]]
+        for value in values:
+            cleaned = str(value).strip()
+            if len(cleaned) < 2:
+                continue
+            key = cleaned.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(cleaned)
+    return results[:12]
+
 def _build_axis_terms(query_plan: dict[str, Any], axis: dict[str, Any]) -> list[str]:
-    from services.analysis_service import (
-        _extract_query_terms as _extract_query_terms_local,
-    )
     terms = []
     seen = set()
     for raw in [
         *(query_plan.get("keywords") or []),
         *axis.get("seed_terms", []),
-        *(_extract_query_terms_local(query_plan.get("rewritten") or "")),
-        *(_extract_query_terms_local(query_plan.get("original") or "")),
+        *(_extract_query_terms(query_plan.get("rewritten") or "")),
+        *(_extract_query_terms(query_plan.get("original") or "")),
     ]:
         term = " ".join(str(raw or "").strip().split())
         if len(term) < 2:
