@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Any
 
-from llm.client import get_llm
+from llm.client import get_structured_llm
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.query_service import build_retrieval_queries
 from services.research_conflict import (
@@ -242,7 +242,7 @@ Current paper evidence:
     with trace_step("research_build_plan", input_size=len(prompt)) as step:
         try:
             payload = parse_json_from_llm(
-                get_llm()._call(
+                get_structured_llm()._call(
                     prompt,
                     messages=build_guarded_messages(
                         prompt,
@@ -342,7 +342,7 @@ Current paper evidence:
 
     try:
         payload = parse_json_from_llm(
-            get_llm()._call(
+            get_structured_llm()._call(
                 prompt,
                 messages=build_guarded_messages(
                     prompt,

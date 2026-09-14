@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from llm.client import get_llm
+from llm.client import get_structured_llm
 from services.evidence_service import format_evidence_context
 from services.safety_service import (
     MAX_RESEARCH_SUB_QUESTIONS,
@@ -75,7 +75,7 @@ Current paper evidence:
     with trace_step("research_build_plan", input_size=len(prompt)) as step:
         try:
             payload = parse_json_from_llm(
-                get_llm()._call(
+                get_structured_llm()._call(
                     prompt,
                     messages=build_guarded_messages(
                         prompt,
@@ -347,10 +347,10 @@ Verdict: {verdict}
 """
 
     try:
-        from llm.client import get_llm
+        from llm.client import get_structured_llm
         from services.utils import parse_json_from_llm
 
-        payload = parse_json_from_llm(get_llm()._call(prompt))
+        payload = parse_json_from_llm(get_structured_llm()._call(prompt))
         if not payload.get("shouldReplan"):
             return []
         raw_new = payload.get("newSubQuestions") or []
