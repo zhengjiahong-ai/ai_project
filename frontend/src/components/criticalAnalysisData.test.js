@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import {
+  buildEvidenceGraphLegend,
   buildMetricCards,
   buildSummary,
   getCitationGraph,
   getDetailSections,
+  getEvidenceGraph,
   getEvidencePreview,
   getEvidenceBasedContributions,
   getClaimSupportRows,
@@ -189,6 +191,37 @@ const run = async () => {
   assert.equal(claimRows[1].missingEvidence[0], '缺少跨领域实验');
   assert.equal(claimRows[1].numericVerificationStatusLabel, '不涉及数值核对');
   assert.deepEqual(claimRows[1].numericEvidenceCandidates, []);
+
+  // 证据关系图：优先 evidenceGraph（后端离线构造的主张—证据图），回退 citationGraph。
+  // claim-2 刻意不带出边：孤立主张节点就是“找不到落点”的视觉信号。
+  const evidenceGraphPayload = {
+    citationGraph: null,
+    evidenceGraph: {
+      nodes: [
+        { id: 'claim-1', name: '作者提出新的检索排序方法。', group: 'claim', supportLevel: 'SUPPORTED' },
+        { id: 'claim-2', name: '作者宣称通用框架。', group: 'claim', supportLevel: 'UNSUPPORTED' },
+        { id: 'chunk-1', name: '第 3 页', group: 'evidence' },
+      ],
+      links: [{ source: 'claim-1', target: 'chunk-1', relation: 'supported_by' }],
+    },
+  };
+  const evidenceGraph = getEvidenceGraph(evidenceGraphPayload);
+  assert.equal(evidenceGraph.nodes.length, 3);
+  assert.equal(evidenceGraph.nodes[0].supportLevel, 'SUPPORTED');
+  assert.equal(evidenceGraph.links.length, 1);
+  assert.equal(evidenceGraph.links[0].relation, 'supported_by');
+  // citationGraph 仍为 null（未配 Semantic Scholar key），但卡片不再永远空态。
+  assert.equal(getCitationGraph(evidenceGraphPayload), null);
+  // 无 evidenceGraph 时回退到真实引用网络，保留将来接回 traverse_citation_graph 的路径。
+  assert.equal(getEvidenceGraph({ citationGraph }).nodes.length, 2);
+
+  // 图例只给图里真存在的等级（PARTIAL 缺席则不列）；无主张节点时不给图例。
+  assert.deepEqual(buildEvidenceGraphLegend(evidenceGraph), [
+    { level: 'SUPPORTED', label: '有原文支撑', color: '#22c55e', count: 1 },
+    { level: 'UNSUPPORTED', label: '未找到落点', color: '#94a3b8', count: 1 },
+  ]);
+  assert.deepEqual(buildEvidenceGraphLegend(null), []);
+  assert.deepEqual(buildEvidenceGraphLegend({ nodes: [{ id: 'chunk-1', group: 'evidence' }] }), []);
 
   console.log('critical analysis data helper smoke tests passed');
 };

@@ -26,11 +26,12 @@ import SourceList from './SourceCitation.jsx';
 
 import InsightCard from './InsightCard';
 import {
+  buildEvidenceGraphLegend,
   buildMetricCards,
   buildSummary,
-  getCitationGraph,
   getClaimSupportRows,
   getDetailSections,
+  getEvidenceGraph,
   getEvidencePreview,
   getNoveltyDimensionRows,
   getSentenceSourceReferences,
@@ -54,7 +55,8 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
     }
   }, [data, isLoading]);
 
-  const networkData = useMemo(() => getCitationGraph(data), [data]);
+  const networkData = useMemo(() => getEvidenceGraph(data), [data]);
+  const graphLegend = useMemo(() => buildEvidenceGraphLegend(networkData), [networkData]);
   const metrics = useMemo(() => buildMetricCards(data), [data]);
   const summary = useMemo(() => buildSummary(data), [data]);
   const detailSections = useMemo(() => getDetailSections(data), [data]);
@@ -175,24 +177,45 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
               </div>
 
               {networkData ? (
-                <div ref={containerRef} className="theme-card-soft relative h-64 w-full rounded-xl">
-                  <ForceGraph
-                    graphData={networkData}
-                    height={250}
-                    width={containerWidth}
-                    nodeLabel="name"
-                    nodeRelSize={6}
-                    linkColor={() => cachedThemeColor('--text-muted', '#64748b')}
-                    linkDirectionalArrowLength={3}
-                    linkDirectionalArrowRelPos={1}
-                    cooldownTicks={100}
-                  />
-                </div>
+                <>
+                  <div ref={containerRef} className="theme-card-soft relative h-64 w-full rounded-xl">
+                    <ForceGraph
+                      graphData={networkData}
+                      height={250}
+                      width={containerWidth}
+                      nodeLabel="name"
+                      nodeRelSize={6}
+                      linkColor={() => cachedThemeColor('--text-muted', '#64748b')}
+                      linkDirectionalArrowLength={3}
+                      linkDirectionalArrowRelPos={1}
+                      cooldownTicks={100}
+                    />
+                  </div>
+
+                  {graphLegend.length > 0 && (
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                      {graphLegend.map((item) => (
+                        <span key={item.level} className="theme-text-muted inline-flex items-center gap-1.5 text-[10px]">
+                          <span
+                            className="inline-block h-2 w-2 rounded-full"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          {item.label} {item.count}
+                        </span>
+                      ))}
+                      <span className="theme-text-muted inline-flex items-center gap-1.5 text-[10px]">
+                        <span className="inline-block h-2 w-2 rounded-full bg-slate-500" />
+                        原文片段
+                      </span>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div ref={containerRef} className="theme-card-soft flex min-h-40 flex-col items-center justify-center rounded-xl p-6 text-center">
-                  <p className="theme-text-primary text-sm font-semibold">暂无引用网络</p>
+                  <p className="theme-text-primary text-sm font-semibold">暂无证据关系</p>
                   <p className="theme-text-secondary mt-2 max-w-sm text-xs leading-relaxed">
-                    当前批判阅读没有收到真实 citation graph，因此不会用模拟引用关系兜底展示。
+                    本次批判阅读没有主张能落到检索到的原文片段上，因此没有可画的连线；
+                    不会用模拟关系兜底展示。
                   </p>
                 </div>
               )}
