@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 
 import {
+  NEUTRAL_TONE_CLASS,
+  SOCRATIC_EVIDENCE_VERDICTS,
+  SOCRATIC_MASTERY_LEVELS,
   SOCRATIC_TOTAL_QUESTIONS,
   createEmptySocraticSession,
+  getEvidenceVerdictMeta,
+  getMasteryToneClass,
   normalizeSocraticSession,
 } from './socraticSessionModel.js';
 
@@ -92,6 +97,28 @@ const run = async () => {
   assert.deepEqual(sparseSession.turns[0].missingAspects, ['研究价值']);
   assert.deepEqual(sparseSession.turns[0].evidenceQuality, { verdict: 'CORRECT', confidence: 0.82 });
   assert.deepEqual(sparseSession.reviewSuggestions, ['建议回读方法部分。']);
+
+  // 前后端档位契约：后端 socratic_service.SOCRATIC_MASTERY_LEVELS = (需加强, 一般, 较好)。
+  // 这张表漂移过（旧版缺 '需加强'、却多了后端从不下发的 '很好'），所以逐档钉住。
+  assert.deepEqual(SOCRATIC_MASTERY_LEVELS, ['需加强', '一般', '较好']);
+  assert.deepEqual(SOCRATIC_EVIDENCE_VERDICTS, ['CORRECT', 'AMBIGUOUS', 'INCORRECT']);
+  SOCRATIC_MASTERY_LEVELS.forEach((level) => {
+    const tone = getMasteryToneClass(level);
+    assert.ok(tone && tone !== NEUTRAL_TONE_CLASS, `掌握度 ${level} 回落到中性色，警示色丢了`);
+  });
+  // '需加强' 必须是警示色，这正是旧表整档缺失的那一个。
+  assert.ok(getMasteryToneClass('需加强').includes('rose'));
+  // 后端从不下发 '很好'；未知档位必须安全兜底而不是抛错。
+  assert.equal(getMasteryToneClass('很好'), NEUTRAL_TONE_CLASS);
+  assert.equal(getMasteryToneClass(undefined), NEUTRAL_TONE_CLASS);
+  SOCRATIC_EVIDENCE_VERDICTS.forEach((verdict) => {
+    const meta = getEvidenceVerdictMeta(verdict);
+    assert.ok(meta.label && meta.label !== '证据判断', `verdict ${verdict} 缺中文标签`);
+    assert.ok(meta.toneClass && meta.toneClass !== NEUTRAL_TONE_CLASS, `verdict ${verdict} 缺配色`);
+  });
+  // 小写输入也要能命中：后端下发大写，但本地存储回放可能变形。
+  assert.equal(getEvidenceVerdictMeta('correct').label, '证据充足');
+  assert.deepEqual(getEvidenceVerdictMeta('UNKNOWN'), { label: '证据判断', toneClass: NEUTRAL_TONE_CLASS });
 
   console.log('socratic session model smoke tests passed');
 };

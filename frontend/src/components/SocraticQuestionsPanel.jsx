@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import MarkdownContent from './MarkdownContent';
+import { getEvidenceVerdictMeta, getMasteryToneClass } from '../utils/socraticSessionModel';
 
 const DEFAULT_TOTAL_QUESTIONS = 5;
 
@@ -24,24 +25,6 @@ const emptySession = {
   finalSummary: '',
   reviewSuggestions: [],
   isComplete: false,
-};
-
-const masteryToneMap = {
-  '一般': 'border-amber-400/25 bg-amber-500/10 text-amber-500',
-  '较好': 'border-sky-400/25 bg-sky-500/10 text-sky-400',
-  '很好': 'border-emerald-400/25 bg-emerald-500/10 text-emerald-400',
-};
-
-const evidenceToneMap = {
-  CORRECT: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-400',
-  AMBIGUOUS: 'border-amber-400/25 bg-amber-500/10 text-amber-500',
-  INCORRECT: 'border-rose-400/25 bg-rose-500/10 text-rose-400',
-};
-
-const evidenceVerdictLabelMap = {
-  CORRECT: '证据充足',
-  AMBIGUOUS: '部分相关',
-  INCORRECT: '证据不足',
 };
 
 const learningSteps = [
@@ -64,10 +47,12 @@ const formatEvidenceQuality = (quality) => {
     return null;
   }
 
+  const verdictMeta = getEvidenceVerdictMeta(verdict);
+
   return {
     verdict,
-    verdictLabel: evidenceVerdictLabelMap[verdict] || '证据判断',
-    toneClass: evidenceToneMap[verdict] || 'theme-card-soft',
+    verdictLabel: verdictMeta.label,
+    toneClass: verdictMeta.toneClass,
     reason,
     confidence: Number.isFinite(confidence) ? Math.round(confidence * 100) : null,
   };
@@ -146,7 +131,7 @@ const TurnReviewCard = ({ turn, defaultOpen = false }) => {
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="theme-text-primary text-sm font-semibold">问题 {turn.index}</span>
-            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${masteryToneMap[turn.masteryLevel] || 'theme-card-soft'}`}>
+            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getMasteryToneClass(turn.masteryLevel)}`}>
               掌握度：{turn.masteryLevel || '一般'}
             </span>
           </div>
