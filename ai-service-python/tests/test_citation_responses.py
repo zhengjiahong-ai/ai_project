@@ -5,6 +5,10 @@ from unittest.mock import patch
 from schemas.requests import ChatRequest, DeepAnalysisRequest
 from services import analysis_service, chat_service, critical_reading
 
+# 章节键与章节多样化选取已提升为 evidence_service 的公共 API（retrieval_tools 也复用），
+# 不再从 analysis_service 的私有副本里取。
+from services.evidence_service import evidence_section_key
+
 
 class CitationResponseTests(unittest.TestCase):
     def test_chat_response_sentence_source_map_uses_response_sources(self):
@@ -1228,7 +1232,7 @@ class AxisEvidenceDiversityTests(unittest.TestCase):
         # 尾部四条全部存活，而同章节的四条引言只留下第一条。
         self.assertTrue({20, 30, 40, 50}.issubset(chunks), f"BM25 补召回仍被截掉: {sorted(chunks)}")
         self.assertEqual(chunks, {1, 20, 30, 40, 50})
-        self.assertEqual(len({analysis_service._evidence_section_key(item) for item in evidence}), 5)
+        self.assertEqual(len({evidence_section_key(item) for item in evidence}), 5)
 
     def test_section_cap_is_configurable_and_counts_per_section(self):
         """限额可调：cap=2 时同章节允许两条，但仍不会把名额全给一个章节。"""
@@ -1254,7 +1258,7 @@ class AxisEvidenceDiversityTests(unittest.TestCase):
 
         evidence, _ = self._retrieve(fused)
 
-        self.assertIsNone(analysis_service._evidence_section_key(fused[0]))
+        self.assertIsNone(evidence_section_key(fused[0]))
         self.assertEqual(len(evidence), analysis_service.ANALYSIS_AXIS_EVIDENCE_LIMIT)
         self.assertEqual([item["chunkIndex"] for item in evidence], [1, 2, 3, 4, 5, 6])
 
@@ -1266,14 +1270,14 @@ class AxisEvidenceDiversityTests(unittest.TestCase):
         """
         titled = {"metadata": {"section_title": "Results  and Evaluation"}, "sectionId": "section-9"}
         self.assertEqual(
-            analysis_service._evidence_section_key(titled),
+            evidence_section_key(titled),
             "results and evaluation",
         )
         self.assertEqual(
-            analysis_service._evidence_section_key({"metadata": {}, "sectionId": "section-2"}),
+            evidence_section_key({"metadata": {}, "sectionId": "section-2"}),
             "id:section-2",
         )
-        self.assertIsNone(analysis_service._evidence_section_key({"metadata": None}))
+        self.assertIsNone(evidence_section_key({"metadata": None}))
 
 
 class ResponseSourcePriorityTests(unittest.TestCase):

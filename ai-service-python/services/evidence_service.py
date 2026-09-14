@@ -23,6 +23,9 @@ MIN_CITATION_SCORE = 0.12
 # 实测 “实验在 Tanks and Temples 上…” 只靠一个连词 and 就能对无关证据拿到
 # 1/3 = 0.33（远超 0.12）。同语言配对不触发此门槛，分数因此保持不变。
 MIN_CROSS_SCRIPT_OVERLAP = 2
+# 章节多样化选取时，同一章节默认最多留几条。批判阅读把它压到 1
+# （analysis_service.ANALYSIS_AXIS_SECTION_CAP），由调用方显式传参覆盖。
+DEFAULT_EVIDENCE_SECTION_CAP = 2
 
 
 def normalize_evidence_items(
@@ -64,6 +67,62 @@ def normalize_evidence_items(
             break
 
     return normalized
+
+
+def evidence_section_key(item: dict[str, Any]) -> str | None:
+    """取证据所属章节的归一化标识，定位不到就返回 None。
+
+    真实章节标题住在 metadata.section_title；归一化后顶层只有 sectionId
+    （"section-2" 这种内部编号），编号虽然看不懂，但同章节的多个片段共用一个
+    编号，仍可作为区分章节的兜底键（加 "id:" 前缀避免与恰好叫这个名字的标题撞上）。
+
+    返回 None 表示这条证据无法定位章节，调用方必须让它不占章节限额 —— 否则一批
+    没有章节元数据的语料会被限额砍到只剩 1 条。
+    """
+    metadata = item.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("section_title", "sectionTitle", "section"):
+            value = " ".join(str(metadata.get(key) or "").lower().split())
+            if value:
+                return value
+    section_id = " ".join(str(item.get("sectionId") or "").lower().split())
+    return f"id:{section_id}" if section_id else None
+
+
+def select_section_diverse_evidence(
+    items: list[dict[str, Any]],
+    limit: int,
+    section_cap: int | None = None,
+) -> list[dict[str, Any]]:
+    """按章节多样化选取：同一章节最多 section_cap 条，按检索顺序取到 limit 为止。
+
+    fuse_evidence 是向量主导排序 + BM25 补召回，长度可达 2×top_k。如果直接按位置
+    截前 limit 条，排在后半段的 BM25 补召回（往往是方法/结果/消融/结论里的精确术语
+    命中）会被整段截掉，引言类高频片段反而占满名额。按章节限额选取能让不同章节的
+    片段都有机会进入最终 limit。
+
+    刻意不做“挑不满就放宽限额补足名额”。这个改进实测过并被数据否决：补足把同章节
+    的重复片段又放回来，每轴条数 17→24、judge 输入 18385→25841 字符（+40%），章节
+    覆盖反而从 8 掉到 7 —— 因为合并阶段按轴顺序截断到 10 条，前面的轴多拿的重复片段
+    会把后面轴的独有章节挤掉。宁可某轴少几条，也不拿重复换条数。
+
+    章节信息缺失（key 为 None）的条目不占限额，退化成普通顺序截断。
+    """
+    selected: list[dict[str, Any]] = []
+    per_section: dict[str, int] = {}
+    # 在调用时读常量而不是当默认参数：默认值在定义时绑定，会让运行期的配置与
+    # 测试补丁全部失效。
+    resolved_cap = DEFAULT_EVIDENCE_SECTION_CAP if section_cap is None else section_cap
+    for item in items:
+        if len(selected) >= limit:
+            break
+        section = evidence_section_key(item)
+        if section is not None:
+            if per_section.get(section, 0) >= resolved_cap:
+                continue
+            per_section[section] = per_section.get(section, 0) + 1
+        selected.append(item)
+    return selected
 
 
 def format_evidence_context(

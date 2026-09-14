@@ -57,7 +57,9 @@ from services.evidence_service import (
     _merge_evidence_lists,
     build_field_sentence_source_map,
     compact_evidence_for_response,
+    evidence_section_key,
     normalize_evidence_items,
+    select_section_diverse_evidence,
 )
 from services.retrieval_judge_service import judge_evidence_quality
 from services.safety_service import (
@@ -556,59 +558,6 @@ def _build_axis_query_plan(axis: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _evidence_section_key(item: dict[str, Any]) -> str | None:
-    """取证据所属章节的归一化标识，定位不到就返回 None。
-
-    真实章节标题住在 metadata.section_title —— 这是实测校准过的：检索归一化后顶层
-    并没有 sectionTitle，而 sectionId 只是 "section-2" 这种内部编号。编号虽然看不懂，
-    但同章节的多个片段共用一个编号，仍可作为区分章节的兜底键（加 "id:" 前缀避免与
-    恰好叫这个名字的标题撞上）。
-
-    返回 None 表示这条证据无法定位章节，调用方必须让它不占章节限额 —— 否则一批
-    没有章节元数据的语料会被限额砍到只剩 1 条。
-    """
-    metadata = item.get("metadata")
-    if isinstance(metadata, dict):
-        for key in ("section_title", "sectionTitle", "section"):
-            value = " ".join(str(metadata.get(key) or "").lower().split())
-            if value:
-                return value
-    section_id = " ".join(str(item.get("sectionId") or "").lower().split())
-    return f"id:{section_id}" if section_id else None
-
-
-def _select_section_diverse_evidence(
-    items: list[dict[str, Any]],
-    limit: int,
-    section_cap: int | None = None,
-) -> list[dict[str, Any]]:
-    """按章节多样化选取：同一章节最多 section_cap 条，按检索顺序取到 limit 为止。
-
-    刻意不做“挑不满就放宽限额补足名额”。这个改进实测过并被数据否决：补足把同章节
-    的重复片段又放回来，每轴条数 17→24、judge 输入 18385→25841 字符（+40%），章节
-    覆盖反而从 8 掉到 7 —— 因为合并阶段按轴顺序截断到 10 条，前面的轴多拿的重复片段
-    会把后面轴的独有章节挤掉。宁可某轴少几条，也不拿重复换条数。
-
-    章节信息缺失的条目不占限额（见 _evidence_section_key），所以没有章节元数据的语料
-    在这里退化成普通截断。
-    """
-    selected: list[dict[str, Any]] = []
-    per_section: dict[str, int] = {}
-    # 在调用时读常量而不是当默认参数：默认值在定义时绑定，会让运行期的配置与测试
-    # 补丁全部失效。
-    resolved_cap = ANALYSIS_AXIS_SECTION_CAP if section_cap is None else section_cap
-    for item in items:
-        if len(selected) >= limit:
-            break
-        section = _evidence_section_key(item)
-        if section is not None:
-            if per_section.get(section, 0) >= resolved_cap:
-                continue
-            per_section[section] = per_section.get(section, 0) + 1
-        selected.append(item)
-    return selected
-
-
 def _retrieve_axis_evidence(
     documents: list[dict[str, Any]],
     query_plan: dict[str, Any],
@@ -654,13 +603,19 @@ def _retrieve_axis_evidence(
                 pdf_id=pdf_id,
                 max_text_chars=ANALYSIS_EVIDENCE_MAX_TEXT_CHARS,
             )
-            evidence = _select_section_diverse_evidence(normalized, limit=limit)
+            evidence = select_section_diverse_evidence(
+                normalized,
+                limit=limit,
+                # 在调用时读本模块常量，而不是把它当默认参数绑到公共函数上：
+                # 运行期配置与测试补丁（patch.object ANALYSIS_AXIS_SECTION_CAP）才能生效。
+                section_cap=ANALYSIS_AXIS_SECTION_CAP,
+            )
             step["outputSize"] = len(evidence)
             # 章节覆盖必须可观测：这个缺陷之所以能长期存活，就是因为 trace 里只看得到
             # “取到几条”，看不到“全来自同一章节”。
             step["meta"]["retrievedCount"] = len(normalized)
             step["meta"]["sectionCount"] = len(
-                {key for key in (_evidence_section_key(item) for item in evidence) if key is not None}
+                {key for key in (evidence_section_key(item) for item in evidence) if key is not None}
             )
             return evidence
 

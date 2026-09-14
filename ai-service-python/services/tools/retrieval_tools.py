@@ -12,7 +12,11 @@ import time
 from typing import Any
 
 from rag.store import get_rag, retrieve_fused_evidence, retrieve_hybrid_results
-from services.evidence_service import normalize_evidence_items
+from services.evidence_service import (
+    evidence_section_key,
+    normalize_evidence_items,
+    select_section_diverse_evidence,
+)
 from services.external_evidence import normalize_external_evidence_items
 from services.safety_service import sanitize_external_academic_query_text
 from services.tool_registry import (
@@ -218,6 +222,8 @@ def _retrieve_current_paper_tool(payload: dict[str, Any]) -> dict[str, Any]:
         },
     ) as step:
         record_counter("retrievalCalls")
+        # include_all 走“全量取回”，按位置截断即可；查询检索走混合召回，需要章节多样化。
+        diversify = not include_all
         if include_all:
             fetch_limit = _coerce_positive_int(payload.get("topK"), 120)
             normalize_limit = _coerce_positive_int(payload.get("limit"), 80)
@@ -228,7 +234,9 @@ def _retrieve_current_paper_tool(payload: dict[str, Any]) -> dict[str, Any]:
                 raise ToolValidationError("retrieve_current_paper requires a non-empty query when includeAll is false.")
             top_k = _coerce_positive_int(payload.get("topK"), 8)
             normalize_limit = _coerce_positive_int(payload.get("limit"), 5)
-            # 混合检索：公式符号与专有名词这类精确术语靠 BM25 补，语义改写靠向量补
+            # 混合检索：公式符号与专有名词这类精确术语靠 BM25 补，语义改写靠向量补。
+            # fused 长度可达 2×top_k，这里先全量归一化（不按位置截断），再按章节限额
+            # 选到 normalize_limit —— 否则排在后半段的 BM25 补召回会被整段截掉。
             raw_items = retrieve_fused_evidence(
                 query,
                 top_k=top_k,
@@ -239,11 +247,20 @@ def _retrieve_current_paper_tool(payload: dict[str, Any]) -> dict[str, Any]:
             raw_items,
             source_type="current_paper",
             pdf_id=normalized_pdf_id,
-            limit=normalize_limit,
+            limit=None if diversify else normalize_limit,
             max_text_chars=max_text_chars,
         )
+        retrieved_count = len(normalized_items)
+        if diversify:
+            normalized_items = select_section_diverse_evidence(normalized_items, limit=normalize_limit)
         items = _ensure_stable_source_ids(normalized_items, fallback_prefix=normalized_pdf_id or "current-paper")
         step["outputSize"] = len(items)
+        # 章节覆盖必须可观测：这个缺陷之所以能长期存活，就是因为 trace 里只看得到
+        # “取到几条”，看不到“BM25 补召回被截掉 / 证据全挤在同一章节”。
+        step["meta"]["retrievedCount"] = retrieved_count
+        step["meta"]["sectionCount"] = len(
+            {key for key in (evidence_section_key(item) for item in items) if key is not None}
+        )
         return {
             "items": items,
             "pdfId": normalized_pdf_id,

@@ -1,11 +1,15 @@
 import unittest
+from unittest.mock import patch
 
+from services import evidence_service
 from services.evidence_service import (
     _extract_citation_terms,
     build_field_sentence_source_map,
     build_sentence_source_map,
     compact_evidence_for_response,
+    evidence_section_key,
     normalize_evidence_items,
+    select_section_diverse_evidence,
 )
 
 
@@ -299,6 +303,65 @@ class CrossLingualCitationTests(unittest.TestCase):
         self.assertTrue(
             all("作者声称该方法显著优于既有方案" not in item["sentence"] for item in references)
         )
+
+
+class SectionDiverseEvidenceTests(unittest.TestCase):
+    """章节多样化选取的公共 API。
+
+    它现在被两条链路共用：批判阅读（analysis_service，显式传 cap=1）与 agent
+    检索工具（retrieval_tools，用默认 cap）。后者此前零测试覆盖，所以默认路径
+    必须在这里钉住。
+    """
+
+    @staticmethod
+    def _item(chunk: int, section: str | None) -> dict:
+        metadata = {} if section is None else {"section_title": section}
+        return {"chunkIndex": chunk, "metadata": metadata, "sectionId": "", "text": f"c{chunk}"}
+
+    def test_default_cap_lets_two_per_section_and_keeps_other_sections(self):
+        items = [
+            *(self._item(chunk, "INTRODUCTION") for chunk in (1, 2, 3, 4)),
+            self._item(20, "METHOD"),
+            self._item(30, "RESULTS"),
+        ]
+        selected = select_section_diverse_evidence(items, limit=4)
+        self.assertEqual([item["chunkIndex"] for item in selected], [1, 2, 20, 30])
+
+    def test_explicit_cap_overrides_the_default(self):
+        items = [*(self._item(chunk, "INTRODUCTION") for chunk in (1, 2, 3)), self._item(20, "METHOD")]
+        self.assertEqual(
+            [item["chunkIndex"] for item in select_section_diverse_evidence(items, limit=3, section_cap=1)],
+            [1, 20],
+        )
+
+    def test_default_cap_is_read_at_call_time_so_config_and_patches_apply(self):
+        """常量必须运行期读：当默认参数绑定会让 patch 与配置全部失效。"""
+        items = [*(self._item(chunk, "INTRODUCTION") for chunk in (1, 2, 3, 4))]
+        self.assertEqual(len(select_section_diverse_evidence(items, limit=4)), 2)
+        with patch.object(evidence_service, "DEFAULT_EVIDENCE_SECTION_CAP", 4):
+            self.assertEqual(len(select_section_diverse_evidence(items, limit=4)), 4)
+
+    def test_corpus_without_section_metadata_degrades_to_plain_truncation(self):
+        """护栏：无章节信息时限额不得生效，否则整批语料会被砍到只剩几条。"""
+        items = [self._item(chunk, None) for chunk in range(1, 9)]
+        self.assertIsNone(evidence_section_key(items[0]))
+        self.assertEqual(
+            [item["chunkIndex"] for item in select_section_diverse_evidence(items, limit=6)],
+            [1, 2, 3, 4, 5, 6],
+        )
+
+    def test_limit_always_wins_over_available_items(self):
+        items = [self._item(1, "A"), self._item(2, "B")]
+        self.assertEqual(len(select_section_diverse_evidence(items, limit=10)), 2)
+        self.assertEqual(select_section_diverse_evidence([], limit=5), [])
+
+    def test_section_key_prefers_real_title_then_internal_id(self):
+        self.assertEqual(
+            evidence_section_key({"metadata": {"section_title": "Results  and Evaluation"}, "sectionId": "section-9"}),
+            "results and evaluation",
+        )
+        self.assertEqual(evidence_section_key({"metadata": {}, "sectionId": "section-2"}), "id:section-2")
+        self.assertIsNone(evidence_section_key({"metadata": None}))
 
 
 if __name__ == "__main__":
