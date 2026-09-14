@@ -559,6 +559,43 @@ class AnalysisClaimSupportTests(unittest.TestCase):
         self.assertLess(verbose["score"], assess(mixed, 2, 1)["score"])
         self.assertLess(assess(mixed, 2, 1)["score"], ungrounded["score"])
 
+    def test_partial_claims_show_up_in_risk_summary_and_basis(self):
+        """部分支撑的主张必须出现在摘要里，否则摘要与分数自相矛盾。
+
+        实测 3DGS 那篇出现过 unsupported=0、partial=1：摘要写“检测到 0 条证据不足
+        主张”，可 claimRisk 是 0.083（正是那条 PARTIAL 按半权贡献的）。用户看到
+        “0 条”会以为毫无问题，而分数里明明扣了。
+        """
+        axis_results = [
+            {"key": "methods", "judge": {"verdict": "CORRECT"}, "evidence": [{"sourceId": "m1", "text": "方法。"}]},
+            {"key": "experiments", "judge": {"verdict": "CORRECT"}, "evidence": [{"sourceId": "e1", "text": "实验。"}]},
+        ]
+        report = {"missing_evidence": [], "overclaim_risks": []}
+
+        risk = analysis_service._build_contribution_assessment(
+            report,
+            [
+                {"supportLevel": "SUPPORTED", "missingEvidence": []},
+                {"supportLevel": "PARTIAL", "missingEvidence": []},
+            ],
+            axis_results,
+        )["riskScore"]
+
+        self.assertIn("1 条部分支撑主张", risk["summary"])
+        self.assertEqual(risk["basis"]["partialClaims"], 1)
+        self.assertEqual(risk["basis"]["unsupportedClaims"], 0)
+
+        all_supported = analysis_service._build_contribution_assessment(
+            report,
+            [{"supportLevel": "SUPPORTED", "missingEvidence": []}] * 2,
+            axis_results,
+        )["riskScore"]
+        # 不只是文案变了：分数确实因这条 PARTIAL 而抬高。
+        self.assertGreater(risk["score"], all_supported["score"])
+        # 全支撑时不得多余地提“部分支撑”。
+        self.assertNotIn("部分支撑", all_supported["summary"])
+        self.assertEqual(all_supported["basis"]["partialClaims"], 0)
+
 
 class NumericClaimDetectionTests(unittest.TestCase):
     r"""数值主张识别：中文紧邻小数时不能被漏掉。
@@ -910,6 +947,106 @@ class EvidenceGraphTests(unittest.TestCase):
                 self._sources(),
             )
         )
+
+
+class EvidenceNodeLabelTests(unittest.TestCase):
+    """证据节点标签必须用生产真实形状验证，否则测不出线上长什么样。
+
+    上面 EvidenceGraphTests._sources 的夹具是顶层 sectionTitle + pageIndex=2，
+    那是按代码假设手写的理想形状。实测从检索层拿到的完全是另一回事：标题在
+    metadata.section_title，pageIndex 是 0 基，顶层只有内部标识 sectionId。
+    于是那组测试一路绿着，而线上 4 个证据节点全叫 "section-2"。本类夹具逐字段
+    照抄实测 dump（2308.04079v1.pdf）。
+    """
+
+    @staticmethod
+    def _source(chunk: int, section_title: str, page: int, section_id: str) -> dict:
+        return {
+            "sourceId": f"2308.04079v1.pdf-chunk-{chunk}",
+            "id": f"2308.04079v1.pdf-chunk-{chunk}",
+            "pdfId": "2308.04079v1.pdf",
+            "sourceType": "chunk",
+            "sectionId": section_id,
+            "pageIndex": page - 1,
+            "chunkIndex": chunk,
+            "score": None,
+            "similarity": 0.9,
+            "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection ...",
+            "metadata": {
+                "section_title": section_title,
+                "file_name": "target_paper.pdf",
+                "page": page,
+                "id": "2308.04079v1.pdf",
+                "chunk_index": chunk,
+                "section_id": section_id,
+                "page_index": page - 1,
+                "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering",
+            },
+        }
+
+    @staticmethod
+    def _graph(sources: list[dict]) -> dict:
+        claims = [
+            {
+                "id": f"claim-{index}",
+                "claim": f"论文主张第 {index} 项。",
+                "supportLevel": "SUPPORTED",
+                "evidenceSourceIds": [source["sourceId"]],
+            }
+            for index, source in enumerate(sources, start=1)
+        ]
+        return critical_reading._build_evidence_graph(claims, sources)
+
+    def _evidence_names(self, sources: list[dict]) -> list[str]:
+        graph = self._graph(sources)
+        return [node["name"] for node in graph["nodes"] if node["group"] == "evidence"]
+
+    def test_label_comes_from_metadata_not_internal_section_id(self):
+        """实测形状下必须拿到真实章节名，而不是内部标识。"""
+        names = self._evidence_names([self._source(9, "INTRODUCTION", 1, "section-2")])
+        self.assertEqual(names, ["INTRODUCTION"])
+        self.assertNotIn("section-2", names[0])
+
+    def test_same_section_chunks_stay_distinguishable(self):
+        """实测 6 条主张的证据全落在 INTRODUCTION 的 4 个片段上。
+
+        只显示章节名时图上是 4 个同名节点，hover 也分不出谁是谁，而且看不出
+        “证据其实只来自引言”这个关键事实。这里要求彼此可区分。
+        """
+        sources = [self._source(chunk, "INTRODUCTION", 1, "section-2") for chunk in (9, 8, 4, 5)]
+        names = self._evidence_names(sources)
+        self.assertEqual(len(set(names)), 4)
+        self.assertTrue(all(name.startswith("INTRODUCTION") for name in names))
+        self.assertTrue(all(len(name) <= 26 for name in names))
+
+    def test_distinct_sections_keep_clean_labels(self):
+        """章节各不相同时不得多加后缀，保持标签简洁。"""
+        sources = [
+            self._source(9, "INTRODUCTION", 1, "section-2"),
+            self._source(58, "Results and Evaluation", 8, "section-18"),
+            self._source(66, "Ablations", 9, "section-19"),
+        ]
+        self.assertEqual(
+            self._evidence_names(sources),
+            ["INTRODUCTION", "Results and Evaluation", "Ablations"],
+        )
+
+    def test_first_page_evidence_reports_one_based_page(self):
+        """pageIndex 是 0 基的，首页证据不得因为 page > 0 而丢掉页码。"""
+        source = self._source(3, "", 1, "section-1")
+        source["metadata"].pop("section_title")
+        self.assertEqual(critical_reading._evidence_node_label(source), "第 1 页")
+
+    def test_metadata_only_source_still_gets_readable_label(self):
+        """顶层身份字段全缺时，从 metadata 兜底，不能退化成裸 sourceId。"""
+        source = {
+            "sourceId": "2308.04079v1.pdf-chunk-12",
+            "metadata": {"section_title": "Method", "chunk_index": 12, "page": 3},
+        }
+        self.assertEqual(critical_reading._evidence_node_label(source), "Method")
+
+        bare = {"sourceId": "p.pdf-chunk-7", "metadata": {"chunk_index": 7}}
+        self.assertEqual(critical_reading._evidence_node_label(bare), "片段 7")
 
 
 if __name__ == "__main__":

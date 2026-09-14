@@ -858,6 +858,10 @@ def _build_contribution_assessment(
         },
     ]
 
+    # claimRisk 由 unsupported 与 partial 共同贡献，摘要只报 unsupported 会与分数对不上：
+    # 实测出现过 partial=1 而摘要写“0 条证据不足主张”，claimRisk 却是 0.083。
+    partial_clause = f"、{partial_count} 条部分支撑主张" if partial_count else ""
+
     return {
         "contributionScore": {
             "score": contribution_score,
@@ -882,11 +886,17 @@ def _build_contribution_assessment(
             "label": {"high": "高风险", "medium": "中风险", "low": "低风险"}[
                 _score_level(risk_score, risk=True)
             ],
-            "summary": f"检测到 {unsupported_count} 条证据不足主张、{len(report_missing)} 条报告级缺失证据和 {len(overclaim_risks)} 条夸大风险。",
+            "summary": (
+                f"检测到 {unsupported_count} 条证据不足主张{partial_clause}、"
+                f"{len(report_missing)} 条报告级缺失证据和 {len(overclaim_risks)} 条夸大风险。"
+            ),
             "factors": risk_factors,
             "basis": {
                 "reportMissingEvidenceCount": len(report_missing),
                 "claimMissingEvidenceCount": claim_missing_count,
+                "partialClaims": partial_count,
+                "unsupportedClaims": unsupported_count,
+                "claimCount": claim_count,
                 "overclaimRiskCount": len(overclaim_risks),
                 "methodCovered": has_method,
                 "experimentCovered": has_experiment,
@@ -901,17 +911,68 @@ def _build_contribution_assessment(
 
 
 def _evidence_node_label(source: dict[str, Any]) -> str:
-    """给证据节点起个能看懂的名字：优先章节，退回页码、片段号。"""
-    section = str(source.get("sectionTitle") or source.get("sectionId") or "").strip()
+    """给证据节点起个能看懂的名字：优先真实章节标题，退回页码、片段号。
+
+    三处取值位置都是实测校准的，不能凭字段名想当然：
+
+    1. 真实章节标题住在 metadata.section_title。检索归一化后顶层并没有
+       sectionTitle，而 sectionId 是内部标识（"section-2"），既看不懂也无法区分
+       同章节的多个片段 —— 实测 3DGS 那篇因此让 4 个证据节点在图上全叫
+       "section-2"，hover 也分不出谁是谁，所以不再拿它当标签。
+    2. pageIndex 是 0 基的，首页证据的 page 为 0，会被 "page > 0" 跳过；
+       metadata.page 才是 1 基页码（实测 page=1 对应 pageIndex=0）。
+    3. chunkIndex 同样在 metadata 里有一份 chunk_index，顶层缺失时用它兜底。
+    """
+    metadata = source.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    section = str(source.get("sectionTitle") or metadata.get("section_title") or "").strip()
     if section:
         return section[:EVIDENCE_GRAPH_LABEL_CHARS]
     page = source.get("pageIndex")
+    if not isinstance(page, int) or page <= 0:
+        page = metadata.get("page")
     if isinstance(page, int) and page > 0:
         return f"第 {page} 页"
     chunk = source.get("chunkIndex")
+    if not isinstance(chunk, int):
+        chunk = metadata.get("chunk_index")
     if isinstance(chunk, int) and chunk >= 0:
         return f"片段 {chunk}"
     return str(source.get("sourceId") or "")[-EVIDENCE_GRAPH_LABEL_CHARS:]
+
+
+def _source_chunk_index(source: dict[str, Any]) -> int | None:
+    """取片段号，顶层缺失时回落到 metadata。"""
+    chunk = source.get("chunkIndex")
+    if isinstance(chunk, int):
+        return chunk
+    metadata = source.get("metadata")
+    if isinstance(metadata, dict) and isinstance(metadata.get("chunk_index"), int):
+        return metadata["chunk_index"]
+    return None
+
+
+def _disambiguate_evidence_labels(sources: list[dict[str, Any]]) -> list[str]:
+    """只在真的重名时给证据节点标签追加片段号。
+
+    实测 3DGS 那篇 6 条主张的证据全部落在 INTRODUCTION，只显示章节名时图上是
+    4 个同名节点，用户既分不清也看不出证据其实只来自引言。章节各不相同时保持
+    简洁标签不变，避免无意义的后缀噪声。
+    """
+    base_labels = [_evidence_node_label(source) for source in sources]
+    duplicates = {label for label in base_labels if base_labels.count(label) > 1}
+
+    labels = []
+    for source, label in zip(sources, base_labels):
+        if label in duplicates:
+            chunk = _source_chunk_index(source)
+            if chunk is not None:
+                suffix = f" #{chunk}"
+                budget = max(6, EVIDENCE_GRAPH_LABEL_CHARS - len(suffix))
+                label = label[:budget] + suffix
+        labels.append(label)
+    return labels
 
 
 def _build_evidence_graph(
@@ -963,11 +1024,12 @@ def _build_evidence_graph(
             if source_id not in referenced_source_ids:
                 referenced_source_ids.append(source_id)
 
-    kept_source_ids = set(referenced_source_ids[:EVIDENCE_GRAPH_MAX_SOURCES])
-    for source_id in referenced_source_ids[:EVIDENCE_GRAPH_MAX_SOURCES]:
+    kept_ids = referenced_source_ids[:EVIDENCE_GRAPH_MAX_SOURCES]
+    kept_source_ids = set(kept_ids)
+    for source_id, label in zip(kept_ids, _disambiguate_evidence_labels([source_by_id[sid] for sid in kept_ids])):
         nodes.append({
             "id": source_id,
-            "name": _evidence_node_label(source_by_id[source_id]),
+            "name": label,
             "group": "evidence",
             "val": 5,
             "color": "#64748b",
