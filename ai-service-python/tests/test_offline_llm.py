@@ -76,6 +76,23 @@ class OfflineLlmTests(unittest.TestCase):
         self.assertEqual(translation, "固定译文")
         post.assert_not_called()
 
+    def test_conftest_guard_blocks_unstubbed_live_llm_http(self):
+        """离线护栏必须真的拦住未打桩的 LLM 请求，否则套件会重新依赖账户余额。
+
+        实测代价：欠费时 DeepSeek 秒回 402，全量回归 106 秒；余额恢复后同一批
+        测试跑了 18 分 58 秒，test_paper_writer 单个用例 57.82 秒撞上 CI 的
+        --timeout=60 被杀，报出一个与被测改动毫无关系的失败。
+
+        本用例自己不打桩 requests.post，就是要验证护栏在默认情况下生效；
+        异常消息里带上退出方式（live_llm 标记），让误触的人知道怎么改。
+        """
+        llm = llm_client.DeepSeekLLM(model="deepseek-v4-pro", api_key="test-key")
+
+        with self.assertRaises(RuntimeError) as caught:
+            llm.invoke(LLMRequest(prompt="say hi"))
+
+        self.assertIn("live_llm", str(caught.exception))
+
     def test_matches_messages_and_serializes_json_output(self):
         self._write_fixture(
             [

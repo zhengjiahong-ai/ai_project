@@ -119,18 +119,10 @@ def build_llm_academic_queries(
         llm = DeepSeekLLM(model="deepseek-v4-flash", temperature=temperature)
         raw_output = llm._call(prompt)
     except Exception:
-        return build_external_academic_queries(
-            research_question=research_question,
-            planner_sub_questions=None,
-            missing_aspects=evidence_gaps,
-        )
+        return _fallback_academic_queries(research_question, evidence_gaps, max_queries)
 
     if not raw_output or not raw_output.strip():
-        return build_external_academic_queries(
-            research_question=research_question,
-            planner_sub_questions=None,
-            missing_aspects=evidence_gaps,
-        )
+        return _fallback_academic_queries(research_question, evidence_gaps, max_queries)
 
     queries: list[str] = []
     seen: set = set()
@@ -159,13 +151,41 @@ def build_llm_academic_queries(
             break
 
     if not queries:
-        return build_external_academic_queries(
-            research_question=research_question,
-            planner_sub_questions=None,
-            missing_aspects=evidence_gaps,
-        )
+        return _fallback_academic_queries(research_question, evidence_gaps, max_queries)
 
     return queries
+
+
+def _fallback_academic_queries(
+    research_question: Any,
+    evidence_gaps: Any,
+    max_queries: int,
+) -> list[str]:
+    """LLM 不可用时的确定性回退，必须仍然满足 build_llm_academic_queries 的契约。
+
+    直接把 build_external_academic_queries() 的结果原样返回会违背 docstring 里写明的
+    两条承诺（max_queries 是返回条数上限、返回值非空）：那个函数按
+    MAX_EXTERNAL_QUERIES=5 截断、根本不认 max_queries，而 missing_aspects 为空时
+    它返回 []。实测账户欠费（HTTP 402）走回退时，
+    test_llm_academic_respects_max_queries 拿到 4 条（断言 <= 2）、
+    test_llm_academic_empty_gaps_returns_queries 拿到 0 条（断言 >= 1）；账户恢复后
+    这两个用例又“通过”了 —— 只是活 LLM 恰好守约，缺陷被账户余额掩盖了。
+    """
+    limit = max(1, min(int(max_queries or MAX_EXTERNAL_QUERIES), MAX_EXTERNAL_QUERIES))
+    queries = build_external_academic_queries(
+        research_question=research_question,
+        planner_sub_questions=None,
+        missing_aspects=evidence_gaps,
+    )[:limit]
+    if queries:
+        return queries
+
+    # 缺口为空时也要给出可用的检索式：研究问题本身就是最保守的那一条。
+    question = sanitize_external_academic_query_text(
+        research_question,
+        max_chars=MAX_EXTERNAL_QUERY_CHARS,
+    )
+    return [question] if question else []
 
 
 def _normalize_items(value: Any, max_chars: int) -> list[str]:
@@ -190,6 +210,8 @@ def _normalize_items(value: Any, max_chars: int) -> list[str]:
 
 MAX_WEB_SEARCH_QUERIES = 5
 MAX_WEB_SEARCH_QUERY_CHARS = 300
+# refine_search_queries 的 docstring 承诺 1-3 条，比 build_web_search_queries 的 5 条上限更严。
+MAX_REFINED_WEB_QUERIES = 3
 _WEB_RESEARCH_QUESTION_CHARS = 120
 _WEB_MISSING_ASPECT_CHARS = 180
 
@@ -276,6 +298,29 @@ def _normalize_web_aspects(value: Any, max_chars: int) -> list[str]:
     return normalized
 
 
+def _fallback_web_queries(research_question: Any, missing_aspects: Any) -> list[str]:
+    """refine_search_queries 的确定性回退，同样要守住“1-3 条、非空”的契约。
+
+    与 _fallback_academic_queries 同一类缺陷：build_web_search_queries() 按
+    MAX_WEB_SEARCH_QUERIES=5 截断（超过 docstring 承诺的 3 条），且
+    missing_aspects 为空时返回 []（违背“至少 1 条”）。
+    """
+    from services.safety_service import sanitize_web_search_query_text
+
+    queries = build_web_search_queries(
+        research_question=research_question,
+        missing_aspects=missing_aspects,
+    )[:MAX_REFINED_WEB_QUERIES]
+    if queries:
+        return queries
+
+    question = sanitize_web_search_query_text(
+        research_question,
+        max_chars=MAX_WEB_SEARCH_QUERY_CHARS,
+    )
+    return [question] if question else []
+
+
 def refine_search_queries(
     research_question: str,
     previous_results: list,
@@ -303,10 +348,7 @@ def refine_search_queries(
     from services.safety_service import sanitize_web_search_query_text
 
     if not previous_results:
-        return build_web_search_queries(
-            research_question=research_question,
-            missing_aspects=missing_aspects,
-        )
+        return _fallback_web_queries(research_question, missing_aspects)
 
     # Build a summary of previous results for the LLM
     result_lines = []
@@ -341,16 +383,10 @@ def refine_search_queries(
         llm = DeepSeekLLM(model="deepseek-v4-flash", temperature=temperature)
         raw_output = llm._call(prompt)
     except Exception:
-        return build_web_search_queries(
-            research_question=research_question,
-            missing_aspects=missing_aspects,
-        )
+        return _fallback_web_queries(research_question, missing_aspects)
 
     if not raw_output or not raw_output.strip():
-        return build_web_search_queries(
-            research_question=research_question,
-            missing_aspects=missing_aspects,
-        )
+        return _fallback_web_queries(research_question, missing_aspects)
 
     # Parse response: one query per line, strip numbering/bullets
     queries = []
@@ -381,9 +417,6 @@ def refine_search_queries(
             break
 
     if not queries:
-        return build_web_search_queries(
-            research_question=research_question,
-            missing_aspects=missing_aspects,
-        )
+        return _fallback_web_queries(research_question, missing_aspects)
 
     return queries
