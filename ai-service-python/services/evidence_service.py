@@ -407,3 +407,58 @@ def _coerce_int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _deduplicate_evidence(items: list[dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
+    """按归一化后的正文去重，保持原有顺序。
+
+    原本住在 services/analysis_service.py，但它的两个消费者（analysis_service 的
+    轴内去重、_merge_evidence_lists）分居两个模块，而那两个模块互相导入已经形成
+    循环。本模块只依赖 stdlib，是两边共同的下层，所以工具函数落在这里。
+    注意仓库里 chat_service / agent_evidence_collector 各有一份同名副本，签名不同，
+    本次不动它们 —— 合并那三份是另一件事，混在这里会把改动面撑大。
+    """
+    deduped = []
+    seen = set()
+    for item in items:
+        text_key = " ".join(str(item.get("text") or "").lower().split())
+        if not text_key or text_key in seen:
+            continue
+        seen.add(text_key)
+        deduped.append(item)
+        if limit is not None and len(deduped) >= limit:
+            break
+    return deduped
+
+
+def _merge_evidence_lists(
+    *groups: list[dict[str, Any]],
+    limit: int | None = None,
+    priority_ids: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """合并多组证据、按正文去重，可选地让指定 sourceId 优先占名额。
+
+    priority_ids 是给“先对齐主张、后截断证据”这个顺序兜底的：主张引用的条目如果
+    被截掉，用户就会看到一条带引文的 SUPPORTED 主张却点不到出处。不传时行为与
+    改动前逐位一致（先去重再取前 limit 条）。
+    """
+    merged = []
+    for group in groups:
+        merged.extend(group or [])
+    deduped = _deduplicate_evidence(merged)
+    if limit is None:
+        return deduped
+    selected = deduped[:limit]
+    if not priority_ids:
+        return selected
+
+    available = {str(item.get("sourceId") or "") for item in deduped}
+    wanted = {str(source_id) for source_id in priority_ids if source_id} & available
+    selected_ids = {str(item.get("sourceId") or "") for item in selected}
+    if wanted <= selected_ids:
+        # 名额本来就装得下被引用的条目，不必为了它们打乱原有顺序。
+        return selected
+
+    prioritized = [item for item in deduped if str(item.get("sourceId") or "") in wanted]
+    rest = [item for item in deduped if str(item.get("sourceId") or "") not in wanted]
+    return (prioritized + rest)[:limit]

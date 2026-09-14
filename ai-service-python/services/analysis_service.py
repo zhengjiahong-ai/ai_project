@@ -1,5 +1,4 @@
 import os
-import re
 import shutil
 import tempfile
 from typing import Any
@@ -16,10 +15,7 @@ from core.pdf_quality import (
     _count_non_whitespace_characters,
     _extract_authors,
     _extract_pdf_text_stats,
-    _extract_query_terms,  # noqa: F401 (下沉到 core 后继续再导出给 critical_reading)
     _extract_title,
-    _format_axis_prompt_block,  # noqa: F401 (re-exported for critical_reading)
-    _normalize_list_items,  # noqa: F401 (re-exported for critical_reading)
     _score_document,
     get_grobid_client,
 )
@@ -40,7 +36,25 @@ from schemas.requests import BackgroundKnowledgeRequest, DeepAnalysisRequest
 from services.background_knowledge_service import (
     get_background_knowledge as build_background_knowledge,
 )
+
+# critical_reading 不再反向导入本模块，所以这条边可以放在文件顶部。
+# 以前它卡在第 970 行（所有定义之后）才能跑：那时 critical_reading 在顶部
+# from services.analysis_service import ...，而本模块又在中途 from services.critical_reading
+# import ...，两边互为前提，只能靠“先导 analysis_service”的导入顺序续命 ——
+# 单独 import services.critical_reading 必报 ImportError(partially initialized)，
+# 既无法单独跑它的单测，也让每个探测脚本都得先写一行无关的 import。
+from services.critical_reading import (
+    ANALYSIS_RESPONSE_SOURCE_LIMIT,
+    _attach_numeric_evidence_to_claims,
+    _build_claim_support_items,
+    _build_contribution_assessment,
+    _build_evidence_graph,
+    _collect_response_sources,
+    _generate_structured_critical_report,
+)
 from services.evidence_service import (
+    _deduplicate_evidence,
+    _merge_evidence_lists,
     build_field_sentence_source_map,
     compact_evidence_for_response,
     normalize_evidence_items,
@@ -70,8 +84,6 @@ ANALYSIS_CHUNK_OVERLAP = 200
 ANALYSIS_RETRIEVAL_LIMIT = 4
 # 轴证据单条正文上限，与 _load_analysis_source 预加载 documents 时保持一致。
 ANALYSIS_EVIDENCE_MAX_TEXT_CHARS = 1800
-ANALYSIS_RESPONSE_SOURCE_LIMIT = 10
-CLAIM_SUPPORT_LIMIT = 6
 # 精读上下文预算。旧实现是 6 个关键词桶 × [:2500] 字符（约 3.75k token），
 # 实测某篇论文只有 38.6% 的正文进入模型，被扔掉的 57.8% 里包含整个“提出方法”章节。
 # DeepSeek 系长上下文模型，这里按 120k 字符（约 30k token）给足空间。
@@ -111,75 +123,6 @@ ANALYSIS_AXIS_CONFIGS = (
     },
 )
 VALID_SUPPORT_LEVELS = {"SUPPORTED", "PARTIAL", "UNSUPPORTED"}
-SUPPORT_SIGNAL_TERMS = [
-    "experiment",
-    "experiments",
-    "experimental",
-    "result",
-    "results",
-    "evaluation",
-    "metric",
-    "benchmark",
-    "baseline",
-    "comparison",
-    "ablation",
-    "accuracy",
-    "precision",
-    "recall",
-    "f1",
-    "auc",
-    "提升",
-    "提高",
-    "优于",
-    "实验",
-    "结果",
-    "指标",
-    "评估",
-    "基准",
-    "对比",
-    "消融",
-    "准确率",
-]
-TABLE_FIGURE_LABEL_RE = re.compile(
-    r"\b(?:table|fig\.?|figure)\s*[:.]?\s*\d+[a-z]?\b|(?:表|图)\s*[:：]?\s*\d+[a-z]?",
-    re.IGNORECASE,
-)
-PERCENT_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*[%％]")
-PLUS_MINUS_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*(?:±|\+/-)\s*\d+(?:\.\d+)?")
-# 小数边界刻意不用 \b：Python 的 \w 含 CJK，“25.2条”里 2 与 条 之间没有词边界，
-# 会把“PSNR 25.2条件下”整个漏掉，而“PSNR 25.2 下达到”（多一个空格）却能识别 ——
-# 同一个事实的识别结果取决于模型有没有多打一个空格。改成显式排除 ASCII 字母数字与点，
-# 既恢复中文紧邻的命中，也仍能挡住 2308.04079v1 这类 arXiv 版本号。
-DECIMAL_RE = re.compile(r"(?<![A-Za-z0-9.])[+-]?\d+\.\d+(?![A-Za-z0-9.])")
-METRIC_ALIASES = {
-    "accuracy": ["accuracy", "acc", "准确率"],
-    "f1": ["f1", "f1-score", "f1 score", "f1值", "f1 值"],
-    "precision": ["precision", "精确率", "精度"],
-    "recall": ["recall", "召回率"],
-    "auc": ["auc"],
-    "bleu": ["bleu"],
-    "rouge": ["rouge"],
-    "map": ["map", "mAP"],
-    "latency": ["latency", "延迟"],
-    "throughput": ["throughput", "吞吐"],
-    "performance": ["performance", "性能"],
-}
-NUMERIC_CHANGE_TERMS = [
-    "improve",
-    "improves",
-    "improved",
-    "gain",
-    "gains",
-    "increase",
-    "increases",
-    "decrease",
-    "decreases",
-    "提升",
-    "提高",
-    "增加",
-    "下降",
-    "降低",
-]
 
 class PaperNotIndexedError(RuntimeError):
     def __init__(
@@ -536,25 +479,6 @@ def _build_analysis_context(documents: list[dict[str, Any]], max_docs: int = 4, 
             parts.append(text[:600])
     return "\n\n".join(parts)[:max_chars]
 
-def _deduplicate_evidence(items: list[dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
-    deduped = []
-    seen = set()
-    for item in items:
-        text_key = " ".join(str(item.get("text") or "").lower().split())
-        if not text_key or text_key in seen:
-            continue
-        seen.add(text_key)
-        deduped.append(item)
-        if limit is not None and len(deduped) >= limit:
-            break
-    return deduped
-
-def _merge_evidence_lists(*groups: list[dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
-    merged = []
-    for group in groups:
-        merged.extend(group or [])
-    return _deduplicate_evidence(merged, limit=limit)
-
 def _build_axis_query(query_plan: dict[str, Any], axis: dict[str, Any]) -> str:
     """组轴检索查询：优先用规划器改写后的检索式，退回轴问题原文。
 
@@ -732,90 +656,6 @@ def _analyze_axis(
         "judge": judge,
         "evidence": evidence,
     }
-
-def _normalize_text_value(value: Any, fallback: str) -> str:
-    text = " ".join(str(value or "").strip().split())
-    return text or fallback
-
-def _axis_result_map(axis_results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {item["key"]: item for item in axis_results}
-
-def _fallback_claimed_contributions(axis_results: list[dict[str, Any]]) -> str:
-    contributions = _axis_result_map(axis_results).get("contributions", {})
-    evidence = contributions.get("evidence") or []
-    if not evidence:
-        return "当前证据不足，无法稳定提炼作者显式宣称的贡献。"
-
-    lines = ["根据当前论文证据，作者可能宣称的贡献包括："]
-    for item in evidence[:3]:
-        lines.append(f"- {str(item.get('text') or '')[:120]}")
-    return "\n".join(lines)
-
-def _fallback_evidence_based_contributions(axis_results: list[dict[str, Any]]) -> str:
-    axis_map = _axis_result_map(axis_results)
-    evidence = _merge_evidence_lists(
-        axis_map.get("contributions", {}).get("evidence") or [],
-        axis_map.get("methods", {}).get("evidence") or [],
-        axis_map.get("experiments", {}).get("evidence") or [],
-        limit=4,
-    )
-    if not evidence:
-        return "当前证据不足，尚无法确认哪些贡献真正被方法和实验稳定支撑。"
-
-    lines = ["从当前证据看，较可能成立的真实贡献包括："]
-    for item in evidence[:3]:
-        lines.append(f"- {str(item.get('text') or '')[:120]}")
-    return "\n".join(lines)
-
-def _fallback_weaknesses(axis_results: list[dict[str, Any]]) -> list[str]:
-    axis_map = _axis_result_map(axis_results)
-    weaknesses = []
-    if (axis_map.get("methods", {}).get("judge") or {}).get("verdict") != "CORRECT":
-        weaknesses.append("方法细节证据不足，关键设计是否必要仍需进一步核对。")
-    if (axis_map.get("experiments", {}).get("judge") or {}).get("verdict") != "CORRECT":
-        weaknesses.append("实验与结果证据覆盖不足，结论支撑力度仍然有限。")
-    if (axis_map.get("limitations", {}).get("judge") or {}).get("verdict") != "CORRECT":
-        weaknesses.append("局限性或失败情形披露不充分，风险边界不够清晰。")
-    return weaknesses
-
-def _fallback_overclaim_risks(axis_results: list[dict[str, Any]]) -> list[str]:
-    axis_map = _axis_result_map(axis_results)
-    risks = []
-    if (axis_map.get("contributions", {}).get("judge") or {}).get("verdict") != "CORRECT":
-        risks.append("作者主张的贡献点本身证据覆盖不足，存在表述过强的风险。")
-    if (axis_map.get("contributions", {}).get("judge") or {}).get("verdict") == "CORRECT" and (
-        axis_map.get("experiments", {}).get("judge") or {}
-    ).get("verdict") != "CORRECT":
-        risks.append("论文的贡献表述可能超出当前实验或对比证据能够直接支撑的范围。")
-    if (axis_map.get("methods", {}).get("judge") or {}).get("verdict") != "CORRECT":
-        risks.append("部分方法创新点缺少足够机制性证据，可能存在贡献重包装风险。")
-    return risks
-
-def _fallback_missing_evidence(axis_results: list[dict[str, Any]]) -> list[str]:
-    missing = []
-    seen = set()
-    for axis_result in axis_results:
-        judge = axis_result.get("judge") or {}
-        if judge.get("verdict") == "CORRECT":
-            continue
-        aspects = judge.get("missingAspects") or []
-        text = f"{axis_result.get('label')}：{'、'.join(str(item) for item in aspects[:3])}" if aspects else f"{axis_result.get('label')}：相关证据不足"
-        key = text.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        missing.append(text[:160])
-    return missing
-
-from services.critical_reading import (
-    _attach_numeric_evidence_to_claims,
-    _build_claim_support_items,
-    _build_contribution_assessment,
-    _build_evidence_graph,
-    _collect_response_sources,
-    _generate_structured_critical_report,
-)
-
 
 def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
     trace_id = start_trace(

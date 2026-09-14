@@ -9,29 +9,13 @@ import logging
 import re
 from typing import Any
 
-from llm.client import get_llm
-from services.analysis_service import (
-    ANALYSIS_RESPONSE_SOURCE_LIMIT,
-    CLAIM_SUPPORT_LIMIT,
-    DECIMAL_RE,
-    METRIC_ALIASES,
-    NUMERIC_CHANGE_TERMS,
-    PERCENT_RE,
-    PLUS_MINUS_RE,
-    SUPPORT_SIGNAL_TERMS,
-    TABLE_FIGURE_LABEL_RE,
+from core.pdf_quality import (
     _extract_query_terms,
-    _fallback_claimed_contributions,
-    _fallback_evidence_based_contributions,
-    _fallback_missing_evidence,
-    _fallback_overclaim_risks,
-    _fallback_weaknesses,
     _format_axis_prompt_block,
-    _merge_evidence_lists,
     _normalize_list_items,
-    _normalize_text_value,
 )
-from services.evidence_service import normalize_evidence_items
+from llm.client import get_llm
+from services.evidence_service import _merge_evidence_lists, normalize_evidence_items
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE
 from services.safety_service import build_guarded_messages, wrap_untrusted_context
 from services.trace_service import trace_step
@@ -66,6 +50,161 @@ EVIDENCE_GRAPH_NODE_SIZES = {
     "PARTIAL": 8,
     "UNSUPPORTED": 6,
 }
+
+# 响应里最多带多少条证据。定义在本模块是因为 _collect_response_sources（它的唯一
+# 实质消费者）住在这里；analysis_service 反过来从本模块取它给 compact_evidence_for_response。
+ANALYSIS_RESPONSE_SOURCE_LIMIT = 10
+CLAIM_SUPPORT_LIMIT = 6
+SUPPORT_SIGNAL_TERMS = [
+    "experiment",
+    "experiments",
+    "experimental",
+    "result",
+    "results",
+    "evaluation",
+    "metric",
+    "benchmark",
+    "baseline",
+    "comparison",
+    "ablation",
+    "accuracy",
+    "precision",
+    "recall",
+    "f1",
+    "auc",
+    "提升",
+    "提高",
+    "优于",
+    "实验",
+    "结果",
+    "指标",
+    "评估",
+    "基准",
+    "对比",
+    "消融",
+    "准确率",
+]
+TABLE_FIGURE_LABEL_RE = re.compile(
+    r"\b(?:table|fig\.?|figure)\s*[:.]?\s*\d+[a-z]?\b|(?:表|图)\s*[:：]?\s*\d+[a-z]?",
+    re.IGNORECASE,
+)
+PERCENT_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*[%％]")
+PLUS_MINUS_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*(?:±|\+/-)\s*\d+(?:\.\d+)?")
+# 小数边界刻意不用 \b：Python 的 \w 含 CJK，“25.2条”里 2 与 条 之间没有词边界，
+# 会把“PSNR 25.2条件下”整个漏掉，而“PSNR 25.2 下达到”（多一个空格）却能识别 ——
+# 同一个事实的识别结果取决于模型有没有多打一个空格。改成显式排除 ASCII 字母数字与点，
+# 既恢复中文紧邻的命中，也仍能挡住 2308.04079v1 这类 arXiv 版本号。
+DECIMAL_RE = re.compile(r"(?<![A-Za-z0-9.])[+-]?\d+\.\d+(?![A-Za-z0-9.])")
+METRIC_ALIASES = {
+    "accuracy": ["accuracy", "acc", "准确率"],
+    "f1": ["f1", "f1-score", "f1 score", "f1值", "f1 值"],
+    "precision": ["precision", "精确率", "精度"],
+    "recall": ["recall", "召回率"],
+    "auc": ["auc"],
+    "bleu": ["bleu"],
+    "rouge": ["rouge"],
+    "map": ["map", "mAP"],
+    "latency": ["latency", "延迟"],
+    "throughput": ["throughput", "吞吐"],
+    "performance": ["performance", "性能"],
+}
+NUMERIC_CHANGE_TERMS = [
+    "improve",
+    "improves",
+    "improved",
+    "gain",
+    "gains",
+    "increase",
+    "increases",
+    "decrease",
+    "decreases",
+    "提升",
+    "提高",
+    "增加",
+    "下降",
+    "降低",
+]
+
+
+def _normalize_text_value(value: Any, fallback: str) -> str:
+    text = " ".join(str(value or "").strip().split())
+    return text or fallback
+
+
+def _axis_result_map(axis_results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {item["key"]: item for item in axis_results}
+
+
+def _fallback_claimed_contributions(axis_results: list[dict[str, Any]]) -> str:
+    contributions = _axis_result_map(axis_results).get("contributions", {})
+    evidence = contributions.get("evidence") or []
+    if not evidence:
+        return "当前证据不足，无法稳定提炼作者显式宣称的贡献。"
+
+    lines = ["根据当前论文证据，作者可能宣称的贡献包括："]
+    for item in evidence[:3]:
+        lines.append(f"- {str(item.get('text') or '')[:120]}")
+    return "\n".join(lines)
+
+
+def _fallback_evidence_based_contributions(axis_results: list[dict[str, Any]]) -> str:
+    axis_map = _axis_result_map(axis_results)
+    evidence = _merge_evidence_lists(
+        axis_map.get("contributions", {}).get("evidence") or [],
+        axis_map.get("methods", {}).get("evidence") or [],
+        axis_map.get("experiments", {}).get("evidence") or [],
+        limit=4,
+    )
+    if not evidence:
+        return "当前证据不足，尚无法确认哪些贡献真正被方法和实验稳定支撑。"
+
+    lines = ["从当前证据看，较可能成立的真实贡献包括："]
+    for item in evidence[:3]:
+        lines.append(f"- {str(item.get('text') or '')[:120]}")
+    return "\n".join(lines)
+
+
+def _fallback_weaknesses(axis_results: list[dict[str, Any]]) -> list[str]:
+    axis_map = _axis_result_map(axis_results)
+    weaknesses = []
+    if (axis_map.get("methods", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        weaknesses.append("方法细节证据不足，关键设计是否必要仍需进一步核对。")
+    if (axis_map.get("experiments", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        weaknesses.append("实验与结果证据覆盖不足，结论支撑力度仍然有限。")
+    if (axis_map.get("limitations", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        weaknesses.append("局限性或失败情形披露不充分，风险边界不够清晰。")
+    return weaknesses
+
+
+def _fallback_overclaim_risks(axis_results: list[dict[str, Any]]) -> list[str]:
+    axis_map = _axis_result_map(axis_results)
+    risks = []
+    if (axis_map.get("contributions", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        risks.append("作者主张的贡献点本身证据覆盖不足，存在表述过强的风险。")
+    if (axis_map.get("contributions", {}).get("judge") or {}).get("verdict") == "CORRECT" and (
+        axis_map.get("experiments", {}).get("judge") or {}
+    ).get("verdict") != "CORRECT":
+        risks.append("论文的贡献表述可能超出当前实验或对比证据能够直接支撑的范围。")
+    if (axis_map.get("methods", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        risks.append("部分方法创新点缺少足够机制性证据，可能存在贡献重包装风险。")
+    return risks
+
+
+def _fallback_missing_evidence(axis_results: list[dict[str, Any]]) -> list[str]:
+    missing = []
+    seen = set()
+    for axis_result in axis_results:
+        judge = axis_result.get("judge") or {}
+        if judge.get("verdict") == "CORRECT":
+            continue
+        aspects = judge.get("missingAspects") or []
+        text = f"{axis_result.get('label')}：{'、'.join(str(item) for item in aspects[:3])}" if aspects else f"{axis_result.get('label')}：相关证据不足"
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        missing.append(text[:160])
+    return missing
 
 
 def _fallback_critical_analysis(
