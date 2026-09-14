@@ -249,14 +249,19 @@ class CitationResponseTests(unittest.TestCase):
         response_source_ids = {source["sourceId"] for source in response["rag_sources"]}
         candidate_source_ids = {item["sourceId"] for item in claim["numericEvidenceCandidates"]}
 
-        self.assertEqual(claim["numericVerificationStatus"], "insufficient_for_auto_verification")
+        # 主张里的 20% 与证据里的 20% 逐字相同 —— 这就是“核对上了”，不再是
+        # 旧实现那种“找到候选就一律说不足以自动验证”。
+        self.assertEqual(claim["numericVerificationStatus"], "verified")
         self.assertEqual(candidate_source_ids, {"table-source-1"})
         self.assertLessEqual(candidate_source_ids, response_source_ids)
         self.assertEqual(claim["numericEvidenceCandidates"][0]["pageIndex"], 4)
         self.assertIn("f1", claim["numericEvidenceCandidates"][0]["metrics"])
         self.assertIn("20%", claim["numericEvidenceCandidates"][0]["numbers"])
+        self.assertEqual(claim["numericEvidenceCandidates"][0]["matchedNumbers"], ["20%"])
         self.assertEqual(response["numericEvidenceSummary"]["numericClaimCount"], 1)
+        self.assertEqual(response["numericEvidenceSummary"]["verifiedClaimCount"], 1)
         self.assertEqual(response["numericEvidenceSummary"]["candidateCount"], 1)
+        self.assertEqual(response["numericEvidenceSummary"]["status"], "verified")
 
     def test_deep_analysis_numeric_claim_without_candidate_is_not_found(self):
         axis_result = {
@@ -628,6 +633,122 @@ class NumericClaimDetectionTests(unittest.TestCase):
         )
         self.assertIn("8.2%", values)
         self.assertIn("12.5", values)
+
+
+class NumericVerificationTests(unittest.TestCase):
+    """数值核验必须真的核对，而且不能被“模型没写小数点”卡住。
+
+    两处缺陷都是实测出来的（3DGS / 2308.04079v1）：
+
+    1. 一次生成写了“作者在1080p分辨率下实现≥30 fps的高质量实时新视角合成”，
+       却被判 not_applicable —— 原有三个正则只认 ± / % / 小数，“30” 这种带单位的
+       整数一律漏掉。实测 6 条主张里 5 条因此进不了核验流程。
+    2. 另一次里“训练 51 分钟、PSNR 25.2”拿到 2 条候选，第 1 条带的是无关的 99%、
+       第 2 条才是逐字相同的 25.2，而状态一律是 insufficient_for_auto_verification ——
+       匹配结果已经算出来了，却没被用上。
+    """
+
+    @staticmethod
+    def _source(source_id: str, text: str, chunk: int, page: int = 0) -> dict:
+        return {
+            "sourceId": source_id,
+            "text": text,
+            "pageIndex": page,
+            "sectionId": "section-1",
+            "chunkIndex": chunk,
+        }
+
+    # 能过候选门槛（含 NUMERIC_CHANGE_TERMS 里的 improves）但数值与主张无关。
+    UNRELATED = "Our method improves rendering speed, with 99% of scenes handled in real time."
+    MATCHING = "Fig.1: PSNR 25.2 reached after 51 min of training on the benchmark scene."
+    CLAIM = "作者报告训练 51 分钟、PSNR 25.2，并声称质量与先前最佳方法相当。"
+
+    def test_unit_adjacent_integers_are_extracted(self):
+        """带单位的整数必须算数值：这是主张里最常见的定量写法。"""
+        cases = {
+            "作者在1080p分辨率下实现≥30 fps的高质量实时新视角合成。": "30",
+            "作者报告训练 51min、PSNR 25.2。": "51",
+            "作者报告训练51分钟。": "51",
+            "渲染速度提升 2 倍。": "2",
+            "延迟降低至 12 ms。": "12",
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertIn(expected, critical_reading._extract_numeric_values(text))
+
+    def test_identifiers_are_not_mistaken_for_measurements(self):
+        """精度护栏：版本号、模型名、章节号不得被当成测量值。
+
+        只要求“数字紧邻单位”而不是任意整数，就是为了这一条：否则 arXiv 号与
+        “3D Gaussian” 里那个 3 全会进来，把大量定性主张误判成数值主张。
+        """
+        values = critical_reading._extract_numeric_values(
+            "参见 2308.04079v1 的补充材料，本文用 3D Gaussian 在 Mip-NeRF360 上对比。"
+        )
+        self.assertEqual(values, [])
+
+    def test_matched_candidate_is_ranked_first(self):
+        """数值对得上的候选必须排在前面。
+
+        旧实现按 rag_sources 顺序收满 3 条就 break，实测把无关的 99% 排在了
+        逐字命中的 25.2 前面 —— 用户先看到的恰恰是对不上的那条。
+        """
+        sources = [
+            self._source("p-chunk-90", self.UNRELATED, 90, page=5),
+            self._source("p-chunk-1", self.MATCHING, 1),
+        ]
+
+        candidates = critical_reading._build_numeric_evidence_candidates(self.CLAIM, sources)
+
+        self.assertEqual([item["sourceId"] for item in candidates], ["p-chunk-1", "p-chunk-90"])
+        self.assertEqual(candidates[0]["matchedNumbers"], ["25.2", "51"])
+        self.assertEqual(candidates[1]["matchedNumbers"], [])
+        self.assertIn("逐字出现", candidates[0]["reason"])
+
+    def test_number_match_yields_verified_status(self):
+        claims = [{"id": "claim-1", "claim": self.CLAIM}]
+        sources = [
+            self._source("p-chunk-90", self.UNRELATED, 90, page=5),
+            self._source("p-chunk-1", self.MATCHING, 1),
+        ]
+
+        summary = critical_reading._attach_numeric_evidence_to_claims(claims, sources)
+
+        self.assertEqual(claims[0]["numericVerificationStatus"], "verified")
+        self.assertEqual(summary["verifiedClaimCount"], 1)
+        self.assertEqual(summary["status"], "verified")
+
+    def test_candidate_without_number_match_is_not_verified(self):
+        """护栏：找到候选不等于核对上了，数值对不上时不得报 verified。"""
+        claims = [{"id": "claim-1", "claim": self.CLAIM}]
+        sources = [self._source("p-chunk-90", self.UNRELATED, 90, page=5)]
+
+        summary = critical_reading._attach_numeric_evidence_to_claims(claims, sources)
+
+        self.assertEqual(claims[0]["numericVerificationStatus"], "insufficient_for_auto_verification")
+        self.assertEqual(summary["verifiedClaimCount"], 0)
+        self.assertEqual(summary["candidateCount"], 1)
+        self.assertEqual(summary["status"], "insufficient_for_auto_verification")
+
+    def test_aggregate_status_requires_every_numeric_claim_to_match(self):
+        """汇总状态不能因为一条对上就报全篇 verified。"""
+        claims = [
+            {"id": "claim-1", "claim": self.CLAIM},
+            {"id": "claim-2", "claim": "作者声称渲染帧率达到 30 fps。"},
+            {"id": "claim-3", "claim": "作者提出以 3D Gaussian 作为场景基元。"},
+        ]
+        sources = [self._source("p-chunk-1", self.MATCHING, 1)]
+
+        summary = critical_reading._attach_numeric_evidence_to_claims(claims, sources)
+
+        self.assertEqual(claims[0]["numericVerificationStatus"], "verified")
+        # 30 fps 在证据里找不到，但 Fig.1 那段仍是合法候选（带表/图标签）——
+        # 所以是“候选对不上”而不是“没候选”。定性主张仍是 not_applicable。
+        self.assertEqual(claims[1]["numericVerificationStatus"], "insufficient_for_auto_verification")
+        self.assertEqual(claims[2]["numericVerificationStatus"], "not_applicable")
+        self.assertEqual(summary["numericClaimCount"], 2)
+        self.assertEqual(summary["verifiedClaimCount"], 1)
+        self.assertEqual(summary["status"], "insufficient_for_auto_verification")
 
 
 class _FakeLlm:

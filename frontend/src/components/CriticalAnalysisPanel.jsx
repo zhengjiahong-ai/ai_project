@@ -380,7 +380,19 @@ const CriticalAnalysisPanel = ({ data, onAnalyze, isLoading, onCaptureArtifact, 
                                       </span>
                                     ))}
                                     {candidate.numbers.map((number) => (
-                                      <span key={`${candidate.id}-number-${number}`} className="source-link-chip">
+                                      <span
+                                        key={`${candidate.id}-number-${number}`}
+                                        className={
+                                          (candidate.matchedNumbers || []).includes(number)
+                                            ? 'source-link-chip border-emerald-500/40 bg-emerald-500/10 text-emerald-600'
+                                            : 'source-link-chip'
+                                        }
+                                        title={
+                                          (candidate.matchedNumbers || []).includes(number)
+                                            ? '与主张里的数值逐字一致'
+                                            : undefined
+                                        }
+                                      >
                                         {number}
                                       </span>
                                     ))}

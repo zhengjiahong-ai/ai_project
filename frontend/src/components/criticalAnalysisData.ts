@@ -344,6 +344,11 @@ const SUPPORT_LEVEL_STYLES: Record<string, string> = {
 
 const NUMERIC_VERIFICATION_LABELS: Record<string, string> = {
   not_applicable: '不涉及数值核对',
+  // 后端在“主张里的数值于原文逐字命中”时给 verified。这里必须登记，否则
+  // normalizeNumericVerificationStatus 会把它归一成 not_applicable，而面板对
+  // not_applicable 是整块隐藏 —— 核验真做出来了反而什么都看不见。
+  // 措辞刻意不说“已验证正确”：命中的是数值本身，不等于主张成立。
+  verified: '数值在原文中命中',
   candidate_found: '找到候选数值证据',
   insufficient_for_auto_verification: '候选证据不足以自动验证',
   not_found: '未找到对应数值证据',
@@ -450,6 +455,9 @@ export const getClaimSupportRows = (data: Record<string, unknown> | null | undef
               label: normalizeText(candidate?.label),
               metrics: normalizeList(candidate?.metrics),
               numbers: normalizeList(candidate?.numbers),
+              // 与主张逐字对上的那部分数值。面板靠它把命中的数值标绿，
+              // 否则一堆 chip 里看不出到底哪个对上了。
+              matchedNumbers: normalizeList(candidate?.matchedNumbers),
               reason: normalizeText(candidate?.reason),
               status: normalizeText(candidate?.status) || 'candidate_found',
               chunkIndex: normalizeInteger(candidate?.chunkIndex) ?? (source?.chunkIndex as number | null) ?? null,

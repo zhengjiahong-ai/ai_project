@@ -379,6 +379,23 @@ def _source_ids(items: list[dict[str, Any]]) -> list[str]:
     return ids
 
 
+# 主张里最常见的数量写法是“数字 + 单位”（30 fps、51min、51分钟、2 倍），而下面三个
+# 正则分别只认 ±、% 和小数 —— 不带小数点的整数一律漏掉。实测 3DGS 那篇的一次生成
+# 写了“作者在1080p分辨率下实现≥30 fps的高质量实时新视角合成”，这条本来能直接对着
+# 原文核对的主张因此被判 not_applicable，根本没进核验流程。
+# 只认“数字紧邻单位”而不是任意整数：否则 arXiv 号、章节号、“3D Gaussian” 里那个 3
+# 全会被当成测量值。捕获组只取数字本身，让它与小数/百分号那几路产出的 token 可比。
+NUMBER_WITH_UNIT_RE = re.compile(
+    r"(?<![A-Za-z0-9.])([+-]?\d+(?:\.\d+)?)\s*"
+    r"(?:fps|hz|milliseconds?|ms|seconds?|secs?|s|minutes?|mins?|hours?|hrs?|h|days?|"
+    r"tb|gb|mb|kb|iterations?|iters?|epochs?|steps?|samples?|points?|"
+    r"images?|views?|scenes?|frames?|db|times|fold|[×x]"
+    r"|秒|分钟|小时|天|倍|次|轮|帧|张|幅|个百分点)"
+    r"(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
+
+
 def _normalize_number_token(value: str) -> str:
     return re.sub(r"\s+", "", str(value or "").replace("％", "%")).strip()
 
@@ -387,7 +404,8 @@ def _extract_numeric_values(text: Any) -> list[str]:
     value = str(text or "")
     results: list[str] = []
     seen = set()
-    for pattern in (PLUS_MINUS_RE, PERCENT_RE, DECIMAL_RE):
+    # 单位路排最后：seen 会去重，让更具体的 ±/%/小数 先占位，[:8] 的名额留给它们。
+    for pattern in (PLUS_MINUS_RE, PERCENT_RE, DECIMAL_RE, NUMBER_WITH_UNIT_RE):
         for match in pattern.findall(value):
             token = _normalize_number_token(match)
             if not token or token in seen:
@@ -422,13 +440,20 @@ def _has_numeric_change_term(text: Any) -> bool:
     return any(term.lower() in value for term in NUMERIC_CHANGE_TERMS)
 
 
-def _numeric_candidate_reason(label: str, metrics: list[str], numbers: list[str]) -> str:
+def _numeric_candidate_reason(
+    label: str,
+    metrics: list[str],
+    numbers: list[str],
+    matched: list[str] | None = None,
+) -> str:
     parts = []
+    if matched:
+        parts.append(f"主张里的 {', '.join(matched[:3])} 在本段逐字出现")
     if label:
         parts.append(f"匹配到 {label}")
     if metrics:
         parts.append(f"指标 {', '.join(metrics[:3])}")
-    if numbers:
+    if numbers and not matched:
         parts.append(f"数值 {', '.join(numbers[:3])}")
     return "；".join(parts) + "。候选片段仍需人工对照原表或图。" if parts else "候选片段仍需人工对照原表或图。"
 
@@ -462,6 +487,7 @@ def _build_numeric_evidence_candidates(claim_text: str, rag_sources: list[dict[s
 
         seen_source_ids.add(source_id)
         matched_metrics = metric_overlap or metrics
+        matched_numbers = sorted(set(claim_numbers).intersection(numbers))
         candidates.append(
             {
                 "sourceId": source_id,
@@ -472,14 +498,17 @@ def _build_numeric_evidence_candidates(claim_text: str, rag_sources: list[dict[s
                 "label": label,
                 "metrics": matched_metrics[:5],
                 "numbers": numbers[:6],
-                "reason": _numeric_candidate_reason(label, matched_metrics, numbers),
+                "matchedNumbers": matched_numbers,
+                "reason": _numeric_candidate_reason(label, matched_metrics, numbers, matched_numbers),
                 "status": "candidate_found",
             }
         )
-        if len(candidates) >= 3:
-            break
 
-    return candidates
+    # 数值对得上的排前面。旧实现按 rag_sources 顺序收满 3 条就 break，实测出现过
+    # 第 1 条候选带的是无关的 99%、第 2 条才是主张里那个 25.2 —— 用户先看到的恰恰是
+    # 对不上的那条。先收齐再排序，稳定排序保证同组内仍是原有顺序。
+    candidates.sort(key=lambda item: len(item["matchedNumbers"]), reverse=True)
+    return candidates[:3]
 
 
 def _attach_numeric_evidence_to_claims(
@@ -488,6 +517,7 @@ def _attach_numeric_evidence_to_claims(
 ) -> dict[str, Any]:
     numeric_claim_count = 0
     candidate_count = 0
+    verified_claim_count = 0
     for claim in claims:
         claim_text = str(claim.get("claim") or "")
         if not _extract_numeric_values(claim_text):
@@ -499,12 +529,24 @@ def _attach_numeric_evidence_to_claims(
         candidates = _build_numeric_evidence_candidates(claim_text, rag_sources)
         claim["numericEvidenceCandidates"] = candidates
         candidate_count += len(candidates)
-        claim["numericVerificationStatus"] = (
-            "insufficient_for_auto_verification" if candidates else "not_found"
-        )
+        # 真做核对：主张里的数值有没有在候选证据里逐字出现。
+        # 旧实现只要找到候选就一律回 insufficient_for_auto_verification —— 实测
+        # 那条“训练 51 分钟、PSNR 25.2”的主张，候选里明明有逐字相同的 25.2，状态却
+        # 仍是“候选证据不足以自动验证”，等于把已经算出来的匹配结果丢掉了。
+        # 注意 verified 只意味着“数值在原文找得到”，不意味着主张本身成立。
+        matched = any(candidate.get("matchedNumbers") for candidate in candidates)
+        if matched:
+            verified_claim_count += 1
+            claim["numericVerificationStatus"] = "verified"
+        elif candidates:
+            claim["numericVerificationStatus"] = "insufficient_for_auto_verification"
+        else:
+            claim["numericVerificationStatus"] = "not_found"
 
     if numeric_claim_count <= 0:
         status = "not_applicable"
+    elif verified_claim_count == numeric_claim_count:
+        status = "verified"
     elif candidate_count > 0:
         status = "insufficient_for_auto_verification"
     else:
@@ -513,6 +555,7 @@ def _attach_numeric_evidence_to_claims(
     return {
         "claimCount": len(claims),
         "numericClaimCount": numeric_claim_count,
+        "verifiedClaimCount": verified_claim_count,
         "candidateCount": candidate_count,
         "status": status,
     }
