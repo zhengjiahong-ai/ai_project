@@ -23,7 +23,12 @@ from schemas.requests import (
     SocraticSessionStartRequest,
     TermExplainRequest,
 )
-from services import analysis_service, chat_service
+from services import (
+    analysis_service,
+    chat_service,
+    socratic_service,
+    term_explanation_service,
+)
 
 reading_router = APIRouter()
 
@@ -47,7 +52,7 @@ async def background_knowledge(request: BackgroundKnowledgeRequest):
 @reading_router.post("/socratic-questions")
 async def socratic_questions(request: SocraticQuestionRequest):
     try:
-        return JSONResponse(chat_service.generate_socratic_questions(request))
+        return JSONResponse(socratic_service.generate_socratic_questions(request))
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
@@ -55,7 +60,7 @@ async def socratic_questions(request: SocraticQuestionRequest):
 @reading_router.post("/socratic-session/start")
 async def start_socratic_session(request: SocraticSessionStartRequest):
     try:
-        return JSONResponse(chat_service.start_socratic_session(request))
+        return JSONResponse(socratic_service.start_socratic_session(request))
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
@@ -63,7 +68,7 @@ async def start_socratic_session(request: SocraticSessionStartRequest):
 @reading_router.post("/socratic-session/answer")
 async def answer_socratic_session(request: SocraticSessionAnswerRequest):
     try:
-        return JSONResponse(chat_service.answer_socratic_question(request))
+        return JSONResponse(socratic_service.answer_socratic_question(request))
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
@@ -71,7 +76,7 @@ async def answer_socratic_session(request: SocraticSessionAnswerRequest):
 @reading_router.post("/explain-term")
 async def explain_term(request: TermExplainRequest):
     try:
-        return JSONResponse(chat_service.explain_term(request))
+        return JSONResponse(term_explanation_service.explain_term(request))
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 
