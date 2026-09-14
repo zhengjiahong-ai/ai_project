@@ -454,6 +454,17 @@ const sortSectionsByPrerequisites = (data: GraphData | null | undefined, section
   }));
 };
 
+// 背景补课是同步单请求：后端要先抽取前置概念、再判定它们之间的依赖关系，两轮都
+// 要调模型。实测冷跑 194 秒，浏览器里带上篇章结构时更久，而等待期原本只有一个
+// 转圈图标，用户分不清“正在算”和“卡死了”。给真实已耗时比画一个拿不到的进度
+// 条诚实。超过一分钟才显示分，避免“0 分 5 秒”这种噪音。
+export const formatElapsedDuration = (totalSeconds: number): string => {
+  const seconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return minutes > 0 ? `${minutes} 分 ${rest} 秒` : `${rest} 秒`;
+};
+
 export const createGenerateHandler = (onGenerate: ((profile: ReturnType<typeof normalizeReaderProfile>) => void) | null | undefined, readerProfile: ReaderProfileInput | null | undefined) => () =>
   onGenerate?.(normalizeReaderProfile(readerProfile));
 

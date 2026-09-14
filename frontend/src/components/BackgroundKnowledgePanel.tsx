@@ -13,6 +13,7 @@ import {
 
 import InsightCard from './InsightCard';
 import {
+  formatElapsedDuration,
   getProvenanceMeta,
   getUncoveredNodeLabels,
   normalizeGraph,
@@ -217,6 +218,22 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
   const [visiblePathCount, setVisiblePathCount] = useState<number>(2);
   const [selectedGraphItem, setSelectedGraphItem] = useState<GraphItem | null>(null);
   const [crossPaperEnabled, setCrossPaperEnabled] = useState<boolean>(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+
+  // 等待期给出真实已耗时：这一步要跑两轮模型调用（抽取前置概念、判定依赖关系），
+  // 实测冷跑三分钟起。刻意不做进度条：同步单请求拿不到真实进度，画出来的
+  // 百分比只会骗人。
+  useEffect(() => {
+    if (!isLoading) {
+      setElapsedSeconds(0);
+      return undefined;
+    }
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isLoading]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -322,6 +339,10 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
       <div className="theme-panel flex h-full flex-col items-center justify-center p-8 text-center">
         <Loader2 className="mb-5 animate-spin text-pixiu" size={48} />
         <p className="theme-text-primary text-lg font-medium">正在构建背景知识图谱</p>
+        <p className="theme-text-secondary mt-3 max-w-md text-sm leading-6">
+          需要先从论文里抽取前置概念，再判定它们之间的依赖关系，两轮都要调用模型，
+          通常要等几分钟。已等待 {formatElapsedDuration(elapsedSeconds)}，保持页面打开即可。
+        </p>
       </div>
     );
   }

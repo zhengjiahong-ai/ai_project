@@ -4,6 +4,7 @@ import {
   createBackgroundKnowledgeSnapshot,
   createDefaultReaderProfile,
   createGenerateHandler,
+  formatElapsedDuration,
   getProvenanceMeta,
   normalizeGraph,
   normalizeKnowledgeLevel,
@@ -14,6 +15,17 @@ import {
 
 
 const run = async () => {
+  // 等待耗时展示：背景补课实测冷跑三分钟起，等待期原本只有一个转圈图标，
+  // 用户分不清“正在算”和“卡死了”。不满一分钟时不显示分，避免“0 分 5 秒”。
+  assert.equal(formatElapsedDuration(0), '0 秒');
+  assert.equal(formatElapsedDuration(59), '59 秒');
+  assert.equal(formatElapsedDuration(60), '1 分 0 秒');
+  assert.equal(formatElapsedDuration(194), '3 分 14 秒');
+  assert.equal(formatElapsedDuration(900), '15 分 0 秒');
+  // 非法输入不能让面板崩在 NaN 上。
+  assert.equal(formatElapsedDuration(Number.NaN), '0 秒');
+  assert.equal(formatElapsedDuration(-5), '0 秒');
+
   assert.equal(normalizeKnowledgeLevel('普通/一般'), '一般');
   assert.equal(normalizeKnowledgeLevel('进阶'), '进阶');
   assert.equal(normalizeKnowledgeLevel('unknown'), '一般');
