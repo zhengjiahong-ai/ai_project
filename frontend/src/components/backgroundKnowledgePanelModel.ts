@@ -140,6 +140,7 @@ export const summarizeReaderProfile = (profile: ReaderProfileInput | null | unde
 };
 
 interface GraphData {
+  paper_topic?: string;
   graph?: {
     nodes?: unknown[];
     links?: unknown[];
@@ -271,6 +272,33 @@ interface LearningPathItem {
   stageLabel?: string;
   step?: number;
 }
+
+// 图谱根节点的固定 id，与后端 graph_normalizer.ROOT_NODE_ID 一致。
+export const ROOT_NODE_ID = 'current-paper';
+
+// 图谱卡片上方的标题要显示论文名。canvas 本身不绘制节点文字（没有传
+// nodeCanvasObject，根节点在画布上只是一个圆点，标题只在悬停 tooltip 里），所以这行
+// h3 就是用户唯一能看到的“这是哪篇论文的图谱”。
+// 它原来绑的是 data.paper_topic，而前端做过篇章解构时传上去的 paper_topic 就是
+// research_problem，实测标题位置因此显示 "How to efficiently reconstruct 3D scenes
+// from sparse multi-view images" —— 一句英文问句。后端现在会把根节点 label 解析成
+// 论文标题（paper_topic 仍保留研究问题去喂模型），这里改成优先取根节点 label。
+// 刻意不走 normalizeGraph：它给 canvas 用的 label 有 `label || name || id` 回落链，
+// 根节点缺 label 时会回落成技术 id，标题位就成了 "current-paper"。浏览器 IndexedDB
+// 里缓存的旧图谱正是这种形状，所以这里只认 label / name 两个真标题来源。
+// 根节点的识别与后端 graph_normalizer 一致：认 id，也认 type=paper。
+// 取不到根节点时回落 paper_topic，再回落“当前论文”：标题不能是空的。
+export const resolveGraphTitle = (data: GraphData | null | undefined): string => {
+  const nodes = (Array.isArray(data?.graph?.nodes) ? data?.graph?.nodes : []) as GraphNode[];
+  const root = nodes.find(
+    (node) => node?.id === ROOT_NODE_ID || `${node?.type ?? ''}`.toLowerCase() === 'paper',
+  );
+  const fromRoot = `${root?.label ?? ''}`.trim() || `${root?.name ?? ''}`.trim();
+  if (fromRoot) {
+    return fromRoot;
+  }
+  return `${data?.paper_topic ?? ''}`.trim() || '当前论文';
+};
 
 export const resolveLearningPathSections = (data: GraphData | null | undefined) => {
   const sections = (Array.isArray(data?.learning_path_sections) ? data.learning_path_sections : []) as LearningPathSection[];

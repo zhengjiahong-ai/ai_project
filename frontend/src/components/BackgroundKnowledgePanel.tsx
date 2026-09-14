@@ -20,6 +20,7 @@ import {
   normalizeKnowledgeLevel,
   normalizeProvenanceSummary,
   normalizeReaderProfile,
+  resolveGraphTitle,
   resolveLearningPathSections,
   summarizeReaderProfile,
 } from './backgroundKnowledgePanelModel.ts';
@@ -462,7 +463,7 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
             <div ref={containerRef} className="theme-card rounded-2xl p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="theme-text-primary text-sm font-bold">{data?.paper_topic || '当前论文'}</h3>
+                  <h3 className="theme-text-primary text-sm font-bold">{resolveGraphTitle(data)}</h3>
                   <div className="theme-text-secondary mt-1 text-xs">
                     当前识别的熟悉程度：{data?.user_knowledge_level || selectedKnowledgeLevel}
                   </div>

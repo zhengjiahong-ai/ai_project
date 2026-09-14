@@ -10,6 +10,7 @@ import {
   normalizeKnowledgeLevel,
   normalizeProvenanceSummary,
   normalizeReaderProfile,
+  resolveGraphTitle,
   resolveLearningPathSections,
 } from './backgroundKnowledgePanelModel.ts';
 
@@ -25,6 +26,42 @@ const run = async () => {
   // 非法输入不能让面板崩在 NaN 上。
   assert.equal(formatElapsedDuration(Number.NaN), '0 秒');
   assert.equal(formatElapsedDuration(-5), '0 秒');
+
+  // 图谱卡片标题：canvas 不绘制节点文字（没传 nodeCanvasObject），这行 h3 是用户
+  // 唯一能看到“这是哪篇论文的图谱”的地方。后端把根节点 label 解析成论文标题，
+  // 而 paper_topic 仍是研究问题（要继续喂模型），所以标题必须优先取根节点。
+  assert.equal(
+    resolveGraphTitle({
+      paper_topic: 'How to efficiently reconstruct 3D scenes from sparse multi-view images',
+      graph: {
+        nodes: [
+          { id: 'current-paper', label: 'MVSplat: Efficient 3D Gaussian Splatting', type: 'paper' },
+          { id: 'concept-1', label: '三维高斯泼溅' },
+        ],
+        links: [],
+      },
+    }),
+    'MVSplat: Efficient 3D Gaussian Splatting',
+  );
+  // 没有根节点时回落 paper_topic，再回落占位文案：标题不能是空的。
+  assert.equal(resolveGraphTitle({ paper_topic: 'RAG', graph: { nodes: [], links: [] } }), 'RAG');
+  assert.equal(resolveGraphTitle({ graph: { nodes: [], links: [] } }), '当前论文');
+  assert.equal(resolveGraphTitle(null), '当前论文');
+  // 根节点缺 label（IndexedDB 里的旧图谱就是这种形状）时不能把技术 id 当标题显示，
+  // 只认 label / name 两个真标题来源；根节点识别与后端一致，认 id 也认 type=paper。
+  assert.equal(
+    resolveGraphTitle({
+      paper_topic: 'RAG',
+      graph: { nodes: [{ id: 'current-paper', type: 'paper' }], links: [] },
+    }),
+    'RAG',
+  );
+  assert.equal(
+    resolveGraphTitle({
+      graph: { nodes: [{ id: 'root-1', name: 'MVSplat', type: 'paper' }], links: [] },
+    }),
+    'MVSplat',
+  );
 
   assert.equal(normalizeKnowledgeLevel('普通/一般'), '一般');
   assert.equal(normalizeKnowledgeLevel('进阶'), '进阶');
