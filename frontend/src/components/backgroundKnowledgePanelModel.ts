@@ -16,6 +16,7 @@ interface ProvenanceMetaEntry {
 
 const PROVENANCE_META: Record<string, ProvenanceMetaEntry> = {
   current_paper_supported: { label: '当前论文支持', tone: 'evidence' },
+  library_paper_supported: { label: '库内论文支持', tone: 'evidence' },
   model_inference: { label: '模型推断', tone: 'inference' },
   external_supported: { label: '外部证据支持', tone: 'external' },
   unknown: { label: '来源未标注', tone: 'unknown' },
@@ -26,6 +27,7 @@ export const getProvenanceMeta = (value: string): ProvenanceMetaEntry => PROVENA
 interface ProvenanceCounts {
   total: number;
   currentPaperSupported: number;
+  libraryPaperSupported: number;
   modelInference: number;
   externalSupported: number;
   supportedRatio: number;
@@ -35,12 +37,13 @@ const normalizeProvenanceCounts = (value: unknown): ProvenanceCounts => {
   const counts = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   const total: number = Number.isInteger(counts.total) && (counts.total as number) >= 0 ? (counts.total as number) : 0;
   const currentPaperSupported: number = Number.isInteger(counts.currentPaperSupported) ? (counts.currentPaperSupported as number) : 0;
+  const libraryPaperSupported: number = Number.isInteger(counts.libraryPaperSupported) ? (counts.libraryPaperSupported as number) : 0;
   const modelInference: number = Number.isInteger(counts.modelInference) ? (counts.modelInference as number) : 0;
   const externalSupported: number = Number.isInteger(counts.externalSupported) ? (counts.externalSupported as number) : 0;
   const supportedRatio: number = typeof counts.supportedRatio === 'number'
     ? Math.max(0, Math.min(1, counts.supportedRatio as number))
-    : total > 0 ? (currentPaperSupported + externalSupported) / total : 0;
-  return { total, currentPaperSupported, modelInference, externalSupported, supportedRatio };
+    : total > 0 ? (currentPaperSupported + libraryPaperSupported + externalSupported) / total : 0;
+  return { total, currentPaperSupported, libraryPaperSupported, modelInference, externalSupported, supportedRatio };
 };
 
 interface ProvenanceSummary {

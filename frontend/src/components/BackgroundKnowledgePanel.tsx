@@ -580,6 +580,7 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
                   summary={formatPercent(provenanceSummary.nodes.supportedRatio) || '0%'}
                   keyPoints={[
                     `当前论文支持 ${provenanceSummary.nodes.currentPaperSupported}/${provenanceSummary.nodes.total}`,
+                    provenanceSummary.nodes.libraryPaperSupported > 0 ? `库内论文支持 ${provenanceSummary.nodes.libraryPaperSupported} 项` : '',
                     provenanceSummary.nodes.externalSupported > 0 ? `外部证据支持 ${provenanceSummary.nodes.externalSupported} 项` : '',
                     `模型推断 ${provenanceSummary.nodes.modelInference} 项`,
                   ].filter(Boolean) as string[]}
@@ -589,6 +590,7 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
                   summary={formatPercent(provenanceSummary.edges.supportedRatio) || '0%'}
                   keyPoints={[
                     `当前论文支持 ${provenanceSummary.edges.currentPaperSupported}/${provenanceSummary.edges.total}`,
+                    provenanceSummary.edges.libraryPaperSupported > 0 ? `库内论文支持 ${provenanceSummary.edges.libraryPaperSupported} 条` : '',
                     provenanceSummary.edges.externalSupported > 0 ? `外部证据支持 ${provenanceSummary.edges.externalSupported} 条` : '',
                     `模型推断 ${provenanceSummary.edges.modelInference} 条`,
                   ].filter(Boolean) as string[]}

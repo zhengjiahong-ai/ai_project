@@ -215,8 +215,8 @@ const run = async () => {
 
   const provenanceData = {
     provenanceSummary: {
-      nodes: { total: 3, currentPaperSupported: 2, modelInference: 1, externalSupported: 0, supportedRatio: 0.67 },
-      edges: { total: 2, currentPaperSupported: 1, modelInference: 1, externalSupported: 0, supportedRatio: 0.5 },
+      nodes: { total: 3, currentPaperSupported: 2, libraryPaperSupported: 0, modelInference: 1, externalSupported: 0, supportedRatio: 0.67 },
+      edges: { total: 2, currentPaperSupported: 1, libraryPaperSupported: 0, modelInference: 1, externalSupported: 0, supportedRatio: 0.5 },
     },
     graph: {
       nodes: [{
@@ -240,6 +240,13 @@ const run = async () => {
   assert.deepEqual(normalizeProvenanceSummary(provenanceData), provenanceData.provenanceSummary);
   assert.equal(getProvenanceMeta('current_paper_supported').label, '当前论文支持');
   assert.equal(getProvenanceMeta('model_inference').label, '模型推断');
+  // 缺陷E回归护栏：库内论文支持不得再回落到 unknown（旧表现缺这一项）。
+  assert.equal(getProvenanceMeta('library_paper_supported').label, '库内论文支持');
+  // 后端未给 supportedRatio 时，库内支持也计入支持率。
+  assert.equal(
+    normalizeProvenanceSummary({ provenanceSummary: { nodes: { total: 4, currentPaperSupported: 1, libraryPaperSupported: 1, externalSupported: 0, modelInference: 2 }, edges: { total: 0 } } }).nodes.supportedRatio,
+    0.5,
+  );
   const normalizedProvenanceGraph = normalizeGraph(provenanceData);
   assert.equal(normalizedProvenanceGraph.nodes[0].confidenceReason, '论文方法章节明确使用。');
   assert.equal(normalizedProvenanceGraph.edges[0].provenanceStatus, 'model_inference');

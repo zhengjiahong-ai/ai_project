@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from llm.client import get_llm
+from llm.client import get_structured_llm
 from services.external_evidence import normalize_external_evidence
 from services.external_search_provider import (
     ExternalSearchProvider,
@@ -37,7 +37,10 @@ def generate_current_paper_graph(
     cross_paper_sources: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     provider = external_provider if external_provider is not None else create_external_search_provider()
-    model = llm or get_llm()
+    # 概念抽取与前置边判定都是“输出应为输入的函数”的结构化 JSON 任务：
+    # 同一篇论文两次跑必须得到同一张图，否则下游学习路径、provenance 统计全跟着漂。
+    # 用温度 0 的 structured LLM（模型/思考强度与主模型一致），不用带采样温度的 get_llm()。
+    model = llm or get_structured_llm()
     allowed_source_ids = {
         str(source.get("sourceId") or "").strip()
         for source in rag_sources
@@ -87,14 +90,20 @@ def generate_current_paper_graph(
             ),
         )
         step["outputSize"] = len(str(raw_concepts or ""))
-    concept_payload = parse_json_from_llm(raw_concepts)
-    concepts = _normalize_concepts(
-        concept_payload.get("concepts"),
-        allowed_source_ids=allowed_source_ids,
-        has_current_paper=bool(pdf_id),
-        cross_paper_source_ids=cross_paper_source_ids if cross_paper_sources else None,
-    )
-    concepts = _enrich_concepts_external(concepts, provider, paper_topic)
+        concept_payload = parse_json_from_llm(raw_concepts)
+        raw_concept_list = concept_payload.get("concepts")
+        concepts = _normalize_concepts(
+            raw_concept_list,
+            allowed_source_ids=allowed_source_ids,
+            has_current_paper=bool(pdf_id),
+            cross_paper_source_ids=cross_paper_source_ids if cross_paper_sources else None,
+        )
+        concepts = _enrich_concepts_external(concepts, provider, paper_topic)
+        # 可观测性：记下模型给出多少概念、归一化后保留多少、以及来源分布，
+        # 让“抽取漏项 / provenance 全落模型推断”这类问题能从 trace 直接看出来。
+        step["meta"]["rawConceptCount"] = len(raw_concept_list) if isinstance(raw_concept_list, list) else 0
+        step["meta"]["conceptCount"] = len(concepts)
+        step["meta"]["provenance"] = _provenance_counts(concepts)
 
     root_node = {
         "id": ROOT_NODE_ID,
@@ -129,14 +138,18 @@ def generate_current_paper_graph(
                     ),
                 )
                 step["outputSize"] = len(str(raw_edges or ""))
-            edge_payload = parse_json_from_llm(raw_edges)
-            edges = _normalize_edges(
-                edge_payload.get("edges"),
-                node_ids={ROOT_NODE_ID, *(node["id"] for node in concepts)},
-                allowed_source_ids=allowed_source_ids,
-                has_current_paper=bool(pdf_id),
-            )
-            edges = _enrich_edges_external(edges, concepts)
+                edge_payload = parse_json_from_llm(raw_edges)
+                raw_edge_list = edge_payload.get("edges")
+                edges = _normalize_edges(
+                    raw_edge_list,
+                    node_ids={ROOT_NODE_ID, *(node["id"] for node in concepts)},
+                    allowed_source_ids=allowed_source_ids,
+                    has_current_paper=bool(pdf_id),
+                )
+                edges = _enrich_edges_external(edges, concepts)
+                step["meta"]["rawEdgeCount"] = len(raw_edge_list) if isinstance(raw_edge_list, list) else 0
+                step["meta"]["edgeCount"] = len(edges)
+                step["meta"]["provenance"] = _provenance_counts(edges)
         except Exception as error:
             resolver_failed = True
             warnings.append(f"前置关系判断失败，已保留概念节点：{str(error)[:160]}")
@@ -273,14 +286,18 @@ def _enrich_edges_external(
 def _provenance_counts(items: list[dict[str, Any]]) -> dict[str, Any]:
     total = len(items)
     current = sum(item.get("provenanceStatus") == PROVENANCE_CURRENT_PAPER for item in items)
+    library = sum(item.get("provenanceStatus") == PROVENANCE_LIBRARY for item in items)
     inferred = sum(item.get("provenanceStatus") == PROVENANCE_MODEL for item in items)
     external = sum(item.get("provenanceStatus") == PROVENANCE_EXTERNAL for item in items)
     return {
         "total": total,
         "currentPaperSupported": current,
+        "libraryPaperSupported": library,
         "modelInference": inferred,
         "externalSupported": external,
-        "supportedRatio": round((current + external) / total, 2) if total else 0.0,
+        # 库内其它论文支持也是真实证据支撑，计入支持率；旧公式漏掉它，
+        # 会让跨论文支持的节点既不进任何分项、也不进支持率，各分项之和对不上 total。
+        "supportedRatio": round((current + library + external) / total, 2) if total else 0.0,
     }
 
 
