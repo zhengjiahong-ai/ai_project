@@ -2,7 +2,7 @@ import logging
 import math
 from typing import Any
 
-from llm.client import get_llm
+from llm.client import get_structured_llm
 from services.evidence_service import normalize_evidence_items
 
 _logger = logging.getLogger(__name__)
@@ -184,7 +184,9 @@ Keywords:
 Evidence:
 {evidence_text}
 """
-    payload = parse_json_from_llm(get_llm()._call(prompt))
+    # 证据质量判定是分类任务（verdict + missingAspects），用温度为 0 的实例：
+    # 判定摇摆会直接改变是否重试检索，进而改变证据集与最终报告。
+    payload = parse_json_from_llm(get_structured_llm()._call(prompt))
     verdict = str(payload.get("verdict") or "").strip().upper()
     if verdict not in VALID_VERDICTS:
         return fallback

@@ -18,6 +18,9 @@ def test_llm_defaults():
     assert settings.deepseek_translation_temperature == 0.1
     assert settings.deepseek_translation_thinking_type is None
     assert settings.deepseek_translation_reasoning_effort is None
+    # 结构化抽取/判定必须是 0：批判分析的可复现性依赖它，改成非 0 等于把
+    # “同一篇论文两次跑出不同主张”那个缺陷重新放回来。
+    assert settings.deepseek_structured_temperature == 0.0
     assert settings.pixiu_llm_mode == "deepseek"
 
 

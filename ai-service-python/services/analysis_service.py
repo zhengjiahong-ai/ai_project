@@ -59,7 +59,6 @@ from services.evidence_service import (
     compact_evidence_for_response,
     normalize_evidence_items,
 )
-from services.query_service import build_retrieval_queries
 from services.retrieval_judge_service import judge_evidence_quality
 from services.safety_service import (
     MAX_RETRIEVAL_RETRIES,
@@ -101,24 +100,39 @@ ANALYSIS_AXIS_CONFIGS = (
         "key": "contributions",
         "label": "贡献与创新",
         "question": "这篇论文显式宣称了哪些贡献、创新点或核心主张？",
+        # 实际用于检索的英文问句，与 question 分开：question 面向用户与 LLM prompt，
+        # retrieval_question 面向检索层。取值不是随手写的，见 _build_axis_query_plan。
+        "retrieval_question": (
+            "What contributions, innovations and core claims does this paper make?"
+        ),
         "seed_terms": ["贡献", "创新", "主张", "贡献点", "claim", "contribution", "novelty"],
     },
     {
         "key": "methods",
         "label": "方法与机制",
         "question": "这篇论文的方法、模型设计或关键机制是什么？这些设计的直接证据是否清楚？",
+        "retrieval_question": (
+            "What is the method, model design and key mechanism, "
+            "and what direct evidence supports it?"
+        ),
         "seed_terms": ["方法", "模型", "机制", "模块", "流程", "method", "architecture", "framework"],
     },
     {
         "key": "experiments",
         "label": "实验与结果",
         "question": "这篇论文提供了哪些实验、指标、对比或结果来支撑结论？",
+        "retrieval_question": (
+            "What experiments, metrics, comparisons and results support the conclusions?"
+        ),
         "seed_terms": ["实验", "结果", "指标", "评估", "对比", "ablation", "benchmark", "metric", "evaluation"],
     },
     {
         "key": "limitations",
         "label": "局限与风险",
         "question": "这篇论文提到了哪些局限、风险、失败情形或尚未验证的部分？",
+        "retrieval_question": (
+            "What limitations, risks, failure cases and unverified aspects are reported?"
+        ),
         "seed_terms": ["局限", "不足", "风险", "失败", "future work", "limitation", "weakness", "risk"],
     },
 )
@@ -492,6 +506,43 @@ def _build_axis_query(query_plan: dict[str, Any], axis: dict[str, Any]) -> str:
     return ""
 
 
+def _build_axis_query_plan(axis: dict[str, Any]) -> dict[str, Any]:
+    """给批判分析的轴构造确定性检索计划，全程不调 LLM。
+
+    这里原本调 build_retrieval_queries（LLM 改写），实测证明它是整条链路不可复现的
+    入口：同一 prompt 在 temperature=0 下连打 4 次得到 3 种不同查询，关掉 thinking
+    或把 reasoning_effort 降到 low 都一样 —— 温度为 0 只能让封闭式分类（证据判定，
+    实测 3/3 一致）可复现，开放式生成本质上不可复现。轴查询在最上游，它一变证据就
+    变，下游每个 prompt 跟着变，于是两次独立冷跑给出 5 vs 6 条主张、风险分 25 vs 18。
+
+    换成固定英文问句不是退让，实测反而更好（2308.04079v1.pdf，top_k=8，四轴章节
+    覆盖合计）：固定问句 31，LLM 改写最好 23、最差 20。两个原因：
+
+    1. 检索本来就被 filter_metadata 限定在这一篇论文内，不需要 LLM 去“理解问题”；
+       实测给查询加论文标题前缀还会拉低多样性（标题只稀释语义）。
+    2. 问句是纯英文的，core.query_rewriter.rewrite_query 只在查询含 CJK 时才动 LLM，
+       于是 HybridRetriever 内部那第二层翻译改写也不再触发，连带消掉第二个抖动源。
+
+    keywords 直接用轴自带的 seed_terms（本来就是常量）。下游 _normalize_terms 与
+    _build_axis_terms 都会去重，所以与调用点里已有的 seed_terms 拼接不会重复计分，
+    query_plan 的字段形状也与 LLM 版逐键一致。
+    """
+    question = " ".join(str(axis.get("question") or "").split())
+    retrieval_question = " ".join(str(axis.get("retrieval_question") or "").split())
+    keywords = [
+        " ".join(str(term or "").split())
+        for term in (axis.get("seed_terms") or [])
+        if " ".join(str(term or "").split())
+    ]
+    return {
+        "original": question,
+        "rewritten": retrieval_question or question,
+        "keywords": keywords,
+        "taskType": "critical",
+        "source": "axis-fixed",
+    }
+
+
 def _retrieve_axis_evidence(
     documents: list[dict[str, Any]],
     query_plan: dict[str, Any],
@@ -593,16 +644,21 @@ def _build_retry_query(question: str, query_plan: dict[str, Any], axis: dict[str
 def _analyze_axis(
     axis: dict[str, Any],
     documents: list[dict[str, Any]],
-    analysis_context: str,
     pdf_id: str | None = None,
 ) -> dict[str, Any]:
     question = axis["question"]
+    # 确定性构造，不再调 LLM（理由见 _build_axis_query_plan）。保留 trace step 是为了
+    # 让“这一轴实际用了哪条检索式”可观测 —— 排查证据分布问题时必须看得见它。
+    query_plan = _build_axis_query_plan(axis)
     with trace_step(
         f"axis_{axis.get('key')}_query_plan",
-        input_size=len(str(analysis_context or "")),
-        meta={"label": axis.get("label")},
+        input_size=len(str(query_plan.get("rewritten") or "")),
+        meta={
+            "label": axis.get("label"),
+            "query": query_plan.get("rewritten"),
+            "source": query_plan.get("source"),
+        },
     ) as step:
-        query_plan = build_retrieval_queries(question, context=analysis_context, task_type="critical")
         step["outputSize"] = len(query_plan.get("keywords") or [])
     evidence = _retrieve_axis_evidence(documents, query_plan, axis, pdf_id=pdf_id)
     with trace_step(
@@ -672,7 +728,6 @@ def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
             _analyze_axis(
                 axis_config,
                 documents,
-                analysis_context or paper_content[:2400],
                 pdf_id=normalized_id,
             )
             for axis_config in ANALYSIS_AXIS_CONFIGS

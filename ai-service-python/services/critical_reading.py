@@ -14,7 +14,7 @@ from core.pdf_quality import (
     _format_axis_prompt_block,
     _normalize_list_items,
 )
-from llm.client import get_llm
+from llm.client import get_structured_llm
 from services.evidence_service import _merge_evidence_lists, normalize_evidence_items
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE
 from services.safety_service import build_guarded_messages, wrap_untrusted_context
@@ -770,7 +770,10 @@ evidence_based_contributions: {report.get("evidence_based_contributions")}
 证据：
 {evidence_context}
 """
-    raw = get_llm()._call(
+    # 主张抽取与对齐要求“逐字抄录”、“只能填列表里出现过的 sourceId”，是约束满足
+    # 任务而不是创作，用温度为 0 的实例：实测 0.3 时同一篇论文两次跑出 5 条与 6 条
+    # 不同主张，用户无法把两次结果当成同一份分析对比。
+    raw = get_structured_llm()._call(
         prompt,
         messages=build_guarded_messages(
             prompt,
@@ -1227,7 +1230,10 @@ JSON 格式：
 {chr(10).join(_format_axis_prompt_block(item) for item in axis_results)}
 """
     with trace_step("generate_structured_critical_report", input_size=len(prompt)) as step:
-        raw = get_llm()._call(
+        # 结构化报告虽然含分析性行文，但输出必须是固定 schema 的 JSON，而且它决定了
+        # weaknesses / overclaim_risks / missing_evidence 三张卡片的内容与风险分。
+        # 同一篇论文每次给出不同结论比行文单调更伤可信度，所以用温度为 0 的实例。
+        raw = get_structured_llm()._call(
             prompt,
             messages=build_guarded_messages(
                 prompt,

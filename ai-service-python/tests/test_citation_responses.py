@@ -708,9 +708,13 @@ class CrossLingualClaimSupportTests(unittest.TestCase):
         ]
 
     def _build(self, payload):
-        """用给定的 LLM 返回跑一次主张对齐。"""
+        """用给定的 LLM 返回跑一次主张对齐。
+
+        补丁目标必须是 get_structured_llm：主张对齐是约束满足任务（逐字抄录、
+        只能引用列表里的 sourceId），已改用温度为 0 的实例以保证可复现。
+        """
         raw = payload if isinstance(payload, str) else json.dumps(payload, ensure_ascii=False)
-        with patch.object(critical_reading, "get_llm", return_value=_FakeLlm(raw)):
+        with patch.object(critical_reading, "get_structured_llm", return_value=_FakeLlm(raw)):
             return critical_reading._build_claim_support_items(
                 {"claimed_contributions": "作者提出 3D 高斯场景表示与实时可微渲染器。"},
                 self._axis_results(),
@@ -1047,6 +1051,86 @@ class EvidenceNodeLabelTests(unittest.TestCase):
 
         bare = {"sourceId": "p.pdf-chunk-7", "metadata": {"chunk_index": 7}}
         self.assertEqual(critical_reading._evidence_node_label(bare), "片段 7")
+
+
+class AxisQueryPlanDeterminismTests(unittest.TestCase):
+    """轴检索计划必须是确定性的，且不得把非确定性从第二层改写放回来。
+
+    实测同一 prompt 在 temperature=0 下连打 4 次得到 3 种不同查询（关 thinking、降
+    reasoning_effort 都一样），而轴查询在链路最上游 —— 两次独立冷跑因此给出 5 vs 6
+    条主张、风险分 25 vs 18。改成固定英文问句后，四轴章节覆盖合计 31，比 LLM 改写
+    的最好情况（23）还高。
+    """
+
+    def test_plan_is_byte_identical_across_calls(self):
+        """同输入必须同输出：这是整条批判分析可复现的前提。"""
+        for axis in analysis_service.ANALYSIS_AXIS_CONFIGS:
+            with self.subTest(axis=axis["key"]):
+                self.assertEqual(
+                    analysis_service._build_axis_query_plan(axis),
+                    analysis_service._build_axis_query_plan(axis),
+                )
+
+    def test_retrieval_query_is_english_so_second_rewrite_layer_stays_off(self):
+        """检索式不得含 CJK，否则 HybridRetriever 内部那层翻译改写会重新引入抖动。
+
+        core.query_rewriter.rewrite_query 只在查询含 CJK 时才调 LLM，所以“纯英文”
+        正是消掉第二个抖动源的充分条件。这条守的是因果，不只是字面。
+        """
+        from core.query_rewriter import has_cjk
+
+        for axis in analysis_service.ANALYSIS_AXIS_CONFIGS:
+            plan = analysis_service._build_axis_query_plan(axis)
+            with self.subTest(axis=axis["key"]):
+                self.assertFalse(has_cjk(plan["rewritten"]), plan["rewritten"])
+
+    def test_every_axis_has_its_own_english_retrieval_question(self):
+        """护栏：任一轴漏配 retrieval_question 就会静默退回中文 question。
+
+        那种退化不报错，只是把非确定性与第二层改写一起带回来，所以必须显式守住。
+        """
+        questions = []
+        for axis in analysis_service.ANALYSIS_AXIS_CONFIGS:
+            raw = str(axis.get("retrieval_question") or "")
+            with self.subTest(axis=axis["key"]):
+                self.assertTrue(raw.strip())
+                self.assertTrue(raw.isascii())
+                questions.append(raw.strip())
+        self.assertEqual(len(set(questions)), len(questions), "四轴的检索式必须互不相同")
+
+    def test_plan_shape_matches_the_llm_plan_contract(self):
+        """字段形状必须与 LLM 版逐键一致，否则下游 _build_axis_terms 会静默拿不到词。
+
+        keywords 用轴自带的 seed_terms；下游 _normalize_terms 与 _build_axis_terms
+        都去重，所以调用点里已有的 seed_terms 拼接不会重复计分。
+        """
+        plan = analysis_service._build_axis_query_plan(analysis_service.ANALYSIS_AXIS_CONFIGS[0])
+
+        self.assertEqual(
+            sorted(plan),
+            ["keywords", "original", "rewritten", "source", "taskType"],
+        )
+        self.assertEqual(plan["source"], "axis-fixed")
+        self.assertEqual(plan["original"], analysis_service.ANALYSIS_AXIS_CONFIGS[0]["question"])
+        self.assertEqual(plan["keywords"], analysis_service.ANALYSIS_AXIS_CONFIGS[0]["seed_terms"])
+
+    def test_downstream_query_builder_picks_the_english_question(self):
+        """真正送去检索的必须是英文问句，而不是面向用户的中文 question。"""
+        axis = analysis_service.ANALYSIS_AXIS_CONFIGS[1]
+        plan = analysis_service._build_axis_query_plan(axis)
+
+        self.assertEqual(
+            analysis_service._build_axis_query(plan, axis),
+            axis["retrieval_question"],
+        )
+
+    def test_analysis_service_no_longer_routes_axis_queries_through_llm(self):
+        """回归护栏：build_retrieval_queries 不得再被本模块引用。
+
+        它仍被 background/research/explain 四条路径正常使用，只是批判分析的轴查询
+        不再经过它 —— 若有人把它加回来，这条会立刻失败。
+        """
+        self.assertFalse(hasattr(analysis_service, "build_retrieval_queries"))
 
 
 if __name__ == "__main__":
