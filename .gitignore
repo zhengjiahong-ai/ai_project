@@ -34,6 +34,8 @@ frontend/playwright-report/
 frontend/test-results/
 
 .vscode/
+# Obsidian 本地库配置（界面状态，不入库）
+.obsidian/
 
 .superpowers/
 
