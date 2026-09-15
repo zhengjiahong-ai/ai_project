@@ -307,5 +307,94 @@ class RetrievalJudgeServiceTests(unittest.TestCase):
             self.assertLessEqual(len(query), 200)
 
 
+class CrossLingualConfidenceTests(unittest.TestCase):
+    """跨语言（中文关键词 × 英文证据）时字面 coverage 失效，confidence 改由向量相似度主导。"""
+
+    def _en_evidence(self, similarity, count=4, length=60):
+        return [
+            {
+                "sourceType": "current_paper",
+                "similarity": similarity,
+                "text": ("gaussian splatting novel view synthesis " * 3)[:length],
+            }
+            for _ in range(count)
+        ]
+
+    def test_cross_lingual_flagged_in_coverage(self):
+        result = judge_evidence_quality(
+            question="核心方法是什么",
+            evidence_items=self._en_evidence(0.82),
+            keywords=["核心方法", "高斯泼溅"],
+        )
+        self.assertTrue(result["coverage"]["crossLingual"])
+        self.assertFalse(result["coverage"]["literalMatchReliable"])
+
+    def test_single_language_not_flagged(self):
+        result = judge_evidence_quality(
+            question="what is the core method",
+            evidence_items=self._en_evidence(0.82),
+            keywords=["gaussian", "splatting", "optimization"],
+        )
+        self.assertFalse(result["coverage"]["crossLingual"])
+        self.assertTrue(result["coverage"]["literalMatchReliable"])
+
+    def test_cross_lingual_confidence_tracks_similarity(self):
+        high = judge_evidence_quality(
+            question="核心方法",
+            evidence_items=self._en_evidence(0.82),
+            keywords=["核心方法"],
+        )
+        low = judge_evidence_quality(
+            question="核心方法",
+            evidence_items=self._en_evidence(0.45),
+            keywords=["核心方法"],
+        )
+        # 不再恒等：相似度高的 confidence 明显高于相似度低的
+        self.assertGreater(high["confidence"], low["confidence"])
+        self.assertNotAlmostEqual(high["confidence"], low["confidence"], delta=0.05)
+        # 高相似度仍判 CORRECT（与现状好证据的 retry 行为一致）
+        self.assertEqual(high["verdict"], "CORRECT")
+        # 低相似度掉到 0.68 阈值以下（修复现状“跨语言+低相似度仍判 CORRECT 不重试”的漏重试）
+        self.assertLess(low["confidence"], 0.68)
+        self.assertNotEqual(low["verdict"], "CORRECT")
+
+    def test_cross_lingual_without_similarity_falls_back(self):
+        evidence = [
+            {
+                "sourceType": "current_paper",
+                "text": "gaussian splatting novel view synthesis " * 3,
+            }
+        ] * 4
+        result = judge_evidence_quality(
+            question="核心方法",
+            evidence_items=evidence,
+            keywords=["核心方法"],
+        )
+        # 无向量相似度时不抛错，回落原累加公式，但跨语言标志仍在
+        self.assertTrue(result["coverage"]["crossLingual"])
+        self.assertGreaterEqual(result["confidence"], 0.0)
+        self.assertLessEqual(result["confidence"], 1.0)
+
+    def test_cross_lingual_reason_does_not_claim_keyword_coverage(self):
+        result = judge_evidence_quality(
+            question="核心方法",
+            evidence_items=self._en_evidence(0.82),
+            keywords=["核心方法"],
+        )
+        self.assertEqual(result["verdict"], "CORRECT")
+        # 跨语言时关键词字面覆盖（coverage=0）未参与评分，reason 不得再声称“关键词覆盖足够”
+        self.assertNotIn("关键词覆盖整体足够", result["reason"])
+        self.assertIn("相似度", result["reason"])
+
+    def test_single_language_reason_not_cross_lingual_worded(self):
+        result = judge_evidence_quality(
+            question="what is the core method",
+            evidence_items=self._en_evidence(0.82),
+            keywords=["gaussian", "splatting", "optimization"],
+        )
+        # 单语言走原公式，reason 不应出现跨语言措辞
+        self.assertNotIn("跨语言", result["reason"])
+
+
 if __name__ == "__main__":
     unittest.main()
