@@ -472,25 +472,6 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
     };
   }, [hasActiveTask, latestFinding?.summary, normalizedTask?.findings?.length, normalizedTask?.question, progressPercent, stageMeta.label]);
 
-  if (!hasActiveTask && !panelBusy) {
-    return (
-      <div className="theme-panel-muted flex h-full flex-col items-center justify-center p-8 text-center">
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-pixiu/10">
-          <FileSearch className="text-pixiu" size={40} />
-        </div>
-        <h3 className="theme-text-primary text-xl font-bold">发起深度研究</h3>
-        <button
-          type="button"
-          onClick={() => onStart?.()}
-          className="flex items-center gap-2 rounded-xl bg-pixiu px-8 py-3 font-semibold text-white shadow-lg transition-all hover:bg-pixiu-dark hover:shadow-pixiu/20 active:scale-95"
-        >
-          <Search size={20} />
-          直接开始研究
-        </button>
-      </div>
-    );
-  }
-
   if (panelBusy && !hasActiveTask) {
     return (
       <div className="theme-panel flex h-full flex-col items-center justify-center p-8 text-center">
