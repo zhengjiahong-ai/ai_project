@@ -686,8 +686,8 @@ def _run_minimal_agent_task(task_id: str) -> None:
             _update_task(task_id, stage=SYNTHESIZING_STAGE, progress=0.86)
             automatic = (task.get("context") or {}).get("reviewMode") == "auto"
             if automatic:
-                from services.agent_grounded_answer import synthesize_grounded_answer
                 from services import agent_conversation_service
+                from services.agent_grounded_answer import synthesize_grounded_answer
                 messages = agent_conversation_service.list_messages(
                     _get_agent_state_repository(), task.get("conversationId")
                 )
