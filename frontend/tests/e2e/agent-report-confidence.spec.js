@@ -28,17 +28,28 @@ async function navigateToAgentWorkspace(page) {
     mimeType: 'application/pdf',
     buffer: createSmokePdfBuffer(),
   });
-  await page.getByRole('button', { name: 'Agent 研究', exact: true }).click();
-  await expect(page.getByText('Agent 学术研究工作台')).toBeVisible();
+  await page.getByRole('button', { name: '研究 Agent' }).click();
+  await expect(page.getByRole('button', { name: '新建项目' })).toBeVisible();
 }
 
 async function createProjectAndTask(page, prompt = 'Verify confidence badges') {
+  await page.getByRole('button', { name: '新建项目' }).click();
   await page.getByPlaceholder('项目标题').fill('Confidence Test Project');
   await page.getByPlaceholder('项目目标').fill('Verify report confidence rendering');
-  await page.getByTitle('创建项目').click();
-  await expect(page.getByRole('heading', { name: 'Confidence Test Project' })).toBeVisible();
-  await page.getByPlaceholder(/让 Agent 比较/).fill(prompt);
+  await page.getByRole('button', { name: '创建项目' }).click();
+  await expect(page.getByRole('button', { name: 'Confidence Test Project', exact: true })).toBeVisible();
+  await page.getByLabel('创建研究任务').fill(prompt);
   await page.getByTitle('启动 Agent 任务').click();
+}
+
+// 计划审查表单位于默认折叠的「研究链」内，交互前需先展开。
+async function expandResearchChain(page) {
+  const chain = page.locator('details.agent-research-chain');
+  await expect(page.getByText('研究链 · 点击展开完整过程')).toBeVisible({ timeout: 10_000 });
+  if (!(await chain.evaluate((el) => el.open))) {
+    await page.getByText('研究链 · 点击展开完整过程').click();
+  }
+  return chain;
 }
 
 test.describe('Agent Report Confidence Badges', () => {
@@ -47,30 +58,34 @@ test.describe('Agent Report Confidence Badges', () => {
     await navigateToAgentWorkspace(page);
     await createProjectAndTask(page);
 
+    await expandResearchChain(page);
     await expect(page.getByText('确认论文范围、约束和研究指令后才会执行')).toBeVisible({ timeout: 10_000 });
     await page.getByRole('button', { name: '确认计划并执行' }).click();
 
     await expect(page.getByText('终稿人工审查')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('最终结果草稿')).toBeVisible();
-    await expect(page.getByText(/Method X consistently outperforms/)).toBeVisible({ timeout: 5_000 });
 
-    await expect(page.getByText('高置信度')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText('中等置信度')).toBeVisible();
-    await expect(page.getByText('低置信度')).toBeVisible();
+    // 报告正文同时出现在响应卡片摘要与「最终结果草稿」区，断言统一限定到草稿区，避免严格模式冲突。
+    const draftReportSection = page.locator('details').filter({ hasText: '最终结果草稿' });
+    await expect(draftReportSection).toBeVisible();
+    await expect(draftReportSection.getByText(/Method X consistently outperforms/)).toBeVisible({ timeout: 5_000 });
 
-    await expect(page.getByText('Consensus Findings')).toBeVisible();
-    await expect(page.getByText('Contested Findings')).toBeVisible();
-    await expect(page.getByText('Single-Source Findings')).toBeVisible();
+    await expect(draftReportSection.getByText('高置信度')).toBeVisible({ timeout: 5_000 });
+    await expect(draftReportSection.getByText('中等置信度')).toBeVisible();
+    await expect(draftReportSection.getByText('低置信度')).toBeVisible();
 
-    const highBadge = page.getByText('高置信度');
+    await expect(draftReportSection.getByText('Consensus Findings')).toBeVisible();
+    await expect(draftReportSection.getByText('Contested Findings')).toBeVisible();
+    await expect(draftReportSection.getByText('Single-Source Findings')).toBeVisible();
+
+    const highBadge = draftReportSection.getByText('高置信度');
     expect(await highBadge.evaluate((el) => getComputedStyle(el).color))
       .toMatch(/rgb\(22,\s*163,\s*74\)/);
 
-    const mediumBadge = page.getByText('中等置信度');
+    const mediumBadge = draftReportSection.getByText('中等置信度');
     expect(await mediumBadge.evaluate((el) => getComputedStyle(el).color))
       .toMatch(/rgb\(202,\s*138,\s*4\)/);
 
-    const lowBadge = page.getByText('低置信度');
+    const lowBadge = draftReportSection.getByText('低置信度');
     expect(await lowBadge.evaluate((el) => getComputedStyle(el).color))
       .toMatch(/rgb\(217,\s*119,\s*6\)/);
   });
@@ -80,6 +95,7 @@ test.describe('Agent Report Confidence Badges', () => {
     await navigateToAgentWorkspace(page);
     await createProjectAndTask(page);
 
+    await expandResearchChain(page);
     await expect(page.getByText('确认论文范围、约束和研究指令后才会执行')).toBeVisible({ timeout: 10_000 });
     await page.getByRole('button', { name: '确认计划并执行' }).click();
     await expect(page.getByText('终稿人工审查')).toBeVisible({ timeout: 10_000 });
@@ -106,12 +122,14 @@ test.describe('Agent Report Confidence Badges', () => {
     await navigateToAgentWorkspace(page);
     await createProjectAndTask(page);
 
+    await expandResearchChain(page);
     await expect(page.getByText('确认论文范围、约束和研究指令后才会执行')).toBeVisible({ timeout: 10_000 });
     await page.getByRole('button', { name: '确认计划并执行' }).click();
     await expect(page.getByText('终稿人工审查')).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByText('最终结果草稿')).toBeVisible();
-    await expect(page.getByText(/Smoke Agent 已完成证据检索/)).toBeVisible();
+    const draftReportSection = page.locator('details').filter({ hasText: '最终结果草稿' });
+    await expect(draftReportSection).toBeVisible();
+    await expect(draftReportSection.getByText(/Smoke Agent 已完成证据检索/)).toBeVisible();
 
     await expect(page.getByText('高置信度')).not.toBeVisible();
     await expect(page.getByText('中等置信度')).not.toBeVisible();

@@ -85,6 +85,7 @@ const draftTask = {
 
 const toRun = (task) => ({
   runId: task.taskId,
+  taskId: task.taskId,
   projectId: task.projectId,
   traceId: task.traceId,
   status: task.status,
