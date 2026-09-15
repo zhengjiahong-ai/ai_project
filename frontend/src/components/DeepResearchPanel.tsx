@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { AlertCircle, ChevronDown, ChevronUp, FileSearch, Link2, Loader2, RefreshCw, Search, Square } from 'lucide-react';
 
 import InsightCard from './InsightCard';
-import MarkdownContent from './MarkdownContent';
 import SourceList from './SourceCitation.jsx';
 import {
   TERMINAL_RESEARCH_STATUSES,
@@ -11,6 +10,7 @@ import {
   getResearchStatusMeta,
   getResearchVerdictMeta,
   normalizeResearchTask,
+  sanitizeResearchReport,
 } from './deepResearchPanelModel.ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -439,8 +439,8 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
 }) => {
   const normalizedTask: ResearchTask = normalizeResearchTask(task) as ResearchTask;
   const [isPlanExpanded, setIsPlanExpanded] = useState<boolean>(false);
-  const [isReportExpanded, setIsReportExpanded] = useState<boolean>(false);
   const [isTraceExpanded, setIsTraceExpanded] = useState<boolean>(false);
+  const [showDevDetails, setShowDevDetails] = useState<boolean>(false);
   const statusMeta = getResearchStatusMeta(normalizedTask?.status);
   const stageMeta = getResearchStageMeta(normalizedTask?.stage);
   const paperHint: string = buildResearchContextHint(paperStructure);
@@ -456,6 +456,11 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
   const canRefresh: boolean = hasActiveTask && !isCreating && !isCancelling;
   const canCancel: boolean = isRunningTask && !isCreating && !isCancelling;
   const latestFinding: Finding | null = normalizedTask?.findings?.[normalizedTask.findings.length - 1] || null;
+  // 默认视图展示净化后的报告（剥离执行统计 / JUDGE 评分 / 来源追溯等开发可观测细节）；
+  // 开启「开发者详情」后展示后端返回的原始全文，便于排查。
+  const reportText: string = showDevDetails
+    ? (normalizedTask?.report || '')
+    : sanitizeResearchReport(normalizedTask?.report);
 
   const taskSnapshot: TaskSnapshot | null = useMemo(() => {
     if (!hasActiveTask) {
@@ -494,9 +499,21 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
           深度研究
         </h2>
         {hasActiveTask && (
-          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusMeta.toneClass}`}>
-            {statusMeta.label}
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowDevDetails((current: boolean) => !current)}
+              aria-pressed={showDevDetails}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                showDevDetails ? 'border-pixiu/40 bg-pixiu/10 text-pixiu' : 'theme-border theme-text-muted'
+              }`}
+            >
+              开发者详情{showDevDetails ? '：开' : '：关'}
+            </button>
+            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusMeta.toneClass}`}>
+              {statusMeta.label}
+            </span>
+          </div>
         )}
       </div>
 
@@ -635,9 +652,11 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
                   {briefPreview.needsClarification ? '需要补充约束' : 'Brief 可用'}
                 </div>
               </div>
-              <span className="theme-card-soft rounded-full px-3 py-1 text-[11px] font-semibold">
-                {briefPreview.source === 'llm' ? 'LLM preview' : 'fallback preview'}
-              </span>
+              {showDevDetails && (
+                <span className="theme-card-soft rounded-full px-3 py-1 text-[11px] font-semibold">
+                  {briefPreview.source === 'llm' ? 'LLM preview' : 'fallback preview'}
+                </span>
+              )}
             </div>
 
             <div className="theme-card-soft rounded-xl px-4 py-3">
@@ -730,6 +749,16 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
 
         {hasActiveTask && (
           <>
+            {reportText && (
+              <div className="theme-card rounded-2xl p-5">
+                <div className="theme-text-primary mb-3 text-sm font-bold">研究报告</div>
+                <InsightCard
+                  content={reportText}
+                  detailsTitle="展开完整报告"
+                  className="border-none p-0 shadow-none"
+                />
+              </div>
+            )}
             <div className="theme-card rounded-2xl p-5">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -748,33 +777,32 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
                 <div className="h-full rounded-full bg-pixiu transition-all duration-300" style={{ width: `${progressPercent}%` }} />
               </div>
 
-              {normalizedTask?.externalSearchConfig?.allowExternalSearch && (
-                <div className={`mt-3 rounded-xl border px-4 py-2.5 text-xs leading-6 ${
-                  normalizedTask.externalSearchConfig.status === 'degraded'
-                    ? 'border-amber-400/25 bg-amber-500/10 text-amber-400'
-                    : 'border-indigo-400/25 bg-indigo-500/10 text-indigo-400'
-                }`}>
-                  <span className="font-semibold">
-                    外部检索：{normalizedTask.externalSearchConfig.provider}
-                  </span>
-                  <span className="opacity-75">
-                    {' '}· 已调用 {normalizedTask.externalSearchConfig.budget.callsUsed}/{normalizedTask.externalSearchConfig.budget.callLimit} 次
-                    · 已收集 {normalizedTask.externalSearchConfig.budget.evidenceUsed}/{normalizedTask.externalSearchConfig.budget.evidenceLimit} 条
-                  </span>
-                  {normalizedTask.externalSearchConfig.status === 'degraded' && normalizedTask.externalSearchConfig.degradation && (
-                    <span className="block mt-1">
-                      ⚠ 已降级：{normalizedTask.externalSearchConfig.degradation}
+              {normalizedTask?.externalSearchConfig?.allowExternalSearch &&
+                (normalizedTask.externalSearchConfig.status === 'degraded' && normalizedTask.externalSearchConfig.degradation ? (
+                  <div className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-2.5 text-xs leading-6 text-amber-400">
+                    <span className="font-semibold">外部检索已降级</span>
+                    <span className="block mt-1">⚠ {normalizedTask.externalSearchConfig.degradation}</span>
+                  </div>
+                ) : showDevDetails ? (
+                  <div className="mt-3 rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-2.5 text-xs leading-6 text-indigo-400">
+                    <span className="font-semibold">
+                      外部检索：{normalizedTask.externalSearchConfig.provider}
                     </span>
-                  )}
+                    <span className="opacity-75">
+                      {' '}· 已调用 {normalizedTask.externalSearchConfig.budget.callsUsed}/{normalizedTask.externalSearchConfig.budget.callLimit} 次
+                      · 已收集 {normalizedTask.externalSearchConfig.budget.evidenceUsed}/{normalizedTask.externalSearchConfig.budget.evidenceLimit} 条
+                    </span>
+                  </div>
+                ) : null)}
+
+              {showDevDetails && (
+                <div className="theme-text-muted mt-3 text-xs">
+                  Task ID: {normalizedTask.taskId || '未知'} | Trace ID: {normalizedTask.traceId || '未知'} | 状态：{statusMeta.label}
                 </div>
               )}
-
-              <div className="theme-text-muted mt-3 text-xs">
-                Task ID: {normalizedTask.taskId || '未知'} | Trace ID: {normalizedTask.traceId || '未知'} | 状态：{statusMeta.label}
-              </div>
             </div>
 
-            {isTracePanelEnabled && (
+            {isTracePanelEnabled && showDevDetails && (
               <div className="theme-card rounded-2xl p-5">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -988,13 +1016,13 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
                         title={finding.subQuestion}
                         summary={finding.summary}
                         keyPoints={[
-                          judgeText,
-                          coverageText,
+                          showDevDetails ? judgeText : '',
+                          showDevDetails ? coverageText : '',
                           finding.sources.length > 0
                             ? `来源：${finding.sources.map((source: ResearchSource) => source.locationLabel ? `${source.sourceId} (${source.locationLabel})` : source.sourceId).join('、')}`
                             : '尚未绑定来源片段',
                           finding.missingAspects.length > 0 ? `仍缺证据：${finding.missingAspects.join('、')}` : '当前没有额外缺口提示',
-                          finding.retryReason ? `Retry：${finding.retryReason}` : '',
+                          showDevDetails && finding.retryReason ? `Retry：${finding.retryReason}` : '',
                         ].filter(Boolean)}
                         meta={(
                           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${verdictMeta.toneClass}`}>
@@ -1003,15 +1031,15 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
                         )}
                         content={[
                           `### 结论摘要\n${finding.summary}`,
-                          judgeText || coverageText ? `### JUDGE 评分\n${[judgeText, coverageText].filter(Boolean).join(' · ')}` : '',
-                          formatSourceAnalysis(finding.coverage)
+                          showDevDetails && (judgeText || coverageText) ? `### JUDGE 评分\n${[judgeText, coverageText].filter(Boolean).join(' · ')}` : '',
+                          showDevDetails && formatSourceAnalysis(finding.coverage)
                             ? `### 来源分析\n${formatSourceAnalysis(finding.coverage)}`
                             : '',
                           finding.sources.length > 0
                             ? `### 证据来源\n${finding.sources.map((source: ResearchSource) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
                             : '',
                           finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
-                          finding.retryReason ? `### Retry 原因\n${finding.retryReason}` : '',
+                          showDevDetails && finding.retryReason ? `### Retry 原因\n${finding.retryReason}` : '',
                         ].filter(Boolean).join('\n\n')}
                         detailsTitle="展开 finding 详情"
                         footer={onCaptureArtifact || finding.sources.some((source: ResearchSource) => source.canJumpToSource) ? (
@@ -1026,15 +1054,15 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
                                     summary: finding.summary,
                                     content: [
                                       `### 结论摘要\n${finding.summary}`,
-                                      judgeText || coverageText ? `### JUDGE 评分\n${[judgeText, coverageText].filter(Boolean).join(' · ')}` : '',
-                                      formatSourceAnalysis(finding.coverage)
+                                      showDevDetails && (judgeText || coverageText) ? `### JUDGE 评分\n${[judgeText, coverageText].filter(Boolean).join(' · ')}` : '',
+                                      showDevDetails && formatSourceAnalysis(finding.coverage)
                                         ? `### 来源分析\n${formatSourceAnalysis(finding.coverage)}`
                                         : '',
                                       finding.sources.length > 0
                                         ? `### 证据来源\n${finding.sources.map((source: ResearchSource) => `- [${source.sourceId}]${source.locationLabel ? ` ${source.locationLabel}` : ''} ${source.preview || ''}`).join('\n')}`
                                         : '',
                                       finding.missingAspects.length > 0 ? `### 仍缺少的证据点\n- ${finding.missingAspects.join('\n- ')}` : '',
-                                      finding.retryReason ? `### Retry 原因\n${finding.retryReason}` : '',
+                                      showDevDetails && finding.retryReason ? `### Retry 原因\n${finding.retryReason}` : '',
                                     ].filter(Boolean).join('\n\n'),
                                     tags: ['research', finding.verdict.toLowerCase()],
                                   })
@@ -1100,42 +1128,6 @@ const DeepResearchPanel: React.FC<DeepResearchPanelProps> = ({
                 </div>
               ) : (
                 <div className="theme-text-secondary text-sm">当前未检测到明确跨源冲突。</div>
-              )}
-            </div>
-
-            <div className="theme-card rounded-2xl p-5">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="theme-text-primary text-sm font-bold">研究报告</div>
-                {normalizedTask.report && (
-                  <button
-                    type="button"
-                    onClick={() => setIsReportExpanded((current: boolean) => !current)}
-                    className="theme-button-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
-                  >
-                    {isReportExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    {isReportExpanded ? '收起报告' : '展开报告'}
-                  </button>
-                )}
-              </div>
-              {normalizedTask.report ? (
-                isReportExpanded ? (
-                  <div className="theme-markdown-panel rounded-xl p-4">
-                    <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
-                      {normalizedTask.report}
-                    </MarkdownContent>
-                  </div>
-                ) : (
-                  <InsightCard
-                    summary={normalizedTask.report}
-                    content={normalizedTask.report}
-                    detailsTitle="展开完整报告"
-                    className="border-none p-0 shadow-none"
-                  />
-                )
-              ) : (
-                <div className="theme-text-secondary text-sm">
-                  {isRunningTask ? 'Markdown 报告会在综合阶段生成。' : '当前任务尚未生成最终报告。'}
-                </div>
               )}
             </div>
 

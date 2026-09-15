@@ -6,6 +6,47 @@ from services.knowledge_graph_store import enrich_conflicts_with_graph_context
 
 MAX_RESEARCH_CONFLICTS = 5
 
+# 报告正文里直接出现的来源类型 token（如 current_paper）会被前端数学预处理误判成下标公式，
+# 因此面向用户的散文统一映射为中文标签；仅开发用段落（证据收集摘要/来源分布）保留原始 token。
+SOURCE_TYPE_LABELS = {
+    "current_paper": "当前论文",
+    "library": "内部文献库",
+    "external_academic": "外部学术",
+    "web_search": "Web搜索",
+    "web_page": "网页",
+    "image_analysis": "图片分析",
+}
+
+
+def _humanize_source_types(source_types: Any) -> str:
+    """把来源类型 token 映射成中文标签，去重后用逗号连接。"""
+    if not isinstance(source_types, (list, tuple)):
+        return ""
+    seen: set[str] = set()
+    labels: list[str] = []
+    for raw in source_types:
+        token = str(raw or "").strip()
+        if not token:
+            continue
+        label = SOURCE_TYPE_LABELS.get(token, token)
+        if label in seen:
+            continue
+        seen.add(label)
+        labels.append(label)
+    return ", ".join(labels)
+
+
+def _flatten_snippet(text: Any, limit: int = 160) -> str:
+    """把多段落原文压成单行并按词/句边界截断，避免破坏 markdown 列表结构与半词截断。"""
+    flat = " ".join(str(text or "").split())
+    if len(flat) <= limit:
+        return flat
+    cut = flat[:limit]
+    boundary = max(cut.rfind(sep) for sep in (" ", "，", "。", "；", "、", ","))
+    if boundary >= int(limit * 0.6):
+        cut = cut[:boundary]
+    return cut.rstrip(" ,;，。；、") + "…"
+
 
 def build_research_report(
     question: str,
@@ -106,8 +147,9 @@ def build_research_report(
             for claim in cv_claims:
                 level = claim.get("agreement_level", "unknown")
                 label = {"confirmed": "✓", "supported": "~", "single_source": "?", "contradicted": "✗"}.get(level, "?")
-                sources_str = ", ".join(claim.get("source_types", []))
-                lines.append(f"- {label} [{level}] {claim.get('claim', '')[:200]} (来源: {sources_str})")
+                sources_str = _humanize_source_types(claim.get("source_types"))
+                claim_text = _flatten_snippet(claim.get("claim", ""), 160)
+                lines.append(f"- {label} [{level}] {claim_text} (来源: {sources_str})")
                 if claim.get("needs_more_evidence"):
                     lines.append("  ⚠ 需更多证据 — 仅单一来源支持")
                 if claim.get("needs_manual_review"):
@@ -383,9 +425,9 @@ def overall_assessment(question: str, findings: list[dict[str, Any]], planned_co
     has_external = _any_external_source(findings)
     external_clause = "，并在证据不足时参考了外部学术来源补充线索" if has_external else ""
     return (
-        "围绕"" + question + ""，本次任务共规划 " + str(planned_count) + " 个子问题，"
-        "其中证据充足 " + str(len(supported)) + " 项，部分相关 " + str(len(partial)) + " 项，证据不足 " + str(len(insufficient)) + " 项。"
-        " 当前结论优先依据当前论文，必要时参考了内部文献库补充线索" + external_clause + "；对证据不足的部分不应当作论文已经证明的事实。"
+        f"围绕'{question}'，本次任务共规划 {planned_count} 个子问题，"
+        f"其中证据充足 {len(supported)} 项，部分相关 {len(partial)} 项，证据不足 {len(insufficient)} 项。"
+        f" 当前结论优先依据当前论文，必要时参考了内部文献库补充线索{external_clause}；对证据不足的部分不应当作论文已经证明的事实。"
     )
 
 
@@ -635,14 +677,12 @@ def _build_hierarchical_citations(findings: list[dict[str, Any]]) -> str:
 
 
 def _build_evidence_comparison_table(findings: list[dict[str, Any]]) -> str:
-    """Build a Markdown evidence comparison table across source types."""
+    """按子问题逐项列出各来源类型的证据摘录。
+
+    说明：前端 markdown 渲染未启用 GFM 表格，`| --- |` 会被原样显示成文本，
+    因此这里改用列表形式（标题=子问题，条目=来源类型：摘录）。
+    """
     source_types = ["current_paper", "library", "external_academic", "web_search", "web_page", "image_analysis"]
-    type_labels = {
-        "current_paper": "当前论文", "library": "内部文献库",
-        "external_academic": "外部学术", "web_search": "Web搜索",
-        "web_page": "网页", "image_analysis": "图片分析",
-    }
-    # Determine which columns actually have data
     used_types: set[str] = set()
     for finding in findings:
         for src in (finding.get("sources") or []):
@@ -652,32 +692,30 @@ def _build_evidence_comparison_table(findings: list[dict[str, Any]]) -> str:
                     used_types.add(st)
     ordered_types = [t for t in source_types if t in used_types]
     if not ordered_types:
-        ordered_types = ["current_paper"]
+        return ""
 
-    header = "| 子问题 | " + " | ".join(type_labels.get(t, t) for t in ordered_types) + " |"
-    sep = "|--------|" + "|".join("------" for _ in ordered_types) + "|"
-    rows = [header, sep]
-
-    for finding in findings:
-        sub_q = (finding.get("subQuestion") or "")[:60]
-        by_type: dict[str, list[str]] = {}
+    lines: list[str] = []
+    for index, finding in enumerate(findings, start=1):
+        sub_q = clean_text(finding.get("subQuestion"))[:60] or "(未命名)"
+        by_type: dict[str, str] = {}
         for src in (finding.get("sources") or []):
             if not isinstance(src, dict):
                 continue
             st = str(src.get("sourceType") or "")
-            text = (src.get("text") or "").strip()[:80]
-            if st not in ordered_types:
+            if st not in ordered_types or st in by_type:
                 continue
-            by_type.setdefault(st, []).append(text)
-        cells = [sub_q] if sub_q else ["(未命名)"]
+            snippet = _flatten_snippet(src.get("text"), 80)
+            if snippet:
+                by_type[st] = snippet
+        lines.append(f"### {index}. {sub_q}")
         for st in ordered_types:
-            snippets = by_type.get(st, [])
-            cells.append(snippets[0] if snippets else "-")
-        rows.append("| " + " | ".join(cells) + " |")
+            label = SOURCE_TYPE_LABELS.get(st, st)
+            lines.append(f"- {label}：{by_type.get(st, '—')}")
+        lines.append("")
 
-    if len(rows) <= 2:
+    if not lines:
         return ""
-    return "## 证据对比表\n\n" + "\n".join(rows) + "\n\n"
+    return "## 证据对比表\n\n" + "\n".join(lines).strip() + "\n\n"
 
 
 def _build_dispute_map(
@@ -696,8 +734,8 @@ def _build_dispute_map(
     cv_claims = cv_result.get("claims") if isinstance(cv_result, dict) else []
     for claim in (cv_claims or []):
         level = claim.get("agreement_level", "")
-        text = claim.get("claim", "")[:150]
-        src_types = ", ".join(claim.get("source_types", []))
+        text = _flatten_snippet(claim.get("claim", ""), 120)
+        src_types = _humanize_source_types(claim.get("source_types"))
         line = f"- {text} (来源: {src_types})" if src_types else f"- {text}"
         if level in ("confirmed", "supported"):
             consensus.append(f"- [✓ {level}] {line.lstrip('- ')}")
@@ -708,7 +746,7 @@ def _build_dispute_map(
 
     # From conflicts
     for conflict in (conflicts or [])[:5]:
-        claim = (conflict.get("claim") or conflict.get("topic") or "未命名冲突")[:120]
+        claim = _flatten_snippet(conflict.get("claim") or conflict.get("topic") or "未命名冲突", 120)
         severity = conflict.get("severity", "medium")
         src_ids = ", ".join(conflict.get("sourceIds") or [])
         line = f"- {claim}"
@@ -773,5 +811,10 @@ def _build_executive_summary(
             return "## 执行摘要\n\n" + summary + "\n"
     except Exception:
         pass
-    # Fallback: concise rule-based summary
-    return "## 执行摘要\n\n" + overall_assessment(question, findings, len(findings)) + "\n"
+    # Fallback: 规则式一句话摘要（刻意与「综合判断」区分，避免整段逐字重复）
+    supported = sum(1 for item in findings if str(item.get("verdict") or "") == "CORRECT")
+    return (
+        "## 执行摘要\n\n"
+        f"本次研究共判定 {len(findings)} 个子问题，其中 {supported} 个证据充足；结论以当前论文为主、内部文献库为辅。"
+        "逐项证据与来源见「子问题结论」与「引用索引」。\n"
+    )
