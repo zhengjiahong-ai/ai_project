@@ -347,13 +347,40 @@ class ExternalSearchTraceTests(unittest.TestCase):
         except Exception as exc:
             self.fail(f"record_metric should not raise when no trace is active: {exc}")
 
-    # ── build_public_trace_summary steps limit ───────────────────
+    # ── build_public_trace_summary steps window ──────────────────
 
-    def test_build_public_trace_summary_limits_steps_to_12(self):
+    def test_public_trace_keeps_every_step_within_window(self):
         trace_id = trace_service.start_trace("unit_test")
         for i in range(15):
             with trace_service.trace_step(f"step_{i}"):
                 pass
         snapshot = trace_service.get_trace_snapshot(trace_id)
         summary = trace_service.build_public_trace_summary(snapshot)
-        self.assertLessEqual(len(summary["steps"]), 12)
+        self.assertEqual(len(summary["steps"]), 15)
+        self.assertEqual(summary["stepsOmitted"], 0)
+
+    def test_public_trace_truncates_middle_but_never_drops_final_steps(self):
+        """收尾步骤必须可见。
+
+        旧实现只取前 12 条，批判分析单次要 20+ 步，于是最贵的主张对齐
+        （实测 70.6s / 总 161.6s）被静默截掉，看上去就像根本没发生。
+        """
+        trace_id = trace_service.start_trace("unit_test")
+        for i in range(40):
+            with trace_service.trace_step(f"step_{i}"):
+                pass
+        snapshot = trace_service.get_trace_snapshot(trace_id)
+        summary = trace_service.build_public_trace_summary(snapshot)
+
+        window = (
+            trace_service._PUBLIC_TRACE_STEP_HEAD_LIMIT
+            + trace_service._PUBLIC_TRACE_STEP_TAIL_LIMIT
+        )
+        self.assertEqual(len(summary["steps"]), window)
+        # 省略条数显式回报，不把窗口误读成全部。
+        self.assertEqual(summary["stepsOmitted"], 40 - window)
+        names = [step["name"] for step in summary["steps"]]
+        self.assertEqual(names[0], "step_0")
+        self.assertEqual(names[-1], "step_39")
+        # 中间被截掉的部分确实不在窗口里。
+        self.assertNotIn("step_20", names)

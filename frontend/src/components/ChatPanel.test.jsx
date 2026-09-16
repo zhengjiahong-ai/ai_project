@@ -12,9 +12,6 @@ const defaultProps = {
   onJumpToSource: vi.fn(),
   onAbortChat: vi.fn(),
   isLoading: false,
-  contextTitle: 'Test Paper',
-  contextSummary: 'A summary of the test paper.',
-  nextActionHint: 'Try asking about methods.',
 };
 
 function renderChat(props = {}) {
@@ -22,24 +19,16 @@ function renderChat(props = {}) {
 }
 
 describe('ChatPanel', () => {
-  it('renders the panel header with context', () => {
-    renderChat();
-    expect(screen.getByText('延展问答')).toBeInTheDocument();
-    expect(screen.getByText(/Test Paper/)).toBeInTheDocument();
-    expect(screen.getByText(/A summary of the test paper/)).toBeInTheDocument();
-    expect(screen.getByText(/Try asking about methods/)).toBeInTheDocument();
-  });
-
   it('renders input textarea', () => {
     renderChat();
-    const textarea = screen.getByPlaceholderText(/先问一个具体问题/);
+    const textarea = screen.getByLabelText('输入问题');
     expect(textarea).toBeInTheDocument();
     expect(textarea).not.toBeDisabled();
   });
 
   it('disables input when loading', () => {
     renderChat({ isLoading: true });
-    const textarea = screen.getByPlaceholderText(/Pixiu 正在回答中/);
+    const textarea = screen.getByLabelText('输入问题');
     expect(textarea).toBeDisabled();
   });
 
@@ -47,7 +36,7 @@ describe('ChatPanel', () => {
     const onSend = vi.fn();
     renderChat({ onSendMessage: onSend });
 
-    const textarea = screen.getByPlaceholderText(/先问一个具体问题/);
+    const textarea = screen.getByLabelText('输入问题');
     fireEvent.change(textarea, { target: { value: '这篇论文的核心贡献？' } });
 
     const sendButton = textarea.parentElement.querySelector('button:last-child');
@@ -60,7 +49,7 @@ describe('ChatPanel', () => {
     const onSend = vi.fn();
     renderChat({ onSendMessage: onSend });
 
-    const textarea = screen.getByPlaceholderText(/先问一个具体问题/);
+    const textarea = screen.getByLabelText('输入问题');
     fireEvent.change(textarea, { target: { value: 'Hello' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
 
@@ -71,7 +60,7 @@ describe('ChatPanel', () => {
     const onSend = vi.fn();
     renderChat({ onSendMessage: onSend });
 
-    const textarea = screen.getByPlaceholderText(/先问一个具体问题/);
+    const textarea = screen.getByLabelText('输入问题');
     fireEvent.change(textarea, { target: { value: 'multiline' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
 
@@ -95,9 +84,8 @@ describe('ChatPanel', () => {
       isLoading: true,
       messages: [{ id: 1, role: 'user', content: 'Hi' }],
     });
-    expect(screen.getByText('Pixiu 正在整理回答')).toBeInTheDocument();
+    expect(screen.getByText('生成中')).toBeInTheDocument();
     // The loading indicator shows a pulsing progress bar
-    expect(screen.getByText(/先给一句结论/)).toBeInTheDocument();
   });
 
   it('calls onAbortChat when stop button is clicked', () => {
@@ -111,18 +99,14 @@ describe('ChatPanel', () => {
 
   it('disables send button when input is empty', () => {
     renderChat();
-    const textarea = screen.getByPlaceholderText(/先问一个具体问题/);
+    const textarea = screen.getByLabelText('输入问题');
     const sendButton = textarea.parentElement.querySelector('button:last-child');
     expect(sendButton).toBeDisabled();
   });
 
-  it('quick tag buttons populate input', () => {
-    renderChat();
-    const tagButton = screen.getByText('# 核心结论');
-    fireEvent.click(tagButton);
-
-    const textarea = screen.getByPlaceholderText(/先问一个具体问题/);
-    expect(textarea.value).toBe('# 核心结论');
+  it('renders the current reading context', () => {
+    renderChat({ contextLabel: '第 8 页 · Method' });
+    expect(screen.getByText(/第 8 页 · Method/)).toBeInTheDocument();
   });
 
   it('calls onDeleteMessage on message delete', () => {
@@ -133,9 +117,7 @@ describe('ChatPanel', () => {
 
     renderChat({ messages, onDeleteMessage: onDelete });
 
-    // Multiple delete buttons exist (left + right of message), pick the first
-    const deleteButtons = screen.getAllByTitle('删除此消息');
-    fireEvent.click(deleteButtons[0]);
+    fireEvent.click(screen.getByTitle('删除此消息'));
 
     expect(window.confirm).toHaveBeenCalled();
     expect(onDelete).toHaveBeenCalledWith(0);

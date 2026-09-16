@@ -187,7 +187,7 @@ const normalizeHighlightRecord = (
     Array.isArray(highlight.chatHistory) && highlight.chatHistory.length > 0
       ? (highlight.chatHistory as PdfViewerChatMessage[])
       : text
-        ? [{ role: 'ai' as const, content: '这是历史划线记录。你可以继续围绕这段内容追问。' }]
+        ? [{ role: 'ai' as const, content: '历史划线记录' }]
         : [{ role: 'ai' as const, content: '这是历史划线记录。' }];
 
   return {
@@ -526,7 +526,7 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
 
           {highlight.isLoading && (
             <div className="theme-text-muted flex items-center gap-2 p-2 text-xs italic">
-              <Sparkles size={12} className="animate-pulse" /> AI 正在先整理一句结论，再补充关键依据...
+              <Sparkles size={12} className="animate-pulse" /> 正在生成...
             </div>
           )}
         </div>
@@ -921,7 +921,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
           {
             ...nextHighlight,
             chatHistory: [
-              { role: 'ai', content: '已保存为边注笔记。你可以稍后在笔记区查看，也可以继续围绕这一段追问。' },
+              { role: 'ai', content: '边注已保存。' },
             ],
           },
         ]);

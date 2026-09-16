@@ -372,6 +372,7 @@ class FixtureLLM:
 
 _llm: Optional[Any] = None
 _translation_llm: Optional[Any] = None
+_structured_llm: Optional[Any] = None
 
 
 def _get_fixture_llm(client: str) -> FixtureLLM:
@@ -431,3 +432,39 @@ def get_translation_llm() -> Any:
         )
 
     return _translation_llm
+
+
+def get_structured_llm() -> Any:
+    """结构化抽取与判定专用的 LLM：模型、思考强度与主模型一致，只把采样温度降到 0。
+
+    给“正确输出是输入的函数”那类调用用：检索查询改写、证据质量判定、主张与
+    证据对齐、结构化报告。这些环节不需要文采，却需要可复现：它们在链路最上游，
+    输出会变就会让下游每个 prompt 都跟着变，温度 0.3 时实测同一篇论文两次跑出
+    5 条与 6 条不同主张，而 LLM 缓存的 key 包含 prompt，所以缓存也完全帮不上忙。
+
+    刻意不用在生成型路径上（对话回答、苏格拉底提问、辩论），那些地方需要多样性，
+    继续用 get_llm()。温度是缓存 key 的一部分，所以切过来会一次性失效旧缓存。
+    """
+    global _structured_llm
+
+    if _structured_llm is None:
+        mode = settings.pixiu_llm_mode.strip().lower()
+        if mode == "fixture":
+            _structured_llm = _get_fixture_llm("default")
+            return _structured_llm
+        if mode != "deepseek":
+            raise ValueError(f"Unsupported PIXIU_LLM_MODE: {mode}")
+        api_key = settings.deepseek_api_key
+        if not api_key:
+            raise ValueError("Please configure DEEPSEEK_API_KEY before starting the AI service.")
+
+        _structured_llm = DeepSeekLLM(
+            model=settings.deepseek_model,
+            temperature=settings.deepseek_structured_temperature,
+            api_key=api_key,
+            base_url=settings.deepseek_base_url,
+            thinking_type=settings.deepseek_thinking_type,
+            reasoning_effort=settings.deepseek_reasoning_effort,
+        )
+
+    return _structured_llm

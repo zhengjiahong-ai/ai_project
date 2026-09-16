@@ -1,0 +1,63 @@
+{
+  "status": "success",
+  "run": {
+    "runId": "324e4d6a-5a30-4caa-ace3-4687e9415db5",
+    "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+    "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+    "traceId": "62e67990-19ba-4dc5-bdad-2894952ff7a5",
+    "status": "running",
+    "executionPhase": "planning",
+    "progress": 0.2,
+    "prompt": "综合比较 3DGStream 与综述中动态 3D Gaussian Splatting 方法：说明核心建模与训练策略、实时或效率证据、适用场景和局限。每个关键结论都必须引用这两篇项目论文中的页码证据；证据不足时明确指出。",
+    "focusedPaperIds": [
+      "2403.01444v4.pdf",
+      "2401.03890v8.pdf"
+    ],
+    "constraints": "只使用项目内两篇论文，不使用外部网页。",
+    "context": {
+      "domain": "",
+      "reviewMode": "auto",
+      "idempotencyKey": "demo-two-paper-turn-1-v1"
+    },
+    "humanReview": {
+      "plan": {
+        "status": "not_required",
+        "reviewNotes": "",
+        "reviewedAt": ""
+      },
+      "final": {
+        "status": "pending",
+        "reviewNotes": "",
+        "reviewedAt": "",
+        "riskReviews": []
+      }
+    },
+    "reviewRisks": [],
+    "traceSummary": {},
+    "externalSearchConfig": {
+      "allowExternalSearch": false,
+      "allowWebSearch": false,
+      "allowIterativeSearch": false,
+      "provider": "disabled",
+      "budget": {
+        "callLimit": 3,
+        "evidenceLimit": 15,
+        "callsUsed": 0,
+        "evidenceUsed": 0
+      },
+      "status": "disabled",
+      "degradation": ""
+    },
+    "codeExecutionConfig": {
+      "allowCodeExecution": false,
+      "proposal": null,
+      "jobId": null,
+      "jobStatus": null,
+      "publishable": false,
+      "degradation": ""
+    },
+    "error": "",
+    "createdAt": "2026-09-13T05:49:34.147254Z",
+    "updatedAt": "2026-09-13T05:49:34.194494Z"
+  }
+}

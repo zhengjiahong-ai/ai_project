@@ -32,12 +32,19 @@ class OfflineCorePathsTests(unittest.TestCase):
             pixiu_llm_fixture_path=str(FIXTURE_PATH),
             deepseek_api_key="",
         )
+        # 三个单例必须一起清。只清 _llm/_translation_llm 会踩到真实的坑：
+        # 研究规划与图谱生成走的是 get_structured_llm()，上一个用例留下的
+        # _structured_llm（带着 MagicMock 响应）会被本用例直接复用，
+        # 最终在 llm/client.py 的 `response.status_code >= 400` 上抛
+        # TypeError: '>=' not supported between instances of 'MagicMock' and 'int'。
         llm_client._llm = None
         llm_client._translation_llm = None
+        llm_client._structured_llm = None
 
     def tearDown(self):
         llm_client._llm = None
         llm_client._translation_llm = None
+        llm_client._structured_llm = None
         _stop_patches(self._settings_patches)
 
     def test_text_chat_uses_offline_fixture(self):

@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from rag.store import get_rag, retrieve_hybrid_results
+from rag.store import get_rag, retrieve_fused_evidence, retrieve_hybrid_results
 from schemas.requests import (
     ChatRequest,
     PageTranslationRequest,
@@ -34,6 +34,34 @@ from services.trace_service import (
 )
 
 _logger = logging.getLogger(__name__)
+
+
+_EXISTENCE_QUESTION_MARKERS = (
+    "有没有", "有无", "是否", "有做", "做了", "做过", "进行了", "进行过",
+    "does ", "did ", "has ", "have ", "is there", "are there", "whether",
+)
+_EXHAUSTIVE_SEARCH_PROFILES = (
+    {
+        "name": "ablation",
+        "triggers": ("消融", "ablation"),
+        "query": (
+            "ablation study ablation experiment component contribution "
+            "remove module fixed threshold dynamic threshold qualitative quantitative Figure Table"
+        ),
+        "explicitTerms": ("ablation", "消融"),
+        "contrastTerms": (
+            "fixed threshold", "static threshold", "dynamic threshold", "static densification",
+            "dynamic densification", "without", "w/o", "remove",
+            "variant", "comparison", "compared with", "component", "module",
+            "固定阈值", "动态阈值", "移除", "对比",
+        ),
+        "supportTerms": (
+            "densification", "gradient threshold", "figure", "fig.", "table",
+            "artifact", "performance", "增密", "图", "表", "性能",
+        ),
+        "missingAspect": "消融实验、模块移除或参数策略对比的直接证据",
+    },
+)
 
 
 SOCRATIC_TOTAL_QUESTIONS = 5
@@ -128,9 +156,22 @@ SOCRATIC_TOPIC_AXES = {
 
 
 
-def _normalize_hybrid_evidence(raw_results, limit=None):
+# 单条证据片段与整体证据上下文的字符/token 预算。
+# 旧值（900 字符/条、2200 token 封顶）意味着 12 条片段最多只能送 8800 字符进模型，
+# 而 chunk 本身就是 900 字符，等于每条片段都被二次截断；
+# 这是“阅读助手经常遗漏论文内容”的直接夹口之一。
+CHAT_EVIDENCE_MAX_TEXT_CHARS = 2400
+CHAT_EVIDENCE_CONTEXT_MAX_TOKENS = 16000
+
+
+def _normalize_hybrid_evidence(raw_results, limit=None, max_text_chars: int = CHAT_EVIDENCE_MAX_TEXT_CHARS):
     """Normalize hybrid/library retrieval results."""
-    return normalize_evidence_items(raw_results, source_type="library", limit=limit)
+    return normalize_evidence_items(
+        raw_results,
+        source_type="library",
+        limit=limit,
+        max_text_chars=max_text_chars,
+    )
 
 
 def _retrieve_current_paper_evidence(
@@ -150,8 +191,21 @@ def _retrieve_current_paper_evidence(
             record_counter("retrievalCalls")
             rag = get_rag()
             clean_pdf_id = rag.normalize_id(pdf_id)
-            raw_results = rag.retrieve(retrieval_query, top_k=current_top_k, filter_metadata={"id": clean_pdf_id})
-            normalized = normalize_evidence_items(raw_results, source_type="current_paper", pdf_id=clean_pdf_id, limit=current_limit)
+            # 走混合检索：论文问答经常问精确术语（公式符号、专有名词），
+            # 纯向量对这类查询不稳，BM25 的词汇匹配正好补上；
+            # filter_metadata 限定在当前论文，避开库里其他论文的干扰。
+            raw_results = retrieve_fused_evidence(
+                retrieval_query,
+                top_k=current_top_k,
+                filter_metadata={"id": clean_pdf_id},
+            )
+            normalized = normalize_evidence_items(
+                raw_results,
+                source_type="current_paper",
+                pdf_id=clean_pdf_id,
+                limit=current_limit,
+                max_text_chars=CHAT_EVIDENCE_MAX_TEXT_CHARS,
+            )
             step["outputSize"] = len(normalized)
             return normalized
     except Exception as error:
@@ -171,6 +225,148 @@ def _deduplicate_evidence(items: list[dict[str, Any]], limit: int | None = None)
         if limit is not None and len(deduped) >= limit:
             break
     return deduped
+
+
+def _get_exhaustive_search_profile(question: str) -> dict[str, Any] | None:
+    """Return a bounded full-paper search profile for academic existence questions."""
+    normalized = " ".join(str(question or "").lower().split())
+    if not normalized or not any(marker in normalized for marker in _EXISTENCE_QUESTION_MARKERS):
+        return None
+    for profile in _EXHAUSTIVE_SEARCH_PROFILES:
+        if any(trigger in normalized for trigger in profile["triggers"]):
+            return profile
+    return None
+
+
+def _has_profile_direct_evidence(items: list[dict[str, Any]], profile: dict[str, Any]) -> bool:
+    for item in items:
+        text = str(item.get("text") or "").lower()
+        explicit_hits = sum(1 for term in profile.get("explicitTerms") or [] if term in text)
+        contrast_hits = sum(1 for term in profile.get("contrastTerms") or [] if term in text)
+        support_hits = sum(1 for term in profile.get("supportTerms") or [] if term in text)
+        if contrast_hits >= 2 or (explicit_hits > 0 and (contrast_hits > 0 or support_hits > 0)):
+            return True
+    return False
+
+
+def _score_profile_document(text: str, profile: dict[str, Any]) -> float:
+    normalized = str(text or "").lower()
+    explicit_hits = sum(normalized.count(term) for term in profile.get("explicitTerms") or [])
+    contrast_hits = sum(1 for term in profile.get("contrastTerms") or [] if term in normalized)
+    support_hits = sum(1 for term in profile.get("supportTerms") or [] if term in normalized)
+    if contrast_hits < 2 and not (explicit_hits > 0 and (contrast_hits > 0 or support_hits > 0)):
+        return 0.0
+    return float(explicit_hits * 8 + contrast_hits * 3 + support_hits)
+
+
+def _retrieve_current_paper_lexical_evidence(
+    pdf_id: str | None,
+    profile: dict[str, Any] | None,
+    limit: int = 6,
+) -> list[dict[str, Any]]:
+    """Scan one indexed paper for exact academic cues and include adjacent chunks.
+
+    This path is deliberately bounded and is used only for existence questions where
+    an absent vector hit must not be treated as proof that an experiment is absent.
+    """
+    if not pdf_id or not profile:
+        return []
+    try:
+        with trace_step(
+            "scan_current_paper_keywords",
+            input_size=len(str(pdf_id)),
+            meta={"pdfId": sanitize_text(pdf_id, max_chars=80), "profile": profile.get("name")},
+        ) as step:
+            record_counter("retrievalCalls")
+            rag = get_rag()
+            clean_pdf_id = rag.normalize_id(pdf_id)
+            documents = rag.get_documents_by_metadata({"id": clean_pdf_id}, limit=240)
+            ranked: list[tuple[float, int, dict[str, Any]]] = []
+            for position, document in enumerate(documents):
+                score = _score_profile_document(document.get("text") or "", profile)
+                if score > 0:
+                    ranked.append((score, position, document))
+            ranked.sort(key=lambda item: (-item[0], item[1]))
+
+            candidates: list[dict[str, Any]] = []
+            seen_positions: set[int] = set()
+            for score, position, document in ranked:
+                for candidate_position in (position, position - 1, position + 1):
+                    if candidate_position < 0 or candidate_position >= len(documents) or candidate_position in seen_positions:
+                        continue
+                    seen_positions.add(candidate_position)
+                    candidate = documents[candidate_position]
+                    candidates.append({
+                        **candidate,
+                        "score": score if candidate_position == position else max(score - 1, 0.1),
+                    })
+                    if len(candidates) >= limit:
+                        break
+                if len(candidates) >= limit:
+                    break
+
+            normalized = normalize_evidence_items(
+                candidates,
+                source_type="current_paper",
+                pdf_id=clean_pdf_id,
+                limit=limit,
+                max_text_chars=1200,
+            )
+            step["outputSize"] = len(normalized)
+            return normalized
+    except Exception as error:
+        _logger.error("Current-paper keyword scan failed: %s", error)
+        return []
+
+
+def _enforce_existence_evidence_gate(
+    question: str,
+    evidence: list[dict[str, Any]],
+    judge_result: dict[str, Any],
+) -> dict[str, Any]:
+    profile = _get_exhaustive_search_profile(question)
+    if not profile or _has_profile_direct_evidence(evidence, profile):
+        return judge_result
+
+    missing_aspect = str(profile.get("missingAspect") or "存在性问题的直接证据")
+    missing = list(judge_result.get("missingAspects") or [])
+    if missing_aspect not in missing:
+        missing.append(missing_aspect)
+    return {
+        **judge_result,
+        "verdict": "AMBIGUOUS" if evidence else "INCORRECT",
+        "confidence": min(float(judge_result.get("confidence") or 0), 0.55),
+        "reason": "现有片段没有直接命中待确认事项，不能用未召回代替不存在。",
+        "missingAspects": missing[:6],
+        "shouldRetry": True,
+        "retryReason": f"需要继续检索{missing_aspect}。",
+    }
+
+
+def _prepare_chat_queries(
+    question: str,
+    query_plan: dict[str, Any],
+    pdf_id: str | None,
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    planned = list(query_plan.get("queries") or [])
+    profile = _get_exhaustive_search_profile(question) if pdf_id else None
+    if not profile:
+        return planned, None
+
+    primary = next(
+        (item for item in planned if str(item.get("scope") or "") == "current_paper"),
+        {
+            "query": query_plan.get("rewritten") or query_plan.get("original") or question,
+            "scope": "current_paper",
+            "reason": "检查当前论文中的直接证据。",
+        },
+    )
+    specialized = {
+        "query": profile["query"],
+        "scope": "current_paper",
+        "reason": "使用章节名、图表和对照实验术语复查当前论文。",
+    }
+    return [primary, specialized], profile
 
 
 def _retrieve_library_evidence(
@@ -414,7 +610,7 @@ def _run_chat_agentic_retrieval(
     if not query_plan.get("needsRetrieval", True):
         return [], "", _build_no_retrieval_judge()
 
-    planned_queries = list(query_plan.get("queries") or [])
+    planned_queries, exhaustive_profile = _prepare_chat_queries(question, query_plan, pdf_id)
     if not planned_queries:
         planned_queries = [{
             "query": query_plan.get("rewritten") or query_plan.get("original") or question,
@@ -441,6 +637,10 @@ def _run_chat_agentic_retrieval(
     elif primary_scope == "library":
         library_evidence.extend(primary_evidence)
 
+    if exhaustive_profile:
+        lexical_evidence = _retrieve_current_paper_lexical_evidence(pdf_id, exhaustive_profile)
+        current_evidence = [*lexical_evidence, *current_evidence]
+
     combined_evidence = _merge_chat_evidence(current_evidence, library_evidence)
     with trace_step(
         "judge_chat_evidence",
@@ -448,6 +648,7 @@ def _run_chat_agentic_retrieval(
         meta={"scope": primary_scope or "none"},
     ) as step:
         judge_result = judge_evidence_quality(question, combined_evidence, keywords=_build_chat_keywords(query_plan))
+        judge_result = _enforce_existence_evidence_gate(question, combined_evidence, judge_result)
         step["outputSize"] = len(judge_result.get("missingAspects") or [])
 
     if len(planned_queries) > 1 and _should_run_follow_up_query(planned_queries[1], judge_result):
@@ -477,6 +678,7 @@ def _run_chat_agentic_retrieval(
             meta={"scope": follow_up_scope or "none"},
         ) as step:
             judge_result = judge_evidence_quality(question, combined_evidence, keywords=_build_chat_keywords(query_plan))
+            judge_result = _enforce_existence_evidence_gate(question, combined_evidence, judge_result)
             step["outputSize"] = len(judge_result.get("missingAspects") or [])
 
     if _should_retry_retrieval(judge_result):
@@ -512,6 +714,7 @@ def _run_chat_agentic_retrieval(
                 combined_evidence,
                 keywords=_build_chat_keywords(query_plan, judge_result.get("missingAspects") or []),
             )
+            judge_result = _enforce_existence_evidence_gate(question, combined_evidence, judge_result)
             step["outputSize"] = len(judge_result.get("missingAspects") or [])
 
     return combined_evidence, _resolve_chat_scope(current_evidence, library_evidence), judge_result
@@ -640,9 +843,13 @@ def chat(request: ChatRequest) -> dict[str, Any]:
                     mixed_title="Paper and library evidence",
                 ),
                 max_items=max_items,
-                max_text_chars=900,
+                max_text_chars=CHAT_EVIDENCE_MAX_TEXT_CHARS,
             )
-            evidence_safety = wrap_untrusted_context("Retrieved paper/library evidence", context, max_tokens=2200)
+            evidence_safety = wrap_untrusted_context(
+                "Retrieved paper/library evidence",
+                context,
+                max_tokens=CHAT_EVIDENCE_CONTEXT_MAX_TOKENS,
+            )
 
         history_str = ""
         for item in history[-5:]:

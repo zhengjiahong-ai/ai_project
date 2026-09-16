@@ -2,6 +2,26 @@
 
 本记录用于追踪学术 AI 助手的功能迭代与优化。
 
+### 2026-09-15 深度研究报告生成与渲染修复
+
+1. **综合判断问题原文缺失（后端）**：`research_aggregator.py` 的 `overall_assessment` 因相邻字符串字面量（多出一对引号）被 Python 在编译期直接拼接，导致报告正文出现字面 `+ question +` 且研究问题从未内插；改为 f-string 后问题原文正确显示。该缺陷由 c50e3518 引入。
+2. **执行摘要与综合判断逐字重复（后端）**：LLM 摘要失败时，`_build_executive_summary` 兜底不再复用 `overall_assessment`，改为规则式一句话摘要（子问题总数 + 证据充足数 + 结论依据），与“综合判断”明确区分。
+3. **claim 多段落塞入 bullet 与半词截断（后端）**：新增 `_flatten_snippet`，把多段落 claim 压成单行并按词/句边界（空格与中英文标点）截断，替换原 `claim[:200]` 硬截断；交叉验证与争议地图不再因内嵌换行破坏列表结构，也不再切出 `real-ti` 之类半词。
+4. **证据对比表无法渲染（后端规避前端能力缺失）**：前端 Markdown 渲染链未启用 remark-gfm，`| --- |` 表格会被原样显示为文本；`_build_evidence_comparison_table` 改为按子问题分组的列表（标题=子问题，条目=来源类型：摘录），无需 GFM 即可正常渲染。
+5. **来源类型 token 被误判为公式（后端规避前端 bug）**：新增 `SOURCE_TYPE_LABELS` 与 `_humanize_source_types`，把 `current_paper` 等裸 token 在面向用户的散文（交叉验证 / 争议地图 / 对比表）中映射为“当前论文”等中文标签，避免前端 `preprocessMathMarkdown` 把“字母_字母”误判为下标公式（渲染成 `currentp aper`）；开发段（证据收集摘要 / 来源分布）仍保留原始 token 以兼容既有测试。
+6. **前端报告净化器与开发者详情开关**：`deepResearchPanelModel.ts` 新增 `sanitizeResearchReport`，默认视图按后端已知的二级标题（执行统计 / 证据收集摘要 / 来源追溯）与 bullet 前缀（JUDGE评分 / 来源分布 / 跨源一致性）精确剥离开发可观测噪声；`DeepResearchPanel.tsx` 将研究报告卡片置顶，并新增“开发者详情”开关（默认关闭，带 `aria-pressed`），开启后展示未净化原始全文与 trace 调试、外部检索预算、Task/Trace ID、JUDGE/覆盖度等细节。补充 `sanitizeResearchReport` 单测（剥离开发段、保留结论段、空/非字符串输入、无三连换行）。
+7. **验证**：后端 `pytest`（`test_research_aggregator` + `test_research_task_service`）50 passed；前端 `npm test` 17 冒烟 + vitest 78 passed。另在真实任务快照上做修复前后对比（`+ question +` 2→0、Markdown 表格 有→无、“当前论文” 3→8、综合判断==执行摘要 是→否）与端到端渲染复现（真实报告 → `sanitizeResearchReport` → `MessageMarkdownRenderer`，断言 `<br>` / `<table>` / 原始 `|---|` / `+ question +` / `current_paper` 全部消除、开发段已剥离），确认用户实际所见干净。后端修复仅对此后新建任务生效，旧任务报告为 sqlite 历史快照需重跑。
+
+### 2026-09-15 论文写作能力现状校准
+
+1. **确认已完成范围**：阅读 IDE 已有“论文写作”入口；前端、Java 网关和 Python 服务具备 `POST /api/generate-paper-draft` 调用链。后端能够从研究问题及可选 findings/evidence/conflicts 生成英文草稿，返回 Markdown、LaTeX、BibTeX 和 `.sty` 内容，并将四类文件写入 `PAPER_DRAFT_DIR`。前端当前可下载 Markdown、LaTeX 和 BibTeX，并可把生成时的 Markdown 保存到工作台。
+2. **校正生成能力描述**：当前只有 Abstract 和 Conclusion 由 LLM 生成，其余章节主要使用固定模板和传入字段拼装；LaTeX 仅生成源码，没有 PDF 编译。该功能定位调整为“基础英文综述草稿生成”，不再描述为完整自动论文写作。
+3. **记录真实接口契约缺口**：Python 返回的 `sections` 是 `[{heading, wordCount, body}]` 数组，`paperWriterModel.ts` 则按 `abstract/introduction/...` 对象读取，导致真实响应无法显示分节预览。现有 `paper-writer.spec.js` 使用 mock 对象响应，只验证模拟路径，未证明真实前后端分节链路可用。
+4. **记录尚未闭环的交互**：分节编辑不会回写 Markdown/LaTeX/BibTeX；分节重新生成无法正确替换后端章节数组；生成进度不是逐节实时进度；`.sty` 无前端下载入口；错误处理仍有只写控制台的路径。
+5. **记录证据接入边界**：API 接受 findings、evidenceItems、conflicts，但阅读 IDE 独立入口当前不会自动加载当前论文或研究结果；`sourceIds` 未被后端消费。默认生成可能没有真实参考文献，不能称为证据约束写作。
+6. **记录 Agent 接入现状**：设计稿和旧更新记录所述“Agent run 成功后内联生成论文草稿”未出现在当前 Agent 工作区。`PaperWriterPanel` 中虽保留 currentRun 预填逻辑，但没有当前界面入口调用它。
+7. **README 同步**：新增“论文写作（基础版，部分可用）”状态表，以真实代码、接口和测试覆盖为准区分已实现、部分实现和未接入能力。
+
 ### 2026-07-28 v0.6.65
 
 **轨道二十一：PDF 阅读增强**

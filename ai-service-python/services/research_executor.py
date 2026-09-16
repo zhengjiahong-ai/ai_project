@@ -208,7 +208,9 @@ def retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, lim
             "query": query,
             "topK": top_k,
             "limit": limit,
-            "maxTextChars": 700,
+            # 上游先截到 700 字符，下游的 format_evidence_context 再宽也没用，
+            # 所以深度研究链路上的逐条证据夹口统一抬到 2000 字符。
+            "maxTextChars": 2000,
         },
     )
     return list(response.get("items") or [])
@@ -222,7 +224,7 @@ def retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, top
             "excludePdfId": exclude_pdf_id,
             "topK": top_k,
             "limit": limit,
-            "maxTextChars": 700,
+            "maxTextChars": 2000,
         },
     )
     return list(response.get("items") or [])
@@ -233,7 +235,7 @@ def merge_evidence_lists(*groups: list[dict[str, Any]], limit: int = 8) -> list[
     seen = set()
     for group in groups:
         for item in group or []:
-            normalized = normalize_evidence_items([item], limit=1, max_text_chars=700)
+            normalized = normalize_evidence_items([item], limit=1, max_text_chars=2000)
             if not normalized:
                 continue
             current = ensure_stable_source_ids(normalized, fallback_prefix="source")[0]
@@ -302,11 +304,11 @@ def build_finding_summary(sub_question: str, evidence: list[dict[str, Any]], jud
 
 def build_planning_context(question: str, paper_skeleton: dict[str, Any], documents: list[dict[str, Any]]) -> str:
     skeleton_text = (read_paper_skeleton(paper_skeleton, max_sections=6, max_chars_per_section=220).get("text") or "")[:1200]
-    evidence_text = format_evidence_context(documents, title="当前论文证据", max_items=4, max_text_chars=260)
+    evidence_text = format_evidence_context(documents, title="当前论文证据", max_items=8, max_text_chars=2000)
     return (
         f"Main question: {question}\n"
         f"Paper skeleton:\n{skeleton_text}\n"
-        f"{evidence_text[:1800]}"
+        f"{evidence_text[:16000]}"
     )
 
 

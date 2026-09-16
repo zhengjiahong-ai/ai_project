@@ -16,7 +16,6 @@ import {
   createDefaultReaderProfile,
   summarizeReaderProfile,
 } from './components/backgroundKnowledgePanelModel.ts';
-import CodeExecutionApprovalCenter from './components/CodeExecutionApprovalCenter.jsx';
 const LibrarySidebar = React.lazy(() => import('./components/LibrarySidebar.jsx'));
 const Navbar = React.lazy(() => import('./components/Navbar.jsx'));
 import { ToastProvider, useToast } from './components/Toast.jsx';
@@ -67,10 +66,6 @@ import {
   normalizeResearchTask,
   shouldRestoreLatestResearchTask,
 } from './components/deepResearchPanelModel.ts';
-import {
-  buildReadingWorkflowSuggestions,
-  getPrimaryReadingWorkflowSuggestion,
-} from './components/readingWorkflowModel.ts';
 import appVersionRaw from '../VERSION?raw';
 
 const workflowStages = [
@@ -99,11 +94,6 @@ const workflowStages = [
 
 const APP_VERSION = appVersionRaw.trim() || '0.0.0';
 const DEFAULT_MODEL_NAME = 'DeepSeek V4';
-
-const WELCOME_MESSAGE = {
-  role: 'ai',
-  content: '您好，我是您的 AI 学术助手。上传论文后，您可以直接选中文本进行提问、批判性阅读，并保留对话记录。',
-};
 
 const workspaceTabs = [
   { id: 'chat', label: '问答', icon: MessageSquare },
@@ -195,7 +185,7 @@ export default function App() {
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfFileName, setPdfFileName] = useState(null);
   const [pdfId, setPdfId] = useState(null);
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState([]);
   const [activeTab, setActiveTab] = useState('chat');
   const [activeWorkspaceSectionId, setActiveWorkspaceSectionId] = useState(() => getWorkspaceSectionId(DEFAULT_ACTIVE_TAB));
   const [analysisData, setAnalysisData] = useState(null);
@@ -419,7 +409,6 @@ export default function App() {
     createReadyMessages,
   } = usePaperSession({
     apiService,
-    welcomeMessage: WELCOME_MESSAGE,
     defaultActiveTab: DEFAULT_ACTIVE_TAB,
     normalizeBackgroundKnowledgeLevel,
     normalizeBackgroundReaderProfile,
@@ -551,7 +540,7 @@ export default function App() {
         setPdfId(null);
         setPdfFile(null);
         setPdfFileName(null);
-        setMessages([WELCOME_MESSAGE]);
+        setMessages([]);
         resetArtifacts();
         setDeconstructData(null);
         setAnalysisData(null);
@@ -1308,36 +1297,6 @@ export default function App() {
     latestAnswer: clampSnippet(latestAiMessage?.content || latestResearchFinding?.summary || ''),
     artifactCount: workbenchCards.length + notes.length,
   };
-  const nextActionSuggestions = buildReadingWorkflowSuggestions({
-    hasPdf: Boolean(pdfFile),
-    activeTab,
-    isDeconstructing,
-    latestUserMessage,
-    deepResearchState: currentDeepResearchState,
-    artifactCount: readingContext.artifactCount,
-    pdfId,
-  });
-  const primaryNextActionSuggestion = getPrimaryReadingWorkflowSuggestion(nextActionSuggestions);
-
-  const handleReadingWorkflowAction = useCallback((suggestion) => {
-    const action = suggestion?.action;
-    if (!action) return;
-
-    if (action.type === 'agent') {
-      setAppMode('agent');
-      return;
-    }
-
-    const targetTabId = action.tabId;
-    if (!targetTabId) return;
-
-    if (action.type === 'workbench' || targetTabId === 'notes') {
-      setIsWorkbenchCollapsed(false);
-    }
-    setActiveWorkspaceSectionId(getWorkspaceSectionId(targetTabId));
-    setActiveTab(targetTabId);
-  }, []);
-
   // 17-4: Share route — after all hooks, before main render.
   const shareMatch = window.location.pathname.match(/^\/share\/([a-f0-9]+)$/i);
   if (shareMatch) {
@@ -1352,7 +1311,6 @@ export default function App() {
 
   return (
     <ErrorBoundary area="主应用">
-      <CodeExecutionApprovalCenter />
       <Suspense fallback={<div className="w-64 border-r" />}>
       <LibrarySidebar
         isOpen={isLibraryOpen}
@@ -1492,9 +1450,6 @@ export default function App() {
               backgroundReaderProfile={backgroundReaderProfile}
               setBackgroundReaderProfile={setBackgroundReaderProfile}
               backgroundReaderProfileSummary={backgroundReaderProfileSummary}
-              primaryNextActionSuggestion={primaryNextActionSuggestion}
-              nextActionSuggestions={nextActionSuggestions}
-              handleReadingWorkflowAction={handleReadingWorkflowAction}
               messages={messages}
               handleSendMessage={handleSendMessage}
               handleDeleteChatMessage={handleDeleteChatMessage}

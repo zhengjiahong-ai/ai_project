@@ -34,6 +34,8 @@ Pixiu Academic Assistant 是一个面向学术论文阅读的 AI 工作台。它
 - 苏格拉底式引导学习。
 - 带证据主张的批判阅读。
 - 带 trace 和持久化快照的 Deep Research 异步任务。
+- Deep Research 报告在结果区置顶展示，默认呈现净化后的用户视图：`deepResearchPanelModel.ts` 的 `sanitizeResearchReport` 会按后端已知的二级标题与 bullet 前缀，剥离“执行统计 / 证据收集摘要 / 来源追溯”整段以及每条 finding 的“JUDGE评分 / 来源分布 / 跨源一致性”等开发可观测噪声；面板标题栏提供“开发者详情”开关（默认关闭），开启后改用后端返回的原始全文，并额外显示 trace 调试、外部检索预算、Task/Trace ID 与 JUDGE/覆盖度等细节。
+- Deep Research 报告生成（后端 `research_aggregator.py`）已修正多处排版与内容缺陷：研究问题正确内插（不再出现字面 `+ question +`）、执行摘要不再与综合判断逐字重复、证据对比表改为列表输出（前端未启用 GFM 表格也能正常渲染）、来源类型统一映射为中文标签（避免 `current_paper` 被前端数学预处理误判为下标公式）、交叉验证与争议地图 claim 按词/句边界截断（不再半词截断或破坏列表结构）。
 - 右侧推荐下一步会根据当前阅读状态给出 2-3 个动作，可继续单论文阅读、发起 Deep Research，或带当前论文进入 Agent 研究。
 - 当前页译文和单章节篇章解构摘要可以加入当前论文工作台，并保留页码或章节信息。
 
@@ -59,6 +61,28 @@ Agent 工作区已经不再只是静态原型壳。当前已经具备第一版�
 - follow-up 循环采用信息增益驱动的自适应终止策略：每轮计算新增证据占比，连续两轮增益低于 10% 时自动停止；同时受安全上限（max 5 轮）、证据饱和（≥ 12 条）和无缺口信号三重保护。节点实现位于 `agent_langgraph_reasoning.py`，确定性可信度公式位于 `evidence_credibility.py`。
 - 前端快照仍按项目保存任务历史，作为旧接口或临时失败时的 fallback。
 - Agent 报告草稿、跨论文对比表和单条关键证据可以加入工作台；报告与对比表归入进入 Agent 时的当前论文，证据卡同时保留来源论文、页码、章节、项目和任务标识。未打开当前论文时保存入口会禁用。
+
+### 论文写作（基础版，部分可用）
+
+本地设计稿将论文写作定义为研究流程的可选终态产出：读取研究问题，以及 Agent 的 findings、evidence 和 conflicts，生成 Abstract、Introduction、Related Work、Methodology、Results、Discussion、Conclusion 和参考文献；用户可以分节预览、编辑、重新生成，并导出 Markdown、LaTeX、BibTeX，或保存到工作台。设计稿还计划在 Agent 任务完成后提供内联入口。
+
+当前实现完成了基础生成和文件导出链路，但尚未达到上述完整交互目标：
+
+| 能力 | 当前状态 | 实际行为 |
+| --- | --- | --- |
+| 阅读 IDE 入口 | 已实现 | 右侧“论文写作”标签可输入研究问题和可选标题，并调用 `POST /api/generate-paper-draft`。Python 与 Java 网关均有对应路由。 |
+| 草稿生成 | 部分实现 | 后端生成 6～7 个英文结构化章节。Abstract 和 Conclusion 调用 LLM；Introduction、Methodology、Results、Discussion 和 Related Work 主要由固定模板与传入数据拼装。 |
+| 研究证据接入 | 接口具备，独立入口未接通 | API 可接收 findings、evidenceItems 和 conflicts；阅读 IDE 当前只传研究问题与标题，不会自动检索当前论文，也不会把 Deep Research 或 Agent 结果注入请求，因此从独立入口生成时通常没有真实 findings 和参考文献。`sourceIds` 虽进入请求模型，但后端生成器当前没有使用它筛选或加载来源。 |
+| 分节预览 | 当前不可用 | 后端返回 `sections` 数组，前端按键值对象读取，数据契约不一致，真实接口响应无法形成分节预览。现有前端 E2E 使用 mock 对象响应，没有覆盖这一真实契约问题。 |
+| 分节编辑 | 界面存在，未形成闭环 | 编辑只更新浏览器内的 section 状态，不会重新生成 Markdown、LaTeX 或 BibTeX；随后下载或保存到工作台仍使用生成时的旧内容。 |
+| 分节重新生成 | 当前不可用 | 前端会发送 section 与 existingSections，但后端内部仍按章节数组处理，不能正确替换指定章节；失败只写入控制台，没有用户可见错误。 |
+| 生成进度 | 占位实现 | 请求是一次性同步返回，没有逐节流式生成；生成过程中进度条不会随章节推进。 |
+| 导出 | 基础可用 | 前端可下载 `.md`、`.tex`、`.bib`。后端还写出 `pixiu-paper.sty`，但前端没有下载入口。LaTeX 只是源码输出，不会编译 PDF。 |
+| 保存到工作台 | 部分实现 | 可以把生成时的 Markdown 保存为 `paper_draft` 产物；分节编辑后的内容不会同步进入该 Markdown。 |
+| Agent 完成后生成草稿 | 尚未接入当前界面 | `PaperWriterPanel` 保留 currentRun 预填代码，但当前 Agent 工作区没有渲染该面板或“生成论文草稿”入口，阅读 IDE 使用时也没有传入 currentRun。 |
+| 服务端文件落盘 | 已实现 | 每次生成会在 `PAPER_DRAFT_DIR`（默认 `ai-service-python/data/paper_drafts/`）下写入 Markdown、LaTeX、BibTeX 和 `.sty` 文件；目前没有草稿列表、版本管理、恢复或删除界面。 |
+
+因此，当前功能适合生成一个可下载的初始英文综述骨架，不应视为已经完成的、证据约束的论文写作系统。正式用于论文写作前，需要先修正章节响应契约，并接通来源选择、证据引用、编辑后重新渲染和 Agent 结果入口。
 
 ### LLM 缓存
 

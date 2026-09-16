@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from llm.client import get_llm
+from llm.client import get_llm, get_structured_llm
 from services.safety_service import (
     MAX_CHAT_QUERIES,
     build_guarded_messages,
@@ -57,7 +57,10 @@ Context:
 """
 
     try:
-        raw = get_llm()._call(
+        # 查询改写是结构化转换（“Return valid JSON only”、“Do not answer the question”），
+        # 用温度为 0 的实例：同一个问题必须得到同一个检索式，否则证据会变、
+        # 下游每个 prompt 也跟着变，批判分析两次跑出不一样结果就是这么来的。
+        raw = get_structured_llm()._call(
             prompt,
             messages=build_guarded_messages(
                 prompt,

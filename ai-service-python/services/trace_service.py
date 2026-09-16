@@ -19,7 +19,12 @@ _logger = logging.getLogger(__name__)
 _TRACE_LOCK = threading.RLock()
 _TRACE_STORE: dict[str, dict[str, Any]] = {}
 _CURRENT_TRACE_ID: ContextVar[str | None] = ContextVar("current_trace_id", default=None)
-_PUBLIC_TRACE_STEP_LIMIT = 12
+# 公开 trace 的步骤窗口：头尾各留一段。
+# 旧实现只取前 12 条（_PUBLIC_TRACE_STEP_LIMIT），而批判分析单次要产生 20+ 步，
+# 于是 limitations 轴、报告生成和主张对齐全被截掉 —— 而主张对齐恰是最贵的一步
+# （实测 70.6s / 总 161.6s）。头尾双窗口既保住载荷上界，又保证收尾步骤永远可见。
+_PUBLIC_TRACE_STEP_HEAD_LIMIT = 12
+_PUBLIC_TRACE_STEP_TAIL_LIMIT = 12
 _PUBLIC_SENSITIVE_KEYS = {
     "authorization",
     "cookie",
@@ -280,8 +285,11 @@ def build_public_trace_summary(snapshot: dict[str, Any]) -> dict[str, Any]:
         "requestMeta": _public_sanitize_meta(snapshot.get("requestMeta") or {}),
         "responseMeta": _public_sanitize_meta(snapshot.get("responseMeta") or {}),
         "counters": _public_sanitize_counters(snapshot.get("counters") or {}),
-        "steps": _public_sanitize_steps(snapshot.get("steps") or []),
     }
+    public_steps, steps_omitted = _public_trace_step_window(snapshot.get("steps") or [])
+    trace["steps"] = public_steps
+    # 显式回报被省略的条数，不让消费方把截断后的窗口误读成"就这几步"。
+    trace["stepsOmitted"] = steps_omitted
     if snapshot.get("error"):
         trace["error"] = sanitize_text(snapshot.get("error"), max_chars=240)
     return trace
@@ -385,25 +393,40 @@ def _public_sanitize_counters(value: Any) -> dict[str, Any]:
     return counters
 
 
-def _public_sanitize_steps(value: Any) -> list[dict[str, Any]]:
+def _public_sanitize_step(raw_step: dict[str, Any]) -> dict[str, Any]:
+    step = {
+        "name": sanitize_text(raw_step.get("name"), max_chars=120),
+        "durationMs": _normalize_size(raw_step.get("durationMs")) or 0,
+        "status": sanitize_text(raw_step.get("status"), max_chars=40) or "success",
+        "inputSize": _normalize_size(raw_step.get("inputSize")),
+        "outputSize": _normalize_size(raw_step.get("outputSize")),
+        "error": sanitize_text(raw_step.get("error"), max_chars=240),
+    }
+    if raw_step.get("meta"):
+        step["meta"] = _public_sanitize_meta(raw_step.get("meta"))
+    return step
+
+
+def _public_trace_step_window(value: Any) -> tuple[list[dict[str, Any]], int]:
+    """按头尾窗口选取步骤，并回报被省略的条数。
+
+    写入侧（_append_step）故意不设上限，否则长任务会在运行中静默丢步骤；
+    截断只发生在公开输出这一侧，而且必须可观测。
+    """
     if not isinstance(value, list):
-        return []
-    steps = []
-    for raw_step in value[:_PUBLIC_TRACE_STEP_LIMIT]:
-        if not isinstance(raw_step, dict):
-            continue
-        step = {
-            "name": sanitize_text(raw_step.get("name"), max_chars=120),
-            "durationMs": _normalize_size(raw_step.get("durationMs")) or 0,
-            "status": sanitize_text(raw_step.get("status"), max_chars=40) or "success",
-            "inputSize": _normalize_size(raw_step.get("inputSize")),
-            "outputSize": _normalize_size(raw_step.get("outputSize")),
-            "error": sanitize_text(raw_step.get("error"), max_chars=240),
-        }
-        if raw_step.get("meta"):
-            step["meta"] = _public_sanitize_meta(raw_step.get("meta"))
-        steps.append(step)
-    return steps
+        return [], 0
+
+    raw_steps = [step for step in value if isinstance(step, dict)]
+    total = len(raw_steps)
+    window = _PUBLIC_TRACE_STEP_HEAD_LIMIT + _PUBLIC_TRACE_STEP_TAIL_LIMIT
+    if total <= window:
+        selected = raw_steps
+    else:
+        selected = [
+            *raw_steps[:_PUBLIC_TRACE_STEP_HEAD_LIMIT],
+            *raw_steps[-_PUBLIC_TRACE_STEP_TAIL_LIMIT:],
+        ]
+    return [_public_sanitize_step(step) for step in selected], total - len(selected)
 
 
 def _is_sensitive_public_key(key: str) -> bool:

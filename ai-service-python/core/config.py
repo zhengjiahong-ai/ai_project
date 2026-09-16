@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     deepseek_translation_thinking_type: str | None = None
     deepseek_translation_reasoning_effort: str | None = None
 
+    # 结构化抽取与判定专用温度（检索查询改写、证据判定、主张对齐、结构化报告）。
+    # 这类任务的正确输出是输入的函数，要的是可复现而不是文采：默认 0.3 下实测同一篇
+    # 论文跑两次得到 5 条与 6 条不同主张，相似度区间也不同，而且链路最上游的查询
+    # 改写一变，下游每一个 prompt 都跟着变，LLM 缓存因此完全失效。模型与思考强度
+    # 沿用主模型，只改采样温度，分析质量不受影响。
+    deepseek_structured_temperature: float = 0.0
+
     # ── Logging ────────────────────────────────────────────────────────
     pixiu_log_level: str = "INFO"
     pixiu_log_json: bool = False

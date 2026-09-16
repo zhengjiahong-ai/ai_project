@@ -1,0 +1,28 @@
+{
+  "status": "success",
+  "project": {
+    "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+    "title": "两篇论文综合研究演示",
+    "goal": "比较 3DGStream 与 3D Gaussian Splatting 综述中的动态场景方法、效率证据和局限",
+    "paperIds": [
+      "2403.01444v4.pdf",
+      "2401.03890v8.pdf"
+    ],
+    "papers": [
+      {
+        "pdfId": "2403.01444v4.pdf",
+        "title": "2403.01444v4.pdf",
+        "indexed": true
+      },
+      {
+        "pdfId": "2401.03890v8.pdf",
+        "title": "2401.03890v8.pdf",
+        "indexed": true
+      }
+    ],
+    "latestTaskId": "",
+    "defaultConstraints": "",
+    "createdAt": "2026-09-13T05:49:13.478679Z",
+    "updatedAt": "2026-09-13T05:49:13.478679Z"
+  }
+}

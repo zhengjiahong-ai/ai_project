@@ -58,6 +58,9 @@ public class AiService {
     public ResponseEntity<Map<String, Object>> removeAgentProjectPaper(String pid, String pdfId)                { return agentService.removeAgentProjectPaper(pid, pdfId); }
     public ResponseEntity<Map<String, Object>> createAgentTask(String id, Map<String, Object> r)                { return agentService.createAgentTask(id, r); }
     public ResponseEntity<Map<String, Object>> createAgentRun(String id, Map<String, Object> r)                 { return agentService.createAgentRun(id, r); }
+    public ResponseEntity<Map<String, Object>> listAgentResearchTasks(String id)                               { return agentService.listAgentResearchTasks(id); }
+    public ResponseEntity<Map<String, Object>> getAgentTaskMessages(String id)                                 { return agentService.getAgentTaskMessages(id); }
+    public ResponseEntity<Map<String, Object>> createAgentTaskRun(String id, Map<String, Object> r)             { return agentService.createAgentTaskRun(id, r); }
     public ResponseEntity<Map<String, Object>> getAgentWorkspace(String id)                                     { return agentService.getAgentWorkspace(id); }
     public ResponseEntity<Map<String, Object>> getLatestAgentTask(String id)                                    { return agentService.getLatestAgentTask(id); }
     public ResponseEntity<Map<String, Object>> listAgentProjectTasks(String id, Integer limit)                  { return agentService.listAgentProjectTasks(id, limit); }
@@ -66,6 +69,8 @@ public class AiService {
     public ResponseEntity<Map<String, Object>> getAgentRunArtifacts(String id)                                  { return agentService.getAgentRunArtifacts(id); }
     public ResponseEntity<Map<String, Object>> getAgentRunTimeline(String id)                                   { return agentService.getAgentRunTimeline(id); }
     public ResponseEntity<Map<String, Object>> cancelAgentTask(String id)                                       { return agentService.cancelAgentTask(id); }
+    public ResponseEntity<Map<String, Object>> cancelAgentRun(String id)                                        { return agentService.cancelAgentRun(id); }
+    public ResponseEntity<Map<String, Object>> retryAgentRun(String id)                                         { return agentService.retryAgentRun(id); }
     public ResponseEntity<Map<String, Object>> reviewAgentRunPlan(String id, Map<String, Object> r)             { return agentService.reviewAgentRunPlan(id, r); }
     public ResponseEntity<Map<String, Object>> reviewAgentPlan(String id, Map<String, Object> r)                { return agentService.reviewAgentPlan(id, r); }
     public ResponseEntity<Map<String, Object>> reviewAgentRunFinal(String id, Map<String, Object> r)            { return agentService.reviewAgentRunFinal(id, r); }
@@ -97,4 +102,8 @@ public class AiService {
     public ResponseEntity<Map<String, Object>> createAgentGraph(Map<String, Object> r)                           { return agentService.createAgentGraph(r); }
     public ResponseEntity<Map<String, Object>> resumeAgentGraph(String id, Map<String, Object> r)                { return agentService.resumeAgentGraph(id, r); }
     public ResponseEntity<Map<String, Object>> getAgentGraph(String id)                                           { return agentService.getAgentGraph(id); }
+
+    // ── Health ─────────────────────────────────────────────────────────────
+
+    public ResponseEntity<Map<String, Object>> healthCheck()                                                     { return agentService.healthCheck(); }
 }

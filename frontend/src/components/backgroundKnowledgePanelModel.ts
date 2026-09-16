@@ -16,6 +16,7 @@ interface ProvenanceMetaEntry {
 
 const PROVENANCE_META: Record<string, ProvenanceMetaEntry> = {
   current_paper_supported: { label: '当前论文支持', tone: 'evidence' },
+  library_paper_supported: { label: '库内论文支持', tone: 'evidence' },
   model_inference: { label: '模型推断', tone: 'inference' },
   external_supported: { label: '外部证据支持', tone: 'external' },
   unknown: { label: '来源未标注', tone: 'unknown' },
@@ -26,6 +27,7 @@ export const getProvenanceMeta = (value: string): ProvenanceMetaEntry => PROVENA
 interface ProvenanceCounts {
   total: number;
   currentPaperSupported: number;
+  libraryPaperSupported: number;
   modelInference: number;
   externalSupported: number;
   supportedRatio: number;
@@ -35,12 +37,13 @@ const normalizeProvenanceCounts = (value: unknown): ProvenanceCounts => {
   const counts = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   const total: number = Number.isInteger(counts.total) && (counts.total as number) >= 0 ? (counts.total as number) : 0;
   const currentPaperSupported: number = Number.isInteger(counts.currentPaperSupported) ? (counts.currentPaperSupported as number) : 0;
+  const libraryPaperSupported: number = Number.isInteger(counts.libraryPaperSupported) ? (counts.libraryPaperSupported as number) : 0;
   const modelInference: number = Number.isInteger(counts.modelInference) ? (counts.modelInference as number) : 0;
   const externalSupported: number = Number.isInteger(counts.externalSupported) ? (counts.externalSupported as number) : 0;
   const supportedRatio: number = typeof counts.supportedRatio === 'number'
     ? Math.max(0, Math.min(1, counts.supportedRatio as number))
-    : total > 0 ? (currentPaperSupported + externalSupported) / total : 0;
-  return { total, currentPaperSupported, modelInference, externalSupported, supportedRatio };
+    : total > 0 ? (currentPaperSupported + libraryPaperSupported + externalSupported) / total : 0;
+  return { total, currentPaperSupported, libraryPaperSupported, modelInference, externalSupported, supportedRatio };
 };
 
 interface ProvenanceSummary {
@@ -137,6 +140,7 @@ export const summarizeReaderProfile = (profile: ReaderProfileInput | null | unde
 };
 
 interface GraphData {
+  paper_topic?: string;
   graph?: {
     nodes?: unknown[];
     links?: unknown[];
@@ -268,6 +272,33 @@ interface LearningPathItem {
   stageLabel?: string;
   step?: number;
 }
+
+// 图谱根节点的固定 id，与后端 graph_normalizer.ROOT_NODE_ID 一致。
+export const ROOT_NODE_ID = 'current-paper';
+
+// 图谱卡片上方的标题要显示论文名。canvas 本身不绘制节点文字（没有传
+// nodeCanvasObject，根节点在画布上只是一个圆点，标题只在悬停 tooltip 里），所以这行
+// h3 就是用户唯一能看到的“这是哪篇论文的图谱”。
+// 它原来绑的是 data.paper_topic，而前端做过篇章解构时传上去的 paper_topic 就是
+// research_problem，实测标题位置因此显示 "How to efficiently reconstruct 3D scenes
+// from sparse multi-view images" —— 一句英文问句。后端现在会把根节点 label 解析成
+// 论文标题（paper_topic 仍保留研究问题去喂模型），这里改成优先取根节点 label。
+// 刻意不走 normalizeGraph：它给 canvas 用的 label 有 `label || name || id` 回落链，
+// 根节点缺 label 时会回落成技术 id，标题位就成了 "current-paper"。浏览器 IndexedDB
+// 里缓存的旧图谱正是这种形状，所以这里只认 label / name 两个真标题来源。
+// 根节点的识别与后端 graph_normalizer 一致：认 id，也认 type=paper。
+// 取不到根节点时回落 paper_topic，再回落“当前论文”：标题不能是空的。
+export const resolveGraphTitle = (data: GraphData | null | undefined): string => {
+  const nodes = (Array.isArray(data?.graph?.nodes) ? data?.graph?.nodes : []) as GraphNode[];
+  const root = nodes.find(
+    (node) => node?.id === ROOT_NODE_ID || `${node?.type ?? ''}`.toLowerCase() === 'paper',
+  );
+  const fromRoot = `${root?.label ?? ''}`.trim() || `${root?.name ?? ''}`.trim();
+  if (fromRoot) {
+    return fromRoot;
+  }
+  return `${data?.paper_topic ?? ''}`.trim() || '当前论文';
+};
 
 export const resolveLearningPathSections = (data: GraphData | null | undefined) => {
   const sections = (Array.isArray(data?.learning_path_sections) ? data.learning_path_sections : []) as LearningPathSection[];
@@ -449,6 +480,17 @@ const sortSectionsByPrerequisites = (data: GraphData | null | undefined, section
         prerequisiteEdges: outgoingByItem.get(item) || [],
       })),
   }));
+};
+
+// 背景补课是同步单请求：后端要先抽取前置概念、再判定它们之间的依赖关系，两轮都
+// 要调模型。实测冷跑 194 秒，浏览器里带上篇章结构时更久，而等待期原本只有一个
+// 转圈图标，用户分不清“正在算”和“卡死了”。给真实已耗时比画一个拿不到的进度
+// 条诚实。超过一分钟才显示分，避免“0 分 5 秒”这种噪音。
+export const formatElapsedDuration = (totalSeconds: number): string => {
+  const seconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return minutes > 0 ? `${minutes} 分 ${rest} 秒` : `${rest} 秒`;
 };
 
 export const createGenerateHandler = (onGenerate: ((profile: ReturnType<typeof normalizeReaderProfile>) => void) | null | undefined, readerProfile: ReaderProfileInput | null | undefined) => () =>

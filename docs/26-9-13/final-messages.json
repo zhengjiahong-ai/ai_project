@@ -1,0 +1,125 @@
+{
+  "status": "success",
+  "task": {
+    "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+    "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+    "title": "综合比较 3DGStream 与综述中动态 3D Gaussian Splatting 方法：说明核心建模与训练策略、实时或效率证据、适用场景和局限。每个关键结论都必须引用这两篇项目论文中的页码证据；证据不足时明确指出。",
+    "paperIds": [
+      "2403.01444v4.pdf",
+      "2401.03890v8.pdf"
+    ],
+    "latestRunId": "4ac4c1a3-61ad-43f4-9424-b7a4b2151786",
+    "createdAt": "2026-09-13T13:49:34.153269+08:00",
+    "updatedAt": "2026-09-13T14:15:55.732866+08:00"
+  },
+  "messages": [
+    {
+      "messageId": "user:324e4d6a-5a30-4caa-ace3-4687e9415db5",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "runId": "324e4d6a-5a30-4caa-ace3-4687e9415db5",
+      "role": "user",
+      "content": "综合比较 3DGStream 与综述中动态 3D Gaussian Splatting 方法：说明核心建模与训练策略、实时或效率证据、适用场景和局限。每个关键结论都必须引用这两篇项目论文中的页码证据；证据不足时明确指出。",
+      "sourceIds": [],
+      "createdAt": "2026-09-13T13:49:34.156745+08:00"
+    },
+    {
+      "messageId": "assistant:324e4d6a-5a30-4caa-ace3-4687e9415db5",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "runId": "324e4d6a-5a30-4caa-ace3-4687e9415db5",
+      "role": "assistant",
+      "content": "3DGStream 在 Meet Room 数据集上报告了渲染效率：未使用 NTC 时渲染耗时 1.75 ms、571 FPS；完整管线（加入 Query NTC、Transformation、SH Rotation）总耗时 3.47 ms、288 FPS。\n\n[2403.01444v4.pdf-chunk-62]\n\n3DGStream 报告了 N3DV 与 MeetRoom 数据集的存储开销：N3DV 的 NTC 为 7781.5 KB、新 3DGs 为 49.1 KB、总计 7830.6 KB；MeetRoom 的 NTC 为 3941.5 KB、新 3DGs 为 195.3 KB、总计 4136.8 KB。\n\n[2403.01444v4.pdf-chunk-62]\n\n综述证据中动态 3DGS 相关方法以参考文献条目形式出现，如 GauFRe 的标题为“Gaussian Deformation Fields for Real-time Dynamic Novel View Synthesis”，但未提供其核心建模、训练策略或效率数据。\n\n[2401.03890v8.pdf-chunk-161]\n\n综述中其他 3DGS 相关方法名称，如 CoGS、GScream，也仅以参考文献条目出现，证据不足以提取其训练策略、效率、适用场景或局限。\n\n[2401.03890v8.pdf-chunk-206] [2401.03890v8.pdf-chunk-194]\n\n基于现有证据，3DGStream 仅显示渲染效率与存储表，综述中的动态方法仅显示参考文献条目；因此无法对核心建模、训练策略、适用场景和局限进行有依据的跨论文比较。\n\n[2403.01444v4.pdf-chunk-62] [2401.03890v8.pdf-chunk-161] [2401.03890v8.pdf-chunk-206] [2401.03890v8.pdf-chunk-194]\n\n### 证据限制\n\n- 3DGStream 的核心建模、训练策略、适用场景和局限在给定证据中未出现，仅有 Table 7 的渲染 profiling 和存储数据。\n- 综述中动态 3D Gaussian Splatting 方法主要以参考文献条目出现，缺少方法细节、效率指标、适用场景和局限说明。\n- 由于综述侧缺乏可比较的方法细节，无法完成题目要求的 3DGStream 与动态方法在建模、训练策略、实时性、场景和局限上的全面比较。",
+      "sourceIds": [
+        "2403.01444v4.pdf-chunk-62",
+        "2401.03890v8.pdf-chunk-161",
+        "2401.03890v8.pdf-chunk-206",
+        "2401.03890v8.pdf-chunk-194"
+      ],
+      "status": "succeeded",
+      "createdAt": "2026-09-13T13:50:39.425597+08:00"
+    },
+    {
+      "messageId": "user:e2f002a4-34ad-4943-acb6-c671565a14a2",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "runId": "e2f002a4-34ad-4943-acb6-c671565a14a2",
+      "role": "user",
+      "content": "继续完善比较：分别从两篇论文中提取动态场景的表示或变形机制、训练或逐帧更新方式、FPS/训练时间/存储等效率数据，以及作者明确写出的限制或适用条件；最后给出有证据的异同。",
+      "sourceIds": [],
+      "createdAt": "2026-09-13T13:56:33.268542+08:00"
+    },
+    {
+      "messageId": "assistant:e2f002a4-34ad-4943-acb6-c671565a14a2",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "runId": "e2f002a4-34ad-4943-acb6-c671565a14a2",
+      "role": "assistant",
+      "content": "研究运行失败：研究回答格式无效，请重试。",
+      "sourceIds": [],
+      "status": "failed",
+      "createdAt": "2026-09-13T13:57:35.164545+08:00"
+    },
+    {
+      "messageId": "user:920052cb-db1b-4957-8104-3bbe062a83a7",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "runId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+      "role": "user",
+      "content": "基于前两轮继续给出最终综合：比较 3DGStream 与综述所归纳的动态 3DGS 路线，覆盖表示或变形机制、逐帧训练策略、实时效率证据、应用条件和局限。每条结论引用项目论文页码证据。",
+      "sourceIds": [],
+      "createdAt": "2026-09-13T14:11:41.539278+08:00"
+    },
+    {
+      "messageId": "assistant:920052cb-db1b-4957-8104-3bbe062a83a7",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "runId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+      "role": "assistant",
+      "content": "表示/变形机制：3DGStream 的文本描述为渲染当前时间步 i，且只有被变换的对象被传入下一时间步；综述归纳的动态 3DGS 路线（Yang et al.）则在规范空间学习可变形 3D Gaussians，并用空间 MLP 变形场建模时空动态，同时优化中性 3D Gaussians 和变形场。\n\n[2403.01444v4.pdf-chunk-16] [2401.03890v8.pdf-chunk-61]\n\n3DGStream 的 NTC 表示采用多分辨率哈希编码，作者给出的理由是紧凑性和效率：哈希查找为 O(1)，且与现代 GPU 高度兼容；综述侧动态路线的训练机制提到 annealing smoothing，在无额外计算成本下增强时序平滑。\n\n[2403.01444v4.pdf-chunk-27] [2401.03890v8.pdf-chunk-61]\n\n逐帧训练/更新策略：3DGStream 在 flame salmon 场景消融中设置 Stage 1 训练 NTC 150 次迭代、Stage 2 训练新增 3DGs 100 次迭代；综述只报告动态 3DGS 的 annealing smoothing 训练机制，未给出逐帧迭代次数或两阶段训练设置。\n\n[2403.01444v4.pdf-chunk-44] [2401.03890v8.pdf-chunk-61]\n\n训练效率方面，3DGStream 报告 Stage 1 增加 100 次迭代会使每帧训练时长增加 3 秒，并显著提升重建质量；Stage 2 增加迭代对质量影响很小，作者归因于更高学习率、更少新增 3DGs 和快速收敛。\n\n[2403.01444v4.pdf-chunk-67]\n\n存储与可扩展性：3DGStream 报告除初始 3DGs 外，每个 FVV 帧只需存储每帧 NTC 和每帧新增 3DGs，初始 3DGs 数量约为 10^5 量级；综述在通用 3DGS 层面指出可扩展性带来显著内存挑战，需要在模型训练和存储中优化内存。\n\n[2403.01444v4.pdf-chunk-65] [2401.03890v8.pdf-chunk-48]\n\n应用条件/局限：3DGStream 定位为面向动态场景 FVV 的 on-the-fly 训练框架，用于高效 FVV 流式传输；综述归纳的动态/对象运动相关路线指出通常需要手动先验分割区域，缺少对象级运动推理会导致伪影和长序列泛化差。\n\n[2403.01444v4.pdf-chunk-13] [2401.03890v8.pdf-chunk-76]\n\n渲染效率方面，综述的 3D GS 通用渲染路径通过 tile 共享内存和统一读取序列并行执行 alpha compositing 以提高效率；3DGStream 侧当前证据给出 NTC 哈希查找 O(1) 和 GPU 兼容性，以及逐帧训练成本证据。\n\n[2401.03890v8.pdf-chunk-35] [2403.01444v4.pdf-chunk-27] [2403.01444v4.pdf-chunk-67]\n\n### 证据限制\n\n- 综述侧动态 3DGS 路线缺少 FPS、逐帧训练时间和存储等数值，无法与 3DGStream 对应指标进行直接定量比较。\n- 当前提供的 3DGStream 证据中未包含渲染 FPS 表（前轮曾提到 chunk-62），因此本综合未纳入具体渲染 FPS 数值。\n- 3DGStream 的 150/100 次迭代设置来自 flame salmon 场景消融，不能推广为所有实验配置；综述的 scalability 限制来自通用 3DGS 讨论，不一定是动态路线专门结论。",
+      "sourceIds": [
+        "2403.01444v4.pdf-chunk-16",
+        "2401.03890v8.pdf-chunk-61",
+        "2403.01444v4.pdf-chunk-27",
+        "2403.01444v4.pdf-chunk-44",
+        "2403.01444v4.pdf-chunk-67",
+        "2403.01444v4.pdf-chunk-65",
+        "2401.03890v8.pdf-chunk-48",
+        "2403.01444v4.pdf-chunk-13",
+        "2401.03890v8.pdf-chunk-76",
+        "2401.03890v8.pdf-chunk-35"
+      ],
+      "status": "succeeded",
+      "createdAt": "2026-09-13T14:13:55.575181+08:00"
+    },
+    {
+      "messageId": "user:a2a83303-9fde-476d-b2c3-93614692df6d",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "runId": "a2a83303-9fde-476d-b2c3-93614692df6d",
+      "role": "user",
+      "content": "简要比较两篇论文对动态场景效率的描述，并引用证据。",
+      "sourceIds": [],
+      "createdAt": "2026-09-13T14:14:54.326798+08:00"
+    },
+    {
+      "messageId": "user:4ac4c1a3-61ad-43f4-9424-b7a4b2151786",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "runId": "4ac4c1a3-61ad-43f4-9424-b7a4b2151786",
+      "role": "user",
+      "content": "简要比较两篇论文对动态场景效率的描述，并引用证据。",
+      "sourceIds": [],
+      "createdAt": "2026-09-13T14:15:55.740131+08:00"
+    },
+    {
+      "messageId": "assistant:4ac4c1a3-61ad-43f4-9424-b7a4b2151786",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "runId": "4ac4c1a3-61ad-43f4-9424-b7a4b2151786",
+      "role": "assistant",
+      "content": "3DGStream 将动态场景 FVV 的效率目标明确描述为设计 on-the-fly 训练框架以实现高效 FVV 流式传输。\n\n[2403.01444v4.pdf-chunk-13]\n\n3DGStream 在表示层面用多分辨率哈希编码构建 NTC，理由是 compactness 和 efficiency；哈希表查找为 O(1) 且与现代 GPU 高度兼容。\n\n[2403.01444v4.pdf-chunk-27]\n\n3DGStream 对动态 FVV 的存储效率描述为：除初始 3DGs 外，每帧只需存储 per-frame NTCs 和 per-frame additional 3DGs；初始 3DGs 数量约 10^5 量级。\n\n[2403.01444v4.pdf-chunk-65]\n\n3DGStream 给出逐帧训练代价：Stage 1 增加 100 次迭代会使每帧训练时长增加 3 秒但显著提升重建质量；Stage 2 增加迭代影响很小，作者归因于更高学习率、更少新增 3DGs 和快速收敛。flame salmon 消融中 Stage 1 训练 NTC 150 次、Stage 2 训练新增 3DGs 100 次。\n\n[2403.01444v4.pdf-chunk-67] [2403.01444v4.pdf-chunk-44]\n\n综述侧动态 3DGS 路线（Yang et al.）的效率相关描述是：可变形 3D Gaussians 在规范空间学习并耦合空间 MLP 变形场，annealing smoothing 训练机制在无额外计算成本下增强时序平滑。\n\n[2401.03890v8.pdf-chunk-61]\n\n比较来看，3DGStream 提供了动态场景表示、存储和逐帧训练的量化效率证据；综述侧仅给出动态 3DGS 训练机制“无额外计算成本”的定性描述，未提供动态场景 FPS、训练时间或存储数值，因此只能进行定性比较，不能完成定量对比。\n\n[2403.01444v4.pdf-chunk-13] [2403.01444v4.pdf-chunk-27] [2403.01444v4.pdf-chunk-65] [2403.01444v4.pdf-chunk-67] [2401.03890v8.pdf-chunk-61]\n\n### 证据限制\n\n- 当前证据中 3DGStream 没有渲染 FPS 或总存储数值表，不能引用具体 FPS 或总存储数值。\n- 综述侧动态 3DGS 方法缺少动态场景专门的 FPS、逐帧训练时间和存储等数值，无法与 3DGStream 做定量效率比较。\n- 综述中关于 tile 共享内存、并行 alpha compositing 或 scalability 内存挑战的描述偏通用 3DGS，不一定专属于动态场景效率，因此未作为动态场景比较依据。",
+      "sourceIds": [
+        "2403.01444v4.pdf-chunk-13",
+        "2403.01444v4.pdf-chunk-27",
+        "2403.01444v4.pdf-chunk-65",
+        "2403.01444v4.pdf-chunk-67",
+        "2403.01444v4.pdf-chunk-44",
+        "2401.03890v8.pdf-chunk-61"
+      ],
+      "status": "succeeded",
+      "createdAt": "2026-09-13T14:16:46.728843+08:00"
+    }
+  ]
+}

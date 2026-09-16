@@ -41,3 +41,13 @@ def get_run(run_id):
     from services import agent_project_service
 
     return agent_project_service.get_agent_run(run_id)
+
+
+def cancel_run(run_id):
+    from services import agent_project_service
+    return agent_project_service.cancel_agent_run(run_id)
+
+
+def retry_run(run_id):
+    from services import agent_project_service
+    return agent_project_service.retry_agent_run(run_id)

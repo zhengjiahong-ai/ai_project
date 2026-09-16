@@ -18,6 +18,14 @@ EXTERNAL_EVIDENCE_FIELDS = (
     "provenance",
 )
 MIN_CITATION_SCORE = 0.12
+# 只在句子与证据不共享书写系统（中文报告句 × 英文证据）时生效的额外门槛。
+# 跨语言配对下唯一可用的信号是共享的专名与数值，单个 token 极可能是巧合：
+# 实测 “实验在 Tanks and Temples 上…” 只靠一个连词 and 就能对无关证据拿到
+# 1/3 = 0.33（远超 0.12）。同语言配对不触发此门槛，分数因此保持不变。
+MIN_CROSS_SCRIPT_OVERLAP = 2
+# 章节多样化选取时，同一章节默认最多留几条。批判阅读把它压到 1
+# （analysis_service.ANALYSIS_AXIS_SECTION_CAP），由调用方显式传参覆盖。
+DEFAULT_EVIDENCE_SECTION_CAP = 2
 
 
 def normalize_evidence_items(
@@ -59,6 +67,62 @@ def normalize_evidence_items(
             break
 
     return normalized
+
+
+def evidence_section_key(item: dict[str, Any]) -> str | None:
+    """取证据所属章节的归一化标识，定位不到就返回 None。
+
+    真实章节标题住在 metadata.section_title；归一化后顶层只有 sectionId
+    （"section-2" 这种内部编号），编号虽然看不懂，但同章节的多个片段共用一个
+    编号，仍可作为区分章节的兜底键（加 "id:" 前缀避免与恰好叫这个名字的标题撞上）。
+
+    返回 None 表示这条证据无法定位章节，调用方必须让它不占章节限额 —— 否则一批
+    没有章节元数据的语料会被限额砍到只剩 1 条。
+    """
+    metadata = item.get("metadata")
+    if isinstance(metadata, dict):
+        for key in ("section_title", "sectionTitle", "section"):
+            value = " ".join(str(metadata.get(key) or "").lower().split())
+            if value:
+                return value
+    section_id = " ".join(str(item.get("sectionId") or "").lower().split())
+    return f"id:{section_id}" if section_id else None
+
+
+def select_section_diverse_evidence(
+    items: list[dict[str, Any]],
+    limit: int,
+    section_cap: int | None = None,
+) -> list[dict[str, Any]]:
+    """按章节多样化选取：同一章节最多 section_cap 条，按检索顺序取到 limit 为止。
+
+    fuse_evidence 是向量主导排序 + BM25 补召回，长度可达 2×top_k。如果直接按位置
+    截前 limit 条，排在后半段的 BM25 补召回（往往是方法/结果/消融/结论里的精确术语
+    命中）会被整段截掉，引言类高频片段反而占满名额。按章节限额选取能让不同章节的
+    片段都有机会进入最终 limit。
+
+    刻意不做“挑不满就放宽限额补足名额”。这个改进实测过并被数据否决：补足把同章节
+    的重复片段又放回来，每轴条数 17→24、judge 输入 18385→25841 字符（+40%），章节
+    覆盖反而从 8 掉到 7 —— 因为合并阶段按轴顺序截断到 10 条，前面的轴多拿的重复片段
+    会把后面轴的独有章节挤掉。宁可某轴少几条，也不拿重复换条数。
+
+    章节信息缺失（key 为 None）的条目不占限额，退化成普通顺序截断。
+    """
+    selected: list[dict[str, Any]] = []
+    per_section: dict[str, int] = {}
+    # 在调用时读常量而不是当默认参数：默认值在定义时绑定，会让运行期的配置与
+    # 测试补丁全部失效。
+    resolved_cap = DEFAULT_EVIDENCE_SECTION_CAP if section_cap is None else section_cap
+    for item in items:
+        if len(selected) >= limit:
+            break
+        section = evidence_section_key(item)
+        if section is not None:
+            if per_section.get(section, 0) >= resolved_cap:
+                continue
+            per_section[section] = per_section.get(section, 0) + 1
+        selected.append(item)
+    return selected
 
 
 def format_evidence_context(
@@ -139,7 +203,7 @@ def build_sentence_source_map(
         if not terms:
             continue
         valid_source_ids.add(source_id)
-        source_terms.append((source_id, terms))
+        source_terms.append((source_id, *_partition_citation_terms(terms)))
 
     if not source_terms:
         return []
@@ -149,13 +213,23 @@ def build_sentence_source_map(
         sentence_terms = _extract_citation_terms(sentence)
         if not sentence_terms:
             continue
+        sentence_latin, sentence_cjk = _partition_citation_terms(sentence_terms)
 
         scored_sources = []
-        for source_id, terms in source_terms:
-            overlap = sentence_terms.intersection(terms)
+        sentence_scripts = (bool(sentence_latin), bool(sentence_cjk))
+        for source_id, source_latin, source_cjk in source_terms:
+            overlap = (sentence_latin & source_latin) | (sentence_cjk & source_cjk)
             if not overlap:
                 continue
-            score = len(overlap) / max(len(sentence_terms), 1)
+            eligible = (len(sentence_latin) if source_latin else 0) + (
+                len(sentence_cjk) if source_cjk else 0
+            )
+            if not eligible:
+                continue
+            cross_script = sentence_scripts != (bool(source_latin), bool(source_cjk))
+            if cross_script and len(overlap) < MIN_CROSS_SCRIPT_OVERLAP:
+                continue
+            score = len(overlap) / eligible
             if score >= MIN_CITATION_SCORE:
                 scored_sources.append((source_id, score))
 
@@ -205,6 +279,9 @@ def build_field_sentence_source_map(
     return references
 
 
+_HYBRID_CHANNELS = ("vector", "bm25")
+
+
 def _iter_items(items: Any) -> Iterable[Any]:
     if items is None:
         return []
@@ -212,6 +289,16 @@ def _iter_items(items: Any) -> Iterable[Any]:
         return items
     if isinstance(items, tuple):
         return list(items)
+    if isinstance(items, dict):
+        # rag.store 的混合检索返回 {"vector": [...], "bm25": [...], "fused": [...]}。
+        # 旧实现把整个 dict 当成一条证据，而 _extract_text 只认 text/document/content
+        # 等键，于是整批结果被静默丢弃 —— chat_service 的库级检索因此永远返回空列表。
+        fused = items.get("fused")
+        if isinstance(fused, list) and fused:
+            return fused
+        channels = [items[key] for key in _HYBRID_CHANNELS if isinstance(items.get(key), list)]
+        if channels:
+            return [entry for channel in channels for entry in channel]
     return [items]
 
 
@@ -268,6 +355,21 @@ def _extract_citation_terms(text: Any) -> set[str]:
                 terms.add(segment[index:index + size])
 
     return terms
+
+
+def _partition_citation_terms(terms: set[str]) -> tuple[set[str], set[str]]:
+    """把词项按书写系统分成（拉丁/数字, 中文）两类。
+
+    _extract_citation_terms 的两条正则产出天然不相交（ASCII token 不含汉字，
+    中文 n-gram 只含汉字），所以按 isascii 分类是精确的，不是启发式。
+
+    分类的唯一用途是给引用打分挑分母：跨语言配对时中文 n-gram 永远不可能与
+    英文证据相交，把它们算进分母会让分数结构性趋零 —— 实测 3DGS 那篇 29 个
+    报告句 0 条通过、最高仅 0.0597（阈值 0.12），“结论引用”卡片因此从不出现。
+    同语言配对下两类都在，分母仍等于 len(terms)，分数与分类之前逐位一致。
+    """
+    latin = {term for term in terms if term.isascii()}
+    return latin, terms - latin
 
 
 def _extract_text(item: dict[str, Any]) -> str:
@@ -364,3 +466,58 @@ def _coerce_int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _deduplicate_evidence(items: list[dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
+    """按归一化后的正文去重，保持原有顺序。
+
+    原本住在 services/analysis_service.py，但它的两个消费者（analysis_service 的
+    轴内去重、_merge_evidence_lists）分居两个模块，而那两个模块互相导入已经形成
+    循环。本模块只依赖 stdlib，是两边共同的下层，所以工具函数落在这里。
+    注意仓库里 chat_service / agent_evidence_collector 各有一份同名副本，签名不同，
+    本次不动它们 —— 合并那三份是另一件事，混在这里会把改动面撑大。
+    """
+    deduped = []
+    seen = set()
+    for item in items:
+        text_key = " ".join(str(item.get("text") or "").lower().split())
+        if not text_key or text_key in seen:
+            continue
+        seen.add(text_key)
+        deduped.append(item)
+        if limit is not None and len(deduped) >= limit:
+            break
+    return deduped
+
+
+def _merge_evidence_lists(
+    *groups: list[dict[str, Any]],
+    limit: int | None = None,
+    priority_ids: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """合并多组证据、按正文去重，可选地让指定 sourceId 优先占名额。
+
+    priority_ids 是给“先对齐主张、后截断证据”这个顺序兜底的：主张引用的条目如果
+    被截掉，用户就会看到一条带引文的 SUPPORTED 主张却点不到出处。不传时行为与
+    改动前逐位一致（先去重再取前 limit 条）。
+    """
+    merged = []
+    for group in groups:
+        merged.extend(group or [])
+    deduped = _deduplicate_evidence(merged)
+    if limit is None:
+        return deduped
+    selected = deduped[:limit]
+    if not priority_ids:
+        return selected
+
+    available = {str(item.get("sourceId") or "") for item in deduped}
+    wanted = {str(source_id) for source_id in priority_ids if source_id} & available
+    selected_ids = {str(item.get("sourceId") or "") for item in selected}
+    if wanted <= selected_ids:
+        # 名额本来就装得下被引用的条目，不必为了它们打乱原有顺序。
+        return selected
+
+    prioritized = [item for item in deduped if str(item.get("sourceId") or "") in wanted]
+    rest = [item for item in deduped if str(item.get("sourceId") or "") not in wanted]
+    return (prioritized + rest)[:limit]

@@ -13,25 +13,28 @@ import {
   AgentConflictSection,
   AgentDraftReportSection,
   AgentIntermediateArtifactsSection,
-  AgentTaskHistorySection,
   AgentHumanFinalReview,
   AgentTaskPlanSection,
   AgentTaskPromptBubble,
   AgentTimelineSection,
   AgentToolCallsSection,
 } from './AgentWorkspaceMainSections.jsx';
+import { AgentEvidenceListSection } from './AgentWorkspaceEvidenceSections.jsx';
 
 const AgentWorkspaceMain = ({
   activeProject,
   currentTask,
+  stateError,
   projectTasks,
+  messages,
   currentStageLabel,
   prompt,
   onPromptChange,
   onQuickPrompt,
   onCreateTask,
   onRefresh,
-  onSelectTask,
+  onCancelTask,
+  onRetryTask,
   onReviewPlan,
   onReviewFinal,
   activePaperId,
@@ -51,6 +54,10 @@ const AgentWorkspaceMain = ({
   theme = 'light',
 }) => {
   const debateResult = currentTask?.debateResult;
+  const previousMessages = (messages || []).filter((message) => message.runId !== currentTask?.taskId);
+  const currentRunHasUserMessage = (messages || []).some(
+    (message) => message.runId === currentTask?.taskId && message.role === 'user',
+  );
 
   return (
     <main className="agent-panel min-h-0 min-w-0 overflow-hidden rounded-[26px]">
@@ -60,6 +67,8 @@ const AgentWorkspaceMain = ({
         currentStageLabel={currentStageLabel}
         projectTaskCount={projectTasks.length}
         onRefresh={onRefresh}
+        onCancelTask={onCancelTask}
+        onRetryTask={onRetryTask}
         extraActions={
           <DebateLauncher
             activeProject={activeProject}
@@ -69,28 +78,51 @@ const AgentWorkspaceMain = ({
         }
       />
 
-      <div className="agent-main-surface grid h-[calc(100%-61px)] min-h-0 grid-rows-[minmax(0,1fr)_auto]">
+      <div className="agent-main-surface grid h-[calc(100%-64px)] min-h-0 grid-rows-[minmax(0,1fr)_auto]">
         <div className="min-h-0 overflow-y-auto px-5 py-5">
-          <div className="space-y-4">
-            <AgentTaskHistorySection tasks={projectTasks} currentTask={currentTask} onSelectTask={onSelectTask} />
-
+          <div className="mx-auto max-w-[1120px] space-y-5">
+            {stateError && <div className="agent-chip-danger rounded-md px-4 py-3 text-xs">{stateError}</div>}
+            {previousMessages.map((message) => message.role === 'user' ? (
+              <AgentTaskPromptBubble
+                key={message.messageId}
+                task={{ prompt: message.content, createdAt: message.createdAt }}
+              />
+            ) : (
+              <AgentResponseCard
+                key={message.messageId}
+                currentTask={{ taskId: message.runId, status: message.status || 'succeeded', draftReport: message.content }}
+                currentStageLabel="已完成"
+              />
+            ))}
             {currentTask ? (
               <>
-                <AgentTaskPromptBubble task={currentTask} prompt={prompt} />
+                {!currentRunHasUserMessage && <AgentTaskPromptBubble task={currentTask} prompt={prompt} />}
+                {currentRunHasUserMessage && (
+                  <AgentTaskPromptBubble
+                    task={{
+                      prompt: messages.find((message) => message.runId === currentTask.taskId && message.role === 'user')?.content,
+                      createdAt: messages.find((message) => message.runId === currentTask.taskId && message.role === 'user')?.createdAt,
+                    }}
+                  />
+                )}
 
                 <AgentResponseCard currentTask={currentTask} currentStageLabel={currentStageLabel}>
-                  <AgentTimelineSection currentTask={currentTask} />
-                  <AgentTaskPlanSection currentTask={currentTask} activeProject={activeProject} onReviewPlan={onReviewPlan} />
-                  <AgentIntermediateArtifactsSection activeProject={activeProject} currentTask={currentTask} />
-                  <AgentComparisonSection
-                    activeProject={activeProject}
-                    currentTask={currentTask}
-                    activePaperId={activePaperId}
-                    onCaptureArtifact={onCaptureArtifact}
-                  />
-                  <AgentConflictSection currentTask={currentTask} onJumpToSource={onJumpToSource} />
-                  <AgentCodeExecutionSection currentTask={currentTask} />
-                  <AgentToolCallsSection currentTask={currentTask} />
+                  <details className="agent-research-chain mt-4">
+                    <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-semibold">
+                      <span>研究链 · 点击展开完整过程</span>
+                      <span className="agent-muted text-[11px]">{(currentTask?.events || []).length} 步 · {(currentTask?.evidenceItems || []).length} 条证据</span>
+                    </summary>
+                    <div className="border-t px-4 pb-4">
+                      <AgentTimelineSection currentTask={currentTask} />
+                      <AgentTaskPlanSection currentTask={currentTask} activeProject={activeProject} onReviewPlan={onReviewPlan} />
+                      <AgentIntermediateArtifactsSection activeProject={activeProject} currentTask={currentTask} />
+                      <AgentComparisonSection activeProject={activeProject} currentTask={currentTask} activePaperId={activePaperId} onCaptureArtifact={onCaptureArtifact} />
+                      <AgentConflictSection currentTask={currentTask} onJumpToSource={onJumpToSource} />
+                      <AgentCodeExecutionSection currentTask={currentTask} />
+                      <AgentToolCallsSection currentTask={currentTask} />
+                      <AgentEvidenceListSection activeProject={activeProject} currentTask={currentTask} activePaperId={activePaperId} onCaptureArtifact={onCaptureArtifact} onJumpToSource={onJumpToSource} />
+                    </div>
+                  </details>
                   {debateResult?.agent_analyses?.length > 0 ? (
                     <DebateView debateResult={debateResult} theme={theme} />
                   ) : (
@@ -108,7 +140,10 @@ const AgentWorkspaceMain = ({
                 </AgentResponseCard>
               </>
             ) : (
-              <AgentTaskPromptBubble task={null} prompt={prompt} />
+              <div className="agent-empty-state py-16 text-center">
+                <div className="agent-title text-base font-bold">从一个研究问题开始</div>
+                <p className="agent-muted mt-2 text-sm">选择或创建项目，然后在下方建立研究任务。</p>
+              </div>
             )}
           </div>
         </div>

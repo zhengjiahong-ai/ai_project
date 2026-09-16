@@ -294,6 +294,41 @@ export const buildResearchContextHint = (paperStructure: unknown): string => {
   return normalizeText(ps.core_hypothesis);
 };
 
+// 深度研究报告由后端 build_research_report 拼接，混入了大量开发可观测细节：
+// 整段的「执行统计 / 证据收集摘要 / 来源追溯」，以及每条 finding 的 JUDGE 评分、
+// 来源分布、跨源一致性 bullet。这些对读论文的用户是噪声。默认视图用本函数按后端
+// 已知的二级标题与 bullet 前缀精确剥离它们，只保留用户真正关心的结论与证据；
+// 开启「开发者详情」时面板改用未净化的原始全文。
+const DEV_REPORT_SECTION_HEADERS = ['## 执行统计', '## 证据收集摘要', '## 来源追溯'];
+const DEV_REPORT_BULLET_PREFIXES = ['- JUDGE评分', '- 来源分布', '- 跨源一致性'];
+
+export const sanitizeResearchReport = (report: unknown): string => {
+  const text = typeof report === 'string' ? report : '';
+  if (!text.trim()) {
+    return '';
+  }
+  const kept: string[] = [];
+  let skippingDevSection = false;
+  for (const rawLine of text.split(/\r?\n/)) {
+    const trimmed = rawLine.trim();
+    if (trimmed.startsWith('## ')) {
+      // 任何二级标题都结束上一段跳过；若该标题本身是开发段则开始跳过整段
+      skippingDevSection = DEV_REPORT_SECTION_HEADERS.some((header) => trimmed.startsWith(header));
+      if (skippingDevSection) {
+        continue;
+      }
+    }
+    if (skippingDevSection) {
+      continue;
+    }
+    if (DEV_REPORT_BULLET_PREFIXES.some((prefix) => trimmed.startsWith(prefix))) {
+      continue;
+    }
+    kept.push(rawLine);
+  }
+  return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+};
+
 const normalizeExternalSearchConfig = (config: unknown) => {
   if (!config || typeof config !== 'object') {
     return {

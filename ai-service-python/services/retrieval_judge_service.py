@@ -1,8 +1,9 @@
 import logging
 import math
+import re
 from typing import Any
 
-from llm.client import get_llm
+from llm.client import get_structured_llm
 from services.evidence_service import normalize_evidence_items
 
 _logger = logging.getLogger(__name__)
@@ -33,6 +34,46 @@ SOURCE_TRUST_WEIGHTS = {
     "web_page": 0.40,
 }
 SOURCE_TRUST_DEFAULT = 0.30
+
+_CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
+
+
+def _cjk_ratio(text: str) -> float:
+    chars = [c for c in str(text or "") if not c.isspace()]
+    if not chars:
+        return 0.0
+    return sum(1 for c in chars if _CJK_RE.match(c)) / len(chars)
+
+
+def _is_cross_lingual(terms: list[str], evidence_text: str) -> bool:
+    """关键词与证据是否跨语言（此时字面子串匹配失效）。
+
+    一方以 CJK 为主、另一方几乎不含 CJK 时，_matched_terms 的字面子串匹配
+    必然全灭（中文词永远匹不中英文正文），coverage 恒为 0，不再是“覆盖度”
+    而是“度量失效”。同语言时字面匹配仍是合理近似，保持原行为。
+    """
+    terms_ratio = _cjk_ratio(" ".join(terms))
+    evidence_ratio = _cjk_ratio(evidence_text)
+    return (terms_ratio >= 0.3 and evidence_ratio < 0.1) or (
+        evidence_ratio >= 0.3 and terms_ratio < 0.1
+    )
+
+
+def _cross_lingual_confidence(best_similarity: float, evidence: list[dict], total_length: int) -> float:
+    """跨语言场景下由向量相似度主导的 confidence。
+
+    原累加公式在跨语言时 coverage*0.25 恒为 0、其余项（证据数/长度/相似度档）
+    在 top_k 检索下几乎总是饱和，叠加后 confidence 钉死成无信息量的常数
+    （实测引导式学习五个题轴全部 0.87）。多语言嵌入的向量相似度是此场景下
+    唯一跨语言可靠的相关性信号，改由它连续主导，让分数重新携带区分度：
+    高相似度仍过 0.68 阈值判 CORRECT（与现状好证据的 retry 行为一致），
+    低相似度则掉到阈值以下触发重试 —— 顺带修掉现状“跨语言+低相似度仍给
+    0.73 判 CORRECT 不重试”的漏重试问题。
+    """
+    confidence = 0.15 + best_similarity * 0.75
+    confidence += min(len(evidence), 4) * 0.02
+    confidence += min(total_length / 1600, 1.0) * 0.05
+    return confidence
 
 
 def judge_evidence_quality(
@@ -67,7 +108,10 @@ def _heuristic_judge(question: str, evidence_items: Any, keywords: list[str] | N
     evidence_text = "\n".join(item.get("text", "") for item in evidence if item.get("text"))
     total_length = len(evidence_text)
     matched_terms = _matched_terms(keyword_terms, evidence_text)
-    coverage_payload = _build_coverage(evidence, keyword_terms, matched_terms)
+    cross_lingual = _is_cross_lingual(keyword_terms, evidence_text)
+    coverage_payload = _build_coverage(
+        evidence, keyword_terms, matched_terms, cross_lingual=cross_lingual
+    )
     coverage = coverage_payload["score"]
     best_similarity = _best_number(evidence, "similarity")
     best_score = _best_number(evidence, "score")
@@ -99,27 +143,35 @@ def _heuristic_judge(question: str, evidence_items: Any, keywords: list[str] | N
             coverage=coverage_payload,
         )
 
-    confidence = 0.25
-    confidence += min(len(evidence), 4) * 0.06
-    confidence += min(total_length / 1600, 1.0) * 0.2
-    confidence += coverage * 0.25
+    used_cross_lingual = cross_lingual and best_similarity is not None
+    if used_cross_lingual:
+        confidence = _cross_lingual_confidence(best_similarity, evidence, total_length)
+    else:
+        confidence = 0.25
+        confidence += min(len(evidence), 4) * 0.06
+        confidence += min(total_length / 1600, 1.0) * 0.2
+        confidence += coverage * 0.25
 
-    if best_similarity is not None:
-        if best_similarity >= 0.75:
-            confidence += 0.18
-        elif best_similarity >= 0.55:
-            confidence += 0.1
-        else:
-            confidence += 0.04
-    elif best_score is not None and best_score > 0:
-        confidence += 0.08
+        if best_similarity is not None:
+            if best_similarity >= 0.75:
+                confidence += 0.18
+            elif best_similarity >= 0.55:
+                confidence += 0.1
+            else:
+                confidence += 0.04
+        elif best_score is not None and best_score > 0:
+            confidence += 0.08
 
     confidence = min(0.95, max(0.0, confidence))
     if confidence >= 0.68:
         return _result(
             verdict="CORRECT",
             confidence=confidence,
-            reason="证据数量、文本长度和关键词覆盖整体足够。",
+            reason=(
+                "检索结果与问题语义相似度足够，可支撑回答（跨语言场景，关键词字面覆盖未参与评分）。"
+                if used_cross_lingual
+                else "证据数量、文本长度和关键词覆盖整体足够。"
+            ),
             missing_aspects=[],
             coverage=coverage_payload,
         )
@@ -127,14 +179,22 @@ def _heuristic_judge(question: str, evidence_items: Any, keywords: list[str] | N
         return _result(
             verdict="AMBIGUOUS",
             confidence=confidence,
-            reason="证据部分相关，但覆盖还不够完整。",
+            reason=(
+                "证据与问题的语义相似度偏低，覆盖可能不足（跨语言场景）。"
+                if used_cross_lingual
+                else "证据部分相关，但覆盖还不够完整。"
+            ),
             missing_aspects=_missing_aspects(keyword_terms, matched_terms),
             coverage=coverage_payload,
         )
     return _result(
         verdict="INCORRECT",
         confidence=confidence,
-        reason="证据相关性和覆盖度不足。",
+        reason=(
+            "证据与问题的语义相似度不足（跨语言场景）。"
+            if used_cross_lingual
+            else "证据相关性和覆盖度不足。"
+        ),
         missing_aspects=_missing_aspects(keyword_terms, matched_terms),
         coverage=coverage_payload,
     )
@@ -184,7 +244,9 @@ Keywords:
 Evidence:
 {evidence_text}
 """
-    payload = parse_json_from_llm(get_llm()._call(prompt))
+    # 证据质量判定是分类任务（verdict + missingAspects），用温度为 0 的实例：
+    # 判定摇摆会直接改变是否重试检索，进而改变证据集与最终报告。
+    payload = parse_json_from_llm(get_structured_llm()._call(prompt))
     verdict = str(payload.get("verdict") or "").strip().upper()
     if verdict not in VALID_VERDICTS:
         return fallback
@@ -259,7 +321,12 @@ def _result(
     }
 
 
-def _build_coverage(evidence: list[dict[str, Any]], terms: list[str], matched_terms: list[str]) -> dict[str, Any]:
+def _build_coverage(
+    evidence: list[dict[str, Any]],
+    terms: list[str],
+    matched_terms: list[str],
+    cross_lingual: bool = False,
+) -> dict[str, Any]:
     source_types = []
     seen_source_types = set()
     source_type_counts: dict[str, int] = {}
@@ -295,6 +362,8 @@ def _build_coverage(evidence: list[dict[str, Any]], terms: list[str], matched_te
         "sourceDiversityScore": round(max(0.0, min(1.0, source_diversity)), 4),
         "sourceTrustWeightedScore": round(max(0.0, min(1.0, source_trust)), 4),
         "crossSourceAgreement": cross_agreement,
+        "crossLingual": bool(cross_lingual),
+        "literalMatchReliable": not bool(cross_lingual),
     }
 
 
@@ -388,6 +457,8 @@ def _normalize_coverage(value: dict[str, Any] | None) -> dict[str, Any]:
         "sourceDiversityScore": _coerce_float_or_none(coverage.get("sourceDiversityScore")),
         "sourceTrustWeightedScore": _coerce_float_or_none(coverage.get("sourceTrustWeightedScore")),
         "crossSourceAgreement": _coerce_float_or_none(coverage.get("crossSourceAgreement")),
+        "crossLingual": bool(coverage.get("crossLingual")),
+        "literalMatchReliable": bool(coverage.get("literalMatchReliable", True)),
     }
 
 

@@ -1,0 +1,63 @@
+{
+  "status": "success",
+  "run": {
+    "runId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+    "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+    "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+    "traceId": "f32dfb15-78b3-4179-b02b-3e3267bfed76",
+    "status": "running",
+    "executionPhase": "planning",
+    "progress": 0.2,
+    "prompt": "基于前两轮继续给出最终综合：比较 3DGStream 与综述所归纳的动态 3DGS 路线，覆盖表示或变形机制、逐帧训练策略、实时效率证据、应用条件和局限。每条结论引用项目论文页码证据。",
+    "focusedPaperIds": [
+      "2403.01444v4.pdf",
+      "2401.03890v8.pdf"
+    ],
+    "constraints": "只使用项目内两篇论文。",
+    "context": {
+      "domain": "",
+      "reviewMode": "auto",
+      "idempotencyKey": "demo-two-paper-turn-3-v1"
+    },
+    "humanReview": {
+      "plan": {
+        "status": "not_required",
+        "reviewNotes": "",
+        "reviewedAt": ""
+      },
+      "final": {
+        "status": "pending",
+        "reviewNotes": "",
+        "reviewedAt": "",
+        "riskReviews": []
+      }
+    },
+    "reviewRisks": [],
+    "traceSummary": {},
+    "externalSearchConfig": {
+      "allowExternalSearch": false,
+      "allowWebSearch": false,
+      "allowIterativeSearch": false,
+      "provider": "disabled",
+      "budget": {
+        "callLimit": 3,
+        "evidenceLimit": 15,
+        "callsUsed": 0,
+        "evidenceUsed": 0
+      },
+      "status": "disabled",
+      "degradation": ""
+    },
+    "codeExecutionConfig": {
+      "allowCodeExecution": false,
+      "proposal": null,
+      "jobId": null,
+      "jobStatus": null,
+      "publishable": false,
+      "degradation": ""
+    },
+    "error": "",
+    "createdAt": "2026-09-13T06:11:41.494313Z",
+    "updatedAt": "2026-09-13T06:11:41.647918Z"
+  }
+}

@@ -21,6 +21,7 @@ from schemas.requests import (
 )
 from services import (
     agent_artifact_service,
+    agent_conversation_service,
     agent_project_service,
     agent_review_service,
     agent_run_service,
@@ -177,6 +178,58 @@ async def get_agent_run_timeline(run_id: str):
         return JSONResponse(agent_timeline_service.get_timeline(run_id))
     except agent_project_service.AgentTaskNotFoundError as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@agent_router.post("/agent-runs/{run_id}/cancel")
+async def cancel_agent_run(run_id: str):
+    try:
+        return JSONResponse(agent_run_service.cancel_run(run_id))
+    except agent_project_service.AgentTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@agent_router.get("/agent-projects/{project_id}/research-tasks")
+async def list_agent_research_tasks(project_id: str):
+    try:
+        agent_project_service.get_agent_project(project_id)
+        return JSONResponse({"status": "success", "tasks": agent_conversation_service.list_tasks(project_id)})
+    except agent_project_service.AgentProjectNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+
+
+@agent_router.get("/agent-tasks/{task_id}/messages")
+async def list_agent_task_messages(task_id: str):
+    try:
+        return JSONResponse({"status": "success", **agent_conversation_service.get_task(task_id)})
+    except (ValueError, KeyError) as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+
+
+@agent_router.post("/agent-tasks/{task_id}/runs")
+async def create_agent_task_run(task_id: str, request: AgentRunCreateRequest):
+    try:
+        task = agent_conversation_service.get_task(task_id)["task"]
+        return JSONResponse(agent_run_service.create_run(
+            task["projectId"], request.model_copy(update={"taskId": task_id})
+        ))
+    except (ValueError, KeyError) as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@agent_router.post("/agent-runs/{run_id}/retry")
+async def retry_agent_run(run_id: str):
+    try:
+        return JSONResponse(agent_run_service.retry_run(run_id))
+    except agent_project_service.AgentTaskNotFoundError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=404)
+    except agent_project_service.AgentReviewConflictError as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=409)
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 

@@ -122,14 +122,14 @@ interface CitationLink {
   [key: string]: unknown;
 }
 
-export const getCitationGraph = (data: Record<string, unknown> | null | undefined) => {
-  const graph = data?.citationGraph as Record<string, unknown> | undefined;
+const normalizeRelationGraph = (graph: unknown) => {
   if (!graph || typeof graph !== 'object') {
     return null;
   }
 
-  const nodes = Array.isArray(graph.nodes)
-    ? (graph.nodes as CitationNode[])
+  const payload = graph as Record<string, unknown>;
+  const nodes = Array.isArray(payload.nodes)
+    ? (payload.nodes as CitationNode[])
       .map((node) => {
         const id = normalizeText(node?.id);
         if (!id) {
@@ -144,8 +144,8 @@ export const getCitationGraph = (data: Record<string, unknown> | null | undefine
       .filter((item): item is NonNullable<typeof item> => item != null)
     : [];
 
-  const links = Array.isArray(graph.links)
-    ? (graph.links as CitationLink[])
+  const links = Array.isArray(payload.links)
+    ? (payload.links as CitationLink[])
       .map((link) => {
         const source = normalizeText(link?.source);
         const target = normalizeText(link?.target);
@@ -166,6 +166,40 @@ export const getCitationGraph = (data: Record<string, unknown> | null | undefine
   }
 
   return { nodes, links };
+};
+
+export const getCitationGraph = (data: Record<string, unknown> | null | undefined) =>
+  normalizeRelationGraph(data?.citationGraph);
+
+/**
+ * 证据关系图：优先用后端离线构造的主张—证据图，回退到真实引用网络。
+ *
+ * citationGraph 需要 Semantic Scholar，而未配 API key 时后端固定给 null；
+ * evidenceGraph 由已经逐字核验过的主张对齐关系构造，每条边都对应一段真实引用。
+ * 保留回退分支：一旦将来配上 key 并接回 traverse_citation_graph，无需改前端。
+ */
+export const getEvidenceGraph = (data: Record<string, unknown> | null | undefined) =>
+  normalizeRelationGraph(data?.evidenceGraph) ?? normalizeRelationGraph(data?.citationGraph);
+
+const EVIDENCE_GRAPH_LEGEND: { level: string; label: string; color: string }[] = [
+  { level: 'SUPPORTED', label: '有原文支撑', color: '#22c55e' },
+  { level: 'PARTIAL', label: '部分支撑', color: '#f59e0b' },
+  { level: 'UNSUPPORTED', label: '未找到落点', color: '#94a3b8' },
+];
+
+/** 把主张节点按支撑等级汇总成图例，只保留图里真存在的等级。 */
+export const buildEvidenceGraphLegend = (
+  graph: { nodes: Record<string, unknown>[] } | null | undefined,
+): { level: string; label: string; color: string; count: number }[] => {
+  const claimNodes = (graph?.nodes || []).filter((node) => node?.group === 'claim');
+  if (claimNodes.length === 0) {
+    return [];
+  }
+
+  return EVIDENCE_GRAPH_LEGEND.map((item) => ({
+    ...item,
+    count: claimNodes.filter((node) => normalizeText(node?.supportLevel).toUpperCase() === item.level).length,
+  })).filter((item) => item.count > 0);
 };
 
 export const getEvidenceBasedContributions = (data: Record<string, unknown> | null | undefined): string => {
@@ -310,6 +344,11 @@ const SUPPORT_LEVEL_STYLES: Record<string, string> = {
 
 const NUMERIC_VERIFICATION_LABELS: Record<string, string> = {
   not_applicable: '不涉及数值核对',
+  // 后端在“主张里的数值于原文逐字命中”时给 verified。这里必须登记，否则
+  // normalizeNumericVerificationStatus 会把它归一成 not_applicable，而面板对
+  // not_applicable 是整块隐藏 —— 核验真做出来了反而什么都看不见。
+  // 措辞刻意不说“已验证正确”：命中的是数值本身，不等于主张成立。
+  verified: '数值在原文中命中',
   candidate_found: '找到候选数值证据',
   insufficient_for_auto_verification: '候选证据不足以自动验证',
   not_found: '未找到对应数值证据',
@@ -416,6 +455,9 @@ export const getClaimSupportRows = (data: Record<string, unknown> | null | undef
               label: normalizeText(candidate?.label),
               metrics: normalizeList(candidate?.metrics),
               numbers: normalizeList(candidate?.numbers),
+              // 与主张逐字对上的那部分数值。面板靠它把命中的数值标绿，
+              // 否则一堆 chip 里看不出到底哪个对上了。
+              matchedNumbers: normalizeList(candidate?.matchedNumbers),
               reason: normalizeText(candidate?.reason),
               status: normalizeText(candidate?.status) || 'candidate_found',
               chunkIndex: normalizeInteger(candidate?.chunkIndex) ?? (source?.chunkIndex as number | null) ?? null,

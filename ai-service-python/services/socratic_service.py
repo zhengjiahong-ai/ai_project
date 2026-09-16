@@ -7,7 +7,7 @@ import re
 from typing import Any
 
 from llm.client import get_llm
-from rag.store import get_rag, retrieve_hybrid_for_vector
+from rag.store import get_rag, retrieve_fused_evidence
 from schemas.requests import (
     SocraticQuestionRequest,
     SocraticSessionAnswerRequest,
@@ -797,12 +797,18 @@ JSON 格式：
 
 
 def generate_socratic_questions(request: SocraticQuestionRequest) -> dict[str, Any]:
-    rag_query = (
-        f"Generate Socratic questions for a paper. "
-        f"Reading progress: {request.reading_progress}. "
-        f"Paper content: {request.paper_content[:300]}"
-    )
-    rag_results = retrieve_hybrid_for_vector(rag_query, top_k=3)
+    # 检索式只用论文内容本身。旧实现把整条 prompt 指令当检索式
+    # （"Generate Socratic questions for a paper. Reading progress: 摘要 ..."）：
+    # 指令文本与库内语料没有任何语义关系，只会稀释向量；而它带的中文
+    # reading_progress 还会让 core.query_rewriter 判定为 CJK 查询、白付一次跨语言
+    # 改写的 LLM 调用（实测日志：'Generate Socratic questions for a paper. Reading
+    # progress: 摘' -> '... Reading progress: Abstract. ...'）。
+    rag_query = " ".join(str(request.paper_content or "").split())[:300] or " ".join(
+        str(request.reading_progress or "").split()
+    )[:120]
+    # 融合结果长度可达 2 × top_k，这里显式截回 3 条：向量满 3 条时行为与改动前一致，
+    # 向量不足时才用 BM25 补位，不会把这里的 prompt 预算翻倍。
+    rag_results = retrieve_fused_evidence(rag_query, top_k=3)[:3]
 
     rag_context = "\n\nAdditional literature context:\n"
     for result in rag_results:

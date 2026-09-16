@@ -12,6 +12,7 @@ import {
   normalizeTraceCounters,
   normalizeTraceSummary,
   normalizeResearchTask,
+  sanitizeResearchReport,
   shouldRestoreLatestResearchTask,
 } from './deepResearchPanelModel.ts';
 
@@ -374,6 +375,71 @@ const run = async () => {
   assert.equal(fallbackPreview.brief, '');
   assert.deepEqual(fallbackPreview.clarifyingQuestions, []);
   assert.deepEqual(fallbackPreview.suggestedSubQuestions, []);
+
+  // ── sanitizeResearchReport：默认视图剥离开发可观测细节 ──
+  const rawReport = [
+    '## 研究 brief',
+    '围绕 SPaGS 方法检索后续研究。',
+    '',
+    '## 子问题结论',
+    '### 1. SPaGS 论文提出了哪些未来工作？',
+    '- 结论：现有证据基本充分。',
+    '- 证据判断：CORRECT',
+    '- 证据来源：cgf70171.pdf-chunk-57, cgf70171.pdf-chunk-56',
+    '- JUDGE评分: 86/100 · 覆盖: 88% · 多样性: 0% · 可信度: 100%',
+    '- 来源分布: current_paper(5)',
+    '- 跨源一致性: 无法评估',
+    '- 缺失点：缺少外部对比',
+    '',
+    '## 证据收集摘要',
+    '- 总证据条数: 5',
+    '- 平均来源多样性 (Shannon): 0.00',
+    '',
+    '## 来源追溯',
+    '- [rag] 查询: "spags" 第1轮',
+    '',
+    '## 综合判断',
+    '证据主要来自当前论文。',
+    '',
+    '## 执行统计',
+    '| 指标 | 数值 |',
+    '|------|------|',
+    '| LLM 调用 | 4 |',
+    '| 检索调用 | 5 |',
+  ].join('\n');
+
+  const cleanReport = sanitizeResearchReport(rawReport);
+  // 开发段落整段剥离
+  assert.equal(cleanReport.includes('## 执行统计'), false);
+  assert.equal(cleanReport.includes('LLM 调用'), false);
+  assert.equal(cleanReport.includes('## 证据收集摘要'), false);
+  assert.equal(cleanReport.includes('Shannon'), false);
+  assert.equal(cleanReport.includes('## 来源追溯'), false);
+  assert.equal(cleanReport.includes('第1轮'), false);
+  // 每条 finding 的开发 bullet 剥离
+  assert.equal(cleanReport.includes('JUDGE评分'), false);
+  assert.equal(cleanReport.includes('来源分布'), false);
+  assert.equal(cleanReport.includes('跨源一致性'), false);
+  // 用户关心的内容保留
+  assert.equal(cleanReport.includes('## 研究 brief'), true);
+  assert.equal(cleanReport.includes('## 子问题结论'), true);
+  assert.equal(cleanReport.includes('- 结论：现有证据基本充分。'), true);
+  assert.equal(cleanReport.includes('- 证据来源：cgf70171.pdf-chunk-57'), true);
+  assert.equal(cleanReport.includes('- 缺失点：缺少外部对比'), true);
+  // 开发段之后的保留段（综合判断）必须还在，证明跳过逻辑会正确复位
+  assert.equal(cleanReport.includes('## 综合判断'), true);
+  assert.equal(cleanReport.includes('证据主要来自当前论文。'), true);
+  // 剥离后不残留三连空行
+  assert.equal(/\n{3,}/.test(cleanReport), false);
+
+  // 空值 / 非字符串安全
+  assert.equal(sanitizeResearchReport(''), '');
+  assert.equal(sanitizeResearchReport('   \n  '), '');
+  assert.equal(sanitizeResearchReport(null), '');
+  assert.equal(sanitizeResearchReport(undefined), '');
+  assert.equal(sanitizeResearchReport(123), '');
+  // 无开发噪声的报告原样保留（仅去首尾空白）
+  assert.equal(sanitizeResearchReport('## 研究 brief\n只有结论。'), '## 研究 brief\n只有结论。');
 
   console.log('deep research panel model smoke tests passed');
 };

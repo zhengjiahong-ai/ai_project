@@ -1,0 +1,63 @@
+{
+  "status": "success",
+  "run": {
+    "runId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa",
+    "taskId": "e92eb533-c74a-47a6-aba3-3dd9571d60a8",
+    "projectId": "324d50ec-764f-4473-85cd-d8063b38cabf",
+    "traceId": "98b3c81b-bdcc-49f1-b1f1-bca4b3cd12eb",
+    "status": "running",
+    "executionPhase": "planning",
+    "progress": 0.2,
+    "prompt": "比较 3DGStream 与综述归纳的动态 3D Gaussian Splatting：说明表示或变形机制、逐帧训练策略、效率证据、应用条件和局限。每条结论必须引用两篇项目论文中的页码证据，证据不足时明确说明。",
+    "focusedPaperIds": [
+      "2403.01444v4.pdf",
+      "2401.03890v8.pdf"
+    ],
+    "constraints": "只使用项目内两篇论文，不使用外部网页。",
+    "context": {
+      "domain": "",
+      "reviewMode": "auto",
+      "idempotencyKey": "clean-two-paper-demo-v1"
+    },
+    "humanReview": {
+      "plan": {
+        "status": "not_required",
+        "reviewNotes": "",
+        "reviewedAt": ""
+      },
+      "final": {
+        "status": "pending",
+        "reviewNotes": "",
+        "reviewedAt": "",
+        "riskReviews": []
+      }
+    },
+    "reviewRisks": [],
+    "traceSummary": {},
+    "externalSearchConfig": {
+      "allowExternalSearch": false,
+      "allowWebSearch": false,
+      "allowIterativeSearch": false,
+      "provider": "disabled",
+      "budget": {
+        "callLimit": 3,
+        "evidenceLimit": 15,
+        "callsUsed": 0,
+        "evidenceUsed": 0
+      },
+      "status": "disabled",
+      "degradation": ""
+    },
+    "codeExecutionConfig": {
+      "allowCodeExecution": false,
+      "proposal": null,
+      "jobId": null,
+      "jobStatus": null,
+      "publishable": false,
+      "degradation": ""
+    },
+    "error": "",
+    "createdAt": "2026-09-13T06:27:34.938583Z",
+    "updatedAt": "2026-09-13T06:27:35.063743Z"
+  }
+}

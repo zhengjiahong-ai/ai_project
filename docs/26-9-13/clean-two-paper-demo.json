@@ -1,0 +1,931 @@
+{
+  "projectId": "324d50ec-764f-4473-85cd-d8063b38cabf",
+  "taskId": "e92eb533-c74a-47a6-aba3-3dd9571d60a8",
+  "run": {
+    "runId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa",
+    "taskId": "e92eb533-c74a-47a6-aba3-3dd9571d60a8",
+    "projectId": "324d50ec-764f-4473-85cd-d8063b38cabf",
+    "traceId": "98b3c81b-bdcc-49f1-b1f1-bca4b3cd12eb",
+    "status": "succeeded",
+    "executionPhase": "done",
+    "progress": 1.0,
+    "prompt": "比较 3DGStream 与综述归纳的动态 3D Gaussian Splatting：说明表示或变形机制、逐帧训练策略、效率证据、应用条件和局限。每条结论必须引用两篇项目论文中的页码证据，证据不足时明确说明。",
+    "focusedPaperIds": [
+      "2403.01444v4.pdf",
+      "2401.03890v8.pdf"
+    ],
+    "constraints": "只使用项目内两篇论文，不使用外部网页。",
+    "context": {
+      "domain": "",
+      "reviewMode": "auto",
+      "idempotencyKey": "clean-two-paper-demo-v1"
+    },
+    "humanReview": {
+      "plan": {
+        "status": "not_required",
+        "reviewNotes": "",
+        "reviewedAt": ""
+      },
+      "final": {
+        "status": "not_required",
+        "reviewNotes": "",
+        "reviewedAt": "",
+        "riskReviews": []
+      }
+    },
+    "reviewRisks": [
+      {
+        "riskId": "open:1",
+        "type": "open_question",
+        "label": "开放问题",
+        "detail": "综述证据只提供动态 3DGS 的归纳性描述，未提供逐帧训练迭代数、每帧训练时长或存储量等定量数据，因此无法进行完全定量的跨论文效率比较。",
+        "sourceIds": [],
+        "reviewStatus": "pending"
+      },
+      {
+        "riskId": "open:2",
+        "type": "open_question",
+        "label": "开放问题",
+        "detail": "证据中没有 3DGStream 与综述归纳的动态 3DGS 方法在同一场景、同一指标上的直接对比，不能推断相对性能优劣。",
+        "sourceIds": [],
+        "reviewStatus": "pending"
+      },
+      {
+        "riskId": "open:3",
+        "type": "open_question",
+        "label": "开放问题",
+        "detail": "综述中关于手动先验、对象级运动推理的局限片段未在给定证据中明确限定为动态 3DGS 章节，只能作为综述对相关动态或对象建模局限的归纳。",
+        "sourceIds": [],
+        "reviewStatus": "pending"
+      }
+    ],
+    "traceSummary": {
+      "traceId": "98b3c81b-bdcc-49f1-b1f1-bca4b3cd12eb",
+      "taskType": "agent_research",
+      "status": "success",
+      "startedAt": "2026-09-13T06:27:34.938507Z",
+      "finishedAt": "2026-09-13T06:29:06.083649Z",
+      "durationMs": 91145,
+      "requestMeta": {
+        "projectId": "324d50ec-764f-4473-85cd-d8063b38cabf",
+        "prompt": "[REDACTED]",
+        "paperIds": [
+          "2403.01444v4.pdf",
+          "2401.03890v8.pdf"
+        ]
+      },
+      "responseMeta": {
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa",
+        "projectId": "324d50ec-764f-4473-85cd-d8063b38cabf"
+      },
+      "counters": {
+        "llmCalls": 1,
+        "retrievalCalls": 12,
+        "retryCount": 0,
+        "truncationCount": 0,
+        "estimatedInputTokens": 2457,
+        "estimatedOutputTokens": 458,
+        "externalSearchCalls": 0,
+        "externalSearchCacheHits": 0,
+        "externalSearchFailures": 0,
+        "externalEvidenceCount": 0,
+        "externalSearchLatencyMs": 0,
+        "externalSearchBudgetBlocks": 0,
+        "codeExecutionCalls": 0,
+        "codeExecutionFailures": 0,
+        "codeExecutionOutputCount": 0,
+        "webSearchCalls": 0,
+        "webSearchResults": 0,
+        "webSearchFailures": 0,
+        "webSearchLatencyMs": 0,
+        "webSearchBudgetBlocks": 0,
+        "webSearchCacheHits": 0,
+        "webFetchCalls": 0,
+        "webFetchChars": 0,
+        "webFetchFailures": 0,
+        "webFetchBudgetBlocks": 0,
+        "webFetchCacheHits": 0,
+        "webFetchBytes": 0,
+        "agenticLoopIterations": 0,
+        "queryRefinementCalls": 0,
+        "llmCacheMisses": 1,
+        "awaitingFinalReview": false
+      },
+      "steps": [
+        {
+          "name": "agent_task_understanding",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 105,
+          "outputSize": 104,
+          "error": ""
+        },
+        {
+          "name": "tool_retrieve_current_paper",
+          "durationMs": 476,
+          "status": "success",
+          "inputSize": 96,
+          "outputSize": 2,
+          "error": "",
+          "meta": {
+            "pdfId": "2403.01444v4.pdf",
+            "includeAll": false
+          }
+        },
+        {
+          "name": "tool_retrieve_current_paper",
+          "durationMs": 163,
+          "status": "success",
+          "inputSize": 64,
+          "outputSize": 2,
+          "error": "",
+          "meta": {
+            "pdfId": "2403.01444v4.pdf",
+            "includeAll": false
+          }
+        },
+        {
+          "name": "tool_retrieve_current_paper",
+          "durationMs": 216,
+          "status": "success",
+          "inputSize": 72,
+          "outputSize": 2,
+          "error": "",
+          "meta": {
+            "pdfId": "2403.01444v4.pdf",
+            "includeAll": false
+          }
+        },
+        {
+          "name": "agent_collect_paper_evidence",
+          "durationMs": 1789,
+          "status": "success",
+          "inputSize": 758,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "pdfId": "2403.01444v4.pdf"
+          }
+        },
+        {
+          "name": "tool_retrieve_current_paper",
+          "durationMs": 206,
+          "status": "success",
+          "inputSize": 96,
+          "outputSize": 2,
+          "error": "",
+          "meta": {
+            "pdfId": "2401.03890v8.pdf",
+            "includeAll": false
+          }
+        },
+        {
+          "name": "tool_retrieve_current_paper",
+          "durationMs": 157,
+          "status": "success",
+          "inputSize": 64,
+          "outputSize": 2,
+          "error": "",
+          "meta": {
+            "pdfId": "2401.03890v8.pdf",
+            "includeAll": false
+          }
+        },
+        {
+          "name": "tool_retrieve_current_paper",
+          "durationMs": 111,
+          "status": "success",
+          "inputSize": 72,
+          "outputSize": 2,
+          "error": "",
+          "meta": {
+            "pdfId": "2401.03890v8.pdf",
+            "includeAll": false
+          }
+        },
+        {
+          "name": "agent_collect_paper_evidence",
+          "durationMs": 479,
+          "status": "success",
+          "inputSize": 758,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "pdfId": "2401.03890v8.pdf"
+          }
+        },
+        {
+          "name": "llm_call",
+          "durationMs": 80720,
+          "status": "success",
+          "inputSize": 9828,
+          "outputSize": 1831,
+          "error": "",
+          "meta": {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "messageCount": 1
+          }
+        }
+      ]
+    },
+    "externalSearchConfig": {
+      "allowExternalSearch": false,
+      "allowWebSearch": false,
+      "allowIterativeSearch": false,
+      "provider": "disabled",
+      "budget": {
+        "callLimit": 3,
+        "evidenceLimit": 15,
+        "callsUsed": 0,
+        "evidenceUsed": 0
+      },
+      "status": "disabled",
+      "degradation": ""
+    },
+    "codeExecutionConfig": {
+      "allowCodeExecution": false,
+      "proposal": null,
+      "jobId": null,
+      "jobStatus": null,
+      "publishable": false,
+      "degradation": ""
+    },
+    "error": "",
+    "createdAt": "2026-09-13T06:27:34.938583Z",
+    "updatedAt": "2026-09-13T06:29:06.084923Z"
+  },
+  "artifacts": {
+    "runId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa",
+    "version": 1,
+    "evidenceItems": [
+      {
+        "sourceId": "2403.01444v4.pdf-chunk-13",
+        "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 2\n\nContent:\ny view synthesis in large-scale unbounded\nscenes after brief training periods with modest storage re-\nquirements. Inspired by this work, we extend its application\nto the task of constructing FVVs of dynamic scenes. Taking\nit a step further, we design a on-the-fly training framework\nto achieve efficient FVV streaming.\n2.2. Free-Viewpoint Videos of Dynamic Scenes\nConstructing FVVs from a set of videos of dynamic scenes\nis a more challenging and applicable task in the domains of\ncomputer vision and graphics. Earlier attempts to address\nthis task pivot",
+        "metadata": {
+          "file_name": "target_paper.pdf",
+          "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+          "id": "2403.01444v4.pdf",
+          "page": 2,
+          "section_id": "page-2",
+          "page_index": 1,
+          "chunk_index": 13,
+          "section_title": "Page 2"
+        },
+        "similarity": 0.8100939989089966,
+        "score": null,
+        "pdfId": "2403.01444v4.pdf",
+        "chunkIndex": 13,
+        "pageIndex": 1,
+        "sectionId": "page-2",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2403.01444v4.pdf-chunk-16",
+        "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 3\n\nContent:\ned to render at the current timestep i, with only the transformed ones carried into the next timestep.\nsuccess of NeRF-like methods in novel view synthesis for\nstatic scenes, a series of works [1, 9, 19, 29–34, 42, 44–\n46, 48, 52, 56, 58, 60, 62, 63, 69, 75] attempt to use NeRF\nfor constructing FVVs in dynamic scenes. These works can\ntypically be categorized into five types: prior-driven, flow-\nbased, warp-based, those using spatio-temporal inputs, and\nper-frame training.\nPrior-driven methods [27, 30, 63, 69, 75] leverage para-\nmetric models or inc",
+        "metadata": {
+          "page": 3,
+          "file_name": "target_paper.pdf",
+          "chunk_index": 16,
+          "section_id": "page-3",
+          "page_index": 2,
+          "id": "2403.01444v4.pdf",
+          "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+          "section_title": "Page 3"
+        },
+        "similarity": 0.8082548975944519,
+        "score": null,
+        "pdfId": "2403.01444v4.pdf",
+        "chunkIndex": 16,
+        "pageIndex": 2,
+        "sectionId": "page-3",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2403.01444v4.pdf-chunk-27",
+        "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 4\n\nContent:\n interpolation of the feature vectors cor-\nresponding to the eight corners of the surrounding grid.\nConsequently, its multi-resolution hash encoding h(x) =\n[h(x; 0), h(x; 1), ..., h (x;L−1)]∈RLd, where Lrepre-\nsents the number of resolution levels. The multi-resolution\nhash encoding addresses all our requirements for the NTC:\n•Compactness : Hashing effectively reduces the storage\nspace needed for encoding the whole scene.\n•Efficiency : Hash table lookup operates in O(1), and is\nhighly compatible with modern GPUs.\n4",
+        "metadata": {
+          "id": "2403.01444v4.pdf",
+          "file_name": "target_paper.pdf",
+          "page_index": 3,
+          "page": 4,
+          "chunk_index": 27,
+          "section_title": "Page 4",
+          "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+          "section_id": "page-4"
+        },
+        "similarity": 0.6635996103286743,
+        "score": null,
+        "pdfId": "2403.01444v4.pdf",
+        "chunkIndex": 27,
+        "pageIndex": 3,
+        "sectionId": "page-4",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2403.01444v4.pdf-chunk-65",
+        "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 10\n\nContent:\native Results\nWe provide videos to show the free view synthesis results\non various scenes from the N3DV dataset in https://\nsjojok.github.io/3dgstream .\n12. More Evaluations\n12.1. Storage Requirements\nExcept the initial 3DGs, we only need to store per-frame\nNTCs and per-frame additional 3DGs for each FVV frame,\nas detailed in Tab. 8.\n12.2. Quantity of 3DGs\nIn our experiments on the N3DV datasets, the quantity of\ninitial 3DGs ( i.e., the transformed ones) is on the order of\n105, while the quantity of frame-specific additional 3DGs\nis on the order o",
+        "metadata": {
+          "id": "2403.01444v4.pdf",
+          "file_name": "target_paper.pdf",
+          "page": 10,
+          "section_title": "Page 10",
+          "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+          "page_index": 9,
+          "section_id": "page-10",
+          "chunk_index": 65
+        },
+        "similarity": 0.6615297794342041,
+        "score": null,
+        "pdfId": "2403.01444v4.pdf",
+        "chunkIndex": 65,
+        "pageIndex": 9,
+        "sectionId": "page-10",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2403.01444v4.pdf-chunk-67",
+        "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 10\n\nContent:\n im-\npact of training iterations, and show the quantitative results\nin Tab. 9. As shown in Tab. 9, increasing training itera-\ntions in Stage 1 significantly enhances the reconstruction\nquality. However, an additional 100 iterations result in an\nincrement of 3 seconds in the per-frame training duration.\nIncrementing training iterations in the second stage has a\nminimal impact on quality, which can be attributed to the\nhigher learning rate employed in this phase and the smaller\nnumber of additional 3DGs, facilitating rapid convergence.\nReferences\n[1",
+        "metadata": {
+          "section_title": "Page 10",
+          "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+          "page": 10,
+          "page_index": 9,
+          "chunk_index": 67,
+          "id": "2403.01444v4.pdf",
+          "section_id": "page-10",
+          "file_name": "target_paper.pdf"
+        },
+        "similarity": 0.5909169912338257,
+        "score": null,
+        "pdfId": "2403.01444v4.pdf",
+        "chunkIndex": 67,
+        "pageIndex": 9,
+        "sectionId": "page-10",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2403.01444v4.pdf-chunk-44",
+        "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 7\n\nContent:\n004c/uni00000055/uni00000048/uni00000046/uni00000057/uni00000003/uni00000032/uni00000053/uni00000057/uni00000011\nFigure 6. Comparison of different approaches on the flame\nsalmon scene.\nVariant PSNR↑(dB) #Additional 3DGs ↓\nBaseline 28.39 0\nRnd. Spawn 28.39 971.9\nw/oQuant. Ctrl. 28.43 8710.8\nFull Model 28.42 477.7\nTable 3. Ablation study of the Adaptive 3DG Addition strategy\non the flame salmon scene . The metrics are averaged over the\nwhole sequence.\nwe train the NTC for 150 iterations in Stage 1. and train the\nadditional 3DGs for 100 iterations in",
+        "metadata": {
+          "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+          "section_title": "Page 7",
+          "section_id": "page-7",
+          "id": "2403.01444v4.pdf",
+          "page": 7,
+          "chunk_index": 44,
+          "file_name": "target_paper.pdf",
+          "page_index": 6
+        },
+        "similarity": 0.5905741453170776,
+        "score": null,
+        "pdfId": "2403.01444v4.pdf",
+        "chunkIndex": 44,
+        "pageIndex": 6,
+        "sectionId": "page-7",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2401.03890v8.pdf-chunk-61",
+        "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 12\n\nContent:\nnd dynamics by optimizing neutral 3D Gaussians alongside the deformation\nfield, thus ensuring both detail fidelity and expression accuracy. ii)Spatiotemporal Modeling . Yang et al. [265]\nproposed to reconstruct dynamic scenes with deformable 3D Gaussians. The deformable 3D Gaussians are learned in a\ncanonical space, coupled with a deformation field ( i.e., a spatial MLP) that models the spatial-temporal dynamics. The\nproposed method also incorporated an annealing smoothing training mechanism to enhance temporal smoothness\nwithout additional computational costs. iii)Style Transfer . Saroha et al. [195] proposed GS in style,",
+        "metadata": {
+          "page": 12,
+          "page_index": 11,
+          "section_id": "page-12",
+          "section_title": "Page 12",
+          "chunk_index": 61,
+          "id": "2401.03890v8.pdf",
+          "title": "A Survey on 3D Gaussian Splatting",
+          "file_name": "target_paper.pdf"
+        },
+        "similarity": 0.791239857673645,
+        "score": null,
+        "pdfId": "2401.03890v8.pdf",
+        "chunkIndex": 61,
+        "pageIndex": 11,
+        "sectionId": "page-12",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2401.03890v8.pdf-chunk-204",
+        "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 33\n\nContent:\nJin. 2024. Deformable 3d gaussians for high-fidelity monocular\ndynamic scene reconstruction. In Proc. IEEE Conf. Comput. Vis. Pattern Recognit.\n[266] Zeyu Yang, Hongye Yang, Zijie Pan, Xiatian Zhu, and Li Zhang. 2024. Real-time photorealistic dynamic scene representation and rendering with\n4d gaussian splatting. In Proc. Int. Conf. Learn. Represent.\n[267] Keyang Ye, Tianjia Shao, and Kun Zhou. 2023. Animatable 3D Gaussians for High-fidelity Synthesis of Human Motions. arXiv preprint\narXiv:2311.13404 (2023).\n[268] Mingqiao Ye, Martin Danelljan, Fisher Yu, and Lei Ke. 2024. Gaussian Grouping: Segment and Edit Anything in 3D S",
+        "metadata": {
+          "page": 33,
+          "section_title": "Page 33",
+          "page_index": 32,
+          "title": "A Survey on 3D Gaussian Splatting",
+          "chunk_index": 204,
+          "id": "2401.03890v8.pdf",
+          "section_id": "page-33",
+          "file_name": "target_paper.pdf"
+        },
+        "similarity": 0.773169994354248,
+        "score": null,
+        "pdfId": "2401.03890v8.pdf",
+        "chunkIndex": 204,
+        "pageIndex": 32,
+        "sectionId": "page-33",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2401.03890v8.pdf-chunk-35",
+        "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 7\n\nContent:\nit is that each tile’s pixels can access a common\nshared memory and maintain an uniform read se-\nquence (Fig. 5), enabling parallel execution of alpha\ncompositing with increased efficiency. In the official\nManuscript submitted to ACM",
+        "metadata": {
+          "file_name": "target_paper.pdf",
+          "title": "A Survey on 3D Gaussian Splatting",
+          "id": "2401.03890v8.pdf",
+          "chunk_index": 35,
+          "page_index": 6,
+          "page": 7,
+          "section_id": "page-7",
+          "section_title": "Page 7"
+        },
+        "similarity": 0.7025413513183594,
+        "score": null,
+        "pdfId": "2401.03890v8.pdf",
+        "chunkIndex": 35,
+        "pageIndex": 6,
+        "sectionId": "page-7",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2401.03890v8.pdf-chunk-48",
+        "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 10\n\nContent:\n GS\nWhile 3D GS demonstrates remarkable capabilities, its scalability poses significant challenges, particularly when\njuxtaposed with NeRF-based methods. The latter benefits from the simplicity of storing merely the parameters of a\nlearned MLP. This scalability issue becomes increasingly acute in the context of large-scale scene management, where\nthe computational and memory demands escalate substantially. Consequently, there is an urgent need to optimize\nmemory usage in both model training and storage.\nRecent research has pursued two primary directions to address memory efficiency. First, several approaches focus on\nreduci",
+        "metadata": {
+          "chunk_index": 48,
+          "section_title": "Page 10",
+          "page_index": 9,
+          "file_name": "target_paper.pdf",
+          "section_id": "page-10",
+          "page": 10,
+          "id": "2401.03890v8.pdf",
+          "title": "A Survey on 3D Gaussian Splatting"
+        },
+        "similarity": 0.6846181154251099,
+        "score": null,
+        "pdfId": "2401.03890v8.pdf",
+        "chunkIndex": 48,
+        "pageIndex": 9,
+        "sectionId": "page-10",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2401.03890v8.pdf-chunk-118",
+        "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 22\n\nContent:\nutational creativity and practical applications across diverse domains.\n•Learning Physical Priors from Large-scale Data. As we explore the potential of physics- and semantics-aware\nscene representations, leveraging large-scale datasets to learn generalizable, physical priors emerges as a promising\ndirection. The goal is to model the inherent physical properties and dynamics embedded within real-world data,\ntransforming them into actionable insights that can be applied across various domains such as robotics and visual effects.\nEstablishing a learning framework for extracting these generalizable priors enables the applicatio",
+        "metadata": {
+          "chunk_index": 118,
+          "title": "A Survey on 3D Gaussian Splatting",
+          "page": 22,
+          "id": "2401.03890v8.pdf",
+          "section_title": "Page 22",
+          "page_index": 21,
+          "section_id": "page-22",
+          "file_name": "target_paper.pdf"
+        },
+        "similarity": 0.629520058631897,
+        "score": null,
+        "pdfId": "2401.03890v8.pdf",
+        "chunkIndex": 118,
+        "pageIndex": 21,
+        "sectionId": "page-22",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      },
+      {
+        "sourceId": "2401.03890v8.pdf-chunk-76",
+        "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 15\n\nContent:\nA Survey on 3D Gaussian Splatting 15\noften requiring manual priors to segment regions —– a barrier in unstructured settings. Furthermore, the absence\nof object-level motion reasoning leads to artifacts and poor generalization over long sequences. Future work might\nprioritize object-centric frameworks that group Gaussians into persistent entities so as to model inherent motion\ndisentanglement (dynamic vs. static).\n5.3 Generation and Editing\nContent generation and editing represent two fundamental and inherently interconnected capabilities in modern AI\nsystems. While generation enables the synthesis of novel digital content f",
+        "metadata": {
+          "page": 15,
+          "page_index": 14,
+          "section_title": "Page 15",
+          "file_name": "target_paper.pdf",
+          "section_id": "page-15",
+          "id": "2401.03890v8.pdf",
+          "title": "A Survey on 3D Gaussian Splatting",
+          "chunk_index": 76
+        },
+        "similarity": 0.6224871277809143,
+        "score": null,
+        "pdfId": "2401.03890v8.pdf",
+        "chunkIndex": 76,
+        "pageIndex": 14,
+        "sectionId": "page-15",
+        "sourceType": "current_paper",
+        "credibility": {
+          "score": 0.875,
+          "factors": {
+            "source_type_weight": 1.0,
+            "page_anchor_coverage": 1.0,
+            "cross_source_agreement": 1.0,
+            "judge_score": 0.5
+          },
+          "calibration_note": "high"
+        }
+      }
+    ],
+    "toolCallSummary": [
+      {
+        "name": "retrieve_current_paper",
+        "status": "succeeded",
+        "meta": {
+          "queryCount": 3,
+          "failedQueryCount": 0
+        },
+        "version": "1.0.0",
+        "safetyScope": {
+          "access": "read_only",
+          "dataScopes": [
+            "current_paper_index"
+          ],
+          "networkAccess": false,
+          "sideEffects": false,
+          "sensitiveOutput": true
+        },
+        "id": "retrieve-current-paper-1",
+        "target": "2403.01444v4.pdf",
+        "result": "Collected 6 evidence items for 2403.01444v4.pdf."
+      },
+      {
+        "name": "retrieve_current_paper",
+        "status": "succeeded",
+        "meta": {
+          "queryCount": 3,
+          "failedQueryCount": 0
+        },
+        "version": "1.0.0",
+        "safetyScope": {
+          "access": "read_only",
+          "dataScopes": [
+            "current_paper_index"
+          ],
+          "networkAccess": false,
+          "sideEffects": false,
+          "sensitiveOutput": true
+        },
+        "id": "retrieve-current-paper-2",
+        "target": "2401.03890v8.pdf",
+        "result": "Collected 6 evidence items for 2401.03890v8.pdf."
+      }
+    ],
+    "findings": [
+      {
+        "findingId": "claim-1",
+        "summary": "在表示或变形机制上，3DGStream 报告其按当前时间步渲染 transformed 3D Gaussians，并只把变换后的 3DGs 传入下一时间步，同时用多分辨率哈希编码实现 NTC 以满足紧凑性和 O(1) 查表效率；综述归纳的动态 3DGS 方法则在 canonical space 学习可变形 3D Gaussians，并耦合一个 spatial MLP 形变场建模时空动态。",
+        "sourceIds": [
+          "2403.01444v4.pdf-chunk-16",
+          "2403.01444v4.pdf-chunk-27",
+          "2401.03890v8.pdf-chunk-61"
+        ]
+      },
+      {
+        "findingId": "claim-2",
+        "summary": "在逐帧训练策略上，3DGStream 采用两阶段逐帧训练：Stage 1 训练 NTC 150 次迭代，Stage 2 训练 additional 3DGs 100 次迭代；综述归纳的动态 3DGS 方法提到 annealing smoothing training 机制以增强时间平滑且不增加额外计算成本，但证据未显示这是逐帧训练策略。",
+        "sourceIds": [
+          "2403.01444v4.pdf-chunk-44",
+          "2401.03890v8.pdf-chunk-61"
+        ]
+      },
+      {
+        "findingId": "claim-3",
+        "summary": "在训练效率证据上，3DGStream 报告 Stage 1 每额外增加 100 次迭代会使每帧训练时长增加 3 秒，而 Stage 2 增加迭代对质量影响很小；综述侧对动态 3DGS 仅提到退火平滑机制不会增加额外计算成本，未提供逐帧训练时间数据，因此无法做训练时间层面的定量比较。",
+        "sourceIds": [
+          "2403.01444v4.pdf-chunk-67",
+          "2401.03890v8.pdf-chunk-61"
+        ]
+      },
+      {
+        "findingId": "claim-4",
+        "summary": "在存储或内存效率上，3DGStream 报告除初始 3DGs 外，每个 FVV 帧只需存储 per-frame NTCs 和 per-frame additional 3DGs，且初始 3DGs 数量约为 10^5 量级；综述则指出 3D GS 的可扩展性带来显著挑战，大规模场景下计算和内存需求会大幅上升。",
+        "sourceIds": [
+          "2403.01444v4.pdf-chunk-65",
+          "2401.03890v8.pdf-chunk-48"
+        ]
+      },
+      {
+        "findingId": "claim-5",
+        "summary": "在应用条件与局限上，3DGStream 面向大型无界场景中的动态 FVV，设计为 on-the-fly training 框架以实现高效 FVV streaming；综述归纳的动态 3DGS/对象运动建模在非结构化设置中常需手动先验分割区域，缺乏对象级运动推理会导致长序列伪影和泛化差，并存在可扩展性与内存挑战。",
+        "sourceIds": [
+          "2403.01444v4.pdf-chunk-13",
+          "2401.03890v8.pdf-chunk-48",
+          "2401.03890v8.pdf-chunk-76"
+        ]
+      }
+    ],
+    "comparisonTable": {
+      "columns": [],
+      "rows": []
+    },
+    "conflicts": [],
+    "openQuestions": [
+      "综述证据只提供动态 3DGS 的归纳性描述，未提供逐帧训练迭代数、每帧训练时长或存储量等定量数据，因此无法进行完全定量的跨论文效率比较。",
+      "证据中没有 3DGStream 与综述归纳的动态 3DGS 方法在同一场景、同一指标上的直接对比，不能推断相对性能优劣。",
+      "综述中关于手动先验、对象级运动推理的局限片段未在给定证据中明确限定为动态 3DGS 章节，只能作为综述对相关动态或对象建模局限的归纳。"
+    ],
+    "draftReport": "在表示或变形机制上，3DGStream 报告其按当前时间步渲染 transformed 3D Gaussians，并只把变换后的 3DGs 传入下一时间步，同时用多分辨率哈希编码实现 NTC 以满足紧凑性和 O(1) 查表效率；综述归纳的动态 3DGS 方法则在 canonical space 学习可变形 3D Gaussians，并耦合一个 spatial MLP 形变场建模时空动态。\n\n[2403.01444v4.pdf-chunk-16] [2403.01444v4.pdf-chunk-27] [2401.03890v8.pdf-chunk-61]\n\n在逐帧训练策略上，3DGStream 采用两阶段逐帧训练：Stage 1 训练 NTC 150 次迭代，Stage 2 训练 additional 3DGs 100 次迭代；综述归纳的动态 3DGS 方法提到 annealing smoothing training 机制以增强时间平滑且不增加额外计算成本，但证据未显示这是逐帧训练策略。\n\n[2403.01444v4.pdf-chunk-44] [2401.03890v8.pdf-chunk-61]\n\n在训练效率证据上，3DGStream 报告 Stage 1 每额外增加 100 次迭代会使每帧训练时长增加 3 秒，而 Stage 2 增加迭代对质量影响很小；综述侧对动态 3DGS 仅提到退火平滑机制不会增加额外计算成本，未提供逐帧训练时间数据，因此无法做训练时间层面的定量比较。\n\n[2403.01444v4.pdf-chunk-67] [2401.03890v8.pdf-chunk-61]\n\n在存储或内存效率上，3DGStream 报告除初始 3DGs 外，每个 FVV 帧只需存储 per-frame NTCs 和 per-frame additional 3DGs，且初始 3DGs 数量约为 10^5 量级；综述则指出 3D GS 的可扩展性带来显著挑战，大规模场景下计算和内存需求会大幅上升。\n\n[2403.01444v4.pdf-chunk-65] [2401.03890v8.pdf-chunk-48]\n\n在应用条件与局限上，3DGStream 面向大型无界场景中的动态 FVV，设计为 on-the-fly training 框架以实现高效 FVV streaming；综述归纳的动态 3DGS/对象运动建模在非结构化设置中常需手动先验分割区域，缺乏对象级运动推理会导致长序列伪影和泛化差，并存在可扩展性与内存挑战。\n\n[2403.01444v4.pdf-chunk-13] [2401.03890v8.pdf-chunk-48] [2401.03890v8.pdf-chunk-76]\n\n### 证据限制\n\n- 综述证据只提供动态 3DGS 的归纳性描述，未提供逐帧训练迭代数、每帧训练时长或存储量等定量数据，因此无法进行完全定量的跨论文效率比较。\n- 证据中没有 3DGStream 与综述归纳的动态 3DGS 方法在同一场景、同一指标上的直接对比，不能推断相对性能优劣。\n- 综述中关于手动先验、对象级运动推理的局限片段未在给定证据中明确限定为动态 3DGS 章节，只能作为综述对相关动态或对象建模局限的归纳。",
+    "externalEvidenceSummary": {},
+    "graphContextSummary": {}
+  },
+  "timeline": [
+    {
+      "id": "63754b9c-50f0-469e-b157-9371b92ee895",
+      "type": "task_created",
+      "title": "Created an Agent research task.",
+      "detail": "Created an Agent research task.",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T06:27:34.986147Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:27:34.986147Z"
+    },
+    {
+      "id": "6d2c00b0-7569-4d8c-bec1-00fad406ac0d",
+      "type": "plan_generated",
+      "title": "已生成研究计划，开始执行。",
+      "detail": "已生成研究计划，开始执行。",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T06:27:35.063596Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:27:35.063596Z"
+    },
+    {
+      "id": "81a05c35-6e0c-4f4e-98a6-41138c53b58f",
+      "type": "task_started",
+      "title": "Started staged Agent execution.",
+      "detail": "Started staged Agent execution.",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T06:27:35.145077Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:27:35.145077Z"
+    },
+    {
+      "id": "c7f96244-5812-4aa6-a516-ae807740d139",
+      "type": "task_understood",
+      "title": "Confirmed project scope and focused papers.",
+      "detail": "Confirmed project scope and focused papers.",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T06:27:35.374593Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:27:35.374593Z"
+    },
+    {
+      "id": "9cf287d0-0fbc-4884-9046-39c9c7d202ef",
+      "type": "plan_generated",
+      "title": "Generated a lightweight execution plan.",
+      "detail": "Generated a lightweight execution plan.",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T06:27:35.374682Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:27:35.374682Z"
+    },
+    {
+      "id": "69ec1190-30a1-4049-8e76-400ce4f65f5e",
+      "type": "retrieval_started",
+      "title": "Started per-paper evidence retrieval.",
+      "detail": "Started per-paper evidence retrieval.",
+      "phase": "retrieving",
+      "meta": {
+        "timestamp": "2026-09-13T06:27:35.611492Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:27:35.611492Z"
+    },
+    {
+      "id": "c441e0e6-e956-489f-aee5-5317dc556527",
+      "type": "paper_evidence_collected",
+      "title": "Collected evidence from 2403.01444v4.pdf.",
+      "detail": "Collected evidence from 2403.01444v4.pdf.",
+      "phase": "retrieving",
+      "meta": {
+        "timestamp": "2026-09-13T06:27:39.491953Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:27:39.491953Z"
+    },
+    {
+      "id": "278a6f5e-59df-4903-bcf8-f0efae62833f",
+      "type": "paper_evidence_collected",
+      "title": "Collected evidence from 2401.03890v8.pdf.",
+      "detail": "Collected evidence from 2401.03890v8.pdf.",
+      "phase": "retrieving",
+      "meta": {
+        "timestamp": "2026-09-13T06:27:40.307957Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:27:40.307957Z"
+    },
+    {
+      "id": "e840469b-ed8b-4a77-87dd-3572f9a66c62",
+      "type": "tool_completed",
+      "title": "Collected evidence from 2 project papers.",
+      "detail": "Collected evidence from 2 project papers.",
+      "phase": "retrieving",
+      "meta": {
+        "timestamp": "2026-09-13T06:27:40.57414Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:27:40.57414Z"
+    },
+    {
+      "id": "085f2303-85bc-462c-853a-faa82dd3c0e5",
+      "type": "judgement_completed",
+      "title": "Built cross-paper judgements and conflict candidates.",
+      "detail": "Built cross-paper judgements and conflict candidates.",
+      "phase": "synthesizing",
+      "meta": {
+        "timestamp": "2026-09-13T06:29:05.867141Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:29:05.867141Z"
+    },
+    {
+      "id": "21765696-5edb-4568-a69c-f26a86c58fde",
+      "type": "report_updated",
+      "title": "Built a project-level draft report.",
+      "detail": "Built a project-level draft report.",
+      "phase": "synthesizing",
+      "meta": {
+        "timestamp": "2026-09-13T06:29:05.867176Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:29:05.867176Z"
+    },
+    {
+      "id": "ae8d4cc3-d8cd-456f-95f1-acc695f4ab0d",
+      "type": "task_completed",
+      "title": "Completed staged Agent orchestration.",
+      "detail": "Completed staged Agent orchestration.",
+      "phase": "done",
+      "meta": {
+        "timestamp": "2026-09-13T06:29:05.867186Z",
+        "taskId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa"
+      },
+      "timestamp": "2026-09-13T06:29:05.867186Z"
+    }
+  ],
+  "task": {
+    "taskId": "e92eb533-c74a-47a6-aba3-3dd9571d60a8",
+    "projectId": "324d50ec-764f-4473-85cd-d8063b38cabf",
+    "title": "比较 3DGStream 与综述归纳的动态 3D Gaussian Splatting：说明表示或变形机制、逐帧训练策略、效率证据、应用条件和局限。每条结论必须引用两篇项目论文中的页码证据，证据不足时明确说明。",
+    "paperIds": [
+      "2403.01444v4.pdf",
+      "2401.03890v8.pdf"
+    ],
+    "latestRunId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa",
+    "createdAt": "2026-09-13T14:27:34.975808+08:00",
+    "updatedAt": "2026-09-13T14:27:34.975862+08:00"
+  },
+  "messages": [
+    {
+      "messageId": "user:1857fc41-894d-45cc-b4b7-e52dda9d50fa",
+      "taskId": "e92eb533-c74a-47a6-aba3-3dd9571d60a8",
+      "runId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa",
+      "role": "user",
+      "content": "比较 3DGStream 与综述归纳的动态 3D Gaussian Splatting：说明表示或变形机制、逐帧训练策略、效率证据、应用条件和局限。每条结论必须引用两篇项目论文中的页码证据，证据不足时明确说明。",
+      "sourceIds": [],
+      "createdAt": "2026-09-13T14:27:34.981553+08:00"
+    },
+    {
+      "messageId": "assistant:1857fc41-894d-45cc-b4b7-e52dda9d50fa",
+      "taskId": "e92eb533-c74a-47a6-aba3-3dd9571d60a8",
+      "runId": "1857fc41-894d-45cc-b4b7-e52dda9d50fa",
+      "role": "assistant",
+      "content": "在表示或变形机制上，3DGStream 报告其按当前时间步渲染 transformed 3D Gaussians，并只把变换后的 3DGs 传入下一时间步，同时用多分辨率哈希编码实现 NTC 以满足紧凑性和 O(1) 查表效率；综述归纳的动态 3DGS 方法则在 canonical space 学习可变形 3D Gaussians，并耦合一个 spatial MLP 形变场建模时空动态。\n\n[2403.01444v4.pdf-chunk-16] [2403.01444v4.pdf-chunk-27] [2401.03890v8.pdf-chunk-61]\n\n在逐帧训练策略上，3DGStream 采用两阶段逐帧训练：Stage 1 训练 NTC 150 次迭代，Stage 2 训练 additional 3DGs 100 次迭代；综述归纳的动态 3DGS 方法提到 annealing smoothing training 机制以增强时间平滑且不增加额外计算成本，但证据未显示这是逐帧训练策略。\n\n[2403.01444v4.pdf-chunk-44] [2401.03890v8.pdf-chunk-61]\n\n在训练效率证据上，3DGStream 报告 Stage 1 每额外增加 100 次迭代会使每帧训练时长增加 3 秒，而 Stage 2 增加迭代对质量影响很小；综述侧对动态 3DGS 仅提到退火平滑机制不会增加额外计算成本，未提供逐帧训练时间数据，因此无法做训练时间层面的定量比较。\n\n[2403.01444v4.pdf-chunk-67] [2401.03890v8.pdf-chunk-61]\n\n在存储或内存效率上，3DGStream 报告除初始 3DGs 外，每个 FVV 帧只需存储 per-frame NTCs 和 per-frame additional 3DGs，且初始 3DGs 数量约为 10^5 量级；综述则指出 3D GS 的可扩展性带来显著挑战，大规模场景下计算和内存需求会大幅上升。\n\n[2403.01444v4.pdf-chunk-65] [2401.03890v8.pdf-chunk-48]\n\n在应用条件与局限上，3DGStream 面向大型无界场景中的动态 FVV，设计为 on-the-fly training 框架以实现高效 FVV streaming；综述归纳的动态 3DGS/对象运动建模在非结构化设置中常需手动先验分割区域，缺乏对象级运动推理会导致长序列伪影和泛化差，并存在可扩展性与内存挑战。\n\n[2403.01444v4.pdf-chunk-13] [2401.03890v8.pdf-chunk-48] [2401.03890v8.pdf-chunk-76]\n\n### 证据限制\n\n- 综述证据只提供动态 3DGS 的归纳性描述，未提供逐帧训练迭代数、每帧训练时长或存储量等定量数据，因此无法进行完全定量的跨论文效率比较。\n- 证据中没有 3DGStream 与综述归纳的动态 3DGS 方法在同一场景、同一指标上的直接对比，不能推断相对性能优劣。\n- 综述中关于手动先验、对象级运动推理的局限片段未在给定证据中明确限定为动态 3DGS 章节，只能作为综述对相关动态或对象建模局限的归纳。",
+      "sourceIds": [
+        "2403.01444v4.pdf-chunk-16",
+        "2403.01444v4.pdf-chunk-27",
+        "2401.03890v8.pdf-chunk-61",
+        "2403.01444v4.pdf-chunk-44",
+        "2403.01444v4.pdf-chunk-67",
+        "2403.01444v4.pdf-chunk-65",
+        "2401.03890v8.pdf-chunk-48",
+        "2403.01444v4.pdf-chunk-13",
+        "2401.03890v8.pdf-chunk-76"
+      ],
+      "status": "succeeded",
+      "createdAt": "2026-09-13T14:29:06.068744+08:00"
+    }
+  ],
+  "workspaceSummary": {
+    "activeTaskId": "e92eb533-c74a-47a6-aba3-3dd9571d60a8",
+    "taskCount": 1,
+    "recentRunCount": 1
+  }
+}

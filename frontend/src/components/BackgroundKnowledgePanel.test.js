@@ -4,16 +4,65 @@ import {
   createBackgroundKnowledgeSnapshot,
   createDefaultReaderProfile,
   createGenerateHandler,
+  formatElapsedDuration,
   getProvenanceMeta,
   normalizeGraph,
   normalizeKnowledgeLevel,
   normalizeProvenanceSummary,
   normalizeReaderProfile,
+  resolveGraphTitle,
   resolveLearningPathSections,
 } from './backgroundKnowledgePanelModel.ts';
 
 
 const run = async () => {
+  // 等待耗时展示：背景补课实测冷跑三分钟起，等待期原本只有一个转圈图标，
+  // 用户分不清“正在算”和“卡死了”。不满一分钟时不显示分，避免“0 分 5 秒”。
+  assert.equal(formatElapsedDuration(0), '0 秒');
+  assert.equal(formatElapsedDuration(59), '59 秒');
+  assert.equal(formatElapsedDuration(60), '1 分 0 秒');
+  assert.equal(formatElapsedDuration(194), '3 分 14 秒');
+  assert.equal(formatElapsedDuration(900), '15 分 0 秒');
+  // 非法输入不能让面板崩在 NaN 上。
+  assert.equal(formatElapsedDuration(Number.NaN), '0 秒');
+  assert.equal(formatElapsedDuration(-5), '0 秒');
+
+  // 图谱卡片标题：canvas 不绘制节点文字（没传 nodeCanvasObject），这行 h3 是用户
+  // 唯一能看到“这是哪篇论文的图谱”的地方。后端把根节点 label 解析成论文标题，
+  // 而 paper_topic 仍是研究问题（要继续喂模型），所以标题必须优先取根节点。
+  assert.equal(
+    resolveGraphTitle({
+      paper_topic: 'How to efficiently reconstruct 3D scenes from sparse multi-view images',
+      graph: {
+        nodes: [
+          { id: 'current-paper', label: 'MVSplat: Efficient 3D Gaussian Splatting', type: 'paper' },
+          { id: 'concept-1', label: '三维高斯泼溅' },
+        ],
+        links: [],
+      },
+    }),
+    'MVSplat: Efficient 3D Gaussian Splatting',
+  );
+  // 没有根节点时回落 paper_topic，再回落占位文案：标题不能是空的。
+  assert.equal(resolveGraphTitle({ paper_topic: 'RAG', graph: { nodes: [], links: [] } }), 'RAG');
+  assert.equal(resolveGraphTitle({ graph: { nodes: [], links: [] } }), '当前论文');
+  assert.equal(resolveGraphTitle(null), '当前论文');
+  // 根节点缺 label（IndexedDB 里的旧图谱就是这种形状）时不能把技术 id 当标题显示，
+  // 只认 label / name 两个真标题来源；根节点识别与后端一致，认 id 也认 type=paper。
+  assert.equal(
+    resolveGraphTitle({
+      paper_topic: 'RAG',
+      graph: { nodes: [{ id: 'current-paper', type: 'paper' }], links: [] },
+    }),
+    'RAG',
+  );
+  assert.equal(
+    resolveGraphTitle({
+      graph: { nodes: [{ id: 'root-1', name: 'MVSplat', type: 'paper' }], links: [] },
+    }),
+    'MVSplat',
+  );
+
   assert.equal(normalizeKnowledgeLevel('普通/一般'), '一般');
   assert.equal(normalizeKnowledgeLevel('进阶'), '进阶');
   assert.equal(normalizeKnowledgeLevel('unknown'), '一般');
@@ -215,8 +264,8 @@ const run = async () => {
 
   const provenanceData = {
     provenanceSummary: {
-      nodes: { total: 3, currentPaperSupported: 2, modelInference: 1, externalSupported: 0, supportedRatio: 0.67 },
-      edges: { total: 2, currentPaperSupported: 1, modelInference: 1, externalSupported: 0, supportedRatio: 0.5 },
+      nodes: { total: 3, currentPaperSupported: 2, libraryPaperSupported: 0, modelInference: 1, externalSupported: 0, supportedRatio: 0.67 },
+      edges: { total: 2, currentPaperSupported: 1, libraryPaperSupported: 0, modelInference: 1, externalSupported: 0, supportedRatio: 0.5 },
     },
     graph: {
       nodes: [{
@@ -240,6 +289,13 @@ const run = async () => {
   assert.deepEqual(normalizeProvenanceSummary(provenanceData), provenanceData.provenanceSummary);
   assert.equal(getProvenanceMeta('current_paper_supported').label, '当前论文支持');
   assert.equal(getProvenanceMeta('model_inference').label, '模型推断');
+  // 缺陷E回归护栏：库内论文支持不得再回落到 unknown（旧表现缺这一项）。
+  assert.equal(getProvenanceMeta('library_paper_supported').label, '库内论文支持');
+  // 后端未给 supportedRatio 时，库内支持也计入支持率。
+  assert.equal(
+    normalizeProvenanceSummary({ provenanceSummary: { nodes: { total: 4, currentPaperSupported: 1, libraryPaperSupported: 1, externalSupported: 0, modelInference: 2 }, edges: { total: 0 } } }).nodes.supportedRatio,
+    0.5,
+  );
   const normalizedProvenanceGraph = normalizeGraph(provenanceData);
   assert.equal(normalizedProvenanceGraph.nodes[0].confidenceReason, '论文方法章节明确使用。');
   assert.equal(normalizedProvenanceGraph.edges[0].provenanceStatus, 'model_inference');

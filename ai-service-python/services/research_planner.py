@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from llm.client import get_llm
+from llm.client import get_structured_llm
 from services.evidence_service import format_evidence_context
 from services.safety_service import (
     MAX_RESEARCH_SUB_QUESTIONS,
@@ -32,8 +32,10 @@ def build_research_plan(
     )
     current_evidence_block = wrap_untrusted_context(
         "Current paper evidence",
-        format_evidence_context(documents, title="当前论文线索", max_items=4, max_text_chars=260),
-        max_tokens=1400,
+        # 旧值 max_items=4 / max_text_chars=260 / max_tokens=1400 只能送约 1040 字符证据，
+        # 规划阶段看到的论文正文不足一个 chunk，子问题因而经常遗漏方法/实验细节。
+        format_evidence_context(documents, title="当前论文线索", max_items=8, max_text_chars=2000),
+        max_tokens=8000,
     )
     record_safety_budget_counters(paper_skeleton_block, current_evidence_block)
     prompt = f"""
@@ -73,7 +75,7 @@ Current paper evidence:
     with trace_step("research_build_plan", input_size=len(prompt)) as step:
         try:
             payload = parse_json_from_llm(
-                get_llm()._call(
+                get_structured_llm()._call(
                     prompt,
                     messages=build_guarded_messages(
                         prompt,
@@ -345,10 +347,10 @@ Verdict: {verdict}
 """
 
     try:
-        from llm.client import get_llm
+        from llm.client import get_structured_llm
         from services.utils import parse_json_from_llm
 
-        payload = parse_json_from_llm(get_llm()._call(prompt))
+        payload = parse_json_from_llm(get_structured_llm()._call(prompt))
         if not payload.get("shouldReplan"):
             return []
         raw_new = payload.get("newSubQuestions") or []

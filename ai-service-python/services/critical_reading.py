@@ -9,35 +9,202 @@ import logging
 import re
 from typing import Any
 
-from llm.client import get_llm
-from services.analysis_service import (
-    ANALYSIS_RESPONSE_SOURCE_LIMIT,
-    CLAIM_SUPPORT_LIMIT,
-    DECIMAL_RE,
-    METRIC_ALIASES,
-    NUMERIC_CHANGE_TERMS,
-    PERCENT_RE,
-    PLUS_MINUS_RE,
-    SUPPORT_SIGNAL_TERMS,
-    TABLE_FIGURE_LABEL_RE,
+from core.pdf_quality import (
     _extract_query_terms,
-    _fallback_claimed_contributions,
-    _fallback_evidence_based_contributions,
-    _fallback_missing_evidence,
-    _fallback_overclaim_risks,
-    _fallback_weaknesses,
     _format_axis_prompt_block,
-    _merge_evidence_lists,
     _normalize_list_items,
-    _normalize_text_value,
 )
-from services.evidence_service import normalize_evidence_items
+from llm.client import get_structured_llm
+from services.evidence_service import _merge_evidence_lists, normalize_evidence_items
 from services.math_markdown import MATH_MARKDOWN_GUIDELINE
 from services.safety_service import build_guarded_messages, wrap_untrusted_context
 from services.trace_service import trace_step
 from services.utils import parse_json_from_llm
 
 _logger = logging.getLogger(__name__)
+
+CLAIM_SUPPORT_LEVELS = ("SUPPORTED", "PARTIAL", "UNSUPPORTED")
+CLAIM_TEXT_MAX_CHARS = 220
+# 引用逐字核验的最小长度。短于此的引用（"the"、"3D"）证明不了主张与片段的对应关系，
+# 反而会因为高频词命中而放过编造的对齐。
+MIN_VERIFIABLE_QUOTE_CHARS = 12
+# 核验用证据正文上限，比 _axis_evidence_map 的 900 宽：模型只在 _format_axis_prompt_block
+# 的 450 字符窗口里抄引用，用截断更狠的池子核验会把真实存在的引用误判成编造。
+CLAIM_VERIFICATION_MAX_TEXT_CHARS = 1800
+# 引用只要够定位支撑句就行。实测不限长时模型会把整段原文抄回来，
+# 单次主张对齐调用的输出从 320 token 涨到 1994 token、耗时从 10.7s 涨到 119.7s。
+CLAIM_QUOTE_MAX_CHARS = 220
+
+# 证据关系图的上限。前端卡片只有 250px 高，节点再多就糊成一团。
+EVIDENCE_GRAPH_MAX_CLAIMS = 8
+EVIDENCE_GRAPH_MAX_SOURCES = 12
+EVIDENCE_GRAPH_LABEL_CHARS = 26
+# react-force-graph-2d 默认用节点的 color/val 字段上色和定尺寸。
+EVIDENCE_GRAPH_NODE_COLORS = {
+    "SUPPORTED": "#22c55e",
+    "PARTIAL": "#f59e0b",
+    "UNSUPPORTED": "#94a3b8",
+}
+EVIDENCE_GRAPH_NODE_SIZES = {
+    "SUPPORTED": 10,
+    "PARTIAL": 8,
+    "UNSUPPORTED": 6,
+}
+
+# 响应里最多带多少条证据。定义在本模块是因为 _collect_response_sources（它的唯一
+# 实质消费者）住在这里；analysis_service 反过来从本模块取它给 compact_evidence_for_response。
+ANALYSIS_RESPONSE_SOURCE_LIMIT = 10
+CLAIM_SUPPORT_LIMIT = 6
+SUPPORT_SIGNAL_TERMS = [
+    "experiment",
+    "experiments",
+    "experimental",
+    "result",
+    "results",
+    "evaluation",
+    "metric",
+    "benchmark",
+    "baseline",
+    "comparison",
+    "ablation",
+    "accuracy",
+    "precision",
+    "recall",
+    "f1",
+    "auc",
+    "提升",
+    "提高",
+    "优于",
+    "实验",
+    "结果",
+    "指标",
+    "评估",
+    "基准",
+    "对比",
+    "消融",
+    "准确率",
+]
+TABLE_FIGURE_LABEL_RE = re.compile(
+    r"\b(?:table|fig\.?|figure)\s*[:.]?\s*\d+[a-z]?\b|(?:表|图)\s*[:：]?\s*\d+[a-z]?",
+    re.IGNORECASE,
+)
+PERCENT_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*[%％]")
+PLUS_MINUS_RE = re.compile(r"[+-]?\d+(?:\.\d+)?\s*(?:±|\+/-)\s*\d+(?:\.\d+)?")
+# 小数边界刻意不用 \b：Python 的 \w 含 CJK，“25.2条”里 2 与 条 之间没有词边界，
+# 会把“PSNR 25.2条件下”整个漏掉，而“PSNR 25.2 下达到”（多一个空格）却能识别 ——
+# 同一个事实的识别结果取决于模型有没有多打一个空格。改成显式排除 ASCII 字母数字与点，
+# 既恢复中文紧邻的命中，也仍能挡住 2308.04079v1 这类 arXiv 版本号。
+DECIMAL_RE = re.compile(r"(?<![A-Za-z0-9.])[+-]?\d+\.\d+(?![A-Za-z0-9.])")
+METRIC_ALIASES = {
+    "accuracy": ["accuracy", "acc", "准确率"],
+    "f1": ["f1", "f1-score", "f1 score", "f1值", "f1 值"],
+    "precision": ["precision", "精确率", "精度"],
+    "recall": ["recall", "召回率"],
+    "auc": ["auc"],
+    "bleu": ["bleu"],
+    "rouge": ["rouge"],
+    "map": ["map", "mAP"],
+    "latency": ["latency", "延迟"],
+    "throughput": ["throughput", "吞吐"],
+    "performance": ["performance", "性能"],
+}
+NUMERIC_CHANGE_TERMS = [
+    "improve",
+    "improves",
+    "improved",
+    "gain",
+    "gains",
+    "increase",
+    "increases",
+    "decrease",
+    "decreases",
+    "提升",
+    "提高",
+    "增加",
+    "下降",
+    "降低",
+]
+
+
+def _normalize_text_value(value: Any, fallback: str) -> str:
+    text = " ".join(str(value or "").strip().split())
+    return text or fallback
+
+
+def _axis_result_map(axis_results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {item["key"]: item for item in axis_results}
+
+
+def _fallback_claimed_contributions(axis_results: list[dict[str, Any]]) -> str:
+    contributions = _axis_result_map(axis_results).get("contributions", {})
+    evidence = contributions.get("evidence") or []
+    if not evidence:
+        return "当前证据不足，无法稳定提炼作者显式宣称的贡献。"
+
+    lines = ["根据当前论文证据，作者可能宣称的贡献包括："]
+    for item in evidence[:3]:
+        lines.append(f"- {str(item.get('text') or '')[:120]}")
+    return "\n".join(lines)
+
+
+def _fallback_evidence_based_contributions(axis_results: list[dict[str, Any]]) -> str:
+    axis_map = _axis_result_map(axis_results)
+    evidence = _merge_evidence_lists(
+        axis_map.get("contributions", {}).get("evidence") or [],
+        axis_map.get("methods", {}).get("evidence") or [],
+        axis_map.get("experiments", {}).get("evidence") or [],
+        limit=4,
+    )
+    if not evidence:
+        return "当前证据不足，尚无法确认哪些贡献真正被方法和实验稳定支撑。"
+
+    lines = ["从当前证据看，较可能成立的真实贡献包括："]
+    for item in evidence[:3]:
+        lines.append(f"- {str(item.get('text') or '')[:120]}")
+    return "\n".join(lines)
+
+
+def _fallback_weaknesses(axis_results: list[dict[str, Any]]) -> list[str]:
+    axis_map = _axis_result_map(axis_results)
+    weaknesses = []
+    if (axis_map.get("methods", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        weaknesses.append("方法细节证据不足，关键设计是否必要仍需进一步核对。")
+    if (axis_map.get("experiments", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        weaknesses.append("实验与结果证据覆盖不足，结论支撑力度仍然有限。")
+    if (axis_map.get("limitations", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        weaknesses.append("局限性或失败情形披露不充分，风险边界不够清晰。")
+    return weaknesses
+
+
+def _fallback_overclaim_risks(axis_results: list[dict[str, Any]]) -> list[str]:
+    axis_map = _axis_result_map(axis_results)
+    risks = []
+    if (axis_map.get("contributions", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        risks.append("作者主张的贡献点本身证据覆盖不足，存在表述过强的风险。")
+    if (axis_map.get("contributions", {}).get("judge") or {}).get("verdict") == "CORRECT" and (
+        axis_map.get("experiments", {}).get("judge") or {}
+    ).get("verdict") != "CORRECT":
+        risks.append("论文的贡献表述可能超出当前实验或对比证据能够直接支撑的范围。")
+    if (axis_map.get("methods", {}).get("judge") or {}).get("verdict") != "CORRECT":
+        risks.append("部分方法创新点缺少足够机制性证据，可能存在贡献重包装风险。")
+    return risks
+
+
+def _fallback_missing_evidence(axis_results: list[dict[str, Any]]) -> list[str]:
+    missing = []
+    seen = set()
+    for axis_result in axis_results:
+        judge = axis_result.get("judge") or {}
+        if judge.get("verdict") == "CORRECT":
+            continue
+        aspects = judge.get("missingAspects") or []
+        text = f"{axis_result.get('label')}：{'、'.join(str(item) for item in aspects[:3])}" if aspects else f"{axis_result.get('label')}：相关证据不足"
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        missing.append(text[:160])
+    return missing
 
 
 def _fallback_critical_analysis(
@@ -62,6 +229,8 @@ def _fallback_critical_analysis(
 
 def _normalize_report_payload(raw_payload: dict[str, Any], axis_results: list[dict[str, Any]]) -> dict[str, Any]:
     claimed = _normalize_text_value(raw_payload.get("claimed_contributions"), _fallback_claimed_contributions(axis_results))
+    # 输入侧仍吸收 inferred_real_contributions：那是本字段的旧键名，历史缓存和旧模型
+    # 输出里还可能出现。但输出侧不再回吐它 —— 见下方返回值的注释。
     evidence_based = _normalize_text_value(
         raw_payload.get("evidence_based_contributions") or raw_payload.get("inferred_real_contributions"),
         _fallback_evidence_based_contributions(axis_results),
@@ -77,15 +246,30 @@ def _normalize_report_payload(raw_payload: dict[str, Any], axis_results: list[di
     if missing_evidence and "证据不足" not in critical_analysis:
         critical_analysis = f"{critical_analysis}\n\n当前仍有部分关键点证据不足，请结合原文进一步核对。"
 
+    # 刻意不输出 inferred_real_contributions。旧实现在这里写了
+    # "inferred_real_contributions": evidence_based，逐字节等于 evidence_based_contributions：
+    # 前端的 getEvidenceBasedContributions 把它当"旧载荷"回退分支，于是每个新响应都同时
+    # 命中新旧两个键，探测信号变成假阳性，而回退分支永不可达（死代码）。
+    # 三档贡献并不存在：只有"作者宣称"与"证据支撑"两档，第三档从来是别名。
     return {
         "claimed_contributions": claimed,
         "evidence_based_contributions": evidence_based,
-        "inferred_real_contributions": evidence_based,
         "weaknesses": weaknesses,
         "overclaim_risks": overclaim_risks,
         "missing_evidence": missing_evidence,
         "critical_analysis": critical_analysis,
     }
+
+
+def _claim_text_from_candidate(raw: Any) -> str:
+    """取出候选项里的主张正文。
+
+    结构化对齐返回的是 dict；旧实现直接 str(dict)，把 dict 里的英文 quote 一并塞进
+    主张文本，反过来又被词面匹配命中，凭空造出假阳性。
+    """
+    if isinstance(raw, dict):
+        raw = raw.get("claim") or raw.get("text") or ""
+    return " ".join(str(raw or "").strip("-* 0123456789.、 \t").split())
 
 
 def _split_claim_candidates(value: Any) -> list[str]:
@@ -97,11 +281,11 @@ def _split_claim_candidates(value: Any) -> list[str]:
     claims = []
     seen = set()
     for raw in raw_items:
-        text = " ".join(str(raw or "").strip("-* 0123456789.、 \t").split())
+        text = _claim_text_from_candidate(raw)
         if not text:
             continue
-        if len(text) > 220:
-            text = text[:220].rstrip()
+        if len(text) > CLAIM_TEXT_MAX_CHARS:
+            text = text[:CLAIM_TEXT_MAX_CHARS].rstrip()
         key = text.lower()
         if key in seen:
             continue
@@ -195,6 +379,23 @@ def _source_ids(items: list[dict[str, Any]]) -> list[str]:
     return ids
 
 
+# 主张里最常见的数量写法是“数字 + 单位”（30 fps、51min、51分钟、2 倍），而下面三个
+# 正则分别只认 ±、% 和小数 —— 不带小数点的整数一律漏掉。实测 3DGS 那篇的一次生成
+# 写了“作者在1080p分辨率下实现≥30 fps的高质量实时新视角合成”，这条本来能直接对着
+# 原文核对的主张因此被判 not_applicable，根本没进核验流程。
+# 只认“数字紧邻单位”而不是任意整数：否则 arXiv 号、章节号、“3D Gaussian” 里那个 3
+# 全会被当成测量值。捕获组只取数字本身，让它与小数/百分号那几路产出的 token 可比。
+NUMBER_WITH_UNIT_RE = re.compile(
+    r"(?<![A-Za-z0-9.])([+-]?\d+(?:\.\d+)?)\s*"
+    r"(?:fps|hz|milliseconds?|ms|seconds?|secs?|s|minutes?|mins?|hours?|hrs?|h|days?|"
+    r"tb|gb|mb|kb|iterations?|iters?|epochs?|steps?|samples?|points?|"
+    r"images?|views?|scenes?|frames?|db|times|fold|[×x]"
+    r"|秒|分钟|小时|天|倍|次|轮|帧|张|幅|个百分点)"
+    r"(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
+
+
 def _normalize_number_token(value: str) -> str:
     return re.sub(r"\s+", "", str(value or "").replace("％", "%")).strip()
 
@@ -203,7 +404,8 @@ def _extract_numeric_values(text: Any) -> list[str]:
     value = str(text or "")
     results: list[str] = []
     seen = set()
-    for pattern in (PLUS_MINUS_RE, PERCENT_RE, DECIMAL_RE):
+    # 单位路排最后：seen 会去重，让更具体的 ±/%/小数 先占位，[:8] 的名额留给它们。
+    for pattern in (PLUS_MINUS_RE, PERCENT_RE, DECIMAL_RE, NUMBER_WITH_UNIT_RE):
         for match in pattern.findall(value):
             token = _normalize_number_token(match)
             if not token or token in seen:
@@ -238,13 +440,20 @@ def _has_numeric_change_term(text: Any) -> bool:
     return any(term.lower() in value for term in NUMERIC_CHANGE_TERMS)
 
 
-def _numeric_candidate_reason(label: str, metrics: list[str], numbers: list[str]) -> str:
+def _numeric_candidate_reason(
+    label: str,
+    metrics: list[str],
+    numbers: list[str],
+    matched: list[str] | None = None,
+) -> str:
     parts = []
+    if matched:
+        parts.append(f"主张里的 {', '.join(matched[:3])} 在本段逐字出现")
     if label:
         parts.append(f"匹配到 {label}")
     if metrics:
         parts.append(f"指标 {', '.join(metrics[:3])}")
-    if numbers:
+    if numbers and not matched:
         parts.append(f"数值 {', '.join(numbers[:3])}")
     return "；".join(parts) + "。候选片段仍需人工对照原表或图。" if parts else "候选片段仍需人工对照原表或图。"
 
@@ -278,6 +487,7 @@ def _build_numeric_evidence_candidates(claim_text: str, rag_sources: list[dict[s
 
         seen_source_ids.add(source_id)
         matched_metrics = metric_overlap or metrics
+        matched_numbers = sorted(set(claim_numbers).intersection(numbers))
         candidates.append(
             {
                 "sourceId": source_id,
@@ -288,14 +498,17 @@ def _build_numeric_evidence_candidates(claim_text: str, rag_sources: list[dict[s
                 "label": label,
                 "metrics": matched_metrics[:5],
                 "numbers": numbers[:6],
-                "reason": _numeric_candidate_reason(label, matched_metrics, numbers),
+                "matchedNumbers": matched_numbers,
+                "reason": _numeric_candidate_reason(label, matched_metrics, numbers, matched_numbers),
                 "status": "candidate_found",
             }
         )
-        if len(candidates) >= 3:
-            break
 
-    return candidates
+    # 数值对得上的排前面。旧实现按 rag_sources 顺序收满 3 条就 break，实测出现过
+    # 第 1 条候选带的是无关的 99%、第 2 条才是主张里那个 25.2 —— 用户先看到的恰恰是
+    # 对不上的那条。先收齐再排序，稳定排序保证同组内仍是原有顺序。
+    candidates.sort(key=lambda item: len(item["matchedNumbers"]), reverse=True)
+    return candidates[:3]
 
 
 def _attach_numeric_evidence_to_claims(
@@ -304,6 +517,7 @@ def _attach_numeric_evidence_to_claims(
 ) -> dict[str, Any]:
     numeric_claim_count = 0
     candidate_count = 0
+    verified_claim_count = 0
     for claim in claims:
         claim_text = str(claim.get("claim") or "")
         if not _extract_numeric_values(claim_text):
@@ -315,12 +529,24 @@ def _attach_numeric_evidence_to_claims(
         candidates = _build_numeric_evidence_candidates(claim_text, rag_sources)
         claim["numericEvidenceCandidates"] = candidates
         candidate_count += len(candidates)
-        claim["numericVerificationStatus"] = (
-            "insufficient_for_auto_verification" if candidates else "not_found"
-        )
+        # 真做核对：主张里的数值有没有在候选证据里逐字出现。
+        # 旧实现只要找到候选就一律回 insufficient_for_auto_verification —— 实测
+        # 那条“训练 51 分钟、PSNR 25.2”的主张，候选里明明有逐字相同的 25.2，状态却
+        # 仍是“候选证据不足以自动验证”，等于把已经算出来的匹配结果丢掉了。
+        # 注意 verified 只意味着“数值在原文找得到”，不意味着主张本身成立。
+        matched = any(candidate.get("matchedNumbers") for candidate in candidates)
+        if matched:
+            verified_claim_count += 1
+            claim["numericVerificationStatus"] = "verified"
+        elif candidates:
+            claim["numericVerificationStatus"] = "insufficient_for_auto_verification"
+        else:
+            claim["numericVerificationStatus"] = "not_found"
 
     if numeric_claim_count <= 0:
         status = "not_applicable"
+    elif verified_claim_count == numeric_claim_count:
+        status = "verified"
     elif candidate_count > 0:
         status = "insufficient_for_auto_verification"
     else:
@@ -329,6 +555,7 @@ def _attach_numeric_evidence_to_claims(
     return {
         "claimCount": len(claims),
         "numericClaimCount": numeric_claim_count,
+        "verifiedClaimCount": verified_claim_count,
         "candidateCount": candidate_count,
         "status": status,
     }
@@ -407,14 +634,177 @@ def _classify_claim_support(
     }
 
 
-def _extract_claims_with_llm(report: dict[str, Any], axis_results: list[dict[str, Any]]) -> list[str]:
+def _normalize_for_quote_check(text: Any) -> str:
+    """引用核验前的归一化：折叠所有空白并转小写。
+
+    真实 chunk 带 Paper/Section/Content 换行，模型抄录时也可能断行，
+    不归一化会把逐字正确的引用判成编造。
+    """
+    return re.sub(r"\s+", " ", str(text or "")).strip().lower()
+
+
+def _quote_in_text(normalized_quote: str, text: Any) -> bool:
+    return normalized_quote in _normalize_for_quote_check(text)
+
+
+def _claim_evidence_pool(axis_results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """按 sourceId 建可核验证据池，四轴合并、先见者优先。"""
+    pool: dict[str, dict[str, Any]] = {}
+    for axis_result in axis_results:
+        items = normalize_evidence_items(
+            axis_result.get("evidence") or [],
+            source_type="current_paper",
+            max_text_chars=CLAIM_VERIFICATION_MAX_TEXT_CHARS,
+        )
+        for item in items:
+            source_id = str(item.get("sourceId") or "").strip()
+            if source_id and source_id not in pool:
+                pool[source_id] = item
+    return pool
+
+
+def _normalize_claim_alignments(raw_claims: Any) -> list[dict[str, Any]]:
+    """把模型返回统一成对齐记录，兼容纯字符串列表这种降级形态。"""
+    if isinstance(raw_claims, dict):
+        raw_claims = raw_claims.get("claims")
+    if raw_claims is None:
+        raw_claims = []
+    elif not isinstance(raw_claims, list):
+        raw_claims = [raw_claims]
+
+    alignments: list[dict[str, Any]] = []
+    seen = set()
+    for raw in raw_claims:
+        text = _claim_text_from_candidate(raw)
+        if not text:
+            continue
+        if len(text) > CLAIM_TEXT_MAX_CHARS:
+            text = text[:CLAIM_TEXT_MAX_CHARS].rstrip()
+        if text.lower() in seen:
+            continue
+        seen.add(text.lower())
+
+        if isinstance(raw, dict):
+            raw_ids = raw.get("evidenceIds")
+            if raw_ids is None:
+                raw_ids = raw.get("evidence_ids")
+            if not isinstance(raw_ids, list):
+                raw_ids = [raw_ids]
+            alignments.append({
+                "claim": text,
+                "evidenceIds": [str(item).strip() for item in raw_ids if str(item or "").strip()][:4],
+                "quote": " ".join(str(raw.get("quote") or "").split()),
+                "supportLevel": str(raw.get("supportLevel") or "").strip().upper(),
+                "aligned": True,
+            })
+        else:
+            alignments.append({
+                "claim": text,
+                "evidenceIds": [],
+                "quote": "",
+                "supportLevel": "",
+                "aligned": False,
+            })
+
+        if len(alignments) >= CLAIM_SUPPORT_LIMIT:
+            break
+    return alignments
+
+
+def _missing_evidence_for_alignment(level: str) -> list[str]:
+    if level == "SUPPORTED":
+        return []
+    return ["仅有可核验的原文引用，缺少完整的方法或实验证据链"]
+
+
+def _verify_claim_alignment(
+    alignment: dict[str, Any],
+    evidence_pool: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """核验模型给出的主张—证据对齐：id 必须在池内，quote 必须在所指片段里逐字命中。
+
+    跨语言的语义对应交给模型判断，但“引用是不是真的”由代码裁定 —— 两道闸任一不过，
+    该 id 直接丢弃。宁可如实报 UNSUPPORTED，也不给前端一个点过去对不上的锚点。
+    """
+    quote = " ".join(str(alignment.get("quote") or "").split())
+    normalized_quote = _normalize_for_quote_check(quote)
+    verified_ids: list[str] = []
+    unknown_ids: list[str] = []
+    unverified_ids: list[str] = []
+
+    for source_id in alignment.get("evidenceIds") or []:
+        evidence = evidence_pool.get(source_id)
+        if evidence is None:
+            unknown_ids.append(source_id)
+            continue
+        if len(normalized_quote) >= MIN_VERIFIABLE_QUOTE_CHARS and _quote_in_text(
+            normalized_quote, evidence.get("text")
+        ):
+            verified_ids.append(source_id)
+        else:
+            unverified_ids.append(source_id)
+
+    if not verified_ids:
+        missing = []
+        if unverified_ids:
+            missing.append("模型给出的引用未能在所指证据片段中逐字命中")
+        if unknown_ids:
+            missing.append("模型引用的证据片段不在当前检索结果中")
+        if not missing:
+            missing.append("缺少可核验的原文引用")
+        return {
+            "supportLevel": "UNSUPPORTED",
+            "evidenceSourceIds": [],
+            "missingEvidence": missing,
+            "reason": "未找到能逐字核验的原文引用，无法确认该主张在当前论文中有直接支撑。",
+            "quote": "",
+        }
+
+    level = alignment.get("supportLevel") or ""
+    if level not in CLAIM_SUPPORT_LEVELS or level == "UNSUPPORTED":
+        # 模型交出可核验引用却又判 UNSUPPORTED：以可核验事实为准，但不擅自升到 SUPPORTED
+        level = "PARTIAL"
+
+    reason = (
+        "原文片段可逐字核验，直接支撑该主张。"
+        if level == "SUPPORTED"
+        else "找到可逐字核验的原文引用，但尚不足以完整证明该主张。"
+    )
+    return {
+        "supportLevel": level,
+        "evidenceSourceIds": verified_ids,
+        "missingEvidence": _missing_evidence_for_alignment(level),
+        "reason": reason,
+        # 核验已经通过，此处只截响应体；逐字引用的前缀仍然是逐字引用。
+        "quote": quote[:CLAIM_QUOTE_MAX_CHARS].rstrip(),
+    }
+
+
+def _extract_claims_with_llm(report: dict[str, Any], axis_results: list[dict[str, Any]]) -> list[Any]:
+    """一次调用同时产出主张与“主张—证据”对齐。
+
+    旧版只让模型列主张，再由 _evidence_matches_claim 拿中文滑窗 n-gram 去子串匹配英文
+    证据，交集恒空：实测 3DGS(2308.04079v1) 那篇 5 条主张里 3 条被判 UNSUPPORTED，而支撑
+    原句就在返回的证据里，支持等级实际由“主张里有没有英文专名”决定。
+    现在让模型直接指出支撑片段并抄录原文，真伪交给 _verify_claim_alignment 复查。
+
+    返回对齐记录列表；模型不遵循结构时降级成纯文本主张，由调用方走启发式。
+    """
     evidence_context = "\n".join(_format_axis_prompt_block(item) for item in axis_results)
     prompt = f"""
-你是一位审慎的论文审稿助手。请只根据给定批判阅读摘要和证据，提取 3-6 条作者核心论点或贡献主张。
+你是一位审慎的论文审稿助手。请只根据给定批判阅读摘要和证据，提取 3-6 条作者核心论点或贡献主张，
+并为每条主张指出支撑它的证据片段。
 只输出 JSON，不要输出 Markdown。
 
 JSON 格式：
-{{"claims": ["主张 1", "主张 2"]}}
+{{"claims": [{{"claim": "主张正文（中文，一句话）", "evidenceIds": ["证据片段的 sourceId"], "quote": "从该片段逐字抄录的原文", "supportLevel": "SUPPORTED|PARTIAL|UNSUPPORTED"}}]}}
+
+硬性要求：
+- evidenceIds 只能填下方证据列表里出现过的 sourceId，不得编造。
+- quote 必须是从对应片段里逐字抄录的连续原文，保留原文语言，不要翻译、不要改写、不要跨句拼接。
+- quote 只抄最关键的一句，不超过 200 字符；能定位支撑句即可，不要整段抄录。
+- 找不到支撑片段时，evidenceIds 填空数组、quote 填空字符串、supportLevel 填 UNSUPPORTED。
+- SUPPORTED 只用于原文直接陈述了该主张的情形；间接或部分对应填 PARTIAL。
 
 批判阅读摘要：
 claimed_contributions: {report.get("claimed_contributions")}
@@ -423,15 +813,26 @@ evidence_based_contributions: {report.get("evidence_based_contributions")}
 证据：
 {evidence_context}
 """
-    raw = get_llm()._call(
+    # 主张抽取与对齐要求“逐字抄录”、“只能填列表里出现过的 sourceId”，是约束满足
+    # 任务而不是创作，用温度为 0 的实例：实测 0.3 时同一篇论文两次跑出 5 条与 6 条
+    # 不同主张，用户无法把两次结果当成同一份分析对比。
+    raw = get_structured_llm()._call(
         prompt,
         messages=build_guarded_messages(
             prompt,
-            extra_system_instruction="Extract concise paper claims from the untrusted evidence. Do not invent claims not present in the evidence.",
+            extra_system_instruction=(
+                "Extract concise paper claims from the untrusted evidence. Quote only verbatim text "
+                "that appears in the given evidence, and only cite source ids listed there. "
+                "Never invent claims, quotes, or source ids."
+            ),
         ),
     )
     payload = parse_json_from_llm(raw)
     raw_claims = payload.get("claims") if isinstance(payload, dict) else payload
+    alignments = _normalize_claim_alignments(raw_claims)
+    if any(item["aligned"] for item in alignments):
+        return alignments
+    # 模型没按结构返回：退回纯文本主张，由调用方走启发式对齐
     return _split_claim_candidates(raw_claims)
 
 
@@ -452,25 +853,31 @@ def _build_claim_support_items(
     use_llm: bool = False,
 ) -> list[dict[str, Any]]:
     try:
-        claim_candidates = _extract_claims_with_llm(report, axis_results) if use_llm else []
+        raw_alignments = _extract_claims_with_llm(report, axis_results) if use_llm else []
     except Exception as error:
         _logger.error(f"claim extraction fell back to heuristic claims: {error}")
-        claim_candidates = []
+        raw_alignments = []
 
-    if not claim_candidates:
-        claim_candidates = _fallback_claim_candidates(report, axis_results)
+    alignments = _normalize_claim_alignments(raw_alignments)
+    if not alignments:
+        alignments = _normalize_claim_alignments(_fallback_claim_candidates(report, axis_results))
 
     evidence_by_axis = _axis_evidence_map(axis_results)
+    evidence_pool = _claim_evidence_pool(axis_results)
     claims = []
-    for claim_text in claim_candidates[:CLAIM_SUPPORT_LIMIT]:
-        support = _classify_claim_support(claim_text, axis_results, evidence_by_axis)
+    for alignment in alignments[:CLAIM_SUPPORT_LIMIT]:
+        if alignment["aligned"]:
+            support = _verify_claim_alignment(alignment, evidence_pool)
+        else:
+            support = _classify_claim_support(alignment["claim"], axis_results, evidence_by_axis)
         claims.append({
             "id": f"claim-{len(claims) + 1}",
-            "claim": claim_text,
+            "claim": alignment["claim"],
             "supportLevel": support["supportLevel"],
             "evidenceSourceIds": support["evidenceSourceIds"],
             "missingEvidence": support["missingEvidence"],
             "reason": support["reason"],
+            "quote": support.get("quote", ""),
         })
 
     return claims
@@ -511,6 +918,20 @@ def _score_level(score: int, *, risk: bool = False) -> str:
     return "low"
 
 
+# 报告级列表（missing_evidence / overclaim_risks）的计权饱和点。
+# 旧实现把列表长度直接乘权重累加（missing*12 + overclaim*16），于是分数在测
+# LLM 的输出长度而不是风险：实测同一篇 3DGS 三次生成分别给出 4/3、5/4、6/5 条，
+# riskScore 随之从 96 爬到 100，而三次的主张支撑情况完全相同。
+# 超过饱和点后继续堆条目不再加分。
+REPORT_LIST_SATURATION = 3
+
+
+def _saturated_list_risk(items: Any) -> float:
+    """把无界的列表长度压到 0..1，堆条目堆不出更高分。"""
+    count = len(items) if isinstance(items, (list, tuple)) else 0
+    return min(count, REPORT_LIST_SATURATION) / REPORT_LIST_SATURATION
+
+
 def _support_ratio(claims: list[dict[str, Any]]) -> float:
     if not claims:
         return 0.0
@@ -540,24 +961,24 @@ def _build_contribution_assessment(
 
     method_score = 100 if has_method else 25
     experiment_score = 100 if has_experiment else 20
-    scope_penalty = len(report_missing) * 18 + len(overclaim_risks) * 22
-    scope_score = _clamp_score(100 - scope_penalty)
     claim_support_score = _clamp_score(support_ratio * 100)
 
+    # 全部改成比率制：三项风险各自落在 0..1，权重相加为 1，不再受列表长度和主张条数影响。
+    # claim_risk 是其中唯一可核验的一项（支撑等级已绑定逐字引用），所以给最大权重。
+    claim_risk = 1.0 - support_ratio
+    coverage_risk = (0.0 if has_method else 0.5) + (0.0 if has_experiment else 0.5)
+    missing_risk = _saturated_list_risk(report_missing)
+    overclaim_risk = _saturated_list_risk(overclaim_risks)
+
+    scope_score = _clamp_score(100 * (1.0 - (0.6 * missing_risk + 0.4 * overclaim_risk)))
     contribution_score = _clamp_score(
-        support_ratio * 55
-        + (15 if has_method else 0)
-        + (20 if has_experiment else 0)
-        + scope_score * 0.10
+        100 * (0.70 * support_ratio + 0.15 * int(has_method) + 0.15 * int(has_experiment))
     )
+    # claim_risk 权重必须大到能单独把分数送进 high 档（>=70）。“没有一条主张能在原文里
+    # 找到落点”是本功能能给出的最重结论，不能只被评为中风险。实测权重 0.55 时
+    # 全无支撑只得 67 分（中风险），提到 0.70 后得 79 分（高风险），而全部支撑仍为低风险。
     risk_score = _clamp_score(
-        unsupported_count * 20
-        + partial_count * 10
-        + len(report_missing) * 12
-        + claim_missing_count * 6
-        + len(overclaim_risks) * 16
-        + (0 if has_method else 10)
-        + (0 if has_experiment else 15)
+        100 * (0.70 * claim_risk + 0.12 * coverage_risk + 0.10 * overclaim_risk + 0.08 * missing_risk)
     )
 
     claim_count = len(claims)
@@ -577,10 +998,10 @@ def _build_contribution_assessment(
         contribution_factors.append(f"存在 {len(overclaim_risks)} 条夸大风险")
 
     risk_factors = [
-        f"证据不足主张 {unsupported_count} 条",
-        f"部分支撑主张 {partial_count} 条",
-        f"缺失证据 {len(report_missing) + claim_missing_count} 条",
-        f"夸大风险 {len(overclaim_risks)} 条",
+        f"证据不足主张 {unsupported_count}/{claim_count} 条",
+        f"部分支撑主张 {partial_count}/{claim_count} 条",
+        f"缺失证据 {len(report_missing) + claim_missing_count} 条（计权按 {REPORT_LIST_SATURATION} 条饱和）",
+        f"夸大风险 {len(overclaim_risks)} 条（计权按 {REPORT_LIST_SATURATION} 条饱和）",
     ]
     if not has_method:
         risk_factors.append("方法证据覆盖不足")
@@ -622,6 +1043,10 @@ def _build_contribution_assessment(
         },
     ]
 
+    # claimRisk 由 unsupported 与 partial 共同贡献，摘要只报 unsupported 会与分数对不上：
+    # 实测出现过 partial=1 而摘要写“0 条证据不足主张”，claimRisk 却是 0.083。
+    partial_clause = f"、{partial_count} 条部分支撑主张" if partial_count else ""
+
     return {
         "contributionScore": {
             "score": contribution_score,
@@ -646,17 +1071,169 @@ def _build_contribution_assessment(
             "label": {"high": "高风险", "medium": "中风险", "low": "低风险"}[
                 _score_level(risk_score, risk=True)
             ],
-            "summary": f"检测到 {unsupported_count} 条证据不足主张、{len(report_missing)} 条报告级缺失证据和 {len(overclaim_risks)} 条夸大风险。",
+            "summary": (
+                f"检测到 {unsupported_count} 条证据不足主张{partial_clause}、"
+                f"{len(report_missing)} 条报告级缺失证据和 {len(overclaim_risks)} 条夸大风险。"
+            ),
             "factors": risk_factors,
             "basis": {
                 "reportMissingEvidenceCount": len(report_missing),
                 "claimMissingEvidenceCount": claim_missing_count,
+                "partialClaims": partial_count,
+                "unsupportedClaims": unsupported_count,
+                "claimCount": claim_count,
                 "overclaimRiskCount": len(overclaim_risks),
                 "methodCovered": has_method,
                 "experimentCovered": has_experiment,
+                "claimRisk": round(claim_risk, 3),
+                "coverageRisk": round(coverage_risk, 3),
+                "missingRisk": round(missing_risk, 3),
+                "overclaimRisk": round(overclaim_risk, 3),
             },
         },
         "noveltyDimensions": novelty_dimensions,
+    }
+
+
+def _evidence_node_label(source: dict[str, Any]) -> str:
+    """给证据节点起个能看懂的名字：优先真实章节标题，退回页码、片段号。
+
+    三处取值位置都是实测校准的，不能凭字段名想当然：
+
+    1. 真实章节标题住在 metadata.section_title。检索归一化后顶层并没有
+       sectionTitle，而 sectionId 是内部标识（"section-2"），既看不懂也无法区分
+       同章节的多个片段 —— 实测 3DGS 那篇因此让 4 个证据节点在图上全叫
+       "section-2"，hover 也分不出谁是谁，所以不再拿它当标签。
+    2. pageIndex 是 0 基的，首页证据的 page 为 0，会被 "page > 0" 跳过；
+       metadata.page 才是 1 基页码（实测 page=1 对应 pageIndex=0）。
+    3. chunkIndex 同样在 metadata 里有一份 chunk_index，顶层缺失时用它兜底。
+    """
+    metadata = source.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    section = str(source.get("sectionTitle") or metadata.get("section_title") or "").strip()
+    if section:
+        return section[:EVIDENCE_GRAPH_LABEL_CHARS]
+    page = source.get("pageIndex")
+    if not isinstance(page, int) or page <= 0:
+        page = metadata.get("page")
+    if isinstance(page, int) and page > 0:
+        return f"第 {page} 页"
+    chunk = source.get("chunkIndex")
+    if not isinstance(chunk, int):
+        chunk = metadata.get("chunk_index")
+    if isinstance(chunk, int) and chunk >= 0:
+        return f"片段 {chunk}"
+    return str(source.get("sourceId") or "")[-EVIDENCE_GRAPH_LABEL_CHARS:]
+
+
+def _source_chunk_index(source: dict[str, Any]) -> int | None:
+    """取片段号，顶层缺失时回落到 metadata。"""
+    chunk = source.get("chunkIndex")
+    if isinstance(chunk, int):
+        return chunk
+    metadata = source.get("metadata")
+    if isinstance(metadata, dict) and isinstance(metadata.get("chunk_index"), int):
+        return metadata["chunk_index"]
+    return None
+
+
+def _disambiguate_evidence_labels(sources: list[dict[str, Any]]) -> list[str]:
+    """只在真的重名时给证据节点标签追加片段号。
+
+    实测 3DGS 那篇 6 条主张的证据全部落在 INTRODUCTION，只显示章节名时图上是
+    4 个同名节点，用户既分不清也看不出证据其实只来自引言。章节各不相同时保持
+    简洁标签不变，避免无意义的后缀噪声。
+    """
+    base_labels = [_evidence_node_label(source) for source in sources]
+    duplicates = {label for label in base_labels if base_labels.count(label) > 1}
+
+    labels = []
+    for source, label in zip(sources, base_labels):
+        if label in duplicates:
+            chunk = _source_chunk_index(source)
+            if chunk is not None:
+                suffix = f" #{chunk}"
+                budget = max(6, EVIDENCE_GRAPH_LABEL_CHARS - len(suffix))
+                label = label[:budget] + suffix
+        labels.append(label)
+    return labels
+
+
+def _build_evidence_graph(
+    claims: list[dict[str, Any]],
+    response_sources: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """用主张—证据对齐关系离线构造证据关系图。
+
+    刻意不调 traverse_citation_graph：那条路依赖 Semantic Scholar，而项目约定无
+    API key 时不启用该 provider（见 external_search_provider 的门控），实测匿名
+    请求直接 429。这里改用主张对齐已经逐字核验过的结果 —— 每条边都对应一段
+    确实存在于证据正文里的引用，没有一条是编出来的。
+
+    没有任何出边的孤立主张节点，就是“这条主张在检索到的证据里找不到落点”的
+    视觉信号，因此不补假边把它连上。全部主张都无证据时返回 None，前端走空态。
+    """
+    if not claims:
+        return None
+
+    source_by_id: dict[str, dict[str, Any]] = {}
+    for source in response_sources or []:
+        source_id = str(source.get("sourceId") or "").strip()
+        if source_id and source_id not in source_by_id:
+            source_by_id[source_id] = source
+
+    nodes: list[dict[str, Any]] = []
+    pending_edges: list[tuple[str, str]] = []
+    referenced_source_ids: list[str] = []
+    for claim in claims[:EVIDENCE_GRAPH_MAX_CLAIMS]:
+        claim_id = str(claim.get("id") or "").strip()
+        claim_text = " ".join(str(claim.get("claim") or "").split())
+        if not claim_id or not claim_text:
+            continue
+        support_level = str(claim.get("supportLevel") or "").upper()
+        nodes.append({
+            "id": claim_id,
+            "name": claim_text[:EVIDENCE_GRAPH_LABEL_CHARS],
+            "group": "claim",
+            "supportLevel": support_level,
+            "val": EVIDENCE_GRAPH_NODE_SIZES.get(support_level, 7),
+            "color": EVIDENCE_GRAPH_NODE_COLORS.get(support_level, "#94a3b8"),
+        })
+        for raw_source_id in claim.get("evidenceSourceIds") or []:
+            source_id = str(raw_source_id or "").strip()
+            # 只画真的落在响应证据里的边；悬空引用会让 ForceGraph 报错。
+            if source_id not in source_by_id:
+                continue
+            pending_edges.append((claim_id, source_id))
+            if source_id not in referenced_source_ids:
+                referenced_source_ids.append(source_id)
+
+    kept_ids = referenced_source_ids[:EVIDENCE_GRAPH_MAX_SOURCES]
+    kept_source_ids = set(kept_ids)
+    for source_id, label in zip(kept_ids, _disambiguate_evidence_labels([source_by_id[sid] for sid in kept_ids])):
+        nodes.append({
+            "id": source_id,
+            "name": label,
+            "group": "evidence",
+            "val": 5,
+            "color": "#64748b",
+        })
+
+    links = [
+        {"source": claim_id, "target": source_id, "relation": "supported_by"}
+        for claim_id, source_id in pending_edges
+        if source_id in kept_source_ids
+    ]
+    if not links:
+        return None
+
+    return {
+        "nodes": nodes,
+        "links": links,
+        "nodeCount": len(nodes),
+        "linkCount": len(links),
+        "graphType": "claim_evidence",
     }
 
 
@@ -696,7 +1273,10 @@ JSON 格式：
 {chr(10).join(_format_axis_prompt_block(item) for item in axis_results)}
 """
     with trace_step("generate_structured_critical_report", input_size=len(prompt)) as step:
-        raw = get_llm()._call(
+        # 结构化报告虽然含分析性行文，但输出必须是固定 schema 的 JSON，而且它决定了
+        # weaknesses / overclaim_risks / missing_evidence 三张卡片的内容与风险分。
+        # 同一篇论文每次给出不同结论比行文单调更伤可信度，所以用温度为 0 的实例。
+        raw = get_structured_llm()._call(
             prompt,
             messages=build_guarded_messages(
                 prompt,
@@ -713,5 +1293,38 @@ JSON 格式：
             return _normalize_report_payload({}, axis_results)
 
 
-def _collect_response_sources(axis_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return _merge_evidence_lists(*[axis_result.get("evidence") or [] for axis_result in axis_results], limit=ANALYSIS_RESPONSE_SOURCE_LIMIT)
+def _claim_referenced_source_ids(claims: list[dict[str, Any]] | None) -> list[str]:
+    """按主张出现顺序收集它们引用的证据 id（去重）。"""
+    source_ids: list[str] = []
+    for claim in claims or []:
+        if not isinstance(claim, dict):
+            continue
+        for raw_source_id in claim.get("evidenceSourceIds") or []:
+            source_id = str(raw_source_id or "").strip()
+            if source_id and source_id not in source_ids:
+                source_ids.append(source_id)
+    return source_ids
+
+
+def _collect_response_sources(
+    axis_results: list[dict[str, Any]],
+    claims: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """汇总响应里的证据，并让被主张引用的条目优先占名额。
+
+    必须优先：响应证据截断到 ANALYSIS_RESPONSE_SOURCE_LIMIT 条，而主张是在截断之前
+    针对每轴证据池（最多 4 轴 × 6 条）对齐的。实测章节感知选取上线后证据池从 16 条
+    涨到 20+ 条，截断真的开始丢东西：claim-6 引用的 chunk-71 被丢掉，用户看到一条
+    带引文的 SUPPORTED 主张却点不到出处，证据关系图也少一条边（_build_evidence_graph
+    只画落在响应证据里的边）。改动前池子只有 7 条、根本没碰到 10 条预算，所以这个
+    隐患一直潜伏着，是这次把证据多样性修好之后才暴露出来的。
+
+    实测代价：保住 chunk-71 会顶掉一条 Results and Evaluation，响应章节覆盖从 8 降到 7
+    （仍远高于改动前的 3）。这是有意为之的取舍：引文能不能点开是正确性问题，
+    少一个章节只是丰富度问题；换来的是引文逐字回查 5/6 → 6/6、关系图边数 5 → 6。
+    """
+    return _merge_evidence_lists(
+        *[axis_result.get("evidence") or [] for axis_result in axis_results],
+        limit=ANALYSIS_RESPONSE_SOURCE_LIMIT,
+        priority_ids=_claim_referenced_source_ids(claims),
+    )

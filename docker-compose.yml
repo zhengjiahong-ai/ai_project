@@ -52,6 +52,18 @@ services:
       - DEEPSEEK_REASONING_EFFORT=${DEEPSEEK_REASONING_EFFORT:-high}
       - PYTHON_SERVICE_URL=http://ai-service:8000/api
       - CHROMA_DB_PATH=/app/chroma_data
+      # HF Hub 当前被 TLS 干扰而不可达（SSL: WRONG_VERSION_NUMBER），而 huggingface_hub 的
+      # 重试次数与退避是硬编码的：每个模型文件重试 5 轮（1+2+4+8+8s），6 个文件让 warmup
+      # 卡 6~10 分钟才开始监听端口，Java 网关的健康检查必然超时。
+      # 嵌入模型已缓存在 huggingface_cache 卷里，离线加载实测秒级完成，故默认离线。
+      # 需要下载新模型时，在 .env 里设 PIXIU_HF_OFFLINE=0 后重建容器即可。
+      - HF_HUB_OFFLINE=${PIXIU_HF_OFFLINE:-1}
+      # 中文提问检索英文论文时，查询会先被译成英文再检索（见 core/query_rewriter.py）：
+      # 多语言小模型在纯英文语料上处理中文查询会系统性坍缩到同一篇论文，实测 10 个
+      # 中文查询有 7 个 top-1 落在同一篇仅占库 15% chunk 的论文上，译成英文后 4/4 修正。
+      # 翻译 LLM 不可用或译文质量出问题时，设 PIXIU_QUERY_REWRITE_ENABLED=0 退回改写前行为；
+      # benchmarks/retrieval_quality 也靠这个开关做 A/B。
+      - PIXIU_QUERY_REWRITE_ENABLED=${PIXIU_QUERY_REWRITE_ENABLED:-1}
       - RESEARCH_TASK_DB_PATH=/app/data/research_tasks.sqlite3
       - NEO4J_URI=${NEO4J_URI:-}
       - NEO4J_USER=${NEO4J_USER:-}

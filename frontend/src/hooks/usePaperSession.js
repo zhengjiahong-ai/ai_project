@@ -14,7 +14,6 @@ import {
 
 export const usePaperSession = ({
   apiService,
-  welcomeMessage,
   defaultActiveTab,
   normalizeBackgroundKnowledgeLevel,
   normalizeBackgroundReaderProfile,
@@ -58,8 +57,8 @@ export const usePaperSession = ({
       console.warn('Failed to load remote chat history, using local cache instead.', error);
     }
 
-    return fallbackMessages.length > 0 ? fallbackMessages : [welcomeMessage];
-  }, [apiService, welcomeMessage]);
+    return fallbackMessages;
+  }, [apiService]);
 
   const restorePaperState = useCallback(async (targetPdfId, entryList = null) => {
     const db = await initDB();

@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pixiu Academic Assistant · Workspace Reference</title>
+  <style>
+    :root {
+      --accent: #4d0099;
+      --accent-hover: #380070;
+      --accent-soft: #f3edf8;
+      --accent-pale: #faf7fc;
+      --ink: #17151a;
+      --muted: #716d76;
+      --quiet: #97919c;
+      --line: #e3dfE6;
+      --line-strong: #d4ced8;
+      --paper: #fffefb;
+      --canvas: #f7f5f1;
+      --region: #fffefb;
+      --card: #ffffff;
+      --inset: #f3f0f4;
+      --panel: var(--region);
+      --success: #26845e;
+      --shadow: 0 10px 32px rgba(44, 34, 50, 0.055);
+      --card-radius: 8px;
+      --serif: Georgia, "Songti SC", "STSong", "Noto Serif SC", serif;
+      --ui: "Noto Serif SC", "Songti SC", "STSong", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: var(--ui);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible {
+      outline: 2px solid rgba(77, 0, 153, 0.28);
+      outline-offset: 2px;
+    }
+
+    .app { height: 100vh; min-height: 720px; overflow: hidden; background: var(--canvas); }
+    .topbar {
+      height: 64px;
+      display: grid;
+      grid-template-columns: minmax(310px, 1fr) auto minmax(310px, 1fr);
+      align-items: center;
+      padding: 0 26px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 254, 251, 0.95);
+      box-shadow: 0 1px 0 rgba(255,255,255,.8);
+      position: relative;
+      z-index: 10;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand img { width: 38px; height: 38px; object-fit: contain; }
+    .brand-name { font: 700 20px/1 var(--serif); white-space: nowrap; letter-spacing: -.25px; }
+
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 110px 110px;
+      height: 42px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 10px rgba(38, 24, 48, .035);
+    }
+    .mode-tab {
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 700;
+      position: relative;
+      transition: .18s ease;
+    }
+    .mode-tab:hover { background: var(--accent-pale); }
+    .mode-tab.active { color: var(--accent); background: var(--accent-soft); }
+    .mode-tab.active::after {
+      content: "";
+      position: absolute;
+      left: 16px; right: 16px; bottom: -3px;
+      height: 3px; border-radius: 3px 3px 0 0; background: var(--accent);
+    }
+
+    .top-actions { justify-self: end; display: flex; align-items: center; gap: 8px; }
+    .top-link, .icon-button, .ghost-button, .primary-button {
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: .16s ease;
+    }
+    .top-link { padding: 9px 12px; font-weight: 700; }
+    .top-link:hover, .icon-button:hover, .ghost-button:hover { background: var(--accent-pale); color: var(--accent); }
+    .upload { border-color: var(--line-strong); background: #fff; }
+    .online { display: flex; align-items: center; gap: 7px; margin-left: 9px; color: var(--muted); }
+    .dot { width: 8px; height: 8px; border-radius: 99px; background: #32a878; }
+    .avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #ece9e6; margin-left: 8px; font-weight: 800; }
+
+    .view { height: calc(100vh - 64px); min-height: 656px; display: none; }
+    .view.active { display: grid; }
+
+    /* Reader */
+    .reader-view { grid-template-columns: 292px minmax(540px, 1fr) 380px; gap: 0; padding: 0; }
+    .panel {
+      min-width: 0; min-height: 0;
+      background: var(--panel);
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-radius: 0;
+      box-shadow: none;
+      overflow: hidden;
+    }
+    .reader-view > .panel:last-child { border-right: 0; }
+    .panel-header { height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 0 17px; border-bottom: 1px solid var(--line); background: var(--region); }
+    .panel-title { font: 700 19px/1 var(--serif); }
+    .small-icon { width: 29px; height: 29px; display: grid; place-items: center; border: 0; border-radius: 8px; background: #f1efed; cursor: pointer; color: var(--muted); }
+
+    .reader-sidebar { display: flex; flex-direction: column; }
+    .reader-sidebar .panel-header { height: 64px; flex: 0 0 64px; padding: 0 20px; border-bottom: 0; }
+    .reader-sidebar .panel-title,
+    .section-heading {
+      margin: 0;
+      font-family: var(--ui);
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .reader-sidebar .small-icon { background: transparent; }
+    .reader-sidebar .small-icon:hover { color: var(--accent); background: var(--accent-pale); }
+    .paper-picker { min-height: 58px; margin: 0 12px 10px; padding: 8px 10px; border: 0; border-radius: var(--card-radius); background: var(--accent-soft); display: flex; align-items: center; gap: 9px; cursor: pointer; }
+    .paper-picker:hover { background: #eee5f5; }
+    .doc-square { width: 28px; height: 32px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 6px; background: transparent; color: var(--accent); font-size: 18px; }
+    .paper-copy { min-width: 0; flex: 1; }
+    .paper-copy strong, .paper-copy span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .paper-copy strong { color: var(--accent); }
+    .paper-copy span { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .search-box { margin: 0 20px 14px; height: 36px; border: 1px solid var(--line-strong); border-radius: var(--card-radius); display: flex; align-items: center; padding: 0 11px; gap: 8px; color: var(--quiet); background: var(--card); }
+    .search-box input { min-width: 0; width: 100%; border: 0; outline: 0; color: var(--ink); background: transparent; }
+    .mini-tabs { height: 44px; margin: 0 20px; display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--line); }
+    .mini-tab { border: 0; background: transparent; cursor: pointer; font-weight: 700; position: relative; }
+    .mini-tab.active { color: var(--accent); }
+    .mini-tab.active::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; background: var(--accent); }
+    .outline { padding: 8px 12px 18px; overflow-y: auto; }
+    .outline-row { min-height: 39px; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 8px; cursor: pointer; }
+    .outline-row:hover { background: #f6f3f7; }
+    .outline-row.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+    .outline-row.l2 { padding-left: 37px; font-size: 13px; }
+    .outline-row .page { margin-left: auto; color: var(--quiet); font-size: 11px; }
+
+    .pdf-panel { display: flex; flex-direction: column; }
+    .pdf-toolbar { height: 58px; display: flex; align-items: center; gap: 9px; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--region); }
+    .pdf-name { min-width: 0; flex: 1; font: 700 15px/1 var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tool-group { display: flex; align-items: center; gap: 4px; }
+    .tool-btn { height: 32px; min-width: 32px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; }
+    .tool-btn:hover { background: var(--accent-pale); color: var(--accent); }
+    .pdf-stage { flex: 1; min-height: 0; overflow-y: auto; background: #e9e7e3; padding: 26px 7%; }
+    .paper-page { position: relative; max-width: 780px; min-height: 1000px; margin: 0 auto; padding: 48px 62px 66px; background: var(--paper); box-shadow: 0 3px 20px rgba(33, 27, 38, .11); font: 15px/1.6 var(--serif); }
+    .paper-page h1 { margin: 0 0 12px; font-size: 26px; }
+    .paper-page h2 { margin: 30px 0 10px; font-size: 21px; }
+    .paper-page p { margin: 0 0 14px; text-align: justify; }
+    .highlight { background: rgba(77, 0, 153, .14); box-shadow: inset 0 -2px rgba(77,0,153,.18); }
+    .selection-tools { width: max-content; max-width: calc(100% - 32px); margin: 8px auto 16px; display: flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 8px; background: white; box-shadow: 0 8px 26px rgba(39, 24, 49, .13); overflow: hidden; }
+    .selection-tools button { padding: 9px 12px; border: 0; border-right: 1px solid var(--line); background: #fff; cursor: pointer; }
+    .selection-tools button:last-child { border-right: 0; }
+    .selection-tools button:hover { color: var(--accent); background: var(--accent-pale); }
+    .page-number { position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: var(--muted); }
+
+    .assistant { display: flex; flex-direction: column; background: var(--canvas); }
+    .assistant-tabs { height: 48px; display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 15px; border-bottom: 1px solid var(--line); background: var(--region); }
+    .assistant-tab { border: 0; background: transparent; font-weight: 700; cursor: pointer; position: relative; }
+    .assistant-tab.active { color: var(--accent); }
+    .assistant-tab.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--accent); }
+    .chat-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; background: var(--canvas); }
+    .context-pill { width: max-content; padding: 7px 11px; border-radius: 999px; background: var(--inset); color: var(--muted); font-size: 12px; }
+    .user-line { display: flex; justify-content: flex-end; margin: 22px 0; }
+    .user-bubble { max-width: 86%; padding: 11px 13px; border-radius: 13px 13px 3px 13px; background: var(--accent-soft); }
+    .assistant-answer { padding: 16px; border: 1px solid var(--line); border-radius: var(--card-radius); background: var(--card); box-shadow: none; line-height: 1.75; }
+    .answer-head { display: flex; gap: 9px; align-items: center; margin-bottom: 10px; font-weight: 800; }
+    .assistant-answer p { margin: 0 0 10px; }
+    .assistant-answer p:last-of-type { margin-bottom: 0; }
+    .citations { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .citation { display: inline-flex; margin: 6px 5px 0 0; padding: 6px 9px; border-radius: 999px; background: var(--inset); color: var(--muted); font-size: 12px; }
+    .composer { margin: 0 14px 14px; min-height: 84px; border: 1px solid var(--line-strong); border-radius: var(--card-radius); background: var(--card); display: flex; align-items: center; padding: 11px 11px 11px 14px; gap: 10px; }
+    .composer input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; }
+    .send { width: 42px; height: 42px; border: 0; border-radius: 9px; background: var(--accent); color: #fff; font-size: 18px; cursor: pointer; }
+    .send:hover, .primary-button:hover { background: var(--accent-hover); }
+
+    /* Agent */
+    .agent-view { grid-template-columns: 292px minmax(700px, 1fr); background: var(--canvas); }
+    .project-sidebar { min-width: 0; border-right: 1px solid var(--line); background: var(--region); display: flex; flex-direction: column; overflow: hidden; }
+    .project-top { padding: 0 20px 16px; }
+    .project-title-row { height: 64px; display: flex; align-items: center; }
+    .primary-button { min-height: 42px; padding: 0 16px; background: var(--accent); color: white; font-weight: 800; border: 0; }
+    .new-project { width: 100%; }
+    .project-tree { padding: 2px 12px 18px; overflow-y: auto; }
+    .tree-project, .tree-task { width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left; display: flex; align-items: center; border-radius: 8px; }
+    .tree-project { height: 43px; padding: 0 9px; gap: 8px; font-weight: 800; }
+    .tree-project:hover, .tree-task:hover { background: var(--accent-pale); }
+    .tree-task { height: 39px; padding: 0 9px 0 37px; gap: 8px; position: relative; }
+    .tree-task::before { content: ""; position: absolute; left: 21px; top: -2px; bottom: -2px; width: 1px; background: var(--line-strong); }
+    .tree-task.active { color: var(--accent); background: var(--accent-soft); font-weight: 800; }
+    .task-state { margin-left: auto; padding: 3px 7px; border-radius: 999px; background: rgba(77,0,153,.1); color: var(--accent); font-size: 11px; }
+    .current-papers { margin: 0 20px; padding: 18px 0 0; border-top: 1px solid var(--line-strong); }
+    .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .06em; }
+    .paper-heading { margin: 7px 0 11px; font-size: 16px; }
+    .project-paper { height: 38px; display: flex; align-items: center; gap: 9px; padding: 0 7px; border-radius: 7px; cursor: pointer; }
+    .project-paper:hover { background: var(--accent-pale); }
+    .project-paper span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .manage-link { display: inline-flex; margin-top: 8px; padding: 7px; color: var(--accent); font-weight: 800; cursor: pointer; }
+
+    .agent-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .taskbar { height: 62px; flex: 0 0 62px; display: flex; align-items: center; gap: 10px; padding: 0 24px; border-bottom: 1px solid var(--line); background: var(--region); }
+    .breadcrumb { min-width: 0; font-weight: 800; font-size: 16px; }
+    .breadcrumb span { color: var(--muted); font-weight: 500; margin: 0 7px; }
+    .status-pill { padding: 6px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 800; }
+    .taskbar-actions { margin-left: auto; display: flex; gap: 8px; }
+    .ghost-button { min-height: 34px; padding: 0 11px; border-color: var(--line-strong); background: #fff; font-weight: 700; }
+    .agent-chat { flex: 1; min-height: 0; overflow-y: auto; padding: 18px clamp(24px, 6vw, 90px) 22px; background: var(--canvas); }
+    .agent-content { max-width: 1120px; margin: 0 auto; }
+    .agent-user { display: flex; justify-content: flex-end; align-items: flex-start; gap: 10px; margin-bottom: 22px; }
+    .agent-user .user-bubble { max-width: 62%; }
+    .round-avatar { width: 34px; height: 34px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: white; background: #3e3844; font-weight: 800; }
+    .agent-message { display: grid; grid-template-columns: 38px 1fr; gap: 12px; margin-bottom: 18px; }
+    .mascot-small { width: 38px; height: 38px; padding: 5px; border-radius: 50%; border: 1px solid rgba(77,0,153,.16); background: var(--accent-soft); }
+    .message-meta { margin-bottom: 7px; color: var(--muted); font-size: 12px; }
+    .message-meta strong { color: var(--ink); font-size: 13px; margin-right: 9px; }
+    .message-card { border: 1px solid var(--line); border-radius: var(--card-radius); padding: 16px 18px; background: var(--card); box-shadow: none; line-height: 1.7; }
+    .message-title { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-weight: 900; font-size: 16px; }
+    .message-title .accent-icon { color: var(--accent); }
+    .message-card p { margin: 0; }
+    .research-chain { margin-top: 14px; border: 1px solid var(--line); border-radius: var(--card-radius); overflow: hidden; background: var(--inset); }
+    .chain-head { min-height: 46px; width: 100%; display: flex; align-items: center; padding: 0 14px; gap: 10px; border: 0; background: transparent; cursor: pointer; text-align: left; }
+    .chain-head strong { font-size: 15px; }
+    .chain-summary { color: var(--muted); font-size: 12px; }
+    .chain-toggle { margin-left: auto; color: var(--accent); font-weight: 800; }
+    .chain-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .22s ease; }
+    .chain-body.collapsed { grid-template-rows: 0fr; }
+    .chain-inner { overflow: hidden; border-top: 1px solid var(--line); background: var(--card); }
+    .chain-steps { display: grid; grid-template-columns: repeat(4, 1fr); padding: 15px 16px 17px; }
+    .chain-step { position: relative; min-width: 0; padding-right: 18px; }
+    .chain-step::after { content: ""; position: absolute; top: 11px; left: 26px; right: 5px; height: 1px; background: var(--line-strong); }
+    .chain-step:last-child::after { display: none; }
+    .step-top { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; font-weight: 800; white-space: nowrap; }
+    .step-dot { width: 22px; height: 22px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--line-strong); background: #fff; color: #fff; font-size: 11px; }
+    .done .step-dot { border-color: var(--accent); background: var(--accent); }
+    .current .step-dot { border-color: var(--accent); color: var(--accent); }
+    .current .step-top { color: var(--accent); }
+    .step-note { margin: 5px 0 0 30px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+    .result-actions { margin-top: 13px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .cite-chip { padding: 5px 9px; border-radius: 6px; background: var(--inset); color: var(--muted); font-size: 12px; }
+    .action-button { min-height: 34px; padding: 0 12px; border: 1px solid rgba(77,0,153,.28); border-radius: 7px; background: #fff; color: var(--accent); font-weight: 800; cursor: pointer; }
+    .action-button:hover { background: var(--accent-soft); }
+    .agent-composer-wrap { flex: 0 0 auto; padding: 0 clamp(24px, 6vw, 90px) 16px; background: var(--canvas); }
+    .agent-composer { max-width: 1120px; min-height: 84px; margin: auto; border: 1px solid var(--line-strong); border-radius: var(--card-radius); background: var(--card); box-shadow: none; }
+    .agent-composer-main { height: 49px; display: flex; align-items: center; padding: 0 10px 0 14px; gap: 9px; }
+    .agent-composer-main input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; }
+    .agent-composer-foot { height: 34px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .settings { border: 0; background: transparent; font-weight: 800; cursor: pointer; }
+    .settings:hover { color: var(--accent); }
+
+    @media (max-width: 1120px) {
+      .topbar { grid-template-columns: 1fr auto 1fr; padding: 0 16px; }
+      .brand-name { display: none; }
+      .top-link span { display: none; }
+      .reader-view { grid-template-columns: 250px minmax(460px, 1fr) 330px; }
+      .reader-view { gap: 0; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img src="../../frontend/public/貔貅紫白.png" alt="Pixiu" />
+        <div class="brand-name">Pixiu Academic Assistant</div>
+      </div>
+
+      <nav class="mode-tabs" aria-label="工作模式">
+        <button class="mode-tab active" data-view="reader">阅读 IDE</button>
+        <button class="mode-tab" data-view="agent">研究 Agent</button>
+      </nav>
+
+      <div class="top-actions">
+        <button class="top-link">▣ <span>论文库</span></button>
+        <button class="top-link upload">⇧ <span>上传论文</span></button>
+        <div class="online"><span class="dot"></span><span>在线</span></div>
+        <div class="avatar">学</div>
+      </div>
+    </header>
+
+    <section class="view reader-view active" data-view-panel="reader" aria-label="阅读 IDE">
+      <aside class="panel reader-sidebar">
+        <div class="panel-header">
+          <div class="panel-title">论文导航</div>
+          <button class="small-icon" title="收起">⌃</button>
+        </div>
+        <div class="paper-picker">
+          <div class="doc-square">▤</div>
+          <div class="paper-copy">
+            <strong>Chain-of-Thought Reasoning...</strong>
+            <span>Wei et al. · 2022</span>
+          </div>
+          <span>⌄</span>
+        </div>
+        <label class="search-box"><span>⌕</span><input placeholder="搜索论文内容" /></label>
+        <div class="mini-tabs">
+          <button class="mini-tab active">目录</button>
+          <button class="mini-tab">标注</button>
+        </div>
+        <div class="outline">
+          <div class="outline-row">▤ Abstract <span class="page">1</span></div>
+          <div class="outline-row">⌄ ▤ 1 Introduction <span class="page">2</span></div>
+          <div class="outline-row l2">1.1 Background</div>
+          <div class="outline-row l2">1.2 Related Work</div>
+          <div class="outline-row l2">1.3 Contributions</div>
+          <div class="outline-row">› ▤ 2 Preliminaries <span class="page">5</span></div>
+          <div class="outline-row active">⌄ ▤ 3 Method <span class="page">8</span></div>
+          <div class="outline-row l2">3.1 Chain-of-Thought Prompting</div>
+          <div class="outline-row l2">3.2 Model Training</div>
+          <div class="outline-row l2">3.3 Inference Strategy</div>
+          <div class="outline-row">⌄ ▤ 4 Experiments <span class="page">10</span></div>
+          <div class="outline-row l2">4.1 Datasets</div>
+          <div class="outline-row l2">4.2 Main Results</div>
+          <div class="outline-row">› ▤ 5 Related Work <span class="page">14</span></div>
+          <div class="outline-row">› ▤ 6 Conclusion <span class="page">16</span></div>
+        </div>
+      </aside>
+
+      <main class="panel pdf-panel">
+        <div class="pdf-toolbar">
+          <span>▤</span>
+          <div class="pdf-name">Chain-of-Thought Reasoning in Large Language Models</div>
+          <div class="tool-group">
+            <button class="tool-btn">‹</button><button class="tool-btn">8 / 16</button><button class="tool-btn">›</button>
+            <button class="tool-btn">−</button><button class="tool-btn">125%⌄</button><button class="tool-btn">＋</button>
+            <button class="tool-btn">⌕</button>
+          </div>
+        </div>
+        <div class="pdf-stage">
+          <article class="paper-page">
+            <h1>3&nbsp;&nbsp; Method</h1>
+            <p>In this section, we introduce chain-of-thought prompting, which encourages large language models to generate intermediate reasoning steps before producing the final answer. We first describe the overall framework, followed by the details of prompt construction, model training, and inference strategy.</p>
+            <h2>3.1&nbsp;&nbsp; Chain-of-Thought Prompting</h2>
+            <p><span class="highlight">Chain-of-thought (CoT) prompting elicits a series of intermediate natural language reasoning steps from large language models, which significantly improves performance on complex reasoning tasks. Instead of directly generating the final answer, the model is encouraged to “think step by step”.</span></p>
+            <div class="selection-tools">
+              <button>✦ 解释</button><button>文 翻译</button><button>✎ 记笔记</button><button>▣ 加入研究</button>
+            </div>
+            <p>Formally, given a question, we construct a prompt that includes input-reasoning-answer demonstrations followed by the final answer. This inference-time approach leverages the in-context learning capability of LLMs and works remarkably well across a wide range of tasks, including arithmetic, commonsense, and symbolic reasoning.</p>
+            <h2>3.2&nbsp;&nbsp; Model Training</h2>
+            <p>Chain-of-thought prompting can be applied to both pre-trained and instruction-tuned models without additional training. We use few-shot demonstrations sampled from task-specific training sets, where each example contains a natural language reasoning process and the corresponding final answer.</p>
+            <div class="page-number">8</div>
+          </article>
+        </div>
+      </main>
+
+      <aside class="panel assistant">
+        <div class="panel-header">
+          <div class="panel-title">阅读助手</div>
+          <button class="small-icon" title="收起">⌃</button>
+        </div>
+        <div class="assistant-tabs">
+          <button class="assistant-tab active">问答</button><button class="assistant-tab">精读</button><button class="assistant-tab">翻译</button><button class="assistant-tab">笔记</button>
+        </div>
+        <div class="chat-scroll">
+          <div class="context-pill">▣ 第 8 页 · Method</div>
+          <div class="user-line"><div class="user-bubble">这段话的主要观点是什么？它解决了什么问题？</div></div>
+          <div class="assistant-answer">
+            <div class="answer-head"><img src="../../frontend/public/貔貅紫白.png" alt="" width="27" height="27" /> 阅读助手</div>
+            <p>这段话的主要观点是：通过链式思维（CoT）提示，让大语言模型在生成最终答案之前，先产生一系列中间的自然语言推理步骤，可以显著提升模型在复杂推理任务上的表现。</p>
+            <p>它解决的问题是：传统的直接生成答案方式难以处理需要多步推理的复杂任务。CoT 将问题拆解为更小、更易管理的子问题。</p>
+            <div class="citations">来源：<br /><span class="citation">▤ 第 8 页 · 3.1</span><span class="citation">▤ 第 9 页 · 3.2</span></div>
+          </div>
+        </div>
+        <div class="composer"><input placeholder="请输入你的问题……" /><button class="send" aria-label="发送">➤</button></div>
+      </aside>
+    </section>
+
+    <section class="view agent-view" data-view-panel="agent" aria-label="研究 Agent">
+      <aside class="project-sidebar">
+        <div class="project-top">
+          <div class="project-title-row"><h2 class="section-heading">项目</h2></div>
+          <button class="primary-button new-project">＋ 新建项目</button>
+        </div>
+        <div class="project-tree">
+          <button class="tree-project">⌄　▣　LLM 推理研究</button>
+          <button class="tree-task active">▤　LLM 对比 <span class="task-state">进行中</span></button>
+          <button class="tree-task">▤　评测指标梳理</button>
+          <button class="tree-project">›　▣　多模态检索</button>
+
+          <section class="current-papers">
+            <div class="eyebrow">当前项目</div>
+            <h3 class="paper-heading">组成论文（8）</h3>
+            <div class="project-paper">▤ <span>Paper A · Chain-of-Thought Prompting</span></div>
+            <div class="project-paper">▤ <span>Paper B · Self-Consistency Improves...</span></div>
+            <div class="project-paper">▤ <span>Paper C · Tree of Thoughts</span></div>
+            <div class="manage-link">管理论文　›</div>
+          </section>
+        </div>
+      </aside>
+
+      <main class="agent-main">
+        <div class="taskbar">
+          <div class="breadcrumb">LLM 推理研究 <span>/</span> LLM 对比</div>
+          <div class="status-pill">◉ 研究中 · 72%</div>
+          <div class="taskbar-actions"><button class="ghost-button">＋ 新建任务</button><button class="ghost-button">•••</button></div>
+        </div>
+
+        <div class="agent-chat">
+          <div class="agent-content">
+            <div class="agent-user">
+              <div class="user-bubble">比较项目中论文的推理方法、评测方式和局限性。</div>
+              <div class="round-avatar">我</div>
+            </div>
+
+            <article class="agent-message">
+              <img class="mascot-small" src="../../frontend/public/貔貅紫白.png" alt="Pixiu" />
+              <div>
+                <div class="message-meta"><strong>Pixiu Academic Assistant</strong>今天 10:24</div>
+                <div class="message-card">
+                  <div class="message-title"><span class="accent-icon">▥</span>阶段判断</div>
+                  <p>我会对项目中的 8 篇论文进行系统比较，重点梳理各自的推理方法、评测方式和已知局限性。当前已完成论文读取和比较维度建立，正在识别不同论文之间的证据冲突与观点差异。</p>
+                  <div class="research-chain">
+                    <button class="chain-head" aria-expanded="true">
+                      <strong>⌘　研究链</strong><span class="chain-summary">已完成 3 / 5 步 · 12 条证据</span><span class="chain-toggle">收起完整过程　⌃</span>
+                    </button>
+                    <div class="chain-body"><div class="chain-inner">
+                      <div class="chain-steps">
+                        <div class="chain-step done"><div class="step-top"><span class="step-dot">✓</span>读取项目论文</div><div class="step-note">提取 8 篇论文核心内容</div></div>
+                        <div class="chain-step done"><div class="step-top"><span class="step-dot">✓</span>建立比较维度</div><div class="step-note">方法、评测、局限性</div></div>
+                        <div class="chain-step current"><div class="step-top"><span class="step-dot">●</span>识别证据冲突</div><div class="step-note">比对结论与观点差异</div></div>
+                        <div class="chain-step"><div class="step-top"><span class="step-dot"></span>生成综合结论</div><div class="step-note">形成结构化结论</div></div>
+                      </div>
+                    </div></div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="agent-message">
+              <img class="mascot-small" src="../../frontend/public/貔貅紫白.png" alt="Pixiu" />
+              <div>
+                <div class="message-meta"><strong>Pixiu Academic Assistant</strong>今天 10:28</div>
+                <div class="message-card">
+                  <div class="message-title"><span class="accent-icon">▤</span>阶段结论</div>
+                  <p>综合项目中的论文，当前主流推理方法正从单一路径的思维链向多路径搜索和环境交互逐步演进；评测也从结果准确性扩展到过程一致性与推理质量。现有方法在复杂任务泛化、可解释性和计算开销方面仍有明显局限。</p>
+                  <div class="result-actions">
+                    <span class="cite-chip">▤ 证据 1</span><span class="cite-chip">▤ 证据 2</span>
+                    <button class="action-button">查看证据 12</button><button class="action-button">打开报告</button><button class="action-button">加入阅读笔记</button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="agent-composer-wrap">
+          <div class="agent-composer">
+            <div class="agent-composer-main"><span>⌕</span><input placeholder="继续当前任务，或提出新的研究问题…" /><button class="send" aria-label="发送">➤</button></div>
+            <div class="agent-composer-foot"><button class="settings">⚙ 研究设置　⌄</button><span>项目内 8 篇论文 · 学术检索已启用</span></div>
+          </div>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    const modeTabs = document.querySelectorAll('.mode-tab');
+    const views = document.querySelectorAll('[data-view-panel]');
+
+    modeTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.view;
+        modeTabs.forEach((item) => item.classList.toggle('active', item === tab));
+        views.forEach((view) => view.classList.toggle('active', view.dataset.viewPanel === target));
+      });
+    });
+
+    document.querySelectorAll('.assistant-tab, .mini-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        tab.parentElement.querySelectorAll('button').forEach((item) => item.classList.remove('active'));
+        tab.classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('.tree-task').forEach((task) => {
+      task.addEventListener('click', () => {
+        document.querySelectorAll('.tree-task').forEach((item) => item.classList.remove('active'));
+        task.classList.add('active');
+      });
+    });
+
+    const chainHead = document.querySelector('.chain-head');
+    const chainBody = document.querySelector('.chain-body');
+    chainHead.addEventListener('click', () => {
+      const collapsed = chainBody.classList.toggle('collapsed');
+      chainHead.setAttribute('aria-expanded', String(!collapsed));
+      chainHead.querySelector('.chain-toggle').textContent = collapsed ? '展开完整过程　⌄' : '收起完整过程　⌃';
+    });
+  </script>
+</body>
+</html>

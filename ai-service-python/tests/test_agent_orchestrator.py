@@ -71,7 +71,7 @@ class AgentOrchestratorTests(unittest.TestCase):
             )
 
         snapshot = trace_service.get_trace_snapshot(trace_service.get_current_trace_id())
-        self.assertEqual(snapshot["counters"]["retrievalCalls"], 1)
+        self.assertEqual(snapshot["counters"]["retrievalCalls"], 3)
         self.assertEqual(paper_contexts[0]["pdfId"], "paper-a")
         self.assertEqual(tool_calls[0]["status"], "succeeded")
         self.assertEqual(tool_calls[0]["version"], "1.0.0")
@@ -82,6 +82,22 @@ class AgentOrchestratorTests(unittest.TestCase):
         self.assertEqual(evidence_items[0]["pageIndex"], 2)
         self.assertEqual(evidence_items[0]["sectionId"], "method")
         self.assertEqual(evidence_items[0]["chunkIndex"], 7)
+        self.assertEqual(fake_registry.invoke.call_count, 3)
+        queries = [call.args[1]["query"] for call in fake_registry.invoke.call_args_list]
+        self.assertTrue(any("method architecture" in query for query in queries))
+        self.assertTrue(any("quantitative results" in query for query in queries))
+        self.assertTrue(any("limitations" in query for query in queries))
+
+    def test_chinese_question_uses_english_aspect_queries_for_english_papers(self):
+        from services.agent_evidence_collector import _build_project_evidence_queries
+
+        queries = _build_project_evidence_queries("比较两篇论文的方法、实验和局限")
+
+        self.assertEqual(len(queries), 3)
+        self.assertTrue(all("论文" not in query for query in queries))
+        self.assertIn("deformation training strategy", queries[0])
+        self.assertIn("quantitative results", queries[1])
+        self.assertIn("future work", queries[2])
 
     def test_collect_project_evidence_uses_fallback_tool_summary(self):
         trace_service.start_trace("agent_research")
@@ -106,8 +122,9 @@ class AgentOrchestratorTests(unittest.TestCase):
         self.assertEqual(tool_calls[0]["status"], "fallback")
         self.assertEqual(tool_calls[0]["version"], "1.0.0")
         self.assertEqual(tool_calls[0]["safetyScope"]["access"], "read_only")
-        self.assertIn("Collected 1 evidence items", tool_calls[0]["result"])
-        self.assertTrue(evidence_items[0]["metadata"]["fallback"])
+        self.assertIn("Collected 0 evidence items", tool_calls[0]["result"])
+        self.assertEqual(evidence_items, [])
+        self.assertEqual(paper_contexts[0]["evidenceCount"], 0)
 
     def test_build_agent_outputs_and_report_are_stable(self):
         paper_contexts = [

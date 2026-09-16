@@ -1,0 +1,1963 @@
+{
+  "status": "success",
+  "workspace": {
+    "project": {
+      "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+      "title": "两篇论文综合研究演示",
+      "goal": "比较 3DGStream 与 3D Gaussian Splatting 综述中的动态场景方法、效率证据和局限",
+      "paperIds": [
+        "2403.01444v4.pdf",
+        "2401.03890v8.pdf"
+      ],
+      "papers": [
+        {
+          "pdfId": "2403.01444v4.pdf",
+          "title": "2403.01444v4.pdf",
+          "indexed": true
+        },
+        {
+          "pdfId": "2401.03890v8.pdf",
+          "title": "2401.03890v8.pdf",
+          "indexed": true
+        }
+      ],
+      "latestTaskId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+      "defaultConstraints": "",
+      "createdAt": "2026-09-13T05:49:13.478679Z",
+      "updatedAt": "2026-09-13T06:11:41.494313Z"
+    },
+    "activeRun": {
+      "runId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+      "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+      "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+      "traceId": "f32dfb15-78b3-4179-b02b-3e3267bfed76",
+      "status": "succeeded",
+      "executionPhase": "done",
+      "progress": 1.0,
+      "prompt": "基于前两轮继续给出最终综合：比较 3DGStream 与综述所归纳的动态 3DGS 路线，覆盖表示或变形机制、逐帧训练策略、实时效率证据、应用条件和局限。每条结论引用项目论文页码证据。",
+      "focusedPaperIds": [
+        "2403.01444v4.pdf",
+        "2401.03890v8.pdf"
+      ],
+      "constraints": "只使用项目内两篇论文。",
+      "context": {
+        "domain": "",
+        "reviewMode": "auto",
+        "idempotencyKey": "demo-two-paper-turn-3-v1"
+      },
+      "humanReview": {
+        "plan": {
+          "status": "not_required",
+          "reviewNotes": "",
+          "reviewedAt": ""
+        },
+        "final": {
+          "status": "not_required",
+          "reviewNotes": "",
+          "reviewedAt": "",
+          "riskReviews": []
+        }
+      },
+      "reviewRisks": [
+        {
+          "riskId": "open:1",
+          "type": "open_question",
+          "label": "开放问题",
+          "detail": "综述侧动态 3DGS 路线缺少 FPS、逐帧训练时间和存储等数值，无法与 3DGStream 对应指标进行直接定量比较。",
+          "sourceIds": [],
+          "reviewStatus": "pending"
+        },
+        {
+          "riskId": "open:2",
+          "type": "open_question",
+          "label": "开放问题",
+          "detail": "当前提供的 3DGStream 证据中未包含渲染 FPS 表（前轮曾提到 chunk-62），因此本综合未纳入具体渲染 FPS 数值。",
+          "sourceIds": [],
+          "reviewStatus": "pending"
+        },
+        {
+          "riskId": "open:3",
+          "type": "open_question",
+          "label": "开放问题",
+          "detail": "3DGStream 的 150/100 次迭代设置来自 flame salmon 场景消融，不能推广为所有实验配置；综述的 scalability 限制来自通用 3DGS 讨论，不一定是动态路线专门结论。",
+          "sourceIds": [],
+          "reviewStatus": "pending"
+        }
+      ],
+      "traceSummary": {
+        "traceId": "f32dfb15-78b3-4179-b02b-3e3267bfed76",
+        "taskType": "agent_research",
+        "status": "success",
+        "startedAt": "2026-09-13T06:11:41.494259Z",
+        "finishedAt": "2026-09-13T06:13:55.615469Z",
+        "durationMs": 134121,
+        "requestMeta": {
+          "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+          "prompt": "[REDACTED]",
+          "paperIds": [
+            "2403.01444v4.pdf",
+            "2401.03890v8.pdf"
+          ]
+        },
+        "responseMeta": {
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+          "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0"
+        },
+        "counters": {
+          "llmCalls": 1,
+          "retrievalCalls": 12,
+          "retryCount": 0,
+          "truncationCount": 0,
+          "estimatedInputTokens": 2812,
+          "estimatedOutputTokens": 440,
+          "externalSearchCalls": 0,
+          "externalSearchCacheHits": 0,
+          "externalSearchFailures": 0,
+          "externalEvidenceCount": 0,
+          "externalSearchLatencyMs": 0,
+          "externalSearchBudgetBlocks": 0,
+          "codeExecutionCalls": 0,
+          "codeExecutionFailures": 0,
+          "codeExecutionOutputCount": 0,
+          "webSearchCalls": 0,
+          "webSearchResults": 0,
+          "webSearchFailures": 0,
+          "webSearchLatencyMs": 0,
+          "webSearchBudgetBlocks": 0,
+          "webSearchCacheHits": 0,
+          "webFetchCalls": 0,
+          "webFetchChars": 0,
+          "webFetchFailures": 0,
+          "webFetchBudgetBlocks": 0,
+          "webFetchCacheHits": 0,
+          "webFetchBytes": 0,
+          "agenticLoopIterations": 0,
+          "queryRefinementCalls": 0,
+          "llmCacheMisses": 1,
+          "awaitingFinalReview": false
+        },
+        "steps": [
+          {
+            "name": "agent_task_understanding",
+            "durationMs": 0,
+            "status": "success",
+            "inputSize": 92,
+            "outputSize": 117,
+            "error": ""
+          },
+          {
+            "name": "tool_retrieve_current_paper",
+            "durationMs": 304,
+            "status": "success",
+            "inputSize": 96,
+            "outputSize": 2,
+            "error": "",
+            "meta": {
+              "pdfId": "2403.01444v4.pdf",
+              "includeAll": false
+            }
+          },
+          {
+            "name": "tool_retrieve_current_paper",
+            "durationMs": 115,
+            "status": "success",
+            "inputSize": 64,
+            "outputSize": 2,
+            "error": "",
+            "meta": {
+              "pdfId": "2403.01444v4.pdf",
+              "includeAll": false
+            }
+          },
+          {
+            "name": "tool_retrieve_current_paper",
+            "durationMs": 100,
+            "status": "success",
+            "inputSize": 72,
+            "outputSize": 2,
+            "error": "",
+            "meta": {
+              "pdfId": "2403.01444v4.pdf",
+              "includeAll": false
+            }
+          },
+          {
+            "name": "agent_collect_paper_evidence",
+            "durationMs": 1542,
+            "status": "success",
+            "inputSize": 716,
+            "outputSize": 6,
+            "error": "",
+            "meta": {
+              "pdfId": "2403.01444v4.pdf"
+            }
+          },
+          {
+            "name": "tool_retrieve_current_paper",
+            "durationMs": 80,
+            "status": "success",
+            "inputSize": 96,
+            "outputSize": 2,
+            "error": "",
+            "meta": {
+              "pdfId": "2401.03890v8.pdf",
+              "includeAll": false
+            }
+          },
+          {
+            "name": "tool_retrieve_current_paper",
+            "durationMs": 69,
+            "status": "success",
+            "inputSize": 64,
+            "outputSize": 2,
+            "error": "",
+            "meta": {
+              "pdfId": "2401.03890v8.pdf",
+              "includeAll": false
+            }
+          },
+          {
+            "name": "tool_retrieve_current_paper",
+            "durationMs": 86,
+            "status": "success",
+            "inputSize": 72,
+            "outputSize": 2,
+            "error": "",
+            "meta": {
+              "pdfId": "2401.03890v8.pdf",
+              "includeAll": false
+            }
+          },
+          {
+            "name": "agent_collect_paper_evidence",
+            "durationMs": 237,
+            "status": "success",
+            "inputSize": 716,
+            "outputSize": 6,
+            "error": "",
+            "meta": {
+              "pdfId": "2401.03890v8.pdf"
+            }
+          },
+          {
+            "name": "llm_call",
+            "durationMs": 123530,
+            "status": "success",
+            "inputSize": 11248,
+            "outputSize": 1757,
+            "error": "",
+            "meta": {
+              "provider": "deepseek",
+              "model": "deepseek-v4-pro",
+              "messageCount": 1
+            }
+          }
+        ]
+      },
+      "externalSearchConfig": {
+        "allowExternalSearch": false,
+        "allowWebSearch": false,
+        "allowIterativeSearch": false,
+        "provider": "disabled",
+        "budget": {
+          "callLimit": 3,
+          "evidenceLimit": 15,
+          "callsUsed": 0,
+          "evidenceUsed": 0
+        },
+        "status": "disabled",
+        "degradation": ""
+      },
+      "codeExecutionConfig": {
+        "allowCodeExecution": false,
+        "proposal": null,
+        "jobId": null,
+        "jobStatus": null,
+        "publishable": false,
+        "degradation": ""
+      },
+      "error": "",
+      "createdAt": "2026-09-13T06:11:41.494313Z",
+      "updatedAt": "2026-09-13T06:13:55.617346Z"
+    },
+    "pendingReview": null,
+    "pendingClarification": null,
+    "latestArtifacts": {
+      "runId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+      "version": 1,
+      "evidenceItems": [
+        {
+          "sourceId": "2403.01444v4.pdf-chunk-13",
+          "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 2\n\nContent:\ny view synthesis in large-scale unbounded\nscenes after brief training periods with modest storage re-\nquirements. Inspired by this work, we extend its application\nto the task of constructing FVVs of dynamic scenes. Taking\nit a step further, we design a on-the-fly training framework\nto achieve efficient FVV streaming.\n2.2. Free-Viewpoint Videos of Dynamic Scenes\nConstructing FVVs from a set of videos of dynamic scenes\nis a more challenging and applicable task in the domains of\ncomputer vision and graphics. Earlier attempts to address\nthis task pivot",
+          "metadata": {
+            "section_title": "Page 2",
+            "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+            "chunk_index": 13,
+            "file_name": "target_paper.pdf",
+            "section_id": "page-2",
+            "id": "2403.01444v4.pdf",
+            "page": 2,
+            "page_index": 1
+          },
+          "similarity": 0.8100939989089966,
+          "score": null,
+          "pdfId": "2403.01444v4.pdf",
+          "chunkIndex": 13,
+          "pageIndex": 1,
+          "sectionId": "page-2",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2403.01444v4.pdf-chunk-16",
+          "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 3\n\nContent:\ned to render at the current timestep i, with only the transformed ones carried into the next timestep.\nsuccess of NeRF-like methods in novel view synthesis for\nstatic scenes, a series of works [1, 9, 19, 29–34, 42, 44–\n46, 48, 52, 56, 58, 60, 62, 63, 69, 75] attempt to use NeRF\nfor constructing FVVs in dynamic scenes. These works can\ntypically be categorized into five types: prior-driven, flow-\nbased, warp-based, those using spatio-temporal inputs, and\nper-frame training.\nPrior-driven methods [27, 30, 63, 69, 75] leverage para-\nmetric models or inc",
+          "metadata": {
+            "id": "2403.01444v4.pdf",
+            "section_title": "Page 3",
+            "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+            "file_name": "target_paper.pdf",
+            "page_index": 2,
+            "section_id": "page-3",
+            "chunk_index": 16,
+            "page": 3
+          },
+          "similarity": 0.8082548975944519,
+          "score": null,
+          "pdfId": "2403.01444v4.pdf",
+          "chunkIndex": 16,
+          "pageIndex": 2,
+          "sectionId": "page-3",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2403.01444v4.pdf-chunk-27",
+          "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 4\n\nContent:\n interpolation of the feature vectors cor-\nresponding to the eight corners of the surrounding grid.\nConsequently, its multi-resolution hash encoding h(x) =\n[h(x; 0), h(x; 1), ..., h (x;L−1)]∈RLd, where Lrepre-\nsents the number of resolution levels. The multi-resolution\nhash encoding addresses all our requirements for the NTC:\n•Compactness : Hashing effectively reduces the storage\nspace needed for encoding the whole scene.\n•Efficiency : Hash table lookup operates in O(1), and is\nhighly compatible with modern GPUs.\n4",
+          "metadata": {
+            "section_title": "Page 4",
+            "page_index": 3,
+            "chunk_index": 27,
+            "page": 4,
+            "section_id": "page-4",
+            "file_name": "target_paper.pdf",
+            "id": "2403.01444v4.pdf",
+            "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos"
+          },
+          "similarity": 0.6635996103286743,
+          "score": null,
+          "pdfId": "2403.01444v4.pdf",
+          "chunkIndex": 27,
+          "pageIndex": 3,
+          "sectionId": "page-4",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2403.01444v4.pdf-chunk-65",
+          "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 10\n\nContent:\native Results\nWe provide videos to show the free view synthesis results\non various scenes from the N3DV dataset in https://\nsjojok.github.io/3dgstream .\n12. More Evaluations\n12.1. Storage Requirements\nExcept the initial 3DGs, we only need to store per-frame\nNTCs and per-frame additional 3DGs for each FVV frame,\nas detailed in Tab. 8.\n12.2. Quantity of 3DGs\nIn our experiments on the N3DV datasets, the quantity of\ninitial 3DGs ( i.e., the transformed ones) is on the order of\n105, while the quantity of frame-specific additional 3DGs\nis on the order o",
+          "metadata": {
+            "id": "2403.01444v4.pdf",
+            "section_title": "Page 10",
+            "page": 10,
+            "page_index": 9,
+            "chunk_index": 65,
+            "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+            "file_name": "target_paper.pdf",
+            "section_id": "page-10"
+          },
+          "similarity": 0.6615297794342041,
+          "score": null,
+          "pdfId": "2403.01444v4.pdf",
+          "chunkIndex": 65,
+          "pageIndex": 9,
+          "sectionId": "page-10",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2403.01444v4.pdf-chunk-67",
+          "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 10\n\nContent:\n im-\npact of training iterations, and show the quantitative results\nin Tab. 9. As shown in Tab. 9, increasing training itera-\ntions in Stage 1 significantly enhances the reconstruction\nquality. However, an additional 100 iterations result in an\nincrement of 3 seconds in the per-frame training duration.\nIncrementing training iterations in the second stage has a\nminimal impact on quality, which can be attributed to the\nhigher learning rate employed in this phase and the smaller\nnumber of additional 3DGs, facilitating rapid convergence.\nReferences\n[1",
+          "metadata": {
+            "section_id": "page-10",
+            "page": 10,
+            "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+            "chunk_index": 67,
+            "file_name": "target_paper.pdf",
+            "id": "2403.01444v4.pdf",
+            "page_index": 9,
+            "section_title": "Page 10"
+          },
+          "similarity": 0.5909169912338257,
+          "score": null,
+          "pdfId": "2403.01444v4.pdf",
+          "chunkIndex": 67,
+          "pageIndex": 9,
+          "sectionId": "page-10",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2403.01444v4.pdf-chunk-44",
+          "text": "Paper: 3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos\n\nSection: Page 7\n\nContent:\n004c/uni00000055/uni00000048/uni00000046/uni00000057/uni00000003/uni00000032/uni00000053/uni00000057/uni00000011\nFigure 6. Comparison of different approaches on the flame\nsalmon scene.\nVariant PSNR↑(dB) #Additional 3DGs ↓\nBaseline 28.39 0\nRnd. Spawn 28.39 971.9\nw/oQuant. Ctrl. 28.43 8710.8\nFull Model 28.42 477.7\nTable 3. Ablation study of the Adaptive 3DG Addition strategy\non the flame salmon scene . The metrics are averaged over the\nwhole sequence.\nwe train the NTC for 150 iterations in Stage 1. and train the\nadditional 3DGs for 100 iterations in",
+          "metadata": {
+            "id": "2403.01444v4.pdf",
+            "title": "3DGStream: On-the-Fly Training of 3D Gaussians for Efficient Streaming of Photo-Realistic Free-Viewpoint Videos",
+            "file_name": "target_paper.pdf",
+            "page_index": 6,
+            "chunk_index": 44,
+            "page": 7,
+            "section_title": "Page 7",
+            "section_id": "page-7"
+          },
+          "similarity": 0.5905741453170776,
+          "score": null,
+          "pdfId": "2403.01444v4.pdf",
+          "chunkIndex": 44,
+          "pageIndex": 6,
+          "sectionId": "page-7",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2401.03890v8.pdf-chunk-61",
+          "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 12\n\nContent:\nnd dynamics by optimizing neutral 3D Gaussians alongside the deformation\nfield, thus ensuring both detail fidelity and expression accuracy. ii)Spatiotemporal Modeling . Yang et al. [265]\nproposed to reconstruct dynamic scenes with deformable 3D Gaussians. The deformable 3D Gaussians are learned in a\ncanonical space, coupled with a deformation field ( i.e., a spatial MLP) that models the spatial-temporal dynamics. The\nproposed method also incorporated an annealing smoothing training mechanism to enhance temporal smoothness\nwithout additional computational costs. iii)Style Transfer . Saroha et al. [195] proposed GS in style,",
+          "metadata": {
+            "page": 12,
+            "section_title": "Page 12",
+            "chunk_index": 61,
+            "page_index": 11,
+            "id": "2401.03890v8.pdf",
+            "section_id": "page-12",
+            "file_name": "target_paper.pdf",
+            "title": "A Survey on 3D Gaussian Splatting"
+          },
+          "similarity": 0.791239857673645,
+          "score": null,
+          "pdfId": "2401.03890v8.pdf",
+          "chunkIndex": 61,
+          "pageIndex": 11,
+          "sectionId": "page-12",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2401.03890v8.pdf-chunk-204",
+          "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 33\n\nContent:\nJin. 2024. Deformable 3d gaussians for high-fidelity monocular\ndynamic scene reconstruction. In Proc. IEEE Conf. Comput. Vis. Pattern Recognit.\n[266] Zeyu Yang, Hongye Yang, Zijie Pan, Xiatian Zhu, and Li Zhang. 2024. Real-time photorealistic dynamic scene representation and rendering with\n4d gaussian splatting. In Proc. Int. Conf. Learn. Represent.\n[267] Keyang Ye, Tianjia Shao, and Kun Zhou. 2023. Animatable 3D Gaussians for High-fidelity Synthesis of Human Motions. arXiv preprint\narXiv:2311.13404 (2023).\n[268] Mingqiao Ye, Martin Danelljan, Fisher Yu, and Lei Ke. 2024. Gaussian Grouping: Segment and Edit Anything in 3D S",
+          "metadata": {
+            "title": "A Survey on 3D Gaussian Splatting",
+            "section_id": "page-33",
+            "section_title": "Page 33",
+            "page": 33,
+            "file_name": "target_paper.pdf",
+            "chunk_index": 204,
+            "id": "2401.03890v8.pdf",
+            "page_index": 32
+          },
+          "similarity": 0.773169994354248,
+          "score": null,
+          "pdfId": "2401.03890v8.pdf",
+          "chunkIndex": 204,
+          "pageIndex": 32,
+          "sectionId": "page-33",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2401.03890v8.pdf-chunk-35",
+          "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 7\n\nContent:\nit is that each tile’s pixels can access a common\nshared memory and maintain an uniform read se-\nquence (Fig. 5), enabling parallel execution of alpha\ncompositing with increased efficiency. In the official\nManuscript submitted to ACM",
+          "metadata": {
+            "id": "2401.03890v8.pdf",
+            "chunk_index": 35,
+            "page_index": 6,
+            "section_id": "page-7",
+            "file_name": "target_paper.pdf",
+            "page": 7,
+            "section_title": "Page 7",
+            "title": "A Survey on 3D Gaussian Splatting"
+          },
+          "similarity": 0.7025413513183594,
+          "score": null,
+          "pdfId": "2401.03890v8.pdf",
+          "chunkIndex": 35,
+          "pageIndex": 6,
+          "sectionId": "page-7",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2401.03890v8.pdf-chunk-48",
+          "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 10\n\nContent:\n GS\nWhile 3D GS demonstrates remarkable capabilities, its scalability poses significant challenges, particularly when\njuxtaposed with NeRF-based methods. The latter benefits from the simplicity of storing merely the parameters of a\nlearned MLP. This scalability issue becomes increasingly acute in the context of large-scale scene management, where\nthe computational and memory demands escalate substantially. Consequently, there is an urgent need to optimize\nmemory usage in both model training and storage.\nRecent research has pursued two primary directions to address memory efficiency. First, several approaches focus on\nreduci",
+          "metadata": {
+            "chunk_index": 48,
+            "page_index": 9,
+            "id": "2401.03890v8.pdf",
+            "section_title": "Page 10",
+            "file_name": "target_paper.pdf",
+            "section_id": "page-10",
+            "page": 10,
+            "title": "A Survey on 3D Gaussian Splatting"
+          },
+          "similarity": 0.6846181154251099,
+          "score": null,
+          "pdfId": "2401.03890v8.pdf",
+          "chunkIndex": 48,
+          "pageIndex": 9,
+          "sectionId": "page-10",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2401.03890v8.pdf-chunk-118",
+          "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 22\n\nContent:\nutational creativity and practical applications across diverse domains.\n•Learning Physical Priors from Large-scale Data. As we explore the potential of physics- and semantics-aware\nscene representations, leveraging large-scale datasets to learn generalizable, physical priors emerges as a promising\ndirection. The goal is to model the inherent physical properties and dynamics embedded within real-world data,\ntransforming them into actionable insights that can be applied across various domains such as robotics and visual effects.\nEstablishing a learning framework for extracting these generalizable priors enables the applicatio",
+          "metadata": {
+            "chunk_index": 118,
+            "file_name": "target_paper.pdf",
+            "page": 22,
+            "section_id": "page-22",
+            "section_title": "Page 22",
+            "id": "2401.03890v8.pdf",
+            "title": "A Survey on 3D Gaussian Splatting",
+            "page_index": 21
+          },
+          "similarity": 0.629520058631897,
+          "score": null,
+          "pdfId": "2401.03890v8.pdf",
+          "chunkIndex": 118,
+          "pageIndex": 21,
+          "sectionId": "page-22",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        },
+        {
+          "sourceId": "2401.03890v8.pdf-chunk-76",
+          "text": "Paper: A Survey on 3D Gaussian Splatting\n\nSection: Page 15\n\nContent:\nA Survey on 3D Gaussian Splatting 15\noften requiring manual priors to segment regions —– a barrier in unstructured settings. Furthermore, the absence\nof object-level motion reasoning leads to artifacts and poor generalization over long sequences. Future work might\nprioritize object-centric frameworks that group Gaussians into persistent entities so as to model inherent motion\ndisentanglement (dynamic vs. static).\n5.3 Generation and Editing\nContent generation and editing represent two fundamental and inherently interconnected capabilities in modern AI\nsystems. While generation enables the synthesis of novel digital content f",
+          "metadata": {
+            "title": "A Survey on 3D Gaussian Splatting",
+            "section_title": "Page 15",
+            "chunk_index": 76,
+            "file_name": "target_paper.pdf",
+            "page_index": 14,
+            "page": 15,
+            "id": "2401.03890v8.pdf",
+            "section_id": "page-15"
+          },
+          "similarity": 0.6224871277809143,
+          "score": null,
+          "pdfId": "2401.03890v8.pdf",
+          "chunkIndex": 76,
+          "pageIndex": 14,
+          "sectionId": "page-15",
+          "sourceType": "current_paper",
+          "credibility": {
+            "score": 0.875,
+            "factors": {
+              "source_type_weight": 1.0,
+              "page_anchor_coverage": 1.0,
+              "cross_source_agreement": 1.0,
+              "judge_score": 0.5
+            },
+            "calibration_note": "high"
+          }
+        }
+      ],
+      "toolCallSummary": [
+        {
+          "name": "retrieve_current_paper",
+          "status": "succeeded",
+          "meta": {
+            "queryCount": 3,
+            "failedQueryCount": 0
+          },
+          "version": "1.0.0",
+          "safetyScope": {
+            "access": "read_only",
+            "dataScopes": [
+              "current_paper_index"
+            ],
+            "networkAccess": false,
+            "sideEffects": false,
+            "sensitiveOutput": true
+          },
+          "id": "retrieve-current-paper-1",
+          "target": "2403.01444v4.pdf",
+          "result": "Collected 6 evidence items for 2403.01444v4.pdf."
+        },
+        {
+          "name": "retrieve_current_paper",
+          "status": "succeeded",
+          "meta": {
+            "queryCount": 3,
+            "failedQueryCount": 0
+          },
+          "version": "1.0.0",
+          "safetyScope": {
+            "access": "read_only",
+            "dataScopes": [
+              "current_paper_index"
+            ],
+            "networkAccess": false,
+            "sideEffects": false,
+            "sensitiveOutput": true
+          },
+          "id": "retrieve-current-paper-2",
+          "target": "2401.03890v8.pdf",
+          "result": "Collected 6 evidence items for 2401.03890v8.pdf."
+        }
+      ],
+      "findings": [
+        {
+          "findingId": "claim-1",
+          "summary": "表示/变形机制：3DGStream 的文本描述为渲染当前时间步 i，且只有被变换的对象被传入下一时间步；综述归纳的动态 3DGS 路线（Yang et al.）则在规范空间学习可变形 3D Gaussians，并用空间 MLP 变形场建模时空动态，同时优化中性 3D Gaussians 和变形场。",
+          "sourceIds": [
+            "2403.01444v4.pdf-chunk-16",
+            "2401.03890v8.pdf-chunk-61"
+          ]
+        },
+        {
+          "findingId": "claim-2",
+          "summary": "3DGStream 的 NTC 表示采用多分辨率哈希编码，作者给出的理由是紧凑性和效率：哈希查找为 O(1)，且与现代 GPU 高度兼容；综述侧动态路线的训练机制提到 annealing smoothing，在无额外计算成本下增强时序平滑。",
+          "sourceIds": [
+            "2403.01444v4.pdf-chunk-27",
+            "2401.03890v8.pdf-chunk-61"
+          ]
+        },
+        {
+          "findingId": "claim-3",
+          "summary": "逐帧训练/更新策略：3DGStream 在 flame salmon 场景消融中设置 Stage 1 训练 NTC 150 次迭代、Stage 2 训练新增 3DGs 100 次迭代；综述只报告动态 3DGS 的 annealing smoothing 训练机制，未给出逐帧迭代次数或两阶段训练设置。",
+          "sourceIds": [
+            "2403.01444v4.pdf-chunk-44",
+            "2401.03890v8.pdf-chunk-61"
+          ]
+        },
+        {
+          "findingId": "claim-4",
+          "summary": "训练效率方面，3DGStream 报告 Stage 1 增加 100 次迭代会使每帧训练时长增加 3 秒，并显著提升重建质量；Stage 2 增加迭代对质量影响很小，作者归因于更高学习率、更少新增 3DGs 和快速收敛。",
+          "sourceIds": [
+            "2403.01444v4.pdf-chunk-67"
+          ]
+        },
+        {
+          "findingId": "claim-5",
+          "summary": "存储与可扩展性：3DGStream 报告除初始 3DGs 外，每个 FVV 帧只需存储每帧 NTC 和每帧新增 3DGs，初始 3DGs 数量约为 10^5 量级；综述在通用 3DGS 层面指出可扩展性带来显著内存挑战，需要在模型训练和存储中优化内存。",
+          "sourceIds": [
+            "2403.01444v4.pdf-chunk-65",
+            "2401.03890v8.pdf-chunk-48"
+          ]
+        },
+        {
+          "findingId": "claim-6",
+          "summary": "应用条件/局限：3DGStream 定位为面向动态场景 FVV 的 on-the-fly 训练框架，用于高效 FVV 流式传输；综述归纳的动态/对象运动相关路线指出通常需要手动先验分割区域，缺少对象级运动推理会导致伪影和长序列泛化差。",
+          "sourceIds": [
+            "2403.01444v4.pdf-chunk-13",
+            "2401.03890v8.pdf-chunk-76"
+          ]
+        },
+        {
+          "findingId": "claim-7",
+          "summary": "渲染效率方面，综述的 3D GS 通用渲染路径通过 tile 共享内存和统一读取序列并行执行 alpha compositing 以提高效率；3DGStream 侧当前证据给出 NTC 哈希查找 O(1) 和 GPU 兼容性，以及逐帧训练成本证据。",
+          "sourceIds": [
+            "2401.03890v8.pdf-chunk-35",
+            "2403.01444v4.pdf-chunk-27",
+            "2403.01444v4.pdf-chunk-67"
+          ]
+        }
+      ],
+      "comparisonTable": {
+        "columns": [],
+        "rows": []
+      },
+      "conflicts": [],
+      "openQuestions": [
+        "综述侧动态 3DGS 路线缺少 FPS、逐帧训练时间和存储等数值，无法与 3DGStream 对应指标进行直接定量比较。",
+        "当前提供的 3DGStream 证据中未包含渲染 FPS 表（前轮曾提到 chunk-62），因此本综合未纳入具体渲染 FPS 数值。",
+        "3DGStream 的 150/100 次迭代设置来自 flame salmon 场景消融，不能推广为所有实验配置；综述的 scalability 限制来自通用 3DGS 讨论，不一定是动态路线专门结论。"
+      ],
+      "draftReport": "表示/变形机制：3DGStream 的文本描述为渲染当前时间步 i，且只有被变换的对象被传入下一时间步；综述归纳的动态 3DGS 路线（Yang et al.）则在规范空间学习可变形 3D Gaussians，并用空间 MLP 变形场建模时空动态，同时优化中性 3D Gaussians 和变形场。\n\n[2403.01444v4.pdf-chunk-16] [2401.03890v8.pdf-chunk-61]\n\n3DGStream 的 NTC 表示采用多分辨率哈希编码，作者给出的理由是紧凑性和效率：哈希查找为 O(1)，且与现代 GPU 高度兼容；综述侧动态路线的训练机制提到 annealing smoothing，在无额外计算成本下增强时序平滑。\n\n[2403.01444v4.pdf-chunk-27] [2401.03890v8.pdf-chunk-61]\n\n逐帧训练/更新策略：3DGStream 在 flame salmon 场景消融中设置 Stage 1 训练 NTC 150 次迭代、Stage 2 训练新增 3DGs 100 次迭代；综述只报告动态 3DGS 的 annealing smoothing 训练机制，未给出逐帧迭代次数或两阶段训练设置。\n\n[2403.01444v4.pdf-chunk-44] [2401.03890v8.pdf-chunk-61]\n\n训练效率方面，3DGStream 报告 Stage 1 增加 100 次迭代会使每帧训练时长增加 3 秒，并显著提升重建质量；Stage 2 增加迭代对质量影响很小，作者归因于更高学习率、更少新增 3DGs 和快速收敛。\n\n[2403.01444v4.pdf-chunk-67]\n\n存储与可扩展性：3DGStream 报告除初始 3DGs 外，每个 FVV 帧只需存储每帧 NTC 和每帧新增 3DGs，初始 3DGs 数量约为 10^5 量级；综述在通用 3DGS 层面指出可扩展性带来显著内存挑战，需要在模型训练和存储中优化内存。\n\n[2403.01444v4.pdf-chunk-65] [2401.03890v8.pdf-chunk-48]\n\n应用条件/局限：3DGStream 定位为面向动态场景 FVV 的 on-the-fly 训练框架，用于高效 FVV 流式传输；综述归纳的动态/对象运动相关路线指出通常需要手动先验分割区域，缺少对象级运动推理会导致伪影和长序列泛化差。\n\n[2403.01444v4.pdf-chunk-13] [2401.03890v8.pdf-chunk-76]\n\n渲染效率方面，综述的 3D GS 通用渲染路径通过 tile 共享内存和统一读取序列并行执行 alpha compositing 以提高效率；3DGStream 侧当前证据给出 NTC 哈希查找 O(1) 和 GPU 兼容性，以及逐帧训练成本证据。\n\n[2401.03890v8.pdf-chunk-35] [2403.01444v4.pdf-chunk-27] [2403.01444v4.pdf-chunk-67]\n\n### 证据限制\n\n- 综述侧动态 3DGS 路线缺少 FPS、逐帧训练时间和存储等数值，无法与 3DGStream 对应指标进行直接定量比较。\n- 当前提供的 3DGStream 证据中未包含渲染 FPS 表（前轮曾提到 chunk-62），因此本综合未纳入具体渲染 FPS 数值。\n- 3DGStream 的 150/100 次迭代设置来自 flame salmon 场景消融，不能推广为所有实验配置；综述的 scalability 限制来自通用 3DGS 讨论，不一定是动态路线专门结论。",
+      "externalEvidenceSummary": {},
+      "graphContextSummary": {}
+    },
+    "recentRuns": [
+      {
+        "runId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+        "traceId": "f32dfb15-78b3-4179-b02b-3e3267bfed76",
+        "status": "succeeded",
+        "executionPhase": "done",
+        "progress": 1.0,
+        "prompt": "基于前两轮继续给出最终综合：比较 3DGStream 与综述所归纳的动态 3DGS 路线，覆盖表示或变形机制、逐帧训练策略、实时效率证据、应用条件和局限。每条结论引用项目论文页码证据。",
+        "focusedPaperIds": [
+          "2403.01444v4.pdf",
+          "2401.03890v8.pdf"
+        ],
+        "constraints": "只使用项目内两篇论文。",
+        "context": {
+          "domain": "",
+          "reviewMode": "auto",
+          "idempotencyKey": "demo-two-paper-turn-3-v1"
+        },
+        "humanReview": {
+          "plan": {
+            "status": "not_required",
+            "reviewNotes": "",
+            "reviewedAt": ""
+          },
+          "final": {
+            "status": "not_required",
+            "reviewNotes": "",
+            "reviewedAt": "",
+            "riskReviews": []
+          }
+        },
+        "reviewRisks": [
+          {
+            "riskId": "open:1",
+            "type": "open_question",
+            "label": "开放问题",
+            "detail": "综述侧动态 3DGS 路线缺少 FPS、逐帧训练时间和存储等数值，无法与 3DGStream 对应指标进行直接定量比较。",
+            "sourceIds": [],
+            "reviewStatus": "pending"
+          },
+          {
+            "riskId": "open:2",
+            "type": "open_question",
+            "label": "开放问题",
+            "detail": "当前提供的 3DGStream 证据中未包含渲染 FPS 表（前轮曾提到 chunk-62），因此本综合未纳入具体渲染 FPS 数值。",
+            "sourceIds": [],
+            "reviewStatus": "pending"
+          },
+          {
+            "riskId": "open:3",
+            "type": "open_question",
+            "label": "开放问题",
+            "detail": "3DGStream 的 150/100 次迭代设置来自 flame salmon 场景消融，不能推广为所有实验配置；综述的 scalability 限制来自通用 3DGS 讨论，不一定是动态路线专门结论。",
+            "sourceIds": [],
+            "reviewStatus": "pending"
+          }
+        ],
+        "traceSummary": {
+          "traceId": "f32dfb15-78b3-4179-b02b-3e3267bfed76",
+          "taskType": "agent_research",
+          "status": "success",
+          "startedAt": "2026-09-13T06:11:41.494259Z",
+          "finishedAt": "2026-09-13T06:13:55.615469Z",
+          "durationMs": 134121,
+          "requestMeta": {
+            "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+            "prompt": "[REDACTED]",
+            "paperIds": [
+              "2403.01444v4.pdf",
+              "2401.03890v8.pdf"
+            ]
+          },
+          "responseMeta": {
+            "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+            "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0"
+          },
+          "counters": {
+            "llmCalls": 1,
+            "retrievalCalls": 12,
+            "retryCount": 0,
+            "truncationCount": 0,
+            "estimatedInputTokens": 2812,
+            "estimatedOutputTokens": 440,
+            "externalSearchCalls": 0,
+            "externalSearchCacheHits": 0,
+            "externalSearchFailures": 0,
+            "externalEvidenceCount": 0,
+            "externalSearchLatencyMs": 0,
+            "externalSearchBudgetBlocks": 0,
+            "codeExecutionCalls": 0,
+            "codeExecutionFailures": 0,
+            "codeExecutionOutputCount": 0,
+            "webSearchCalls": 0,
+            "webSearchResults": 0,
+            "webSearchFailures": 0,
+            "webSearchLatencyMs": 0,
+            "webSearchBudgetBlocks": 0,
+            "webSearchCacheHits": 0,
+            "webFetchCalls": 0,
+            "webFetchChars": 0,
+            "webFetchFailures": 0,
+            "webFetchBudgetBlocks": 0,
+            "webFetchCacheHits": 0,
+            "webFetchBytes": 0,
+            "agenticLoopIterations": 0,
+            "queryRefinementCalls": 0,
+            "llmCacheMisses": 1,
+            "awaitingFinalReview": false
+          },
+          "steps": [
+            {
+              "name": "agent_task_understanding",
+              "durationMs": 0,
+              "status": "success",
+              "inputSize": 92,
+              "outputSize": 117,
+              "error": ""
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 304,
+              "status": "success",
+              "inputSize": 96,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 115,
+              "status": "success",
+              "inputSize": 64,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 100,
+              "status": "success",
+              "inputSize": 72,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "agent_collect_paper_evidence",
+              "durationMs": 1542,
+              "status": "success",
+              "inputSize": 716,
+              "outputSize": 6,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf"
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 80,
+              "status": "success",
+              "inputSize": 96,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 69,
+              "status": "success",
+              "inputSize": 64,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 86,
+              "status": "success",
+              "inputSize": 72,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "agent_collect_paper_evidence",
+              "durationMs": 237,
+              "status": "success",
+              "inputSize": 716,
+              "outputSize": 6,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf"
+              }
+            },
+            {
+              "name": "llm_call",
+              "durationMs": 123530,
+              "status": "success",
+              "inputSize": 11248,
+              "outputSize": 1757,
+              "error": "",
+              "meta": {
+                "provider": "deepseek",
+                "model": "deepseek-v4-pro",
+                "messageCount": 1
+              }
+            }
+          ]
+        },
+        "externalSearchConfig": {
+          "allowExternalSearch": false,
+          "allowWebSearch": false,
+          "allowIterativeSearch": false,
+          "provider": "disabled",
+          "budget": {
+            "callLimit": 3,
+            "evidenceLimit": 15,
+            "callsUsed": 0,
+            "evidenceUsed": 0
+          },
+          "status": "disabled",
+          "degradation": ""
+        },
+        "codeExecutionConfig": {
+          "allowCodeExecution": false,
+          "proposal": null,
+          "jobId": null,
+          "jobStatus": null,
+          "publishable": false,
+          "degradation": ""
+        },
+        "error": "",
+        "createdAt": "2026-09-13T06:11:41.494313Z",
+        "updatedAt": "2026-09-13T06:13:55.617346Z"
+      },
+      {
+        "runId": "80d2afb0-5594-4472-a114-00af2fb48434",
+        "taskId": "acd9ecae-f8b6-4cc9-8ba2-b20bf2779760",
+        "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+        "traceId": "6c9bfa08-e301-43c9-8cf8-229c64fe16c1",
+        "status": "failed",
+        "executionPhase": "done",
+        "progress": 1.0,
+        "prompt": "继续完善比较：分别从两篇论文中提取动态场景的表示或变形机制、训练或逐帧更新方式、FPS/训练时间/存储等效率数据，以及作者明确写出的限制或适用条件；最后给出有证据的异同。",
+        "focusedPaperIds": [
+          "2403.01444v4.pdf",
+          "2401.03890v8.pdf"
+        ],
+        "constraints": "只使用项目内两篇论文，并继承上一轮对话上下文。",
+        "context": {
+          "domain": "",
+          "reviewMode": "auto",
+          "retryOfRunId": "e2f002a4-34ad-4943-acb6-c671565a14a2",
+          "idempotencyKey": "retry:e2f002a4-34ad-4943-acb6-c671565a14a2"
+        },
+        "humanReview": {
+          "plan": {
+            "status": "not_required",
+            "reviewNotes": "",
+            "reviewedAt": ""
+          },
+          "final": {
+            "status": "pending",
+            "reviewNotes": "",
+            "reviewedAt": "",
+            "riskReviews": []
+          }
+        },
+        "reviewRisks": [],
+        "traceSummary": {
+          "traceId": "6c9bfa08-e301-43c9-8cf8-229c64fe16c1",
+          "taskType": "agent_research",
+          "status": "error",
+          "startedAt": "2026-09-13T06:01:31.961215Z",
+          "finishedAt": "2026-09-13T06:02:12.206558Z",
+          "durationMs": 40245,
+          "requestMeta": {
+            "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+            "prompt": "[REDACTED]",
+            "paperIds": [
+              "2403.01444v4.pdf",
+              "2401.03890v8.pdf"
+            ]
+          },
+          "responseMeta": {
+            "taskId": "80d2afb0-5594-4472-a114-00af2fb48434",
+            "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+            "paperIds": [
+              "2403.01444v4.pdf",
+              "2401.03890v8.pdf"
+            ]
+          },
+          "counters": {
+            "llmCalls": 1,
+            "retrievalCalls": 12,
+            "retryCount": 0,
+            "truncationCount": 0,
+            "estimatedInputTokens": 1138,
+            "estimatedOutputTokens": 258,
+            "externalSearchCalls": 0,
+            "externalSearchCacheHits": 0,
+            "externalSearchFailures": 0,
+            "externalEvidenceCount": 0,
+            "externalSearchLatencyMs": 0,
+            "externalSearchBudgetBlocks": 0,
+            "codeExecutionCalls": 0,
+            "codeExecutionFailures": 0,
+            "codeExecutionOutputCount": 0,
+            "webSearchCalls": 0,
+            "webSearchResults": 0,
+            "webSearchFailures": 0,
+            "webSearchLatencyMs": 0,
+            "webSearchBudgetBlocks": 0,
+            "webSearchCacheHits": 0,
+            "webFetchCalls": 0,
+            "webFetchChars": 0,
+            "webFetchFailures": 0,
+            "webFetchBudgetBlocks": 0,
+            "webFetchCacheHits": 0,
+            "webFetchBytes": 0,
+            "agenticLoopIterations": 0,
+            "queryRefinementCalls": 0,
+            "llmCacheMisses": 1
+          },
+          "steps": [
+            {
+              "name": "agent_task_understanding",
+              "durationMs": 0,
+              "status": "success",
+              "inputSize": 85,
+              "outputSize": 129,
+              "error": ""
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 469,
+              "status": "success",
+              "inputSize": 779,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 431,
+              "status": "success",
+              "inputSize": 791,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 592,
+              "status": "success",
+              "inputSize": 785,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "agent_collect_paper_evidence",
+              "durationMs": 2284,
+              "status": "success",
+              "inputSize": 726,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf"
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 388,
+              "status": "success",
+              "inputSize": 779,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 431,
+              "status": "success",
+              "inputSize": 791,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 401,
+              "status": "success",
+              "inputSize": 785,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "agent_collect_paper_evidence",
+              "durationMs": 1224,
+              "status": "success",
+              "inputSize": 726,
+              "outputSize": 3,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf"
+              }
+            },
+            {
+              "name": "llm_call",
+              "durationMs": 31765,
+              "status": "success",
+              "inputSize": 4551,
+              "outputSize": 1029,
+              "error": "",
+              "meta": {
+                "provider": "deepseek",
+                "model": "deepseek-v4-pro",
+                "messageCount": 1
+              }
+            }
+          ],
+          "error": "模型未返回有证据支持的结论，请重试或补充论文。"
+        },
+        "externalSearchConfig": {
+          "allowExternalSearch": false,
+          "allowWebSearch": false,
+          "allowIterativeSearch": false,
+          "provider": "disabled",
+          "budget": {
+            "callLimit": 3,
+            "evidenceLimit": 15,
+            "callsUsed": 0,
+            "evidenceUsed": 0
+          },
+          "status": "disabled",
+          "degradation": ""
+        },
+        "codeExecutionConfig": {
+          "allowCodeExecution": false,
+          "proposal": null,
+          "jobId": null,
+          "jobStatus": null,
+          "publishable": false,
+          "degradation": ""
+        },
+        "error": "模型未返回有证据支持的结论，请重试或补充论文。",
+        "createdAt": "2026-09-13T06:01:31.961304Z",
+        "updatedAt": "2026-09-13T06:02:12.20809Z"
+      },
+      {
+        "runId": "e2f002a4-34ad-4943-acb6-c671565a14a2",
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+        "traceId": "789d0283-3355-4e81-8f19-d2b2385d17b0",
+        "status": "failed",
+        "executionPhase": "done",
+        "progress": 1.0,
+        "prompt": "继续完善比较：分别从两篇论文中提取动态场景的表示或变形机制、训练或逐帧更新方式、FPS/训练时间/存储等效率数据，以及作者明确写出的限制或适用条件；最后给出有证据的异同。",
+        "focusedPaperIds": [
+          "2403.01444v4.pdf",
+          "2401.03890v8.pdf"
+        ],
+        "constraints": "只使用项目内两篇论文，并继承上一轮对话上下文。",
+        "context": {
+          "domain": "",
+          "reviewMode": "auto",
+          "idempotencyKey": "demo-two-paper-turn-2-v1"
+        },
+        "humanReview": {
+          "plan": {
+            "status": "not_required",
+            "reviewNotes": "",
+            "reviewedAt": ""
+          },
+          "final": {
+            "status": "pending",
+            "reviewNotes": "",
+            "reviewedAt": "",
+            "riskReviews": []
+          }
+        },
+        "reviewRisks": [],
+        "traceSummary": {
+          "traceId": "789d0283-3355-4e81-8f19-d2b2385d17b0",
+          "taskType": "agent_research",
+          "status": "error",
+          "startedAt": "2026-09-13T05:56:33.254346Z",
+          "finishedAt": "2026-09-13T05:57:35.179072Z",
+          "durationMs": 61924,
+          "requestMeta": {
+            "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+            "prompt": "[REDACTED]",
+            "paperIds": [
+              "2403.01444v4.pdf",
+              "2401.03890v8.pdf"
+            ]
+          },
+          "responseMeta": {
+            "taskId": "e2f002a4-34ad-4943-acb6-c671565a14a2",
+            "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+            "paperIds": [
+              "2403.01444v4.pdf",
+              "2401.03890v8.pdf"
+            ]
+          },
+          "counters": {
+            "llmCalls": 1,
+            "retrievalCalls": 12,
+            "retryCount": 0,
+            "truncationCount": 0,
+            "estimatedInputTokens": 1452,
+            "estimatedOutputTokens": 211,
+            "externalSearchCalls": 0,
+            "externalSearchCacheHits": 0,
+            "externalSearchFailures": 0,
+            "externalEvidenceCount": 0,
+            "externalSearchLatencyMs": 0,
+            "externalSearchBudgetBlocks": 0,
+            "codeExecutionCalls": 0,
+            "codeExecutionFailures": 0,
+            "codeExecutionOutputCount": 0,
+            "webSearchCalls": 0,
+            "webSearchResults": 0,
+            "webSearchFailures": 0,
+            "webSearchLatencyMs": 0,
+            "webSearchBudgetBlocks": 0,
+            "webSearchCacheHits": 0,
+            "webFetchCalls": 0,
+            "webFetchChars": 0,
+            "webFetchFailures": 0,
+            "webFetchBudgetBlocks": 0,
+            "webFetchCacheHits": 0,
+            "webFetchBytes": 0,
+            "agenticLoopIterations": 0,
+            "queryRefinementCalls": 0,
+            "llmCacheMisses": 1
+          },
+          "steps": [
+            {
+              "name": "agent_task_understanding",
+              "durationMs": 0,
+              "status": "success",
+              "inputSize": 85,
+              "outputSize": 129,
+              "error": ""
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 321,
+              "status": "success",
+              "inputSize": 779,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 156,
+              "status": "success",
+              "inputSize": 791,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 158,
+              "status": "success",
+              "inputSize": 785,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "agent_collect_paper_evidence",
+              "durationMs": 1068,
+              "status": "success",
+              "inputSize": 726,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf"
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 149,
+              "status": "success",
+              "inputSize": 779,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 172,
+              "status": "success",
+              "inputSize": 791,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 158,
+              "status": "success",
+              "inputSize": 785,
+              "outputSize": 2,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "agent_collect_paper_evidence",
+              "durationMs": 482,
+              "status": "success",
+              "inputSize": 726,
+              "outputSize": 3,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf"
+              }
+            },
+            {
+              "name": "llm_call",
+              "durationMs": 54938,
+              "status": "success",
+              "inputSize": 5808,
+              "outputSize": 844,
+              "error": "",
+              "meta": {
+                "provider": "deepseek",
+                "model": "deepseek-v4-pro",
+                "messageCount": 1
+              }
+            }
+          ],
+          "error": "研究回答格式无效，请重试。"
+        },
+        "externalSearchConfig": {
+          "allowExternalSearch": false,
+          "allowWebSearch": false,
+          "allowIterativeSearch": false,
+          "provider": "disabled",
+          "budget": {
+            "callLimit": 3,
+            "evidenceLimit": 15,
+            "callsUsed": 0,
+            "evidenceUsed": 0
+          },
+          "status": "disabled",
+          "degradation": ""
+        },
+        "codeExecutionConfig": {
+          "allowCodeExecution": false,
+          "proposal": null,
+          "jobId": null,
+          "jobStatus": null,
+          "publishable": false,
+          "degradation": ""
+        },
+        "error": "研究回答格式无效，请重试。",
+        "createdAt": "2026-09-13T05:56:33.254411Z",
+        "updatedAt": "2026-09-13T05:57:35.180732Z"
+      },
+      {
+        "runId": "324e4d6a-5a30-4caa-ace3-4687e9415db5",
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+        "traceId": "62e67990-19ba-4dc5-bdad-2894952ff7a5",
+        "status": "succeeded",
+        "executionPhase": "done",
+        "progress": 1.0,
+        "prompt": "综合比较 3DGStream 与综述中动态 3D Gaussian Splatting 方法：说明核心建模与训练策略、实时或效率证据、适用场景和局限。每个关键结论都必须引用这两篇项目论文中的页码证据；证据不足时明确指出。",
+        "focusedPaperIds": [
+          "2403.01444v4.pdf",
+          "2401.03890v8.pdf"
+        ],
+        "constraints": "只使用项目内两篇论文，不使用外部网页。",
+        "context": {
+          "domain": "",
+          "reviewMode": "auto",
+          "idempotencyKey": "demo-two-paper-turn-1-v1"
+        },
+        "humanReview": {
+          "plan": {
+            "status": "not_required",
+            "reviewNotes": "",
+            "reviewedAt": ""
+          },
+          "final": {
+            "status": "not_required",
+            "reviewNotes": "",
+            "reviewedAt": "",
+            "riskReviews": []
+          }
+        },
+        "reviewRisks": [
+          {
+            "riskId": "open:1",
+            "type": "open_question",
+            "label": "开放问题",
+            "detail": "3DGStream 的核心建模、训练策略、适用场景和局限在给定证据中未出现，仅有 Table 7 的渲染 profiling 和存储数据。",
+            "sourceIds": [],
+            "reviewStatus": "pending"
+          },
+          {
+            "riskId": "open:2",
+            "type": "open_question",
+            "label": "开放问题",
+            "detail": "综述中动态 3D Gaussian Splatting 方法主要以参考文献条目出现，缺少方法细节、效率指标、适用场景和局限说明。",
+            "sourceIds": [],
+            "reviewStatus": "pending"
+          },
+          {
+            "riskId": "open:3",
+            "type": "open_question",
+            "label": "开放问题",
+            "detail": "由于综述侧缺乏可比较的方法细节，无法完成题目要求的 3DGStream 与动态方法在建模、训练策略、实时性、场景和局限上的全面比较。",
+            "sourceIds": [],
+            "reviewStatus": "pending"
+          }
+        ],
+        "traceSummary": {
+          "traceId": "62e67990-19ba-4dc5-bdad-2894952ff7a5",
+          "taskType": "agent_research",
+          "status": "success",
+          "startedAt": "2026-09-13T05:49:34.147217Z",
+          "finishedAt": "2026-09-13T05:50:39.441475Z",
+          "durationMs": 65294,
+          "requestMeta": {
+            "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+            "prompt": "[REDACTED]",
+            "paperIds": [
+              "2403.01444v4.pdf",
+              "2401.03890v8.pdf"
+            ]
+          },
+          "responseMeta": {
+            "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5",
+            "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0"
+          },
+          "counters": {
+            "llmCalls": 1,
+            "retrievalCalls": 4,
+            "retryCount": 0,
+            "truncationCount": 0,
+            "estimatedInputTokens": 922,
+            "estimatedOutputTokens": 342,
+            "externalSearchCalls": 0,
+            "externalSearchCacheHits": 0,
+            "externalSearchFailures": 0,
+            "externalEvidenceCount": 0,
+            "externalSearchLatencyMs": 0,
+            "externalSearchBudgetBlocks": 0,
+            "codeExecutionCalls": 0,
+            "codeExecutionFailures": 0,
+            "codeExecutionOutputCount": 0,
+            "webSearchCalls": 0,
+            "webSearchResults": 0,
+            "webSearchFailures": 0,
+            "webSearchLatencyMs": 0,
+            "webSearchBudgetBlocks": 0,
+            "webSearchCacheHits": 0,
+            "webFetchCalls": 0,
+            "webFetchChars": 0,
+            "webFetchFailures": 0,
+            "webFetchBudgetBlocks": 0,
+            "webFetchCacheHits": 0,
+            "webFetchBytes": 0,
+            "agenticLoopIterations": 0,
+            "queryRefinementCalls": 0,
+            "llmCacheMisses": 1,
+            "awaitingFinalReview": false
+          },
+          "steps": [
+            {
+              "name": "agent_task_understanding",
+              "durationMs": 0,
+              "status": "success",
+              "inputSize": 110,
+              "outputSize": 125,
+              "error": ""
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 114,
+              "status": "success",
+              "inputSize": 768,
+              "outputSize": 3,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "agent_collect_paper_evidence",
+              "durationMs": 478,
+              "status": "success",
+              "inputSize": 768,
+              "outputSize": 3,
+              "error": "",
+              "meta": {
+                "pdfId": "2403.01444v4.pdf"
+              }
+            },
+            {
+              "name": "tool_retrieve_current_paper",
+              "durationMs": 95,
+              "status": "success",
+              "inputSize": 768,
+              "outputSize": 3,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf",
+                "includeAll": false
+              }
+            },
+            {
+              "name": "agent_collect_paper_evidence",
+              "durationMs": 95,
+              "status": "success",
+              "inputSize": 768,
+              "outputSize": 3,
+              "error": "",
+              "meta": {
+                "pdfId": "2401.03890v8.pdf"
+              }
+            },
+            {
+              "name": "llm_call",
+              "durationMs": 59306,
+              "status": "success",
+              "inputSize": 3688,
+              "outputSize": 1367,
+              "error": "",
+              "meta": {
+                "provider": "deepseek",
+                "model": "deepseek-v4-pro",
+                "messageCount": 1
+              }
+            }
+          ]
+        },
+        "externalSearchConfig": {
+          "allowExternalSearch": false,
+          "allowWebSearch": false,
+          "allowIterativeSearch": false,
+          "provider": "disabled",
+          "budget": {
+            "callLimit": 3,
+            "evidenceLimit": 15,
+            "callsUsed": 0,
+            "evidenceUsed": 0
+          },
+          "status": "disabled",
+          "degradation": ""
+        },
+        "codeExecutionConfig": {
+          "allowCodeExecution": false,
+          "proposal": null,
+          "jobId": null,
+          "jobStatus": null,
+          "publishable": false,
+          "degradation": ""
+        },
+        "error": "",
+        "createdAt": "2026-09-13T05:49:34.147254Z",
+        "updatedAt": "2026-09-13T05:50:39.442279Z"
+      }
+    ],
+    "timeline": [
+      {
+        "id": "a2045cfd-f279-4a83-833f-798d40c67ac0",
+        "type": "task_created",
+        "title": "Created an Agent research task.",
+        "detail": "Created an Agent research task.",
+        "phase": "planning",
+        "meta": {
+          "timestamp": "2026-09-13T06:11:41.54405Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:11:41.54405Z"
+      },
+      {
+        "id": "5162b390-91da-4719-bef1-5c37496b706e",
+        "type": "plan_generated",
+        "title": "已生成研究计划，开始执行。",
+        "detail": "已生成研究计划，开始执行。",
+        "phase": "planning",
+        "meta": {
+          "timestamp": "2026-09-13T06:11:41.647744Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:11:41.647744Z"
+      },
+      {
+        "id": "672aa3d5-6f47-4fd2-aecf-cf1dd3808ef6",
+        "type": "task_started",
+        "title": "Started staged Agent execution.",
+        "detail": "Started staged Agent execution.",
+        "phase": "planning",
+        "meta": {
+          "timestamp": "2026-09-13T06:11:41.741838Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:11:41.741838Z"
+      },
+      {
+        "id": "bef2e539-c8ba-4dcf-915f-6ba945d2dbcf",
+        "type": "task_understood",
+        "title": "Confirmed project scope and focused papers.",
+        "detail": "Confirmed project scope and focused papers.",
+        "phase": "planning",
+        "meta": {
+          "timestamp": "2026-09-13T06:11:41.933596Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:11:41.933596Z"
+      },
+      {
+        "id": "4b22d478-9681-46fb-b9c9-434f38c70fb1",
+        "type": "plan_generated",
+        "title": "Generated a lightweight execution plan.",
+        "detail": "Generated a lightweight execution plan.",
+        "phase": "planning",
+        "meta": {
+          "timestamp": "2026-09-13T06:11:41.933635Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:11:41.933635Z"
+      },
+      {
+        "id": "db8e0d34-327e-473d-8a03-b433e436edb6",
+        "type": "retrieval_started",
+        "title": "Started per-paper evidence retrieval.",
+        "detail": "Started per-paper evidence retrieval.",
+        "phase": "retrieving",
+        "meta": {
+          "timestamp": "2026-09-13T06:11:42.159156Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:11:42.159156Z"
+      },
+      {
+        "id": "8c4a5f1d-5b07-4ebf-b335-564e654eaf58",
+        "type": "paper_evidence_collected",
+        "title": "Collected evidence from 2403.01444v4.pdf.",
+        "detail": "Collected evidence from 2403.01444v4.pdf.",
+        "phase": "retrieving",
+        "meta": {
+          "timestamp": "2026-09-13T06:11:43.812106Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:11:43.812106Z"
+      },
+      {
+        "id": "9e03918a-079c-498b-91c5-95adca2d04b5",
+        "type": "paper_evidence_collected",
+        "title": "Collected evidence from 2401.03890v8.pdf.",
+        "detail": "Collected evidence from 2401.03890v8.pdf.",
+        "phase": "retrieving",
+        "meta": {
+          "timestamp": "2026-09-13T06:11:44.311041Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:11:44.311041Z"
+      },
+      {
+        "id": "86614930-1746-4eff-88f7-97deea1693f5",
+        "type": "tool_completed",
+        "title": "Collected evidence from 2 project papers.",
+        "detail": "Collected evidence from 2 project papers.",
+        "phase": "retrieving",
+        "meta": {
+          "timestamp": "2026-09-13T06:11:44.582458Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:11:44.582458Z"
+      },
+      {
+        "id": "91b0104f-5c34-4863-b514-d08e939e6173",
+        "type": "judgement_completed",
+        "title": "Built cross-paper judgements and conflict candidates.",
+        "detail": "Built cross-paper judgements and conflict candidates.",
+        "phase": "synthesizing",
+        "meta": {
+          "timestamp": "2026-09-13T06:13:55.43181Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:13:55.43181Z"
+      },
+      {
+        "id": "eadae26e-62ff-4531-9468-6a471704ff37",
+        "type": "report_updated",
+        "title": "Built a project-level draft report.",
+        "detail": "Built a project-level draft report.",
+        "phase": "synthesizing",
+        "meta": {
+          "timestamp": "2026-09-13T06:13:55.431849Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:13:55.431849Z"
+      },
+      {
+        "id": "68389a77-734f-4809-a2a8-fd5466b5100e",
+        "type": "task_completed",
+        "title": "Completed staged Agent orchestration.",
+        "detail": "Completed staged Agent orchestration.",
+        "phase": "done",
+        "meta": {
+          "timestamp": "2026-09-13T06:13:55.431862Z",
+          "taskId": "920052cb-db1b-4957-8104-3bbe062a83a7"
+        },
+        "timestamp": "2026-09-13T06:13:55.431862Z"
+      }
+    ],
+    "uiHints": {},
+    "tasks": [
+      {
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+        "title": "综合比较 3DGStream 与综述中动态 3D Gaussian Splatting 方法：说明核心建模与训练策略、实时或效率证据、适用场景和局限。每个关键结论都必须引用这两篇项目论文中的页码证据；证据不足时明确指出。",
+        "paperIds": [
+          "2403.01444v4.pdf",
+          "2401.03890v8.pdf"
+        ],
+        "latestRunId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+        "createdAt": "2026-09-13T13:49:34.153269+08:00",
+        "updatedAt": "2026-09-13T06:13:55.617346Z",
+        "status": "succeeded",
+        "stage": "done",
+        "progress": 1.0
+      },
+      {
+        "taskId": "acd9ecae-f8b6-4cc9-8ba2-b20bf2779760",
+        "projectId": "7dc6aa86-9f23-4a8f-99df-e7fd014f4cf0",
+        "title": "继续完善比较：分别从两篇论文中提取动态场景的表示或变形机制、训练或逐帧更新方式、FPS/训练时间/存储等效率数据，以及作者明确写出的限制或适用条件；最后给出有证据的异同。",
+        "paperIds": [
+          "2403.01444v4.pdf",
+          "2401.03890v8.pdf"
+        ],
+        "latestRunId": "80d2afb0-5594-4472-a114-00af2fb48434",
+        "createdAt": "2026-09-13T14:01:31.97903+08:00",
+        "updatedAt": "2026-09-13T06:02:12.20809Z",
+        "status": "failed",
+        "stage": "done",
+        "progress": 1.0
+      }
+    ],
+    "activeTaskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+    "messages": [
+      {
+        "messageId": "user:324e4d6a-5a30-4caa-ace3-4687e9415db5",
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "runId": "324e4d6a-5a30-4caa-ace3-4687e9415db5",
+        "role": "user",
+        "content": "综合比较 3DGStream 与综述中动态 3D Gaussian Splatting 方法：说明核心建模与训练策略、实时或效率证据、适用场景和局限。每个关键结论都必须引用这两篇项目论文中的页码证据；证据不足时明确指出。",
+        "sourceIds": [],
+        "createdAt": "2026-09-13T13:49:34.156745+08:00"
+      },
+      {
+        "messageId": "assistant:324e4d6a-5a30-4caa-ace3-4687e9415db5",
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "runId": "324e4d6a-5a30-4caa-ace3-4687e9415db5",
+        "role": "assistant",
+        "content": "3DGStream 在 Meet Room 数据集上报告了渲染效率：未使用 NTC 时渲染耗时 1.75 ms、571 FPS；完整管线（加入 Query NTC、Transformation、SH Rotation）总耗时 3.47 ms、288 FPS。\n\n[2403.01444v4.pdf-chunk-62]\n\n3DGStream 报告了 N3DV 与 MeetRoom 数据集的存储开销：N3DV 的 NTC 为 7781.5 KB、新 3DGs 为 49.1 KB、总计 7830.6 KB；MeetRoom 的 NTC 为 3941.5 KB、新 3DGs 为 195.3 KB、总计 4136.8 KB。\n\n[2403.01444v4.pdf-chunk-62]\n\n综述证据中动态 3DGS 相关方法以参考文献条目形式出现，如 GauFRe 的标题为“Gaussian Deformation Fields for Real-time Dynamic Novel View Synthesis”，但未提供其核心建模、训练策略或效率数据。\n\n[2401.03890v8.pdf-chunk-161]\n\n综述中其他 3DGS 相关方法名称，如 CoGS、GScream，也仅以参考文献条目出现，证据不足以提取其训练策略、效率、适用场景或局限。\n\n[2401.03890v8.pdf-chunk-206] [2401.03890v8.pdf-chunk-194]\n\n基于现有证据，3DGStream 仅显示渲染效率与存储表，综述中的动态方法仅显示参考文献条目；因此无法对核心建模、训练策略、适用场景和局限进行有依据的跨论文比较。\n\n[2403.01444v4.pdf-chunk-62] [2401.03890v8.pdf-chunk-161] [2401.03890v8.pdf-chunk-206] [2401.03890v8.pdf-chunk-194]\n\n### 证据限制\n\n- 3DGStream 的核心建模、训练策略、适用场景和局限在给定证据中未出现，仅有 Table 7 的渲染 profiling 和存储数据。\n- 综述中动态 3D Gaussian Splatting 方法主要以参考文献条目出现，缺少方法细节、效率指标、适用场景和局限说明。\n- 由于综述侧缺乏可比较的方法细节，无法完成题目要求的 3DGStream 与动态方法在建模、训练策略、实时性、场景和局限上的全面比较。",
+        "sourceIds": [
+          "2403.01444v4.pdf-chunk-62",
+          "2401.03890v8.pdf-chunk-161",
+          "2401.03890v8.pdf-chunk-206",
+          "2401.03890v8.pdf-chunk-194"
+        ],
+        "status": "succeeded",
+        "createdAt": "2026-09-13T13:50:39.425597+08:00"
+      },
+      {
+        "messageId": "user:e2f002a4-34ad-4943-acb6-c671565a14a2",
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "runId": "e2f002a4-34ad-4943-acb6-c671565a14a2",
+        "role": "user",
+        "content": "继续完善比较：分别从两篇论文中提取动态场景的表示或变形机制、训练或逐帧更新方式、FPS/训练时间/存储等效率数据，以及作者明确写出的限制或适用条件；最后给出有证据的异同。",
+        "sourceIds": [],
+        "createdAt": "2026-09-13T13:56:33.268542+08:00"
+      },
+      {
+        "messageId": "assistant:e2f002a4-34ad-4943-acb6-c671565a14a2",
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "runId": "e2f002a4-34ad-4943-acb6-c671565a14a2",
+        "role": "assistant",
+        "content": "研究运行失败：研究回答格式无效，请重试。",
+        "sourceIds": [],
+        "status": "failed",
+        "createdAt": "2026-09-13T13:57:35.164545+08:00"
+      },
+      {
+        "messageId": "user:920052cb-db1b-4957-8104-3bbe062a83a7",
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "runId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+        "role": "user",
+        "content": "基于前两轮继续给出最终综合：比较 3DGStream 与综述所归纳的动态 3DGS 路线，覆盖表示或变形机制、逐帧训练策略、实时效率证据、应用条件和局限。每条结论引用项目论文页码证据。",
+        "sourceIds": [],
+        "createdAt": "2026-09-13T14:11:41.539278+08:00"
+      },
+      {
+        "messageId": "assistant:920052cb-db1b-4957-8104-3bbe062a83a7",
+        "taskId": "10ab9564-f480-4b90-97f2-3662d0261133",
+        "runId": "920052cb-db1b-4957-8104-3bbe062a83a7",
+        "role": "assistant",
+        "content": "表示/变形机制：3DGStream 的文本描述为渲染当前时间步 i，且只有被变换的对象被传入下一时间步；综述归纳的动态 3DGS 路线（Yang et al.）则在规范空间学习可变形 3D Gaussians，并用空间 MLP 变形场建模时空动态，同时优化中性 3D Gaussians 和变形场。\n\n[2403.01444v4.pdf-chunk-16] [2401.03890v8.pdf-chunk-61]\n\n3DGStream 的 NTC 表示采用多分辨率哈希编码，作者给出的理由是紧凑性和效率：哈希查找为 O(1)，且与现代 GPU 高度兼容；综述侧动态路线的训练机制提到 annealing smoothing，在无额外计算成本下增强时序平滑。\n\n[2403.01444v4.pdf-chunk-27] [2401.03890v8.pdf-chunk-61]\n\n逐帧训练/更新策略：3DGStream 在 flame salmon 场景消融中设置 Stage 1 训练 NTC 150 次迭代、Stage 2 训练新增 3DGs 100 次迭代；综述只报告动态 3DGS 的 annealing smoothing 训练机制，未给出逐帧迭代次数或两阶段训练设置。\n\n[2403.01444v4.pdf-chunk-44] [2401.03890v8.pdf-chunk-61]\n\n训练效率方面，3DGStream 报告 Stage 1 增加 100 次迭代会使每帧训练时长增加 3 秒，并显著提升重建质量；Stage 2 增加迭代对质量影响很小，作者归因于更高学习率、更少新增 3DGs 和快速收敛。\n\n[2403.01444v4.pdf-chunk-67]\n\n存储与可扩展性：3DGStream 报告除初始 3DGs 外，每个 FVV 帧只需存储每帧 NTC 和每帧新增 3DGs，初始 3DGs 数量约为 10^5 量级；综述在通用 3DGS 层面指出可扩展性带来显著内存挑战，需要在模型训练和存储中优化内存。\n\n[2403.01444v4.pdf-chunk-65] [2401.03890v8.pdf-chunk-48]\n\n应用条件/局限：3DGStream 定位为面向动态场景 FVV 的 on-the-fly 训练框架，用于高效 FVV 流式传输；综述归纳的动态/对象运动相关路线指出通常需要手动先验分割区域，缺少对象级运动推理会导致伪影和长序列泛化差。\n\n[2403.01444v4.pdf-chunk-13] [2401.03890v8.pdf-chunk-76]\n\n渲染效率方面，综述的 3D GS 通用渲染路径通过 tile 共享内存和统一读取序列并行执行 alpha compositing 以提高效率；3DGStream 侧当前证据给出 NTC 哈希查找 O(1) 和 GPU 兼容性，以及逐帧训练成本证据。\n\n[2401.03890v8.pdf-chunk-35] [2403.01444v4.pdf-chunk-27] [2403.01444v4.pdf-chunk-67]\n\n### 证据限制\n\n- 综述侧动态 3DGS 路线缺少 FPS、逐帧训练时间和存储等数值，无法与 3DGStream 对应指标进行直接定量比较。\n- 当前提供的 3DGStream 证据中未包含渲染 FPS 表（前轮曾提到 chunk-62），因此本综合未纳入具体渲染 FPS 数值。\n- 3DGStream 的 150/100 次迭代设置来自 flame salmon 场景消融，不能推广为所有实验配置；综述的 scalability 限制来自通用 3DGS 讨论，不一定是动态路线专门结论。",
+        "sourceIds": [
+          "2403.01444v4.pdf-chunk-16",
+          "2401.03890v8.pdf-chunk-61",
+          "2403.01444v4.pdf-chunk-27",
+          "2403.01444v4.pdf-chunk-44",
+          "2403.01444v4.pdf-chunk-67",
+          "2403.01444v4.pdf-chunk-65",
+          "2401.03890v8.pdf-chunk-48",
+          "2403.01444v4.pdf-chunk-13",
+          "2401.03890v8.pdf-chunk-76",
+          "2401.03890v8.pdf-chunk-35"
+        ],
+        "status": "succeeded",
+        "createdAt": "2026-09-13T14:13:55.575181+08:00"
+      }
+    ]
+  }
+}

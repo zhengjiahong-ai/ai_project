@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import MarkdownContent from './MarkdownContent';
+import { getEvidenceVerdictMeta, getMasteryToneClass } from '../utils/socraticSessionModel';
 
 const DEFAULT_TOTAL_QUESTIONS = 5;
 
@@ -24,24 +25,6 @@ const emptySession = {
   finalSummary: '',
   reviewSuggestions: [],
   isComplete: false,
-};
-
-const masteryToneMap = {
-  '一般': 'border-amber-400/25 bg-amber-500/10 text-amber-500',
-  '较好': 'border-sky-400/25 bg-sky-500/10 text-sky-400',
-  '很好': 'border-emerald-400/25 bg-emerald-500/10 text-emerald-400',
-};
-
-const evidenceToneMap = {
-  CORRECT: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-400',
-  AMBIGUOUS: 'border-amber-400/25 bg-amber-500/10 text-amber-500',
-  INCORRECT: 'border-rose-400/25 bg-rose-500/10 text-rose-400',
-};
-
-const evidenceVerdictLabelMap = {
-  CORRECT: '证据充足',
-  AMBIGUOUS: '部分相关',
-  INCORRECT: '证据不足',
 };
 
 const learningSteps = [
@@ -64,10 +47,12 @@ const formatEvidenceQuality = (quality) => {
     return null;
   }
 
+  const verdictMeta = getEvidenceVerdictMeta(verdict);
+
   return {
     verdict,
-    verdictLabel: evidenceVerdictLabelMap[verdict] || '证据判断',
-    toneClass: evidenceToneMap[verdict] || 'theme-card-soft',
+    verdictLabel: verdictMeta.label,
+    toneClass: verdictMeta.toneClass,
     reason,
     confidence: Number.isFinite(confidence) ? Math.round(confidence * 100) : null,
   };
@@ -99,7 +84,6 @@ const CurrentQuestionCard = ({ index, question, isLoading, onSubmit }) => {
           <div className="theme-text-muted text-[11px] font-semibold uppercase tracking-wide">当前问题</div>
           <div className="theme-text-primary mt-1 text-sm font-bold">问题 {index}</div>
         </div>
-        <span className="chat-context-chip chat-context-chip-accent">请先用自己的话作答</span>
       </div>
 
       <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">{question}</MarkdownContent>
@@ -112,7 +96,7 @@ const CurrentQuestionCard = ({ index, question, isLoading, onSubmit }) => {
           rows={5}
           disabled={isLoading}
           className="theme-input w-full rounded-xl p-3 text-sm outline-none transition"
-          placeholder="先回答你对这个问题的理解，再补充你依据的原文、证据，或者你还不确定的地方。"
+          placeholder="输入回答..."
         />
       </div>
 
@@ -132,7 +116,6 @@ const CurrentQuestionCard = ({ index, question, isLoading, onSubmit }) => {
           {isLoading ? <Loader2 className="animate-spin" size={18} /> : <ChevronRight size={18} />}
           提交回答
         </button>
-        <span className="theme-text-secondary text-xs">AI 会根据你的回答决定下一轮追问方向，不会一次把所有问题都抛给你。</span>
       </div>
     </div>
   );
@@ -148,7 +131,7 @@ const TurnReviewCard = ({ turn, defaultOpen = false }) => {
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="theme-text-primary text-sm font-semibold">问题 {turn.index}</span>
-            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${masteryToneMap[turn.masteryLevel] || 'theme-card-soft'}`}>
+            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getMasteryToneClass(turn.masteryLevel)}`}>
               掌握度：{turn.masteryLevel || '一般'}
             </span>
           </div>
@@ -369,11 +352,6 @@ const SocraticQuestionsPanel = ({
               </button>
             )}
 
-            <span className="theme-text-secondary text-xs">
-              {sessionData.started
-                ? '当前问题已经锁定，系统会根据你的回答逐步推进。'
-                : '先告诉系统你读到哪里，它再决定从哪一类问题开始追问。'}
-            </span>
           </div>
 
           {localError && (
@@ -383,12 +361,14 @@ const SocraticQuestionsPanel = ({
           )}
         </div>
 
-        <div className="theme-card rounded-2xl p-5">
-          <div className="theme-text-primary mb-3 text-sm font-bold">本轮导语</div>
-          <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
-            {sessionData.intro || 'AI 会先问最值得思考的问题，再根据你的回答逐步推进。'}
-          </MarkdownContent>
-        </div>
+        {sessionData.intro && (
+          <div className="theme-card rounded-2xl p-5">
+            <div className="theme-text-primary mb-3 text-sm font-bold">本轮导语</div>
+            <MarkdownContent className="theme-text-secondary prose prose-sm max-w-none text-sm">
+              {sessionData.intro}
+            </MarkdownContent>
+          </div>
+        )}
 
         <div className="theme-card rounded-2xl p-5">
           <div className="mb-3 flex items-center gap-2">
@@ -396,13 +376,7 @@ const SocraticQuestionsPanel = ({
             <div className="theme-text-primary text-sm font-bold">问题回合</div>
           </div>
 
-          {!sessionData.started ? (
-            <div className="theme-text-secondary text-sm">
-              点击“开始引导学习”后，这里会依次显示 AI 提问、你的回答、AI 反馈和下一步提示。
-            </div>
-          ) : (
-            <div className="space-y-3">{cards}</div>
-          )}
+          {sessionData.started && <div className="space-y-3">{cards}</div>}
         </div>
 
         <div className="theme-card rounded-2xl p-5">

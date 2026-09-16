@@ -702,9 +702,28 @@ Java 网关源码中已经暴露以下 Agent 路由，并转发到 Python：
 
 向 Python 内部 RAG 库上传文献。
 
+查询参数：
+
+| 参数 | 类型 | 说明 |
+| --- | --- | --- |
+| `metadata` | JSON 字符串，可选 | 附加到每个 chunk 的 metadata 对象，例如 `{"tags":["survey"]}`。非法 JSON 或非对象返回 `400`。 |
+
 ### `POST /api/rag/retrieve`
 
-直接调用 Python 侧检索。
+直接调用 Python 侧混合检索，响应体的 `results` 含 `vector` / `bm25` / `fused` 三路：
+`fused` 为向量主导排序、BM25 独有片段追加在后的合并结果，长度可达 `2 × top_k`，下游按需截断。
+
+查询参数：
+
+| 参数 | 类型 | 说明 |
+| --- | --- | --- |
+| `query` | 字符串，必填 | 检索问题，中英文均可。 |
+| `top_k` | 整数，默认 `5` | 每一路的召回条数。 |
+| `pdf_id` | 字符串，可选 | 只在这一篇论文内检索；与 `filter_metadata` 同时给出时覆盖其中的 `id`。 |
+| `filter_metadata` | JSON 字符串，可选 | 任意 metadata 等值过滤，例如 `{"section_title":"ABSTRACT"}`。非法 JSON 或非对象返回 `400`。 |
+
+> 过滤参数必须是 JSON **字符串**而不是 JSON 对象：FastAPI 无法把 `dict` 声明为查询参数，
+> 会把它从 OpenAPI 中整个移除并恒传 `None`，导致过滤静默失效。
 
 ## 受限代码执行内部模型与审计（P5-03/P5-06）
 

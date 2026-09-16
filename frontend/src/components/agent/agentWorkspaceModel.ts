@@ -31,6 +31,7 @@ export interface AgentProject {
 
 export interface AgentTask {
   taskId: string;
+  researchTaskId: string;
   projectId: string;
   traceId: string;
   status: string;
@@ -55,6 +56,28 @@ export interface AgentTask {
   createdAt: string;
   updatedAt: string;
   externalSearchConfig: ExternalSearchConfig;
+}
+
+export interface AgentResearchTask {
+  taskId: string;
+  projectId: string;
+  title: string;
+  paperIds: string[];
+  latestRunId: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentMessage {
+  messageId: string;
+  taskId: string;
+  runId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  sourceIds: string[];
+  status: string;
+  createdAt: string;
 }
 
 export interface AgentRun {
@@ -87,6 +110,9 @@ export interface AgentWorkspaceState {
   latestTask: AgentTask | null;
   currentTask: AgentTask | null;
   tasksByProjectId: Record<string, AgentTask[]>;
+  researchTasksByProjectId: Record<string, AgentResearchTask[]>;
+  messagesByTaskId: Record<string, AgentMessage[]>;
+  activeResearchTaskId: string;
   nextProjectNumber: number;
   loading: boolean;
   error: string;
@@ -120,6 +146,9 @@ export interface AgentWorkspaceResponse {
     recentRuns: AgentRun[];
     timeline: Record<string, unknown>[];
     uiHints: Record<string, unknown>;
+    tasks: AgentResearchTask[];
+    activeTaskId: string;
+    messages: AgentMessage[];
   };
 }
 
@@ -133,6 +162,9 @@ export const createEmptyAgentWorkspaceState = (): AgentWorkspaceState => ({
   latestTask: null,
   currentTask: null,
   tasksByProjectId: {},
+  researchTasksByProjectId: {},
+  messagesByTaskId: {},
+  activeResearchTaskId: '',
   nextProjectNumber: 1,
   loading: false,
   error: '',
@@ -256,6 +288,7 @@ export const normalizeAgentTask = (value: any) => {
   const extBudget = extConfig.budget && typeof extConfig.budget === 'object' ? extConfig.budget : {};
   return {
     taskId: `${task.taskId ?? ''}`.trim(),
+    researchTaskId: `${task.researchTaskId ?? task.conversationId ?? ''}`.trim(),
     projectId: `${task.projectId ?? ''}`.trim(),
     traceId: `${task.traceId ?? ''}`.trim(),
     status: `${task.status ?? ''}`.trim() || 'pending',
@@ -300,7 +333,7 @@ export const normalizeAgentRun = (value: any) => {
   const extBudget = extConfig.budget && typeof extConfig.budget === 'object' ? extConfig.budget : {};
   return {
     runId: `${run.runId ?? ''}`.trim(),
-    taskId: `${run.runId ?? ''}`.trim(),
+    taskId: `${run.taskId ?? run.runId ?? ''}`.trim(),
     projectId: `${run.projectId ?? ''}`.trim(),
     traceId: `${run.traceId ?? ''}`.trim(),
     status: `${run.status ?? ''}`.trim() || 'pending',
@@ -371,7 +404,8 @@ export const buildTaskFromRunWorkspace = ({ run = null, pendingReview = null, la
   }));
   const reportSourceIds = findings.flatMap((finding: any) => Array.isArray(finding?.sourceIds) ? finding.sourceIds : []);
   return {
-    taskId: normalizedRun.taskId,
+    taskId: normalizedRun.runId,
+    researchTaskId: normalizedRun.taskId,
     runId: normalizedRun.runId,
     projectId: normalizedRun.projectId,
     traceId: normalizedRun.traceId,
@@ -411,6 +445,63 @@ export const buildTaskFromRunWorkspace = ({ run = null, pendingReview = null, la
   };
 };
 
+// Fallback responses may be partial. Merge before normalization introduces defaults.
+export const mergeAgentRunFallback = ({ previousTask, run, artifacts = null, timeline = null }: {
+  previousTask: ReturnType<typeof buildTaskFromRunWorkspace>;
+  run: Record<string, unknown> | undefined;
+  artifacts?: Record<string, unknown> | null;
+  timeline?: unknown[] | null;
+}) => {
+  const previous = previousTask?.taskId === run?.runId ? previousTask : null;
+  const mergedArtifacts: Record<string, unknown> = {};
+  const fields = {
+    evidenceItems: 'evidenceItems', findings: 'findings', comparisonTable: 'comparisonTable',
+    conflicts: 'conflicts', openQuestions: 'openQuestions', draftReport: 'draftReport',
+    toolCallSummary: 'toolCalls', llmSynthesis: 'llmSynthesis', advancedAnalysis: 'advancedAnalysis',
+  } as const;
+  for (const [artifactKey, taskKey] of Object.entries(fields)) {
+    mergedArtifacts[artifactKey] = artifacts && Object.prototype.hasOwnProperty.call(artifacts, artifactKey)
+      ? artifacts[artifactKey] : previous?.[taskKey];
+  }
+  const task = buildTaskFromRunWorkspace({ run, latestArtifacts: mergedArtifacts, timeline: timeline ?? [] });
+  if (!task || !previous) return task;
+  return {
+    ...task,
+    planItems: previous.planItems,
+    events: timeline === null ? previous.events : task.events,
+    researchTimeline: Object.prototype.hasOwnProperty.call(run, 'researchTimeline')
+      ? task.researchTimeline : previous.researchTimeline,
+  };
+};
+
+export const normalizeAgentResearchTask = (value: any): AgentResearchTask => {
+  const task = value && typeof value === 'object' ? value : {};
+  return {
+    taskId: `${task.taskId ?? ''}`.trim(),
+    projectId: `${task.projectId ?? ''}`.trim(),
+    title: `${task.title ?? task.prompt ?? ''}`.trim() || '未命名研究任务',
+    paperIds: Array.isArray(task.paperIds) ? task.paperIds.map((item: unknown) => `${item ?? ''}`.trim()).filter(Boolean) : [],
+    latestRunId: `${task.latestRunId ?? ''}`.trim(),
+    status: `${task.status ?? 'pending'}`.trim() || 'pending',
+    createdAt: `${task.createdAt ?? ''}`.trim(),
+    updatedAt: `${task.updatedAt ?? ''}`.trim(),
+  };
+};
+
+export const normalizeAgentMessage = (value: any): AgentMessage => {
+  const message = value && typeof value === 'object' ? value : {};
+  return {
+    messageId: `${message.messageId ?? ''}`.trim(),
+    taskId: `${message.taskId ?? ''}`.trim(),
+    runId: `${message.runId ?? ''}`.trim(),
+    role: message.role === 'assistant' ? 'assistant' : 'user',
+    content: `${message.content ?? ''}`,
+    sourceIds: Array.isArray(message.sourceIds) ? message.sourceIds.map((item: unknown) => `${item ?? ''}`.trim()).filter(Boolean) : [],
+    status: `${message.status ?? ''}`.trim(),
+    createdAt: `${message.createdAt ?? ''}`.trim(),
+  };
+};
+
 export const normalizeAgentWorkspaceResponse = (response: any) => {
   const workspace = response?.workspace && typeof response.workspace === 'object' ? response.workspace : {};
   return {
@@ -423,6 +514,9 @@ export const normalizeAgentWorkspaceResponse = (response: any) => {
       recentRuns: Array.isArray(workspace.recentRuns) ? workspace.recentRuns.map(normalizeAgentRun) : [],
       timeline: Array.isArray(workspace.timeline) ? workspace.timeline : [],
       uiHints: workspace.uiHints && typeof workspace.uiHints === 'object' ? workspace.uiHints : {},
+      tasks: Array.isArray(workspace.tasks) ? workspace.tasks.map(normalizeAgentResearchTask).filter((task: AgentResearchTask) => task.taskId) : [],
+      activeTaskId: `${workspace.activeTaskId ?? ''}`.trim(),
+      messages: Array.isArray(workspace.messages) ? workspace.messages.map(normalizeAgentMessage).filter((message: AgentMessage) => message.messageId) : [],
     },
   };
 };
@@ -536,6 +630,7 @@ export const normalizeAgentGraphResponse = (response: any): { task: AgentTask & 
   return {
     task: {
       taskId: task.threadId || '',
+      researchTaskId: '',
       projectId: '',
       traceId: '',
       status: task.status || 'pending',

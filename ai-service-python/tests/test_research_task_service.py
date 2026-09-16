@@ -140,6 +140,8 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
             patch.object(research_task_service, "_build_research_plan", return_value=("brief", ["子问题一", "子问题二", "子问题三"])),
             patch.object(research_task_service, "_research_sub_question", side_effect=fake_research_sub_question),
             patch("llm.client.get_llm", side_effect=RuntimeError("LLM unavailable in test")),
+            # 上游规划/replan 已改用温度 0 的 structured LLM，同样需要屏蔽，避免测试走真实调用。
+            patch("llm.client.get_structured_llm", side_effect=RuntimeError("LLM unavailable in test")),
         ):
             task = research_task_service.run_research_task_now(task_id)
 
@@ -581,7 +583,7 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
             ],
         }, ensure_ascii=False)
 
-        with patch("llm.client.get_llm") as mock_llm:
+        with patch("llm.client.get_structured_llm") as mock_llm:
             mock_llm.return_value._call.return_value = mock_llm_response
             new_items = replan_if_needed(
                 finding={
@@ -604,7 +606,7 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
         """replan_if_needed falls back to single follow-up item when LLM fails."""
         from services.research_planner import replan_if_needed
 
-        with patch("llm.client.get_llm") as mock_llm:
+        with patch("llm.client.get_structured_llm") as mock_llm:
             mock_llm.return_value._call.side_effect = RuntimeError("LLM unavailable")
             new_items = replan_if_needed(
                 finding={

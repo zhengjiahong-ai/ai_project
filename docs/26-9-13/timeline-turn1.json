@@ -1,0 +1,149 @@
+{
+  "status": "success",
+  "timeline": [
+    {
+      "id": "2acecb9c-6460-42ea-85ae-38bbc06eda71",
+      "type": "task_created",
+      "title": "Created an Agent research task.",
+      "detail": "Created an Agent research task.",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T05:49:34.160862Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:49:34.160862Z"
+    },
+    {
+      "id": "8b087a1f-23bd-4296-aff8-3dd35b4f3cf9",
+      "type": "plan_generated",
+      "title": "已生成研究计划，开始执行。",
+      "detail": "已生成研究计划，开始执行。",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T05:49:34.194424Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:49:34.194424Z"
+    },
+    {
+      "id": "bf5d1467-8f4c-43f2-abdb-566ab063558b",
+      "type": "task_started",
+      "title": "Started staged Agent execution.",
+      "detail": "Started staged Agent execution.",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T05:49:34.231863Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:49:34.231863Z"
+    },
+    {
+      "id": "287fc311-f67a-40fe-ac77-e1607b16f24c",
+      "type": "task_understood",
+      "title": "Confirmed project scope and focused papers.",
+      "detail": "Confirmed project scope and focused papers.",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T05:49:34.388797Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:49:34.388797Z"
+    },
+    {
+      "id": "9d56d03c-83e5-4f2c-a9c4-82fb2eac0881",
+      "type": "plan_generated",
+      "title": "Generated a lightweight execution plan.",
+      "detail": "Generated a lightweight execution plan.",
+      "phase": "planning",
+      "meta": {
+        "timestamp": "2026-09-13T05:49:34.388843Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:49:34.388843Z"
+    },
+    {
+      "id": "6c687fad-3878-41f4-b10d-5553978b442e",
+      "type": "retrieval_started",
+      "title": "Started per-paper evidence retrieval.",
+      "detail": "Started per-paper evidence retrieval.",
+      "phase": "retrieving",
+      "meta": {
+        "timestamp": "2026-09-13T05:49:34.561279Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:49:34.561279Z"
+    },
+    {
+      "id": "225d1547-0d2d-45b9-86a4-3d920bd0edfb",
+      "type": "paper_evidence_collected",
+      "title": "Collected evidence from 2403.01444v4.pdf.",
+      "detail": "Collected evidence from 2403.01444v4.pdf.",
+      "phase": "retrieving",
+      "meta": {
+        "timestamp": "2026-09-13T05:49:35.083273Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:49:35.083273Z"
+    },
+    {
+      "id": "c2a9f138-81cb-465d-b04f-4700c960d449",
+      "type": "paper_evidence_collected",
+      "title": "Collected evidence from 2401.03890v8.pdf.",
+      "detail": "Collected evidence from 2401.03890v8.pdf.",
+      "phase": "retrieving",
+      "meta": {
+        "timestamp": "2026-09-13T05:49:35.35127Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:49:35.35127Z"
+    },
+    {
+      "id": "c2815c48-1e13-4755-9341-76e34277460d",
+      "type": "tool_completed",
+      "title": "Collected evidence from 2 project papers.",
+      "detail": "Collected evidence from 2 project papers.",
+      "phase": "retrieving",
+      "meta": {
+        "timestamp": "2026-09-13T05:49:35.529598Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:49:35.529598Z"
+    },
+    {
+      "id": "d30f4689-cac7-4216-babc-dcacf5a73378",
+      "type": "judgement_completed",
+      "title": "Built cross-paper judgements and conflict candidates.",
+      "detail": "Built cross-paper judgements and conflict candidates.",
+      "phase": "synthesizing",
+      "meta": {
+        "timestamp": "2026-09-13T05:50:39.351638Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:50:39.351638Z"
+    },
+    {
+      "id": "662ea684-104b-4c3f-aff6-2c6e7eb331a2",
+      "type": "report_updated",
+      "title": "Built a project-level draft report.",
+      "detail": "Built a project-level draft report.",
+      "phase": "synthesizing",
+      "meta": {
+        "timestamp": "2026-09-13T05:50:39.351677Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:50:39.351677Z"
+    },
+    {
+      "id": "0b07e14c-98ba-4c92-b4ac-dd2d9a058b65",
+      "type": "task_completed",
+      "title": "Completed staged Agent orchestration.",
+      "detail": "Completed staged Agent orchestration.",
+      "phase": "done",
+      "meta": {
+        "timestamp": "2026-09-13T05:50:39.35169Z",
+        "taskId": "324e4d6a-5a30-4caa-ace3-4687e9415db5"
+      },
+      "timestamp": "2026-09-13T05:50:39.35169Z"
+    }
+  ]
+}

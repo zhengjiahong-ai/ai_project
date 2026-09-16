@@ -36,11 +36,13 @@ class OfflineLlmTests(unittest.TestCase):
         )
         llm_client._llm = None
         llm_client._translation_llm = None
+        llm_client._structured_llm = None
 
     def tearDown(self):
         trace_service.clear_traces()
         llm_client._llm = None
         llm_client._translation_llm = None
+        llm_client._structured_llm = None
         _stop_patches(self._settings_patches)
         self.temp_dir.cleanup()
 
@@ -75,6 +77,23 @@ class OfflineLlmTests(unittest.TestCase):
         self.assertEqual(answer, "offline answer")
         self.assertEqual(translation, "固定译文")
         post.assert_not_called()
+
+    def test_conftest_guard_blocks_unstubbed_live_llm_http(self):
+        """离线护栏必须真的拦住未打桩的 LLM 请求，否则套件会重新依赖账户余额。
+
+        实测代价：欠费时 DeepSeek 秒回 402，全量回归 106 秒；余额恢复后同一批
+        测试跑了 18 分 58 秒，test_paper_writer 单个用例 57.82 秒撞上 CI 的
+        --timeout=60 被杀，报出一个与被测改动毫无关系的失败。
+
+        本用例自己不打桩 requests.post，就是要验证护栏在默认情况下生效；
+        异常消息里带上退出方式（live_llm 标记），让误触的人知道怎么改。
+        """
+        llm = llm_client.DeepSeekLLM(model="deepseek-v4-pro", api_key="test-key")
+
+        with self.assertRaises(RuntimeError) as caught:
+            llm.invoke(LLMRequest(prompt="say hi"))
+
+        self.assertIn("live_llm", str(caught.exception))
 
     def test_matches_messages_and_serializes_json_output(self):
         self._write_fixture(
@@ -304,6 +323,55 @@ class OfflineLlmTests(unittest.TestCase):
             )
         finally:
             _stop_patches(p)
+
+    def test_structured_llm_only_lowers_temperature(self):
+        """结构化实例只能降温度，模型与思考强度必须与主模型一致。
+
+        这两项一旦跟着变，分析质量就会变，那就不是“只修非确定性”而是换了个模型，
+        本组改动的前后对比也不再成立。
+        """
+        p = _patch_settings(pixiu_llm_mode="deepseek", deepseek_api_key="test-key")
+        try:
+            llm_client._llm = None
+            llm_client._structured_llm = None
+            main = llm_client.get_llm()
+            structured = llm_client.get_structured_llm()
+
+            self.assertEqual(structured.temperature, 0.0)
+            self.assertLess(structured.temperature, main.temperature)
+            self.assertEqual(structured.model, main.model)
+            self.assertEqual(structured.thinking_type, main.thinking_type)
+            self.assertEqual(structured.reasoning_effort, main.reasoning_effort)
+            # 单例：重复取不能每次新建，否则缓存与连接都白费。
+            self.assertIs(llm_client.get_structured_llm(), structured)
+            self.assertIsNot(structured, main)
+        finally:
+            llm_client._structured_llm = None
+            _stop_patches(p)
+
+    def test_structured_llm_follows_fixture_mode(self):
+        """离线/测试模式必须走 fixture，否则批判分析的测试会去打真 API。
+
+        这个分支漏了的话，现有全部 fixture 测试会在 get_structured_llm() 抛
+        “Please configure DEEPSEEK_API_KEY”，或者更糟 —— 真的发请求。
+        """
+        self._write_fixture(
+            [
+                {
+                    "id": "structured",
+                    "client": "default",
+                    "promptContains": ["structured marker"],
+                    "output": "structured answer",
+                },
+            ]
+        )
+        llm_client._structured_llm = None
+
+        with patch("llm.client.requests.post") as post:
+            structured = llm_client.get_structured_llm()
+            self.assertIsInstance(structured, llm_client.FixtureLLM)
+            self.assertEqual(structured._call("structured marker"), "structured answer")
+        post.assert_not_called()
 
 
 if __name__ == "__main__":

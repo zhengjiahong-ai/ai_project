@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Any
 
-from llm.client import get_llm
+from llm.client import get_structured_llm
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.query_service import build_retrieval_queries
 from services.research_conflict import (
@@ -177,7 +177,8 @@ def _load_current_paper_documents(pdf_id: str) -> tuple[list[dict[str, Any]], st
             "includeAll": True,
             "topK": 120,
             "limit": 80,
-            "maxTextChars": 900,
+            # 与下游 format_evidence_context 的 max_text_chars 对齐，避免证据先被截到 900 字符。
+            "maxTextChars": 2000,
         },
     )
     return list(response.get("items") or []), str(response.get("pdfId") or "")
@@ -198,8 +199,10 @@ def _build_research_plan(
     )
     current_evidence_block = wrap_untrusted_context(
         "Current paper evidence",
-        format_evidence_context(documents, title="当前论文线索", max_items=4, max_text_chars=260),
-        max_tokens=1400,
+        # 旧值 max_items=4 / max_text_chars=260 / max_tokens=1400 只能送约 1040 字符证据，
+        # 不足以覆盖一个 900 字符的 chunk，因此规划与简报预览都看不到完整正文。
+        format_evidence_context(documents, title="当前论文线索", max_items=8, max_text_chars=2000),
+        max_tokens=8000,
     )
     _record_safety_budget_counters(paper_skeleton_block, current_evidence_block)
     prompt = f"""
@@ -239,7 +242,7 @@ Current paper evidence:
     with trace_step("research_build_plan", input_size=len(prompt)) as step:
         try:
             payload = parse_json_from_llm(
-                get_llm()._call(
+                get_structured_llm()._call(
                     prompt,
                     messages=build_guarded_messages(
                         prompt,
@@ -292,8 +295,10 @@ def _build_research_brief_preview(
     )
     current_evidence_block = wrap_untrusted_context(
         "Current paper evidence",
-        format_evidence_context(documents, title="当前论文线索", max_items=4, max_text_chars=260),
-        max_tokens=1400,
+        # 旧值 max_items=4 / max_text_chars=260 / max_tokens=1400 只能送约 1040 字符证据，
+        # 不足以覆盖一个 900 字符的 chunk，因此规划与简报预览都看不到完整正文。
+        format_evidence_context(documents, title="当前论文线索", max_items=8, max_text_chars=2000),
+        max_tokens=8000,
     )
     constraints_block = wrap_untrusted_context(
         "User constraints",
@@ -337,7 +342,7 @@ Current paper evidence:
 
     try:
         payload = parse_json_from_llm(
-            get_llm()._call(
+            get_structured_llm()._call(
                 prompt,
                 messages=build_guarded_messages(
                     prompt,
@@ -413,7 +418,9 @@ def _retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, li
             "query": query,
             "topK": top_k,
             "limit": limit,
-            "maxTextChars": 700,
+            # 与 research_executor 保持一致：子问题阶段先截到 700 字符，
+            # 最终报告就再也拿不回完整原文了。
+            "maxTextChars": 2000,
         },
     )
     return list(response.get("items") or [])
@@ -427,7 +434,7 @@ def _retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, to
             "excludePdfId": exclude_pdf_id,
             "topK": top_k,
             "limit": limit,
-            "maxTextChars": 700,
+            "maxTextChars": 2000,
         },
     )
     return list(response.get("items") or [])
@@ -438,7 +445,7 @@ def _merge_evidence_lists(*groups: list[dict[str, Any]], limit: int = 8) -> list
     seen = set()
     for group in groups:
         for item in group or []:
-            normalized = normalize_evidence_items([item], limit=1, max_text_chars=700)
+            normalized = normalize_evidence_items([item], limit=1, max_text_chars=2000)
             if not normalized:
                 continue
             current = _ensure_stable_source_ids(normalized, fallback_prefix="source")[0]
@@ -650,11 +657,11 @@ def _fallback_plan(question: str) -> tuple[str, list[dict[str, Any]]]:
 
 def _build_planning_context(question: str, paper_skeleton: dict[str, Any], documents: list[dict[str, Any]]) -> str:
     skeleton_text = (_read_paper_skeleton(paper_skeleton, max_sections=6, max_chars_per_section=220).get("text") or "")[:1200]
-    evidence_text = format_evidence_context(documents, title="当前论文证据", max_items=4, max_text_chars=260)
+    evidence_text = format_evidence_context(documents, title="当前论文证据", max_items=8, max_text_chars=2000)
     return (
         f"Main question: {question}\n"
         f"Paper skeleton:\n{skeleton_text}\n"
-        f"{evidence_text[:1800]}"
+        f"{evidence_text[:16000]}"
     )
 
 

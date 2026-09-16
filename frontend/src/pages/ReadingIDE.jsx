@@ -13,7 +13,6 @@ import { Group, Panel, Separator } from 'react-resizable-panels';
 
 import BackgroundKnowledgePanel from '../components/BackgroundKnowledgePanel';
 import BackgroundReaderProfileEditor from '../components/BackgroundReaderProfileEditor.jsx';
-import BottomWorkbench from '../components/BottomWorkbench.jsx';
 import ChatPanel from '../components/ChatPanel';
 import CriticalAnalysisPanel from '../components/CriticalAnalysisPanel';
 import DeepResearchPanel from '../components/DeepResearchPanel';
@@ -29,10 +28,6 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { renderHighlightedText } from '../utils/appHelpers.js';
 
 // Re-exported from App.jsx — imported here to avoid circular-dependency concerns.
-const WORKBENCH_EXPANDED_SIZE = 32;
-const WORKBENCH_COLLAPSED_SIZE = 18;
-const WORKBENCH_COLLAPSE_THRESHOLD = 22;
-
 const workspaceTabSections = [
   {
     id: 'reading',
@@ -57,6 +52,22 @@ const workspaceTabSections = [
 const getWorkspaceSectionId = (tabId) =>
   workspaceTabSections.find((section) => section.tabIds.includes(tabId))?.id || workspaceTabSections[0].id;
 
+const assistantMainTabs = [
+  ['chat', '问答'],
+  ['deconstruct', '精读'],
+  ['translation', '翻译'],
+  ['notes', '笔记'],
+];
+
+const assistantMoreTabs = [
+  ['analysis', '批判分析'],
+  ['background', '背景补课'],
+  ['socratic', '苏格拉底提问'],
+  ['deep-research', '深度研究'],
+  ['paper-writer', '论文写作'],
+  ['stats', '阅读统计'],
+];
+
 export default function ReadingIDE({
   // ── Sidebar ──
   isSidebarCollapsed,
@@ -67,7 +78,6 @@ export default function ReadingIDE({
   currentPaperStatus,
   readingProgress,
   parseStatus,
-  notes,
   papersList,
   handleSelectPaper,
   setIsLibraryOpen,
@@ -115,9 +125,6 @@ export default function ReadingIDE({
   backgroundReaderProfile,
   setBackgroundReaderProfile,
   backgroundReaderProfileSummary,
-  primaryNextActionSuggestion,
-  nextActionSuggestions,
-  handleReadingWorkflowAction,
 
   // ── Chat panel ──
   messages,
@@ -173,20 +180,6 @@ export default function ReadingIDE({
   // ── Paper writer panel ──
   apiService,
 
-  // ── Notes tab ──
-  workbenchCards,
-  setIsWorkbenchCollapsed,
-
-  // ── Bottom workbench ──
-  workbenchPanelRef,
-  isWorkbenchCollapsed,
-  handleToggleWorkbenchCollapsed,
-  removeArtifact,
-  toggleArtifactPinned,
-  updateArtifact,
-  handleCaptureNoteToWorkbench,
-  handleSaveArtifactAsNote,
-  handleDeleteNote,
 }) {
   // Restore reading progress when a paper is opened
   useEffect(() => {
@@ -213,42 +206,23 @@ export default function ReadingIDE({
     <>
       <aside
         className={`workspace-sidebar theme-panel theme-border hidden shrink-0 flex-col border-r transition-[width] duration-200 lg:flex ${
-          isSidebarCollapsed ? 'w-14' : 'w-64'
+          isSidebarCollapsed ? 'w-12' : 'w-[292px]'
         }`}
       >
-        <div className="theme-border border-b p-3">
+        <div className="workspace-side-title theme-border flex h-16 shrink-0 items-center border-b px-5">
           <div className="flex items-center justify-between gap-2">
             {!isSidebarCollapsed && (
-              <div className="min-w-0">
-                <h2 className="theme-text-primary text-sm font-bold">论文导航</h2>
-                <span className="theme-text-muted text-[10px]">
-                  第 {pdfFile ? pdfPageState.pageIndex + 1 : 0} / {pdfPageState.totalPages || 0} 页
-                </span>
-              </div>
+              <h2 className="theme-text-primary text-base font-bold">论文导航</h2>
             )}
             <button
               type="button"
               onClick={() => setIsSidebarCollapsed((value) => !value)}
-              className="theme-button-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+              className="pixiu-icon-action ml-auto flex h-8 w-8 shrink-0 items-center justify-center"
               title={isSidebarCollapsed ? '展开左侧栏' : '收起左侧栏'}
             >
               {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
           </div>
-          {!isSidebarCollapsed && (
-            <>
-              <div className="mt-3 flex items-center justify-between gap-2">
-                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
-                  {currentPaperStatus}
-                </span>
-                <span className="theme-text-muted text-[10px]">阅读进度 {readingProgress}%</span>
-              </div>
-              <div className="theme-input mt-3 flex items-center gap-2 rounded-md px-3 py-2 text-xs">
-                <Search size={14} className="theme-text-muted" />
-                <span className="theme-text-muted">搜索目录 / 笔记 / 论文</span>
-              </div>
-            </>
-          )}
         </div>
 
         <div className={`flex-1 overflow-y-auto ${isSidebarCollapsed ? 'p-2' : 'p-4'}`}>
@@ -282,7 +256,7 @@ export default function ReadingIDE({
               <section className="mb-5">
                 <div className="theme-text-muted mb-2 flex items-center justify-between text-xs font-bold">
                   <span>当前论文</span>
-                  <span>{notes.length} 条笔记</span>
+                  <span>{currentPaperStatus} · {readingProgress}%</span>
                 </div>
                 <div className="theme-card-soft rounded-lg p-3">
                   <div className="flex items-start gap-2">
@@ -291,9 +265,7 @@ export default function ReadingIDE({
                       <p className="theme-text-primary line-clamp-2 text-sm font-semibold">
                         {pdfFileName || '尚未上传论文'}
                       </p>
-                      <p className="theme-text-muted mt-1 text-xs">
-                        {pdfFile ? '可在中间阅读器中划词解释、翻译和批判阅读' : '请先上传 PDF 开始工作'}
-                      </p>
+                      {!pdfFile && <p className="theme-text-muted mt-1 text-xs">请上传 PDF</p>}
                     </div>
                   </div>
                   <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200/70">
@@ -445,12 +417,7 @@ export default function ReadingIDE({
       </aside>
 
       <section className="min-w-0 flex-1 overflow-hidden" aria-label="PDF阅读区">
-        <Group orientation="vertical">
-          <Panel
-            defaultSize={76}
-            minSize={42}
-          >
-            <Group orientation="horizontal">
+        <Group orientation="horizontal">
               <Panel defaultSize={58} minSize={34}>
                 <ErrorBoundary area="PDF阅读区">
                   <div className="pdf-stage relative flex h-full flex-col p-3">
@@ -503,7 +470,56 @@ export default function ReadingIDE({
               <Panel defaultSize={42} minSize={32}>
                 <ErrorBoundary area="功能面板区">
                   <div className="panel-shell flex h-full flex-col">
-                    <div className="theme-panel theme-border flex shrink-0 flex-col border-b">
+                    <div className="reading-assistant-nav theme-panel theme-border shrink-0 border-b">
+                      <div className="flex h-12 items-center px-5">
+                        <h2 className="theme-text-primary text-base font-bold">阅读助手</h2>
+                      </div>
+                      <div className="flex h-10 items-end gap-1 px-4">
+                        {assistantMainTabs.map(([tabId, label]) => (
+                          <button
+                            key={tabId}
+                            type="button"
+                            onClick={() => {
+                              setActiveWorkspaceSectionId(getWorkspaceSectionId(tabId));
+                              setActiveTab(tabId);
+                            }}
+                            className={`reading-assistant-tab shrink-0 ${activeTab === tabId ? 'reading-assistant-tab-active' : ''}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                        <details className="relative shrink-0">
+                          <summary
+                            className={`reading-assistant-tab reading-assistant-more flex cursor-pointer list-none items-center gap-1 ${
+                              assistantMoreTabs.some(([id]) => id === activeTab) ? 'reading-assistant-tab-active' : ''
+                            }`}
+                          >
+                            更多工具
+                            <ChevronDown size={12} />
+                          </summary>
+                          <div className="theme-card absolute left-0 top-full z-30 mt-1 w-40 rounded-md p-1.5 shadow-lg">
+                            {assistantMoreTabs.map(([tabId, label]) => (
+                              <button
+                                key={tabId}
+                                type="button"
+                                onClick={() => {
+                                  setActiveWorkspaceSectionId(getWorkspaceSectionId(tabId));
+                                  setActiveTab(tabId);
+                                }}
+                                className={`w-full rounded px-3 py-2 text-left text-xs ${
+                                  activeTab === tabId
+                                    ? 'bg-[color:var(--accent-soft)] text-[color:var(--accent-strong)]'
+                                    : 'theme-text-secondary hover:bg-[color:var(--panel-muted)]'
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                    <div className="theme-panel theme-border hidden shrink-0 flex-col border-b">
                       <div className="workspace-top-panels">
                         <div className="workspace-top-panels-collapsed">
                           <div className="flex min-w-0 items-center gap-2">
@@ -609,36 +625,6 @@ export default function ReadingIDE({
                                 ))}
                               </div>
                             </div>
-                            <div className="workflow-next-card theme-card rounded-xl p-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="theme-text-primary text-xs font-semibold">
-                                    {primaryNextActionSuggestion?.title || nextActionSuggestions[0]?.title}
-                                  </div>
-                                  <div className="theme-text-secondary mt-1 text-[11px] leading-5">
-                                    {primaryNextActionSuggestion?.description || nextActionSuggestions[0]?.description}
-                                  </div>
-                                </div>
-                                <div className="workflow-next-badge whitespace-nowrap text-[10px] font-semibold">
-                                  推荐下一步
-                                </div>
-                              </div>
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {nextActionSuggestions.map((suggestion, index) => (
-                                  <button
-                                    key={`${suggestion.title}-${suggestion.label || index}`}
-                                    type="button"
-                                    disabled={!suggestion.action}
-                                    onClick={() => handleReadingWorkflowAction(suggestion)}
-                                    className={`workflow-next-action ${
-                                      suggestion.tone === 'primary' ? 'workflow-next-action-primary' : ''
-                                    }`}
-                                  >
-                                    {suggestion.label || suggestion.title}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
                           </div>
                           <div className="px-3 pb-2">
                             <button
@@ -724,9 +710,7 @@ export default function ReadingIDE({
                           onJumpToSource={handleJumpToSource}
                           onAbortChat={() => handleAbortChat(pdfId)}
                           isLoading={isChatLoading(pdfId)}
-                          contextTitle={readingContext.sectionTitle}
-                          contextSummary={`${readingContext.pageLabel}${readingContext.sourceSnippet ? ` · ${readingContext.sourceSnippet}` : ''}`}
-                          nextActionHint={primaryNextActionSuggestion?.label || nextActionSuggestions[0]?.title}
+                          contextLabel={[readingContext.pageLabel, readingContext.sectionTitle].filter(Boolean).join(' · ')}
                         />
                       )}
 
@@ -849,38 +833,6 @@ export default function ReadingIDE({
                     </div>
                   </div>
                 </ErrorBoundary>
-              </Panel>
-            </Group>
-          </Panel>
-
-          <Separator className="group relative h-2 transition-all hover:bg-pixiu/10">
-            <div className="app-separator-line absolute left-0 right-0 top-1/2 h-[2px] -translate-y-1/2 transition-colors group-hover:bg-pixiu/40" />
-          </Separator>
-
-          <Panel
-            panelRef={workbenchPanelRef}
-            defaultSize={WORKBENCH_EXPANDED_SIZE}
-            minSize={WORKBENCH_COLLAPSED_SIZE}
-            onResize={(size) => {
-              const shouldCollapse = size <= WORKBENCH_COLLAPSE_THRESHOLD;
-              setIsWorkbenchCollapsed((prev) => (prev === shouldCollapse ? prev : shouldCollapse));
-            }}
-          >
-            <BottomWorkbench
-              pdfFileName={pdfFileName}
-              cards={workbenchCards}
-              notes={notes}
-              isCollapsed={isWorkbenchCollapsed}
-              onToggleCollapsed={handleToggleWorkbenchCollapsed}
-              onJumpToArtifactSource={handleJumpToSource}
-              onJumpToNoteSource={handleJumpToSource}
-              onRemoveArtifact={removeArtifact}
-              onToggleArtifactPinned={toggleArtifactPinned}
-              onUpdateArtifact={updateArtifact}
-              onCaptureNote={handleCaptureNoteToWorkbench}
-              onSaveArtifactAsNote={handleSaveArtifactAsNote}
-              onDeleteNote={handleDeleteNote}
-            />
           </Panel>
         </Group>
       </section>

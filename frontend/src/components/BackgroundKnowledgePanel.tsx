@@ -13,12 +13,14 @@ import {
 
 import InsightCard from './InsightCard';
 import {
+  formatElapsedDuration,
   getProvenanceMeta,
   getUncoveredNodeLabels,
   normalizeGraph,
   normalizeKnowledgeLevel,
   normalizeProvenanceSummary,
   normalizeReaderProfile,
+  resolveGraphTitle,
   resolveLearningPathSections,
   summarizeReaderProfile,
 } from './backgroundKnowledgePanelModel.ts';
@@ -217,6 +219,22 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
   const [visiblePathCount, setVisiblePathCount] = useState<number>(2);
   const [selectedGraphItem, setSelectedGraphItem] = useState<GraphItem | null>(null);
   const [crossPaperEnabled, setCrossPaperEnabled] = useState<boolean>(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+
+  // 等待期给出真实已耗时：这一步要跑两轮模型调用（抽取前置概念、判定依赖关系），
+  // 实测冷跑三分钟起。刻意不做进度条：同步单请求拿不到真实进度，画出来的
+  // 百分比只会骗人。
+  useEffect(() => {
+    if (!isLoading) {
+      setElapsedSeconds(0);
+      return undefined;
+    }
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isLoading]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -279,9 +297,7 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
         const whyText: string =
           normalizeText(node?.why) ||
           normalizeText(node?.summary) ||
-          (stageLabel
-            ? `建议先补这一部分的 ${stageLabel}，再继续精读正文。`
-            : '建议先补这一部分背景，再继续精读正文。');
+          (stageLabel ? stageLabel : '背景知识');
 
         return {
           title: item,
@@ -324,8 +340,9 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
       <div className="theme-panel flex h-full flex-col items-center justify-center p-8 text-center">
         <Loader2 className="mb-5 animate-spin text-pixiu" size={48} />
         <p className="theme-text-primary text-lg font-medium">正在构建背景知识图谱</p>
-        <p className="theme-text-secondary mt-2 text-xs">
-          系统会结合你的自评、卡点和最近阅读行为，先梳理依赖关系，再生成可执行的补课顺序。
+        <p className="theme-text-secondary mt-3 max-w-md text-sm leading-6">
+          需要先从论文里抽取前置概念，再判定它们之间的依赖关系，两轮都要调用模型，
+          通常要等几分钟。已等待 {formatElapsedDuration(elapsedSeconds)}，保持页面打开即可。
         </p>
       </div>
     );
@@ -446,7 +463,7 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
             <div ref={containerRef} className="theme-card rounded-2xl p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="theme-text-primary text-sm font-bold">{data?.paper_topic || '当前论文'}</h3>
+                  <h3 className="theme-text-primary text-sm font-bold">{resolveGraphTitle(data)}</h3>
                   <div className="theme-text-secondary mt-1 text-xs">
                     当前识别的熟悉程度：{data?.user_knowledge_level || selectedKnowledgeLevel}
                   </div>
@@ -585,6 +602,7 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
                   summary={formatPercent(provenanceSummary.nodes.supportedRatio) || '0%'}
                   keyPoints={[
                     `当前论文支持 ${provenanceSummary.nodes.currentPaperSupported}/${provenanceSummary.nodes.total}`,
+                    provenanceSummary.nodes.libraryPaperSupported > 0 ? `库内论文支持 ${provenanceSummary.nodes.libraryPaperSupported} 项` : '',
                     provenanceSummary.nodes.externalSupported > 0 ? `外部证据支持 ${provenanceSummary.nodes.externalSupported} 项` : '',
                     `模型推断 ${provenanceSummary.nodes.modelInference} 项`,
                   ].filter(Boolean) as string[]}
@@ -594,6 +612,7 @@ const BackgroundKnowledgePanel: React.FC<BackgroundKnowledgePanelProps> = ({
                   summary={formatPercent(provenanceSummary.edges.supportedRatio) || '0%'}
                   keyPoints={[
                     `当前论文支持 ${provenanceSummary.edges.currentPaperSupported}/${provenanceSummary.edges.total}`,
+                    provenanceSummary.edges.libraryPaperSupported > 0 ? `库内论文支持 ${provenanceSummary.edges.libraryPaperSupported} 条` : '',
                     provenanceSummary.edges.externalSupported > 0 ? `外部证据支持 ${provenanceSummary.edges.externalSupported} 条` : '',
                     `模型推断 ${provenanceSummary.edges.modelInference} 条`,
                   ].filter(Boolean) as string[]}

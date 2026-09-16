@@ -1,5 +1,4 @@
 import inspect
-import os
 import re
 import unittest
 from unittest.mock import patch
@@ -217,7 +216,12 @@ class RefineSearchQueriesTests(unittest.TestCase):
             self.assertGreater(len(q), 0)
 
 
-@unittest.skipIf(not os.environ.get("DEEPSEEK_API_KEY"), "Requires DEEPSEEK_API_KEY for LLM-based query generation")
+# 不再需要 DEEPSEEK_API_KEY：conftest 的离线护栏保证这里必然走确定性回退，
+# 而没有 key 时 DeepSeekLLM.invoke 本来也会因“credentials are not configured”
+# 抛错进同一个回退 —— 两条路结果一致，所以本地与 CI 现在测的是同一条代码路径。
+# 原先的 @skipIf(not DEEPSEEK_API_KEY) 让整个类在 CI 里被跳过，正是那两个契约
+# 缺陷（回退不认 max_queries、gaps 为空时返回 0 条）能长期存活的原因；
+# 同文件的 RefineSearchQueriesTests 一直没有 skipIf，靠的就是离线回退。
 class LlmAcademicQueriesTests(unittest.TestCase):
     def test_llm_academic_falls_back_when_llm_unavailable(self):
         from services.external_query_planner import build_llm_academic_queries
@@ -278,6 +282,60 @@ class LlmAcademicQueriesTests(unittest.TestCase):
         )
         for q in result:
             self.assertLessEqual(len(q), MAX_EXTERNAL_QUERY_CHARS)
+
+
+class FallbackContractTests(unittest.TestCase):
+    """直接钉死两个回退函数的契约，不经过 LLM 调用链。
+
+    LlmAcademicQueriesTests 测的是“对外行为”，本类测的是“回退本身”，
+    分开是因为回退现在是无条件生效的主路径（conftest 离线护栏），
+    它的上限与非空两条承诺必须有自己的回归线。
+    """
+
+    def test_academic_fallback_clamps_to_max_queries(self):
+        from services.external_query_planner import _fallback_academic_queries
+
+        result = _fallback_academic_queries(
+            "reinforcement learning",
+            ["exploration strategies", "reward shaping", "policy gradients", "value functions"],
+            2,
+        )
+        # build_external_academic_queries 会给到 4 条（它只认 MAX_EXTERNAL_QUERIES=5），
+        # 回退必须再按 max_queries 收口。
+        self.assertEqual(len(result), 2)
+
+    def test_academic_fallback_yields_question_when_gaps_empty(self):
+        from services.external_query_planner import _fallback_academic_queries
+
+        result = _fallback_academic_queries("transformer attention mechanisms", [], 3)
+        self.assertEqual(len(result), 1)
+        self.assertIn("transformer attention", result[0])
+
+    def test_web_fallback_clamps_to_documented_three(self):
+        from services.external_query_planner import (
+            MAX_REFINED_WEB_QUERIES,
+            _fallback_web_queries,
+        )
+
+        result = _fallback_web_queries(
+            "graph neural networks for molecular property prediction",
+            [
+                "scalability to large graphs",
+                "comparison with traditional fingerprints",
+                "training cost ablation",
+                "dataset coverage",
+                "transfer to unseen molecules",
+            ],
+        )
+        self.assertEqual(MAX_REFINED_WEB_QUERIES, 3)
+        self.assertEqual(len(result), 3)
+
+    def test_web_fallback_yields_question_when_aspects_empty(self):
+        from services.external_query_planner import _fallback_web_queries
+
+        result = _fallback_web_queries("graph neural networks", [])
+        self.assertEqual(len(result), 1)
+        self.assertGreater(len(result[0]), 0)
 
 
 if __name__ == "__main__":
