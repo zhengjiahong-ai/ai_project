@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/app/scripts/verify_translation_scope_input.py", line 22, in <module>
+    assert definition['id'] not in {item['id'] for item in accepted} and accepted
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

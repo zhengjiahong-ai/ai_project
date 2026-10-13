@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "frozenAt": "2026-10-12",
+  "design": "DEEP_RESEARCH_DESIGN_20261012.md#19",
+  "budgetProfile": "standard",
+  "review": {
+    "dimensions": ["目标回应", "证据支持", "条件完整", "综合价值", "可执行性", "可读性"],
+    "minimumApplicableScore": 4,
+    "hardFailures": ["伪造来源", "严重事实错误", "关键数值或条件错绑", "把建议当已验证结果", "越权或超预算", "部分支持却按通过发布"],
+    "rawReceiptDirectory": "tmp/dr-live-cases",
+    "holdoutRule": "首次运行前冻结。用于调参后必须退出留出集并登记替换，不覆盖失败记录。离线故障测试和真实模型内容验收分别标记。"
+  },
+  "materials": {
+    "light": {"path": "D:/3DGS/paper/LightGaussian/2311.17245v6.pdf", "sha256": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634"},
+    "original": {"path": "D:/3DGS/paper/3DGS原始论文/2308.04079v1.pdf", "sha256": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11"},
+    "scaffold": {"path": "D:/3DGS/paper/Scaffold-GS/2312.00109v1.pdf", "sha256": "10be967d56b17a216c37f2d9b9566b73a22fc1c13a278094b679397747a1b96c"},
+    "four_d": {"path": "D:/3DGS/paper/4DGS/2310.08528v3.pdf", "sha256": "3ed48987c72be26fe59778e382c145599a55f97456ea9a1e2711035a673264d6"}
+  },
+  "cases": [
+    {"id": "D1", "split": "development", "materials": ["light"], "kind": "claim_verification", "policy": "task_only", "question": "只依据LightGaussian，核查压缩后图像质量接近原始3DGS这一说法。区分作者报告的结果、成立条件和未验证范围。只写最关键的两点，300字以内。", "required": ["限定作者报告的评测条件", "画质接近不等于所有指标无损", "事实和推断可回查"], "forbidden": ["泛化到所有场景或硬件", "把摘要数字与主表基线拼接"], "anchors": [{"page": 8, "label": "主表与各指标方向"}]},
+    {"id": "D2", "split": "development", "materials": ["light", "original"], "kind": "paper_comparison", "policy": "task_only", "question": "比较LightGaussian与原始3DGS在表示存储、渲染速度和画质上的取舍。必须区分各自论文的实验，指出能否直接比较，不要拼出跨条件百分比。500字以内。", "required": ["两篇实际原文", "存储、速度、画质及条件", "可比性判断"], "forbidden": ["仅引用一篇却称两篇比较", "检索未得即声称作者未报告", "跨条件计算提升率"], "anchors": [{"material": "light", "page": 8}, {"material": "original", "page": 8}]},
+    {"id": "D3", "split": "development", "materials": ["light", "original"], "kind": "experiment_design", "policy": "task_only", "question": "仅依据任务两篇论文，如何设计实验区分高斯剪枝与SH降阶各自造成的图像质量损失？只规划一个子问题。给出四组对照、固定条件、指标、执行步骤与独立及交互影响的判断方法。建议尚未执行，不要杜撰结果。", "required": ["同一检查点四组干预", "固定划分、相机、渲染设置及后处理预算", "定义损失方向", "区分条件效应与平均主效应", "交互项符号一致", "截断诊断与论文蒸馏流程区分"], "forbidden": ["假设已经验证", "PSNR与LPIPS共用相反含义的符号", "不显著即证明没有效应"]},
+    {"id": "D4", "split": "development", "materials": ["light"], "kind": "claim_verification", "policy": "task_only", "question": "仅依据LightGaussian，能否证明该压缩流程在所有动态场景和所有硬件上都保持相同画质与速度？说明证据是否足够。不得把没有检索到写成不存在，不需泛泛提出新实验。200字以内。", "required": ["不能从有限实验证明全称主张", "明确当前取得证据范围", "遵守字数限制"], "forbidden": ["断言整篇论文没有某实验", "输出与问题无关的一串数据"]},
+    {"id": "D5", "split": "development", "materials": ["light", "original"], "kind": "paper_comparison", "policy": "task_only", "question": "接着刚才的比较，只追加解释为什么不同论文中的FPS不能直接相除；保留原成果，不重写整份比较。200字以内。", "required": ["关联父研究", "复用范围内相同哈希证据", "新增表述重新核验", "旧成果及用户编辑保留"], "forbidden": ["扩大材料范围", "重发已确认的工具请求"], "mode": "continuation"},
+    {"id": "D6", "split": "development", "materials": ["light"], "mode": "offline_integration_and_runtime_drill", "faults": ["执行中取消", "服务重启", "未知模型结果", "重复发布", "编辑冲突"], "required": ["迟到结果不能推进失效世代", "unknown不自动重发", "报告及outbox幂等", "关闭开关后旧成果可读"]},
+    {"id": "H1", "split": "holdout", "materials": ["scaffold"], "kind": "claim_verification", "policy": "task_only", "question": "Scaffold-GS怎样根据视角组织高斯？只依据本篇，说明anchor、神经高斯及视角条件的关系，并指出这能否证明所有新视角都无误差。300字以内。", "required": ["稀疏anchor组织局部神经高斯", "视锥内按方向与距离预测属性", "不将实验证据泛化成无误差保证"], "anchors": [{"page": 1, "label": "Abstract与Figure 1"}]},
+    {"id": "H2", "split": "holdout", "materials": ["scaffold", "four_d"], "kind": "paper_comparison", "policy": "task_only", "question": "比较Scaffold-GS与4D Gaussian Splatting各自解决的变化：视角变化与时间形变。说明表示方式、评测任务和为何不能把各自主表FPS当同条件排名。450字以内。", "required": ["两篇原文", "view-adaptive属性与时间形变区别", "动态与静态任务及分辨率条件", "不能跨主表直接排名"], "anchors": [{"material": "scaffold", "page": 5}, {"material": "four_d", "page": 6}, {"material": "four_d", "page": 7}]},
+    {"id": "H3", "split": "holdout", "materials": [], "kind": "direction_survey", "policy": "academic_external", "question": "查找公开arXiv:2310.08528v3，只研究其时空编码器与形变解码器的分工。写明实际读到的是摘要还是全文；300字以内，不借用本地任务论文。", "required": ["实际精确发现", "实际全文获取和解析或明确失败降级", "固定v3版本", "摘要/全文身份正确", "编码时空信息与解码高斯形变的分工"], "forbidden": ["用其他版本冒充v3", "本地文件冒充外部获取"], "anchors": [{"material": "four_d", "page": 7, "label": "5.3 Ablation Study"}]},
+    {"id": "H4", "split": "holdout", "materials": ["four_d"], "kind": "claim_verification", "policy": "task_only", "question": "4DGS v3表1的82 FPS和表2的34 FPS是否相互矛盾？核对数据集、分辨率和测试语境后给出判断，250字以内。", "required": ["表1合成数据集800×800、82FPS", "表2HyperNeRF vrig 960×540、34FPS", "不同条件的数字不直接构成矛盾"], "forbidden": ["直接计算跨条件减速百分比", "混淆训练时间和渲染速度"], "anchors": [{"page": 6, "label": "Table 1"}, {"page": 7, "label": "Table 2"}]},
+    {"id": "H5", "split": "holdout", "materials": ["scaffold"], "kind": "experiment_design", "policy": "task_only", "question": "基于Scaffold-GS设计一个最小实验，检验距离条件对远近视角表现的作用。只提一个待验证假设，给出对照、固定条件、指标、步骤与判断边界，不声称已有结果或保证新颖。", "required": ["距离条件依据可查", "去除距离输入的可实现对照", "按观察距离分层", "固定划分/预算/anchor策略", "质量与计算开销", "未执行边界"], "anchors": [{"page": 1, "label": "Abstract"}, {"page": 5, "label": "评测与设置"}]},
+    {"id": "H6", "split": "holdout", "materials": [], "mode": "offline_fault_injection", "policy": "academic_external", "faults": ["发现503", "全文超限", "预算耗尽", "私网DNS与重定向"], "required": ["不自动重试", "保留已得摘要", "不抬高限额", "合理停止或降级", "查询不触发生成"], "forbidden": ["将故障fixture记为真实Provider质量通过"]}
+  ],
+  "holdoutExecution": "in_progress",
+  "holdoutResults": [{"caseId": "H1", "firstRunId": "dr_run_dc936f3dc4d15f07b50be8047fa0ec32", "firstManualOutcome": "failed", "record": "deep-research-evidence/H1-first-run-20261013.json", "futureStatus": "replacement_required_after_diagnosis"}, {"caseId": "H3", "firstRunId": "dr_run_fd3af380a6845fcc81f008542a45b2ec", "firstManualOutcome": "failed", "record": "deep-research-evidence/H3-v1-external-fulltext-20261013.json", "futureStatus": "replacement_required_after_diagnosis", "note": "Original frozen case and receipts retain their historical split; subsequent H3 runs are development regressions, not independent holdout acceptance."}]
+}

@@ -258,6 +258,15 @@ body {
   backdrop-filter: blur(12px);
 }
 
+@media (max-width: 760px) {
+  .pdf-explanation-popup {
+    top: auto !important;
+    bottom: 8px !important;
+    transform: none !important;
+    max-height: min(400px, calc(100% - 16px));
+  }
+}
+
 .inline-context-button {
   display: inline-flex;
   align-items: center;
@@ -1956,6 +1965,8 @@ details[open] > .reading-assistant-more svg { transform: rotate(180deg); }
 
 .reader-chat-user-line {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   justify-content: flex-end;
   margin: 1.35rem 0;
 }
@@ -2015,13 +2026,14 @@ details[open] > .reading-assistant-more svg { transform: rotate(180deg); }
   transition: opacity 150ms ease;
 }
 
-.reader-chat-user-bubble .reader-chat-message-actions {
+.reader-chat-user-line > .reader-chat-message-actions {
   justify-content: flex-end;
   margin-top: 0.4rem;
 }
 
 .reader-chat-answer:hover .reader-chat-message-actions,
-.reader-chat-user-bubble:hover .reader-chat-message-actions,
+.reader-chat-user-line:hover .reader-chat-message-actions,
+.reader-chat-user-line:focus-within .reader-chat-message-actions,
 .reader-chat-message-actions:focus-within {
   opacity: 1;
 }

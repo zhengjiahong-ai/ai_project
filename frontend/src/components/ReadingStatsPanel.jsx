@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, BookOpen, Highlight, MessageSquare, Bookmark, Clock } from 'lucide-react';
+import { BarChart3, BookOpen, MessageSquare, Bookmark, Clock } from 'lucide-react';
 import { loadHighlights, getBookmarks } from '../services/highlightStore';
 import { loadNotes } from '../services/notesStore';
 

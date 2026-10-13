@@ -1,0 +1,118 @@
+Browser tab: 2, Title: "Pixiu 学术助手", URL: "http://localhost:5173/?unified=1".
+1 AXWebArea Pixiu 学术助手, URL: localhost:5173/?unified=1
+	2 container root
+		3 container
+			4 text 貔貅 阶段6：有材料的对话起点验收
+			32 button 未同步草稿
+			33 button 重命名
+			6 container 布局
+				7 button 并排
+				8 button 专注阅读
+				9 button 专注对话
+			10 button 切换主题
+		11 container
+			12 container 任务导航
+				13 pop up button (collapsed, settable) Description: 当前任务, Value: 阶段6：有材料的对话起点验收, Secondary Actions: Expand
+					14 menu
+						34 (selected) 阶段6：有材料的对话起点验收
+						35 阶段4：compose修复核验-v6
+						36 阶段4：critique修复核验-v6
+						37 阶段6：上传切任务归属-A
+						38 阶段6：上传切任务归属-B
+						39 阶段4：critique修复核验-v5
+						40 阶段4：compose修复核验-v5
+						41 阶段4：critique修复核验-v4
+						42 阶段4：compose修复核验-v4
+						43 阶段4：critique修复核验-v3
+						44 阶段4：compose修复核验-v3
+						45 阶段6：首次使用与任务输入验收
+						46 新任务
+						47 阶段6：真实论文阅读工具验收
+						48 阶段4：3DGS验证材料
+						49 阶段6：阅读与编辑体验验收
+						50 阶段5：版本与草稿恢复验收
+						51 阶段5：缺文件提示验收
+						52 新任务
+						53 阶段4：critique真实验收-v2
+						54 演示：LightGaussian 压缩方法
+						55 阶段5：旧文档标识补全验收
+						56 阶段5：移动目标任务
+						57 阶段5：移动原任务
+						58 阶段4：compose真实验收-v2
+						59 阶段4：research真实验收
+						60 阶段4：compose真实验收
+						61 阶段4：critique真实验收
+						62 阶段4：compare真实验收
+						63 阶段4：研究回答显示验收
+						64 阶段3：新手主动RIS学习闭环
+						65 阶段3：主动RIS自测闭环
+						66 阶段2：新版补课协议验收
+						67 阶段2：多论文范围与比较验收
+						68 阶段2：研究终稿发布验收
+						69 阶段2：精读入口验收
+						70 阶段2：自测入口验收
+						71 阶段2：批判成果恢复验收
+						72 阶段2：执行前停止验收
+						73 阶段2：失败与重试验收
+						74 阶段2：先阅读再解析验收
+						75 阶段2统一对话验收
+						76 阶段1文件恢复验收
+						77 任务标识编码验收
+						78 并发隔离验收
+						79 新任务
+				16 button 收起导航
+				17 button 新任务
+				80 container
+					81 heading 论文与材料, Value: 2
+						82 text 论文与材料
+					83 button 添加已有论文
+					84 button LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS
+					85 button Description: 移出任务：LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS, Help: 仅移出当前任务，保留论文文件
+					86 button 上传 PDF
+					87 button 当前论文目录
+					88 heading 笔记与成果, Value: 2
+						89 text 笔记与成果
+					90 button 原文笔记
+					91 button 原文笔记
+					92 button 原文笔记
+					93 button 原文笔记
+					94 button LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文
+					95 button LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文
+					96 button LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文
+			24 container 论文与成果
+				25 text LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文
+				97 button 返回论文
+				26 button 收起阅读区
+				98 container
+					99 container 成果视图
+						100 checkbox 阅读, Value: 1
+						101 checkbox 编辑, Value: 0
+					102 button 下载
+					103 text 已保存
+					120 button (collapsed) 历史版本（0）, Secondary Actions: Expand
+						121 text 历史版本（
+						122 text 0
+						123 text ）
+					124 button (collapsed) 整理成果, Secondary Actions: Expand
+						125 text 整理成果
+					110 button (collapsed) 材料来源（1）, Secondary Actions: Expand
+						111 text 材料来源（
+						112 text 1
+						113 text ）
+					126 button (expanded) 原图与图文下载 · 第 4 页, Secondary Actions: Collapse
+						127 text 原图与图文下载 · 第 
+						128 text 4
+						129 text  页
+					134 button 下载图文 HTML
+					135 button 放大原图
+					136 image LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS第 4 页原图
+					118 container 成果正文
+						130 text 原式标记对应原图中的数学表达式，请结合原图阅读。
+						119 text 对于由 J 表示的投影变换的仿射近似，相机坐标中的协方差矩阵 Σ′ 可按 ⟦原式1⟧ 计算。具体而言，对于每个像素，所有高斯的颜色和不透明度均使用高斯的表示 Eq. 1 计算。与像素重叠的 N 个有序点的混合由以下公式给出：
+						131 text 这里，ci、αi 表示与视角相关的颜色和不透明度，其由协方差为 Σ 的二维高斯乘以可优化的每个三维高斯的不透明度计算得到。总之，每个高斯点由以下属性表征：位置 ⟦原式2⟧，由球谐系数 ⟦原式3⟧ 定义的颜色（其中 k 表示自由度），不透明度 ⟦原式4⟧，旋转因子 ⟦原式5⟧，以及缩放因子 ⟦原式6⟧。
+						132 text 3.2 高斯剪枝与恢复 高斯致密化 [16] 通过克隆并细化初始 SfM 点云，借助改善覆盖率来增强小尺度几何结构和细节丰富的场景外观。尽管这种方法显著提升了重建质量，但它在优化后会将高斯数量从数千增加到数百万，从而导致巨大的存储需求。受神经网络剪枝技术 [63] 的启发——这些技术移除影响较小的神经元，同时保持整体性能——我们提出了一种面向 3D Gaussian Splatting 的定制剪枝策略，以在保持精度的同时减少过度参数化的点。识别冗余但可恢复的高斯对我们的方法至关重要。然而，基于简单标准（例如点不透明度）剪枝高斯可能会降低建模性能，因为它可能消除关键的场景细节，如图 3 所示。
+						133 text 全局显著性计算。受式 2 启发，我们不再仅使用高斯不透明度来评估显著性，而是通过评估视锥体内的三维高斯，将它们投影到相机视点以进行渲染。每个高斯（记为 G(Xj)）的初始显著性得分随后可以基于其对所有训练视图中每个像素（射线，ri）的贡献来量化，使用准则 1(G(Xj), ri) 判断它们是否相交。因此，我们遍历所有训练像素以计算每个高斯的命中次数。该得分通过调整后的三维高斯体积 γ(Σj) 和三维高斯不透明度 σj 进一步细化，因为它们都对渲染公式有贡献。第 j 个三维高斯的体积计算方程为 ⟦原式7⟧，其中 abc 是缩放 (S) 的 3 个维度。我们还考虑透射率 T 的计算方式为：用 1 减去射线在第 j 个三维高斯之前命中的所有三维高斯的不透明度，⟦原式8⟧。最后，全局显著性得分可总结为：
+			30 button 展开对话区
+		31 container 通知
+
+The focused UI element is 1 AXWebArea Pixiu 学术助手, URL: localhost:5173/?unified=1

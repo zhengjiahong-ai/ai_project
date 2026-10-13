@@ -1,0 +1,46 @@
+{
+  "scope": "Actual IAB upload followed by task switch and authoritative GET audit, no model answer validation",
+  "checks": {
+    "sourceTaskOwnsUploadedPaper": true,
+    "otherTaskRemainsEmpty": true,
+    "serverFileMatchesOriginal": true,
+    "taskOutsideScopeFileRejected": true,
+    "noConversationOrLearningCreated": true,
+    "overviewNotRequested": true,
+    "paperReadyForReadingAndQuestions": true,
+    "browserRemainedOnOtherTask": true,
+    "otherDraftPreserved": true,
+    "sourceDraftAndReadingRestored": true,
+    "otherDraftAndEmptyStateRestored": true,
+    "existingReadingTaskPreserved": true
+  },
+  "tasks": {
+    "A": {
+      "id": "task:19cdd7c8-6bf8-46fb-ac72-0ae2c23fd339",
+      "revision": 2,
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "focusedPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    },
+    "B": {
+      "id": "task:8abdf651-8e21-4a67-ac45-1afb5c451885",
+      "revision": 1,
+      "paperIds": [],
+      "focusedPaperId": null
+    }
+  },
+  "fileBytes": 12954089,
+  "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "taskBFileStatus": 404,
+  "processing": {
+    "processingStatus": "ready",
+    "aiAnalysisStatus": "not_requested",
+    "readingReady": true,
+    "questionReady": true,
+    "ragIndexed": true
+  },
+  "verifierWrites": 0,
+  "verifierModelRequests": 0,
+  "limitations": "This already-indexed PDF used the existing-file upload path. Draft restoration and original rendering are separate browser observations; no fresh parsing or content quality claimed."
+}

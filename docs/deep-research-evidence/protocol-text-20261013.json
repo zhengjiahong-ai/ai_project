@@ -1,0 +1,26 @@
+{
+  "change": "Render structured data and analysis settings as readable proposed protocol before semantic verification; repeat after compaction and repair.",
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "patchSha256": "2e45a1305d002d9fd1589729da7d374c679c2a8e65ea36a50dd80f9466282f1f",
+    "reviewCorrections": [
+      "Separate actual data and analysis schemas",
+      "Reject unsupported roles",
+      "Preserve percent precision",
+      "Avoid claiming established effects",
+      "Use Markdown paragraphs and bullets"
+    ]
+  },
+  "verification": {
+    "command": "python -m pytest tests/test_deep_research_*.py tests/test_llm_instance_timeout.py tests/test_offline_llm.py tests/test_pdf_table_columns.py tests/test_table_evidence.py -q -p no:cacheprovider --basetemp=/tmp/dr-protocol-full",
+    "passed": 742,
+    "warnings": 2,
+    "seconds": 74.5
+  },
+  "limits": [
+    "Runtime still .22; new source .23 not yet loaded",
+    "No new real model case",
+    "Does not correct dataset feasibility: five requested scenes from a two-scene subset remains rejected by manual assessment",
+    "Original contradictory prose preserved for review; no silent repair of settings"
+  ]
+}

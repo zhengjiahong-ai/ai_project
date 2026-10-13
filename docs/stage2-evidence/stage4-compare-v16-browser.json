@@ -1,0 +1,26 @@
+{
+  "url": "http://localhost:5173/?unified=1",
+  "body": "推断：整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。 [1] [2]\n\n推断：Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS * [16]） [3] [1] [4]\n\n推断：Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS * [16]） [3] [1] [4]\n\n维度\t论文 1\t论文 2\n表示规模\t原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。 [5]\t推断：LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。 [3]\n渲染速度\t原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。 [6] [5]\t推断：LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。 [3]\n质量\t原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。 [6] [7]\t推断：在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。 [3]\n比较范围\n原文依据",
+  "folds": [
+    {
+      "open": false,
+      "title": "历史版本（0）"
+    },
+    {
+      "open": false,
+      "title": "整理成果"
+    },
+    {
+      "open": false,
+      "title": "材料来源（7）"
+    },
+    {
+      "open": false,
+      "title": "比较范围"
+    },
+    {
+      "open": false,
+      "title": "原文依据"
+    }
+  ]
+}

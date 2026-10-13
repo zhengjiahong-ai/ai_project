@@ -175,6 +175,16 @@ export const flattenOutlineHierarchy = (rawItems) => {
   }));
 };
 
+export const isOutlineNoise = (label) => {
+  const text = String(label || '').trim();
+  if (/^\d+(?:\.\d+)*\s+Section\s+\d+$/i.test(text)) return true;
+  if (/^\d*\s*[A-Za-z][\w]*\s*=/.test(text)) return true;
+  if (/^(?:Ours|PSNR|SSIM|LPIPS|Train)\s*[:(].*\d/i.test(text)) return true;
+  const numbers = text.match(/\b\d+(?:\.\d+)?(?:MB|GB|fps)?\b/gi) || [];
+  if (numbers.length >= 5 && numbers.length / text.split(/\s+/).length >= .35) return true;
+  return /^\d+\s+(?:with|while|where|which|and|or)\b/.test(text) && text.split(/\s+/).length > 7;
+};
+
 export const buildPaperOutlineModel = (deconstructData) => {
   const structure = deconstructData?.paper_structure;
   const skeleton = deconstructData?.paper_skeleton;
@@ -213,10 +223,26 @@ export const buildPaperOutlineModel = (deconstructData) => {
       };
     });
 
+    const orderedItems = items.filter(item => !isOutlineNoise(item.label));
+    // Some parsers append the abstract after the body headings. Only reorder
+    // when page coordinates confirm that it appears before a root heading.
+    const abstractIndex = orderedItems.findIndex(item => /^(abstract|摘要)$/i.test(item.label) && !item.parentId);
+    if (abstractIndex >= 0) {
+      const abstract = orderedItems[abstractIndex];
+      const bodyIndex = orderedItems.findIndex((item, index) => index < abstractIndex &&
+        item.level === 1 && !item.parentId && Number.isFinite(abstract.pageIndex) &&
+        item.pageIndex === abstract.pageIndex && Number.isFinite(abstract.anchorY) &&
+        Number.isFinite(item.anchorY) && abstract.anchorY < item.anchorY);
+      if (bodyIndex >= 0) {
+        orderedItems.splice(abstractIndex, 1);
+        orderedItems.splice(bodyIndex, 0, abstract);
+      }
+    }
+
     return {
       source: 'pdf',
       sourceLabel: outlineSourceLabels.pdf,
-      items: flattenOutlineHierarchy(items),
+      items: flattenOutlineHierarchy(orderedItems),
     };
   }
 

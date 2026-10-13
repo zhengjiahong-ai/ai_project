@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-10-11T22:40:04.1281439+08:00",
+  "method": "GET only",
+  "frontendStatus": 200,
+  "taskId": "critique-final-20261011",
+  "taskTitle": "新版批判阅读验收",
+  "paperCount": 2,
+  "artifactCount": 4,
+  "pythonHealth": {
+    "status": "ok",
+    "checks": {
+      "grobid": {
+        "status": "ok",
+        "message": "GROBID is reachable."
+      },
+      "rag": {
+        "status": "ok",
+        "message": "RAG backend is ready."
+      }
+    },
+    "uptime_seconds": 8753.1
+  },
+  "modelRequestsStarted": 0
+}

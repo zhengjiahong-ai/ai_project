@@ -62,6 +62,7 @@ def register_tools(registry: Any) -> None:
                 "limit": {"type": "integer", "minimum": 1, "maximum": 100},
                 "maxTextChars": {"type": "integer", "minimum": 1, "maximum": 5000},
                 "includeAll": {"type": "boolean"},
+                "allowQueryRewrite": {"type": "boolean"},
             },
             "additionalProperties": False,
         },
@@ -241,6 +242,7 @@ def _retrieve_current_paper_tool(payload: dict[str, Any]) -> dict[str, Any]:
                 query,
                 top_k=top_k,
                 filter_metadata={"id": normalized_pdf_id},
+                **({"allow_query_rewrite": False} if payload.get("allowQueryRewrite") is False else {}),
             )
 
         normalized_items = normalize_evidence_items(

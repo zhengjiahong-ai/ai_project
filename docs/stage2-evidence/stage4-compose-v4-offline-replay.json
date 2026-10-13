@@ -1,0 +1,247 @@
+{
+  "status": "passed",
+  "scope": "Offline replay of the same v4 raw provider output; not a new successful live receipt",
+  "modelCalls": 0,
+  "liveTaskWrites": 0,
+  "sourceWindowChars": 1000,
+  "referencesAfterSplit": 19,
+  "originalReferenceCount": 18,
+  "claims": [
+    {
+      "summary": "3DGS把场景表示为三维高斯：每个高斯由位置、各向异性协方差、透明度α和球谐SH系数描述。渲染时将高斯投影到2D并用α-blending合成图像，球谐SH系数定义颜色。",
+      "kind": "reported",
+      "references": [
+        {
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-7",
+          "quote": "The second component of our method is optimization of the properties of the 3D Gaussians -3D position, opacity 𝛼, anisotropic covariance, and spherical harmonic (SH) coefficients -interleaved with adaptive density control steps, where we add and occasionally remove 3D Gaussians during optimization."
+        },
+        {
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-7",
+          "quote": "they can also be rasterized very efficiently by projecting them to 2D, and applying standard 𝛼-blending, using an equivalent image formation model as NeRF."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-11",
+          "quote": "In summary, each Gaussian point is characterized by attributes including: position X ∈ R 3 , color defined by spherical harmonics coefficients SH ∈ R (k+1) 2 × 3 (where k represents the degrees of freedom), opacity α ∈ R, rotation factor R ∈ R 4 , and scaling factor S ∈ R 3 ."
+        }
+      ]
+    },
+    {
+      "summary": "原始3DGS报告所有测试场景生成1–5百万个高斯，同时报告SOTA视觉质量和1080p实时渲染，显示其以百万级高斯表示换取质量与速度。",
+      "kind": "reported",
+      "references": [
+        {
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-7",
+          "quote": "The optimization procedure produces a reasonably compact, unstructured, and precise representation of the scene (1-5 million Gaussians for all scenes tested)."
+        },
+        {
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-5",
+          "quote": "our 3D Gaussian representation allows optimization with state-of-the-art (SOTA) visual quality and competitive training times, while our tile-based splatting solution ensures real-time rendering at SOTA quality for 1080p resolution"
+        }
+      ]
+    },
+    {
+      "summary": "LightGaussian在原始3DGS基础上通过高斯剪枝与恢复、SH蒸馏和矢量量化压缩表示；报告在Mip-NeRF360上把存储从782MB降至45MB，整体平均FPS从310升至411，只有轻微渲染质量下降。",
+      "kind": "reported",
+      "references": [
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-28",
+          "quote": "Results show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization"
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-28",
+          "quote": "efficiently compresses the feature space, creating a more compact representation."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+          "quote": "This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+          "quote": "Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease."
+        }
+      ]
+    },
+    {
+      "summary": "报告优化后场景为1–5百万个高斯，原文称之为合理紧凑、非结构化的精确表示。",
+      "kind": "reported",
+      "references": [
+        {
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-7",
+          "quote": "The optimization procedure produces a reasonably compact, unstructured, and precise representation of the scene (1-5 million Gaussians for all scenes tested)."
+        }
+      ],
+      "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+    },
+    {
+      "summary": "报告把3D-GS在Mip-NeRF360上从782MB降至45MB（15×），Tank&Temple从380MB降至22MB；另一整体平均从52.38MB降至7.89MB。",
+      "kind": "reported",
+      "references": [
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+          "quote": "This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.\nLightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+          "quote": "Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease."
+        }
+      ],
+      "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    },
+    {
+      "summary": "报告达到SOTA视觉质量，并以SOTA质量进行1080p渲染。",
+      "kind": "reported",
+      "references": [
+        {
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-5",
+          "quote": "our 3D Gaussian representation allows optimization with state-of-the-art (SOTA) visual quality and competitive training times, while our tile-based splatting solution ensures real-time rendering at SOTA quality for 1080p resolution"
+        }
+      ],
+      "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+    },
+    {
+      "summary": "报告相对3D-GS只有轻微渲染质量下降；其消融称SH蒸馏在最小质量损失下简化光照模型。",
+      "kind": "reported",
+      "references": [
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+          "quote": "Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-28",
+          "quote": "SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss."
+        }
+      ],
+      "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    },
+    {
+      "summary": "报告通过基于瓦片的光栅化与GPU排序实现1080p实时渲染；给定片段未给出数值FPS。",
+      "kind": "reported",
+      "references": [
+        {
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-5",
+          "quote": "while our tile-based splatting solution ensures real-time rendering at SOTA quality for 1080p resolution"
+        },
+        {
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-7",
+          "quote": "The third and final element of our method is our real-time rendering solution that uses fast GPU sorting algorithms and is inspired by tile-based rasterization"
+        }
+      ],
+      "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+    },
+    {
+      "summary": "报告整体FPS从310提高到411；实现细节说明性能评估在A6000 GPU上进行。",
+      "kind": "reported",
+      "references": [
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+          "quote": "Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-24",
+          "quote": "All performance evaluations are conducted on an A6000 GPU."
+        }
+      ],
+      "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    }
+  ],
+  "comparisonTable": [
+    {
+      "label": "表示规模/存储",
+      "cells": [
+        {
+          "summary": "报告优化后场景为1–5百万个高斯，原文称之为合理紧凑、非结构化的精确表示。",
+          "kind": "reported",
+          "references": [
+            {
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-7",
+              "quote": "The optimization procedure produces a reasonably compact, unstructured, and precise representation of the scene (1-5 million Gaussians for all scenes tested)."
+            }
+          ],
+          "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        },
+        {
+          "summary": "报告把3D-GS在Mip-NeRF360上从782MB降至45MB（15×），Tank&Temple从380MB降至22MB；另一整体平均从52.38MB降至7.89MB。",
+          "kind": "reported",
+          "references": [
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+              "quote": "This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.\nLightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB."
+            },
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+              "quote": "Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease."
+            }
+          ],
+          "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        }
+      ]
+    },
+    {
+      "label": "渲染质量",
+      "cells": [
+        {
+          "summary": "报告达到SOTA视觉质量，并以SOTA质量进行1080p渲染。",
+          "kind": "reported",
+          "references": [
+            {
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-5",
+              "quote": "our 3D Gaussian representation allows optimization with state-of-the-art (SOTA) visual quality and competitive training times, while our tile-based splatting solution ensures real-time rendering at SOTA quality for 1080p resolution"
+            }
+          ],
+          "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        },
+        {
+          "summary": "报告相对3D-GS只有轻微渲染质量下降；其消融称SH蒸馏在最小质量损失下简化光照模型。",
+          "kind": "reported",
+          "references": [
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+              "quote": "Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease."
+            },
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-28",
+              "quote": "SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss."
+            }
+          ],
+          "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        }
+      ]
+    },
+    {
+      "label": "渲染速度",
+      "cells": [
+        {
+          "summary": "报告通过基于瓦片的光栅化与GPU排序实现1080p实时渲染；给定片段未给出数值FPS。",
+          "kind": "reported",
+          "references": [
+            {
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-5",
+              "quote": "while our tile-based splatting solution ensures real-time rendering at SOTA quality for 1080p resolution"
+            },
+            {
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-7",
+              "quote": "The third and final element of our method is our real-time rendering solution that uses fast GPU sorting algorithms and is inspired by tile-based rasterization"
+            }
+          ],
+          "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        },
+        {
+          "summary": "报告整体FPS从310提高到411；实现细节说明性能评估在A6000 GPU上进行。",
+          "kind": "reported",
+          "references": [
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+              "quote": "Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease."
+            },
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-24",
+              "quote": "All performance evaluations are conducted on an A6000 GPU."
+            }
+          ],
+          "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        }
+      ]
+    }
+  ],
+  "text": "3DGS把场景表示为三维高斯：每个高斯由位置、各向异性协方差、透明度α和球谐SH系数描述。渲染时将高斯投影到2D并用α-blending合成图像，球谐SH系数定义颜色。 [1] [2]\n\n原始3DGS报告所有测试场景生成1–5百万个高斯，同时报告SOTA视觉质量和1080p实时渲染，显示其以百万级高斯表示换取质量与速度。 [1] [3]\n\nLightGaussian在原始3DGS基础上通过高斯剪枝与恢复、SH蒸馏和矢量量化压缩表示；报告在Mip-NeRF360上把存储从782MB降至45MB，整体平均FPS从310升至411，只有轻微渲染质量下降。 [4] [5] [6]\n\n\n| 维度 | 论文 1 | 论文 2 |\n| --- | --- | --- |\n| 表示规模/存储 | 报告优化后场景为1–5百万个高斯，原文称之为合理紧凑、非结构化的精确表示。 [1] | 报告把3D-GS在Mip-NeRF360上从782MB降至45MB（15×），Tank&Temple从380MB降至22MB；另一整体平均从52.38MB降至7.89MB。 [5] [6] |\n| 渲染质量 | 报告达到SOTA视觉质量，并以SOTA质量进行1080p渲染。 [3] | 报告相对3D-GS只有轻微渲染质量下降；其消融称SH蒸馏在最小质量损失下简化光照模型。 [6] [4] |\n| 渲染速度 | 报告通过基于瓦片的光栅化与GPU排序实现1080p实时渲染；给定片段未给出数值FPS。 [3] [1] | 报告整体FPS从310提高到411；实现细节说明性能评估在A6000 GPU上进行。 [6] [7] |\n\n比较边界：原始3DGS当前给定片段未覆盖数值FPS、存储MB或明确硬件平台，因此无法与LightGaussian的对应数值在同一条件下直接排序。；LightGaussian的782MB→45MB（Mip-NeRF360）、380MB→22MB（Tank&Temple）与52.38MB→7.89MB（整体平均）来自不同实验口径，不能不加说明地混用为同一条件。；以上均为各论文自报结果；LightGaussian还依赖其自身平台对3D-GS基线的复现，本证据内未做独立统一条件下的严格比较。\n\n<details>\n<summary>原文依据</summary>\n\n- 论文 1：f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf\n- 论文 2：803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf\n- [1] “The second component of our method is optimization of the properties of the 3D Gaussians -3D position, opacity 𝛼, anisotropic covariance, and spherical harmonic (SH) coefficients -interleaved with adaptive density control steps, where we add and occasionally remove 3D Gaussians during optimization.”\n- [1] “they can also be rasterized very efficiently by projecting them to 2D, and applying standard 𝛼-blending, using an equivalent image formation model as NeRF.”\n- [2] “In summary, each Gaussian point is characterized by attributes including: position X ∈ R 3 , color defined by spherical harmonics coefficients SH ∈ R (k+1) 2 × 3 (where k represents the degrees of freedom), opacity α ∈ R, rotation factor R ∈ R 4 , and scaling factor S ∈ R 3 .”\n- [1] “The optimization procedure produces a reasonably compact, unstructured, and precise representation of the scene (1-5 million Gaussians for all scenes tested).”\n- [3] “our 3D Gaussian representation allows optimization with state-of-the-art (SOTA) visual quality and competitive training times, while our tile-based splatting solution ensures real-time rendering at SOTA quality for 1080p resolution”\n- [4] “Results show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization”\n- [4] “efficiently compresses the feature space, creating a more compact representation.”\n- [5] “This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.”\n- [6] “Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.”\n- [5] “This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.\nLightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB.”\n- [4] “SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss.”\n- [3] “while our tile-based splatting solution ensures real-time rendering at SOTA quality for 1080p resolution”\n- [1] “The third and final element of our method is our real-time rendering solution that uses fast GPU sorting algorithms and is inspired by tile-based rasterization”\n- [7] “All performance evaluations are conducted on an A6000 GPU.”\n\n</details>"
+}

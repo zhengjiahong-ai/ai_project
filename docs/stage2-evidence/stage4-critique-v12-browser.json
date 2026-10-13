@@ -1,0 +1,29 @@
+{
+  "body": "部分分析\n推断：在真实世界大规模场景的重新训练基线比较中，LightGaussian的帧率为Mip-NeRF 360 Datasets：FPS 237，模型大小压缩比为Mip-NeRF 360 Datasets：Size压缩17.38倍，PSNR差异为Mip-NeRF 360 Datasets：PSNR下降0.27 dB；说明以轻微质量损失换取高压缩与提速，该证据不覆盖合成对象级场景。（NVIDIA A6000 GPU，基线3D-GS  *  [16]） [1] [2] [3]\n推断：球谐降阶依赖教师模型的知识蒸馏，仅在训练视图附近的高斯采样位姿上监督像素强度，因此对偏离训练轨迹的视角的保真度有限；直接消除高阶SH会降低质量，蒸馏只能缓解。VQ仅对低显著性SH系数实施，位置、旋转、缩放、不透明度及高显著性SH保留为float16，这限制了压缩率；若对位置/旋转/缩放等全部元素量化，作者自述会带来显著精度损失，说明该方法依赖相似外观分组假设，对非欧几何属性并不鲁棒。 [4] [5] [2]尚待确认另有1项判断暂未确认，未纳入本次结论。待核查问题\n待核查：合成对象级场景下的压缩比、帧率与质量损失，以及剪枝后未覆盖视角和VQ码书存储开销的定量影响。\n原文依据\n[1] “Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178”\n[1] “Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202”\n[2] “For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .”\n[3] “All performance evaluations are conducted on an A6000 GPU.”\n[4] “Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.”\n[4] “Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:”\n[5] “Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.”\n[5] “We propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance.”\n[2] “To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.”\n",
+  "folds": [
+    {
+      "open": false,
+      "summary": "历史版本（0）"
+    },
+    {
+      "open": false,
+      "summary": "整理成果"
+    },
+    {
+      "open": false,
+      "summary": "材料来源（5）"
+    },
+    {
+      "open": false,
+      "summary": "尚待确认"
+    },
+    {
+      "open": false,
+      "summary": "待核查问题"
+    },
+    {
+      "open": false,
+      "summary": "原文依据"
+    }
+  ]
+}

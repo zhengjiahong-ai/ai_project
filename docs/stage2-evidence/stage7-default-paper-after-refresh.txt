@@ -1,0 +1,303 @@
+- banner:
+  - strong: 貔貅
+  - generic: 学术工作台
+  - generic "阶段4：critique表格范围修复核验-v26"
+  - button "未同步草稿"
+  - button "重命名"
+  - group "布局":
+    - button "并排"
+    - button "专注阅读"
+    - button "专注对话"
+  - button "切换主题":
+- main:
+  - complementary "任务导航":
+    - combobox "当前任务":
+      - option "阶段4：critique表格范围修复核验-v26" [selected]
+      - option "阶段4：critique表格范围修复核验-v25"
+      - option "阶段4：critique表格范围修复核验-v24"
+      - option "阶段4：critique表格范围修复核验-v22"
+      - option "阶段4：critique表格范围修复核验-v19"
+      - option "阶段4：critique表格范围修复核验-v18"
+      - option "阶段4：compare表格范围修复核验-v16"
+      - option "阶段4：critique表格范围修复核验-v16"
+      - option "阶段4：compare表格范围修复核验-v13"
+      - option "阶段4：critique表格范围修复核验-v13"
+      - option "阶段4：compare表格范围修复核验-v12"
+      - option "阶段4：critique表格范围修复核验-v12"
+      - option "阶段4：compose修复核验-v9"
+      - option "阶段4：critique修复核验-v9"
+      - option "阶段6：有材料的对话起点验收"
+      - option "阶段4：简洁比较离线展示-v9"
+      - option "阶段4：部分结果离线展示-v8"
+      - option "阶段4：compose修复核验-v7"
+      - option "阶段4：critique修复核验-v7"
+      - option "阶段4：compose修复核验-v6"
+      - option "阶段4：critique修复核验-v6"
+      - option "阶段6：上传切任务归属-A"
+      - option "阶段6：上传切任务归属-B"
+      - option "阶段4：critique修复核验-v5"
+      - option "阶段4：compose修复核验-v5"
+      - option "阶段4：critique修复核验-v4"
+      - option "阶段4：compose修复核验-v4"
+      - option "阶段4：critique修复核验-v3"
+      - option "阶段4：compose修复核验-v3"
+      - option "阶段6：首次使用与任务输入验收"
+      - option "新任务"
+      - option "阶段6：真实论文阅读工具验收"
+      - option "阶段4：3DGS验证材料"
+      - option "阶段6：阅读与编辑体验验收"
+      - option "阶段5：版本与草稿恢复验收"
+      - option "阶段5：缺文件提示验收"
+      - option "新任务"
+      - option "阶段4：critique真实验收-v2"
+      - option "演示：LightGaussian 压缩方法"
+      - option "阶段5：旧文档标识补全验收"
+      - option "阶段5：移动目标任务"
+      - option "阶段5：移动原任务"
+      - option "阶段4：compose真实验收-v2"
+      - option "阶段4：research真实验收"
+      - option "阶段4：compose真实验收"
+      - option "阶段4：critique真实验收"
+      - option "阶段4：compare真实验收"
+      - option "阶段4：研究回答显示验收"
+      - option "阶段3：新手主动RIS学习闭环"
+      - option "阶段3：主动RIS自测闭环"
+      - option "阶段2：新版补课协议验收"
+      - option "阶段2：多论文范围与比较验收"
+      - option "阶段2：研究终稿发布验收"
+      - option "阶段2：精读入口验收"
+      - option "阶段2：自测入口验收"
+      - option "阶段2：批判成果恢复验收"
+      - option "阶段2：执行前停止验收"
+      - option "阶段2：失败与重试验收"
+      - option "阶段2：先阅读再解析验收"
+      - option "阶段2统一对话验收"
+      - option "阶段1文件恢复验收"
+      - option "任务标识编码验收"
+      - option "并发隔离验收"
+      - option "新任务"
+    - button "收起导航":
+    - button "新任务":
+      - text: 新任务
+    - heading "论文与材料" [level=2]
+    - button "添加已有论文":
+    - 'button "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"':
+      - generic: "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+    - 'button "移出任务：LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"':
+    - button "上传 PDF":
+      - text: 上传 PDF
+    - button "当前论文目录":
+      - text: 当前论文目录
+    - heading "笔记与成果" [level=2]
+    - button "对话成果":
+      - generic: 对话成果
+  - region "论文与成果":
+    - strong: "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+    - group "翻译视图":
+      - button "原文"
+      - button "译文"
+      - button "对照"
+    - button "收起阅读区":
+    - status:
+      - text: 正文已就绪
+      - button "生成论文概览"
+    - group "原文缩放":
+      - button "缩小原文": −
+      - generic "原文缩放比例": 91%
+      - button "放大原文": ＋
+      - button "适合宽度"
+    - region "Page 1":
+      - generic: "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS Zhiwen Fan 1 †∗ , Kevin Wang 1 ∗ , Kairun Wen 2 , Zehao Zhu 1 , Dejia Xu 1 , Zhangyang Wang 1 1 The University of Texas at Austin 2 XMU {zhiwenfan,kevinwang.1839,atlaswang}@utexas.edu Project Website : https://lightgaussian.github.io Ours (0.5M points, 0.916) 3D-GS (1.4M points,0.917) Figure 1: Compressibility and Speed : LightGaussian compacts 3D Gaussians, reducing storage from 782MB to 45MB and boosting FPS from 144 to 237, while maintaining visual quality. Abstract Recent advances in real-time neural rendering using point-based techniques have enabled broader adoption of 3D representations. However, foundational approaches like 3D Gaussian Splatting impose substantial storage overhead, as Structure-from- Motion (SfM) points can grow to millions, often requiring gigabyte-level disk space for a single unbounded scene. This growth presents scalability challenges and hinders splatting efficiency. To address this, we introduce LightGaussian , a method for transforming 3D Gaussians into a more compact format. Inspired by Network Pruning, LightGaussian identifies Gaussians with minimal global significance on scene reconstruction, and applies a pruning and recovery process to reduce redundancy while preserving visual quality. Knowledge distillation and pseudo-view augmentation then transfer spherical harmonic coefficients to a lower degree, yielding compact representations. Gaussian Vector Quantization, based on each Gaussian’s global significance, further lowers bitwidth with minimal accuracy loss. LightGaussian achieves an average 15 × compression rate while boosting FPS from 144 to 237 within the 3D-GS framework, enabling efficient complex scene representation on the Mip-NeRF 360 and Tank & Temple datasets. The proposed Gaussian pruning approach is also adaptable to other 3D representations (e.g., Scaffold-GS), demonstrating strong generalization capabilities. 1 Introduction Novel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications ∗ Z. Fan and K. Wang contributed equally; † Z. Fan is the Project Lead 38th Conference on Neural Information Processing Systems (NeurIPS 2024). arXiv:2311.17245v6 [cs.CV] 12 Nov 2024"
+      - link "https://lightgaussian.github.io/":
+        - /url: https://lightgaussian.github.io/
+    - region "Page 2":
+      - generic: "in virtual reality [ 1 ], augmented reality [ 2 ], digital twins [ 3 ], and autonomous driving [ 4 ]. Neural Radiance Fields (NeRFs) [ 5 – 7 ] have shown promise in 3D modeling from multi-view images by mapping 3D locations and view directions to view-dependent color and volumetric density, with pixel intensity rendered through volume rendering [ 8 ]. However, NeRF and its variants face limitations in rendering speed, limiting their deployment in real-world scenarios. To address this, voxel-based representations [ 9 – 13 ], hash grids [ 14 ], and neural light fields [ 15 ] have been developed. Despite improvements, these methods often compromise between quality and speed. Recent progress in point-based 3D Gaussian Splatting (3D-GS) [ 16 ] has enabled real-time rendering with photo-realistic quality for complex scenes. By representing the scene with explicit 3D Gaussians and using a splatting technique [ 17 ], 3D-GS balances speed and quality, making it suitable for large-scale scenarios like digital twins and autonomous driving. However, point-based methods incur high storage costs, as each point and its attributes require independent storage. Additionally, heuristic densification of sparse SfM points into dense Gaussians often results in overparameterization, leading to excessive storage and slower rendering speeds. For instance, a typical unbounded 360-degree scene in 3D-GS [7] may require over 1GB of storage (e.g., 1.4GB for the Bicycle scene). In this paper, we address storage and rendering speed issues by developing a compact representation that retains the original rendering quality. The heuristic densification process in 3D-GS results in significant redundancy. Our method, LightGaussian , reduces redundancy by targeting both Gaussian count (N) and feature dimension (F) through a comprehensive pipeline: • To reduce Gaussian count (N), we propose a Gaussian Pruning and Recovery step, identi- fying and removing Gaussians with minimal impact on visual quality, followed by recovery to ensure smooth adaptation. • For compressing features (F), we introduce an SH Distillation process to compact higher- degree spherical harmonic (SH) coefficients, supported by pseudo-view augmentation. Additionally, we employ Vector Quantization (VQ) to adaptively select a codebook of Gaus- sian attributes (e.g, positions, scales, and rotations), reducing precision for less significant features and applying quantization-aware fine-tuning to maintain quality. In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS. 2 Related Works Efficient 3D Scene Representations. Neural radiance fields (NeRF) [ 5 ] use multi-layer perceptrons (MLPs) to represent scenes, setting new standards for view synthesis quality. However, NeRF models face challenges with slow inference speeds, limiting practical use. Efforts to address this have explored ray re-parameterizations [ 6 , 7 ], explicit spatial data structures [ 18 – 21 , 9 , 14 , 13 ], caching and distillation techniques [ 15 , 22 – 24 ], and ray-based representations [ 25 , 26 ]. Nevertheless, achieving real-time rendering remains challenging for NeRF methods, especially for large-scale scenes where multiple queries per pixel hinder performance. Point-based representations, like Gaussians, have been explored in various applications, such as shape reconstruction [ 27 ], molecular modeling [ 28 ], and point-cloud replacement [ 29 ], as well as in shadow [ 30 ] and cloud rendering [ 31 ]. Pulsar [ 32 ] demonstrated efficient sphere rasterization, while 3D Gaussian Splatting (3D-GS) [ 16 ] applies anisotropic Gaussians [ 33 ] with tile-based sorting to achieve real-time speed and quality comparable to MLP-based methods like Mip-NeRF 360 [7]. Despite its strengths, 3D-GS has high storage demands due to the extensive attributes stored with each Gaussian, often requiring gigabytes per scene and hindering rendering efficiency. Recent concurrent works address these issues by using region-based vector quantization [ 34 ], K-means codebooks [ 35 ], view-direction exclusion [ 36 ], or learned binary masks and grid-based neural networks instead of spherical harmonics (SHs) [37] to reduce model size. Pruning and Quantization. Model pruning reduces neural network complexity by removing non- significant parameters, balancing performance and resource use. Unstructured [ 38 ] and structured 2"
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+    - region "Page 3":
+      - generic: "3D Gaussians Gaussian Prune & Recovery SH Distillation High-degree Low-degree Rasterizer Rasterizer Distillation Attributes Significance Score XYZ Spherical Harmonics Opacity/Rot/Scale FP16 FP16 Vector Quantization FP16 Gaussian Vector Quantization Score Calculation Multi-view Images Pseudo cameras Training cameras Figure 2: Pipeline of LightGaussian. 3D Gaussians are optimized from multi-view images and SfM points. LightGaussian calculates each Gaussian’s global significance on training data, pruning those with the least significance. Next, SH coefficients are distilled into a compact format using synthesized pseudo-views. Finally, vector quantization, including codebook initialization and assignment, reduces model bandwidth. pruning [ 39 , 40 ] eliminate parameters at the weight level and neuron/channel levels, resulting in a smaller, more efficient architecture. Iterative magnitude pruning (IMP), where low-magnitude weights are progressively removed, has proven effective in methods like lottery ticket rewinding [41, 42]. Vector quantization (VQ) [ 43 ] compresses data by representing it with discrete codebook entries (tokens), using mean square error (MSE) to select the closest match in the codebook for each data vector. Prior studies [ 44 – 46 ] have shown that learning discrete, compact representations enhances visual understanding and model robustness. VQ has thus been widely applied in image synthesis [ 47 ], text-to-image generation [48], and novel view synthesis [18, 49, 50]. Knowledge Distillation. Knowledge Distillation (KD) [ 51 – 54 , 15 ] trains a smaller student model by transferring knowledge from a larger teacher model [ 55 ]. In 3D vision, KD has been applied to neural scene representations, leveraging view renderings to incorporate 2D priors. For example, DreamFusion [ 56 ] and NeuralLift-360 [ 57 ] use pre-trained diffusion models for 3D generation, while models like DFF [ 58 ], NeRF-SOS [ 59 ], INS [ 60 ], and SA3D [ 61 ] distill 2D image feature extractors to 3D tasks. KD has also been central to compressing scene representation models [15, 24]. 3 Methods Overview. The LightGaussian framework is illustrated in Fig. 2. The 3D-GS model is trained on multi-view images, initialized from SfM point clouds, and expanded to millions of Gaussians to represent the scene comprehensively. Our pipeline then processes the 3D-GS model into a compact format using Gaussian Prune and Recovery to reduce the number of Gaussians, SH Distillation to eliminate redundant SHs while retaining key lighting information, and Vector Quantization to store Gaussians with lower bit-width. 3.1 Background: 3D Gaussian Splatting 3D Gaussian Splatting (3D-GS) [ 16 ] is an explicit point-based 3D scene representation, utilizing Gaussians with various attributes to model the scene. When representing a complex real-world scene, 3D-GS is initialized from a sparse point cloud generated by SfM, and Gaussian Densification is applied to increase the Gaussian counts that are used for handling small-scale geometry insufficiently covered and over reconstruction. Formally, each Gaussian is characterized by a covariance matrix Σ and a center point X , which is referred to as the mean value of the Gaussian: G ( X ) = e − 1 2 X T Σ − 1 X , Σ = RSS T R T , (1) where Σ can be decomposed into a scaling matrix S and a rotation matrix R . The complex directional appearance is modeled by an additional property, Spherical Harmonics (SH), with n coefficients, \b c i ∈ R 3 | i = 1 , 2 , . . . , n where n = D 2 represents the number of coefficients of SH with degree D . A higher degree D equips 3D-GS with a better capacity to model the view- dependent effect but causes a significantly heavier attribute load. When rendering 2D images from the 3D Gaussians, the technique of splatting [ 62 , 17 ] is employed for the Gaussians within the camera planes. With a viewing transform denoted as W and the Jacobian 3"
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+    - region "Page 4":
+      - generic: "PSNR: 27.2 (3D-GS) PSNR: 25.3 (Opacity prune) Figure 3: Zero-shot Opacity-based Pruning . A significant number of Gaussians exhibit small opacity values (top). Simply utilizing Gaussian opacity as an indicator for pruning the least important Gaussians results in the rendered image losing intricate details (bottom), with the PSNR dropping from 27.2 to 25.3. This has inspired us to find better criteria to measure global significance in terms of rendering quality. The accumulated Probability Density Function(PDF) is equal to 1. of the affine approximation of the projective transformation represented by J , the covariance matrix Σ ′ in camera coordinates can be computed as Σ ′ = J W Σ W T J T . Specifically, for each pixel, the color and opacity of all the Gaussians are computed using the Gaussian’s representation Eq. 1. The blending of N ordered points that overlap the pixel is given by the formula: C = X i ∈ N c i α i i − 1 Y j =1 (1 − α i ) . (2) Here, c i , α i represents the view-dependent color and opacity, calculated from a 2D Gaussian with covariance Σ multiplied by an optimizable per-3D Gaussian’s opacity. In summary, each Gaussian point is characterized by attributes including: position X ∈ R 3 , color defined by spherical harmonics coefficients SH ∈ R ( k +1) 2 × 3 (where k represents the degrees of freedom), opacity α ∈ R , rotation factor R ∈ R 4 , and scaling factor S ∈ R 3 . 3.2 Gaussian Pruning & Recovery Gaussian densification [ 16 ], which clones and refines the initial SfM point cloud, enhances small-scale geometry and detailed scene appearance by improving coverage. While this approach significantly boosts reconstruction quality, it increases the number of Gaussians from thousands to millions after optimization, resulting in substantial storage demands.Inspired by neural network pruning techniques [ 63 ] that remove less impactful neurons while preserving overall performance, we propose a tailored pruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig. 3. Global Significance Calculation. Inspired by Eq. 2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera viewpoint for rendering. The initial significance score of each Gaussian (denoted as G ( X j ) ) can then be quantified based on its contribution to each pixel (ray, r i ) across all training views using the criteria 1 ( G ( X j ) , r i ) whether they intersect or not. Consequently, we iterate over all training pixels to calculate the hit count of each Gaussian. The score is further refined by the adjusted 3D Gaussian’s volume γ ( Σ j ) and 3D Gaussian’s opacity σ j , as they all contribute for the rendering formula. The volume calculation equation of the j -th 3D Guassian is V ( Σ j ) = 4 3 πabc , where abc are the 3 dimensions of Scale ( S ). We also consider the transmittance T is calculated with one subtract all the 3D Gaussian’s opacity the ray hit before the j -th 3D Gaussian, T = Q j − 1 i =1 (1- σ i ). Finally, the global significance score can be summarized as: GS j = M HW X i =1 1 ( G ( X j ) , r i ) · σ j · T · γ ( Σ j ) , (3) 4"
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+    - region "Page 5":
+      - generic: "where j is the Gaussian index, i denotes a pixel, and M , H , and W represent the number of training views, image height, and width, respectively. 1 is an indicator function that determines whether a Gaussian intersects a given ray. However, using Gaussian volume alone tends to overemphasize background Gaussians, leading to excessive pruning of Gaussians modeling fine geometry. Thus, we propose a more adaptive approach to measuring volume dimensions: γ ( Σ ) = ( V norm ) β , (4) V norm = min \x12 V ( Σ ) V max90 , 1 \x13 . Here, the calculated Gaussian volume is firstly normalized by the 90% largest of all sorted Gaussians, clipping the range between 0 and 1, to avoid excessive floating Gaussians derived from vanilla 3D-GS. The β is introduced to provide additional flexibility. Gaussian Co-adaptation. We rank all Gaussians by their global significance scores to quantitatively guide pruning of the lower-ranked Gaussians. The remaining Gaussians are then jointly adapted by fine-tuning their attributes—without additional densification—to offset the minor loss from pruning. This adaptation is performed using photometric loss on the original training views, aligned with 3D-GS training for 5,000 iterations. 3.3 Distilling into Compact SHs In the uncompressed Gaussian Splat representation, a substantial 81.3 percent of the feature dimension is occupied by Spherical Harmonics (SH) coefficients, requiring (45+3) floating-point values per splat. Directly reducing the SH degree can save disk space but also diminishes surface “shininess” and affects specular reflections. To balance model size with scene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution: L distill = 1 HW HW X i =1 ∥ C teacher ( r i ; [ R | t ]) − C student ( r i ; [ R | t ]) ∥ 2 2 . (5) t pseudo = t train + N (0 , σ 2 ) , (6) where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N denotes a Gaussian distribution with mean 0 and variance σ 2 , which is added to the original position to generate the new position. 3.4 Gaussian Attributes Vector Quantization Vector quantization (VQ) clusters voxels into compact codebooks, enabling high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements—especially for attributes like position, rotation, and scale—results in significant accuracy losses and a marked reduction in precision when represented discretely. We propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = { g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = { c 1 , c 2 , . . . , c K } , where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G , associates them to the closest codes by euclidean distance, and update each c k via moving average rule: c k = λ d · c k + (1 − λ d ) · 1 / T k · P g j ∈R ( c k ) GS j · g j , where T k = P g j ∈R ( c k ) GS j is the significance score (Eq. 3) which is assigned to the code vector c k , R ( c k ) is the set of Gaussians associated to the k -th code. λ d = 0 . 8 represents the decay value, which is utilized to update the 5"
+      - link:
+        - /url: ""
+      - link:
+        - /url: ""
+    - form "论文页码":
+      - button "上一页" [disabled]:
+      - text: 第
+      - textbox "跳转到页码": "1"
+      - text: / 19 页
+      - button "跳转"
+      - button "下一页":
+  - separator "调整阅读与对话宽度"
+  - region "任务对话":
+    - strong: 对话
+    - generic: 1 篇材料
+    - button "收起对话区":
+    - generic: "▣ 任务材料 1 篇 · 正在阅读 LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+    - paragraph: 重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？
+    - button "删除此消息":
+    - button "收藏到学术笔记":
+    - article:
+      - generic: 阅读助手
+      - button "删除此消息":
+      - button "收藏到学术笔记":
+      - button "打开完整成果":
+        - text: 打开成果
+      - paragraph: 作者表1列出真实世界大规模场景（Mip-NeRF 360和Tank and Temple）的结果，其中3D-GS基线在同一平台用原代码配置重训并以*标记；所有性能评估在A6000 GPU上完成，合成物体级数据集指标另列于补充材料。 [1] [2] [3]
+      - paragraph: 推断：Mip-NeRF 360（NVIDIA A6000 GPU，Ours相对基线3D-GS * [16]）：存储压缩17.38倍、PSNR下降0.270 dB、SSIM下降0.007、LPIPS上升0.020；Mip-NeRF 360（NVIDIA A6000 GPU，模型Ours）：FPS 237。 [1] [2] [3]
+      - paragraph: 作者用于剪枝的全局显著性先统计各高斯在所有训练视图像素射线中的相交命中数，再乘以调整体积与不透明度；体积项按所有高斯的排序参考进行归一化并裁剪到单位区间，随后按全局显著性排序剪除较低排名高斯，剩余高斯在不额外增加稠密化的情况下微调。 [4] [5] [6]
+      - button "来源 2":
+        - text: 来源 2
+    - textbox "输入问题":
+      - /placeholder: 输入问题，/ 选功能，@ 选材料
+    - button "发送消息" [disabled]:
+- generic "通知"

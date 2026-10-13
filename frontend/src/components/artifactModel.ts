@@ -121,9 +121,11 @@ interface TranslationArtifactInput {
   pdfFileName?: string;
   pageIndex?: number | null;
   translatedText?: string;
+  status?: string;
+  warning?: string;
 }
 
-export const buildTranslationArtifact = ({ pdfId, pdfFileName = '', pageIndex = null, translatedText = '' }: TranslationArtifactInput = {}) => {
+export const buildTranslationArtifact = ({ pdfId, pdfFileName = '', pageIndex = null, translatedText = '', status = 'success', warning = '' }: TranslationArtifactInput = {}) => {
   const content = normalizeText(translatedText);
   const normalizedPdfId = normalizeId(pdfId);
   if (!normalizedPdfId || !content) return null;
@@ -132,9 +134,9 @@ export const buildTranslationArtifact = ({ pdfId, pdfFileName = '', pageIndex = 
   const fileLabel = normalizeText(pdfFileName);
   return createInsightArtifact({
     kind: 'translation-page',
-    title: `${fileLabel ? `${fileLabel} · ` : ''}第 ${pageNumber} 页译文`,
+    title: `${fileLabel ? `${fileLabel} · ` : ''}第 ${pageNumber} 页译文${status === 'partial' ? '（部分）' : ''}`,
     summary: summarize(content, '当前页译文'),
-    content,
+    content: status === 'partial' ? `> ${normalizeText(warning) || '部分段落未完成，以下为已完成译文。'}\n\n${content}` : content,
     pdfId: normalizedPdfId,
     pageIndex,
     tags: ['translation', 'page'],

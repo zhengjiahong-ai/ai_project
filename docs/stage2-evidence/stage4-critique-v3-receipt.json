@@ -1,0 +1,1833 @@
+{
+  "taskId": "stage4-3dgs-critique-20261008-v3",
+  "requestId": "stage4-3dgs-critique-20261008-v3-request",
+  "kind": "conversation.execute",
+  "status": "succeeded",
+  "error": "",
+  "createdAt": "2026-10-08T11:01:25.551467+00:00",
+  "updatedAt": "2026-10-08T11:03:53.146994+00:00",
+  "request": {
+    "expectedTaskRevision": 0,
+    "message": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？区分作者原文、推断及未检索覆盖，不能把片段缺失当作论文缺陷。",
+    "capability": "critique",
+    "allowedPaperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+    "strictScope": true,
+    "steps": [],
+    "allowExternalSearch": false
+  },
+  "paperIds": [
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+  ],
+  "result": {
+    "artifact": {
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "sentenceSourceMap": [
+        {
+          "confidence": 0.5,
+          "id": "ref-1",
+          "sentence": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.3,
+          "id": "ref-2",
+          "sentence": "需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.38,
+          "id": "ref-3",
+          "sentence": "基于现有证据可成立的是： - 作者报告了 Mip-NeRF360 上 782MB→45MB 的存储压缩与 200+ FPS，给定 A6000 平台上的复现比较条件（3D-GS 与 Compressed 3D-GS 用原始代码重训）。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 1.0,
+          "id": "ref-4",
+          "sentence": "- Gaussian Pruning & Recovery 采用由训练视图命中数、不透明度与高斯体积加权得到的全局显著性分数，避免仅按不透明度剪枝造成的细节丢失；",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 1.0,
+          "id": "ref-5",
+          "sentence": "- VQ 被限制用于 SH 系数的低显著性成分（codebook 大小 8192），作者指出对所有属性尤其是位置、旋转、缩放量化会造成显著精度损失，说明该方法刻意规避了几何属性量化。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 1.0,
+          "id": "ref-6",
+          "sentence": "× 压缩与 200+ FPS 容易被误读为跨数据集通用性能；",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.78,
+          "id": "ref-7",
+          "sentence": "Table7 中 52.38MB→7.89MB、FPS 310→411 与主文 782MB→45MB、200+ FPS 是不同比较场景和度量口径；",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 1.0,
+          "id": "ref-8",
+          "sentence": "未检索到 15× 压缩主张的逐场景拆解：Mip-NeRF360 九场景各场景存储、FPS 和质量指标是否一致；",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22"
+          ],
+          "target": "message"
+        }
+      ],
+      "sources": [
+        {
+          "chunkIndex": 35,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+          "metadata": {
+            "chunk_index": 35,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "page": 16,
+            "page_index": 15,
+            "section_id": "section-16",
+            "section_title": "More Experiment Results",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 15,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-16",
+          "similarity": 0.8851593732833862,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: More Experiment Results\n\nContent:\nof each Gaussian, work to reduce the SH redundancy, and apply the Vector Quantization (codebook size set at 8192) to the learned representation. Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.\nAdditional Qualitative Results on Mip-NeRF360. We provide extra visualizations for 3D-GS[16], LightGaussian (ours), and VQ-DVGO[49], accompanied by the corresponding resid"
+        },
+        {
+          "chunkIndex": 19,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+          "metadata": {
+            "chunk_index": 19,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "page": 5,
+            "page_index": 4,
+            "section_id": "section-7",
+            "section_title": "Gaussian Attributes Vector Quantization",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 4,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-7",
+          "similarity": 0.8815481662750244,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+        },
+        {
+          "chunkIndex": 29,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+          "metadata": {
+            "chunk_index": 29,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "page": 8,
+            "page_index": 7,
+            "section_id": "section-12",
+            "section_title": "Ablation Studies",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 7,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-12",
+          "similarity": 0.8799728155136108,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nGaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework.\nSignificance Criteria To identify the optimal criteria for measuring each Gaussian's global significance, we evaluated key characteristics: Gaussian-ray interaction count, Gauss"
+        },
+        {
+          "chunkIndex": 26,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+          "metadata": {
+            "chunk_index": 26,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "page": 8,
+            "page_index": 7,
+            "section_id": "section-10",
+            "section_title": "Experimental Results",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 7,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-10",
+          "similarity": 0.8728901147842407,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Results\n\nContent:\naccuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduc"
+        },
+        {
+          "chunkIndex": 9,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+          "metadata": {
+            "chunk_index": 9,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "page": 3,
+            "page_index": 2,
+            "section_id": "section-4",
+            "section_title": "Background: 3D Gaussian Splatting",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 2,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": 23.259348128623305,
+          "sectionId": "section-4",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Background: 3D Gaussian Splatting\n\nContent:\nby SfM, and Gaussian Densification is applied to increase the Gaussian counts that are used for handling small-scale geometry insufficiently covered and over reconstruction. Formally, each Gaussian is characterized by a covariance matrix Σ and a center point X, which is referred to as the mean value of the Gaussian:\nwhere Σ can be decomposed into a scaling matrix S and a rotation matrix R.\nThe complex directional appearance is modeled by an additional property, Spherical Harmonics (SH), with n coefficients, c i ∈ R 3 |i = 1, 2, . . . , n where n = D 2"
+        },
+        {
+          "chunkIndex": 13,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+          "metadata": {
+            "chunk_index": 13,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "page": 4,
+            "page_index": 3,
+            "section_id": "section-5",
+            "section_title": "Gaussian Pruning & Recovery",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 3,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": 22.782517576095913,
+          "sectionId": "section-5",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+        },
+        {
+          "chunkIndex": 20,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+          "metadata": {
+            "chunk_index": 20,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "page": 5,
+            "page_index": 4,
+            "section_id": "section-7",
+            "section_title": "Gaussian Attributes Vector Quantization",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 4,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-7",
+          "similarity": 0.8866141438484192,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nrendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:\nis the significance score (Eq. 3) which is assigned to the code vector c k , R(c k ) is the set of Gaussians associated to the k-th code. λ d = 0.8 represents"
+        },
+        {
+          "chunkIndex": 22,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+          "metadata": {
+            "chunk_index": 22,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "page": 6,
+            "page_index": 5,
+            "section_id": "section-9",
+            "section_title": "Experimental Settings",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 5,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": 25.957298447071,
+          "sectionId": "section-9",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nDatasets and Metrics. We conduct comparisons using the scene-scale view synthesis dataset provided by Mip-NeRF360[64], which comprises nine real-world large-scale scenes, including five unbounded outdoor and four indoor settings with complex backgrounds. In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structu"
+        }
+      ],
+      "text": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；这些是作者报告结果，不能脱离数据集和硬件条件外推。 三个模块的证据强度不均：剪枝和 VQ 的机制及部分局限有文本支撑，其中 VQ 对几何属性量化的不适性为作者明确披露；SH Distillation 仅有定性效果，具体降阶与质量代价在证据中不足。 需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。\n\n当前仍有部分关键点证据不足，请结合原文进一步核对。\n\n**证据支持的贡献**\n- 基于现有证据可成立的是： - 作者报告了 Mip-NeRF360 上 782MB→45MB 的存储压缩与 200+ FPS，给定 A6000 平台上的复现比较条件（3D-GS 与 Compressed 3D-GS 用原始代码重训）。 - Gaussian Pruning & Recovery 采用由训练视图命中数、不透明度与高斯体积加权得到的全局显著性分数，避免仅按不透明度剪枝造成的细节丢失；该机制在证据中有明确描述。 - VQ 被限制用于 SH 系数的低显著性成分（codebook 大小 8192），作者指出对所有属性尤其是位置、旋转、缩放量化会造成显著精度损失，说明该方法刻意规避了几何属性量化。 - SH Distillation 作为降低 SH 阶数、简化光照模型的模块被报告可带来效率提升，但现有片段仅给出定性证据。\n\n**局限**\n- 作者在证据中明确披露：对位置、旋转、尺度等属性做全局量化会导致显著精度损失和离散化精度下降，因此 VQ 只能选择性用于低显著性 SH 系数；这表明几何、位姿和尺度部分仍是量化压缩的脆弱点。\n- 剪枝若仅依赖点不透明度会删除必要场景细节，这是作者在 Fig.3 报告中给出的风险，需要全局显著性分数和后续 co-adaptation 来恢复；但当前证据未给出剪枝率上限和薄结构等失败案例的定量边界。\n- SH Distillation 的证据仅为机制描述和“质量损失轻微”的定性判断，缺少降阶前后的具体质量指标与适用条件，因此该项的有效范围不易判断。\n\n**过度主张风险**\n- 15× 压缩与 200+ FPS 容易被误读为跨数据集通用性能；证据只明确支持 Mip-NeRF360（782MB→45MB、SSIM 下降 0.007）与 Tank & Temple（380MB→22MB）等作者报告条件，且复现比较基于 NVIDIA A6000，未提供这些数值的分辨率、视角轨迹等测试细节。\n- Table7 中 52.38MB→7.89MB、FPS 310→411 与主文 782MB→45MB、200+ FPS 是不同比较场景和度量口径；若混用或把平均值替代主压缩主张会夸大适用范围。\n- 视觉质量被表述为“comparable”或“仅轻微下降”，但当前证据未覆盖完整 PSNR/SSIM/LPIPS 逐场景数据，无法排除特定场景或视角下质量损失被低估的风险。\n\n**待补证据**\n- 未检索到 SH Distillation 的具体降阶设置（从几阶到几阶）及其对 PSNR/SSIM/LPIPS 的定量影响，无法判断其质量代价。\n- 未检索到 15× 压缩主张的逐场景拆解：Mip-NeRF360 九场景各场景存储、FPS 和质量指标是否一致；也未覆盖 200+ FPS 的测量条件（分辨率、轨迹、批次、是否含预处理）。\n- 未检索到剪枝率、VQ codebook 大小（8192）对薄结构、镜面/视角相关外观、不同初始化或不同数据分布的敏感性和失败案例的定量实验，需回查原文图表或补充材料。"
+    },
+    "capability": "critique",
+    "materialScope": {
+      "allowedPaperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+      "strictScope": true,
+      "taskId": "stage4-3dgs-critique-20261008-v3"
+    },
+    "message": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；这些是作者报告结果，不能脱离数据集和硬件条件外推。 三个模块的证据强度不均：剪枝和 VQ 的机制及部分局限有文本支撑，其中 VQ 对几何属性量化的不适性为作者明确披露；SH Distillation 仅有定性效果，具体降阶与质量代价在证据中不足。 需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。\n\n当前仍有部分关键点证据不足，请结合原文进一步核对。\n\n**证据支持的贡献**",
+    "resultVersion": 1,
+    "sentenceSourceMap": [
+      {
+        "confidence": 0.5,
+        "id": "ref-1",
+        "sentence": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；",
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+        ],
+        "target": "message"
+      },
+      {
+        "confidence": 0.3,
+        "id": "ref-2",
+        "sentence": "需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。",
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22"
+        ],
+        "target": "message"
+      }
+    ],
+    "sources": [
+      {
+        "chunkIndex": 35,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+        "metadata": {
+          "chunk_index": 35,
+          "file_name": "target_paper.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "page": 16,
+          "page_index": 15,
+          "section_id": "section-16",
+          "section_title": "More Experiment Results",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 15,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-16",
+        "similarity": 0.8851593732833862,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: More Experiment Results\n\nContent:\nof each Gaussian, work to reduce the SH redundancy, and apply the Vector Quantization (codebook size set at 8192) to the learned representation. Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.\nAdditional Qualitative Results on Mip-NeRF360. We provide extra visualizations for 3D-GS[16], LightGaussian (ours), and VQ-DVGO[49], accompanied by the corresponding resid"
+      },
+      {
+        "chunkIndex": 19,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+        "metadata": {
+          "chunk_index": 19,
+          "file_name": "target_paper.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "page": 5,
+          "page_index": 4,
+          "section_id": "section-7",
+          "section_title": "Gaussian Attributes Vector Quantization",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 4,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-7",
+        "similarity": 0.8815481662750244,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+      },
+      {
+        "chunkIndex": 29,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+        "metadata": {
+          "chunk_index": 29,
+          "file_name": "target_paper.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "page": 8,
+          "page_index": 7,
+          "section_id": "section-12",
+          "section_title": "Ablation Studies",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 7,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-12",
+        "similarity": 0.8799728155136108,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nGaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework.\nSignificance Criteria To identify the optimal criteria for measuring each Gaussian's global significance, we evaluated key characteristics: Gaussian-ray interaction count, Gauss"
+      },
+      {
+        "chunkIndex": 26,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+        "metadata": {
+          "chunk_index": 26,
+          "file_name": "target_paper.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "page": 8,
+          "page_index": 7,
+          "section_id": "section-10",
+          "section_title": "Experimental Results",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 7,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-10",
+        "similarity": 0.8728901147842407,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Results\n\nContent:\naccuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduc"
+      },
+      {
+        "chunkIndex": 9,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+        "metadata": {
+          "chunk_index": 9,
+          "file_name": "target_paper.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "page": 3,
+          "page_index": 2,
+          "section_id": "section-4",
+          "section_title": "Background: 3D Gaussian Splatting",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 2,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": 23.259348128623305,
+        "sectionId": "section-4",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Background: 3D Gaussian Splatting\n\nContent:\nby SfM, and Gaussian Densification is applied to increase the Gaussian counts that are used for handling small-scale geometry insufficiently covered and over reconstruction. Formally, each Gaussian is characterized by a covariance matrix Σ and a center point X, which is referred to as the mean value of the Gaussian:\nwhere Σ can be decomposed into a scaling matrix S and a rotation matrix R.\nThe complex directional appearance is modeled by an additional property, Spherical Harmonics (SH), with n coefficients, c i ∈ R 3 |i = 1, 2, . . . , n where n = D 2"
+      },
+      {
+        "chunkIndex": 13,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+        "metadata": {
+          "chunk_index": 13,
+          "file_name": "target_paper.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "page": 4,
+          "page_index": 3,
+          "section_id": "section-5",
+          "section_title": "Gaussian Pruning & Recovery",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 3,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": 22.782517576095913,
+        "sectionId": "section-5",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+      },
+      {
+        "chunkIndex": 20,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+        "metadata": {
+          "chunk_index": 20,
+          "file_name": "target_paper.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "page": 5,
+          "page_index": 4,
+          "section_id": "section-7",
+          "section_title": "Gaussian Attributes Vector Quantization",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 4,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-7",
+        "similarity": 0.8866141438484192,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nrendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:\nis the significance score (Eq. 3) which is assigned to the code vector c k , R(c k ) is the set of Gaussians associated to the k-th code. λ d = 0.8 represents"
+      },
+      {
+        "chunkIndex": 22,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+        "metadata": {
+          "chunk_index": 22,
+          "file_name": "target_paper.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "page": 6,
+          "page_index": 5,
+          "section_id": "section-9",
+          "section_title": "Experimental Settings",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 5,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": 25.957298447071,
+        "sectionId": "section-9",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nDatasets and Metrics. We conduct comparisons using the scene-scale view synthesis dataset provided by Mip-NeRF360[64], which comprises nine real-world large-scale scenes, including five unbounded outdoor and four indoor settings with complex backgrounds. In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structu"
+      }
+    ],
+    "status": "success",
+    "steps": [
+      {
+        "capability": "critique",
+        "results": [
+          {
+            "citationGraph": null,
+            "claimed_contributions": "作者显式宣称 LightGaussian 通过对 3D Gaussian Splatting 施加 Gaussian Pruning and Recovery、SH Distillation 和 Vector Quantization，实现无界场景的高压缩与快速渲染：在 Mip-NeRF360 上把存储从 782MB 降至 45MB（约 15× 减少），渲染速度超过 200 FPS，且 SSIM 仅下降 0.007；在 Tank & Temple 上把存储从 380MB 降至 22MB，渲染速度接近翻倍；并宣称剪枝后可通过 co-adaptation 恢复质量。",
+            "claims": [
+              {
+                "claim": "作者宣称 Gaussian Pruning、SH Distillation 与 Vector Quantization 这些模块组合起来能显著提升框架的整体效率与性能。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29"
+                ],
+                "id": "claim-1",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [],
+                "numericVerificationStatus": "not_applicable",
+                "quote": "Combined, these modules substantially improve the overall efficiency and performance of our framework.",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "LightGaussian 在 Mip-NeRF360 上将存储从 782MB 降至 45MB，实现约 15× 压缩。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+                ],
+                "id": "claim-2",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [
+                  {
+                    "chunkIndex": 35,
+                    "label": "Table7",
+                    "matchedNumbers": [
+                      "15"
+                    ],
+                    "metrics": [
+                      "accuracy"
+                    ],
+                    "numbers": [
+                      "15",
+                      "52.38",
+                      "7.89"
+                    ],
+                    "pageIndex": 15,
+                    "reason": "主张里的 15 在本段逐字出现；匹配到 Table7；指标 accuracy。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-16",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: More Experiment Results\n\nContent:\nof each Gaussian, work to reduce the SH redundancy, and apply the Vector Quantization (codebook size set at 8192) to the learned representation. Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.\nAdditional Qualitative Results on Mip-NeRF360. We provide extra visualizations for 3D-GS[16], LightGaussian (ours), and VQ-DVGO[49], accompanied by the corresponding resid"
+                  },
+                  {
+                    "chunkIndex": 29,
+                    "label": "",
+                    "matchedNumbers": [
+                      "15"
+                    ],
+                    "metrics": [
+                      "performance"
+                    ],
+                    "numbers": [
+                      "15"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "主张里的 15 在本段逐字出现；指标 performance。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-12",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nGaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework.\nSignificance Criteria To identify the optimal criteria for measuring each Gaussian's global significance, we evaluated key characteristics: Gaussian-ray interaction count, Gauss"
+                  },
+                  {
+                    "chunkIndex": 26,
+                    "label": "",
+                    "matchedNumbers": [
+                      "15"
+                    ],
+                    "metrics": [
+                      "accuracy",
+                      "performance"
+                    ],
+                    "numbers": [
+                      "0.06",
+                      "15",
+                      "2.1",
+                      "200"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "主张里的 15 在本段逐字出现；指标 accuracy, performance。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-10",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Results\n\nContent:\naccuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduc"
+                  }
+                ],
+                "numericVerificationStatus": "verified",
+                "quote": "cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "LightGaussian 通过剪枝不重要高斯的 rasterization 实现超过 200 FPS 的渲染速度。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+                ],
+                "id": "claim-3",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [
+                  {
+                    "chunkIndex": 26,
+                    "label": "",
+                    "matchedNumbers": [
+                      "200"
+                    ],
+                    "metrics": [
+                      "accuracy",
+                      "performance"
+                    ],
+                    "numbers": [
+                      "0.06",
+                      "15",
+                      "2.1",
+                      "200"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "主张里的 200 在本段逐字出现；指标 accuracy, performance。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-10",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Results\n\nContent:\naccuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduc"
+                  },
+                  {
+                    "chunkIndex": 35,
+                    "label": "Table7",
+                    "matchedNumbers": [],
+                    "metrics": [
+                      "accuracy"
+                    ],
+                    "numbers": [
+                      "15",
+                      "52.38",
+                      "7.89"
+                    ],
+                    "pageIndex": 15,
+                    "reason": "匹配到 Table7；指标 accuracy；数值 15, 52.38, 7.89。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-16",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: More Experiment Results\n\nContent:\nof each Gaussian, work to reduce the SH redundancy, and apply the Vector Quantization (codebook size set at 8192) to the learned representation. Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.\nAdditional Qualitative Results on Mip-NeRF360. We provide extra visualizations for 3D-GS[16], LightGaussian (ours), and VQ-DVGO[49], accompanied by the corresponding resid"
+                  },
+                  {
+                    "chunkIndex": 29,
+                    "label": "",
+                    "matchedNumbers": [],
+                    "metrics": [
+                      "performance"
+                    ],
+                    "numbers": [
+                      "15"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "指标 performance；数值 15。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-12",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nGaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework.\nSignificance Criteria To identify the optimal criteria for measuring each Gaussian's global significance, we evaluated key characteristics: Gaussian-ray interaction count, Gauss"
+                  }
+                ],
+                "numericVerificationStatus": "verified",
+                "quote": "Our method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians.",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "在 Tank & Temple 数据集上，LightGaussian 相比 3D-GS 渲染速度近翻倍，并把存储从 380MB 降至 22MB。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+                ],
+                "id": "claim-4",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [
+                  {
+                    "chunkIndex": 35,
+                    "label": "Table7",
+                    "matchedNumbers": [],
+                    "metrics": [
+                      "accuracy"
+                    ],
+                    "numbers": [
+                      "15",
+                      "52.38",
+                      "7.89"
+                    ],
+                    "pageIndex": 15,
+                    "reason": "匹配到 Table7；指标 accuracy；数值 15, 52.38, 7.89。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-16",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: More Experiment Results\n\nContent:\nof each Gaussian, work to reduce the SH redundancy, and apply the Vector Quantization (codebook size set at 8192) to the learned representation. Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.\nAdditional Qualitative Results on Mip-NeRF360. We provide extra visualizations for 3D-GS[16], LightGaussian (ours), and VQ-DVGO[49], accompanied by the corresponding resid"
+                  },
+                  {
+                    "chunkIndex": 29,
+                    "label": "",
+                    "matchedNumbers": [],
+                    "metrics": [
+                      "performance"
+                    ],
+                    "numbers": [
+                      "15"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "指标 performance；数值 15。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-12",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nGaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework.\nSignificance Criteria To identify the optimal criteria for measuring each Gaussian's global significance, we evaluated key characteristics: Gaussian-ray interaction count, Gauss"
+                  },
+                  {
+                    "chunkIndex": 26,
+                    "label": "",
+                    "matchedNumbers": [],
+                    "metrics": [
+                      "accuracy",
+                      "performance"
+                    ],
+                    "numbers": [
+                      "0.06",
+                      "15",
+                      "2.1",
+                      "200"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "指标 accuracy, performance；数值 0.06, 15, 2.1。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-10",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Results\n\nContent:\naccuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduc"
+                  }
+                ],
+                "numericVerificationStatus": "insufficient_for_auto_verification",
+                "quote": "LightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB.",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "向量量化被选择性地应用于球谐系数中最不重要的元素，以平衡渲染质量损失与压缩率。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19"
+                ],
+                "id": "claim-5",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [],
+                "numericVerificationStatus": "not_applicable",
+                "quote": "Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "剪枝后通过快速的 Gaussian Co-adaptation 优化剩余高斯，可把渲染精度恢复到剪枝前水平。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29"
+                ],
+                "id": "claim-6",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [],
+                "numericVerificationStatus": "not_applicable",
+                "quote": "A quick Gaussian Co-adaptation (the last row) which optimizes the remaining Gaussians, can effectively recover the rendering accuracy to its pre-pruning level.",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              }
+            ],
+            "contributionScore": {
+              "basis": {
+                "claimCount": 6,
+                "experimentCovered": true,
+                "methodCovered": true,
+                "partialClaims": 0,
+                "supportedClaims": 6,
+                "unsupportedClaims": 0
+              },
+              "factors": [
+                "主张支撑率 100%",
+                "方法章节证据覆盖充分",
+                "实验章节证据覆盖充分",
+                "仍有 3 条报告级缺失证据",
+                "存在 3 条夸大风险"
+              ],
+              "label": "可信度较高",
+              "level": "high",
+              "score": 100,
+              "summary": "6/6 条主张获得直接证据支撑。"
+            },
+            "critical_analysis": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；这些是作者报告结果，不能脱离数据集和硬件条件外推。 三个模块的证据强度不均：剪枝和 VQ 的机制及部分局限有文本支撑，其中 VQ 对几何属性量化的不适性为作者明确披露；SH Distillation 仅有定性效果，具体降阶与质量代价在证据中不足。 需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。\n\n当前仍有部分关键点证据不足，请结合原文进一步核对。",
+            "evidenceGraph": {
+              "graphType": "claim_evidence",
+              "linkCount": 6,
+              "links": [
+                {
+                  "relation": "supported_by",
+                  "source": "claim-1",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-2",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-3",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-4",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-5",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-6",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29"
+                }
+              ],
+              "nodeCount": 9,
+              "nodes": [
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-1",
+                  "name": "作者宣称 Gaussian Pruning、SH D",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-2",
+                  "name": "LightGaussian 在 Mip-NeRF36",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-3",
+                  "name": "LightGaussian 通过剪枝不重要高斯的 r",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-4",
+                  "name": "在 Tank & Temple 数据集上，Light",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-5",
+                  "name": "向量量化被选择性地应用于球谐系数中最不重要的元素，以",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-6",
+                  "name": "剪枝后通过快速的 Gaussian Co-adapt",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#64748b",
+                  "group": "evidence",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+                  "name": "Ablation Studies",
+                  "val": 5
+                },
+                {
+                  "color": "#64748b",
+                  "group": "evidence",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+                  "name": "Experimental Results",
+                  "val": 5
+                },
+                {
+                  "color": "#64748b",
+                  "group": "evidence",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+                  "name": "Gaussian Attributes Vector",
+                  "val": 5
+                }
+              ]
+            },
+            "evidence_based_contributions": "基于现有证据可成立的是： - 作者报告了 Mip-NeRF360 上 782MB→45MB 的存储压缩与 200+ FPS，给定 A6000 平台上的复现比较条件（3D-GS 与 Compressed 3D-GS 用原始代码重训）。 - Gaussian Pruning & Recovery 采用由训练视图命中数、不透明度与高斯体积加权得到的全局显著性分数，避免仅按不透明度剪枝造成的细节丢失；该机制在证据中有明确描述。 - VQ 被限制用于 SH 系数的低显著性成分（codebook 大小 8192），作者指出对所有属性尤其是位置、旋转、缩放量化会造成显著精度损失，说明该方法刻意规避了几何属性量化。 - SH Distillation 作为降低 SH 阶数、简化光照模型的模块被报告可带来效率提升，但现有片段仅给出定性证据。",
+            "message": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；这些是作者报告结果，不能脱离数据集和硬件条件外推。 三个模块的证据强度不均：剪枝和 VQ 的机制及部分局限有文本支撑，其中 VQ 对几何属性量化的不适性为作者明确披露；SH Distillation 仅有定性效果，具体降阶与质量代价在证据中不足。 需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。\n\n当前仍有部分关键点证据不足，请结合原文进一步核对。\n\n**证据支持的贡献**\n- 基于现有证据可成立的是： - 作者报告了 Mip-NeRF360 上 782MB→45MB 的存储压缩与 200+ FPS，给定 A6000 平台上的复现比较条件（3D-GS 与 Compressed 3D-GS 用原始代码重训）。 - Gaussian Pruning & Recovery 采用由训练视图命中数、不透明度与高斯体积加权得到的全局显著性分数，避免仅按不透明度剪枝造成的细节丢失；该机制在证据中有明确描述。 - VQ 被限制用于 SH 系数的低显著性成分（codebook 大小 8192），作者指出对所有属性尤其是位置、旋转、缩放量化会造成显著精度损失，说明该方法刻意规避了几何属性量化。 - SH Distillation 作为降低 SH 阶数、简化光照模型的模块被报告可带来效率提升，但现有片段仅给出定性证据。\n\n**局限**\n- 作者在证据中明确披露：对位置、旋转、尺度等属性做全局量化会导致显著精度损失和离散化精度下降，因此 VQ 只能选择性用于低显著性 SH 系数；这表明几何、位姿和尺度部分仍是量化压缩的脆弱点。\n- 剪枝若仅依赖点不透明度会删除必要场景细节，这是作者在 Fig.3 报告中给出的风险，需要全局显著性分数和后续 co-adaptation 来恢复；但当前证据未给出剪枝率上限和薄结构等失败案例的定量边界。\n- SH Distillation 的证据仅为机制描述和“质量损失轻微”的定性判断，缺少降阶前后的具体质量指标与适用条件，因此该项的有效范围不易判断。\n\n**过度主张风险**\n- 15× 压缩与 200+ FPS 容易被误读为跨数据集通用性能；证据只明确支持 Mip-NeRF360（782MB→45MB、SSIM 下降 0.007）与 Tank & Temple（380MB→22MB）等作者报告条件，且复现比较基于 NVIDIA A6000，未提供这些数值的分辨率、视角轨迹等测试细节。\n- Table7 中 52.38MB→7.89MB、FPS 310→411 与主文 782MB→45MB、200+ FPS 是不同比较场景和度量口径；若混用或把平均值替代主压缩主张会夸大适用范围。\n- 视觉质量被表述为“comparable”或“仅轻微下降”，但当前证据未覆盖完整 PSNR/SSIM/LPIPS 逐场景数据，无法排除特定场景或视角下质量损失被低估的风险。\n\n**待补证据**\n- 未检索到 SH Distillation 的具体降阶设置（从几阶到几阶）及其对 PSNR/SSIM/LPIPS 的定量影响，无法判断其质量代价。\n- 未检索到 15× 压缩主张的逐场景拆解：Mip-NeRF360 九场景各场景存储、FPS 和质量指标是否一致；也未覆盖 200+ FPS 的测量条件（分辨率、轨迹、批次、是否含预处理）。\n- 未检索到剪枝率、VQ codebook 大小（8192）对薄结构、镜面/视角相关外观、不同初始化或不同数据分布的敏感性和失败案例的定量实验，需回查原文图表或补充材料。",
+            "missing_evidence": [
+              "未检索到 SH Distillation 的具体降阶设置（从几阶到几阶）及其对 PSNR/SSIM/LPIPS 的定量影响，无法判断其质量代价。",
+              "未检索到 15× 压缩主张的逐场景拆解：Mip-NeRF360 九场景各场景存储、FPS 和质量指标是否一致；也未覆盖 200+ FPS 的测量条件（分辨率、轨迹、批次、是否含预处理）。",
+              "未检索到剪枝率、VQ codebook 大小（8192）对薄结构、镜面/视角相关外观、不同初始化或不同数据分布的敏感性和失败案例的定量实验，需回查原文图表或补充材料。"
+            ],
+            "noveltyDimensions": [
+              {
+                "detail": "6/6 条主张获得直接证据支撑。",
+                "id": "claim_support",
+                "label": "主张支撑",
+                "score": 100,
+                "status": "strong"
+              },
+              {
+                "detail": "方法轴检索到可用证据。",
+                "id": "method_grounding",
+                "label": "方法落地",
+                "score": 100,
+                "status": "strong"
+              },
+              {
+                "detail": "实验轴检索到可用指标或对比证据。",
+                "id": "experiment_validation",
+                "label": "实验验证",
+                "score": 100,
+                "status": "strong"
+              },
+              {
+                "detail": "存在 3 条缺失证据和 3 条夸大风险。",
+                "id": "scope_boundary",
+                "label": "边界约束",
+                "score": 0,
+                "status": "weak"
+              }
+            ],
+            "numericEvidenceSummary": {
+              "candidateCount": 9,
+              "claimCount": 6,
+              "numericClaimCount": 3,
+              "status": "insufficient_for_auto_verification",
+              "verifiedClaimCount": 2
+            },
+            "overclaim_risks": [
+              "15× 压缩与 200+ FPS 容易被误读为跨数据集通用性能；证据只明确支持 Mip-NeRF360（782MB→45MB、SSIM 下降 0.007）与 Tank & Temple（380MB→22MB）等作者报告条件，且复现比较基于 NVIDIA A6000，未提供这些数值的分辨率、视角轨迹等测试细节。",
+              "Table7 中 52.38MB→7.89MB、FPS 310→411 与主文 782MB→45MB、200+ FPS 是不同比较场景和度量口径；若混用或把平均值替代主压缩主张会夸大适用范围。",
+              "视觉质量被表述为“comparable”或“仅轻微下降”，但当前证据未覆盖完整 PSNR/SSIM/LPIPS 逐场景数据，无法排除特定场景或视角下质量损失被低估的风险。"
+            ],
+            "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "pdf_id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "rag_sources": [
+              {
+                "chunkIndex": 35,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                "metadata": {
+                  "chunk_index": 35,
+                  "file_name": "target_paper.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "page": 16,
+                  "page_index": 15,
+                  "section_id": "section-16",
+                  "section_title": "More Experiment Results",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 15,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-16",
+                "similarity": 0.8851593732833862,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: More Experiment Results\n\nContent:\nof each Gaussian, work to reduce the SH redundancy, and apply the Vector Quantization (codebook size set at 8192) to the learned representation. Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.\nAdditional Qualitative Results on Mip-NeRF360. We provide extra visualizations for 3D-GS[16], LightGaussian (ours), and VQ-DVGO[49], accompanied by the corresponding resid"
+              },
+              {
+                "chunkIndex": 19,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+                "metadata": {
+                  "chunk_index": 19,
+                  "file_name": "target_paper.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "page": 5,
+                  "page_index": 4,
+                  "section_id": "section-7",
+                  "section_title": "Gaussian Attributes Vector Quantization",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 4,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-7",
+                "similarity": 0.8815481662750244,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+              },
+              {
+                "chunkIndex": 29,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+                "metadata": {
+                  "chunk_index": 29,
+                  "file_name": "target_paper.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "page": 8,
+                  "page_index": 7,
+                  "section_id": "section-12",
+                  "section_title": "Ablation Studies",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 7,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-12",
+                "similarity": 0.8799728155136108,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nGaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework.\nSignificance Criteria To identify the optimal criteria for measuring each Gaussian's global significance, we evaluated key characteristics: Gaussian-ray interaction count, Gauss"
+              },
+              {
+                "chunkIndex": 26,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+                "metadata": {
+                  "chunk_index": 26,
+                  "file_name": "target_paper.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "page": 8,
+                  "page_index": 7,
+                  "section_id": "section-10",
+                  "section_title": "Experimental Results",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 7,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-10",
+                "similarity": 0.8728901147842407,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Results\n\nContent:\naccuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduc"
+              },
+              {
+                "chunkIndex": 9,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+                "metadata": {
+                  "chunk_index": 9,
+                  "file_name": "target_paper.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "page": 3,
+                  "page_index": 2,
+                  "section_id": "section-4",
+                  "section_title": "Background: 3D Gaussian Splatting",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 2,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": 23.259348128623305,
+                "sectionId": "section-4",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Background: 3D Gaussian Splatting\n\nContent:\nby SfM, and Gaussian Densification is applied to increase the Gaussian counts that are used for handling small-scale geometry insufficiently covered and over reconstruction. Formally, each Gaussian is characterized by a covariance matrix Σ and a center point X, which is referred to as the mean value of the Gaussian:\nwhere Σ can be decomposed into a scaling matrix S and a rotation matrix R.\nThe complex directional appearance is modeled by an additional property, Spherical Harmonics (SH), with n coefficients, c i ∈ R 3 |i = 1, 2, . . . , n where n = D 2"
+              },
+              {
+                "chunkIndex": 13,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+                "metadata": {
+                  "chunk_index": 13,
+                  "file_name": "target_paper.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "page": 4,
+                  "page_index": 3,
+                  "section_id": "section-5",
+                  "section_title": "Gaussian Pruning & Recovery",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 3,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": 22.782517576095913,
+                "sectionId": "section-5",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+              },
+              {
+                "chunkIndex": 20,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+                "metadata": {
+                  "chunk_index": 20,
+                  "file_name": "target_paper.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "page": 5,
+                  "page_index": 4,
+                  "section_id": "section-7",
+                  "section_title": "Gaussian Attributes Vector Quantization",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 4,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-7",
+                "similarity": 0.8866141438484192,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nrendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:\nis the significance score (Eq. 3) which is assigned to the code vector c k , R(c k ) is the set of Gaussians associated to the k-th code. λ d = 0.8 represents"
+              },
+              {
+                "chunkIndex": 22,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+                "metadata": {
+                  "chunk_index": 22,
+                  "file_name": "target_paper.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "page": 6,
+                  "page_index": 5,
+                  "section_id": "section-9",
+                  "section_title": "Experimental Settings",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 5,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": 25.957298447071,
+                "sectionId": "section-9",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nDatasets and Metrics. We conduct comparisons using the scene-scale view synthesis dataset provided by Mip-NeRF360[64], which comprises nine real-world large-scale scenes, including five unbounded outdoor and four indoor settings with complex backgrounds. In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structu"
+              }
+            ],
+            "resolved_from": "pdf_id",
+            "riskScore": {
+              "basis": {
+                "claimCount": 6,
+                "claimMissingEvidenceCount": 0,
+                "claimRisk": 0.0,
+                "coverageRisk": 0.0,
+                "experimentCovered": true,
+                "methodCovered": true,
+                "missingRisk": 1.0,
+                "overclaimRisk": 1.0,
+                "overclaimRiskCount": 3,
+                "partialClaims": 0,
+                "reportMissingEvidenceCount": 3,
+                "unsupportedClaims": 0
+              },
+              "factors": [
+                "证据不足主张 0/6 条",
+                "部分支撑主张 0/6 条",
+                "缺失证据 3 条（计权按 3 条饱和）",
+                "夸大风险 3 条（计权按 3 条饱和）"
+              ],
+              "label": "低风险",
+              "level": "low",
+              "score": 18,
+              "summary": "检测到 0 条证据不足主张、3 条报告级缺失证据和 3 条夸大风险。"
+            },
+            "sentenceSourceMap": [
+              {
+                "confidence": 0.5,
+                "id": "ref-1",
+                "sentence": "作者显式宣称 LightGaussian 通过对 3D Gaussian Splatting 施加 Gaussian Pruning and Recovery、SH Distillation 和 Vector Quantization，实现无界场景的高压缩与快速渲染：在 Mip-NeRF360 上把存储从 782MB 降至 45MB（约 15× 减少），渲染速度超过 200 FPS，且 SSIM 仅下降 0.007；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13"
+                ],
+                "target": "claimed_contributions"
+              },
+              {
+                "confidence": 0.38,
+                "id": "ref-2",
+                "sentence": "基于现有证据可成立的是： - 作者报告了 Mip-NeRF360 上 782MB→45MB 的存储压缩与 200+ FPS，给定 A6000 平台上的复现比较条件（3D-GS 与 Compressed 3D-GS 用原始代码重训）。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+                ],
+                "target": "evidence_based_contributions"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-3",
+                "sentence": "- Gaussian Pruning & Recovery 采用由训练视图命中数、不透明度与高斯体积加权得到的全局显著性分数，避免仅按不透明度剪枝造成的细节丢失；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13"
+                ],
+                "target": "evidence_based_contributions"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-4",
+                "sentence": "- VQ 被限制用于 SH 系数的低显著性成分（codebook 大小 8192），作者指出对所有属性尤其是位置、旋转、缩放量化会造成显著精度损失，说明该方法刻意规避了几何属性量化。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+                ],
+                "target": "evidence_based_contributions"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-5",
+                "sentence": "× 压缩与 200+ FPS 容易被误读为跨数据集通用性能；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19"
+                ],
+                "target": "overclaim_risks"
+              },
+              {
+                "confidence": 0.78,
+                "id": "ref-6",
+                "sentence": "Table7 中 52.38MB→7.89MB、FPS 310→411 与主文 782MB→45MB、200+ FPS 是不同比较场景和度量口径；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19"
+                ],
+                "target": "overclaim_risks"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-7",
+                "sentence": "未检索到 15× 压缩主张的逐场景拆解：Mip-NeRF360 九场景各场景存储、FPS 和质量指标是否一致；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22"
+                ],
+                "target": "missing_evidence"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-8",
+                "sentence": "也未覆盖 200+ FPS 的测量条件（分辨率、轨迹、批次、是否含预处理）。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19"
+                ],
+                "target": "missing_evidence"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-9",
+                "sentence": "未检索到剪枝率、VQ codebook 大小（8192）对薄结构、镜面/视角相关外观、不同初始化或不同数据分布的敏感性和失败案例的定量实验，需回查原文图表或补充材料。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+                ],
+                "target": "missing_evidence"
+              },
+              {
+                "confidence": 0.5,
+                "id": "ref-10",
+                "sentence": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+                ],
+                "target": "critical_analysis"
+              },
+              {
+                "confidence": 0.3,
+                "id": "ref-11",
+                "sentence": "需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22"
+                ],
+                "target": "critical_analysis"
+              },
+              {
+                "confidence": 0.8,
+                "id": "ref-12",
+                "sentence": "作者宣称 Gaussian Pruning、SH Distillation 与 Vector Quantization 这些模块组合起来能显著提升框架的整体效率与性能。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+                ],
+                "target": "claims.claim-1"
+              },
+              {
+                "confidence": 0.5,
+                "id": "ref-13",
+                "sentence": "LightGaussian 在 Mip-NeRF360 上将存储从 782MB 降至 45MB，实现约 15× 压缩。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22"
+                ],
+                "target": "claims.claim-2"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-14",
+                "sentence": "LightGaussian 通过剪枝不重要高斯的 rasterization 实现超过 200 FPS 的渲染速度。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+                ],
+                "target": "claims.claim-3"
+              },
+              {
+                "confidence": 0.33,
+                "id": "ref-15",
+                "sentence": "在 Tank & Temple 数据集上，LightGaussian 相比 3D-GS 渲染速度近翻倍，并把存储从 380MB 降至 22MB。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+                ],
+                "target": "claims.claim-4"
+              }
+            ],
+            "status": "success",
+            "traceId": "32b9f225-98bb-4e3c-bfdc-5b7f17d470b0",
+            "weaknesses": [
+              "作者在证据中明确披露：对位置、旋转、尺度等属性做全局量化会导致显著精度损失和离散化精度下降，因此 VQ 只能选择性用于低显著性 SH 系数；这表明几何、位姿和尺度部分仍是量化压缩的脆弱点。",
+              "剪枝若仅依赖点不透明度会删除必要场景细节，这是作者在 Fig.3 报告中给出的风险，需要全局显著性分数和后续 co-adaptation 来恢复；但当前证据未给出剪枝率上限和薄结构等失败案例的定量边界。",
+              "SH Distillation 的证据仅为机制描述和“质量损失轻微”的定性判断，缺少降阶前后的具体质量指标与适用条件，因此该项的有效范围不易判断。"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "task": {
+    "id": "stage4-3dgs-critique-20261008-v3",
+    "title": "阶段4：critique修复核验-v3",
+    "paperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "messages": [
+      {
+        "context": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "strictScope": true,
+          "taskId": "stage4-3dgs-critique-20261008-v3"
+        },
+        "sourceRequestId": "stage4-3dgs-critique-20261008-v3-request",
+        "role": "user",
+        "id": "stage4-3dgs-critique-20261008-v3-request:user",
+        "content": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？区分作者原文、推断及未检索覆盖，不能把片段缺失当作论文缺陷。"
+      },
+      {
+        "context": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "strictScope": true,
+          "taskId": "stage4-3dgs-critique-20261008-v3"
+        },
+        "sourceRequestId": "stage4-3dgs-critique-20261008-v3-request",
+        "content": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；这些是作者报告结果，不能脱离数据集和硬件条件外推。 三个模块的证据强度不均：剪枝和 VQ 的机制及部分局限有文本支撑，其中 VQ 对几何属性量化的不适性为作者明确披露；SH Distillation 仅有定性效果，具体降阶与质量代价在证据中不足。 需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。\n\n当前仍有部分关键点证据不足，请结合原文进一步核对。\n\n**证据支持的贡献**",
+        "role": "ai",
+        "capability": "critique",
+        "id": "stage4-3dgs-critique-20261008-v3-request:ai",
+        "rag_sources": [
+          {
+            "chunkIndex": 35,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+            "metadata": {
+              "chunk_index": 35,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 16,
+              "page_index": 15,
+              "section_id": "section-16",
+              "section_title": "More Experiment Results",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 15,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-16",
+            "similarity": 0.8851593732833862,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: More Experiment Results\n\nContent:\nof each Gaussian, work to reduce the SH redundancy, and apply the Vector Quantization (codebook size set at 8192) to the learned representation. Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.\nAdditional Qualitative Results on Mip-NeRF360. We provide extra visualizations for 3D-GS[16], LightGaussian (ours), and VQ-DVGO[49], accompanied by the corresponding resid"
+          },
+          {
+            "chunkIndex": 19,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+            "metadata": {
+              "chunk_index": 19,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": 0.8815481662750244,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+          },
+          {
+            "chunkIndex": 29,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+            "metadata": {
+              "chunk_index": 29,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-12",
+              "section_title": "Ablation Studies",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 7,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-12",
+            "similarity": 0.8799728155136108,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nGaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework.\nSignificance Criteria To identify the optimal criteria for measuring each Gaussian's global significance, we evaluated key characteristics: Gaussian-ray interaction count, Gauss"
+          },
+          {
+            "chunkIndex": 26,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+            "metadata": {
+              "chunk_index": 26,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-10",
+              "section_title": "Experimental Results",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 7,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-10",
+            "similarity": 0.8728901147842407,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Results\n\nContent:\naccuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduc"
+          },
+          {
+            "chunkIndex": 9,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+            "metadata": {
+              "chunk_index": 9,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 3,
+              "page_index": 2,
+              "section_id": "section-4",
+              "section_title": "Background: 3D Gaussian Splatting",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 2,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 23.259348128623305,
+            "sectionId": "section-4",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Background: 3D Gaussian Splatting\n\nContent:\nby SfM, and Gaussian Densification is applied to increase the Gaussian counts that are used for handling small-scale geometry insufficiently covered and over reconstruction. Formally, each Gaussian is characterized by a covariance matrix Σ and a center point X, which is referred to as the mean value of the Gaussian:\nwhere Σ can be decomposed into a scaling matrix S and a rotation matrix R.\nThe complex directional appearance is modeled by an additional property, Spherical Harmonics (SH), with n coefficients, c i ∈ R 3 |i = 1, 2, . . . , n where n = D 2"
+          },
+          {
+            "chunkIndex": 13,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+            "metadata": {
+              "chunk_index": 13,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 4,
+              "page_index": 3,
+              "section_id": "section-5",
+              "section_title": "Gaussian Pruning & Recovery",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 3,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 22.782517576095913,
+            "sectionId": "section-5",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+          },
+          {
+            "chunkIndex": 20,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+            "metadata": {
+              "chunk_index": 20,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": 0.8866141438484192,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nrendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:\nis the significance score (Eq. 3) which is assigned to the code vector c k , R(c k ) is the set of Gaussians associated to the k-th code. λ d = 0.8 represents"
+          },
+          {
+            "chunkIndex": 22,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+            "metadata": {
+              "chunk_index": 22,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 6,
+              "page_index": 5,
+              "section_id": "section-9",
+              "section_title": "Experimental Settings",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 5,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 25.957298447071,
+            "sectionId": "section-9",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nDatasets and Metrics. We conduct comparisons using the scene-scale view synthesis dataset provided by Mip-NeRF360[64], which comprises nine real-world large-scale scenes, including five unbounded outdoor and four indoor settings with complex backgrounds. In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structu"
+          }
+        ],
+        "sentenceSourceMap": [
+          {
+            "confidence": 0.5,
+            "id": "ref-1",
+            "sentence": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.3,
+            "id": "ref-2",
+            "sentence": "需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22"
+            ],
+            "target": "message"
+          }
+        ],
+        "artifactId": "stage4-3dgs-critique-20261008-v3-request:artifact"
+      }
+    ],
+    "notes": [],
+    "artifacts": [
+      {
+        "text": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；这些是作者报告结果，不能脱离数据集和硬件条件外推。 三个模块的证据强度不均：剪枝和 VQ 的机制及部分局限有文本支撑，其中 VQ 对几何属性量化的不适性为作者明确披露；SH Distillation 仅有定性效果，具体降阶与质量代价在证据中不足。 需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。\n\n当前仍有部分关键点证据不足，请结合原文进一步核对。\n\n**证据支持的贡献**\n- 基于现有证据可成立的是： - 作者报告了 Mip-NeRF360 上 782MB→45MB 的存储压缩与 200+ FPS，给定 A6000 平台上的复现比较条件（3D-GS 与 Compressed 3D-GS 用原始代码重训）。 - Gaussian Pruning & Recovery 采用由训练视图命中数、不透明度与高斯体积加权得到的全局显著性分数，避免仅按不透明度剪枝造成的细节丢失；该机制在证据中有明确描述。 - VQ 被限制用于 SH 系数的低显著性成分（codebook 大小 8192），作者指出对所有属性尤其是位置、旋转、缩放量化会造成显著精度损失，说明该方法刻意规避了几何属性量化。 - SH Distillation 作为降低 SH 阶数、简化光照模型的模块被报告可带来效率提升，但现有片段仅给出定性证据。\n\n**局限**\n- 作者在证据中明确披露：对位置、旋转、尺度等属性做全局量化会导致显著精度损失和离散化精度下降，因此 VQ 只能选择性用于低显著性 SH 系数；这表明几何、位姿和尺度部分仍是量化压缩的脆弱点。\n- 剪枝若仅依赖点不透明度会删除必要场景细节，这是作者在 Fig.3 报告中给出的风险，需要全局显著性分数和后续 co-adaptation 来恢复；但当前证据未给出剪枝率上限和薄结构等失败案例的定量边界。\n- SH Distillation 的证据仅为机制描述和“质量损失轻微”的定性判断，缺少降阶前后的具体质量指标与适用条件，因此该项的有效范围不易判断。\n\n**过度主张风险**\n- 15× 压缩与 200+ FPS 容易被误读为跨数据集通用性能；证据只明确支持 Mip-NeRF360（782MB→45MB、SSIM 下降 0.007）与 Tank & Temple（380MB→22MB）等作者报告条件，且复现比较基于 NVIDIA A6000，未提供这些数值的分辨率、视角轨迹等测试细节。\n- Table7 中 52.38MB→7.89MB、FPS 310→411 与主文 782MB→45MB、200+ FPS 是不同比较场景和度量口径；若混用或把平均值替代主压缩主张会夸大适用范围。\n- 视觉质量被表述为“comparable”或“仅轻微下降”，但当前证据未覆盖完整 PSNR/SSIM/LPIPS 逐场景数据，无法排除特定场景或视角下质量损失被低估的风险。\n\n**待补证据**\n- 未检索到 SH Distillation 的具体降阶设置（从几阶到几阶）及其对 PSNR/SSIM/LPIPS 的定量影响，无法判断其质量代价。\n- 未检索到 15× 压缩主张的逐场景拆解：Mip-NeRF360 九场景各场景存储、FPS 和质量指标是否一致；也未覆盖 200+ FPS 的测量条件（分辨率、轨迹、批次、是否含预处理）。\n- 未检索到剪枝率、VQ codebook 大小（8192）对薄结构、镜面/视角相关外观、不同初始化或不同数据分布的敏感性和失败案例的定量实验，需回查原文图表或补充材料。",
+        "versions": [],
+        "sourceRequestId": "stage4-3dgs-critique-20261008-v3-request",
+        "createdAt": "2026-10-08T11:04:21.396538Z",
+        "title": "对话成果",
+        "sources": [
+          {
+            "chunkIndex": 35,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+            "metadata": {
+              "chunk_index": 35,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 16,
+              "page_index": 15,
+              "section_id": "section-16",
+              "section_title": "More Experiment Results",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 15,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-16",
+            "similarity": 0.8851593732833862,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: More Experiment Results\n\nContent:\nof each Gaussian, work to reduce the SH redundancy, and apply the Vector Quantization (codebook size set at 8192) to the learned representation. Overall comparisons with previous methods are listed in Table7, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.\nAdditional Qualitative Results on Mip-NeRF360. We provide extra visualizations for 3D-GS[16], LightGaussian (ours), and VQ-DVGO[49], accompanied by the corresponding resid"
+          },
+          {
+            "chunkIndex": 19,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+            "metadata": {
+              "chunk_index": 19,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": 0.8815481662750244,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+          },
+          {
+            "chunkIndex": 29,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+            "metadata": {
+              "chunk_index": 29,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-12",
+              "section_title": "Ablation Studies",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 7,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-12",
+            "similarity": 0.8799728155136108,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-29",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nGaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework.\nSignificance Criteria To identify the optimal criteria for measuring each Gaussian's global significance, we evaluated key characteristics: Gaussian-ray interaction count, Gauss"
+          },
+          {
+            "chunkIndex": 26,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+            "metadata": {
+              "chunk_index": 26,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-10",
+              "section_title": "Experimental Results",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 7,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-10",
+            "similarity": 0.8728901147842407,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Results\n\nContent:\naccuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduc"
+          },
+          {
+            "chunkIndex": 9,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+            "metadata": {
+              "chunk_index": 9,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 3,
+              "page_index": 2,
+              "section_id": "section-4",
+              "section_title": "Background: 3D Gaussian Splatting",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 2,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 23.259348128623305,
+            "sectionId": "section-4",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-9",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Background: 3D Gaussian Splatting\n\nContent:\nby SfM, and Gaussian Densification is applied to increase the Gaussian counts that are used for handling small-scale geometry insufficiently covered and over reconstruction. Formally, each Gaussian is characterized by a covariance matrix Σ and a center point X, which is referred to as the mean value of the Gaussian:\nwhere Σ can be decomposed into a scaling matrix S and a rotation matrix R.\nThe complex directional appearance is modeled by an additional property, Spherical Harmonics (SH), with n coefficients, c i ∈ R 3 |i = 1, 2, . . . , n where n = D 2"
+          },
+          {
+            "chunkIndex": 13,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+            "metadata": {
+              "chunk_index": 13,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 4,
+              "page_index": 3,
+              "section_id": "section-5",
+              "section_title": "Gaussian Pruning & Recovery",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 3,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 22.782517576095913,
+            "sectionId": "section-5",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+          },
+          {
+            "chunkIndex": 20,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+            "metadata": {
+              "chunk_index": 20,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": 0.8866141438484192,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-20",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nrendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:\nis the significance score (Eq. 3) which is assigned to the code vector c k , R(c k ) is the set of Gaussians associated to the k-th code. λ d = 0.8 represents"
+          },
+          {
+            "chunkIndex": 22,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+            "metadata": {
+              "chunk_index": 22,
+              "file_name": "target_paper.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page": 6,
+              "page_index": 5,
+              "section_id": "section-9",
+              "section_title": "Experimental Settings",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 5,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 25.957298447071,
+            "sectionId": "section-9",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nDatasets and Metrics. We conduct comparisons using the scene-scale view synthesis dataset provided by Mip-NeRF360[64], which comprises nine real-world large-scale scenes, including five unbounded outdoor and four indoor settings with complex backgrounds. In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structu"
+          }
+        ],
+        "id": "stage4-3dgs-critique-20261008-v3-request:artifact",
+        "paperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "sentenceSourceMap": [
+          {
+            "confidence": 0.5,
+            "id": "ref-1",
+            "sentence": "证据支持的核心主张是：作者在 Mip-NeRF360 及给定 A6000 比较条件下报告了约 15× 模型压缩、200+ FPS 渲染和 SSIM 下降约 0.007；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.3,
+            "id": "ref-2",
+            "sentence": "需要把不同场景的数值分开读取（782MB→45MB、380MB→22MB、52.38MB→7.89MB 等），未检索到的逐场景 PSNR/SSIM/LPIPS、FPS 测量条件及失败分析均需回查原文，不能据现有片段判定缺实验即缺陷。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.38,
+            "id": "ref-3",
+            "sentence": "基于现有证据可成立的是： - 作者报告了 Mip-NeRF360 上 782MB→45MB 的存储压缩与 200+ FPS，给定 A6000 平台上的复现比较条件（3D-GS 与 Compressed 3D-GS 用原始代码重训）。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-26"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 1.0,
+            "id": "ref-4",
+            "sentence": "- Gaussian Pruning & Recovery 采用由训练视图命中数、不透明度与高斯体积加权得到的全局显著性分数，避免仅按不透明度剪枝造成的细节丢失；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-13"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 1.0,
+            "id": "ref-5",
+            "sentence": "- VQ 被限制用于 SH 系数的低显著性成分（codebook 大小 8192），作者指出对所有属性尤其是位置、旋转、缩放量化会造成显著精度损失，说明该方法刻意规避了几何属性量化。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 1.0,
+            "id": "ref-6",
+            "sentence": "× 压缩与 200+ FPS 容易被误读为跨数据集通用性能；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.78,
+            "id": "ref-7",
+            "sentence": "Table7 中 52.38MB→7.89MB、FPS 310→411 与主文 782MB→45MB、200+ FPS 是不同比较场景和度量口径；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-35",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-19"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 1.0,
+            "id": "ref-8",
+            "sentence": "未检索到 15× 压缩主张的逐场景拆解：Mip-NeRF360 九场景各场景存储、FPS 和质量指标是否一致；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-22"
+            ],
+            "target": "message"
+          }
+        ]
+      }
+    ],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [
+      "stage4-3dgs-critique-20261008-v3-request"
+    ],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-08T11:04:21.396538Z",
+    "revision": 1
+  }
+}

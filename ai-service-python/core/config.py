@@ -9,6 +9,7 @@ Usage::
 from __future__ import annotations
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -28,6 +29,7 @@ class Settings(BaseSettings):
     deepseek_thinking_type: str = "enabled"
     deepseek_reasoning_effort: str = "high"
     deepseek_timeout_seconds: int = 120
+    deep_research_request_timeout_seconds: int = Field(default=180, ge=1, le=360)
     pixiu_llm_fixture_path: str = ""
 
     deepseek_translation_model: str = "deepseek-v4-flash"
@@ -92,6 +94,7 @@ class Settings(BaseSettings):
     # ── Rate limiter (15-3) ────────────────────────────────────────────
     pixiu_rate_limit_enabled: bool = True
     pixiu_rate_limit_global_rpm: int = 60
+    pixiu_rate_limit_status_rpm: int = 240
     pixiu_rate_limit_agent_rpm: int = 10
     pixiu_rate_limit_chat_rpm: int = 30
     pixiu_rate_limit_translate_rpm: int = 10

@@ -1,0 +1,17 @@
+{
+  "question": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。不要强行给每个机制配一个缺点，不写数值排名。",
+  "paper": "D:\\3DGS\\paper\\LightGaussian\\2311.17245v6.pdf",
+  "calls": 1,
+  "sourceIds": [
+    "light-p6-0",
+    "light-p7-0",
+    "light-p9-0",
+    "light-p7-1500",
+    "light-p8-0",
+    "light-p3-0",
+    "light-p3-1500",
+    "light-p3-3000",
+    "light-p6-1500",
+    "light-p8-1500"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "status": "executed_once_all_four_cases",
+  "casesExecuted": 4,
+  "contentAcceptance": "not_passed",
+  "audit": "stage4-reading-v5-audit.md",
+  "provider": "https://api.deepseek.com",
+  "maxCases": 4,
+  "automaticResubmissions": 0,
+  "materials": [
+    {
+      "name": "Original 3DGS",
+      "path": "D:/3DGS/paper/3DGS原始论文/2308.04079v1.pdf",
+      "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+    },
+    {
+      "name": "LightGaussian",
+      "path": "D:/3DGS/paper/LightGaussian/2311.17245v6.pdf",
+      "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+      "indexVersion": "2977684d0da4a8b6"
+    }
+  ],
+  "cases": [
+    {
+      "id": "stage4-critique-v5",
+      "scope": "LightGaussian only",
+      "prompt": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？",
+      "checks": [
+        "全局显著性包含透射率T，体积调整关系不遗漏",
+        "不把消融文字当公式完整定义",
+        "区分主表和扩展实验口径",
+        "结果简洁、来源可展开"
+      ]
+    },
+    {
+      "id": "stage4-compose-v5",
+      "scope": "Both papers",
+      "prompt": "先用两句话解释3DGS的高斯、透明度与球谐颜色，再比较原始3DGS与LightGaussian如何在表示规模、质量和渲染速度之间取舍。",
+      "checks": [
+        "解释和比较组合成功、不是标题清单",
+        "量化条目对应场景、硬件和基线版本",
+        "计算倍数与作者报告分开",
+        "引用连续原文、来源与论文对应"
+      ]
+    },
+    {
+      "id": "stage6-translation-v5",
+      "scope": "LightGaussian physical page 4, pageIndex 3",
+      "action": "使用现有手动重试入口重新翻译当前页一次，保留旧结果记录",
+      "checks": [
+        "可识别行内数学标记完整，不沿用损坏公式",
+        "正文与原图互补，中文可读",
+        "保存、重新打开与独立导出一致"
+      ]
+    },
+    {
+      "id": "stage6-selection-v5",
+      "scope": "LightGaussian physical page 4, significance definition",
+      "action": "选择同段小写significance，使用包含后续定义的当前页上下文解释一次",
+      "checks": [
+        "明确透射率在全局显著性评分中的作用",
+        "说明体积调整及其含义",
+        "保存笔记和页码来源读回一致"
+      ]
+    }
+  ],
+  "executionRules": [
+    "案例可能包含内部多个初始模型请求，案例数不代表总请求数",
+    "每例仅提交一次，不自动重试失败案例，不重复已完成案例",
+    "保留输入、输出、收据和可用trace，不覆盖v4结果",
+    "未获批准不发送论文正文到Provider",
+    "既有14个真实案例的额度不沿用至本计划"
+  ],
+  "authorization": "用户在2026-10-09明确答复：允许这4个案例"
+}

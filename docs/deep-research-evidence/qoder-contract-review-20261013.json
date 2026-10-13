@@ -1,0 +1,39 @@
+{
+  "model": "bailian/qwen3.8-max-tp",
+  "scope": "Five explicitly provided source files; tools and MCP disabled. No papers, runtime records or secrets supplied.",
+  "rawOutput": "tmp/qoder-dr-contract-review-20261013/output.txt",
+  "findings": [
+    {
+      "id": 1,
+      "decision": "not adopted",
+      "reason": "Skipping a wrong-kind duplicate claim identity could select an ambiguous source. Existing fail-closed behavior should not be loosened."
+    },
+    {
+      "id": 2,
+      "decision": "confirmed and fixed",
+      "reason": "Production validator made N+1 identical live scope requests per model send. Batch membership checking now makes one live snapshot check per send, with no cross-call cache; revocation blocks the next call. Optional validator fallback remains for alternate implementations."
+    },
+    {
+      "id": 3,
+      "decision": "confirmed and fixed defensively",
+      "reason": "Malformed initial or revised verification could contain the same identity in accepted and rejected. Initial conflicts stay rejected; conflicting revisions cannot promote rejected claims or overwrite prior unambiguous acceptance."
+    },
+    {
+      "id": 4,
+      "decision": "not adopted",
+      "reason": "Actual graph prepares coverage repair before invoking repair_rejected, passing already-filtered accepted context. Reviewer inferred the reverse order without graph.py."
+    }
+  ],
+  "targetedTests": {
+    "passed": 41,
+    "seconds": 6.55
+  },
+  "promptVersion": "dr-v2.20261013.41",
+  "liveValidation": "pending",
+  "qualityAccepted": false,
+  "fullTests": {
+    "passed": 937,
+    "warnings": 2,
+    "seconds": 117.12
+  }
+}

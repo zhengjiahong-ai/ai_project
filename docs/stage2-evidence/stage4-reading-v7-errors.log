@@ -1,0 +1,155 @@
+INFO:     172.20.0.1:51024 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     172.20.0.1:51024 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:51024 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:51024 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+2026-10-09 12:28:19,719 [INFO] services.monitor_scheduler:39 - Monitor scheduler stopped.
+2026-10-09 12:28:19,719 [INFO] app:42 - Monitor scheduler stopped.
+2026-10-09 12:28:26,353 [INFO] core.logging_config:126 - Logging configured: level=INFO json=False
+2026-10-09 12:28:26,489 [INFO] app:23 - Application startup: running warmup...
+2026-10-09 12:28:26,494 [INFO] core.pdf_quality:44 - Starting AI service warmup...
+2026-10-09 12:28:41,939 [INFO] core.rag_vector_db:113 - 嵌入模型就绪: intfloat/multilingual-e5-small -> literature_collection_v4_e5_small
+2026-10-09 12:28:42,092 [INFO] core.pdf_quality:49 - RAG backend is ready.
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1]
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights:  52%|█████▏    | 104/199 [00:00<00:00, 1034.77it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1305.93it/s]
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2026-10-09 12:28:42,117 [INFO] services.monitor_scheduler:29 - Monitor scheduler started (interval=3600s).
+2026-10-09 12:28:42,117 [INFO] app:31 - Monitor scheduler started.
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36026 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:36526 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:43262 - "GET /api/task-operations/stage4-3dgs-critique-20261009-v7/stage4-3dgs-critique-20261009-v7-request HTTP/1.1" 404 Not Found
+INFO:     172.20.0.1:43262 - "GET /api/task-operations/stage4-3dgs-critique-20261009-v7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:43262 - "POST /api/task-operations HTTP/1.1" 200 OK
+2026-10-09 12:33:13,261 [INFO] core.hybrid_retriever:149 - BM25 索引就绪：scope=803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf，语料 55 条
+2026-10-09 12:33:13,614 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='What contributions, innovation...', 匹配到 8 条片段
+2026-10-09 12:33:13,673 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='What is the method, model desi...', 匹配到 8 条片段
+2026-10-09 12:33:13,754 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='What experiments, metrics, com...', 匹配到 8 条片段
+2026-10-09 12:33:13,843 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='What limitations, risks, failu...', 匹配到 8 条片段
+INFO:     172.20.0.1:40844 - "GET /api/task-operations/stage4-3dgs-compose-20261009-v7/stage4-3dgs-compose-20261009-v7-request HTTP/1.1" 404 Not Found
+INFO:     172.20.0.1:40844 - "GET /api/task-operations/stage4-3dgs-compose-20261009-v7 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:40844 - "POST /api/task-operations HTTP/1.1" 200 OK
+2026-10-09 12:33:43,845 [INFO] core.hybrid_retriever:149 - BM25 索引就绪：scope=f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf，语料 75 条
+2026-10-09 12:33:47,623 [INFO] core.query_rewriter:124 - 检索查询已跨语言改写: '3DGS 高斯 透明度 球谐颜色 概念定义' -> '3DGS Gaussian Opacity Spherical Harmonics Color Concept Definition'
+2026-10-09 12:33:47,673 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='3DGS Gaussian Opacity Spherica...', 匹配到 12 条片段
+INFO:     172.20.0.1:41268 - "GET /api/research-tasks/15ed7e01-4cef-5b14-9cad-2d9d5b599171 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/b855cb5c-48a0-59d5-93ff-798a70b560f9 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+2026-10-09 12:34:02,664 [INFO] services.trace_service:252 - [trace] {"traceId": "d5716694-d8d9-4cf0-9c0b-47a65efb598f", "taskType": "chat", "status": "success", "startedAt": "2026-10-09T12:33:34.073367Z", "finishedAt": "2026-10-09T12:34:02.664049Z", "durationMs": 28590, "requestMeta": {"mode": "chat", "message": "先用两句话解释3DGS的高斯、透明度与球谐颜色，再比较原始3DGS与LightGaussian如何在表示规模、质量和渲染速度之间取舍。 当前仅执行组合任务的概念解释步骤。只解释用户指定的概念，最多两句话；比较、批判或补课由后续步骤完成。不要...", "pdfId": "", "historyItems": 0}, "responseMeta": {"mode": "chat", "scope": "current_paper", "intent": "解释方法", "verdict": "CORRECT", "evidenceItems": 12, "safetyFlags": [], "sanitizedSegments": 0, "budgetClamped": false}, "counters": {"llmCalls": 2, "retrievalCalls": 1, "retryCount": 0, "truncationCount": 0, "estimatedInputTokens": 4559, "estimatedOutputTokens": 131, "externalSearchCalls": 0, "externalSearchCacheHits": 0, "externalSearchFailures": 0, "externalEvidenceCount": 0, "externalSearchLatencyMs": 0, "externalSearchBudgetBlocks": 0, "codeExecutionCalls": 0, "codeExecutionFailures": 0, "codeExecutionOutputCount": 0, "webSearchCalls": 0, "webSearchResults": 0, "webSearchFailures": 0, "webSearchLatencyMs": 0, "webSearchBudgetBlocks": 0, "webSearchCacheHits": 0, "webFetchCalls": 0, "webFetchChars": 0, "webFetchFailures": 0, "webFetchBudgetBlocks": 0, "webFetchCacheHits": 0, "webFetchBytes": 0, "agenticLoopIterations": 0, "queryRefinementCalls": 0, "llmCacheMisses": 2, "evidenceItems": 12}, "steps": [{"name": "llm_call", "durationMs": 9740, "status": "success", "inputSize": 2022, "outputSize": 318, "error": "", "meta": {"provider": "deepseek", "model": "deepseek-v4-pro", "messageCount": 2}}, {"name": "build_chat_query_plan", "durationMs": 9754, "status": "success", "inputSize": 141, "outputSize": 1, "error": ""}, {"name": "retrieve_current_paper", "durationMs": 3845, "status": "success", "inputSize": 21, "outputSize": 12, "error": "", "meta": {"pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"}}, {"name": "judge_chat_evidence", "durationMs": 0, "status": "success", "inputSize": 12, "outputSize": 0, "error": "", "meta": {"scope": "current_paper"}}, {"name": "llm_call", "durationMs": 15316, "status": "success", "inputSize": 16206, "outputSize": 204, "error": "", "meta": {"provider": "deepseek", "model": "deepseek-v4-pro", "messageCount": 2}}, {"name": "generate_chat_answer", "durationMs": 15324, "status": "success", "inputSize": 15343, "outputSize": 204, "error": ""}]}
+2026-10-09 12:34:02,761 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='先用两句话解释3DGS的高斯、透明度与球谐颜色，再比较原始3...', 匹配到 4 条片段
+2026-10-09 12:34:02,797 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='method formulation objective e...', 匹配到 4 条片段
+2026-10-09 12:34:02,833 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='experimental setup hardware da...', 匹配到 4 条片段
+2026-10-09 12:34:02,896 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='先用两句话解释3DGS的高斯、透明度与球谐颜色，再比较原始3...', 匹配到 4 条片段
+2026-10-09 12:34:02,937 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='method formulation objective e...', 匹配到 4 条片段
+2026-10-09 12:34:02,973 [INFO] core.rag_vector_db:282 - RAG 检索完成: 查询='experimental setup hardware da...', 匹配到 4 条片段
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:41266 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+2026-10-09 12:35:27,728 [INFO] services.trace_service:252 - [trace] {"traceId": "3352bc8d-e5bc-4096-b46e-db892fc593ec", "taskType": "critical", "status": "error", "startedAt": "2026-10-09T12:33:12.838420Z", "finishedAt": "2026-10-09T12:35:27.728152Z", "durationMs": 134889, "requestMeta": {"pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf", "hasInlineContent": false}, "responseMeta": {}, "counters": {"llmCalls": 1, "retrievalCalls": 5, "retryCount": 0, "truncationCount": 0, "estimatedInputTokens": 4693, "estimatedOutputTokens": 1557, "externalSearchCalls": 0, "externalSearchCacheHits": 0, "externalSearchFailures": 0, "externalEvidenceCount": 0, "externalSearchLatencyMs": 0, "externalSearchBudgetBlocks": 0, "codeExecutionCalls": 0, "codeExecutionFailures": 0, "codeExecutionOutputCount": 0, "webSearchCalls": 0, "webSearchResults": 0, "webSearchFailures": 0, "webSearchLatencyMs": 0, "webSearchBudgetBlocks": 0, "webSearchCacheHits": 0, "webFetchCalls": 0, "webFetchChars": 0, "webFetchFailures": 0, "webFetchBudgetBlocks": 0, "webFetchCacheHits": 0, "webFetchBytes": 0, "agenticLoopIterations": 0, "queryRefinementCalls": 0, "llmCacheMisses": 1}, "steps": [{"name": "load_analysis_source", "durationMs": 387, "status": "success", "inputSize": null, "outputSize": 55, "error": "", "meta": {"hasInlineContent": false, "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"}}, {"name": "axis_contributions_query_plan", "durationMs": 0, "status": "success", "inputSize": 144, "outputSize": 7, "error": "", "meta": {"label": "贡献与创新", "query": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？ What contributions, innovations and core claims does this paper make?", "source": "axis-fixed"}}, {"name": "axis_contributions_retrieve", "durationMs": 389, "status": "success", "inputSize": 55, "outputSize": 6, "error": "", "meta": {"label": "贡献与创新", "scoped": true, "query": "What contributions, innovations and core claims does this paper make? pruning prune spherical harmonics distillation dis...", "retrievedCount": 12, "sectionCount": 6}}, {"name": "axis_contributions_judge", "durationMs": 0, "status": "success", "inputSize": 6, "outputSize": 0, "error": "", "meta": {"label": "贡献与创新"}}, {"name": "axis_methods_query_plan", "durationMs": 0, "status": "success", "inputSize": 164, "outputSize": 8, "error": "", "meta": {"label": "方法与机制", "query": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？ What is the method, model design and key mechanism, and what direct evidence supports it?", "source": "axis-fixed"}}, {"name": "axis_methods_retrieve", "durationMs": 70, "status": "success", "inputSize": 55, "outputSize": 6, "error": "", "meta": {"label": "方法与机制", "scoped": true, "query": "What is the method, model design and key mechanism, and what direct evidence supports it? pruning prune spherical harmon...", "retrievedCount": 12, "sectionCount": 3}}, {"name": "axis_methods_judge", "durationMs": 0, "status": "success", "inputSize": 6, "outputSize": 0, "error": "", "meta": {"label": "方法与机制"}}, {"name": "axis_experiments_query_plan", "durationMs": 0, "status": "success", "inputSize": 150, "outputSize": 9, "error": "", "meta": {"label": "实验与结果", "query": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？ What experiments, metrics, comparisons and results support the conclusions?", "source": "axis-fixed"}}, {"name": "axis_experiments_retrieve", "durationMs": 94, "status": "success", "inputSize": 55, "outputSize": 6, "error": "", "meta": {"label": "实验与结果", "scoped": true, "query": "What experiments, metrics, comparisons and results support the conclusions? pruning prune spherical harmonics distillati...", "retrievedCount": 14, "sectionCount": 4}}, {"name": "axis_experiments_judge", "durationMs": 0, "status": "success", "inputSize": 6, "outputSize": 0, "error": "", "meta": {"label": "实验与结果"}}, {"name": "axis_limitations_query_plan", "durationMs": 0, "status": "success", "inputSize": 150, "outputSize": 8, "error": "", "meta": {"label": "局限与风险", "query": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？ What limitations, risks, failure cases and unverified aspects are reported?", "source": "axis-fixed"}}, {"name": "axis_limitations_retrieve", "durationMs": 61, "status": "success", "inputSize": 55, "outputSize": 6, "error": "", "meta": {"label": "局限与风险", "scoped": true, "query": "What limitations, risks, failure cases and unverified aspects are reported? pruning prune spherical harmonics distillati...", "retrievedCount": 13, "sectionCount": 6}}, {"name": "axis_limitations_judge", "durationMs": 1, "status": "success", "inputSize": 6, "outputSize": 0, "error": "", "meta": {"label": "局限与风险"}}, {"name": "llm_call", "durationMs": 135430, "status": "success", "inputSize": 18771, "outputSize": 6227, "error": "", "meta": {"provider": "deepseek", "model": "deepseek-v4-pro", "messageCount": 2}}, {"name": "grounded_critical_synthesis", "durationMs": 135456, "status": "success", "inputSize": 18008, "outputSize": 6227, "error": ""}], "error": "不能把检索缺口发布为论文缺陷，请改为待核查问题。"}
+2026-10-09 12:35:27,728 [ERROR] services.task_operation_service:150 - Task operation failed: task=stage4-3dgs-critique-20261009-v7 request=stage4-3dgs-critique-20261009-v7-request
+Traceback (most recent call last):
+  File "/app/services/task_operation_service.py", line 142, in _run
+    result = self.handler(receipt["kind"], payload)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/services/task_operation_service.py", line 212, in execute_capability
+    result = _execute_native_capability(kind, payload)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/services/task_operation_service.py", line 220, in _execute_native_capability
+    return execute_conversation(ConversationCapabilityRequest.model_validate(payload["upstream"]))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/services/conversation_capability_service.py", line 168, in execute_conversation
+    results = _run_step(step, request, completed)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/services/conversation_capability_service.py", line 152, in _run_step
+    results.append({**native(request, paper_id), 'paperId': paper_id})
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/services/conversation_capability_service.py", line 73, in _critique
+    result = deep_analysis(DeepAnalysisRequest(pdf_id=paper_id, focus_question=request.message), grounded=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/services/analysis_service.py", line 819, in deep_analysis
+    response = synthesize_critique(request.focus_question or '整体批判阅读', response_sources)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/services/grounded_critique.py", line 75, in synthesize_critique
+    findings, questions = check_critique_payload(_extract_json_object(raw), validation, catalog)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/services/grounded_critique.py", line 32, in check_critique_payload
+    raise ValueError('不能把检索缺口发布为论文缺陷，请改为待核查问题。')
+ValueError: 不能把检索缺口发布为论文缺陷，请改为待核查问题。
+INFO:     172.20.0.1:41266 - "POST /api/translate-page HTTP/1.1" 200 OK
+INFO:     172.20.0.1:59160 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/task-operations/stage4-3dgs-critique-20261009-v7/stage4-3dgs-critique-20261009-v7-request HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/task-operations/stage4-3dgs-compose-20261009-v7/stage4-3dgs-compose-20261009-v7-request HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/task-operations/task%3Af8b18af5-9681-4bda-ad15-30fd2f3dbafe HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK
+INFO:     172.20.0.1:55858 - "GET /api/research-tasks/d4979e85-585c-54b4-b666-3a710e4ece39 HTTP/1.1" 200 OK

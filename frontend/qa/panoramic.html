@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>既有译文展示核验</title></head>
+<body style="margin:0;padding:12px;background:#f8f8fa">
+  <p style="font:13px/1.6 sans-serif;margin:0 0 10px">展示核验：LightGaussian 第4页的既有模型结果。保留原内容错误，本页不调用模型。</p>
+  <div id="root" style="height:calc(100dvh - 56px);max-width:1120px;margin:auto"></div>
+  <script type="module">
+    import React, {useState} from 'react';
+    import {createRoot} from 'react-dom/client';
+    import '/src/index.css';
+    import 'katex/dist/katex.min.css';
+    import TranslationPanel from '/src/components/TranslationPanel.jsx';
+    const data=await fetch('./translation-v3.json').then(response=>{if(!response.ok)throw new Error('Missing saved fixture');return response.json();});
+    const fileUrl='http://localhost:8081/api/task-workspaces/task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe/materials/'+data.pdfId+'/file';
+    function Preview() {
+      const [plain,setPlain] = useState(false);
+      return React.createElement('div',{style:{height:'100%',display:'flex',flexDirection:'column'}},
+        React.createElement('div',{role:'group','aria-label':'只读显示案例',style:{marginBottom:8}},
+          React.createElement('button',{onClick:()=>setPlain(false),'aria-pressed':!plain},'段落重排'),
+          React.createElement('button',{onClick:()=>setPlain(true),'aria-pressed':plain},'无定位正文')),
+        React.createElement('div',{style:{flex:1,minHeight:0}},React.createElement(TranslationPanel,
+          {pdfId:data.pdfId,pdfFileName:'LightGaussian · 既有验证结果',fileUrl,currentPage:data.pageIndex,
+            pageData:plain?{...data,pageLayout:null,translatedBlocks:[]}:data})));
+    }
+    createRoot(document.getElementById('root')).render(React.createElement(Preview));
+  </script>
+</body></html>

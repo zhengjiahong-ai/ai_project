@@ -1,0 +1,37 @@
+{
+  "promptVersion": "dr-v2.20261013.37",
+  "sourceRunId": "dr_run_8f5f2e8e9b6d507cbcd2555ec2e1426d",
+  "changes": [
+    "Exact typed executionSpec field bindings with allowed role/slot roots, bounded paths, exact value types and no foreign/factual source substitution",
+    "Remove only exact deterministic generated suffix from verifier text; retain original prose, executionSpec, stored claim and publication",
+    "Compact repetitive audit instructions without dropping required slots or semantic review"
+  ],
+  "offlineReplay": {
+    "config": {
+      "bytes": 23948,
+      "evidenceCount": 8,
+      "missingRefs": 0,
+      "allQuotesUnchanged": true
+    },
+    "science": {
+      "bytes": 20981,
+      "evidenceCount": 3,
+      "missingRefs": 0,
+      "allQuotesUnchanged": true
+    },
+    "manuallyConstructedGroupBindingErrors": [],
+    "modelCalls": 0
+  },
+  "liveValidation": "pending",
+  "qualityAccepted": false,
+  "offlineTests": {
+    "fullRunPassed": 922,
+    "fullRunFailed": 1,
+    "fullRunWarnings": 2,
+    "fullRunSeconds": 122.23,
+    "failure": "Old exact prompt phrase assertion in execution_spec integration; updated to current concrete consistency requirements.",
+    "postFixAffectedPassed": 33,
+    "postFixAffectedSeconds": 7.18,
+    "remainingKnownFailures": 0
+  }
+}

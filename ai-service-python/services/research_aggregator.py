@@ -56,6 +56,10 @@ def build_research_report(
     conflicts: list[dict[str, Any]] | None = None,
     trace_summary: dict[str, Any] | None = None,
 ) -> str:
+    # New runs carry explicit answers and literal quote references. Do not run
+    # heuristic cross-source validation over retrieval wrappers for these runs.
+    if findings and any("answerStatus" in finding for finding in findings):
+        return _build_answer_report(question, findings, conflicts or [], trace_summary)
     lines = [
         "## 研究 brief",
         brief,
@@ -196,6 +200,49 @@ def build_research_report(
         lines.extend(_build_exec_stats(trace_summary))
 
     return "\n".join(line for line in lines if line is not None).strip()
+
+
+def _build_answer_report(question, findings, conflicts, trace_summary):
+    source_ids = list(dict.fromkeys(ref['sourceId'] for finding in findings for claim in finding.get('claims') or []
+                                   for ref in claim.get('references') or []))
+    numbers = {sid: index + 1 for index, sid in enumerate(source_ids)}
+    lines = ["## 研究结论", ""]
+    if len(findings) > 1:
+        lines.extend([question, ""])
+    for index, finding in enumerate(findings, 1):
+        summary = str(finding.get("summary") or "当前正文不足以回答。")
+        for sid, number in numbers.items():
+            summary = summary.replace(f"[{sid}]", f"[{number}]")
+        lines.extend([f"### {index}. {finding.get('subQuestion') or '研究问题'}", "",
+                      summary, ""])
+        if "answerStatus" not in finding:
+            lines.extend(["此项保留自旧执行记录，尚未逐论断核对原文；来源仅供回查。", ""])
+    if conflicts:
+        lines.extend(["## 需要核查的差异", ""])
+        for conflict in conflicts[:MAX_RESEARCH_CONFLICTS]:
+            # Numeric/keyword heuristics can nominate a check, not adjudicate it.
+            lines.append("- 待核查：" + str(conflict.get("summary") or conflict.get("claim") or conflict.get("topic") or "不同来源的条件和结果是否可比。"))
+        lines.extend(["", "这些是待核查线索，尚未证明论文之间存在矛盾。", ""])
+    quotes, seen = [], set()
+    source_labels = []
+    for finding in findings:
+        if any(source.get("sourceType") == "external_academic" for source in finding.get("sources") or []):
+            source_labels.append("来源包含外部学术检索；检索记录不等于原文证明。")
+        if finding.get("externalSearchDegradation"):
+            source_labels.append("外部检索降级：补查未完整完成，不能视为已验证外部证据。")
+        for claim in finding.get("claims") or []:
+            for ref in claim.get("references") or []:
+                key = (ref.get("sourceId"), ref.get("quote"))
+                if key in seen:
+                    continue
+                seen.add(key)
+                quotes.append(f"- [{numbers[key[0]]}] “{_flatten_snippet(key[1], 320)}”")
+    if quotes or source_labels:
+        lines.extend(["<details>", "<summary>原文依据</summary>", "", *quotes,
+                      *list(dict.fromkeys(source_labels)), "", "</details>"])
+    # Trace and retrieval coverage remain persisted in task metadata; they are
+    # not scientific findings and need no second, ungrounded summary LLM call.
+    return "\n".join(lines).strip()
 
 
 def detect_research_conflicts(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:

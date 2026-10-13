@@ -240,17 +240,29 @@ def _score_document(text: str, terms: list[str]) -> tuple[float, list[str]]:
     return score, matched_terms
 
 def _format_axis_prompt_block(axis_result: dict[str, Any]) -> str:
+    from services.comparison_measurements import bounded_table_body
+    from services.research_synthesis import evidence_body
+    import json
+
+    formatted_sources = []
+    for item in axis_result.get('evidence') or []:
+        current = dict(item)
+        label = '\nPDF交叉核对的表格列和完整行（结构标签不是原文句子）：'
+        body, verified = bounded_table_body(item, evidence_body(item.get('text')), 1800 - len(label))
+        if verified:
+            current['text'] = body + label + json.dumps(verified, ensure_ascii=False, separators=(',', ':'))
+        formatted_sources.append(current)
     judge = axis_result.get("judge") or {}
     evidence_block = format_evidence_context(
-        axis_result.get("evidence") or [],
+        formatted_sources,
         title=f"{axis_result.get('label')}证据",
-        max_items=4,
-        max_text_chars=450,
+        max_items=6,
+        max_text_chars=1800,
     ) or "\n\n证据片段：\n- 当前未检索到相关证据。"
     evidence_safety = wrap_untrusted_context(
         f"{axis_result.get('label')} evidence",
         evidence_block,
-        max_tokens=1200,
+        max_tokens=3400,
     )
 
     return (
@@ -259,6 +271,7 @@ def _format_axis_prompt_block(axis_result: dict[str, Any]) -> str:
         f"queryPlan: {axis_result.get('queryPlan')}\n"
         f"judge: verdict={judge.get('verdict')} confidence={judge.get('confidence')} "
         f"reason={judge.get('reason')} missing={judge.get('missingAspects')}\n"
+        "表格列映射未核对时不能猜测数字归属；带cols/rows跨度或分块不完整的表格，只能保留可确认信息，不能把不同场景、硬件和基线版本拼成同一次实验。\n"
         f"{evidence_safety['wrapped']}\n"
     )
 

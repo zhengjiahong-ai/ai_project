@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-13",
+  "feature": "Ground experiment metric requirements in original request",
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "patchSha256": "53dc7385294d22d52b8484b98e18a3eeb02045feaffee124d8dd5dee6f9a1117",
+    "delivered": [
+      "metric_scope.py",
+      "test_deep_research_metric_scope.py"
+    ],
+    "reviewCorrections": [
+      "Fixed a test whose supposed exact excerpt was not present in its question"
+    ]
+  },
+  "behavior": [
+    "Brief classifies requested domains with exact question excerpts",
+    "Malformed or absent scope defaults to all existing quality/speed/storage checks",
+    "Synthesis and semantic audit use the same persisted scope, read after brief resolution",
+    "Whole-question completeness audit still checks the original request; literal grounding is not proof of correct semantic classification"
+  ],
+  "validation": {
+    "focusedTests": 105,
+    "fullRegression": 542,
+    "seconds": 65.13,
+    "warnings": 2
+  },
+  "runtimeLoaded": true,
+  "realD3Retest": false,
+  "codeCommit": "c562f9f",
+  "promptVersion": "dr-v2.20261013.17",
+  "health": {
+    "status": "ok",
+    "rag": "ok",
+    "grobid": "ok"
+  }
+}

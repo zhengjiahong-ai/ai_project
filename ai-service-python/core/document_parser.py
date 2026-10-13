@@ -210,7 +210,60 @@ def _infer_section_level(heading_number: str, nested_level: int) -> int:
     return max(1, min(nested_level, 6))
 
 
-def parse_tei_xml(tei_path):
+def _extract_table_sections(body):
+    """Keep TEI table cells and spans without inferring damaged column labels."""
+    result = []
+    candidates = [node for node in body.find_all(['figure', 'table'])
+                  if (node.name == 'figure' and _resolve_zone_type(node) == 'table')
+                  or (node.name == 'table' and not node.find_parent(['figure', 'table']))]
+    for index, owner in enumerate(candidates):
+        if owner.find_parent('table'):
+            continue
+        table = owner.find('table') if owner.name == 'figure' else owner
+        head = owner.find('head', recursive=False)
+        caption = owner.find('figDesc', recursive=False)
+        title = head.get_text(' ', strip=True) if head else f'Table {index + 1}'
+        description = caption.get_text(' ', strip=True) if caption else ''
+        rows = []
+        spans = False
+        for row in table.find_all('row') if table else []:
+            if row.find_parent('table') is not table:
+                continue
+            cells = []
+            for cell in row.find_all('cell', recursive=False):
+                def span(name):
+                    value = str(cell.get(name) or '1')
+                    return int(value) if value.isdigit() and int(value) > 0 else 1
+                cols, row_span = span('cols'), span('rows')
+                spans = spans or cols > 1 or row_span > 1
+                cells.append({'text': cell.get_text(' ', strip=True), 'cols': cols, 'rows': row_span})
+            if cells:
+                rows.append(cells)
+        lines = [f'Table caption: {title} {description}'.strip()]
+        for number, row in enumerate(rows, 1):
+            values = [cell['text'] + (f" [cols={cell['cols']}, rows={cell['rows']}]"
+                      if cell['cols'] > 1 or cell['rows'] > 1 else '') for cell in row]
+            lines.append(f'Table row {number}: ' + ' | '.join(values))
+        if not rows:
+            lines.append((table or owner).get_text(' ', strip=True))
+        coords = _collect_element_coords(owner)
+        page = min((coord['pageIndex'] for coord in coords), default=None)
+        table_id = owner.get('xml:id') or owner.get('id') or f'table-{index + 1}'
+        section = {'id': f'table-{table_id}', 'section': f'{title} {description}'.strip(),
+                   'content': '\n'.join(lines), 'evidenceKind': 'table', 'tableId': table_id,
+                   'tableColumnMappingUnverified': spans or not rows, 'tableRows': rows,
+                   'tablePrefix': '\n'.join(lines[:2] if rows else lines)}
+        if page is not None:
+            section.update(pageIndex=page, page=page + 1)
+            table_coords = _collect_element_coords(table or owner)
+            if len(table_coords) == 1 and table_coords[0]['pageIndex'] == page:
+                coord = table_coords[0]
+                section['tableBounds'] = [coord['x'], coord['y'], coord['width'], coord['height']]
+        result.append(section)
+    return result
+
+
+def parse_tei_xml(tei_path, pdf_path=None):
     with open(tei_path, "r", encoding="utf-8") as handle:
         soup = BeautifulSoup(handle, "xml")
 
@@ -271,16 +324,18 @@ def parse_tei_xml(tei_path):
         parent_div = ancestor_divs[0] if ancestor_divs else None
         parent_id = div_ids.get(id(parent_div)) if parent_div else None
 
-        paragraphs = [paragraph.get_text(strip=True) for paragraph in div.find_all("p")]
+        paragraphs = [paragraph.get_text(strip=True) for paragraph in div.find_all("p")
+                      if not paragraph.find_parent('table')
+                      and not any(_resolve_zone_type(figure) == 'table'
+                                  for figure in paragraph.find_parents('figure'))]
         for formula in div.find_all("formula"):
             paragraphs.append("Equation: " + formula.get_text(strip=True))
 
         for figure in div.find_all("figure"):
+            if _resolve_zone_type(figure) == 'table':
+                continue  # Indexed separately with cells, caption and page.
             zone_type = _resolve_zone_type(figure).capitalize()
             paragraphs.append(f"{zone_type}: " + figure.get_text(strip=True))
-
-        for table in div.find_all("table"):
-            paragraphs.append("Table: " + table.get_text(strip=True))
 
         content = "\n".join(item for item in paragraphs if item.strip())
         if content.strip():
@@ -300,4 +355,8 @@ def parse_tei_xml(tei_path):
                 section_payload["page"] = first_page_index + 1
             sections.append(section_payload)
 
+    sections.extend(_extract_table_sections(body))
+    if pdf_path:
+        from core.pdf_table_columns import attach_verified_table_columns
+        sections = attach_verified_table_columns(sections, pdf_path)
     return sections

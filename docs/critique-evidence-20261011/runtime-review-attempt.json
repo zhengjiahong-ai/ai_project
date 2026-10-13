@@ -1,0 +1,22 @@
+{
+  "payload": {
+    "requestId": "critique-final-review",
+    "kind": "conversation.execute",
+    "input": {
+      "expectedTaskRevision": 1,
+      "message": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。",
+      "displayText": "/批判 对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。",
+      "capability": "critique",
+      "allowedPaperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+      ],
+      "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+      "strictScope": false,
+      "targetPaperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ]
+    }
+  },
+  "submittedOnce": true
+}

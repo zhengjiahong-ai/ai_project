@@ -1,0 +1,14 @@
+{
+  "authorization": "用户2026-10-09明确回复：批准复测",
+  "caseId": "stage6-selection-v6",
+  "provider": "https://api.deepseek.com",
+  "taskId": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+  "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "pageIndex": 3,
+  "selectedText": "significance",
+  "anchor": "Figure 3 caption, same physical page 4, to avoid opening historical highlight",
+  "createdAt": "2026-10-09T10:31:41.9813738+00:00",
+  "submitAttempts": 1,
+  "action": "actual UI explain once",
+  "automaticRetryAllowed": false
+}

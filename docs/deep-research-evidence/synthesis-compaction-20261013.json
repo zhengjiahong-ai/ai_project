@@ -1,0 +1,33 @@
+{
+  "promptVersion": "dr-v2.20261013.36",
+  "sourceRunId": "dr_run_97a45b78f59f5fae9a1a11cce46225ba",
+  "change": [
+    "Compact common instructions without changing experiment role/spec contracts or independent validators",
+    "Exclude retrieval searchQuery from synthesis obligations; retain IDs, questions, purpose, requestExcerpt and requiredSources",
+    "Deduplicate paper metadata by request-local source registry; keep evidence IDs separate",
+    "Omit null table packets and empty conditions; preserve quote, meaningful location including pages/sections, and source context subject to existing whole-evidence budget rules"
+  ],
+  "readOnlyReplay": {
+    "before": {
+      "bytes": 23864,
+      "evidenceCount": 8,
+      "subsetCapacityQuotePresent": false
+    },
+    "after": {
+      "bytes": 23912,
+      "evidenceCount": 13,
+      "subsetCapacityQuotePresent": true,
+      "subsetInheritanceQuotePresent": true
+    },
+    "modelCalls": 0
+  },
+  "liveValidation": "pending",
+  "qualityAccepted": false,
+  "offlineTests": {
+    "fullPassed": 910,
+    "warnings": 2,
+    "seconds": 134.41,
+    "finalLocationTargetedPassed": 20,
+    "finalLocationTargetedSeconds": 9.01
+  }
+}

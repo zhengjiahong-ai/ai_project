@@ -1,0 +1,28 @@
+.panoramic-page { container-type:inline-size; color:var(--text-primary); background:var(--panel-bg); border:1px solid var(--border-subtle); border-radius:12px; padding:16px; overflow-wrap:anywhere; }
+.panoramic-page > div + div { margin-top:16px; }
+.panoramic-columns { display:grid; grid-template-columns:1fr; gap:24px; }
+.panoramic-columns > div { min-width:0; }
+.panoramic-paragraph { font-size:16px; line-height:1.85; margin:12px 0; }
+.panoramic-paragraph p { margin:0 0 10px; }
+.panoramic-paragraph details { margin:4px 0; color:var(--text-secondary); font-size:12px; }
+.panoramic-paragraph summary { cursor:pointer; width:fit-content; }
+.panoramic-source { display:block; max-width:100%; height:auto; background:white; margin:8px 0; }
+.panoramic-source[hidden] { display:none; }
+.panoramic-source-button { position:relative; display:block; max-width:100%; padding:0; border:0; background:transparent; cursor:zoom-in; text-align:left; }
+.panoramic-source-button[hidden] { display:none; }
+.panoramic-source-button > span { position:absolute; right:4px; bottom:4px; padding:2px 6px; border-radius:4px; background:var(--panel-bg); color:var(--text-secondary); font-size:11px; opacity:0; }
+.panoramic-source-button:hover > span,.panoramic-source-button:focus-visible > span { opacity:1; }
+.panoramic-image-dialog { width:min(960px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); padding:12px; border:1px solid var(--border-subtle); border-radius:12px; background:var(--panel-bg); color:var(--text-primary); }
+.panoramic-image-dialog::backdrop { background:rgb(0 0 0 / 45%); }
+.panoramic-image-dialog header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; font-size:14px; }
+.panoramic-image-dialog header button { padding:4px 10px; border:1px solid var(--border-subtle); border-radius:6px; }
+.panoramic-image-dialog > div { overflow:auto; max-height:calc(100dvh - 100px); }
+.panoramic-image-dialog canvas { display:block; max-width:none; height:auto; background:white; }
+@media (hover:none) { .panoramic-source-button > span { opacity:1; } }
+.panoramic-math-source { margin:8px 0; font-size:11px; color:var(--text-secondary); }
+.panoramic-status { font-size:12px; color:var(--text-secondary); }
+.panoramic-formula-reference { color:var(--accent-primary,#4753c5); background:transparent; border:0; padding:0 2px; cursor:zoom-in; font:inherit; text-decoration:underline; text-underline-offset:3px; }
+.panoramic-formula-reference:disabled { cursor:wait; opacity:0.6; }
+.panoramic-original-page { margin-top:12px; font-size:12px; color:var(--text-secondary); }
+.panoramic-original-page summary { cursor:pointer; }
+@container (min-width:680px) { .panoramic-columns { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }

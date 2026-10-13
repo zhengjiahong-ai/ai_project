@@ -1,0 +1,51 @@
+{
+  "caseId": "H3",
+  "attempt": 3,
+  "purpose": "Development regression; consumed holdout must be replaced",
+  "runId": "dr_run_c4bcfba1dadf57fcbcc732edacdb5b08",
+  "runtimeRevision": "39ee70a",
+  "promptVersion": "dr-v2.20261013.50",
+  "submission": "One submission; confirmed receipt refreshed with GET only; no retry",
+  "status": "completed",
+  "outcome": "inconclusive",
+  "manualAccepted": false,
+  "settledModelCalls": 5,
+  "settledTokens": 6204,
+  "elapsedSeconds": 21.027,
+  "externalDiscoveries": 2,
+  "fulltextFetches": 1,
+  "sourceVersion": "arxiv:2310.08528v3",
+  "contentHash": "3ed48987c72be26fe59778e382c145599a55f97456ea9a1e2711035a673264d6",
+  "localMaterials": 0,
+  "diagnosis": {
+    "acceptedEvidence": 0,
+    "acceptedClaims": 0,
+    "initialClaimRejections": ["c1: missing_evidence", "c2: missing_evidence"],
+    "repair": "response_received, empty array",
+    "coverageAudit": "not_checked; no accepted answer to audit",
+    "sourcePagesBefore": [11, 10, 4, 2],
+    "firstExtractionPagesBefore": [11, 10, 2],
+    "cause": "Raw query token 'arxiv' counts repeatedly on reference pages; identifier-only English also prevented fallback to translated discovery keywords. Core method page was acquired but appeared late in the read order."
+  },
+  "offlineFix": {
+    "promptVersion": "dr-v2.20261013.51",
+    "changes": [
+      "Remove bibliographic identifiers, URLs, DOI addresses and common English function words from reading relevance terms",
+      "Use translated discovery terms when the question contains no meaningful English topic terms",
+      "Rank distinct topic coverage before capped keyword repetition; keep stable page-order ties",
+      "Preserve page text, offsets, source identities, acquisition policy and budget limits"
+    ],
+    "selectedPagesAfter": { "ob1": [2, 4, 7], "ob2": [3, 4, 7] },
+    "firstExtractionBatchAfter": [
+      { "page": 2, "offset": 0, "obligationIds": ["ob1"] },
+      { "page": 4, "offset": 0, "obligationIds": ["ob1", "ob2"] },
+      { "page": 3, "offset": 0, "obligationIds": ["ob2"] }
+    ],
+    "mainMethodInFirstBatch": true,
+    "replay": "Saved fulltext pages plus production page slicing and balanced sampling; no source request or model invocation",
+    "targetedTests": { "passed": 41, "warnings": 2, "seconds": 30.04 },
+    "fullOfflineRegression": { "passed": 961, "warnings": 2, "seconds": 98.47 },
+    "runtimeLoaded": false,
+    "liveQualityAccepted": false
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "runId": "dr_run_fef8cfc00fd15600a5e89fe1fffe60f6",
+  "revision": "c9f463e",
+  "promptVersion": "dr-v2.20261013.43",
+  "status": "completed",
+  "outcome": "partial",
+  "qualityAccepted": false,
+  "settledModelCalls": 15,
+  "settledTokens": 58577,
+  "elapsedSeconds": 128.169,
+  "initialCoverageStatus": "checked",
+  "finalAcceptedClaimIds": ["c1", "c4", "c7"],
+  "repairStatus": "skipped_budget",
+  "repairLimit": {"kind": "repairPromptBytes", "limit": 12660, "used": 22042},
+  "observedImprovements": [
+    "The steps claim was rejected because obtaining or training a baseline lacked a finite training budget or existing-asset selection rule.",
+    "The final-answer audit executed and preserved a partial outcome."
+  ],
+  "remainingFailures": [
+    "Data availability remains unresolved; the proposed subset cannot be treated as available.",
+    "Config verification omitted references because of request capacity; groups and controls were rejected.",
+    "Repair fixed content alone exceeds remaining normal-pool prompt capacity.",
+    "Coverage verdicts bind hypothesis wording to operational requirements it does not fulfill; checked means an audit response was processed, not human acceptance.",
+    "Accepted recovery budget excludes the baseline from additional optimization, despite wording claiming matched budgets; intervention effects may be confounded."
+  ],
+  "resubmitted": false,
+  "rawResultReceipt": "tmp/dr-acceptance-receipts/D3-v18.result.json",
+  "nextAction": "Offline redesign of repair request organization and review of semantic coverage; do not repeat generation without a meaningful fix."
+}

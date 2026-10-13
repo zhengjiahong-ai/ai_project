@@ -1,0 +1,36 @@
+[
+  {
+    "case": "incorrect",
+    "verdict": "incorrect",
+    "conceptUnchanged": true,
+    "literalReferencesVerified": true
+  },
+  {
+    "case": "partial",
+    "verdict": "partial",
+    "conceptUnchanged": true,
+    "literalReferencesVerified": true
+  },
+  {
+    "case": "correct",
+    "verdict": "demonstrated",
+    "conceptUnchanged": true,
+    "literalReferencesVerified": true
+  },
+  {
+    "case": "unassessable",
+    "verdict": "unassessable",
+    "conceptUnchanged": true,
+    "literalReferencesVerified": true
+  },
+  {
+    "case": "novice-explicit-finish",
+    "durableStateVerified": true,
+    "completionSuggested": false
+  },
+  {
+    "case": "quiz-explicit-finish",
+    "durableStateVerified": true,
+    "completionSuggested": true
+  }
+]

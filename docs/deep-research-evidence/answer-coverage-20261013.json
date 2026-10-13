@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "promptVersion": "dr-v2.20261013.13",
+  "scope": "Final accepted-answer completeness, distinct from retrieval relevance and factual support",
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "delivered": [
+      "answer_coverage.py",
+      "test_deep_research_answer_coverage.py"
+    ],
+    "patchSha256": "8f7544cff2080b8eae158d67601e3a503ddd844c3dd066e55cb353117ac56da4",
+    "reviewCorrections": [
+      "Use valid requiredSources fixture shape",
+      "Keep missing verdicts as gaps in malformed-input test",
+      "Allow distinct excerpts from the same uniquely identified claim"
+    ]
+  },
+  "integration": [
+    "One reserved ledger-tracked audit, no automatic retries",
+    "Audit original question as well as planned obligations",
+    "Accept literal bindings only to final retained claims",
+    "Missing, truncated, malformed or budget-exhausted audit cannot yield complete coverage",
+    "Unknown provider result propagates to existing durable recovery",
+    "Publication includes remaining answer gaps and remains partial"
+  ],
+  "limitations": [
+    "Literal binding checks validate audit provenance, not semantic completeness by themselves",
+    "Real model quality still needs D7 development regression and independent held-out cases",
+    "D3 scientific verifier truncation and concrete protocol generation remain unresolved"
+  ],
+  "offlineRegression": {
+    "passed": 398,
+    "seconds": 60.56,
+    "warnings": 2
+  },
+  "runtimeLoaded": true,
+  "postSerializationChecks": {
+    "passed": 17,
+    "seconds": 5.52
+  },
+  "health": {
+    "httpStatus": 200,
+    "status": "ok",
+    "rag": "ok",
+    "grobid": "ok",
+    "activeRunsBeforeRestart": 0
+  },
+  "developmentRunId": "dr_run_006bc964976258f08b34845901bad8a2",
+  "developmentOutcome": {
+    "outcome": "partial",
+    "manualOutcome": "failed",
+    "coverageGate": "detected omissions",
+    "record": "D7-mechanism-coverage-20261013.json"
+  },
+  "reportFollowupChecks": {
+    "passed": 37,
+    "seconds": 10.77
+  },
+  "reportFollowup": "Future reports fold and deduplicate gaps; full audit stays in storage. Historical D7 report is unchanged."
+}

@@ -1,0 +1,29 @@
+{
+  "checks": {
+    "critiqueReceiptUnchanged": true,
+    "compareReceiptUnchanged": true,
+    "allTaskSnapshotsUnchangedAcrossReload": true
+  },
+  "taskHashes": {
+    "readingTask": "83bdde7b8e1b17d9efff17521c87292a13531b089f77cf1b5321ee09be1d238f",
+    "critiqueTask": "52fd3f3074796ac12401eda87ec2bd760fd1cbe1c07ac7b56700e3631eb762f8",
+    "compareTask": "735ff713007ab2563a5845d2768f9d30dda995759df9503ba1e0323f0c019185"
+  },
+  "readingRevision": 19,
+  "health": {
+    "status": "ok",
+    "checks": {
+      "grobid": {
+        "status": "ok",
+        "message": "GROBID is reachable."
+      },
+      "rag": {
+        "status": "ok",
+        "message": "RAG backend is ready."
+      }
+    },
+    "uptime_seconds": 54.7
+  },
+  "providerCallsByCheck": 0,
+  "taskWritesByCheck": 0
+}

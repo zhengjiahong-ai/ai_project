@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/app/scripts/verify_numeric_bindings_input.py", line 39, in <module>
+    assert '3D-GS' in baseline[1] and '*' in baseline[1] and 'Ours' in ours[1]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

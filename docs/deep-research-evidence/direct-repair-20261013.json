@@ -1,0 +1,33 @@
+{
+  "promptVersion": "dr-v2.20261013.30",
+  "change": "repair_claims alone uses thinking disabled and reasoning none, same 8192 output cap; independent revision verification unchanged. Persist output_truncated separately from response_received.",
+  "basis": "D3-v9 repair exhausted 8192 output tokens with empty content. Do not accept or resend a truncated result.",
+  "tests": {
+    "fullPassed": 839,
+    "warnings": 2,
+    "seconds": 84.14,
+    "command": "python -m pytest tests/test_deep_research_*.py tests/test_llm_instance_timeout.py tests/test_offline_llm.py tests/test_pdf_table_columns.py tests/test_table_evidence.py -q -p no:cacheprovider --basetemp=/tmp/dr-direct-repair-full"
+  },
+  "limits": [
+    "Runtime .30 loaded",
+    "Direct repair still not live validated because this run never entered it",
+    "Overall experiment acceptance remains failed"
+  ],
+  "runtime": {
+    "commit": "524c81b",
+    "promptVersion": "dr-v2.20261013.30",
+    "health": "api/rag/grobid ok",
+    "D3attempt10": {
+      "runId": "dr_run_b61ade97852d5a9e9f5e8e4ebdb5f1e8",
+      "status": "completed",
+      "outcome": "partial",
+      "manual": "failed",
+      "modelCalls": 10,
+      "tokens": 52211,
+      "elapsedSeconds": 118,
+      "allNineDesignRolesOmitted": true,
+      "repairTriggered": false,
+      "diagnosis": "Version2 proposals with no designRole bypassed role validation; only publication noticed missing roles. Direct repair option not exercised."
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-13",
+  "promptVersion": "dr-v2.20261013.20",
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "patchSha256": "0eb2f4c5ba143888b0eda49ae23b682fb669f8a2d6f2055b731b52014c44e93b",
+    "reviewCorrections": [
+      "Restore entire original row including existing omission markers.",
+      "Correct no-mutation test budget and expected compact row."
+    ],
+    "integration": "synthesis, final coverage, claim repair, semantic/design verification"
+  },
+  "failedCase": {
+    "runId": "dr_run_8c1bda6d0e5451d495b91474c70b4b5c",
+    "status": "failed",
+    "errorCode": "execution_failed",
+    "reason": "synthesis prompt 24242 bytes exceeds 24000",
+    "modelCalls": 7,
+    "tokens": 17741,
+    "synthesisProviderCalled": false
+  },
+  "offlineReplay": {
+    "promptBytes": 23961,
+    "limitBytes": 24000,
+    "selectedRows": 14,
+    "availableEvidence": 17,
+    "contextsOmitted": 13,
+    "quotesIntact": true,
+    "modelCalls": 0
+  },
+  "invariants": [
+    "Count the whole rendered prompt including instructions and permission maps.",
+    "Do not clip quotes or raise provider limit.",
+    "Repair permissions and final-audit binding validation use only selected rows.",
+    "A semantic passed verdict is downgraded if referenced evidence was omitted."
+  ],
+  "acceptance": "Offline construction and real synthesis request path verified; experimental content remains manually failed. No further retry submitted.",
+  "offlineTests": {
+    "passed": 623,
+    "warnings": 2,
+    "seconds": 68.7,
+    "scope": "all test_deep_research_*.py plus instance timeout, offline LLM, PDF table columns, table evidence"
+  },
+  "loadedRuntime": {
+    "commit": "569e117",
+    "health": "ok",
+    "rag": "ok",
+    "grobid": "ok",
+    "activeRunsBeforeRestart": 0
+  },
+  "followupCase": {
+    "caseId": "D3",
+    "attempt": 4,
+    "runId": "dr_run_35d6d601ce835db49412dc9a67273e4a",
+    "status": "completed",
+    "receipt": "tmp/dr-acceptance-receipts/D3-v4.json",
+    "outcome": "partial",
+    "manualAcceptance": "failed",
+    "modelCalls": 14,
+    "tokens": 63608,
+    "seconds": 170,
+    "repairStatus": "skipped_budget",
+    "findings": [
+      "Full prompt cap no longer prevents synthesis. Both design verifiers returned stop, not length.",
+      "Concrete pruning fraction 20%, degree 2, zero recovery and observed-image reference now present.",
+      "Data selection still says some scenes and unspecified SfM split; verifier falsely approves these as explicit.",
+      "Scene-seed pairs are treated as independent despite shared scenes/checkpoints.",
+      "Uncertainty estimator and confidence level absent; required analysis audit slots not all bound.",
+      "Group audit paraphrases instead of exact quotation; strict binding rejects it.",
+      "Raw E1/E7 etc remain in prose.",
+      "Retrieval obligations focus on paper evaluation details rather than only requested experiment outputs; coverage should distinguish supporting research from deliverable requirements.",
+      "Revision skipped under existing budget; do not raise limits or count partial as accepted."
+    ]
+  }
+}

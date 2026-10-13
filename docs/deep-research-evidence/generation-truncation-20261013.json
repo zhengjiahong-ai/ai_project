@@ -1,0 +1,18 @@
+{
+  "promptVersion": "dr-v2.20261013.40",
+  "change": "Reject length-finished synthesis and compaction responses before parsing, even when the returned JSON prefix happens to be syntactically complete.",
+  "tests": {
+    "passed": 44,
+    "warnings": 2,
+    "seconds": 37.88,
+    "covers": [
+      "camel-case and snake-case dictionary finish metadata",
+      "provider result objects",
+      "no saved synthesis body",
+      "single invocation without retry"
+    ]
+  },
+  "realModelCallsForThisFix": 0,
+  "liveValidation": "pending",
+  "qualityAccepted": false
+}

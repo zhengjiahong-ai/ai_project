@@ -1,0 +1,33 @@
+{
+  "checks": {
+    "critiqueOldFailedReceiptUnchanged": true,
+    "critiqueOneSubmission": true,
+    "critiqueOnePublishedArtifact": true,
+    "critiqueReferencesLiteral": true,
+    "composeOldFailedReceiptUnchanged": true,
+    "composeOneSubmission": true,
+    "composeOnePublishedArtifact": true,
+    "composeReferencesLiteral": true,
+    "readingTaskAfterSaveUnchanged": true,
+    "oldReadingArtifactsUnchanged": true,
+    "translationOneSubmission": true
+  },
+  "health": {
+    "status": "ok",
+    "checks": {
+      "grobid": {
+        "status": "ok",
+        "message": "GROBID is reachable."
+      },
+      "rag": {
+        "status": "ok",
+        "message": "RAG backend is ready."
+      }
+    },
+    "uptime_seconds": 917.1
+  },
+  "newModelCalls": 0,
+  "taskWrites": 0,
+  "readingRevisionBefore": 17,
+  "readingRevisionAfter": 19
+}

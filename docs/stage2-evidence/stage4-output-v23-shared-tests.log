@@ -1,0 +1,20 @@
+F..................................................................      [100%]
+=================================== FAILURES ===================================
+_ test_partial_critique_keeps_valid_claim_and_never_rewords_invalid_absence_into_fact _
+
+    def test_partial_critique_keeps_valid_claim_and_never_rewords_invalid_absence_into_fact():
+        references = refs()
+        valid = {'section': 'weakness', 'kind': 'inference', 'summary': '剪枝需要评估质量代价。', 'references': references['a']}
+        invalid = {**valid, 'summary': '论文未验证动态场景。'}
+        value = {'findings': [invalid, valid]}
+        before = deepcopy(value)
+        with patch('services.socratic_service._call_guarded_llm', return_value=json.dumps(value)) as provider:
+            result = synthesize_critique('剪枝局限', [SOURCES[0]], allow_partial=True)
+        assert provider.call_count == 1 and value == before
+>       assert result['partial'] and '部分分析' in result['summary']
+E       AssertionError: assert (True and '部分分析' in '推断：剪枝需要评估质量代价。 [1]')
+
+tests/test_partial_grounded_results.py:29: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_partial_grounded_results.py::test_partial_critique_keeps_valid_claim_and_never_rewords_invalid_absence_into_fact
+1 failed, 66 passed in 5.36s

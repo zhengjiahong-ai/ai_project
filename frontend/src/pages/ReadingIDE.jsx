@@ -796,6 +796,7 @@ export default function ReadingIDE({
 
                       {activeTab === 'translation' && (
                         <TranslationPanel
+                          fileUrl={pdfFile}
                           pdfId={pdfId}
                           pdfFileName={pdfFileName}
                           currentPage={translationState.currentPage}

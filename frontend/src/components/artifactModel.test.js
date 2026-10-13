@@ -46,6 +46,10 @@ const run = async () => {
   assert.equal(translation.pdfId, 'paper-1');
   assert.equal(translation.pageIndex, 2);
   assert.equal(buildTranslationArtifact({ pdfId: 'paper-1', translatedText: '  ' }), null);
+  const partialTranslation = buildTranslationArtifact({pdfId:'paper-1', pageIndex:3,
+    translatedText:'已有译文', status:'partial', warning:'还有1段未完成'});
+  assert.equal(partialTranslation.title, '第 4 页译文（部分）');
+  assert.equal(partialTranslation.content, '> 还有1段未完成\n\n已有译文');
 
   const deconstruction = buildDeconstructionArtifact({
     pdfId: 'paper-1',

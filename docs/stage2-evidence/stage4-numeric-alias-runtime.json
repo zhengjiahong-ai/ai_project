@@ -1,0 +1,28 @@
+{
+  "scope": "Current index and controlled synthesis; not actual model content acceptance",
+  "checks": {
+    "realFrameRateAndConditionsAccepted": true,
+    "allSixAliasesRejected": true,
+    "samePaperEvidenceOnly": true,
+    "oneControlledSynthesis": true,
+    "persistentDocumentsAndMetadataUnchanged": true
+  },
+  "sourceIds": [
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-20"
+  ],
+  "indexCount": 662,
+  "paperSnapshotSha256": "f3cb825087a334ecb0c11a243b568b3f92bd1a0918bc414841786f1a67bab799",
+  "providerCalls": 0,
+  "taskWrites": 0,
+  "persistentIndexWrites": 0,
+  "controlledSummary": "Mip-NeRF 360 Datasets（A6000，3D-GS  *  [16]基线）：Ours为237帧/秒。 [1] [2]",
+  "rejections": {
+    "999帧/秒": "比较结果含未逐项核对的数字。",
+    "999帧每秒": "比较结果含未逐项核对的数字。",
+    "999 frames per second": "比较结果含未逐项核对的数字。",
+    "999×压缩": "比较结果含未逐项核对的数字。",
+    "999x compression": "比较结果含未逐项核对的数字。",
+    "999 MiB": "比较结果含未逐项核对的数字。"
+  }
+}

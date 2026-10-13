@@ -1,0 +1,29 @@
+{
+  "runId": "dr_run_5fa0e60b76805679a8e65938c744d2b8",
+  "revision": "872dfc7",
+  "runnerRevision": "2f04b02",
+  "promptVersion": "dr-v2.20261013.38",
+  "status": "paused",
+  "outcome": "none",
+  "qualityAccepted": false,
+  "settledModelCalls": 7,
+  "settledTokens": 20508,
+  "unknownCalls": 1,
+  "unknownNode": "synthesize",
+  "unknownCallReservedAt": "2026-10-13T03:34:51Z",
+  "unknownCallCompletedAt": "2026-10-13T03:37:52Z",
+  "unknownCallActualUsage": null,
+  "ledgerTokensIncludingUnsettledReservation": 61908,
+  "published": false,
+  "resubmitted": false,
+  "finding": "Provider returned a generic request failure after about 181 seconds; no synthesis body was confirmed. No config/science verification or repair ran.",
+  "nextChange": {
+    "promptVersion": "dr-v2.20261013.39",
+    "draftThinking": "disabled",
+    "draftMaxOutputTokens": 16384,
+    "independentVerification": "unchanged",
+    "realQualityValidation": "pending",
+    "testsPassed": 28,
+    "testSeconds": 13.05
+  }
+}

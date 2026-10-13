@@ -1,0 +1,9 @@
+
+D:\aiproj\ai_project\frontend\src\components\CritiqueContent.jsx
+   9:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  25:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\aiproj\ai_project\frontend\src\components\LearningHistory.jsx
+  31:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+✖ 3 problems (0 errors, 3 warnings)

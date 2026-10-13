@@ -11,6 +11,7 @@ from routes.rag_routes import rag_router
 from routes.reading_routes import reading_router
 from routes.research_routes import research_router
 from routes.trace_routes import trace_router
+from routes.task_operation_routes import router as task_operation_router
 
 router = APIRouter(prefix="/api")
 router.include_router(code_execution_router)
@@ -21,3 +22,4 @@ router.include_router(research_router)
 router.include_router(monitor_router)
 router.include_router(rag_router)
 router.include_router(trace_router)
+router.include_router(task_operation_router)

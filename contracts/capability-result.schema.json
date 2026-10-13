@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pixiu/capability-result/v1",
+  "title": "Unified academic capability result",
+  "type": "object",
+  "required": ["resultVersion", "status", "capability", "message", "sources", "sentenceSourceMap", "materialScope", "steps", "artifact"],
+  "properties": {
+    "resultVersion": {"const": 1},
+    "status": {"const": "success"},
+    "capability": {"enum": ["chat", "read", "quiz", "background", "critique", "compare", "research", "compose"]},
+    "message": {"type": "string", "minLength": 1},
+    "sources": {"type": "array", "items": {"type": "object", "required": ["pdfId"], "properties": {"pdfId": {"type": "string"}}}},
+    "sentenceSourceMap": {"type": "array"},
+    "materialScope": {"type": "object", "required": ["taskId", "allowedPaperIds", "primaryPaperId", "strictScope"],
+      "properties": {"taskId": {"type": "string", "minLength": 1}, "allowedPaperIds": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "primaryPaperId": {"type": ["string", "null"]}, "strictScope": {"type": "boolean"}}},
+    "steps": {"type": "array"},
+    "artifact": {"type": ["object", "null"], "required": ["text", "paperIds", "sources"],
+      "properties": {"text": {"type": "string", "minLength": 1}, "paperIds": {"type": "array", "items": {"type": "string"}}, "sources": {"type": "array"}}}
+  }
+}

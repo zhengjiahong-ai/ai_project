@@ -1,0 +1,30 @@
+{
+  "method": "Read-only Java task, file bytes, processing status and Python health after actual browser upload/retry",
+  "task": {
+    "id": "task:acaca995-12ca-4ecb-883f-8fb26899db30",
+    "revision": 2,
+    "paperIds": [
+      "053f27492ecddbe66109f8f61c3c08986752cccd18cdcc362a9f4a37a9fd1863.pdf"
+    ],
+    "focusedPaperId": "053f27492ecddbe66109f8f61c3c08986752cccd18cdcc362a9f4a37a9fd1863.pdf"
+  },
+  "fileBytes": 1832584,
+  "processing": {
+    "status": "success",
+    "processingStatus": "ready",
+    "readingReady": true,
+    "questionReady": true,
+    "ragIndexed": true,
+    "aiAnalysisStatus": "not_requested"
+  },
+  "checks": {
+    "exactServerFileBytes": true,
+    "focusedTaskMaterial": true,
+    "parsingAndIndexReady": true,
+    "noMessagesNotesArtifactsOrLearningActivities": true,
+    "overviewNotRequested": true,
+    "serviceHealthOk": true
+  },
+  "modelRequestsSubmittedByThisVerifier": 0,
+  "limitation": "Browser file chooser, page 4 and draft recovery are separate UI observations; this GET-only check does not prove model answer quality."
+}

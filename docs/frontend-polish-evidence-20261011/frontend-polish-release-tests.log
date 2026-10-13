@@ -1,0 +1,24 @@
+
+> frontend@0.0.0 test
+> node src/utils/panoramicTranslation.test.js && node src/utils/selectionContext.test.js && node src/utils/pdfTranslationLayout.test.js && node scripts/layout-parser-benchmark.test.mjs && node src/utils/translationState.test.js && node src/utils/pageTranslationRequest.test.js && node src/utils/socraticSessionModel.test.js && node src/services/api.test.js && node src/components/translationPanelModel.test.js && node src/components/MarkdownContent.test.js && node src/components/criticalAnalysisData.test.js && node src/components/evidenceCitationModel.test.js && node src/components/parseStatusModel.test.js && node src/components/BackgroundKnowledgePanel.test.js && node src/components/deepResearchPanelModel.test.js && node src/components/insightCardModel.test.js && node src/components/artifactModel.test.js && node src/components/agent/agentWorkspaceModel.test.js && node src/components/agent/agentWorkspaceTheme.test.js && vitest run --maxWorkers=4 --reporter=json --outputFile=../tmp/frontend-polish-release-results.json
+
+panoramic translation model tests passed
+selection context tests passed
+frontend pdf translation layout tests passed
+layout parser benchmark tests passed
+frontend translation state tests passed
+frontend page translation request tests passed
+socratic session model smoke tests passed
+frontend api smoke tests passed
+frontend translation panel model tests passed
+markdown math, table and folded source rendering smoke tests passed
+critical analysis data helper smoke tests passed
+evidence citation model smoke tests passed
+parse status model tests passed
+background knowledge panel model smoke tests passed
+deep research panel model smoke tests passed
+insight card model smoke tests passed
+artifact model smoke tests passed
+agentWorkspaceModel tests passed
+agentWorkspaceTheme tests passed
+JSON report written to D:/aiproj/ai_project/tmp/frontend-polish-release-results.json

@@ -1,0 +1,157 @@
+{
+  "id": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+  "title": "阶段6：有材料的对话起点验收",
+  "paperIds": [
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+  ],
+  "messages": [
+    {
+      "id": "01d845af-f4c0-4851-815e-6f6d516b9040",
+      "role": "user",
+      "content": "Significance",
+      "timestamp": 1791457687278,
+      "context": {
+        "taskId": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": true
+      },
+      "sourceAnchorId": "selection-1791457687277",
+      "sourcePageIndex": 3,
+      "sourceText": "Significance",
+      "sourcePdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    },
+    {
+      "id": "5ac6e30a-1948-4615-85d9-1596bbaf0fd5",
+      "role": "ai",
+      "content": "在本文中，“Significance”指用于高斯剪枝的**全局重要性度量**，衡量每个 3D 高斯对最终渲染质量的贡献大小。它不是简单地只看高斯不透明度 $\\alpha$，而是受渲染公式 $C=\\sum_{i\\in N} c_i \\alpha_i \\prod_{j=1}^{i-1}(1-\\alpha_j)$ 启发，通过统计每个高斯在所有训练视图光线 $r_i$ 上的相交命中次数来得到初始分数 $G(X_j)$。该分数还会进一步结合高斯的体积 $V(\\Sigma_j)=\\frac{4}{3}\\pi abc$ 和自身不透明度 $\\sigma_j$ 进行加权，从而更准确地反映其对场景重建的重要性。这样做的目的是避免仅按不透明度剪枝而丢失细节，例如图中仅按不透明度剪枝会使 PSNR 从 27.2 降到 25.3。最终，重要性较低的高斯被视为冗余并可被剪除，以压缩模型并保持渲染质量。",
+      "timestamp": 1791457705255,
+      "context": {
+        "taskId": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": true
+      },
+      "sourceAnchorId": "selection-1791457687277",
+      "sourcePageIndex": 3,
+      "sourceText": "Significance",
+      "sourcePdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    },
+    {
+      "id": "a9e0b473-7d8e-4e13-96ac-47cee4695186",
+      "role": "user",
+      "content": "significance",
+      "timestamp": 1791470810458,
+      "context": {
+        "taskId": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": true
+      },
+      "sourceAnchorId": "selection-1791470810456",
+      "sourcePageIndex": 3,
+      "sourceText": "significance",
+      "sourcePdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    },
+    {
+      "id": "7dee2d8b-41f5-4957-9be3-3bb3b291ca90",
+      "role": "ai",
+      "content": "“significance” 在本文中指每个 3D Gaussian 对最终渲染质量的**全局重要性/显著性**，而不是 Fig. 3 中仅用高斯不透明度 $\\alpha$ 作为剪枝标准的那种局部、简单指标。文中指出，仅按 opacity 剪枝会让 PSNR 从 27.2 下降到 25.3，导致图像损失细节。因此作者提出 Global Significance Calculation：先统计每个高斯在所有训练视图下与像素射线 $r_i$ 是否相交的命中次数 $1(G(X_j), r_i)$，再用调整后的 3D Gaussian 体积 $\\gamma(\\Sigma_j)$ 和不透明度 $\\sigma_j$ 进行加权细化。这些因素对应渲染公式 Eq. 2 中颜色 $c_i$、不透明度 $\\alpha_i$ 以及累积透射率 $\\prod(1-\\alpha)$ 对像素颜色的贡献。当前 PDF 中体积计算部分被截断，因此无法给出完整公式，但可见因素表明 significance 综合了命中覆盖、体积与不透明度。",
+      "timestamp": 1791470832890,
+      "context": {
+        "taskId": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": true
+      },
+      "sourceAnchorId": "selection-1791470810456",
+      "sourcePageIndex": 3,
+      "sourceText": "significance",
+      "sourcePdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    }
+  ],
+  "notes": [
+    {
+      "id": "b518ef06-3dea-45b7-9255-8bafa6b54c0a",
+      "title": "原文笔记",
+      "text": "Significance\n\n## 阅读笔记\n\n在本文中，“Significance”指用于高斯剪枝的**全局重要性度量**，衡量每个 3D 高斯对最终渲染质量的贡献大小。它不是简单地只看高斯不透明度 $\\alpha$，而是受渲染公式 $C=\\sum_{i\\in N} c_i \\alpha_i \\prod_{j=1}^{i-1}(1-\\alpha_j)$ 启发，通过统计每个高斯在所有训练视图光线 $r_i$ 上的相交命中次数来得到初始分数 $G(X_j)$。该分数还会进一步结合高斯的体积 $V(\\Sigma_j)=\\frac{4}{3}\\pi abc$ 和自身不透明度 $\\sigma_j$ 进行加权，从而更准确地反映其对场景重建的重要性。这样做的目的是避免仅按不透明度剪枝而丢失细节，例如图中仅按不透明度剪枝会使 PSNR 从 27.2 降到 25.3。最终，重要性较低的高斯被视为冗余并可被剪除，以压缩模型并保持渲染质量。",
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "source": {
+        "text": "Significance",
+        "aiInterpretation": "在本文中，“Significance”指用于高斯剪枝的**全局重要性度量**，衡量每个 3D 高斯对最终渲染质量的贡献大小。它不是简单地只看高斯不透明度 $\\alpha$，而是受渲染公式 $C=\\sum_{i\\in N} c_i \\alpha_i \\prod_{j=1}^{i-1}(1-\\alpha_j)$ 启发，通过统计每个高斯在所有训练视图光线 $r_i$ 上的相交命中次数来得到初始分数 $G(X_j)$。该分数还会进一步结合高斯的体积 $V(\\Sigma_j)=\\frac{4}{3}\\pi abc$ 和自身不透明度 $\\sigma_j$ 进行加权，从而更准确地反映其对场景重建的重要性。这样做的目的是避免仅按不透明度剪枝而丢失细节，例如图中仅按不透明度剪枝会使 PSNR 从 27.2 降到 25.3。最终，重要性较低的高斯被视为冗余并可被剪除，以压缩模型并保持渲染质量。",
+        "pageNumber": 3,
+        "sourceAnchorId": "selection-1791457687277",
+        "sourcePageIndex": 3,
+        "sourceActionId": "explain",
+        "sourceActionLabel": "AI 解释"
+      },
+      "versions": [],
+      "sources": [
+        {
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "sourceId": "selection-1791457687277",
+          "sourceAnchorId": "selection-1791457687277",
+          "pageIndex": 3,
+          "text": "Significance"
+        }
+      ]
+    },
+    {
+      "id": "98b70dfd-8a8c-47a8-b37b-7ef01cf69a9f",
+      "title": "原文笔记",
+      "text": "significance\n\n## 阅读笔记\n\n“significance” 在本文中指每个 3D Gaussian 对最终渲染质量的**全局重要性/显著性**，而不是 Fig. 3 中仅用高斯不透明度 $\\alpha$ 作为剪枝标准的那种局部、简单指标。文中指出，仅按 opacity 剪枝会让 PSNR 从 27.2 下降到 25.3，导致图像损失细节。因此作者提出 Global Significance Calculation：先统计每个高斯在所有训练视图下与像素射线 $r_i$ 是否相交的命中次数 $1(G(X_j), r_i)$，再用调整后的 3D Gaussian 体积 $\\gamma(\\Sigma_j)$ 和不透明度 $\\sigma_j$ 进行加权细化。这些因素对应渲染公式 Eq. 2 中颜色 $c_i$、不透明度 $\\alpha_i$ 以及累积透射率 $\\prod(1-\\alpha)$ 对像素颜色的贡献。当前 PDF 中体积计算部分被截断，因此无法给出完整公式，但可见因素表明 significance 综合了命中覆盖、体积与不透明度。",
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "source": {
+        "text": "significance",
+        "aiInterpretation": "“significance” 在本文中指每个 3D Gaussian 对最终渲染质量的**全局重要性/显著性**，而不是 Fig. 3 中仅用高斯不透明度 $\\alpha$ 作为剪枝标准的那种局部、简单指标。文中指出，仅按 opacity 剪枝会让 PSNR 从 27.2 下降到 25.3，导致图像损失细节。因此作者提出 Global Significance Calculation：先统计每个高斯在所有训练视图下与像素射线 $r_i$ 是否相交的命中次数 $1(G(X_j), r_i)$，再用调整后的 3D Gaussian 体积 $\\gamma(\\Sigma_j)$ 和不透明度 $\\sigma_j$ 进行加权细化。这些因素对应渲染公式 Eq. 2 中颜色 $c_i$、不透明度 $\\alpha_i$ 以及累积透射率 $\\prod(1-\\alpha)$ 对像素颜色的贡献。当前 PDF 中体积计算部分被截断，因此无法给出完整公式，但可见因素表明 significance 综合了命中覆盖、体积与不透明度。",
+        "pageNumber": 3,
+        "sourceAnchorId": "selection-1791470810456",
+        "sourcePageIndex": 3,
+        "sourceActionId": "explain",
+        "sourceActionLabel": "AI 解释"
+      },
+      "versions": [],
+      "sources": [
+        {
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "sourceId": "selection-1791470810456",
+          "sourceAnchorId": "selection-1791470810456",
+          "pageIndex": 3,
+          "text": "significance"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "df646ec6-4e3f-44d7-b537-28ad2ce3a94f",
+      "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文",
+      "text": "> 旧译文未保护行内公式，请以原图为准。\n\n对于由 J 表示的投影变换的仿射近似，相机坐标中的协方差矩阵 Σ′ 可以计算为 Σ′ = J WΣWTJT。具体而言，对于每个像素，所有高斯函数的颜色和不透明度都使用高斯表示 Eq. 1 计算。与该像素重叠的 N 个有序点的混合由以下公式给出：\n\n这里，ci、αi 表示视图相关的颜色和不透明度，其由协方差为 Σ 的 2D 高斯乘以可优化的每个 3D 高斯的不透明度计算得到。总之，每个高斯点由以下属性表征：位置 X ∈ R3、由球谐系数 SH ∈ R(k+1) × 3 定义的颜色（其中 k 表示自由度）、不透明度 α ∈ R、旋转因子 R ∈ R4，以及缩放因子 S ∈ R3。\n\n3.2 高斯剪枝与恢复\n高斯致密化 [16] 通过克隆并细化初始 SfM 点云，改善覆盖范围，从而增强小尺度几何结构和详细场景外观。尽管这种方法显著提升了重建质量，但在优化后会将高斯数量从数千增加到数百万，导致巨大的存储需求。受神经网络剪枝技术 [63] 的启发，这些技术在保持整体性能的同时移除影响较小的神经元，我们为 3D Gaussian Splatting 提出了一种定制剪枝策略，以减少过参数化的点，同时保持准确性。识别冗余但可恢复的高斯对于我们的方法至关重要。然而，基于简单标准（例如点不透明度）剪枝高斯可能会降低建模性能，因为它可能会消除重要的场景细节，如图 3 所示。\n\n全局显著性计算。受式 2 启发，我们不再仅使用高斯不透明度来评估显著性，而是通过评估视锥体内的 3D 高斯，并将它们投影到相机视点进行渲染。每个高斯的初始显著性分数（记为 G(Xj)）随后可以基于其对所有训练视图中每个像素（射线 ri）的贡献，使用准则 1(G(Xj), ri)（它们是否相交）来量化。因此，我们遍历所有训练像素以计算每个高斯的命中次数。该分数进一步由调整后的 3D 高斯体积 γ(Σj) 和 3D 高斯不透明度 σj 细化，因为它们都对渲染公式有贡献。第 j 个 3D 高斯的体积计算公式为 V(Σj) = 43πabc，其中 abc 是 Scale (S) 的 3 个维度。我们还考虑透射率 T 的计算方式为：用 1 减去 Q 所有光线在第 j 个 3D 高斯之前命中的 3D 高斯的不透明度，T = j−1 全局显著性分数可以总结为：",
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "pageIndex": 3,
+      "createdAt": "2026-10-08T16:31:15.717Z",
+      "versions": []
+    }
+  ],
+  "researchRuns": [],
+  "activityHistory": [],
+  "appliedRequestIds": [],
+  "focusedPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "activeActivity": null,
+  "updatedAt": "2026-10-08T16:31:15.72374Z",
+  "revision": 9
+}

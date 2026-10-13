@@ -1,0 +1,68 @@
+{
+  "taskId": "task:48b89280-55b2-4673-adcf-1144c519a811",
+  "title": "功能演示：从理解3DGS到研究压缩取舍",
+  "revision": 40,
+  "paperCount": 2,
+  "messageCount": 33,
+  "artifacts": [
+    {
+      "id": "60ab32eb-6373-4e28-a040-c4e80f10ea7a",
+      "title": "01｜压缩方法解释与阅读笔记"
+    },
+    {
+      "id": "066c0672-bfde-4dbf-9c62-e25700dfd1ed:artifact",
+      "title": "02｜SH基础补课"
+    },
+    {
+      "id": "0a107a6c-fd63-4ec2-b75c-7fc9dccf89c5:artifact",
+      "title": "03｜画质主张的批判与证据"
+    },
+    {
+      "id": "afa3baa5-2333-4aaf-9e15-4afaf1f2159c:artifact",
+      "title": "04｜原始3DGS与LightGaussian比较"
+    },
+    {
+      "id": "c7a8e80f-d901-4988-96e7-ebf87518cd60:artifact",
+      "title": "05a｜比较结果（组合识别修复前）"
+    },
+    {
+      "id": "8a1561ab-ce51-4c7b-871a-5badeaa3409d",
+      "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 3 页译文"
+    },
+    {
+      "id": "research:772a210f-37cf-5231-9dae-086c4a5eddd4:artifact",
+      "title": "06｜四组消融研究方案与证据边界"
+    },
+    {
+      "id": "1c1cff69-104f-4c25-ba8b-bc5892f4bec3:artifact",
+      "title": "05b｜解释＋比较组合成果"
+    }
+  ],
+  "researchStatus": "success",
+  "researchKeys": [
+    "status",
+    "task",
+    "workspace",
+    "resultVersion",
+    "capability",
+    "materialScope",
+    "artifact",
+    "sources",
+    "sentenceSourceMap",
+    "steps",
+    "message"
+  ],
+  "archiveNoteCount": 1,
+  "archivePaperCount": 2,
+  "composedRequest": {
+    "requestId": "1c1cff69-104f-4c25-ba8b-bc5892f4bec3",
+    "status": "succeeded",
+    "capability": "compose",
+    "partial": false,
+    "steps": [
+      "chat",
+      "compare"
+    ]
+  },
+  "pendingOperations": []
+}

@@ -1,0 +1,25 @@
+{
+  "triggerRun": "dr_run_03e6e7dbd3495866b974c9240896aeae",
+  "change": "Coverage aspects may ground an acquisition-scope requirement in source_metadata with an exact evidenceId, accessLevel field/value, request excerpt and accepted-answer binding.",
+  "invariants": [
+    "Evidence identity must be unambiguous and present in the bound claim's citations.",
+    "Only accessLevel is permitted; its value must exactly match supplied metadata.",
+    "Request and final-answer excerpts must retain the existing literal binding checks.",
+    "Mixed metadata/content obligations still require source prose grounding.",
+    "No prior model verdict or historical run is promoted or rewritten."
+  ],
+  "limitation": "This validates the audit trail, not semantic correctness of arbitrary model labels; the semantic reviewer must still distinguish acquisition scope from scientific content.",
+  "targetedTests": {
+    "passed": 41,
+    "seconds": 7.8
+  },
+  "modelCalls": 0,
+  "runtimeLoaded": false,
+  "qualityAccepted": false,
+  "promptVersion": "dr-v2.20261013.50",
+  "fullOfflineRegression": {
+    "passed": 959,
+    "warnings": 2,
+    "seconds": 100.49
+  }
+}

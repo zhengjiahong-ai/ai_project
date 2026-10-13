@@ -1,0 +1,77 @@
+{
+  "status": "executed_once_all_three_cases",
+  "authorization": "用户2026-10-09明确回复：允许这3个案例",
+  "provider": "https://api.deepseek.com",
+  "maxCases": 3,
+  "previousCasesConsumed": 22,
+  "materials": [
+    {
+      "name": "Original 3DGS",
+      "path": "D:/3DGS/paper/3DGS原始论文/2308.04079v1.pdf",
+      "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+    },
+    {
+      "name": "LightGaussian",
+      "path": "D:/3DGS/paper/LightGaussian/2311.17245v6.pdf",
+      "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    }
+  ],
+  "sourceCommits": [
+    "cc4cf56",
+    "1af8e18",
+    "ecd8919",
+    "e30e7a4"
+  ],
+  "cases": [
+    {
+      "id": "stage4-critique-v7",
+      "taskId": "stage4-3dgs-critique-20261009-v7",
+      "requestId": "stage4-3dgs-critique-20261009-v7-request",
+      "scope": "LightGaussian only",
+      "prompt": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？",
+      "checks": [
+        "正常完成并发布一次",
+        "数字由同条件表格绑定且方法参数与作者主张分开",
+        "不把检索缺口当论文缺失",
+        "前三条结论只呈现一次且原文依据折叠"
+      ]
+    },
+    {
+      "id": "stage4-compose-v7",
+      "taskId": "stage4-3dgs-compose-20261009-v7",
+      "requestId": "stage4-3dgs-compose-20261009-v7-request",
+      "scope": "Both papers, explanation primary Original 3DGS",
+      "prompt": "先用两句话解释3DGS的高斯、透明度与球谐颜色，再比较原始3DGS与LightGaussian如何在表示规模、质量和渲染速度之间取舍。",
+      "checks": [
+        "解释和比较正常完成且保持原材料范围",
+        "表格数据集、硬件及带星号基线保持",
+        "舍入与差值方向一致",
+        "对话先给简洁结论"
+      ]
+    },
+    {
+      "id": "stage6-translation-v7",
+      "scope": "LightGaussian physical page 4",
+      "action": "在实际阅读界面手动重译一次，保存为新成果且不覆盖旧记录",
+      "checks": [
+        "没有减去所有对象的不透明度的语义错误",
+        "保留8个唯一原式标记及对应原图",
+        "不把损坏运算符猜成已经核对的结构",
+        "保存、刷新及实际下载内容一致"
+      ]
+    }
+  ],
+  "executionRules": [
+    "没有新的具体授权不执行本计划的真实生成",
+    "每例仅提交一次；先查原身份，已执行案例不重复生成",
+    "批判和分批翻译可能各包含多个内部初始请求；案例数不等于模型请求数",
+    "不自动重试，不调用外部搜索，保留每例输入、原始响应、收据和失败结果",
+    "此前已通过的significance固定案例不再次生成",
+    "离线测试或合成夹具不计真实内容通过"
+  ],
+  "authorizedAt": "2026-10-09T20:32:21.3572652+08:00",
+  "casesExecuted": 3,
+  "totalCasesConsumed": 25,
+  "automaticResubmissions": 0,
+  "contentAcceptance": "critique_failed_absence_claim; compose_failed_numeric_contract; translation_partial_bad_scope_rejected"
+}

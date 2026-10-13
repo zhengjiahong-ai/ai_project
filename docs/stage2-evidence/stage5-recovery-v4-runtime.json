@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "taskId": "stage5-version-recovery-20261008",
+  "revision": 5,
+  "checkedAt": "2026-10-08T13:20:22.016580+00:00",
+  "emptyBodyRetained": true,
+  "savedAndUnsavedVersionsRetained": true,
+  "confirmedConflictPreservesOtherVersion": true,
+  "sourcesRetained": true,
+  "independentHttpClient": true,
+  "isolatedBrowserProfileVerified": false,
+  "pdfHashMatchesId": true,
+  "pdfBytes": 12954089,
+  "analysisReadingReady": true,
+  "identityBackupUnchanged": true,
+  "identifiedDocumentsUnchanged": true,
+  "movedNotesAndMaterialAssociationsRetained": true,
+  "missingFileIs404AndNotesRetained": true
+}

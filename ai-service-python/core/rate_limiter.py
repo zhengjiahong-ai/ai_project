@@ -7,6 +7,7 @@ route prefix, with defaults tuned for a single-user research workstation.
 Configuration (via environment / ``core.config.Settings``):
 * ``PIXIU_RATE_LIMIT_ENABLED`` — ``true`` (default) to enable.
 * ``PIXIU_RATE_LIMIT_GLOBAL_RPM`` — global requests/min/IP (default ``60``).
+* ``PIXIU_RATE_LIMIT_STATUS_RPM`` — read-only task polling (default ``240``).
 * ``PIXIU_RATE_LIMIT_AGENT_RPM`` — agent task creation (default ``10``).
 * ``PIXIU_RATE_LIMIT_CHAT_RPM`` — chat / explain (default ``30``).
 * ``PIXIU_RATE_LIMIT_TRANSLATE_RPM`` — page translation (default ``10``).
@@ -48,6 +49,10 @@ def _client_ip(request: Request) -> str:
 def _route_bucket(request: Request) -> str:
     """Map a request path to a rate-limit bucket name."""
     path = request.url.path
+    if request.method == "GET" and path.startswith(("/api/research-tasks", "/api/task-operations")):
+        return "status"
+    if request.method == "POST" and path == "/api/research-tasks":
+        return "agent"
     if path.startswith("/api/agent-") and ("tasks" in path or "runs" in path):
         return "agent"
     if "/chat" in path or "/explain" in path or "/socratic" in path:
@@ -95,6 +100,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         self._buckets: dict[str, TokenBucket] = {}
         self._rates: dict[str, int] = {
             "global": int(settings.pixiu_rate_limit_global_rpm) if settings else 60,
+            "status": int(getattr(settings, "pixiu_rate_limit_status_rpm", 240)),
             "agent": int(settings.pixiu_rate_limit_agent_rpm) if settings else 10,
             "chat": int(settings.pixiu_rate_limit_chat_rpm) if settings else 30,
             "translate": int(settings.pixiu_rate_limit_translate_rpm) if settings else 10,

@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -106,15 +107,23 @@ class DeepSeekLLM:
         base_url: Optional[str] = None,
         thinking_type: Optional[str] = None,
         reasoning_effort: Optional[str] = None,
+        timeout_seconds: Optional[float] = None,
     ):
+        if timeout_seconds is not None:
+            timeout_seconds = float(timeout_seconds)
+            if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+                raise ValueError("DeepSeekLLM timeout_seconds must be finite and positive")
         self.model = model
         self.temperature = temperature
         self.api_key = api_key
         self.base_url = (base_url or DEFAULT_DEEPSEEK_BASE_URL).rstrip("/")
         self.thinking_type = thinking_type
         self.reasoning_effort = reasoning_effort
+        self.timeout_seconds = timeout_seconds
 
     def invoke(self, request: LLMRequest) -> LLMResult:
+        from services.operation_control import check_cancelled
+        check_cancelled()
         api_key = self.api_key or settings.deepseek_api_key
         if not api_key:
             raise LLMProviderError(
@@ -141,8 +150,15 @@ class DeepSeekLLM:
 
         if request.extra_body:
             payload.update(request.extra_body)
+        # Local transport control must never become a provider JSON parameter.
+        payload.pop("timeout_seconds", None)
 
-        timeout = float(settings.deepseek_timeout_seconds)
+        timeout = self.timeout_seconds if self.timeout_seconds is not None else float(settings.deepseek_timeout_seconds)
+        if request.timeout_seconds is not None:
+            request_timeout = float(request.timeout_seconds)
+            if not math.isfinite(request_timeout) or request_timeout <= 0:
+                raise ValueError("LLM request timeout must be positive")
+            timeout = min(timeout, request_timeout)
         input_size = sum(len(str(item.get("content") or "")) for item in resolved_messages)
         estimated_input_tokens = sum(estimate_tokens(item.get("content") or "") for item in resolved_messages)
         with trace_step(
@@ -153,7 +169,8 @@ class DeepSeekLLM:
             record_counter("llmCalls")
             record_counter("estimatedInputTokens", estimated_input_tokens)
             try:
-                response = requests.post(
+                from llm.deadline import call_with_deadline
+                response = call_with_deadline(lambda: requests.post(
                     f"{self.base_url}/chat/completions",
                     headers={
                         "Authorization": f"Bearer {api_key}",
@@ -161,8 +178,8 @@ class DeepSeekLLM:
                     },
                     json=payload,
                     timeout=timeout,
-                )
-            except requests.RequestException as error:
+                ), timeout)
+            except (requests.RequestException, TimeoutError) as error:
                 raise LLMProviderError(
                     "DeepSeek request failed.",
                     provider="deepseek",
@@ -178,6 +195,8 @@ class DeepSeekLLM:
                     retryable=response.status_code == 429 or response.status_code >= 500,
                     status_code=response.status_code,
                 )
+
+            check_cancelled()
 
             try:
                 data = response.json()
@@ -202,7 +221,8 @@ class DeepSeekLLM:
             )
             step["outputSize"] = len(content)
             record_counter("estimatedOutputTokens", estimate_tokens(content))
-            return LLMResult("deepseek", self.model, content, usage)
+            finish_reason = (data.get('choices') or [{}])[0].get('finish_reason') if isinstance(data, dict) else None
+            return LLMResult("deepseek", self.model, content, usage, finish_reason=finish_reason)
 
     def _call(
         self,
@@ -213,6 +233,8 @@ class DeepSeekLLM:
         **kwargs: Any,
     ) -> str:
         del run_manager
+        from services.operation_control import check_cancelled
+        check_cancelled()
         extra_body = kwargs.get("extra_body")
 
         # ── 15-2: LLM response cache ────────────────────────────────

@@ -1,0 +1,22 @@
+{
+  "attempt": 15,
+  "requestId": "0a3f07d6-f2be-5dcb-be54-038064186c2c",
+  "revision": "872dfc7",
+  "promptVersion": "dr-v2.20261013.38",
+  "submissionHttpStatus": 502,
+  "runId": null,
+  "qualityAccepted": false,
+  "reconciliation": {
+    "pythonRunsWithVersion38AfterStartup": 0,
+    "javaBindingsForRequestId": 0,
+    "serviceHealthAfterStartup": "API, RAG, GROBID ok",
+    "observedPhase": "Service startup warmup; synchronous create happens before Java attach and graph dispatch"
+  },
+  "receiptPreserved": "tmp/dr-acceptance-receipts/D3-v15.json",
+  "modelCallsObserved": 0,
+  "fix": "CLI readiness gate before any workspace mutation or submission intent; offline preview and confirmed-run GET remain independent of readiness.",
+  "tests": {
+    "passed": 10,
+    "seconds": 2.98
+  }
+}

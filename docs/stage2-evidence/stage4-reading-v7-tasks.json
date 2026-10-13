@@ -1,0 +1,37 @@
+{
+  "compose": {
+    "id": "stage4-3dgs-compose-20261009-v7",
+    "title": "阶段4：compose修复核验-v7",
+    "paperIds": [
+      "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "messages": [],
+    "notes": [],
+    "artifacts": [],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-09T12:33:33.747986Z",
+    "revision": 0
+  },
+  "critique": {
+    "id": "stage4-3dgs-critique-20261009-v7",
+    "title": "阶段4：critique修复核验-v7",
+    "paperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "messages": [],
+    "notes": [],
+    "artifacts": [],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-09T12:33:12.429917Z",
+    "revision": 0
+  }
+}

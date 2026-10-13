@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-13",
+  "feature": "Grounded per-aspect final-answer audit",
+  "behavior": [
+    "Covered verdicts require explicit individual requirements, quoted request/source basis and exact accepted-answer bindings",
+    "Explicit missing aspects override a contradictory overall covered status",
+    "Missing aspect descriptions and evidence hints feed the existing single revision",
+    "Evidence hints prioritize same-source candidates but cannot authorize another paper or version",
+    "Factual checker prompt requires resolving contrast and pronoun subjects"
+  ],
+  "offlineRegression": {
+    "passed": 481,
+    "seconds": 62.95,
+    "warnings": 2
+  },
+  "followupTests": {
+    "passed": 74,
+    "seconds": 6.97
+  },
+  "offlineReplay": {
+    "runId": "dr_run_a685a543bc5b51078556a5f71dc1d0d2",
+    "bareCoveredVerdictsRejected": [
+      "ob1",
+      "ob2",
+      "answer_scope"
+    ],
+    "newModelCalls": 0,
+    "historicalResultUnmodified": true
+  },
+  "limits": [
+    "Structural audit validation does not prove all semantically necessary aspects were enumerated",
+    "No real model validation of this new contract yet",
+    "Sentence-aware source context module still being implemented by Qoder"
+  ]
+}

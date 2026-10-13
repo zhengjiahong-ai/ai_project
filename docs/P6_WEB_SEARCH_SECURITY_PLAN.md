@@ -1,5 +1,7 @@
 # P6-05 Web 搜索安全模型
 
+> 2026-10-12 引擎边界：本文用于既有网页工具。deep-research-v2 仅采用 [新版外部文献策略](DEEP_RESEARCH_EXTERNAL_POLICY.md) 的受控 arXiv 发现与公开 PDF 出口，不继承本文更宽的网页白名单。
+
 ## 概述
 
 本文档定义 Pixiu Web 搜索与页面抓取的完整威胁模型、安全边界和前置安全措施。所有后续 Web 搜索 Provider（Brave P6-06、Tavily P6-07）、`search_web` 工具（P6-08）和页面抓取功能（P6-09–P6-12）均以此文档为安全基线。

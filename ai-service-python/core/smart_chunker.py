@@ -198,13 +198,43 @@ def chunk_sections(sections):
         page_index = sec.get("pageIndex") if sec.get("pageIndex") is not None else sec.get("page_index")
         page = sec.get("page")
 
-        groups = _pack_units(_split_units(text))
+        fragmented_table = False
+        if sec.get('evidenceKind') == 'table':
+            # Repeat original first-row cells, rather than assigning a column
+            # to a value after a table has been split across evidence chunks.
+            prefix = str(sec.get('tablePrefix') or '')
+            if len(prefix) > CHUNK_SIZE // 2:
+                # Preserve all text without pretending a detached value still
+                # has a complete header. Such chunks cannot verify columns.
+                fragmented_table = True
+                groups = _pack_units(_split_units(text))
+            else:
+                rows = text.splitlines()[len(prefix.splitlines()):] if prefix else text.splitlines()
+                groups, current = [], []
+                row_budget = CHUNK_MAX_SIZE - len(prefix) - 1
+                for row in rows:
+                    if len(row) > row_budget:
+                        fragmented_table = True
+                        if current:
+                            groups.append([prefix, *current])
+                            current = []
+                        groups.extend([prefix, row[start:start + row_budget]]
+                                      for start in range(0, len(row), row_budget))
+                        continue
+                    if current and len(prefix) + sum(len(line) + 1 for line in [*current, row]) > CHUNK_SIZE:
+                        groups.append([prefix, *current])
+                        current = []
+                    current.append(row)
+                if current or not groups:
+                    groups.append([prefix, *current])
+            overlapped = groups
+        else:
+            groups = _pack_units(_split_units(text))
+            overlapped = [groups[0]] if groups else []
+            for previous, current in itertools.pairwise(groups):
+                overlapped.append(_tail_units(previous) + current)
         if not groups:
             continue
-
-        overlapped = [groups[0]]
-        for previous, current in itertools.pairwise(groups):
-            overlapped.append(_tail_units(previous) + current)
 
         for group in overlapped:
             chunk = {
@@ -218,6 +248,21 @@ def chunk_sections(sections):
                 chunk["pageIndex"] = page_index
             if page is not None:
                 chunk["page"] = page
+            for field in ('evidenceKind', 'tableId', 'tableColumnMappingUnverified'):
+                if field in sec:
+                    chunk[field] = sec[field]
+            if fragmented_table:
+                chunk['tableColumnMappingUnverified'] = True
+            verified = sec.get('tableVerifiedData')
+            if verified:
+                # Geometry already established the group labels. A long
+                # caption must not discard intact rows, but a clipped row
+                # prefix must never inherit the original cell mapping.
+                complete_lines = set(chunk['text'].splitlines())
+                rows = [row for row in verified['rows']
+                        if f"Table row {row[0]}: " + ' | '.join([row[1], *row[2]]) in complete_lines]
+                if rows:
+                    chunk['tableVerifiedData'] = {'groups': verified['groups'], 'rows': rows}
 
             chunks.append(chunk)
 

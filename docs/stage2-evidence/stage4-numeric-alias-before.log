@@ -1,0 +1,88 @@
+.............FFFFFF....                                                  [100%]
+=================================== FAILURES ===================================
+_ test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999\u5e27/\u79d2] _
+
+claim = '999帧/秒'
+
+    @pytest.mark.parametrize('claim', ['999帧/秒', '999帧每秒', '999 frames per second', '999×压缩', '999x compression', '999 MiB'])
+    def test_common_unit_spellings_cannot_skip_numeric_evidence_checks(claim):
+        raw, sources = fixture()
+        raw['summary'] = 'Alpha（GPU A，Baseline *）：' + claim
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_comparison_measurements.py:92: Failed
+_ test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999\u5e27\u6bcf\u79d2] _
+
+claim = '999帧每秒'
+
+    @pytest.mark.parametrize('claim', ['999帧/秒', '999帧每秒', '999 frames per second', '999×压缩', '999x compression', '999 MiB'])
+    def test_common_unit_spellings_cannot_skip_numeric_evidence_checks(claim):
+        raw, sources = fixture()
+        raw['summary'] = 'Alpha（GPU A，Baseline *）：' + claim
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_comparison_measurements.py:92: Failed
+_ test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999 frames per second] _
+
+claim = '999 frames per second'
+
+    @pytest.mark.parametrize('claim', ['999帧/秒', '999帧每秒', '999 frames per second', '999×压缩', '999x compression', '999 MiB'])
+    def test_common_unit_spellings_cannot_skip_numeric_evidence_checks(claim):
+        raw, sources = fixture()
+        raw['summary'] = 'Alpha（GPU A，Baseline *）：' + claim
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_comparison_measurements.py:92: Failed
+_ test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999\xd7\u538b\u7f29] _
+
+claim = '999×压缩'
+
+    @pytest.mark.parametrize('claim', ['999帧/秒', '999帧每秒', '999 frames per second', '999×压缩', '999x compression', '999 MiB'])
+    def test_common_unit_spellings_cannot_skip_numeric_evidence_checks(claim):
+        raw, sources = fixture()
+        raw['summary'] = 'Alpha（GPU A，Baseline *）：' + claim
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_comparison_measurements.py:92: Failed
+_ test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999x compression] _
+
+claim = '999x compression'
+
+    @pytest.mark.parametrize('claim', ['999帧/秒', '999帧每秒', '999 frames per second', '999×压缩', '999x compression', '999 MiB'])
+    def test_common_unit_spellings_cannot_skip_numeric_evidence_checks(claim):
+        raw, sources = fixture()
+        raw['summary'] = 'Alpha（GPU A，Baseline *）：' + claim
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_comparison_measurements.py:92: Failed
+___ test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999 MiB] ____
+
+claim = '999 MiB'
+
+    @pytest.mark.parametrize('claim', ['999帧/秒', '999帧每秒', '999 frames per second', '999×压缩', '999x compression', '999 MiB'])
+    def test_common_unit_spellings_cannot_skip_numeric_evidence_checks(claim):
+        raw, sources = fixture()
+        raw['summary'] = 'Alpha（GPU A，Baseline *）：' + claim
+>       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_comparison_measurements.py:92: Failed
+=============================== warnings summary ===============================
+tests/test_comparison_measurements.py::test_critique_axis_receives_checked_columns_without_mutating_source_snapshots
+  /usr/local/lib/python3.11/site-packages/PyPDF2/__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move to the pypdf library instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_comparison_measurements.py::test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999\u5e27/\u79d2]
+FAILED tests/test_comparison_measurements.py::test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999\u5e27\u6bcf\u79d2]
+FAILED tests/test_comparison_measurements.py::test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999 frames per second]
+FAILED tests/test_comparison_measurements.py::test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999\xd7\u538b\u7f29]
+FAILED tests/test_comparison_measurements.py::test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999x compression]
+FAILED tests/test_comparison_measurements.py::test_common_unit_spellings_cannot_skip_numeric_evidence_checks[999 MiB]
+6 failed, 17 passed, 1 warning in 2.61s

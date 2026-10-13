@@ -1,0 +1,13 @@
+{
+  "python": {"files": 9, "passed": 290, "failed": 0, "warning": "PyPDF2 deprecation"},
+  "frontend": {"files": 55, "passed": 364, "failed": 0, "nodeSmokeGroups": 19},
+  "java": {"files": 4, "passed": 37, "failed": 0},
+  "typecheck": "passed",
+  "build": {"status": "passed", "modules": 3893, "remainingWarnings": ["PDF dependency eval", "large bundle", "mixed static/dynamic imports"]},
+  "changedFilesLint": {"errors": 0, "warnings": 2},
+  "repositoryLint": "5 pre-existing errors; not passed",
+  "transientTestFailure": "One PDF initialization/page callback test failed in an earlier parallel run; unchanged dedicated rerun and final full suite passed.",
+  "realFinalCases": {"focused": {"status": "succeeded", "partial": true, "issues": 1}, "review": {"status": "succeeded", "partial": false, "issues": 2}},
+  "providerCallBoundary": "Ten fresh synthesis calls in this implementation run: six native-PDF diagnostic cases, two indexed/API cases and two final cases. Cached replay and the two recorded live cache recoveries add zero model calls. No automatic retries.",
+  "limits": ["Checks are conservative, not a semantic proof", "No new participant comprehension trial", "Final focused case is partial", "Final review cites author summaries, not an independent full experiment audit", "Global index page metadata was not rebuilt"]
+}

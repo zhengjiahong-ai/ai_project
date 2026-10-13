@@ -1,0 +1,60 @@
+{
+  "promptVersion": "dr-v2.20261013.24",
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "patchSha256": "1fa1246caa7c1c42967b8e35a7cf3c9253aa82cda3aacaedefc9c42ab01711f5",
+    "reviewCorrections": [
+      "Guard unhashable kind input and huge count strings",
+      "Validate numeric boundaries against original evidence, including decimals and signed/scientific/percent forms",
+      "Require proper Unicode word boundaries"
+    ]
+  },
+  "changes": [
+    "Planner requests actual dataset subset availability",
+    "Synthesis and repair distinguish configurable parameters from existing resources",
+    "Semantic checker must supply own-fulltext quote-bound availability audit",
+    "Deterministic requested-count versus capacity check and named-unit membership check; prompt-limited visible evidence only"
+  ],
+  "verification": {
+    "fullRegression": 807,
+    "warnings": 2,
+    "seconds": 76.47,
+    "command": "python -m pytest tests/test_deep_research_*.py tests/test_llm_instance_timeout.py tests/test_offline_llm.py tests/test_pdf_table_columns.py tests/test_table_evidence.py -q -p no:cacheprovider --basetemp=/tmp/dr-availability-full"
+  },
+  "limitations": [
+    "Structural binding does not prove that source count refers to correct dataset or unit; semantic review remains required",
+    "Count tokens currently support plain decimal digits and English one through twenty; unsupported expressions fail closed",
+    "D3-v6 submitted once; no retry. D3-v5 remains manually failed."
+  ],
+  "runtime": {
+    "commit": "7c4a5b6",
+    "promptVersion": "dr-v2.20261013.24",
+    "health": {
+      "api": "ok",
+      "rag": "ok",
+      "grobid": "ok"
+    },
+    "D3attempt6": {
+      "runId": "dr_run_dc361c21d8d55e6a9a8161c593113ae7",
+      "receipt": "tmp/dr-acceptance-receipts/D3-v6.json",
+      "status": "completed",
+      "quality": "failed",
+      "outcome": "partial",
+      "modelCalls": 11,
+      "tokens": 55931,
+      "elapsedSeconds": 151,
+      "findings": [
+        "Planner omitted dataset availability obligation; only pruning and SH mechanisms planned",
+        "Data and analysis executionSpec had an extra role wrapper; data split used zero-based offset instead of offset",
+        "c4 and c8 rejected before semantic availability audit, so this run does not establish that audit works on live model output",
+        "Data explicitly deferred subset availability verification, so the proposal is not yet executable",
+        "c9 rejected for ungrounded absence statement"
+      ],
+      "nextActions": [
+        "Normalize only unambiguous configuration wrappers/key aliases, preserving conflicting forms for rejection",
+        "Make necessary data availability acquisition an execution requirement rather than a prompt suggestion",
+        "Do not repeat unchanged real case"
+      ]
+    }
+  }
+}

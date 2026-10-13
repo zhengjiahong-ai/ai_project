@@ -1,0 +1,61 @@
+{
+  "status": "executed_once_single_case",
+  "authorization": "用户2026-10-10明确回复：允许这1个批判案例",
+  "providerOriginVerified": true,
+  "provider": "https://api.deepseek.com",
+  "sourceCommit": "e1db3e6",
+  "maxCases": 1,
+  "casesExecuted": 1,
+  "previousCasesConsumed": 34,
+  "totalCasesConsumed": 35,
+  "materials": [
+    {
+      "name": "LightGaussian",
+      "path": "D:/3DGS/paper/LightGaussian/2311.17245v6.pdf",
+      "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    }
+  ],
+  "cases": [
+    {
+      "id": "stage4-critique-v18",
+      "taskId": "stage4-3dgs-critique-20261010-v18",
+      "requestId": "stage4-3dgs-critique-20261010-v18-request",
+      "capability": "critique",
+      "scope": "LightGaussian only",
+      "prompt": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？",
+      "checks": [
+        "比值精度不把0.058粗化为0.1，压缩比方向明确",
+        "机制概述引用完整定义并保留T等必要因子，或仅讨论有依据的局部代价",
+        "训练采样分布不冒充泛化硬边界",
+        "SH及VQ事实由直接对应摘录支持",
+        "作者报告与解释推断分开，缺口列为待核查",
+        "来源默认折叠，结果简洁可继续使用"
+      ]
+    }
+  ],
+  "executionRules": [
+    "需对此单例新明确授权后才提交",
+    "执行前核对实际Provider域名及运行服务版本",
+    "仅一次提交，独占attempt防止重发",
+    "不自动重试，保存原始响应与收据",
+    "批判可能含多个内部初始请求，案例数不等于请求或账单数",
+    "不重跑比较、解释、组合、翻译或外部搜索",
+    "离线回放不能计作新的模型内容通过"
+  ],
+  "purpose": "仅验证剩余批判语义及精度；已通过的v16直接比较不重复执行",
+  "authorizedAt": "2026-10-10T06:16:03.484742+00:00",
+  "providerVerification": {
+    "origin": "https://api.deepseek.com",
+    "model": "deepseek-v4-pro",
+    "runningSince": "2026-10-10T06:04:36.675666382Z",
+    "sourceCommit": "e1db3e6"
+  },
+  "automaticResubmissions": 0,
+  "terminalStatuses": {
+    "critique": "succeeded"
+  },
+  "contentAcceptance": {
+    "critique": "not_accepted_partial_and_attribution_issue"
+  },
+  "partial": true
+}

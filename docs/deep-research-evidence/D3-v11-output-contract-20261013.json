@@ -1,0 +1,22 @@
+{
+  "runId": "dr_run_5d327990e50259f4a877d63278801025",
+  "promptVersion": "dr-v2.20261013.32",
+  "loadedSourceRevision": "1625d1b",
+  "status": "completed",
+  "outcome": "partial",
+  "qualityAccepted": false,
+  "actualModelCalls": 11,
+  "actualTokens": 55610,
+  "elapsedSeconds": 172,
+  "repairStatus": "response_received",
+  "findings": [
+    "All seven prospective synthesis claims omitted designRole, despite prose instructions requiring it; they were structurally rejected.",
+    "The synthesis output field list and repair JSON field template omitted designRole and executionSpec. These contradicted the later experimental contract.",
+    "Repair returned two inference claims, not a completed experimental design. Only c8 passed independent verification; c9 lacked evidence.",
+    "No executable complete scheme was established. Partial publication must not be treated as quality acceptance."
+  ],
+  "change": "Add mandatory prospective role/configuration fields directly to synthesis and revision field templates. Preserve structural rejection and independent scientific verification.",
+  "liveValidationOfChange": "pending",
+  "newPromptVersion": "dr-v2.20261013.33",
+  "fullOfflineTests": {"passed": 859, "warnings": 2, "seconds": 89.26}
+}

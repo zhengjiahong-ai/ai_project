@@ -1,0 +1,23 @@
+{
+  "id": "stage6-reading-demo-20261008",
+  "title": "阶段6：成果阅读体验验收",
+  "paperIds": [],
+  "messages": [],
+  "notes": [
+    {
+      "id": "stage6-reading-note",
+      "title": "我的阅读小结（界面样例）",
+      "text": "# 论文阅读小结\n\n> 此正文是人工编写的界面验收样例，用于检查阅读、编辑与保存。\n\n## 我准备怎样阅读\n\n先确认研究问题，再记录方法依赖的假设；遇到术语时保留问题，回到原文核对。\n\n| 阅读步骤 | 要留下的结果 |\n| --- | --- |\n| 确认问题 | 一句话说明论文要解决什么 |\n| 理解方法 | 标出关键假设和输入输出 |\n| 检查实验 | 记录对照条件与局限 |\n\n## 我自己的判断\n\n- 总结与原文证据分别保存，避免把解释当成原文。\n- 接下来比较另一篇论文的实验设置。\n",
+      "sources": [],
+      "versions": []
+    }
+  ],
+  "artifacts": [],
+  "researchRuns": [],
+  "activityHistory": [],
+  "appliedRequestIds": [],
+  "focusedPaperId": null,
+  "activeActivity": null,
+  "updatedAt": "2026-10-08T07:26:02.824847Z",
+  "revision": 0
+}

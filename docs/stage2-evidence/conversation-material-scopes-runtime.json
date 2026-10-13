@@ -1,0 +1,49 @@
+[
+  {
+    "case": "wholeTask",
+    "requestId": "4e14a5f6-f566-463c-b4f7-77de4d10f98f",
+    "status": "succeeded",
+    "materialScope": {
+      "allowedPaperIds": [
+        "4092846c7036dfa4ee8aeace6a040d0468cec42403f2f054847a36d438ef6c7c.pdf",
+        "8665f14a2bf32a36b835d0e634af1c8fce1088ba5b625caeea2ba2a6ea96fb5a.pdf"
+      ],
+      "primaryPaperId": null,
+      "strictScope": false,
+      "taskId": "stage2-multi-paper-20261008"
+    },
+    "answer": "**简短结论**  \n- 两篇均为 RIS 辅助 ISAC 的联合波束成形/反射设计，且都采用交替优化（AO）外层框架。  \n- 论文 A 面向 **active RIS**，变量更多：接收波束 `w`、通信波束 `f_k`、感知波束 `f_r`、反射矩阵 `Φ` 及辅助变量 `a`；约束中显式出现 ARIS 功率与用户 SINR。其完整优化目标在给定片段中未直接给出。  \n- 论文 B 的优化目标明确为雷达 MI 最大化，或加权归一化雷达 MI + 通信速率最大化；变量为发射波束矩阵 `S` 与 RIS 相移向量 `θ`；约束主要是单位模、离散相移、复超球面流形。算法上采用 AO + 黎曼梯度，并有 SDR/高斯随机化。  \n- 实验依据方面，两者均为数值仿真；适用条件与局限方面，B 明确提到 SDR 不总能获得 rank-1、高斯随机化是 π/4 近似，A 未提供明确局限。",
+    "sourceCount": 24
+  },
+  {
+    "case": "readerPrimary",
+    "requestId": "2ad9f628-db60-4597-85ad-edea1f2f1bc5",
+    "status": "succeeded",
+    "materialScope": {
+      "allowedPaperIds": [
+        "4092846c7036dfa4ee8aeace6a040d0468cec42403f2f054847a36d438ef6c7c.pdf",
+        "8665f14a2bf32a36b835d0e634af1c8fce1088ba5b625caeea2ba2a6ea96fb5a.pdf"
+      ],
+      "primaryPaperId": "4092846c7036dfa4ee8aeace6a040d0468cec42403f2f054847a36d438ef6c7c.pdf",
+      "strictScope": false,
+      "taskId": "stage2-multi-paper-20261008"
+    },
+    "answer": "这篇论文使用的是主动 RIS（active RIS），其反射单元配有有源负载，可反射并放大信号。",
+    "sourceCount": 12
+  },
+  {
+    "case": "explicitMaterial",
+    "requestId": "329877bb-5057-4755-a6af-0c940bd46ea5",
+    "status": "succeeded",
+    "materialScope": {
+      "allowedPaperIds": [
+        "8665f14a2bf32a36b835d0e634af1c8fce1088ba5b625caeea2ba2a6ea96fb5a.pdf"
+      ],
+      "primaryPaperId": "8665f14a2bf32a36b835d0e634af1c8fce1088ba5b625caeea2ba2a6ea96fb5a.pdf",
+      "strictScope": true,
+      "taskId": "stage2-multi-paper-20261008"
+    },
+    "answer": "第一种方案最大化的是雷达互信息（radar MI），目标函数为 $\\max_{\\mathbf{S},\\Theta}\\ \\log\\det\\left(\\sum_{l=1}^{L}\\Lambda_l+\\mathbf{R}_W\\right)$，并受通信用户速率、总发射功率和 RIS 离散相移约束。",
+    "sourceCount": 12
+  }
+]

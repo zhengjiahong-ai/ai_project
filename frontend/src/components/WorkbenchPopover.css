@@ -1,0 +1,25 @@
+.workbench-popover { position:relative; flex:none; }
+.workbench-popover-trigger { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-width:32px; min-height:32px; padding:6px; border-radius:7px; color:var(--text-secondary); }
+.workbench-popover-trigger:hover,.workbench-popover-trigger[aria-expanded=true] { background:var(--accent-soft); color:var(--accent); }
+.workbench-popover-panel { position:fixed; z-index:80; width:280px; max-width:calc(100vw - 24px); max-height:min(480px,calc(100dvh - 88px)); overflow:auto; padding:8px; border:1px solid var(--border-subtle); border-radius:10px; background:var(--panel-bg); color:var(--text-primary); box-shadow:0 8px 28px #0002; font-size:13px; line-height:1.6; }
+.workbench-popover-panel > button,.workbench-popover-panel > div > button { display:flex; align-items:center; gap:8px; width:100%; min-height:34px; padding:7px 10px; border-radius:6px; text-align:left; }
+.workbench-popover-panel button:hover:not(:disabled) { background:var(--panel-muted); }
+.workbench-popover-panel button[aria-pressed=true],.workbench-popover-panel button[aria-current=true] { color:var(--accent); background:var(--accent-soft); }
+.workbench-popover-panel input:not([type=checkbox]),.workbench-popover-panel select { width:100%; min-width:0; padding:8px 10px; margin:4px 0; border:1px solid var(--border-subtle); border-radius:6px; color:inherit; background:var(--panel-bg); }
+.workbench-popover-panel details { margin:4px 0; border:0; padding:4px 8px; }
+.workbench-popover-panel details > summary { padding:5px 0; cursor:pointer; font-size:13px; }
+.workbench-popover-panel details button { min-height:32px; padding:5px 8px; border-radius:6px; }
+.workbench-menu-caption { display:block; color:var(--text-muted); padding:4px 10px; font-size:12px; }
+.workbench-menu-error { color:var(--text-primary); background:var(--danger-soft); padding:8px; border-radius:6px; }
+.workbench-menu-divider { margin:6px 2px; border-top:1px solid var(--border-subtle); }
+.workbench-menu-actions { display:flex; gap:8px; margin-top:8px; }
+.workbench-task-switcher { min-width:0; max-width:60%; }
+.workbench-task-switcher .workbench-popover-trigger { max-width:100%; padding:6px 10px; font-size:14px; font-weight:550; }
+.workbench-task-switcher .workbench-popover-trigger > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.workbench-task-switcher .workbench-popover-panel { width:360px; }
+.workbench-task-search { display:flex; align-items:center; gap:8px; padding:0 6px; }
+.workbench-task-options { max-height:260px; overflow:auto; }
+.workbench-task-options button { justify-content:space-between; min-width:0; }
+.workbench-task-options button span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.workbench-popover :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+@media(pointer:coarse) { .workbench-popover-trigger,.workbench-popover-panel button { min-height:44px; } }

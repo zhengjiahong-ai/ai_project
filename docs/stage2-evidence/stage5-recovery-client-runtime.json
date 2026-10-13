@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "taskId": "stage5-version-recovery-20261008",
+  "revision": 5,
+  "emptyBodyRetained": true,
+  "savedAndUnsavedVersionsRetained": true,
+  "confirmedConflictPreservesOtherVersion": true,
+  "sourcesRetained": true,
+  "independentHttpClient": true,
+  "isolatedBrowserProfileVerified": false,
+  "pdfHashMatchesId": true,
+  "pdfBytes": 12954089,
+  "analysisReadingReady": true,
+  "missingFileIs404AndNotesRetained": true
+}

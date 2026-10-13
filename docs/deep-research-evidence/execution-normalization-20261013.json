@@ -1,0 +1,26 @@
+{
+  "promptVersion": "dr-v2.20261013.25",
+  "scope": "Normalize only sole matching role wrapper and unambiguous zero-based offset alias before materialization, compaction and repair verification. Reject mixed wrappers and conflicting aliases.",
+  "tests": {
+    "passed": 85,
+    "seconds": 7.08,
+    "command": "python -m pytest tests/test_deep_research_execution*.py tests/test_deep_research_protocol_text.py -q -p no:cacheprovider --basetemp=/tmp/dr-normalization"
+  },
+  "readonlyReplay": {
+    "runId": "dr_run_dc361c21d8d55e6a9a8161c593113ae7",
+    "claims": [
+      "c4",
+      "c8"
+    ],
+    "structuralErrorsAfter": [],
+    "originalProseRetained": true,
+    "visibleProtocolAdded": true,
+    "modelCalls": 0,
+    "historyModified": false
+  },
+  "limits": [
+    "Structural replay does not establish scientific correctness or dataset feasibility",
+    "Necessary data acquisition still incomplete",
+    "Runtime remains .24; no new real case"
+  ]
+}

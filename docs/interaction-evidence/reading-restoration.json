@@ -1,0 +1,19 @@
+{
+  "before": {
+    "page": "4",
+    "scale": "125%",
+    "top": 3186
+  },
+  "afterRefresh": {
+    "page": "4",
+    "scale": "125%",
+    "top": 3186
+  },
+  "exactMatch": true,
+  "reportEvidenceReturn": {
+    "page": "8",
+    "expanded": true,
+    "scrollBefore": 144,
+    "scrollAfter": 144
+  }
+}

@@ -95,7 +95,7 @@ class PageTranslationServiceTests(unittest.TestCase):
         )
         self.assertEqual(response["translatedText"], "第一段。\n\n第二段。")
 
-    def test_translate_page_falls_back_to_plain_when_structured_translation_is_incomplete(self):
+    def test_translate_page_does_not_retry_or_generate_plain_fallback_when_structured_translation_fails(self):
         request = PageTranslationRequest(
             pageText="First paragraph.\n\nSecond paragraph.\n\nThird paragraph.",
             pageIndex=0,
@@ -117,13 +117,21 @@ class PageTranslationServiceTests(unittest.TestCase):
             return "纯文本兜底译文。"
 
         with patch.object(page_translation_service, "_call_translation_with_timeout", side_effect=fake_call):
-            with patch.object(page_translation_service, "_translate_missing_blocks_individually", return_value=[]):
-                response = page_translation_service.translate_page(request)
+            with self.assertRaisesRegex(RuntimeError, '手动重试'):
+                page_translation_service.translate_page(request)
 
-        self.assertEqual(response["renderMode"], "plain")
-        self.assertEqual(response["translatedBlocks"], [])
-        self.assertEqual(response["translatedText"], "纯文本兜底译文。")
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 1)
+
+    def test_partial_translation_keeps_finished_blocks_without_automatic_retries(self):
+        request = PageTranslationRequest(pageIndex=0, pageText='First. Second. Third.', pageLayout={'blocks': [
+            {'id': 'first', 'text': 'First.'}, {'id': 'second', 'text': 'Second.'}, {'id': 'third', 'text': 'Third.'}]})
+        with patch.object(page_translation_service, '_call_translation_with_timeout', return_value=
+                          '{"translatedBlocks":[{"id":"first","translatedText":"第一段"}]}') as call:
+            result = page_translation_service.translate_page(request)
+        self.assertEqual(call.call_count, 1)
+        self.assertEqual(result['status'], 'partial')
+        self.assertEqual(result['translatedText'], '第一段')
+        self.assertEqual(result['missingBlockIds'], ['second', 'third'])
 
 
 if __name__ == "__main__":

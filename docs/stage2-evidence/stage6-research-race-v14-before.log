@@ -1,0 +1,30 @@
+
+ RUN  v4.1.10 D:/aiproj/ai_project/frontend
+
+ ❯ src/hooks/useTaskResearch.test.jsx (10 tests | 1 failed | 9 skipped) 34ms
+     × does not let a GET started before cancellation overwrite the confirmed cancellation 31ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/hooks/useTaskResearch.test.jsx > task research integration > does not let a GET started before cancellation overwrite the confirmed cancellation
+AssertionError: expected 'running' to be 'cancelled' // Object.is equality
+
+Expected: "cancelled"
+Received: "running"
+
+ ❯ src/hooks/useTaskResearch.test.jsx:17:47
+     15|     expect(result.current.runs['t/r'].status).toBe('cancelled');
+     16|     await act(async()=>releaseGet({workspace:task,task:{taskId:'r',sta…
+     17|     expect(result.current.runs['t/r'].status).toBe('cancelled');
+       |                                               ^
+     18|     expect(workspace.adoptServerTask).toHaveBeenCalledTimes(1);
+     19|     expect(workspace.adoptServerTask).toHaveBeenCalledWith(cancelledTa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 skipped (10)
+   Start at  01:05:48
+   Duration  4.02s (transform 126ms, setup 276ms, import 502ms, tests 34ms, environment 2.06s)
+

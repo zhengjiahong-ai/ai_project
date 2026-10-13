@@ -1,0 +1,17 @@
+{
+  "taskId": "critique-final-20261011",
+  "taskTitle": "新版批判阅读验收",
+  "browser": "Codex In-app Browser",
+  "checks": [
+    {"behavior": "打开成果并展开逐观点依据", "observed": "摘录按当前观点呈现，不生成新回答", "passed": true},
+    {"behavior": "按索引页码跳转", "observed": "原索引第16页与实际PDF第18页不一致", "passed": false, "repairedBy": "按完整原文摘录唯一定位PDF页码"},
+    {"behavior": "按摘录跳原文", "observed": "实际PDF页码18/19，Overall Analysis包含完整Pruning & Recovery原文", "passed": true},
+    {"behavior": "返回记录", "observed": "恢复同一成果及其完整观点", "passed": true},
+    {"behavior": "刷新", "observed": "恢复同一任务、当前成果和历史版本入口", "passed": true},
+    {"behavior": "历史版本预览", "observed": "历史版本1显示17:42生成正文；当前版本保持不变", "passed": true},
+    {"behavior": "最终全面批判", "observed": "两项判断及各自事实/推断完整显示，来源和待核查折叠", "passed": true},
+    {"behavior": "第二观点追问", "observed": "关联当前成果保存版本2026-10-11T10:18:18.184225300Z；未发送问题", "passed": true}
+  ],
+  "notPerformed": ["新增真人新手流程", "独立Edge恢复", "旧项目导入", "为展开或定位触发模型"],
+  "screenshot": "final-grouped-critique.jpg"
+}

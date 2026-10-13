@@ -1,0 +1,66 @@
+{
+  "promptVersion": "dr-v2.20261013.26",
+  "implementation": "Experimental plans receive one application-owned data availability investigation, attached to the first existing plan item. Existing tracked acquisition, permission checks, extraction and coverage operate on it. No new user sub-question or budget bypass.",
+  "tests": {
+    "fullPassed": 819,
+    "warnings": 2,
+    "seconds": 82.31,
+    "command": "python -m pytest tests/test_deep_research_*.py tests/test_llm_instance_timeout.py tests/test_offline_llm.py tests/test_pdf_table_columns.py tests/test_table_evidence.py -q -p no:cacheprovider --basetemp=/tmp/dr-prerequisite-full",
+    "additionalTargetedFilePassed": 6,
+    "additionalSeconds": 2.69,
+    "note": "The 6 targeted tests include overlap with full suite; counts are not additive."
+  },
+  "localRetrieval": {
+    "query": "datasets evaluation benchmark subset scenes sample names number train test split",
+    "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+    "results": 5,
+    "twoScenePassageRank": 1,
+    "chunkIndex": 57,
+    "queryRewrite": false,
+    "modelCalls": 0
+  },
+  "limits": [
+    "End-to-end real model extraction and scientifically valid final output remain unverified",
+    "Existing final coverage judges whether unresolved auxiliary questions still matter; dataset claims independently require grounded availability"
+  ],
+  "runtime": {
+    "commit": "9d85507",
+    "promptVersion": "dr-v2.20261013.26",
+    "health": {
+      "api": "ok",
+      "rag": "ok",
+      "grobid": "ok"
+    },
+    "D3attempt7": {
+      "runId": "dr_run_fd9c613b7725553294170dbcb2714fe1",
+      "receipt": "tmp/dr-acceptance-receipts/D3-v7.json",
+      "status": "completed",
+      "quality": "failed",
+      "dataInvestigationPresent": true,
+      "capacityEvidenceId": "ev_ee1df5cde39d29f572e190d5bbd9053d6b43aaa88523905d439e777816a1bf43",
+      "capacityEvidenceQuote": "two scenes from the Tanks&Temples dataset[2017]and two scenes provided by Hedman et al.[Hedman et al. 2018].",
+      "outcome": "partial",
+      "modelCalls": 11,
+      "tokens": 63217,
+      "elapsedSeconds": 168,
+      "repairStatus": "skipped_budget",
+      "findings": [
+        "Data availability obligation executed and exact two-scene passage extracted",
+        "Configuration normalization and visible protocol materialization succeeded",
+        "Data claim instead chose nine Mip-NeRF360 scenes with an unavailable original ordering; rejected by semantic checker",
+        "Groups lacked an exact intervention-level audit binding; recovery budget had no concrete step count",
+        "Statistics text now includes conditional effects, interaction and bootstrap parameters; does not establish overall plan acceptance"
+      ],
+      "budgetDiagnosis": {
+        "normalTokenLimit": 50000,
+        "normalTokensUsed": 20707,
+        "remainingNormalTokens": 29293,
+        "reservationRule": "UTF-8 prompt bytes + 1024 framing + max output tokens",
+        "repairOutputCap": 8192,
+        "remainingRepairPromptByteCeiling": 20077,
+        "currentPromptByteCap": 24000,
+        "nextStep": "Fit repair evidence to actual remaining normal budget without raising caps, clipping quotations, weakening verifier or automatically resending unknown calls."
+      }
+    }
+  }
+}

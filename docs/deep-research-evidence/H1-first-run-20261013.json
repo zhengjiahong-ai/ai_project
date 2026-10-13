@@ -1,0 +1,51 @@
+{
+  "caseId": "H1",
+  "runId": "dr_run_dc936f3dc4d15f07b50be8047fa0ec32",
+  "codeCommit": "4250ea8",
+  "promptVersion": "dr-v2.20261013.11",
+  "providerOutcome": "complete",
+  "manualOutcome": "failed",
+  "modelCalls": 12,
+  "tokens": 33782,
+  "elapsedSeconds": 90,
+  "externalSearches": 0,
+  "scores": {
+    "目标回应": 3,
+    "证据支持": 3,
+    "条件完整": 3,
+    "综合价值": 3,
+    "可执行性": null,
+    "可读性": 4
+  },
+  "notApplicable": {
+    "可执行性": "本例是方法解释与保证边界，不要求实验步骤"
+  },
+  "findings": [
+    {
+      "type": "missing_required_conditions",
+      "detail": "回答说明anchor与神经高斯，但未明确视锥内、相对方向与距离三个冻结条件。"
+    },
+    {
+      "type": "incorrect_physical_page",
+      "evidenceIds": [
+        "ev_4a538a0f01ae020511ea41d4dfb8fcef1de2a35044a5035283d53ae1d9f15c6f",
+        "ev_c5296a7bbb098d94dc822dadcbff1cf4af51d5a1e6c0e88e28a0a96ec35e8bc4"
+      ],
+      "reportedPage": 1,
+      "actualPage": 2,
+      "verification": "PyPDF2逐物理页搜索原引文，两个前缀均匹配第2页；来源chunk-2保留Introduction起始页1。"
+    }
+  ],
+  "primaryEvidence": {
+    "paperSha256": "10be967d56b17a216c37f2d9b9566b73a22fc1c13a278094b679397747a1b96c",
+    "pagesReviewed": [
+      1,
+      2,
+      4,
+      9
+    ]
+  },
+  "receipt": "tmp/dr-acceptance-receipts/H1-v1.json",
+  "result": "tmp/dr-acceptance-receipts/H1-v1.result.json",
+  "futureUse": "已用于诊断，后续不得作为未见过的留出案例；替换待登记。"
+}

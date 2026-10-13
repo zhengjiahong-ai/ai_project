@@ -1,0 +1,507 @@
+{
+  "scope": "Local cache rows in authorization time window; rows are not total requests or charges",
+  "startUtc": "2026-10-09T12:32:21.357265+00:00",
+  "endUtc": "2026-10-09T12:37:51.782931+00:00",
+  "cacheRows": [
+    {
+      "model": "deepseek-v4-pro",
+      "temperature": 0.3,
+      "createdAt": 1791549223.822194,
+      "response": {
+        "intent": "解释方法",
+        "needsRetrieval": true,
+        "rewritten": "3DGS 中高斯、透明度、球谐颜色的概念解释",
+        "keywords": [
+          "3DGS",
+          "高斯",
+          "透明度",
+          "球谐颜色"
+        ],
+        "queries": [
+          {
+            "query": "3DGS 高斯 透明度 球谐颜色 概念定义",
+            "scope": "current_paper",
+            "reason": "从当前论文中获取三个核心表示概念的定义，以便仅解释概念而不展开比较"
+          }
+        ],
+        "answerStyle": "concise"
+      }
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "temperature": 0.1,
+      "createdAt": 1791549227.615542,
+      "response": "3DGS Gaussian Opacity Spherical Harmonics Color Concept Definition"
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "temperature": 0.3,
+      "createdAt": 1791549242.6563296,
+      "response": "在 3DGS 中，“高斯”是定义在世界空间、以均值 $\\mu$ 为中心并具有完整三维协方差矩阵 $\\Sigma$ 的各向异性可微体积基元；“透明度”是每个高斯上的标量 $\\alpha$，在 $\\alpha$-blending 中作为混合权重。“球谐颜色”通过球谐系数表示该高斯的颜色 $c$，用于刻画随视角变化的 appearance；这三者与位置、协方差一起构成 3D Gaussian 的核心可优化参数。"
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "temperature": 0.1,
+      "createdAt": 1791549319.3077555,
+      "response": {
+        "translatedBlocks": [
+          {
+            "id": "block-2",
+            "translatedText": "对于由 J 表示的投影变换的仿射近似，相机坐标系中的协方差矩阵 Σ′ 可按 ⟦原式1⟧ 计算。具体而言，对于每个像素，所有高斯的颜色和不透明度均使用高斯的表示式 Eq. 1 计算。与像素重叠的 N 个有序点的混合由以下公式给出："
+          }
+        ]
+      }
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "temperature": 0.1,
+      "createdAt": 1791549319.54621,
+      "response": {
+        "translatedBlocks": [
+          {
+            "id": "block-4",
+            "translatedText": "3.2 高斯剪枝与恢复\n高斯致密化 [16] 会克隆并细化初始 SfM 点云，通过改善覆盖率来增强小尺度几何和详细的场景外观。尽管这种方法显著提升了重建质量，但在优化后会将高斯数量从数千增加到数百万，导致巨大的存储需求。受神经网络剪枝技术 [63] 的启发，这些技术移除影响较小的神经元，同时保持整体性能，我们提出一种针对 3D 高斯泼溅的定制剪枝策略，以减少过度参数化的点，同时保持准确性。识别冗余但可恢复的高斯点对我们的方法至关重要。然而，基于简单标准（例如点不透明度）剪枝高斯点可能会降低建模性能，因为它可能会消除必要的场景细节，如图 3 所示。"
+          }
+        ]
+      }
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "temperature": 0.1,
+      "createdAt": 1791549321.294247,
+      "response": {
+        "translatedBlocks": [
+          {
+            "id": "block-3",
+            "translatedText": "这里，ci、αi 表示视角相关颜色和不透明度，其由具有协方差 Σ 的二维高斯乘以每个三维高斯的可优化不透明度计算得到。总之，每个高斯点由以下属性表征：位置 ⟦原式2⟧、由球谐系数 ⟦原式3⟧ 定义的颜色（其中 k 表示自由度）、不透明度 ⟦原式4⟧、旋转因子 ⟦原式5⟧ 和缩放因子 ⟦原式6⟧。"
+          }
+        ]
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "temperature": 0.3,
+      "createdAt": 1791549327.7198246,
+      "response": {
+        "findings": [
+          {
+            "section": "weakness",
+            "summary": "该方法的压缩与高帧率主张主要依据Mip-NeRF 360与Tank and Temple真实场景、A6000 GPU上重新训练的3D-GS*基线对照；核对表显示Ours尺寸压缩约⟦数值1⟧倍和⟦数值2⟧倍，FPS为⟦数值3⟧和⟦数值4⟧，但PSNR/SSIM略降、LPIPS略升。该结果仅覆盖已核对行，未验证合成目标级数据集及其他基线，适用边界限于训练视图命中计数评估的大规模场景。",
+            "kind": "inference",
+            "numericBindings": [
+              {
+                "id": 1,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "Size",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS*",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  }
+                ],
+                "operation": "inverse_ratio",
+                "decimals": 1
+              },
+              {
+                "id": 2,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 1,
+                "metric": "Size",
+                "baselineRow": 9,
+                "dataset": "Tank and Temple Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS*",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  }
+                ],
+                "operation": "inverse_ratio",
+                "decimals": 1
+              },
+              {
+                "id": 3,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "FPS",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS*",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  }
+                ],
+                "operation": "value",
+                "decimals": 0
+              },
+              {
+                "id": 4,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 1,
+                "metric": "FPS",
+                "baselineRow": 9,
+                "dataset": "Tank and Temple Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS*",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  }
+                ],
+                "operation": "value",
+                "decimals": 0
+              }
+            ],
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "3f482a0dfd0f89db"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "80b69d9152d575a8"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "a3ee810f3fd80b28"
+              }
+            ]
+          },
+          {
+            "section": "weakness",
+            "summary": "剪枝方面，作者报告基于简单标准（如点不透明度）会损害建模性能；直接使用高斯体积又过度强调背景高斯，导致细几何被过度剪枝，因此采用90%最大体积归一化并引入β，剪枝后还需共同适配微调。SH降阶方面，直接消除高阶球谐系数负面影响质量，必须通过教师模型全阶SH蒸馏与伪视角监督来缓解差距。",
+            "kind": "reported",
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                "quoteId": "c1c5f0fea721480b"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+                "quoteId": "53e33538955e08f1"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+                "quoteId": "fff731411438c613"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+                "quoteId": "cf740ea8049a8aa6"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-39",
+                "quoteId": "baa3e03c3c23b0f9"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                "quoteId": "82d6cccc3d4e76c8"
+              }
+            ]
+          },
+          {
+            "section": "weakness",
+            "summary": "向量量化方面，作者报告对所有属性（尤其位置、旋转、尺度）量化会导致显著精度损失，离散表示精度明显下降；因此仅对SH系数中全局显著性最低的元素进行VQ，位置、形状、旋转和不透明度等关键属性跳过VQ并以float16存储。其压缩收益限于低显著SH子集，且依赖相近外观的高斯子组假设，对非SH属性未能压缩。",
+            "kind": "reported",
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "quoteId": "db7463c49cdd7c7f"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "quoteId": "dfc2f3cca3349211"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "2167fb002ed62028"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "quoteId": "04c9eed77892ab27"
+              }
+            ]
+          }
+        ],
+        "pendingQuestions": [
+          {
+            "topic": "15倍压缩与200+FPS是否在论文其他章节有明确原始声明，还是仅由表1核对行推算；合成目标级数据集的性能数字是否支持这些主张。"
+          }
+        ]
+      }
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "temperature": 0.1,
+      "createdAt": 1791549332.847808,
+      "response": {
+        "translatedBlocks": [
+          {
+            "id": "block-5",
+            "translatedText": "全局显著性计算。受式 2 启发，我们不再仅使用高斯不透明度来评估显著性，而是通过评估视锥体内的 3D 高斯，并将它们投影到相机视点以进行渲染。每个高斯的初始显著性分数（记为 G(Xj)）随后可以基于其对所有训练视图中每个像素（射线，ri）的贡献，使用判据 1(G(Xj), ri) 判断它们是否相交来量化。因此，我们遍历所有训练像素以计算每个高斯的命中次数。该分数进一步由调整后的 3D 高斯的体积 γ(Σj) 和 3D 高斯的不透明度 σj 细化，因为它们都对渲染公式有贡献。第 j 个 3D 高斯的体积计算方程为 ⟦原式7⟧，其中 abc 是尺度（S）的 3 个维度。我们还考虑透射率 T 的计算方式为：以 1 减去光线在第 j 个 3D 高斯之前命中的全部 3D 高斯的不透明度项，⟦原式8⟧。最后，全局显著性分数可以总结为："
+          }
+        ]
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "temperature": 0.3,
+      "createdAt": 1791549422.569399,
+      "response": {
+        "claims": [
+          {
+            "summary": "在3DGS中，场景由一组3D高斯表示，每个高斯包含位置、透明度/不透明度参数α和协方差Σ。论文同时优化球谐系数来表示颜色c，以捕捉视角相关的外观。",
+            "kind": "reported",
+            "paperIds": [
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+            ],
+            "references": [
+              {
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-34",
+                "quoteId": "d6966f90396e321d"
+              },
+              {
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                "quoteId": "af6db758c8e6ced9"
+              }
+            ]
+          },
+          {
+            "summary": "原始3DGS通过密集各向异性高斯优化和快速光栅化追求高质量与实时渲染；LightGaussian则在3DGS基础上引入剪枝、低阶球谐蒸馏与矢量量化，以较小视觉质量代价换取更小的表示规模和更高FPS。",
+            "kind": "inference",
+            "paperIds": [
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1",
+                "quoteId": "cfac003332687a0c"
+              },
+              {
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                "quoteId": "7b9d87df95180321"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                "quoteId": "c0be7ed3c0768423"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                "quoteId": "82d6cccc3d4e76c8"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-35",
+                "quoteId": "0e1e7d57e5c23b02"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                "quoteId": "3b629a9cda1b9aee"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                "quoteId": "adf601525ce425f9"
+              }
+            ]
+          }
+        ],
+        "dimensions": [
+          {
+            "label": "表示规模/存储",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "原始3DGS报告其各向异性高斯能够以较少参数建模复杂形状，但现有片段未给出与LightGaussian同条件的存储规模对比。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+                    "quoteId": "edef36258b0cae26"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "LightGaussian作者报告大幅压缩（原文示例⟦数值1⟧），并在Mip-NeRF 360上SSIM下降仅⟦数值2⟧。",
+                "kind": "reported",
+                "numericBindings": [
+                  {
+                    "id": 1,
+                    "kind": "author_report",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                    "quoteId": "3b629a9cda1b9aee",
+                    "literal": "from 782MB to 45MB"
+                  },
+                  {
+                    "id": 2,
+                    "kind": "author_report",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                    "quoteId": "3b629a9cda1b9aee",
+                    "literal": "SSIM decrease of only 0.007 on Mip-NeRF 360"
+                  }
+                ],
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                    "quoteId": "3b629a9cda1b9aee"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "渲染速度",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "原始3DGS报告在1080p分辨率下实现实时新视角合成，给出作者主张的⟦数值1⟧阈值。",
+                "kind": "reported",
+                "numericBindings": [
+                  {
+                    "id": 1,
+                    "kind": "author_report",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1",
+                    "quoteId": "cfac003332687a0c",
+                    "literal": "≥ 30 fps"
+                  }
+                ],
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1",
+                    "quoteId": "cfac003332687a0c"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "LightGaussian作者报告在复杂场景上渲染速度提升至超过⟦数值1⟧。",
+                "kind": "reported",
+                "numericBindings": [
+                  {
+                    "id": 1,
+                    "kind": "author_report",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                    "quoteId": "adf601525ce425f9",
+                    "literal": "over 200 FPS"
+                  }
+                ],
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                    "quoteId": "adf601525ce425f9"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "质量/视觉保真度",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "原始3DGS报告其辐射场质量与质量最佳的先前方法相当，并称在较长训练下达到最先进质量。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-0",
+                    "quoteId": "73012d2c29b456a7"
+                  },
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-0",
+                    "quoteId": "0f0f51b2caa64087"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "作者报告在Mip-NeRF 360上SSIM下降仅⟦数值1⟧，并称方法在FPS、模型大小与渲染质量之间取得最佳平衡。",
+                "kind": "reported",
+                "numericBindings": [
+                  {
+                    "id": 1,
+                    "kind": "author_report",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                    "quoteId": "3b629a9cda1b9aee",
+                    "literal": "SSIM decrease of only 0.007 on Mip-NeRF 360"
+                  }
+                ],
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                    "quoteId": "3b629a9cda1b9aee"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "ea6d0636b163d395"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "取舍机制",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "原始3DGS通过各向异性协方差优化与密度控制构造精确场景，并开发可见性感知渲染以加速训练与支持实时渲染。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "7b9d87df95180321"
+                  },
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "3ce54f8e4ac15897"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "LightGaussian通过全局显著性剪枝、从全阶球谐教师到低阶学生的蒸馏以及矢量量化来减少冗余，从而在规模、速度和质量之间取得平衡。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                    "quoteId": "c0be7ed3c0768423"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                    "quoteId": "82d6cccc3d4e76c8"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-35",
+                    "quoteId": "0e1e7d57e5c23b02"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "limitations": [
+          "LightGaussian正文章节中的表格存在列跨度和未核对列映射，因此未使用这些表格数值进行直接排序；速度与存储数字来自不同场景/条件，不能直接拼接比较。",
+          "原始3DGS中关于存储规模的3.8MB对比是针对Zhang et al.点云方法，LightGaussian的压缩示例来自其自身报告，二者不是同基线/同条件，不能直接相减。",
+          "当前片段未提供两篇论文在同一硬件、同一数据集下完整逐项对齐的实验表，因此比较以作者报告和定性推断为主。"
+        ]
+      }
+    }
+  ],
+  "newModelCalls": 0
+}

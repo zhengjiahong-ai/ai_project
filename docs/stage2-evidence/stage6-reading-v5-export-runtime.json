@@ -1,0 +1,24 @@
+{
+  "scope": "Actual v5 browser download and static-file display; not corrected translation quality acceptance",
+  "checks": {
+    "savedArtifactUnchanged": true,
+    "historicalDocumentsAndMessagesUnchanged": true,
+    "taskRevisionUnchanged": true,
+    "visibleArticleMatchesSavedText": true,
+    "savedPaperAndPageMatch": true,
+    "embeddedOriginalLoaded": true,
+    "standaloneWithoutScriptsOrStylesheets": true,
+    "oldContentErrorPreserved": true
+  },
+  "htmlBytes": 1606549,
+  "htmlSha256": "f9472d24f99b495c7f3d918f8ad3e1d42c3eb6920daebe1d886063a0020f8190",
+  "pngBytes": 1201505,
+  "sourcePage": 4,
+  "artifactId": "0a6dc4eb-57a1-4176-a1e7-9f4b1eafdf82",
+  "taskRevision": 13,
+  "providerCalls": 0,
+  "taskWrites": 0,
+  "downloadEventObserved": false,
+  "downloadFileObserved": true,
+  "previewDirectoryScope": "tmp/stage6-html-review-20261009a contains only this HTML"
+}

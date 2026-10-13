@@ -1,3 +1,4 @@
+import {locateInlineMath, maskLocatedMath} from './inlineMathSources.js';
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
 const toFiniteNumber = (value, fallback = 0) => {
@@ -119,6 +120,14 @@ const isLikelyFormulaTextForTranslation = (text, block = {}) => {
     readableWords <= 3 &&
     mathSignals >= 1;
 
+  // PDF summation/product glyphs can be extracted as separated capital variables (e.g. "M HWX").
+  const isDetachedMathVariables = value.length <= 24 && (bbox.width || 0) <= 0.16 &&
+    (bbox.height || 0) <= 0.025 && /^[A-Z](?:\s+[A-Z]{1,4})+$/.test(value);
+
+  if (isDetachedMathVariables) {
+    return true;
+  }
+
   if (hasOptimizationLine) {
     return true;
   }
@@ -218,7 +227,7 @@ const inferFontFlags = (item) => {
   };
 };
 
-const normalizeTextItem = (item, viewport) => {
+const normalizeTextItem = (item, viewport, fontStyle = {}) => {
   const text = typeof item?.str === 'string' ? item.str.replace(/\s+/g, ' ').trim() : '';
   if (!text) {
     return null;
@@ -239,10 +248,12 @@ const normalizeTextItem = (item, viewport) => {
   const width = Math.max(toFiniteNumber(item?.width, 0), 1);
   const height = Math.max(Math.abs(toFiniteNumber(item?.height, 0)) || inferFontSize(item), 1);
   const fontSize = inferFontSize(item);
-  const top = clamp((viewportHeight - y - height) / viewportHeight);
+  const glyphTop = y + height * (Number.isFinite(fontStyle.ascent) ? fontStyle.ascent : 1);
+  const glyphBottom = y + height * (Number.isFinite(fontStyle.descent) ? fontStyle.descent : 0);
+  const top = clamp((viewportHeight - glyphTop) / viewportHeight);
   const left = clamp(x / viewportWidth);
   const bboxWidth = clamp(width / viewportWidth);
-  const bboxHeight = clamp(height / viewportHeight);
+  const bboxHeight = clamp((glyphTop - glyphBottom) / viewportHeight);
 
   return {
     text,
@@ -251,6 +262,8 @@ const normalizeTextItem = (item, viewport) => {
     width,
     height,
     fontSize,
+    loweredMathGlyph: Number.isFinite(fontStyle.ascent) && fontStyle.ascent < 0.2 &&
+      fontStyle.descent < -0.3 && /^[A-Z∑∏∫]$/.test(text),
     bbox: {
       left: roundRatio(left),
       top: roundRatio(top),
@@ -259,6 +272,26 @@ const normalizeTextItem = (item, viewport) => {
     },
     ...inferFontFlags(item),
   };
+};
+
+// Extensible math fonts place an operator's origin above its visible baseline.
+// Attach it to a nearby math anchor, never to the preceding prose line.
+const alignMathBaselines = items => {
+  const isAnchor = item => /^(?:[A-Za-zΑ-Ωα-ω]{1,2}|[0-9=×·+−()]+)$/.test(item.text);
+  const closestAnchor = (item, candidates) => candidates.filter(anchor => anchor !== item && isAnchor(anchor) &&
+    Math.abs(item.y - anchor.y) <= anchor.fontSize * 1.4 &&
+    item.x >= anchor.x - anchor.fontSize && item.x <= anchor.x + anchor.width + anchor.fontSize * 3)
+    .sort((a,b) => Math.abs(item.x - a.x - a.width) - Math.abs(item.x - b.x - b.width))[0];
+  const aligned = items.map(item => {
+    if (!item.loweredMathGlyph) return item;
+    const anchor = closestAnchor(item, items.filter(candidate => !candidate.loweredMathGlyph && candidate.text.includes('=')));
+    return anchor ? {...item, y:anchor.y} : item;
+  });
+  return aligned.map(item => {
+    if (!/^[A-Za-zΑ-Ωα-ω0-9=×·+−() -]{1,8}$/.test(item.text)) return item;
+    const anchor = closestAnchor(item, aligned.filter(candidate => candidate.fontSize >= item.fontSize / 0.82));
+    return anchor ? {...item, y:anchor.y} : item;
+  });
 };
 
 const buildLineText = (items = []) =>
@@ -283,6 +316,14 @@ const createLineBlock = (items = []) => {
 
   const sortedItems = [...items].sort((left, right) => left.x - right.x);
   const text = buildLineText(sortedItems);
+  let offset = 0;
+  const textRuns = sortedItems.map((item,index) => {
+    const previous = sortedItems[index-1];
+    if (previous && item.x - previous.x - previous.width > Math.max(previous.fontSize,item.fontSize)*0.2) offset++;
+    const start = offset;
+    offset += item.text.length;
+    return {start,end:offset,bbox:item.bbox};
+  });
   if (!text) {
     return null;
   }
@@ -298,6 +339,7 @@ const createLineBlock = (items = []) => {
 
   return {
     text,
+    textRuns,
     bbox: {
       left: roundRatio(left),
       top: roundRatio(top),
@@ -405,6 +447,8 @@ const mergeLineIntoBlock = (currentBlock, nextLine) => {
 
   return {
     text: `${currentBlock.text}\n${nextLine.text}`.trim(),
+    textRuns: [...(currentBlock.textRuns || []), ...(nextLine.textRuns || []).map(run=>({
+      ...run,start:run.start+currentBlock.text.length+1,end:run.end+currentBlock.text.length+1}))],
     bbox: {
       left: roundRatio(left),
       top: roundRatio(top),
@@ -1035,9 +1079,9 @@ export const buildFidelityTranslationLayout = (
 
 export const buildPageLayout = (textContent, viewport) => {
   const normalizedViewport = normalizeViewport(viewport);
-  const items = (textContent?.items || [])
-    .map((item) => normalizeTextItem(item, normalizedViewport))
-    .filter(Boolean);
+  const items = alignMathBaselines((textContent?.items || [])
+    .map((item) => normalizeTextItem(item, normalizedViewport, textContent?.styles?.[item.fontName]))
+    .filter(Boolean));
 
   if (items.length === 0) {
     return {
@@ -1081,6 +1125,7 @@ export const buildPageLayout = (textContent, viewport) => {
   const orderedLineBlocks = buildColumnFirstReadingOrder(layoutLineBlocks, normalizedViewport);
   const blocks = mergeOrderedLineBlocks(orderedLineBlocks, lineColumnLayout, normalizedViewport);
 
+  let mathIndex = 0;
   const finalizedBlocks = blocks.map((block, index) => ({
     id: `block-${index + 1}`,
     text: block.text,
@@ -1090,6 +1135,7 @@ export const buildPageLayout = (textContent, viewport) => {
       textAlign: 'left',
     },
     readingOrder: index,
+    mathSources: locateInlineMath(block, () => ++mathIndex),
   }));
 
   return {
@@ -1121,7 +1167,8 @@ export const buildTranslationRequestPageLayout = (pageLayout, excludedZones = []
           };
           return {
             ...normalizedBlock,
-            text: stripNonTranslatableLines(normalizedBlock.text, normalizedBlock),
+            text: stripNonTranslatableLines(maskLocatedMath(normalizedBlock.text, block.mathSources), normalizedBlock),
+            mathSources: block.mathSources || [],
           };
         })
         .filter(

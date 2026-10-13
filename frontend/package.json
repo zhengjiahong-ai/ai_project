@@ -13,8 +13,10 @@
     "test:e2e": "playwright test",
     "test:layout-benchmark": "node scripts/layout-parser-benchmark.test.mjs",
     "benchmark:layout": "node scripts/layout-parser-benchmark.mjs ../ai-service-python/benchmarks/layout_parser/fixtures.json ../ai-service-python/benchmarks/layout_parser/layout-results.json ../ai-service-python/benchmarks/layout_parser/grobid-results.json",
-    "test": "node src/utils/pdfTranslationLayout.test.js && node scripts/layout-parser-benchmark.test.mjs && node src/utils/translationState.test.js && node src/utils/pageTranslationRequest.test.js && node src/utils/socraticSessionModel.test.js && node src/services/api.test.js && node src/components/translationPanelModel.test.js && node src/components/MarkdownContent.test.js && node src/components/criticalAnalysisData.test.js && node src/components/evidenceCitationModel.test.js && node src/components/parseStatusModel.test.js && node src/components/BackgroundKnowledgePanel.test.js && node src/components/deepResearchPanelModel.test.js && node src/components/insightCardModel.test.js && node src/components/artifactModel.test.js && node src/components/agent/agentWorkspaceModel.test.js && node src/components/agent/agentWorkspaceTheme.test.js && vitest run",
-    "typecheck": "tsc --noEmit"
+    "test": "node src/utils/panoramicTranslation.test.js && node src/utils/selectionContext.test.js && node src/utils/pdfTranslationLayout.test.js && node scripts/layout-parser-benchmark.test.mjs && node src/utils/translationState.test.js && node src/utils/pageTranslationRequest.test.js && node src/utils/socraticSessionModel.test.js && node src/services/api.test.js && node src/components/translationPanelModel.test.js && node src/components/MarkdownContent.test.js && node src/components/criticalAnalysisData.test.js && node src/components/evidenceCitationModel.test.js && node src/components/parseStatusModel.test.js && node src/components/BackgroundKnowledgePanel.test.js && node src/components/deepResearchPanelModel.test.js && node src/components/insightCardModel.test.js && node src/components/artifactModel.test.js && node src/components/agent/agentWorkspaceModel.test.js && node src/components/agent/agentWorkspaceTheme.test.js && vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:selection-context": "node src/utils/selectionContext.test.js",
+    "test:panoramic-translation": "node src/utils/panoramicTranslation.test.js"
   },
   "dependencies": {
     "@react-pdf-viewer/core": "^3.12.0",
@@ -24,6 +26,7 @@
     "idb": "^8.0.3",
     "katex": "^0.16.44",
     "lucide-react": "^0.563.0",
+    "pdf-lib": "1.17.1",
     "pdfjs-dist": "3.4.120",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -33,6 +36,7 @@
     "react-resizable-panels": "^4.5.2",
     "recharts": "^3.7.0",
     "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0"
   },
   "devDependencies": {

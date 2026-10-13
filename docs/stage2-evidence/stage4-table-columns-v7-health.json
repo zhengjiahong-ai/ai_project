@@ -1,0 +1,14 @@
+{
+  "status": "ok",
+  "checks": {
+    "grobid": {
+      "status": "ok",
+      "message": "GROBID is reachable."
+    },
+    "rag": {
+      "status": "ok",
+      "message": "RAG backend is ready."
+    }
+  },
+  "uptime_seconds": 118.2
+}

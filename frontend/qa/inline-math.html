@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原式定位离线核验</title></head>
+<body style="margin:0;padding:12px;background:#f8f8fa">
+  <p style="font:13px/1.6 sans-serif">只读核验：真实PDF与定位占位正文，不是模型译文，不写任务或调用模型。</p>
+  <div id="root" style="max-width:900px;margin:auto"></div>
+  <script type="module">
+    import React from 'react';import {createRoot} from 'react-dom/client';
+    import '/src/index.css';import 'katex/dist/katex.min.css';
+    import PanoramicTranslation from '/src/components/PanoramicTranslation.jsx';
+    const data=await fetch('./inline-math-v7.json').then(response=>response.json());
+    const fileUrl='http://localhost:8081/api/task-workspaces/task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe/materials/'+data.pdfId+'/file';
+    createRoot(document.getElementById('root')).render(React.createElement(PanoramicTranslation,{fileUrl,pageIndex:3,pageData:data}));
+  </script>
+</body></html>

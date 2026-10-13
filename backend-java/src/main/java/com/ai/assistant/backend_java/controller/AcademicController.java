@@ -26,11 +26,19 @@ public class AcademicController {
     @Autowired
     private AiService aiService;
 
+    @Autowired
+    private com.ai.assistant.backend_java.service.MaterialProcessingService materialProcessing;
+
     // ── PDF / Reader ──────────────────────────────────────────────────────
 
     @PostMapping("/upload")
     public Map<String, Object> uploadPdf(@RequestParam("file") MultipartFile file) {
         return aiService.analyzePdf(file);
+    }
+
+    @PostMapping("/materials/upload")
+    public Map<String, Object> uploadMaterial(@RequestParam("file") MultipartFile file) {
+        return materialProcessing.upload(file);
     }
 
     @PostMapping("/explain")

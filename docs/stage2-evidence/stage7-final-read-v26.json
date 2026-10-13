@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "checkedAt": "2026-10-10T13:33:11.652399+00:00",
+  "method": "GET only",
+  "taskStateUnchanged": true,
+  "analysisReadingAndQuestionReady": true,
+  "overviewNotRequested": true,
+  "fullJsonSchemaValidation": false,
+  "browserRecoveryVerified": false,
+  "providerCallsStarted": 0,
+  "checks": [
+    {
+      "taskId": "stage4-3dgs-critique-20261010-v26",
+      "status": "succeeded",
+      "requiredFieldsAndEnums": true,
+      "materialScopeRetained": true,
+      "publicRequestOnly": true,
+      "repeatReadUnchanged": true
+    },
+    {
+      "taskId": "stage4-3dgs-compare-20261010-v16",
+      "status": "succeeded",
+      "requiredFieldsAndEnums": true,
+      "materialScopeRetained": true,
+      "publicRequestOnly": true,
+      "repeatReadUnchanged": true
+    },
+    {
+      "path": "/stage4-3dgs-critique-20261010-v26/materials/f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf/file",
+      "status": 404
+    },
+    {
+      "path": "/stage4-3dgs-critique-20261010-v26/materials/f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf/analysis",
+      "status": 404
+    },
+    {
+      "path": "/stage4-3dgs-critique-20261010-v26/materials/f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf/processing",
+      "status": 404
+    },
+    {
+      "path": "/stage4-3dgs-critique-20261010-v26/operations/stage4-3dgs-compare-20261010-v16-request",
+      "status": 404
+    },
+    {
+      "path": "/stage7-deliberately-missing-task",
+      "status": 404
+    }
+  ]
+}

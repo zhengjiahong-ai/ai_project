@@ -1,0 +1,5 @@
+Initial run: 125 passed, 1 failed (new test expected an incorrect exception message; implementation correctly rejected the unlisted row).
+Corrected the expected message to the existing experiment-binding error; validation code unchanged.
+Final command: docker exec -w /app ai_service_python python -m pytest -q tests/test_evidence_quotes.py tests/test_grounded_numeric_rendering.py tests/test_grounded_comparison.py tests/test_grounded_critique.py tests/test_comparison_measurements.py tests/test_pdf_table_columns.py
+Final result: 126 passed, 2 existing deprecation warnings in 7.04s.
+Scope: offline regression, no new Provider calls.

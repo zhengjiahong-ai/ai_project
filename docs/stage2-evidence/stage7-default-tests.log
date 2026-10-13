@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 D:/aiproj/ai_project/frontend
+
+
+ Test Files  48 passed (48)
+      Tests  303 passed (303)
+   Start at  21:35:19
+   Duration  32.85s (transform 29.77s, setup 42.84s, import 112.76s, tests 29.28s, environment 364.47s)
+

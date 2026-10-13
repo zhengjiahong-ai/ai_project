@@ -1,0 +1,17 @@
+{
+  "trigger": "D3-v10-a1 c8 verification joined separate formula bullets with semicolons, failing exact source binding.",
+  "change": "An audit slot can contain a quotes object holding 1 to 32 independently bound claimId/quote segments. The original single-quote format remains supported.",
+  "invariants": [
+    "Every segment must occur verbatim in its own allowed proposal text or serialized conditions.",
+    "One forged or invalid segment fails the entire slot.",
+    "Empty, nested, oversized and mixed single/multiple forms fail closed.",
+    "Reported facts cannot supply proposed configuration bindings.",
+    "Existing joined or paraphrased quotations are not automatically repaired.",
+    "Semantic verification still assesses completeness and correctness; exact presence alone is insufficient."
+  ],
+  "targetedTests": {"passed": 21, "seconds": 2.16},
+  "fullOfflineTests": {"passed": 859, "warnings": 2, "seconds": 82.50},
+  "liveValidation": "D3-v10-a2 exercised seven exact effect segments; c8 accepted, whole diagnostic remains quality-failed. See repair-only-diagnostic-a2-20261013.json.",
+  "qualityAccepted": false,
+  "dataSelectionFinding": "Current verifier already permits a grounded all-mode complete set without name enumeration. Last data rejection also cited unresolved seed semantics; no availability gate has been relaxed."
+}

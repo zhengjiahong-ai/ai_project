@@ -1,0 +1,199 @@
+- banner:
+  - strong: 貔貅
+  - generic: 学术工作台
+  - generic "阶段4：critique表格范围修复核验-v26"
+  - button "未同步草稿"
+  - button "重命名"
+  - group "布局":
+    - button "并排"
+    - button "专注阅读"
+    - button "专注对话"
+  - button "切换主题":
+- main:
+  - complementary "任务导航":
+    - combobox "当前任务":
+      - option "阶段4：critique表格范围修复核验-v26" [selected]
+      - option "阶段4：critique表格范围修复核验-v25"
+      - option "阶段4：critique表格范围修复核验-v24"
+      - option "阶段4：critique表格范围修复核验-v22"
+      - option "阶段4：critique表格范围修复核验-v19"
+      - option "阶段4：critique表格范围修复核验-v18"
+      - option "阶段4：compare表格范围修复核验-v16"
+      - option "阶段4：critique表格范围修复核验-v16"
+      - option "阶段4：compare表格范围修复核验-v13"
+      - option "阶段4：critique表格范围修复核验-v13"
+      - option "阶段4：compare表格范围修复核验-v12"
+      - option "阶段4：critique表格范围修复核验-v12"
+      - option "阶段4：compose修复核验-v9"
+      - option "阶段4：critique修复核验-v9"
+      - option "阶段6：有材料的对话起点验收"
+      - option "阶段4：简洁比较离线展示-v9"
+      - option "阶段4：部分结果离线展示-v8"
+      - option "阶段4：compose修复核验-v7"
+      - option "阶段4：critique修复核验-v7"
+      - option "阶段4：compose修复核验-v6"
+      - option "阶段4：critique修复核验-v6"
+      - option "阶段6：上传切任务归属-A"
+      - option "阶段6：上传切任务归属-B"
+      - option "阶段4：critique修复核验-v5"
+      - option "阶段4：compose修复核验-v5"
+      - option "阶段4：critique修复核验-v4"
+      - option "阶段4：compose修复核验-v4"
+      - option "阶段4：critique修复核验-v3"
+      - option "阶段4：compose修复核验-v3"
+      - option "阶段6：首次使用与任务输入验收"
+      - option "新任务"
+      - option "阶段6：真实论文阅读工具验收"
+      - option "阶段4：3DGS验证材料"
+      - option "阶段6：阅读与编辑体验验收"
+      - option "阶段5：版本与草稿恢复验收"
+      - option "阶段5：缺文件提示验收"
+      - option "新任务"
+      - option "阶段4：critique真实验收-v2"
+      - option "演示：LightGaussian 压缩方法"
+      - option "阶段5：旧文档标识补全验收"
+      - option "阶段5：移动目标任务"
+      - option "阶段5：移动原任务"
+      - option "阶段4：compose真实验收-v2"
+      - option "阶段4：research真实验收"
+      - option "阶段4：compose真实验收"
+      - option "阶段4：critique真实验收"
+      - option "阶段4：compare真实验收"
+      - option "阶段4：研究回答显示验收"
+      - option "阶段3：新手主动RIS学习闭环"
+      - option "阶段3：主动RIS自测闭环"
+      - option "阶段2：新版补课协议验收"
+      - option "阶段2：多论文范围与比较验收"
+      - option "阶段2：研究终稿发布验收"
+      - option "阶段2：精读入口验收"
+      - option "阶段2：自测入口验收"
+      - option "阶段2：批判成果恢复验收"
+      - option "阶段2：执行前停止验收"
+      - option "阶段2：失败与重试验收"
+      - option "阶段2：先阅读再解析验收"
+      - option "阶段2统一对话验收"
+      - option "阶段1文件恢复验收"
+      - option "任务标识编码验收"
+      - option "并发隔离验收"
+      - option "新任务"
+    - button "收起导航":
+    - button "新任务":
+      - text: 新任务
+    - heading "论文与材料" [level=2]
+    - button "添加已有论文":
+    - 'button "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"':
+      - generic: "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+    - 'button "移出任务：LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"':
+    - button "上传 PDF":
+      - text: 上传 PDF
+    - heading "笔记与成果" [level=2]
+    - button "对话成果":
+      - generic: 对话成果
+  - region "论文与成果":
+    - strong: 对话成果
+    - button "返回论文"
+    - button "收起阅读区":
+    - group "成果视图":
+      - button "阅读" [pressed]
+      - button "编辑"
+    - button "下载":
+      - text: 下载
+    - status: 已保存
+    - generic "历史版本（0）"
+    - generic "整理成果"
+    - option "选择任务" [selected]
+    - option "阶段4：critique表格范围修复核验-v25"
+    - option "阶段4：critique表格范围修复核验-v24"
+    - option "阶段4：critique表格范围修复核验-v22"
+    - option "阶段4：critique表格范围修复核验-v19"
+    - option "阶段4：critique表格范围修复核验-v18"
+    - option "阶段4：compare表格范围修复核验-v16"
+    - option "阶段4：critique表格范围修复核验-v16"
+    - option "阶段4：compare表格范围修复核验-v13"
+    - option "阶段4：critique表格范围修复核验-v13"
+    - option "阶段4：compare表格范围修复核验-v12"
+    - option "阶段4：critique表格范围修复核验-v12"
+    - option "阶段4：compose修复核验-v9"
+    - option "阶段4：critique修复核验-v9"
+    - option "阶段6：有材料的对话起点验收"
+    - option "阶段4：简洁比较离线展示-v9"
+    - option "阶段4：部分结果离线展示-v8"
+    - option "阶段4：compose修复核验-v7"
+    - option "阶段4：critique修复核验-v7"
+    - option "阶段4：compose修复核验-v6"
+    - option "阶段4：critique修复核验-v6"
+    - option "阶段6：上传切任务归属-A"
+    - option "阶段6：上传切任务归属-B"
+    - option "阶段4：critique修复核验-v5"
+    - option "阶段4：compose修复核验-v5"
+    - option "阶段4：critique修复核验-v4"
+    - option "阶段4：compose修复核验-v4"
+    - option "阶段4：critique修复核验-v3"
+    - option "阶段4：compose修复核验-v3"
+    - option "阶段6：首次使用与任务输入验收"
+    - option "新任务"
+    - option "阶段6：真实论文阅读工具验收"
+    - option "阶段4：3DGS验证材料"
+    - option "阶段6：阅读与编辑体验验收"
+    - option "阶段5：版本与草稿恢复验收"
+    - option "阶段5：缺文件提示验收"
+    - option "新任务"
+    - option "阶段4：critique真实验收-v2"
+    - option "演示：LightGaussian 压缩方法"
+    - option "阶段5：旧文档标识补全验收"
+    - option "阶段5：移动目标任务"
+    - option "阶段5：移动原任务"
+    - option "阶段4：compose真实验收-v2"
+    - option "阶段4：research真实验收"
+    - option "阶段4：compose真实验收"
+    - option "阶段4：critique真实验收"
+    - option "阶段4：compare真实验收"
+    - option "阶段4：研究回答显示验收"
+    - option "阶段3：新手主动RIS学习闭环"
+    - option "阶段3：主动RIS自测闭环"
+    - option "阶段2：新版补课协议验收"
+    - option "阶段2：多论文范围与比较验收"
+    - option "阶段2：研究终稿发布验收"
+    - option "阶段2：精读入口验收"
+    - option "阶段2：自测入口验收"
+    - option "阶段2：批判成果恢复验收"
+    - option "阶段2：执行前停止验收"
+    - option "阶段2：失败与重试验收"
+    - option "阶段2：先阅读再解析验收"
+    - option "阶段2统一对话验收"
+    - option "阶段1文件恢复验收"
+    - option "任务标识编码验收"
+    - option "并发隔离验收"
+    - option "新任务"
+    - generic "材料来源（9）"
+    - article "成果正文":
+      - paragraph: 作者表1列出真实世界大规模场景（Mip-NeRF 360和Tank and Temple）的结果，其中3D-GS基线在同一平台用原代码配置重训并以*标记；所有性能评估在A6000 GPU上完成，合成物体级数据集指标另列于补充材料。 [1] [2] [3]
+      - paragraph: 推断：Mip-NeRF 360（Ours）：在Mip-NeRF 360上以重训3D-GS*为基线，模型大小压缩倍数为存储压缩17.38倍，Ours的FPS为FPS 237；PSNR差值为PSNR下降0.270 dB，SSIM差值为SSIM下降0.007，LPIPS差值为LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS * [16]） [1] [2] [3]
+      - paragraph: 作者用于剪枝的全局显著性先统计各高斯在所有训练视图像素射线中的相交命中数，再乘以调整体积与不透明度；体积项按所有高斯的排序参考进行归一化并裁剪到单位区间，随后按全局显著性排序剪除较低排名高斯，剩余高斯在不额外增加稠密化的情况下微调。 [4] [5] [6]
+      - generic "补充结论"
+      - generic "待核查问题"
+      - generic "原文依据"
+  - separator "调整阅读与对话宽度"
+  - region "任务对话":
+    - strong: 对话
+    - generic: 1 篇材料
+    - button "收起对话区":
+    - generic: ▣ 任务材料 1 篇
+    - paragraph: 重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？
+    - button "删除此消息":
+    - button "收藏到学术笔记":
+    - article:
+      - generic: 阅读助手
+      - button "删除此消息":
+      - button "收藏到学术笔记":
+      - button "打开完整成果" [active]:
+        - text: 打开成果
+      - paragraph: 作者表1列出真实世界大规模场景（Mip-NeRF 360和Tank and Temple）的结果，其中3D-GS基线在同一平台用原代码配置重训并以*标记；所有性能评估在A6000 GPU上完成，合成物体级数据集指标另列于补充材料。 [1] [2] [3]
+      - paragraph: 推断：Mip-NeRF 360（NVIDIA A6000 GPU，Ours相对基线3D-GS * [16]）：存储压缩17.38倍、PSNR下降0.270 dB、SSIM下降0.007、LPIPS上升0.020；Mip-NeRF 360（NVIDIA A6000 GPU，模型Ours）：FPS 237。 [1] [2] [3]
+      - paragraph: 作者用于剪枝的全局显著性先统计各高斯在所有训练视图像素射线中的相交命中数，再乘以调整体积与不透明度；体积项按所有高斯的排序参考进行归一化并裁剪到单位区间，随后按全局显著性排序剪除较低排名高斯，剩余高斯在不额外增加稠密化的情况下微调。 [4] [5] [6]
+      - button "来源 2":
+        - text: 来源 2
+    - textbox "输入问题":
+      - /placeholder: 输入问题，/ 选功能，@ 选材料
+    - button "发送消息" [disabled]:
+- generic "通知"

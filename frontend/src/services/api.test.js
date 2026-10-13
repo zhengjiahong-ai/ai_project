@@ -93,6 +93,12 @@ const run = async () => {
   assert.ok(uploadCall.body instanceof FormData);
   assert.equal(uploadCall.config.headers['Content-Type'], 'multipart/form-data');
 
+  await uploadService.uploadTaskMaterial(new Blob(['pdf'], { type: 'application/pdf' }));
+  assert.equal(uploadCall.url, '/materials/upload');
+  assert.ok(uploadCall.body instanceof FormData);
+  assert.equal(uploadCall.config.timeout, 60000);
+  assert.equal(uploadCall.config.headers['Content-Type'], 'multipart/form-data');
+
   await uploadService.uploadCodeExecutionArtifact(new Blob(['a,b\n1,2\n'], { type: 'text/csv' }));
   assert.equal(uploadCall.url, '/code-execution-artifacts');
   assert.ok(uploadCall.body instanceof FormData);

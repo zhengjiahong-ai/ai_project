@@ -1,0 +1,11 @@
+INFO:sentence_transformers.base.model:No device provided, using cpu
+INFO:sentence_transformers.base.model:Loading SentenceTransformer model from intfloat/multilingual-e5-small.
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2474.00it/s]
+INFO:core.rag_vector_db:嵌入模型就绪: intfloat/multilingual-e5-small -> literature_collection_v4_e5_small
+Traceback (most recent call last):
+  File "/app/scripts/verify_cached_capability_v8.py", line 18, in <module>
+    assert rag.is_available
+           ^^^^^^^^^^^^^^^^
+AttributeError: 'LiteratureRAG' object has no attribute 'is_available'

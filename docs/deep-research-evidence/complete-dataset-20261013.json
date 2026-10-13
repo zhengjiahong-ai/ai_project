@@ -1,0 +1,37 @@
+{
+  "promptVersion": "dr-v2.20261013.29",
+  "change": "Support scenes mode all with explicitly grounded positive count. Require exact equality with own-fulltext audited count; reject extra ordering/name rules. Selection uses entire exact dataset/subset, not the parent corpus. Semantic subset identity review remains mandatory.",
+  "tests": {
+    "targetedPassed": 136,
+    "fullPassed": 838,
+    "warnings": 2,
+    "seconds": 80.93
+  },
+  "limits": [
+    "New all-selection mode has offline coverage; live case did not choose it",
+    "Runtime .29 loaded; overall experiment quality remains failed"
+  ],
+  "runtime": {
+    "commit": "531665f",
+    "promptVersion": "dr-v2.20261013.29",
+    "health": "api/rag/grobid ok",
+    "D3attempt9": {
+      "runId": "dr_run_91106915bc9f56f4b33a530f482a8fb1",
+      "status": "completed",
+      "outcome": "partial",
+      "manual": "failed",
+      "modelCalls": 12,
+      "tokens": 71682,
+      "elapsedSeconds": 216,
+      "repairCall": "succeeded transport, finishReason=length, empty content, output_tokens=8192",
+      "repairDraft": [],
+      "independentRepairVerification": "not run because truncated draft rejected",
+      "allSelectionLiveValidated": false,
+      "remainingProblems": [
+        "data chose first two under unavailable ordering",
+        "analysis exact audit binding failed",
+        "two claims had invalid role-kind pairing"
+      ]
+    }
+  }
+}

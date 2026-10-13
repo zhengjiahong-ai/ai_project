@@ -1,0 +1,1944 @@
+{
+  "revision": "de478d563cd561913b8bfac6949aec17badbab2f",
+  "checkedAt": "2026-10-11T22:38:43.9789918+08:00",
+  "frontend": {
+    "command": "npm test -- --maxWorkers=4 --reporter=json --outputFile=../tmp/frontend-polish-release-results.json",
+    "passed": 387,
+    "failed": 0,
+    "total": 387,
+    "fileCount": 59,
+    "files": [
+      {
+        "file": "frontend/src/UnifiedTaskApp.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "unified task conversation wiring asks once for an ambiguous critique object and retains the question until selection",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring uses the currently open paper as critique target while permitting all task materials",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring resizes with keyboard boundaries and restores hidden desktop panes",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring waits for a slow translation cache read before persisting any replacement",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring keeps invalid learning input and shows its actionable error above service query errors",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring keeps the task unchanged after an upload fails and shows a plain recovery message",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring rejects unsupported files before creating or uploading anything",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring cancels a pending upload and ignores late completion without attaching the material",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring opens a new blank note directly in edit mode and creates it once",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring rejects insufficient comparison materials without adding a fake answer to the conversation",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring keeps desktop preferences and note drafts while compact panes and navigation change",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring adapts a medium window temporarily and restores saved widths on widening",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring stops polling missing legacy material records without starting any generation",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring routes a natural comparison over the task without overwriting a paused lesson",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring opens a moved artifact in the new task and keeps its unsaved local draft without generating again",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring opens a conflicted full result in the middle pane and saves it without rerunning or replacing a lesson",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring routes explicit combined actions through the bounded adapter with the full task scope",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring carries a selected critique issue and saved version into a scoped followup without generating on selection",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring prepares regeneration with the original question, target and saved version without calling the model",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring blocks a stale chat issue after regeneration without sending a model request",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring clarifies vague analysis without a model call and uses the selected capability",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring uses task material for an unspecified critique and reader focus only for an explicit single-paper reference",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring queries durable material state after opening a task and blocks unready evidence before model execution",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring uses named material instead of the active lesson and filters old history",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring lets an explicit different paper leave an active lesson without replacing it",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring rejects an unknown slash command before invoking or saving a model request",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring keeps chat citations when a background request cannot use the direct paper endpoint",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring recovers a usable pane when a stored layout hides both main panes",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring retains the request identity when adopting a confirmed result fails locally",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring opens results for reading and preserves edits when switching views without saving",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring keeps the loaded PDF mounted and preserves its page while reading a saved result",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring isolates source jumps from other papers and expires them on manual navigation",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring keeps completed learning in the task navigation and restores the last opened record after refresh",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring restores a document draft and scroll position across evidence navigation and refresh",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring saves the same answer once and opens its existing result on repeated capture",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring keeps ordinary chat distinct from answering an active learning question",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring binds a saved answer to its identity when an earlier message was removed before persistence",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring keeps ten completed activities available in navigation without occupying the current activity bar",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring reuses the same page translation and preserves revisions only when its content changes",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring keeps keyboard focus in processing history and returns it to its opener",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring stops the running research from the current activity bar without starting a new model request",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring restores unsaved note edits after leaving the editor, including an intentionally empty draft",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring restores a historical note through persistence and shows the restored text in the editor",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring preserves evidence when capturing a conversation as a note",
+            "status": "passed"
+          },
+          {
+            "name": "unified task conversation wiring blocks an old editor draft even after background refresh adopts the newer task revision",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/a11y.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "a11y audit Skeleton has no critical a11y violations",
+            "status": "passed"
+          },
+          {
+            "name": "a11y audit SkeletonLine has no critical a11y violations",
+            "status": "passed"
+          },
+          {
+            "name": "a11y audit SkeletonCard has no critical a11y violations",
+            "status": "passed"
+          },
+          {
+            "name": "a11y audit EmptyState has no critical a11y violations",
+            "status": "passed"
+          },
+          {
+            "name": "a11y audit ErrorBoundary has no critical a11y violations",
+            "status": "passed"
+          },
+          {
+            "name": "a11y audit ErrorBoundary error state has no critical a11y violations",
+            "status": "passed"
+          },
+          {
+            "name": "a11y audit ToastProvider has no critical a11y violations",
+            "status": "passed"
+          },
+          {
+            "name": "a11y audit ChatPanel empty state has no critical a11y violations",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/ChatPanel.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "ChatPanel selects materials without sending and returns to the preserved question",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel marks a retained old answer and opens the current document explicitly",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel fills a suggested question without starting any generation",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel keeps drafts separate when tasks switch and restores them after remounting",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel keeps rejected or failed questions available for editing",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel does not let a late accepted submission clear a newer draft in the same task",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel opens the existing full artifact instead of saving a second copy of the summary",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel completes an @ material mention without losing the preceding question",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel renders input textarea",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel keeps the next draft editable while loading and prevents another send",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel calls onSendMessage when typing and clicking send",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel sends message on Enter key",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel does not send on Shift+Enter",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel renders user and AI messages",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel renders loading skeleton when isLoading",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel calls onAbortChat when stop button is clicked",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel disables send button when input is empty",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel renders the current reading context",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel calls onDeleteMessage on message delete",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel interaction continuity retains edits made during an accepted request and ignores IME confirmation",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel interaction continuity removes explicit material and function choices only from the draft",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel interaction continuity uses one save action, prevents concurrent and repeated saves, and exposes progress",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel interaction continuity searches original messages and supports anchored content and parent focus requests",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel interaction continuity preserves browsing position, announces new results and restores each task scroll",
+            "status": "passed"
+          },
+          {
+            "name": "ChatPanel interaction continuity allows the parent to replace loading presentation while preserving the stop action",
+            "status": "passed"
+          },
+          {
+            "name": "announces slot-only results while browsing and jumps to the newest result on demand",
+            "status": "passed"
+          },
+          {
+            "name": "retries failed saves and lets a user message use the same visible save entry",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/CollapsedSources.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "saved source provenance retains the selected text paper identity and deduplicates references",
+            "status": "passed"
+          },
+          {
+            "name": "saved source provenance keeps material details collapsed and jumps with the original paper identity",
+            "status": "passed"
+          },
+          {
+            "name": "saved source provenance restores expanded evidence for the same result without expanding other results",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/ConversationExecution.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "shows concise failure recovery with original question and folded details",
+            "status": "passed"
+          },
+          {
+            "name": "offers status checking and stopping instead of retry while the result is unconfirmed",
+            "status": "passed"
+          },
+          {
+            "name": "does not offer paid retry for a generated result that could not be applied",
+            "status": "passed"
+          },
+          {
+            "name": "keeps an unsubmitted intent behind an explicit continue action and cancels its own ID",
+            "status": "passed"
+          },
+          {
+            "name": "can render one completed request without repeating its question and locate the original message",
+            "status": "passed"
+          },
+          {
+            "name": "keeps asynchronous recovery errors local instead of creating another request",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/ConversationResearch.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "research review in conversation requires a user action before approving the research plan",
+            "status": "passed"
+          },
+          {
+            "name": "research review in conversation does not silently mark unresolved evidence risks as reviewed",
+            "status": "passed"
+          },
+          {
+            "name": "research review in conversation opens the full draft outside the conversation instead of expanding a long report inline",
+            "status": "passed"
+          },
+          {
+            "name": "renders a completed research as one saved report entry without full question or sources",
+            "status": "passed"
+          },
+          {
+            "name": "keeps an action failure local and permits an explicit retry",
+            "status": "passed"
+          },
+          {
+            "name": "restores an edited plan after leaving and reopening without starting research",
+            "status": "passed"
+          },
+          {
+            "name": "offers a status query at the affected research when its service cannot be read",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/CritiqueContent.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "grouped critique presentation opens only the cited point or lead evidence and keeps source identity without model execution",
+            "status": "passed"
+          },
+          {
+            "name": "grouped critique presentation shows paper identity and restores expanded evidence when returning to the same document",
+            "status": "passed"
+          },
+          {
+            "name": "grouped critique presentation preserves both complete chat points beyond the old preview budget and expands source locally",
+            "status": "passed"
+          },
+          {
+            "name": "grouped critique presentation keeps edited and legacy document text without inferring claim relationships",
+            "status": "passed"
+          },
+          {
+            "name": "grouped critique presentation preserves the full composed response instead of replacing it with critique-only blocks",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/DocumentOrganizer.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "document organization requires a saved document and explicitly carries material consent",
+            "status": "passed"
+          },
+          {
+            "name": "document organization keeps errors visible and offers querying the original request",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/DocumentOriginalPage.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "loads only after explicit expansion and downloads the current draft and saved original identity",
+            "status": "passed"
+          },
+          {
+            "name": "ignores a late original from another task and renders the new saved page",
+            "status": "passed"
+          },
+          {
+            "name": "shows source failure without enabling an incomplete export or altering the text",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/DocumentVersionHistory.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "version history controls allows preview but prevents restoration during another document write",
+            "status": "passed"
+          },
+          {
+            "name": "version history controls previews without changing the document and restores only on explicit click",
+            "status": "passed"
+          },
+          {
+            "name": "version history controls keeps the selected version available after failed persistence",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/EmptyState.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "EmptyState renders default title when no title provided",
+            "status": "passed"
+          },
+          {
+            "name": "EmptyState renders custom title",
+            "status": "passed"
+          },
+          {
+            "name": "EmptyState renders description when provided",
+            "status": "passed"
+          },
+          {
+            "name": "EmptyState does not render description when empty",
+            "status": "passed"
+          },
+          {
+            "name": "EmptyState renders with custom className",
+            "status": "passed"
+          },
+          {
+            "name": "EmptyState renders default Info icon",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/ErrorBoundary.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "ErrorBoundary renders children when no error",
+            "status": "passed"
+          },
+          {
+            "name": "ErrorBoundary renders default error UI on child render failure",
+            "status": "passed"
+          },
+          {
+            "name": "ErrorBoundary renders custom fallback when provided",
+            "status": "passed"
+          },
+          {
+            "name": "ErrorBoundary retry button clears error and shows children on rerender",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/ExplanationPopup.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "preserves a failed note and closes only after a confirmed save",
+            "status": "passed"
+          },
+          {
+            "name": "does not save the automatic side-note acknowledgement as academic content",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/LearningHistory.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "shows the retained answers and Markdown feedback without treating an ended activity as mastery",
+            "status": "passed"
+          },
+          {
+            "name": "keeps paused imported records distinct and reads legacy question/answer fields",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/PanoramicMathSource.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "opens exactly the mapped formula pixels from an inline marker and can open again after closing",
+            "status": "passed"
+          },
+          {
+            "name": "never attaches new coordinates to legacy marker numbering",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/PanoramicTranslation.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "keeps the PDF document while changing pages and cancels old page rendering",
+            "status": "passed"
+          },
+          {
+            "name": "does not draw a late result from another paper",
+            "status": "passed"
+          },
+          {
+            "name": "keeps the completed translation readable when source PDF rendering fails",
+            "status": "passed"
+          },
+          {
+            "name": "shows unpositioned cached prose before a folded original page without rewriting it",
+            "status": "passed"
+          },
+          {
+            "name": "keeps unmatched cached text readable but does not attach it to unrelated paragraph coordinates",
+            "status": "passed"
+          },
+          {
+            "name": "opens a local enlargement of the original image without loading another document",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/PaperPageNavigation.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "uses one-based user input and refuses out-of-range pages",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/PdfViewerLifecycle.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "accepts a cached document loading before the parent passive effects",
+            "status": "passed"
+          },
+          {
+            "name": "keeps a cached document ready through Strict Mode effect replay",
+            "status": "passed"
+          },
+          {
+            "name": "zooms a loaded paper and fits its width without remounting or changing page",
+            "status": "passed"
+          },
+          {
+            "name": "shows the load error instead of leaving it hidden behind the loading state",
+            "status": "passed"
+          },
+          {
+            "name": "keeps an image-only page readable and clears its text notice after changing to a text page",
+            "status": "passed"
+          },
+          {
+            "name": "jumps through the installed viewer without remounting the document",
+            "status": "passed"
+          },
+          {
+            "name": "publishes page controls when a PDF finished loading behind a restored artifact",
+            "status": "passed"
+          },
+          {
+            "name": "ignores text extraction from an old page and from an unmounted document",
+            "status": "passed"
+          },
+          {
+            "name": "keeps color controls beside selection actions and saves a reopenable highlight",
+            "status": "passed"
+          },
+          {
+            "name": "collapses long explanations and closes them on Escape, page changes and hidden readers without deleting highlights",
+            "status": "passed"
+          },
+          {
+            "name": "persists independent reading positions and ignores callbacks while hidden",
+            "status": "passed"
+          },
+          {
+            "name": "honors an explicit evidence jump on a newly opened paper over its old reading offset",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/ReadingNotesPanel.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "ReadingNotesPanel renders loading state when pdfId is null",
+            "status": "passed"
+          },
+          {
+            "name": "ReadingNotesPanel renders empty sections message when paperSkeleton has no sections",
+            "status": "passed"
+          },
+          {
+            "name": "ReadingNotesPanel renders section list from paperSkeleton",
+            "status": "passed"
+          },
+          {
+            "name": "ReadingNotesPanel expands and collapses a section on click",
+            "status": "passed"
+          },
+          {
+            "name": "ReadingNotesPanel shows note editor when clicking add note button",
+            "status": "passed"
+          },
+          {
+            "name": "ReadingNotesPanel renders Export and New Note buttons",
+            "status": "passed"
+          },
+          {
+            "name": "ReadingNotesPanel switches between Notes and Bookmarks subtabs",
+            "status": "passed"
+          },
+          {
+            "name": "ReadingNotesPanel has a working save button after editing a note",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/Skeleton.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "Skeleton renders with default classes and aria-hidden",
+            "status": "passed"
+          },
+          {
+            "name": "Skeleton merges custom className",
+            "status": "passed"
+          },
+          {
+            "name": "SkeletonLine renders a single line skeleton",
+            "status": "passed"
+          },
+          {
+            "name": "SkeletonLine merges custom className",
+            "status": "passed"
+          },
+          {
+            "name": "SkeletonCard renders a card with header and body lines",
+            "status": "passed"
+          },
+          {
+            "name": "SkeletonCard merges custom className",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/TaskDraftRecovery.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "draft recovery finds a failed new task draft after refresh even when there is no active task",
+            "status": "passed"
+          },
+          {
+            "name": "draft recovery copies material and dialogue provenance into a new task without overwriting the original",
+            "status": "passed"
+          },
+          {
+            "name": "draft recovery previews a retained answer and creates a copy only on request",
+            "status": "passed"
+          },
+          {
+            "name": "draft recovery preserves the draft and shows failure when the copy cannot reach the server",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/TaskNavigation.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "task navigation distinguishes opening a paper from adding a task material",
+            "status": "passed"
+          },
+          {
+            "name": "task navigation shows a persistence failure instead of hiding it",
+            "status": "passed"
+          },
+          {
+            "name": "task navigation keeps an accessible restore control when collapsed",
+            "status": "passed"
+          },
+          {
+            "name": "task navigation distinguishes duplicate saved results and opens the selected original document",
+            "status": "passed"
+          },
+          {
+            "name": "task navigation keeps undated notes distinguishable without inventing save times",
+            "status": "passed"
+          },
+          {
+            "name": "searches document bodies and opens the retained document with the current identity",
+            "status": "passed"
+          },
+          {
+            "name": "retains recent visits across reloads, excludes unavailable records and keeps tasks separate",
+            "status": "passed"
+          },
+          {
+            "name": "restores the list position when search closes without switching the reading object",
+            "status": "passed"
+          },
+          {
+            "name": "filters learning records and searches their questions, answers and feedback",
+            "status": "passed"
+          },
+          {
+            "name": "does not infer translation from a page anchor and shows a global empty search state",
+            "status": "passed"
+          },
+          {
+            "name": "keeps parsing and failed material state beside its paper without a persistent success badge",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/TaskProcessingHistory.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "searches and filters all task requests and research, including successful history",
+            "status": "passed"
+          },
+          {
+            "name": "locates original entries and reuses request recovery without automatic retries",
+            "status": "passed"
+          },
+          {
+            "name": "names learning actions for users and represents the research creation once",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/TaskRename.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "retains the attempted name on failure and closes only after a successful save",
+            "status": "passed"
+          },
+          {
+            "name": "does not save an empty name and supports keyboard cancellation",
+            "status": "passed"
+          },
+          {
+            "name": "keeps keyboard focus inside the name dialog",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/TaskSwitcher.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "closes after an actual parent task change while the selection promise completes",
+            "status": "passed"
+          },
+          {
+            "name": "finds archived tasks, restores explicitly and never deletes them",
+            "status": "passed"
+          },
+          {
+            "name": "searches tasks and switches by identity without creating a task",
+            "status": "passed"
+          },
+          {
+            "name": "retains a failed rename and its draft instead of presenting it as saved",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/Toast.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "Toast renders children normally",
+            "status": "passed"
+          },
+          {
+            "name": "Toast addToast shows a notification",
+            "status": "passed"
+          },
+          {
+            "name": "Toast renders correct icon for each toast type",
+            "status": "passed"
+          },
+          {
+            "name": "Toast removeToast removes the notification",
+            "status": "passed"
+          },
+          {
+            "name": "Toast toast auto-removes after 5 seconds",
+            "status": "passed"
+          },
+          {
+            "name": "Toast renders multiple toasts simultaneously",
+            "status": "passed"
+          },
+          {
+            "name": "Toast has aria-live polite region",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/TranslationPanelInteraction.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "awaits saving, prevents duplicate clicks and opens the saved artifact",
+            "status": "passed"
+          },
+          {
+            "name": "isolates late saves and shows local errors without losing the translation",
+            "status": "passed"
+          },
+          {
+            "name": "uses the parent saved identity and places successful retries under more actions",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/WorkbenchPopover.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "keeps secondary actions closed, supports keyboard escape and restores the trigger",
+            "status": "passed"
+          },
+          {
+            "name": "allows forms inside the popover and closes on an outside pointer",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/hooks/usePageTranslation.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "page translation request lifecycle keeps the reader page when an older translation finishes and retries the visible page",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle retains both cached pages after out-of-order completion without changing the selected page",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle keeps cached translations paired with their original layout after parser changes",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle deduplicates concurrent text callbacks and reuses completed pages",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle does not fall back or retry failures until an explicit retry",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle uses persisted successful pages and marks interrupted work for explicit recovery",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle aborts on paper changes and ignores late responses",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle does not send image-only or blank pages",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle preserves partial output and its warning across reload without generating again",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle does not use a plain-text fallback for pages containing only preserved formulas",
+            "status": "passed"
+          },
+          {
+            "name": "page translation request lifecycle excludes standalone formulas from the model request while keeping original layout for viewing",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/hooks/useTaskLearning.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "durable task learning offers follow-up after all concepts are demonstrated and answering after explicit review",
+            "status": "passed"
+          },
+          {
+            "name": "durable task learning keeps detour input mode within its task and activity",
+            "status": "passed"
+          },
+          {
+            "name": "durable task learning returns to answering only after the detour succeeds, without replaying a model call",
+            "status": "passed"
+          },
+          {
+            "name": "durable task learning persists request identity before calling the service and uses the saved activity paper",
+            "status": "passed"
+          },
+          {
+            "name": "durable task learning restores ordinary-chat mode without replaying an already handled detour receipt",
+            "status": "passed"
+          },
+          {
+            "name": "durable task learning waits for explicit continuation after a dropped response and submits the original identity only after a missing receipt",
+            "status": "passed"
+          },
+          {
+            "name": "durable task learning adopts an already completed learning response on refresh without another submission",
+            "status": "passed"
+          },
+          {
+            "name": "durable task learning recovers server operations after remount even without a local request journal",
+            "status": "passed"
+          },
+          {
+            "name": "durable task learning does not repeat an interrupted provider request and preserves task identity after switching",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/hooks/useTaskOperations.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "clears a temporary query error once authoritative status can be read again",
+            "status": "passed"
+          },
+          {
+            "name": "preserves a missing intent and only submits it after explicit continuation with the same ID",
+            "status": "passed"
+          },
+          {
+            "name": "adopts an existing receipt instead of submitting again after an explicit continuation",
+            "status": "passed"
+          },
+          {
+            "name": "blocks duplicate saved submissions and keeps the original payload",
+            "status": "passed"
+          },
+          {
+            "name": "keeps delayed failure messages with their original task",
+            "status": "passed"
+          },
+          {
+            "name": "does not poll idle historical tasks even with a large task inventory",
+            "status": "passed"
+          },
+          {
+            "name": "queries a newly selected task immediately and continues recovering background requests",
+            "status": "passed"
+          },
+          {
+            "name": "ignores a late poll from a removed task after task inventory changes",
+            "status": "passed"
+          },
+          {
+            "name": "preserves the pending journal when an unmounted poll eventually succeeds",
+            "status": "passed"
+          },
+          {
+            "name": "retries a confirmed failure through the server identity and preserves its original scope",
+            "status": "passed"
+          },
+          {
+            "name": "does not retry an unconfirmed request or retarget a saved answer to a new learning question",
+            "status": "passed"
+          },
+          {
+            "name": "keeps the failure intent across refresh even after removing the pending journal",
+            "status": "passed"
+          },
+          {
+            "name": "restores a pending stop by cancelling the same identity instead of submitting it",
+            "status": "passed"
+          },
+          {
+            "name": "persists a stop even if its response is lost and prevents a late queued response from reviving it",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/hooks/useTaskResearch.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "task research integration keeps the newest confirmed action when two explicit action replies arrive out of order",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration does not expose a response with the wrong workspace identity",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration ignores an obsolete poll failure after a confirmed cancellation",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration suspends GET for an action in flight while other research continues polling",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration does not let a GET started before cancellation overwrite the confirmed cancellation",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration stops GET polling after confirmed cancelled even when another run is added",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration stops GET polling after confirmed failed even when another run is added",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration stops GET polling after confirmed succeeded even when another run is added",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration resumes GET recovery after an explicit action with an uncertain response without repeating the action",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration clears a recovered poll error and keeps other task failures out of the current task",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration does not hide an unconfirmed action error merely because polling recovers",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration creates research with a material snapshot and external retrieval disabled",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration restores a completed run into its original task without duplicating saved results",
+            "status": "passed"
+          },
+          {
+            "name": "task research integration does not fabricate locally saved results when server publication is unconfirmed",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/hooks/useTaskWorkspace.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "task workspace updates restores the selected task on remount and ignores a removed task preference",
+            "status": "passed"
+          },
+          {
+            "name": "task workspace updates keeps late responses in their originating task after switching",
+            "status": "passed"
+          },
+          {
+            "name": "task workspace updates serializes concurrent changes and persists an empty conversation",
+            "status": "passed"
+          },
+          {
+            "name": "task workspace updates does not present failed persistence as saved and allows a later retry",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/appHelpers.outline.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "places an appended abstract before the introduction when page positions prove their order",
+            "status": "passed"
+          },
+          {
+            "name": "preserves order when abstract positions are unavailable or on a different page",
+            "status": "passed"
+          },
+          {
+            "name": "does not sort body headings by vertical position across columns",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/artifactChatPreview.test.tsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "stored artifact chat preview keeps prose conclusions and leaves comparison tables in the artifact",
+            "status": "passed"
+          },
+          {
+            "name": "stored artifact chat preview does not cut a long formula or a table row to create a preview",
+            "status": "passed"
+          },
+          {
+            "name": "stored artifact chat preview preserves a short ordinary result",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/conversationSkills.test.tsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "conversation skill commands preserves instructions and only parses a leading complete command",
+            "status": "passed"
+          },
+          {
+            "name": "conversation skill commands offers discovery without treating ordinary text as commands",
+            "status": "passed"
+          },
+          {
+            "name": "conversation skill commands routes explicit natural-language actions to the same capability as commands",
+            "status": "passed"
+          },
+          {
+            "name": "conversation skill commands does not turn terminology questions or negated actions into workflows",
+            "status": "passed"
+          },
+          {
+            "name": "conversation skill commands keeps background detours scoped to a lesson while new comparisons leave it",
+            "status": "passed"
+          },
+          {
+            "name": "conversation skill commands composes explicit action clauses in order without starting a research job",
+            "status": "passed"
+          },
+          {
+            "name": "conversation skill commands asks briefly for ambiguous or mixed interactive workflows before executing",
+            "status": "passed"
+          },
+          {
+            "name": "conversation skill commands recognizes concise explanation before another requested capability",
+            "status": "passed"
+          },
+          {
+            "name": "conversation skill commands keeps explicit slash commands authoritative and ignores mentions and negated actions",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/conversationTimeline.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "keeps late answers at their submission position without mutating stored messages",
+            "status": "passed"
+          },
+          {
+            "name": "anchors unfinished research and failed requests once, keeping unrelated tasks out",
+            "status": "passed"
+          },
+          {
+            "name": "preserves the original question anchor and submission order through retry and completion",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/critiqueFollowup.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "critique followup identity binds an ordinal to the displayed stable issue and latest saved artifact version",
+            "status": "passed"
+          },
+          {
+            "name": "critique followup identity does not infer a legacy critique or reuse another task selection",
+            "status": "passed"
+          },
+          {
+            "name": "critique followup identity does not silently rebind an old chat answer after artifact regeneration",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/documentExport.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "exports the live draft while retaining original paper identities",
+            "status": "passed"
+          },
+          {
+            "name": "does not infer sources when no saved material association exists",
+            "status": "passed"
+          },
+          {
+            "name": "exports saved page artifact associations without inventing an excerpt",
+            "status": "passed"
+          },
+          {
+            "name": "does not attribute a multi-paper artifact page to every material",
+            "status": "passed"
+          },
+          {
+            "name": "keeps detailed saved references when a material association also exists",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/documentHtmlExport.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "embeds original pixels and formatted current text without external runtime assets",
+            "status": "passed"
+          },
+          {
+            "name": "escapes titles and treats paper text as markdown rather than executable HTML",
+            "status": "passed"
+          },
+          {
+            "name": "rejects non-embedded or non-PNG images rather than silently exporting a remote dependency",
+            "status": "passed"
+          },
+          {
+            "name": "uses standalone MathML and retains folded text without remote fonts or image requests",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/documentOriginalPage.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "uses saved page associations rather than the current reader",
+            "status": "passed"
+          },
+          {
+            "name": "rejects ambiguous, missing and negative saved page identities",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/documentPresentation.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "document names and identities derives different generic result names from their retained original questions without changing records",
+            "status": "passed"
+          },
+          {
+            "name": "document names and identities preserves user names even when they look generic and falls back honestly when no question was retained",
+            "status": "passed"
+          },
+          {
+            "name": "document names and identities uses the original question of the saved message instead of a later unrelated question",
+            "status": "passed"
+          },
+          {
+            "name": "document names and identities removes command and material syntax but preserves the question rather than inventing a conclusion",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/documentVersions.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "document version preservation marks edited critique text without changing the original claim structure",
+            "status": "passed"
+          },
+          {
+            "name": "document version preservation restores old text while retaining both saved text and unsaved edits",
+            "status": "passed"
+          },
+          {
+            "name": "document version preservation preserves intentional empty text and avoids redundant history on unchanged saves",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/inlineMathSources.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "keeps an entire damaged expression out of translatable prose without guessing its operator",
+            "status": "passed"
+          },
+          {
+            "name": "does not consume normal definitions or ordinary prose",
+            "status": "passed"
+          },
+          {
+            "name": "uses public font metrics to keep raised operators out of preceding prose",
+            "status": "passed"
+          },
+          {
+            "name": "preserves literal Q in ordinary fonts and gives different paragraphs unique markers",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/learningActivityHistory.test.tsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "saved learning activity navigation does not present revisions of the current lesson as separate lessons",
+            "status": "passed"
+          },
+          {
+            "name": "saved learning activity navigation shows the final authoritative record and one latest snapshot of older activities",
+            "status": "passed"
+          },
+          {
+            "name": "saved learning activity navigation keeps unrelated legacy records without identifiers",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/namedTaskPapers.test.tsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "named task materials resolves one or multiple names independently of the reading focus",
+            "status": "passed"
+          },
+          {
+            "name": "named task materials rejects unknown explicit names, ambiguous names, and outside-task papers",
+            "status": "passed"
+          },
+          {
+            "name": "named task materials leaves ordinary deictic questions to task context resolution",
+            "status": "passed"
+          },
+          {
+            "name": "named task materials resolves bare @ names and keeps IDs unambiguous when another title matches the ID",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/paperOutline.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "paper navigation outline excludes table rows, formula fragments and fake numeric sections while preserving genuine sections",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/pdfMathGlyphs.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "original-font operator recovery reads explicit names without consulting the font name or extracted Q",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery matches the real drawing code and preserves source objects and ordinary prose",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery does not infer a product from a familiar font name or ambiguous drawing codes",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery retains raw text for name_collision",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery retains raw text for mixed_name_collision",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery retains raw text for encoding_override",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery retains raw text for unsupported_font",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery retains raw text for missing_source",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery does not recover a glyph missing from the drawing font",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery waits for actual font resolution instead of treating an asynchronous font as unsupported",
+            "status": "passed"
+          },
+          {
+            "name": "original-font operator recovery protects the decoded operator in a complete inline source region",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/pdfPageExport.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "renders the saved page number and releases the PDF after obtaining its pixels",
+            "status": "passed"
+          },
+          {
+            "name": "rejects an out-of-range source page and destroys the document without rendering",
+            "status": "passed"
+          },
+          {
+            "name": "does not produce an export image after the source operation is cancelled",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/pdfQuoteLocator.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "literal PDF quote location uses the actual unique PDF page even when the index points elsewhere",
+            "status": "passed"
+          },
+          {
+            "name": "literal PDF quote location does not guess from partial keywords, short text or duplicate matches",
+            "status": "passed"
+          },
+          {
+            "name": "literal PDF quote location normalizes PDF ligatures and line hyphenation without changing the words",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/taskChatHistory.test.tsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "taskChatHistory excludes earlier mixed-paper answers and their questions after scope narrows",
+            "status": "passed"
+          },
+          {
+            "name": "taskChatHistory excludes unknown provenance, other tasks, and system failures",
+            "status": "passed"
+          },
+          {
+            "name": "taskChatHistory retains a prior single-paper discussion when broadening to the task",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/taskWorkspaceModel.test.tsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "resolveTaskContext uses explicit papers first and rejects a paper outside the task",
+            "status": "passed"
+          },
+          {
+            "name": "resolveTaskContext keeps an activity snapshot even when reading focus changes",
+            "status": "passed"
+          },
+          {
+            "name": "resolveTaskContext uses focus as primary for a single-paper reference while retaining task materials",
+            "status": "passed"
+          },
+          {
+            "name": "resolveTaskContext limits only-this-paper requests to the focused paper",
+            "status": "passed"
+          },
+          {
+            "name": "resolveTaskContext asks for clarification on a single-paper reference without a focus",
+            "status": "passed"
+          },
+          {
+            "name": "resolveTaskContext never expands an empty task into the global library",
+            "status": "passed"
+          },
+          {
+            "name": "resolveTaskContext lets explicit all-task material override an ongoing single-paper lesson",
+            "status": "passed"
+          },
+          {
+            "name": "resolveTaskContext uses all task materials when explicitly restricting to the task",
+            "status": "passed"
+          },
+          {
+            "name": "resolveTaskContext lets a new capability use task materials without discarding the lesson",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/utils/workbenchLayout.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "temporary workbench adaptation preserves preferences while closing navigation and clamping both pane widths",
+            "status": "passed"
+          },
+          {
+            "name": "temporary workbench adaptation allows pinned navigation only when the panes can still fit",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/services/highlightStore.test.js",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "highlightStore loadHighlights returns empty array when no data stored",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore loadHighlights returns saved highlights array",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore addHighlight appends new highlight to existing ones",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore deleteHighlight removes highlight by id",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore getHighlights is an alias for loadHighlights",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore getBookmarks returns empty array when no bookmarks stored",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore toggleBookmark adds bookmark when it does not already exist",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore toggleBookmark removes bookmark when it already exists",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore saveProgress stores reading progress for a pdf",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore getProgress returns null when no progress saved",
+            "status": "passed"
+          },
+          {
+            "name": "highlightStore addHighlight works when no existing highlights",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/services/taskMaterialCache.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "restores a file and its analysis to an empty independent client cache",
+            "status": "passed"
+          },
+          {
+            "name": "does not cache mismatched analysis or discard existing annotations",
+            "status": "passed"
+          },
+          {
+            "name": "keeps a usable local file when the missing remote analysis fails",
+            "status": "passed"
+          },
+          {
+            "name": "opens an uncached PDF before analysis exists, using authoritative processing status",
+            "status": "passed"
+          },
+          {
+            "name": "keeps a downloaded PDF readable when processing status is offline without caching fake analysis",
+            "status": "passed"
+          },
+          {
+            "name": "keeps a remote PDF readable when local cache persistence fails",
+            "status": "passed"
+          },
+          {
+            "name": "does not mask ownership refusal or missing server files as a successful recovery",
+            "status": "passed"
+          },
+          {
+            "name": "backs up a legacy named file once without invoking analysis",
+            "status": "passed"
+          },
+          {
+            "name": "keeps legacy reading available when backup fails and retries on the next open",
+            "status": "passed"
+          },
+          {
+            "name": "uses the authoritative filename when an old browser normalized the name",
+            "status": "passed"
+          },
+          {
+            "name": "adopts an existing server copy and preserves the prior legacy cache",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/services/taskWorkspaceRemoteStore.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "authoritative remote task storage sends archive state with revision and retains all content in the confirmed cache",
+            "status": "passed"
+          },
+          {
+            "name": "authoritative remote task storage repairs authoritative old document IDs before caching, without sending stale local content",
+            "status": "passed"
+          },
+          {
+            "name": "authoritative remote task storage routes encoded task IDs through the shared Java client",
+            "status": "passed"
+          },
+          {
+            "name": "authoritative remote task storage imports local tasks once and retries safely after a partial network failure",
+            "status": "passed"
+          },
+          {
+            "name": "authoritative remote task storage keeps a conflicting imported draft while returning the authoritative server record",
+            "status": "passed"
+          },
+          {
+            "name": "authoritative remote task storage does not claim offline saves succeeded, and exposes the failed draft for recovery",
+            "status": "passed"
+          },
+          {
+            "name": "authoritative remote task storage does not retry conflicts with a newer revision or silently overwrite either version",
+            "status": "passed"
+          },
+          {
+            "name": "authoritative remote task storage preserves an earlier failed answer draft when a later rename succeeds",
+            "status": "passed"
+          },
+          {
+            "name": "authoritative remote task storage removes deleted server cache entries without reimporting them",
+            "status": "passed"
+          },
+          {
+            "name": "authoritative remote task storage keeps confirmed server success when the subsequent cache write fails",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/services/taskWorkspaceStore.test.jsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "taskWorkspaceStore adds stable separate document identities without losing duplicate text, versions or existing IDs",
+            "status": "passed"
+          },
+          {
+            "name": "taskWorkspaceStore migrates one task per legacy PDF, copies user data, and leaves old records intact",
+            "status": "passed"
+          },
+          {
+            "name": "taskWorkspaceStore does not create a duplicate legacy task for a paper already in a task",
+            "status": "passed"
+          },
+          {
+            "name": "taskWorkspaceStore repairs migrated records even when v1 markers already exist, without guessing multi-paper history",
+            "status": "passed"
+          },
+          {
+            "name": "taskWorkspaceStore does not recreate a migrated task after its paper is moved away",
+            "status": "passed"
+          },
+          {
+            "name": "taskWorkspaceStore saves empty messages and exposes the persisted version",
+            "status": "passed"
+          },
+          {
+            "name": "taskWorkspaceStore rejects storage failures and never returns a fabricated success",
+            "status": "passed"
+          },
+          {
+            "name": "taskWorkspaceStore can safely retry after migration fails mid-way",
+            "status": "passed"
+          },
+          {
+            "name": "taskWorkspaceStore retains distinct failed draft versions until explicitly discarded",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/agent/agentRunFallback.test.tsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "run polling fallback preserves all existing artifacts and event fields when supplemental requests fail",
+            "status": "passed"
+          },
+          {
+            "name": "run polling fallback updates supplied fields and retains fields omitted from partial artifacts",
+            "status": "passed"
+          },
+          {
+            "name": "run polling fallback honors explicitly empty artifacts, timeline and research timeline",
+            "status": "passed"
+          },
+          {
+            "name": "run polling fallback normalizes fresh timeline entries and does not borrow artifacts from another run",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "frontend/src/components/agent/AgentWorkspace.test.tsx",
+        "status": "passed",
+        "tests": [
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleCreateTask calls createAgentRun with current projectId when creating a task",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleCreateTask does NOT call runAgentGraph or createAgentTask when creating a task",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleCreateTask displays the returned run before workspace refresh completes",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleCreateTask keeps task and shows error when workspace refresh fails after creation",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleCreateTask shows contract error when createAgentRun returns empty runId",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleCreateTask shows contract error when createAgentRun returns empty projectId",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleCreateTask shows contract error when createAgentRun returns wrong projectId",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleCreateTask displays error message when createAgentRun fails",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry polling does NOT call getAgentGraphState during polling",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry polling uses getAgentWorkspace for polling after initialization",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry polling preserves evidenceItems and draftReport when workspace fails but getAgentRun succeeds",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleReviewPlan calls reviewAgentRunPlan when clicking confirm plan button",
+            "status": "passed"
+          },
+          {
+            "name": "AgentWorkspace - Batch 1: Unified Execution Entry handleReviewFinal calls reviewAgentRunFinal when task is awaiting final review",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "nodeChecks": {
+    "status": "passed",
+    "commands": [
+      "node src/utils/panoramicTranslation.test.js",
+      "node src/utils/selectionContext.test.js",
+      "node src/utils/pdfTranslationLayout.test.js",
+      "node scripts/layout-parser-benchmark.test.mjs",
+      "node src/utils/translationState.test.js",
+      "node src/utils/pageTranslationRequest.test.js",
+      "node src/utils/socraticSessionModel.test.js",
+      "node src/services/api.test.js",
+      "node src/components/translationPanelModel.test.js",
+      "node src/components/MarkdownContent.test.js",
+      "node src/components/criticalAnalysisData.test.js",
+      "node src/components/evidenceCitationModel.test.js",
+      "node src/components/parseStatusModel.test.js",
+      "node src/components/BackgroundKnowledgePanel.test.js",
+      "node src/components/deepResearchPanelModel.test.js",
+      "node src/components/insightCardModel.test.js",
+      "node src/components/artifactModel.test.js",
+      "node src/components/agent/agentWorkspaceModel.test.js",
+      "node src/components/agent/agentWorkspaceTheme.test.js"
+    ],
+    "source": "Same final npm test invocation: all 19 Node commands completed before Vitest, exit code 0"
+  },
+  "typecheck": "tsc --noEmit: passed",
+  "lint": "modified JavaScript: 0 errors, 3 existing Fast Refresh export warnings",
+  "build": "npm run build: passed; 26.24s; index chunk 573.33 kB warning retained",
+  "backend": "TaskWorkspaceControllerTest: 6 passed, 0 failures/errors/skips; archived persistence contract"
+}

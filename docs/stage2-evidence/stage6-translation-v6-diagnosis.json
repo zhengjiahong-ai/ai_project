@@ -1,0 +1,12 @@
+{
+  "scope": "Archived real PDF.js page input, no model request",
+  "providerCalls": 0,
+  "checks": [
+    {
+      "blockId": "block-5",
+      "attachedOperatorSurvives": true,
+      "source": "Global Significance Calculation. Inspired by Eq. 2, we go beyond using Gaussian opacity alone\nto assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the\ncamera viewpoint for rendering. The initial significance score of each Gaussian (denoted as G(Xj))\ncan then be quantified based on its contribution to each pixel (ray, ri) across all training views using\nthe criteria 1(G(Xj), ri) whether they intersect or not. Consequently, we iterate over all training\npixels to calculate the hit count of each Gaussian. The score is further refined by the adjusted 3D\nGaussian’s volume γ(Σj) and 3D Gaussian’s opacity σj, as they all contribute for the rendering\nformula. The volume calculation equation of the j-th 3D Guassian is V(Σj) = 43πabc, where abc are\nthe 3 dimensions of Scale (S). We also consider the transmittance T is calculated with one subtractQ\nall the 3D Gaussian’s opacity the ray hit before the j-th 3D Gaussian, T = j−1\nglobal significance score can be summarized as:",
+      "masked": "Global Significance Calculation. Inspired by Eq. 2, we go beyond using Gaussian opacity alone\nto assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the\ncamera viewpoint for rendering. The initial significance score of each Gaussian (denoted as G(Xj))\ncan then be quantified based on its contribution to each pixel (ray, ri) across all training views using\nthe criteria 1(G(Xj), ri) whether they intersect or not. Consequently, we iterate over all training\npixels to calculate the hit count of each Gaussian. The score is further refined by the adjusted 3D\nGaussian’s volume γ(Σj) and 3D Gaussian’s opacity σj, as they all contribute for the rendering\nformula. The volume calculation equation of the j-th 3D Guassian is ⟦原式1⟧, where abc are\nthe 3 dimensions of Scale (S). We also consider the transmittance T is calculated with one subtractQ\nall the 3D Gaussian’s opacity the ray hit before the j-th 3D Gaussian, ⟦原式2⟧\nglobal significance score can be summarized as:"
+    }
+  ]
+}

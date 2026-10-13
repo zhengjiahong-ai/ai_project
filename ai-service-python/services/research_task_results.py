@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import logging
 import re
 from typing import Any
@@ -471,7 +472,8 @@ def _ensure_stable_source_ids(items: list[dict[str, Any]], fallback_prefix: str)
                 base = f"{pdf_id}-chunk-{chunk_index}"
             else:
                 base = f"{pdf_id}-{index + 1}"
-        current["sourceId"] = base[:80]
+        current["sourceId"] = ('citation-' + hashlib.sha256(base.encode('utf-8')).hexdigest()
+                               if len(base) > 180 else base)
         stabilized.append(current)
     return stabilized
 

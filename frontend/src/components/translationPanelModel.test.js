@@ -56,6 +56,30 @@ const run = () => {
     pageLayout: singleColumnLayout,
   });
   assert.equal(structuredOverlay.canRenderFidelity, true);
+  assert.equal(structuredOverlay.panoramicText, '这是正文译文。');
+  const cachedFormula = createTranslationPanelViewModel({translatedBlocks:[
+    {id:'block-1',translatedText:'正文译文'}, {id:'formula',translatedText:'损坏的公式碎片'}],
+    pageLayout:{...singleColumnLayout,blocks:[...singleColumnLayout.blocks,{id:'formula',text:'C = x + y, (2)',
+      bbox:{left:0.3,top:0.5,width:0.3,height:0.03}}]}});
+  assert.equal(cachedFormula.panoramicText, '正文译文');
+  assert.equal(cachedFormula.panoramicArtifactText, '正文译文');
+  const unmatched = createTranslationPanelViewModel({translatedText:'已有全文译文',
+    translatedBlocks:[{id:'old-id',translatedText:'已有全文译文'}],pageLayout:singleColumnLayout});
+  assert.equal(unmatched.panoramicArtifactText,'已有全文译文');
+  const formulaOnly = createTranslationPanelViewModel({translatedText:'损坏公式',
+    translatedBlocks:[{id:'formula',translatedText:'损坏公式'}],pageLayout:{...singleColumnLayout,
+      blocks:[{id:'formula',text:'C = x + y, (2)',bbox:{left:0.3,top:0.5,width:0.3,height:0.03}}]}});
+  assert.equal(formulaOnly.panoramicArtifactText,'');
+  const mathLayout = {...singleColumnLayout,blocks:[{...singleColumnLayout.blocks[0],text:'The volume is V(Σj) = 43πabc.'}]};
+  const legacyMath = createTranslationPanelViewModel({translatedText:'体积是43πabc。',
+    translatedBlocks:[{id:'block-1',translatedText:'体积是43πabc。'}],pageLayout:mathLayout});
+  assert.equal(legacyMath.mathNotice,'旧译文未保护行内公式，请以原图为准。');
+  assert.ok(legacyMath.panoramicArtifactText.startsWith('> 旧译文未保护行内公式'));
+  assert.ok(legacyMath.panoramicArtifactText.includes('体积是43πabc。'));
+  const protectedMath = createTranslationPanelViewModel({translatedText:'体积为⟦原式1⟧。',mathProtectionVersion:1,
+    translatedBlocks:[{id:'block-1',translatedText:'体积为⟦原式1⟧。'}],pageLayout:mathLayout});
+  assert.ok(protectedMath.mathNotice.includes('原式标记'));
+  assert.ok(protectedMath.panoramicArtifactText.includes('⟦原式1⟧'));
 
   const plainWithExcludedZones = createTranslationPanelViewModel({
     status: 'success',

@@ -1,0 +1,44 @@
+{
+  "promptVersion": "dr-v2.20261013.38",
+  "sourceRunId": "dr_run_8f5f2e8e9b6d507cbcd2555ec2e1426d",
+  "diagnosis": {
+    "limitingDimension": "repairPromptBytes",
+    "limit": 23049,
+    "originalFixedBytesWithoutEvidence": 24045,
+    "notTotalTokenExhaustion": true
+  },
+  "changes": [
+    "Prefer originally failed statements for a shared obligation before reopening all accepted statements; preserve audit gaps and rerun independent coverage after accepted revisions",
+    "No target also appears as frozen accepted context",
+    "Remove only exact generated configuration suffix, retain original prose and complete typed settings",
+    "Map hint references to request-local evidence aliases and compact JSON",
+    "Persist repairLimit dimension, limit and used values on budget skips"
+  ],
+  "offlineReplay": {
+    "beforeTargets": 9,
+    "afterTargets": 5,
+    "targetIds": [
+      "c9",
+      "c2",
+      "c3",
+      "c4",
+      "c6"
+    ],
+    "requestBytes": 22806,
+    "limitBytes": 23049,
+    "visibleEvidenceCount": 4,
+    "targetsWithoutEvidence": [],
+    "modelCalls": 0
+  },
+  "limitations": [
+    "Not all candidate evidence fits; available references do not prove enough scientific support",
+    "No real repair request or independent semantic success tested",
+    "Existing run and its partial outcome are unchanged"
+  ],
+  "qualityAccepted": false,
+  "offlineTests": {
+    "fullPassed": 925,
+    "warnings": 2,
+    "seconds": 119.48
+  }
+}

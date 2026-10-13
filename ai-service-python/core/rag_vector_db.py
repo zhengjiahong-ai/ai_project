@@ -1,4 +1,6 @@
 import logging
+import json
+import hashlib
 import os
 import shutil
 import tempfile
@@ -144,7 +146,7 @@ class LiteratureRAG:
 
             tei_path = os.path.join(output_dir, xml_files[0])
 
-            sections = parse_tei_xml(tei_path)
+            sections = parse_tei_xml(tei_path, file_path)
 
             return sections
 
@@ -200,6 +202,10 @@ class LiteratureRAG:
         # 归一化元数据中的 ID
         if "id" in metadata:
             metadata["id"] = self.normalize_id(metadata["id"])
+        # Re-parsing a PDF must not give an old citation ID different content.
+        metadata['index_version'] = hashlib.sha256(json.dumps(
+            chunks, ensure_ascii=False, sort_keys=True, separators=(',', ':')
+        ).encode('utf-8')).hexdigest()[:16]
 
         # documents 存完整可读文本（论文标题 + 章节 + 正文），供前端引文与 LLM 证据使用；
         # 向量只用“章节标题 + 正文”编码：Paper: {title} 对同一篇论文的所有 chunk 都是常量，
@@ -228,6 +234,11 @@ class LiteratureRAG:
                 "section_title": chunk.get("sectionTitle") or chunk.get("section"),
                 "page_index": chunk.get("pageIndex") if chunk.get("pageIndex") is not None else chunk.get("page_index"),
                 "page": chunk.get("page"),
+                "evidence_kind": chunk.get("evidenceKind"),
+                "table_id": chunk.get("tableId"),
+                "table_column_mapping_unverified": chunk.get("tableColumnMappingUnverified"),
+                "table_verified_data": json.dumps(chunk['tableVerifiedData'], ensure_ascii=False, separators=(',', ':'))
+                    if chunk.get('tableVerifiedData') else None,
             }
             for key, value in optional_metadata.items():
                 if value is not None and value != "":

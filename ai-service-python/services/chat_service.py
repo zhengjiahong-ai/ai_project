@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from rag.store import get_rag, retrieve_fused_evidence, retrieve_hybrid_results
+from rag.store import get_rag, normalize_id, retrieve_fused_evidence, retrieve_hybrid_results
 from schemas.requests import (
     ChatRequest,
     PageTranslationRequest,
@@ -12,6 +12,7 @@ from services.evidence_service import (
     format_evidence_context,
     normalize_evidence_items,
 )
+from services.chat_scope import ChatMaterialScope, resolve_chat_material_scope
 from services.math_markdown import (
     MATH_MARKDOWN_GUIDELINE as SHARED_MATH_MARKDOWN_GUIDELINE,
 )
@@ -174,6 +175,12 @@ def _normalize_hybrid_evidence(raw_results, limit=None, max_text_chars: int = CH
     )
 
 
+def _matches_paper_identity(item: dict[str, Any], paper_id: str) -> bool:
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    claimed_id = metadata.get("id") or metadata.get("pdfId") or metadata.get("pdf_id") or item.get("pdfId")
+    return not claimed_id or normalize_id(claimed_id) == paper_id
+
+
 def _retrieve_current_paper_evidence(
     retrieval_query: str,
     pdf_id: str | None = None,
@@ -199,6 +206,7 @@ def _retrieve_current_paper_evidence(
                 top_k=current_top_k,
                 filter_metadata={"id": clean_pdf_id},
             )
+            raw_results = [item for item in raw_results if isinstance(item, dict) and _matches_paper_identity(item, clean_pdf_id)]
             normalized = normalize_evidence_items(
                 raw_results,
                 source_type="current_paper",
@@ -280,7 +288,10 @@ def _retrieve_current_paper_lexical_evidence(
             record_counter("retrievalCalls")
             rag = get_rag()
             clean_pdf_id = rag.normalize_id(pdf_id)
-            documents = rag.get_documents_by_metadata({"id": clean_pdf_id}, limit=240)
+            documents = [
+                item for item in rag.get_documents_by_metadata({"id": clean_pdf_id}, limit=240)
+                if isinstance(item, dict) and _matches_paper_identity(item, clean_pdf_id)
+            ]
             ranked: list[tuple[float, int, dict[str, Any]]] = []
             for position, document in enumerate(documents):
                 score = _score_profile_document(document.get("text") or "", profile)
@@ -373,11 +384,46 @@ def _retrieve_library_evidence(
     retrieval_query: str,
     library_top_k: int = 3,
     library_limit: int = 3,
+    material_scope: ChatMaterialScope | None = None,
 ) -> list[dict[str, Any]]:
     with trace_step("retrieve_library", input_size=len(str(retrieval_query or ""))) as step:
-        record_counter("retrievalCalls")
-        raw_results = retrieve_hybrid_results(retrieval_query, top_k=library_top_k)
-        normalized = _normalize_hybrid_evidence(raw_results, limit=library_limit)
+        if material_scope is not None and material_scope.constrained:
+            # The retriever only supports one metadata id at a time. Never issue
+            # an unfiltered library query for a task, including an empty scope.
+            paper_results = []
+            for paper_id in material_scope.allowed_ids:
+                record_counter("retrievalCalls")
+                raw_results = retrieve_fused_evidence(
+                    retrieval_query,
+                    top_k=library_top_k,
+                    filter_metadata={"id": paper_id},
+                )
+                safe_results = []
+                for item in raw_results:
+                    if not isinstance(item, dict):
+                        continue
+                    if not _matches_paper_identity(item, paper_id):
+                        continue
+                    safe_results.append(item)
+                paper_results.append(normalize_evidence_items(
+                    safe_results,
+                    source_type="library",
+                    pdf_id=paper_id,
+                    limit=library_top_k,
+                    max_text_chars=CHAT_EVIDENCE_MAX_TEXT_CHARS,
+                ))
+            # Give each material a chance before filling the remaining evidence
+            # budget. Concatenation silently dropped later papers in comparisons.
+            interleaved = [
+                results[index]
+                for index in range(max((len(items) for items in paper_results), default=0))
+                for results in paper_results if index < len(results)
+            ]
+            normalized = _deduplicate_evidence(interleaved, limit=library_limit)
+        else:
+            record_counter("retrievalCalls")
+            raw_results = retrieve_hybrid_results(retrieval_query, top_k=library_top_k)
+            normalized = _normalize_hybrid_evidence(raw_results, limit=library_limit)
         step["outputSize"] = len(normalized)
         return normalized
 
@@ -389,6 +435,7 @@ def _retrieve_evidence_for_query(
     library_top_k: int = 3,
     current_limit: int = 5,
     library_limit: int = 3,
+    material_scope: ChatMaterialScope | None = None,
 ) -> tuple[list[dict[str, Any]], str]:
     evidence = _retrieve_current_paper_evidence(
         retrieval_query,
@@ -403,6 +450,7 @@ def _retrieve_evidence_for_query(
         retrieval_query,
         library_top_k=library_top_k,
         library_limit=library_limit,
+        material_scope=material_scope,
     )
     return evidence, "library" if evidence else ""
 
@@ -445,6 +493,7 @@ def _judge_and_retry_evidence(
     library_top_k: int = 3,
     current_limit: int = 5,
     library_limit: int = 3,
+    material_scope: ChatMaterialScope | None = None,
 ) -> tuple[list[dict[str, Any]], str, dict[str, Any]]:
     evidence, scope = _retrieve_evidence_for_query(
         retrieval_query,
@@ -453,6 +502,7 @@ def _judge_and_retry_evidence(
         library_top_k=library_top_k,
         current_limit=current_limit,
         library_limit=library_limit,
+        material_scope=material_scope,
     )
     with trace_step(
         "judge_evidence",
@@ -482,6 +532,7 @@ def _judge_and_retry_evidence(
             library_top_k=library_top_k,
             current_limit=current_limit,
             library_limit=library_limit,
+            material_scope=material_scope,
         )
     with trace_step(
         "judge_retry_evidence",
@@ -540,6 +591,7 @@ def _execute_chat_query_step(
     library_top_k: int = 5,
     current_limit: int = 12,
     library_limit: int = 5,
+    material_scope: ChatMaterialScope | None = None,
 ) -> tuple[list[dict[str, Any]], str]:
     query = " ".join(str(step.get("query") or "").strip().split())
     scope = str(step.get("scope") or "").strip() or ("current_paper" if pdf_id else "library")
@@ -560,6 +612,7 @@ def _execute_chat_query_step(
         query,
         library_top_k=library_top_k,
         library_limit=library_limit,
+        material_scope=material_scope,
     ), "library"
 
 
@@ -606,6 +659,7 @@ def _run_chat_agentic_retrieval(
     library_top_k: int = 5,
     current_limit: int = 12,
     library_limit: int = 5,
+    material_scope: ChatMaterialScope | None = None,
 ) -> tuple[list[dict[str, Any]], str, dict[str, Any]]:
     if not query_plan.get("needsRetrieval", True):
         return [], "", _build_no_retrieval_judge()
@@ -628,7 +682,8 @@ def _run_chat_agentic_retrieval(
         current_top_k=current_top_k,
         library_top_k=library_top_k,
         current_limit=current_limit,
-        library_limit=library_limit,
+            library_limit=library_limit,
+            material_scope=material_scope,
     )
     if primary_scope:
         attempted_scopes.append(primary_scope)
@@ -664,6 +719,7 @@ def _run_chat_agentic_retrieval(
                 library_top_k=library_top_k,
                 current_limit=current_limit,
                 library_limit=library_limit,
+                material_scope=material_scope,
             )
         if follow_up_scope:
             attempted_scopes.append(follow_up_scope)
@@ -696,6 +752,7 @@ def _run_chat_agentic_retrieval(
                 library_top_k=library_top_k,
                 current_limit=current_limit,
                 library_limit=library_limit,
+                material_scope=material_scope,
             )
         if resolved_retry_scope:
             attempted_scopes.append(resolved_retry_scope)
@@ -809,25 +866,28 @@ def chat(request: ChatRequest) -> dict[str, Any]:
     )
     try:
         history = request.history or []
-        paper_skeleton = request.paperSkeleton or {}
+        material_scope = resolve_chat_material_scope(request)
+        paper_skeleton = (request.paperSkeleton or {}) if material_scope.use_skeleton else {}
+        primary_paper_id = material_scope.primary_id
         planner_context = _build_chat_query_context(history, paper_skeleton)
         with trace_step("build_chat_query_plan", input_size=len(planner_context) + len(message)) as step:
             query_plan = build_chat_query_plan(
                 message,
                 context=planner_context,
                 task_type="chat",
-                has_pdf=bool(request.pdfId),
+                has_pdf=bool(primary_paper_id),
             )
             step["outputSize"] = len(query_plan.get("queries") or [])
 
         rag_results, rag_scope, retrieval_judge = _run_chat_agentic_retrieval(
             message,
             query_plan,
-            pdf_id=request.pdfId,
+            pdf_id=primary_paper_id,
             current_top_k=12,
             library_top_k=5,
             current_limit=12,
             library_limit=5,
+            material_scope=material_scope,
         )
 
         context = ""
@@ -868,9 +928,14 @@ def chat(request: ChatRequest) -> dict[str, Any]:
         plan_summary = _format_query_plan_summary(query_plan)
         intent = str(query_plan.get("intent") or "自由问答")
         answer_style = str(query_plan.get("answerStyle") or "concise")
+        scope_instruction = (
+            "本次对论文内容的判断仅可依据当前任务允许的材料证据；证据不足时明确说明，不得借用其他论文的内容。"
+            if material_scope.constrained else ""
+        )
 
         prompt = f"""你是一位学术论文阅读助手。
 请结合论文摘要结构、检索计划、相关证据片段和对话历史，用中文回答用户问题。
+{scope_instruction}
 当前意图：{intent}
 {_chat_intent_instruction(intent)}
 {_chat_answer_style_instruction(answer_style)}

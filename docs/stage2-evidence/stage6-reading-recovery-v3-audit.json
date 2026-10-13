@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-08",
+  "additionalProviderGenerationsDuringRepair": 0,
+  "authorizedLatestCases": 4,
+  "executedLatestCases": 4,
+  "taskId": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+  "browserChecks": {
+    "savedNoteReadableAfterReload": true,
+    "sourceNavigationPageNumber": 4,
+    "existingTranslationDisplayed": true,
+    "readonlyPreviewUsesArchivedProviderOutput": true,
+    "bodyFontPx": 16,
+    "width390DocumentScrollWidth": 384,
+    "width320DocumentScrollWidth": 314,
+    "originalImageDialogOpened": true,
+    "escapeReturnedFocusToSourceButton": true,
+    "closeButtonReturnedToTranslation": true,
+    "viewportOverrideReset": true
+  },
+  "tests": {
+    "panoramicComponent": 4,
+    "pageTranslationHook": 9,
+    "unifiedTaskApp": 26,
+    "comparisonAndResearchPython": 19,
+    "frontendTypecheck": "passed",
+    "frontendProductionBuild": "passed"
+  },
+  "runtime": {
+    "frontendPort": 5173,
+    "javaPort": 8081,
+    "pythonPort": 8000,
+    "pythonHealth": "ok",
+    "grobidHealth": "ok",
+    "ragHealth": "ok",
+    "restartGuard": "No active generators"
+  },
+  "remaining": [
+    "Formula content errors in original model output",
+    "Full-page task cache restoration and cross-page acceptance",
+    "Independent browser recovery acceptance",
+    "Actual novice observation A20"
+  ],
+  "evidenceBoundary": "Existing results and local repair verification. A readonly preview does not prove product cache restoration or corrected model content."
+}

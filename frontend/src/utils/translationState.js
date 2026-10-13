@@ -33,6 +33,12 @@ const normalizePageLayout = (pageLayout) => {
           textAlign: String(block?.style?.textAlign || 'left'),
         },
         readingOrder: Number.isFinite(Number(block?.readingOrder)) ? Number(block.readingOrder) : index,
+        mathSources: (Array.isArray(block?.mathSources) ? block.mathSources : []).filter(source =>
+          /^⟦原式\d+⟧$/.test(source?.token) && Number.isInteger(source.start) && Number.isInteger(source.end) &&
+          source.start >= 0 && source.end > source.start && source.end <= String(block.text || '').length &&
+          String(block.text || '').slice(source.start,source.end) === source.text).map(source=>({
+            token:source.token,start:source.start,end:source.end,text:source.text,bbox:normalizeRelativeBbox(source.bbox)}))
+          .filter(source=>source.bbox.width>0 && source.bbox.height>0),
       }))
       .filter((block) => block.id && block.bbox.width > 0 && block.bbox.height > 0),
   };
@@ -81,6 +87,9 @@ export const normalizeTranslationPage = (pageValue = {}) => {
     excludedZones: normalizeExcludedZones(pageValue?.excludedZones),
     status: pageValue?.status || (pageValue?.translatedText ? 'success' : 'idle'),
     error: String(pageValue?.error || ''),
+    warning: String(pageValue?.warning || ''),
+    mathProtectionVersion: [1,2].includes(pageValue?.mathProtectionVersion) ? pageValue.mathProtectionVersion : 0,
+    missingBlockIds: Array.isArray(pageValue?.missingBlockIds) ? pageValue.missingBlockIds.filter(id => typeof id === 'string') : [],
     updatedAt: pageValue?.updatedAt || null,
   };
 
@@ -111,8 +120,12 @@ export const normalizeTranslationState = (storedValue, pdfId = null) => {
     }
 
     const normalizedPage = normalizeTranslationPage(pageValue);
+    if (normalizedPage.status === 'translating') {
+      normalizedPage.status = normalizedPage.translatedText ? (normalizedPage.missingBlockIds.length ? 'partial' : 'success') : 'error';
+      normalizedPage.error = normalizedPage.translatedText ? '' : '翻译已中断，点击重试继续。';
+    }
     if (normalizedPage.status === 'loading') {
-      normalizedPage.status = normalizedPage.translatedText ? 'success' : 'idle';
+      normalizedPage.status = normalizedPage.translatedText ? (normalizedPage.missingBlockIds.length ? 'partial' : 'success') : 'idle';
       normalizedPage.error = '';
     }
 

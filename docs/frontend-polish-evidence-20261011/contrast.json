@@ -1,0 +1,46 @@
+{
+  "light": {
+    "tokens": {
+      "--accent": "#6736c5",
+      "--accent-soft": "#eee8fb",
+      "--border-control": "#858a97",
+      "--navigation-bg": "#f7f7fa",
+      "--panel-bg": "#ffffff",
+      "--panel-muted": "#f3f3f7",
+      "--text-muted": "#6c707d",
+      "--text-primary": "#252630",
+      "--text-secondary": "#515461"
+    },
+    "ratios": {
+      "--text-primary": 15.02,
+      "--text-secondary": 7.53,
+      "--text-muted": 4.94,
+      "--accent": 7.21,
+      "--border-control": 3.45
+    },
+    "navigationMuted": 4.62,
+    "selectedText": 6.04
+  },
+  "dark": {
+    "tokens": {
+      "--accent": "#bd9af7",
+      "--accent-soft": "#342947",
+      "--border-control": "#68758d",
+      "--navigation-bg": "#171a23",
+      "--panel-bg": "#1b1e28",
+      "--panel-muted": "#242834",
+      "--text-muted": "#9da5b8",
+      "--text-primary": "#ebecf3",
+      "--text-secondary": "#b7bdcb"
+    },
+    "ratios": {
+      "--text-primary": 14.11,
+      "--text-secondary": 8.83,
+      "--text-muted": 6.74,
+      "--accent": 7.23,
+      "--border-control": 3.58
+    },
+    "navigationMuted": 7.04,
+    "selectedText": 5.87
+  }
+}

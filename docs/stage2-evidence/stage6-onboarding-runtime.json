@@ -1,0 +1,27 @@
+{
+  "method": "Read-only Java tasks, independently checking browser-created fixtures",
+  "checks": {
+    "tasksCreatedAndRenamedThroughUI": true,
+    "emptyTaskNotChangedByInvalidInputOrFailedUpload": true,
+    "existingMaterialAttachedToSecondTask": true,
+    "noMessagesArtifactsOrLearningActivities": true
+  },
+  "tasks": [
+    {
+      "id": "task:acaca995-12ca-4ecb-883f-8fb26899db30",
+      "title": "阶段6：首次使用与任务输入验收",
+      "revision": 1,
+      "paperIds": []
+    },
+    {
+      "id": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+      "title": "阶段6：有材料的对话起点验收",
+      "revision": 2,
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ]
+    }
+  ],
+  "limitation": "Input drafts and layout are proven by browser observations, not this server check.",
+  "modelRequestsSubmittedByThisVerifier": 0
+}

@@ -1,0 +1,33 @@
+{
+  "taskId": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+  "revision": 5,
+  "note": {
+    "id": "b518ef06-3dea-45b7-9255-8bafa6b54c0a",
+    "title": "原文笔记",
+    "text": "Significance\n\n## 阅读笔记\n\n在本文中，“Significance”指用于高斯剪枝的**全局重要性度量**，衡量每个 3D 高斯对最终渲染质量的贡献大小。它不是简单地只看高斯不透明度 $\\alpha$，而是受渲染公式 $C=\\sum_{i\\in N} c_i \\alpha_i \\prod_{j=1}^{i-1}(1-\\alpha_j)$ 启发，通过统计每个高斯在所有训练视图光线 $r_i$ 上的相交命中次数来得到初始分数 $G(X_j)$。该分数还会进一步结合高斯的体积 $V(\\Sigma_j)=\\frac{4}{3}\\pi abc$ 和自身不透明度 $\\sigma_j$ 进行加权，从而更准确地反映其对场景重建的重要性。这样做的目的是避免仅按不透明度剪枝而丢失细节，例如图中仅按不透明度剪枝会使 PSNR 从 27.2 降到 25.3。最终，重要性较低的高斯被视为冗余并可被剪除，以压缩模型并保持渲染质量。",
+    "paperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "source": {
+      "text": "Significance",
+      "aiInterpretation": "在本文中，“Significance”指用于高斯剪枝的**全局重要性度量**，衡量每个 3D 高斯对最终渲染质量的贡献大小。它不是简单地只看高斯不透明度 $\\alpha$，而是受渲染公式 $C=\\sum_{i\\in N} c_i \\alpha_i \\prod_{j=1}^{i-1}(1-\\alpha_j)$ 启发，通过统计每个高斯在所有训练视图光线 $r_i$ 上的相交命中次数来得到初始分数 $G(X_j)$。该分数还会进一步结合高斯的体积 $V(\\Sigma_j)=\\frac{4}{3}\\pi abc$ 和自身不透明度 $\\sigma_j$ 进行加权，从而更准确地反映其对场景重建的重要性。这样做的目的是避免仅按不透明度剪枝而丢失细节，例如图中仅按不透明度剪枝会使 PSNR 从 27.2 降到 25.3。最终，重要性较低的高斯被视为冗余并可被剪除，以压缩模型并保持渲染质量。",
+      "pageNumber": 3,
+      "sourceAnchorId": "selection-1791457687277",
+      "sourcePageIndex": 3,
+      "sourceActionId": "explain",
+      "sourceActionLabel": "AI 解释"
+    },
+    "versions": [],
+    "sources": [
+      {
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "sourceId": "selection-1791457687277",
+        "sourceAnchorId": "selection-1791457687277",
+        "pageIndex": 3,
+        "text": "Significance"
+      }
+    ]
+  },
+  "modelCasesSubmitted": 1,
+  "noRetry": true
+}

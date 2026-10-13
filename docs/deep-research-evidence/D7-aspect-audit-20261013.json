@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-13",
+  "caseId": "D7",
+  "attempt": 4,
+  "runId": "dr_run_28b54278dad95df4b8da29a866190eeb",
+  "promptVersion": "dr-v2.20261013.16",
+  "codeCommit": "ae01780",
+  "serverOutcome": "partial",
+  "manualOutcome": "failed",
+  "budget": {
+    "modelCalls": 16,
+    "tokens": 57741,
+    "elapsedSeconds": 122.0,
+    "externalSearches": 0,
+    "fulltextFetches": 0,
+    "cost": null
+  },
+  "findings": [
+    "Unsupported exclusivity and paper-wide absence claim was rejected",
+    "One revision produced a limited inference from empirical comparison without claiming universal proof",
+    "Answer includes frustum filtering but does not explain viewing direction and distance clearly",
+    "Internal evidence alias E1 leaked into revised prose",
+    "Final audit was rejected because synthetic whole-question check lacked redundant source-based aspects"
+  ],
+  "offlineCorrection": {
+    "rawProviderVerdicts": true,
+    "invalidBefore": [
+      "answer_scope"
+    ],
+    "invalidAfter": [],
+    "newModelCalls": 0,
+    "historicalResultUnmodified": true
+  },
+  "remaining": [
+    "Manual content acceptance still failed; fixing a structural false rejection is not quality acceptance",
+    "Verify quote-first context packing preserves necessary mechanism evidence",
+    "D3 scientific and concrete protocol quality and independent holdouts remain open"
+  ]
+}

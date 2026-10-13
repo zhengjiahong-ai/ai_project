@@ -10,6 +10,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +21,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -27,6 +32,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.ai.assistant.backend_java.model.ChatMessage;
 import com.ai.assistant.backend_java.model.Paper;
@@ -45,16 +51,38 @@ public class PdfService {
     @Autowired
     private ChatMessageRepository chatMessageRepository;
 
+    @Autowired
+    private TaskWorkspaceService taskWorkspaceService;
+
     @Value("${PYTHON_URL:http://localhost:8000/api}")
     private String PYTHON_SERVICE_URL;
 
     // ── PDF Upload ────────────────────────────────────────────────────────
 
-    public Map<String, Object> analyzePdf(MultipartFile file) {
+    public synchronized Map<String, Object> analyzePdf(MultipartFile file) {
+        final byte[] bytes;
+        final String storageName;
+        try {
+            bytes = file.getBytes();
+            storageName = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)) + ".pdf";
+        } catch (Exception error) {
+            throw new IllegalStateException("无法读取上传文件", error);
+        }
+        Paper existing = paperRepository.findById(storageName).orElse(null);
+        if (existing != null && (List.of("queued", "parsing").contains(Objects.toString(existing.getProcessingStatus(), ""))
+                || "running".equals(existing.getAiAnalysisStatus())))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "论文正在处理，请稍后重试");
+        if (existing != null && existing.getAnalysisJson() != null
+                && (existing.getAiAnalysisStatus() == null || "completed".equals(existing.getAiAnalysisStatus()))) {
+            try { return new ObjectMapper().readValue(existing.getAnalysisJson(), new TypeReference<Map<String, Object>>() {}); }
+            catch (IOException error) { throw new IllegalStateException("无法读取已保存解析结果", error); }
+        }
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("file", toNamedPdfResource(file));
+        body.add("file", new ByteArrayResource(bytes) {
+            @Override public String getFilename() { return storageName; }
+        });
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
         @SuppressWarnings("unchecked")
@@ -63,11 +91,17 @@ public class PdfService {
 
         if (response != null && "success".equals(response.get("status"))) {
             String resolvedPdfId = Objects.toString(response.getOrDefault("pdfId", file.getOriginalFilename()));
-            Paper paper = new Paper();
+            Paper paper = existing == null ? new Paper() : existing;
             paper.setId(resolvedPdfId);
             paper.setFileName(file.getOriginalFilename());
-            paperRepository.save(paper);
             response.put("pdfId", resolvedPdfId);
+            paper.setPdfBytes(bytes);
+            paper.setProcessingStatus(Boolean.TRUE.equals(response.get("ragIndexed")) ? "ready" : "degraded");
+            paper.setAiAnalysisStatus(Objects.toString(response.get("aiAnalysisStatus"), "completed"));
+            paper.setProcessingError(null);
+            try { paper.setAnalysisJson(new ObjectMapper().writeValueAsString(response)); }
+            catch (IOException error) { throw new IllegalStateException("无法保存解析结果", error); }
+            paperRepository.save(paper);
         }
         return response;
     }
@@ -77,22 +111,42 @@ public class PdfService {
     public Map<String, Object> chat(Map<String, Object> chatRequest) {
         String message = Objects.toString(chatRequest.get("message"), "");
         String pdfId = (String) chatRequest.get("pdfId");
+        String taskId = Objects.toString(chatRequest.get("taskId"), "").trim();
+        String sessionKey = taskId.isEmpty() ? pdfId : "task:" + taskId;
 
-        if (pdfId != null) {
+        if (!taskId.isEmpty()) {
+            Map<String, Object> task = taskWorkspaceService.get(taskId);
+            List<?> taskPapers = (List<?>) task.get("paperIds");
+            Object requested = chatRequest.get("allowedPaperIds");
+            if (requested == null) {
+                chatRequest.put("allowedPaperIds", List.of());
+            } else if (!(requested instanceof List<?> papers)
+                    || papers.stream().anyMatch(id -> !(id instanceof String) || !taskPapers.contains(id))) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "指定材料不属于当前任务");
+            }
+        }
+
+        if (sessionKey != null) {
             ChatMessage userMessage = new ChatMessage();
-            userMessage.setPdfId(pdfId);
+            userMessage.setPdfId(sessionKey);
             userMessage.setRole("user");
             userMessage.setContent(message);
             chatMessageRepository.save(userMessage);
-            chatRequest.put("history", buildHistoryPayload(pdfId));
+            // Task clients supply history filtered by the current material snapshot.
+            // Legacy database messages have no source provenance and must not replace it.
+            if (taskId.isEmpty()) {
+                chatRequest.put("history", buildHistoryPayload(sessionKey));
+            } else if (!(chatRequest.get("history") instanceof List<?>)) {
+                chatRequest.put("history", List.of());
+            }
         }
 
         @SuppressWarnings("unchecked")
         Map<String, Object> response = restTemplate.postForObject(PYTHON_SERVICE_URL + "/chat", chatRequest, Map.class);
 
-        if (response != null && "success".equals(response.get("status")) && pdfId != null) {
+        if (response != null && "success".equals(response.get("status")) && sessionKey != null) {
             ChatMessage aiMessage = new ChatMessage();
-            aiMessage.setPdfId(pdfId);
+            aiMessage.setPdfId(sessionKey);
             aiMessage.setRole("ai");
             aiMessage.setContent(Objects.toString(response.get("message"), ""));
             chatMessageRepository.save(aiMessage);

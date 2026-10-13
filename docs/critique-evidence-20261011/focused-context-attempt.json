@@ -1,0 +1,17 @@
+{
+  "question": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，用150字回答，不做全面综述。不要给数字排名，优先核对直接实验结果及条件。",
+  "paper": "D:\\3DGS\\paper\\LightGaussian\\2311.17245v6.pdf",
+  "calls": 1,
+  "sourceIds": [
+    "light-p6-0",
+    "light-p7-0",
+    "light-p9-0",
+    "light-p7-1500",
+    "light-p8-0",
+    "light-p8-1500",
+    "light-p4-0",
+    "light-p3-3000",
+    "light-p4-1500",
+    "light-p5-0"
+  ]
+}

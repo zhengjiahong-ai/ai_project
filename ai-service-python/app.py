@@ -21,6 +21,10 @@ _logger = logging.getLogger(__name__)
 async def _app_lifespan(_app: FastAPI):
     # ── startup ───────────────────────────────────────────────────────
     _logger.info("Application startup: running warmup...")
+    from services.deep_research.runtime import initialize_runtime, shutdown_runtime
+    initialize_runtime()
+    from services.task_operation_service import get_operation_store
+    get_operation_store().recover_after_restart()
     startup_warmup()
     try:
         from services.monitor_scheduler import start_scheduler
@@ -33,6 +37,7 @@ async def _app_lifespan(_app: FastAPI):
     yield
 
     # ── shutdown ──────────────────────────────────────────────────────
+    shutdown_runtime()
     try:
         from services.monitor_scheduler import stop_scheduler
 

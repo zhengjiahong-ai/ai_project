@@ -1,0 +1,30 @@
+{
+  "url": "http://localhost:5173/?unified=1",
+  "body": "推断：在真实世界大规模场景的同机比较中，本方法FPS为Mip-NeRF 360 Datasets：Ours FPS 237和Tank and Temple Datasets：Ours FPS 357；这些是高帧率主张在该表内比较条件下的结果，不能直接外推。（NVIDIA A6000 GPU，模型Ours） [1] [2] [3]\n\n推断：在真实世界大规模场景的同机比较中，本方法相对重新训练基线的模型压缩比分别为Mip-NeRF 360 Datasets：Ours Size为基线的0.1倍和Tank and Temple Datasets：Ours Size为基线的0.1倍；相应质量指标（PSNR、SSIM、LPIPS）均呈现代价，高倍压缩并非无损失。（NVIDIA A6000 GPU，Ours相对基线3D-GS * [16]） [2] [3] [1]\n\n剪枝的全局显著性依赖训练视图像素射线相交计数，并以体积γ(Σ)和不透明度σ_j加权；单纯使用高斯体积会过度强调背景，导致精细几何被过度剪除，而基于简单不透明度剪枝也可能删除必要细节。 [4] [5]\n\n补充结论\n待核查问题\n原文依据",
+  "folds": [
+    {
+      "open": false,
+      "title": "历史版本（0）"
+    },
+    {
+      "open": false,
+      "title": "整理成果"
+    },
+    {
+      "open": false,
+      "title": "材料来源（7）"
+    },
+    {
+      "open": false,
+      "title": "补充结论"
+    },
+    {
+      "open": false,
+      "title": "待核查问题"
+    },
+    {
+      "open": false,
+      "title": "原文依据"
+    }
+  ]
+}

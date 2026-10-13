@@ -1,0 +1,112 @@
+.......................................................F................ [ 59%]
+..............................................FF.                        [100%]
+================================== FAILURES ===================================
+_ test_binding_cannot_bypass_existing_evidence_or_identity_guards[free_value] _
+
+mutation = 'free_value'
+
+    @pytest.mark.parametrize('mutation', ['free_value', 'missing', 'duplicate', 'unknown', 'extra', 'mixed_contract',
+                                         'wrong_dataset', 'wrong_baseline', 'foreign_hardware', 'unverified', 'reported_ratio'])
+    def test_binding_cannot_bypass_existing_evidence_or_identity_guards(mutation):
+        raw, sources = experiment()
+        if mutation == 'free_value':
+            raw['summary'] += '����999FPS��'
+        elif mutation == 'missing':
+            raw['summary'] = 'û��ռλ����'
+        elif mutation == 'duplicate':
+            raw['summary'] += '\u27e6\u6570\u503c1\u27e7'
+        elif mutation == 'unknown':
+            raw['summary'] = '\u27e6\u6570\u503c13\u27e7'
+        elif mutation == 'extra':
+            raw['numericBindings'].append(deepcopy(raw['numericBindings'][0]))
+        elif mutation == 'mixed_contract':
+            raw['measurements'] = []
+        elif mutation == 'wrong_dataset':
+            raw['numericBindings'][0]['dataset'] = 'Beta Dataset'
+        elif mutation == 'wrong_baseline':
+            raw['numericBindings'][0]['baseline'] = 'Baseline'
+        elif mutation == 'foreign_hardware':
+            sources[1]['pdfId'] = 'B'
+        elif mutation == 'unverified':
+            sources[0].pop('_verifiedTable')
+        else:
+            raw['numericBindings'][0]['operation'] = 'ratio'
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_grounded_numeric_rendering.py:107: Failed
+_ test_pdf_drawing_tokens_keep_kerning_coordinates_font_widths_and_star_mapping _
+
+    def test_pdf_drawing_tokens_keep_kerning_coordinates_font_widths_and_star_mapping():
+        class Page:
+            mediabox = SimpleNamespace(height=100)
+            def __getitem__(self, key):
+                return {'/Font': {'/F': {}}}
+            def extract_text(self, visitor_operand_before):
+                cm, tm = [1, 0, 0, 1, 0, 0], [1, 0, 0, 1, 10, 80]
+                visitor_operand_before(b'Tf', ['/F', 10], cm, tm)
+                visitor_operand_before(b'TJ', [[b'12', -1000, b'3MB']], cm, tm)
+                visitor_operand_before(b'TJ', [[b'\x03']], cm, tm)
+        font = {'/Widths': [500] * 256, '/FirstChar': 0}
+>       with patch('PyPDF2._cmap.build_char_map', return_value=('Type1', 100, 'latin-1', {'\\x03': '\u2217'}, font)):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_pdf_table_columns.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Lenovo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\mock.py:1451: in __enter__
+    self.target = self.getter()
+                  ^^^^^^^^^^^^^
+C:\Users\Lenovo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\pkgutil.py:513: in resolve_name
+    mod = importlib.import_module(modname)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'PyPDF2', import_ = <function _gcd_import at 0x0000024A554B80E0>
+
+>   ???
+E   ModuleNotFoundError: No module named 'PyPDF2'
+
+<frozen importlib._bootstrap>:1324: ModuleNotFoundError
+___________ test_unreadable_pdf_leaves_original_sections_available ____________
+
+    def test_unreadable_pdf_leaves_original_sections_available():
+        sections = [{'section': 'Original', 'content': 'Original body'}]
+>       with patch('PyPDF2.PdfReader', side_effect=ValueError('unsupported PDF')):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_pdf_table_columns.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Lenovo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\mock.py:1451: in __enter__
+    self.target = self.getter()
+                  ^^^^^^^^^^^^^
+C:\Users\Lenovo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\pkgutil.py:513: in resolve_name
+    mod = importlib.import_module(modname)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'PyPDF2', import_ = <function _gcd_import at 0x0000024A554B80E0>
+
+>   ???
+E   ModuleNotFoundError: No module named 'PyPDF2'
+
+<frozen importlib._bootstrap>:1324: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tests/test_grounded_numeric_rendering.py::test_binding_cannot_bypass_existing_evidence_or_identity_guards[free_value]
+FAILED tests/test_pdf_table_columns.py::test_pdf_drawing_tokens_keep_kerning_coordinates_font_widths_and_star_mapping
+FAILED tests/test_pdf_table_columns.py::test_unreadable_pdf_leaves_original_sections_available
+3 failed, 118 passed in 4.30s

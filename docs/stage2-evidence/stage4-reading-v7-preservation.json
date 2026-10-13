@@ -1,0 +1,17 @@
+{
+  "scope": "Preservation and submission checks only; all three content cases not accepted",
+  "checks": {
+    "readingTaskAllFieldsUnchanged": true,
+    "critiqueTerminalFailed": true,
+    "critiqueNoPublishedArtifact": true,
+    "critiqueOneSubmission": true,
+    "composeTerminalFailed": true,
+    "composeNoPublishedArtifact": true,
+    "composeOneSubmission": true,
+    "translationOneSubmission": true
+  },
+  "readingRevisionBefore": 17,
+  "readingRevisionAfter": 17,
+  "newModelCalls": 0,
+  "taskWrites": 0
+}

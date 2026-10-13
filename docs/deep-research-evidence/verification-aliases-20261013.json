@@ -1,0 +1,36 @@
+{
+  "promptVersion": "dr-v2.20261013.35",
+  "trigger": "D3-v13 verification omitted required evidence under the 24000-byte request limit.",
+  "change": "Request-local short evidence aliases plus compact JSON for target claims, shared proposal context and evidence. Restore exact full identities before visible-evidence and data-availability checks.",
+  "invariants": [
+    "Quotes, source context, claim IDs, paper identities and version identities are not rewritten.",
+    "Alias names cannot collide with original or unresolved evidence IDs.",
+    "Unknown verdict references remain invalid; removed evidence still cannot support a passed verdict.",
+    "Table bindings and data-availability references round-trip; no input mutation."
+  ],
+  "readOnlyReplay": {
+    "sourceRunId": "dr_run_97a45b78f59f5fae9a1a11cce46225ba",
+    "config": {
+      "bytes": 23802,
+      "evidenceCount": 5,
+      "missingRefs": 0,
+      "allQuotesUnchanged": true
+    },
+    "science": {
+      "bytes": 23773,
+      "evidenceCount": 5,
+      "missingRefs": 0,
+      "allQuotesUnchanged": true
+    },
+    "modelCalls": 0
+  },
+  "liveValidation": "pending",
+  "qualityAccepted": false,
+  "offlineTests": {
+    "targetedPassed": 40,
+    "fullPassed": 909,
+    "warnings": 2,
+    "seconds": 99.7,
+    "modelCalls": 0
+  }
+}

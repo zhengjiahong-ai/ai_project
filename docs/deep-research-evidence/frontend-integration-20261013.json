@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-13",
+  "scope": "DR5 frontend integration and isolated browser behavior",
+  "baseRevision": "633ce1f",
+  "readerFixRevision": "a674e8d",
+  "modelCalls": 0,
+  "checks": {
+    "typecheck": { "command": "npm run typecheck", "exitCode": 0 },
+    "lint": { "command": "npm run lint", "exitCode": 0, "errors": 0, "warnings": 9 },
+    "unit": { "command": "npm test", "exitCode": 0, "nodeSuites": 19, "vitestFiles": 64, "vitestTests": 467, "vitestDurationSeconds": 45.40 },
+    "build": { "command": "npm run build", "exitCode": 0, "durationSeconds": 48.80, "warning": "Some minified chunks exceed 500 kB" },
+    "browser": {
+      "command": "npx playwright test tests/e2e/deep-research-workbench.spec.js --workers=1",
+      "exitCode": 0,
+      "testsPassed": 5,
+      "durationSeconds": 25.6,
+      "api": "Closed in-memory fixture; all unknown API calls and external network requests rejected",
+      "cssViewports": [[1366, 768], [1440, 900], [1093, 614], [1152, 720]],
+      "assertions": [
+        "Partial results remain explicitly partial; details start collapsed",
+        "Composer height stays within min(180px,25vh) plus 2px tolerance and screen bounds",
+        "No horizontal document overflow",
+        "Material/function popovers close on outside click and Escape; Escape restores trigger focus",
+        "Full-screen input opens and closes while retaining the unsent draft",
+        "Source access says fulltext passages; exact quote and page are accessible",
+        "Citation dialog stays inside viewport and restores focus after Escape",
+        "Report edits persist through reload; historical restore preserves the replaced revision",
+        "Navigation preview hides internal citation targets"
+      ],
+      "visualInspection": "Inspected card and report screenshots at 1366x768 and 1093x614; no overlap, clipped controls or raw citation targets observed in the fixture",
+      "screenshots": "frontend/test-results/deep-research-workbench-*/research-card.png and research-report.png (regenerable, not committed)"
+    }
+  },
+  "changes": [
+    "Scope PDF document state by file and rendered page state by page; cancel stale rendering without reloading the document on every page",
+    "Reset page/document load errors at the corresponding identity boundary",
+    "Keep blank canvas crop visibility synchronized with rendering without effect-driven React updates",
+    "Synchronize page number drafts without an effect and remove an unnecessary regex escape",
+    "Align source list access wording with fulltext passages",
+    "Strip numeric research citation links from navigation excerpts without mutating saved reports"
+  ],
+  "initialFailures": [
+    "Sandboxed Vitest could not resolve test-setup.js (EPERM); rerun with normal file access passed",
+    "Initial lint found five errors; repaired instead of suppressing the rules",
+    "Browser access label assertion exposed old fulltext wording; aligned UI wording",
+    "Initial version test assumed automatic dialog dismissal; corrected to verify restored selection then explicitly close the existing history dialog"
+  ],
+  "limits": [
+    "Browser fixtures do not validate live Java/Python publication or model answer quality",
+    "Scaled cases use corresponding reduced CSS viewports; this is not an actual Windows system-scale change",
+    "No new real model case, independent holdout acceptance or backend runtime restart",
+    "DR0-DR5 completion remains unproven; full research quality and release gates remain open"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "sourceRunId": "dr_run_97a45b78f59f5fae9a1a11cce46225ba",
+  "revision": "79d2d88",
+  "modelCalls": 0,
+  "diagnosis": {
+    "retrievedSources": 34,
+    "extractedEvidence": 40,
+    "synthesisCandidates": 20,
+    "retainedEvidence": 8,
+    "promptBytes": 23864,
+    "missingEvidence": "Original 3DGS excerpt establishing two Tanks and Temples scenes was extracted but omitted from synthesis input.",
+    "retainedRelatedEvidence": "LightGaussian excerpt inherits the subset from reference 16 without giving its size."
+  },
+  "revertedExperiment": {
+    "change": "Deduplicate paper metadata using request-local source registry and compact JSON",
+    "retainedEvidence": 9,
+    "promptBytes": 23946,
+    "prefixBytes": 4499,
+    "evidenceBytes": 6295,
+    "instructionBytes": 13119,
+    "requiredSubsetEvidenceRetained": false
+  },
+  "runtime": {
+    "loadedRevision": "79d2d88",
+    "promptVersion": "dr-v2.20261013.35",
+    "activeRunsBeforeRestart": 0,
+    "health": "API, RAG and GROBID healthy"
+  },
+  "nextAction": "Reduce redundant synthesis instruction and retrieval-only plan payload while preserving requirements and evidence identity; replay saved inputs before another model run.",
+  "qualityAccepted": false
+}

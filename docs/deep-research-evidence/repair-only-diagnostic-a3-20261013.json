@@ -1,0 +1,19 @@
+{
+  "revision": "4588507",
+  "diagnosticRunId": "repair_diag_3bdfae1d66f04addb9f027f400fb6656",
+  "sourceRunId": "dr_run_b61ade97852d5a9e9f5e8e4ebdb5f1e8",
+  "receiptDirectory": "/app/data/dr-repair-diagnostics/D3-v10-a3",
+  "actualModelCalls": 3,
+  "actualTokens": 18754,
+  "acceptedByVerifier": ["c1", "c8", "c9"],
+  "rejectedByVerifier": ["c2", "c3", "c4", "c5", "c6", "c7"],
+  "qualityAccepted": false,
+  "isEndToEndAcceptance": false,
+  "findings": [
+    "Segmented formula citations still bind correctly.",
+    "No meaningful improvement to executable intervention levels, budgets or aggregation.",
+    "Verifier no longer calls seeded randomness inherently contradictory, but still rejects all-mode selection for absent names/unresolved subset.",
+    "Old source draft initially fails role structure, so the repair input lacks the later detailed semantic failures. This limits what these repeated old-draft diagnostics establish."
+  ],
+  "nextAction": "Stop repeating this old-draft repair diagnostic; exercise fresh generation and the complete current chain with recorded prompt version .32."
+}

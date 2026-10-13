@@ -1,0 +1,20 @@
+
+> frontend@0.0.0 build
+> node ./scripts/clean-dist.mjs && vite build
+
+vite v7.3.1 building client environment for production...
+✓ 0 modules transformed.
+✗ Build failed in 46ms
+error during build:
+[vite:build-html] EPERM: operation not permitted, realpath 'D:\aiproj\ai_project\frontend\src\main.jsx'
+file: D:/aiproj/ai_project/frontend/index.html
+    at node:fs:2837:18
+    at getRealPath (file:///D:/aiproj/ai_project/frontend/node_modules/vite/dist/node/chunks/config.js:32933:36)
+    at tryResolveRealFileOrType (file:///D:/aiproj/ai_project/frontend/node_modules/vite/dist/node/chunks/config.js:32927:9)
+    at tryCleanFsResolve (file:///D:/aiproj/ai_project/frontend/node_modules/vite/dist/node/chunks/config.js:32651:21)
+    at tryFsResolve (file:///D:/aiproj/ai_project/frontend/node_modules/vite/dist/node/chunks/config.js:32644:14)
+    at Object.handler (file:///D:/aiproj/ai_project/frontend/node_modules/vite/dist/node/chunks/config.js:32501:16)
+    at Object.handler (file:///D:/aiproj/ai_project/frontend/node_modules/vite/dist/node/chunks/config.js:33706:13)
+    at file:///D:/aiproj/ai_project/frontend/node_modules/rollup/dist/es/shared/node-entry.js:22545:40
+    at async PluginDriver.hookFirstAndGetPlugin (file:///D:/aiproj/ai_project/frontend/node_modules/rollup/dist/es/shared/node-entry.js:22427:28)
+    at async resolveId (file:///D:/aiproj/ai_project/frontend/node_modules/rollup/dist/es/shared/node-entry.js:20886:26)

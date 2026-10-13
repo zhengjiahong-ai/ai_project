@@ -2,7 +2,9 @@ fastapi>=0.109.0,<0.110.0
 uvicorn>=0.27.0
 
 langchain>=0.1.10
-langgraph>=0.2.0,<2.0
+-c requirements-deep-research.lock
+langgraph==1.2.14
+langgraph-checkpoint-sqlite==3.1.1
 starlette>=0.36
 
 # Testing

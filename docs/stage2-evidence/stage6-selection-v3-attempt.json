@@ -1,0 +1,13 @@
+{
+  "authorization": "User explicitly approved at most 4 fixed cases: critique, compose, single-page translation, selection explanation",
+  "case": "selection-explanation",
+  "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "pageIndex": 3,
+  "selectedText": "Significance",
+  "context": "Page 4, Global Significance Calculation",
+  "client": "Actual unified UI, http://localhost:5173/?unified=1",
+  "trigger": "One click on selection explain",
+  "maximumGenerationAttempts": 1,
+  "automaticRetryAllowed": false,
+  "result": "Await browser observation; this reservation alone does not prove a model request completed"
+}

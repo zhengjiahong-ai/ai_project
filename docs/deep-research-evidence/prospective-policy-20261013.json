@@ -1,0 +1,30 @@
+{
+  "implementation": "One shared prospective-design policy included by design_requirements, consumed by synthesis, repair and semantic verification.",
+  "changes": [
+    "Choose explicit prospective settings rather than postponing design decisions.",
+    "Dataset scope/capacity and existing assets remain evidence-bound facts.",
+    "A fixed seeded random split is not inherently contradictory; seed purpose and executable procedure remain required.",
+    "A grounded complete dataset selection does not require an unnecessary name list.",
+    "Future checkpoint identity is recorded at execution; an executable acquisition/training and pairing rule is required now, not an invented hash or a proposed filename alone.",
+    "Accepted concrete choices constrain repairs; missing details must still be filled in allowed revision targets.",
+    "Correct every_nth schema example to use offset, describing zero-based indexing outside the field name."
+  ],
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "taskDirectory": "tmp/qoder-dr-contract-review-20261013",
+    "status": "completed",
+    "scope": "Three source files only; tools disabled; no papers, runtime data or secrets.",
+    "integration": "Manually reviewed; did not apply its malformed duplicate data-role diff or accept a proposed checkpoint label as sufficient."
+  },
+  "readOnlyReplay": {
+    "sourceRunId": "dr_run_b61ade97852d5a9e9f5e8e4ebdb5f1e8",
+    "promptBytes": 19225,
+    "byteLimit": 19557,
+    "evidenceRows": 6,
+    "allQuotesUnchanged": true,
+    "modelCalls": 0
+  },
+  "liveValidation": "pending",
+  "fullOfflineTests": {"passed": 859, "warnings": 2, "seconds": 83.28},
+  "qualityAccepted": false
+}

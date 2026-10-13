@@ -1,0 +1,58 @@
+{
+  "id": "stage5-version-recovery-20261008",
+  "title": "阶段5：版本与草稿恢复验收",
+  "paperIds": [
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+  ],
+  "messages": [],
+  "notes": [
+    {
+      "id": "stage5-version-note",
+      "title": "版本恢复验收",
+      "text": "历史正文 B",
+      "versions": [
+        {
+          "text": "历史正文 B",
+          "savedAt": "2026-10-08T01:00:00Z"
+        },
+        {
+          "text": "",
+          "savedAt": "2026-10-08T02:00:00Z"
+        },
+        {
+          "text": "已保存正文 A",
+          "savedAt": "2026-10-08T06:29:47.822Z",
+          "kind": "saved"
+        },
+        {
+          "text": "未保存草稿 D",
+          "savedAt": "2026-10-08T06:29:47.822Z",
+          "kind": "unsaved-draft"
+        }
+      ],
+      "sources": [
+        {
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "sourceId": "stage5-version-source",
+          "text": "本地版本测试来源"
+        }
+      ],
+      "updatedAt": "2026-10-08T06:29:47.822Z",
+      "restoredFrom": "2026-10-08T01:00:00Z"
+    },
+    {
+      "id": "stage5-conflict-note",
+      "title": "保存冲突验收",
+      "text": "冲突前正文 C",
+      "versions": []
+    }
+  ],
+  "artifacts": [],
+  "researchRuns": [],
+  "activityHistory": [],
+  "appliedRequestIds": [],
+  "focusedPaperId": null,
+  "activeActivity": null,
+  "updatedAt": "2026-10-08T06:29:47.828516Z",
+  "revision": 1
+}

@@ -1,0 +1,20 @@
+{
+  "method": "Actual shared Axios upload API followed by byte-for-byte server download",
+  "fileBytes": 12954089,
+  "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "response": {
+    "status": "success",
+    "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+    "processingStatus": "ready",
+    "questionReady": true,
+    "aiAnalysisStatus": "not_requested"
+  },
+  "checks": {
+    "multipartAccepted": true,
+    "exactServerFileHash": true,
+    "existingTaskMembershipPreserved": true,
+    "noMessagesGenerated": true
+  },
+  "modelRequestsSubmitted": 0,
+  "limitation": "The repaired browser file chooser flow remains unverified."
+}

@@ -1,0 +1,37 @@
+{
+  "id": "stage6-paper-tools-20261008",
+  "title": "阶段6：真实论文阅读工具验收",
+  "paperIds": [
+    "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+  ],
+  "messages": [],
+  "notes": [
+    {
+      "id": "stage6-paper-position-note",
+      "title": "阅读位置验收（界面样例）",
+      "text": "人工界面验收笔记：打开成果后应能返回原阅读页；点击来源应定位到LightGaussian第4页。",
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "sources": [
+        {
+          "sourceId": "stage6-page4",
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "pageIndex": 3,
+          "label": "LightGaussian 第4页",
+          "text": "Global Significance Calculation."
+        }
+      ],
+      "versions": []
+    }
+  ],
+  "artifacts": [],
+  "researchRuns": [],
+  "activityHistory": [],
+  "appliedRequestIds": [],
+  "focusedPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "activeActivity": null,
+  "updatedAt": "2026-10-08T08:01:40.020459Z",
+  "revision": 0
+}

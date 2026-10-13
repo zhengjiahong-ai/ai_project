@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-13",
+  "promptVersion": "dr-v2.20261013.21",
+  "contractVersion": 2,
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "patchSha256": "de026872845040399ab849a19b9c7bec17d3c1d436f3c8159c033e769a332b63",
+    "reviewCorrections": [
+      "Avoid blanket exception handling hiding programming faults.",
+      "Handle arbitrarily large finite integers without float conversion overflow.",
+      "Explicitly request executionSpec object and zero-based stride offset."
+    ]
+  },
+  "scope": [
+    "Server stamps contract version on newly synthesized experiment-design claims.",
+    "Data role requires dataset, scene selection, split, seeds, sampling unit and replication mode.",
+    "Analysis role requires effects, uncertainty method and decision rule; numeric values reject bool/NaN/infinity.",
+    "Repair cannot remove contract version; revised spec is revalidated.",
+    "Configuration and prose are both passed to semantic review; structural checks do not certify scientific correctness.",
+    "Internal configuration is not dumped into rendered report."
+  ],
+  "offlineReplay": {
+    "runId": "dr_run_35d6d601ce835db49412dc9a67273e4a",
+    "historicalRecordModified": false,
+    "underNewContractMissingSpecs": [
+      "C4",
+      "C9",
+      "C10"
+    ],
+    "promptBytes": 23907,
+    "limitBytes": 24000,
+    "evidenceRows": 14,
+    "modelCalls": 0
+  },
+  "acceptance": "No real rerun in this change. Experimental content remains unaccepted. Prior failure is not retrospectively reclassified; the replay only demonstrates new structural requirements.",
+  "offlineTests": {
+    "fullRegression": {
+      "passed": 676,
+      "warnings": 2,
+      "seconds": 70.93
+    },
+    "finalIntegrationIncludingPositivePath": {
+      "passed": 7,
+      "seconds": 2.73
+    },
+    "countsAreNotAdditive": true
+  },
+  "loadedRuntime": {
+    "commit": "81563f5",
+    "promptVersion": "dr-v2.20261013.21",
+    "activeRunsBeforeRestart": 0,
+    "health": "ok",
+    "rag": "ok",
+    "grobid": "ok"
+  },
+  "nextWork": "Separate research support questions from user-facing answer obligations before another real experiment case; keep genuine required evidence gaps and scientific checks."
+}

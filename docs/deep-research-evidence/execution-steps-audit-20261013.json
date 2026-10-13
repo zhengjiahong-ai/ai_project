@@ -1,0 +1,25 @@
+{
+  "sourceRun": "dr_run_f555b2bfe3805ffcb904716f9219541c",
+  "claimId": "c5",
+  "originalRevisionVerdict": "passed",
+  "originalDesignAudit": {},
+  "offlineMissingSlots": [
+    "baseline_acquisition",
+    "group_pairing",
+    "saved_artifacts"
+  ],
+  "finding": "The original model accepted train-until-convergence prose without an operational stopping rule. Steps had no mandatory audit slots, so an empty audit was not rejected.",
+  "change": "Require exact proposal/context bindings for baseline acquisition, group pairing and saved artifacts; share operational training, split-unit and hypothesis-analysis consistency requirements between drafting and review.",
+  "limitation": "Exact quoted bindings only prove traceability. Semantic correctness and real generation quality still require independent verification; a quoted vague rule must not count as an executable protocol.",
+  "newModelRequests": 0,
+  "runtimeLoaded": false,
+  "promptVersion": "dr-v2.20261013.43",
+  "offlineRepairPromptBytes": 23363,
+  "offlinePromptLimit": 24000,
+  "offlinePromptReplay": "Captured request before returning an intentionally empty offline verdict; response validation correctly rejects the empty verdict. No semantic pass claimed.",
+  "fullOfflineRegression": {
+    "passed": 941,
+    "warnings": 2,
+    "seconds": 94.53
+  }
+}

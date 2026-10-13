@@ -1,0 +1,16 @@
+{
+  "alerts": [],
+  "currentTask": "阶段6：上传切任务归属-B",
+  "draft": "任务B草稿：稍后继续，不发送。",
+  "taskOptions": [
+    {
+      "id": "task:19cdd7c8-6bf8-46fb-ac72-0ae2c23fd339",
+      "title": "阶段6：上传切任务归属-A"
+    },
+    {
+      "id": "task:8abdf651-8e21-4a67-ac45-1afb5c451885",
+      "title": "阶段6：上传切任务归属-B"
+    }
+  ],
+  "uploadButton": "上传 PDF"
+}

@@ -1,0 +1,31 @@
+{
+  "runId": "dr_run_03e6e7dbd3495866b974c9240896aeae",
+  "revision": "e0e7799",
+  "promptVersion": "dr-v2.20261013.49",
+  "caseClassification": "development regression; H3 already consumed for diagnosis",
+  "status": "completed",
+  "outcome": "partial",
+  "overallAccepted": false,
+  "settledModelCalls": 7,
+  "settledTokens": 23661,
+  "elapsedSeconds": 89.396,
+  "externalSearches": 2,
+  "fulltextFetches": 1,
+  "versions": ["arxiv:2310.08528v3"],
+  "localMaterialCount": 0,
+  "answerCharacterCounter": 189,
+  "acceptedClaims": 2,
+  "rejectedClaims": 0,
+  "contentReview": [
+    "Encoder inputs G and t, the six spatial/temporal planes and encoded features are stated and match the displayed page-4 passages.",
+    "Decoder feature input, Gaussian deformation output and resulting deformed Gaussians are stated and match the displayed page-4 passage.",
+    "System source-access disclosure is present; reported fulltext access matches actual external acquisition.",
+    "No local task paper or other arXiv version was used."
+  ],
+  "auditStatus": "invalid_response",
+  "invalidAspectObligations": ["ob1", "ob2"],
+  "remainingIssue": "Coverage audit uses only question-based aspects, omitting required source-grounded aspects. Source access is a metadata requirement that also needs a well-defined audit contract. Do not turn invalid audit into a pass.",
+  "resubmitted": false,
+  "rawResultReceipt": "tmp/dr-acceptance-receipts/H3-v2.result.json",
+  "replacementIndependentCaseRequired": true
+}

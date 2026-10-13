@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-13",
+  "feature": "Bounded repair evidence expansion within acquired source versions",
+  "promptVersion": "dr-v2.20261013.15",
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "patchSha256": "28ce531e7e3039e2797e5f6603d302264ac0a03ad1251e6ec863d097ab3d0468",
+    "delivered": [
+      "repair_scope.py",
+      "test_deep_research_repair_scope.py"
+    ],
+    "reviewCorrections": [
+      "Read kind from the claim rather than the evidence row",
+      "Test helpers preserve explicitly empty lists",
+      "Retrieval obligation labels are not exclusive relevance judgments; balance already acquired same-version candidates across labels",
+      "Bound candidate additions and prompt bytes; never authorize omitted prompt rows"
+    ]
+  },
+  "invariants": [
+    "Only original sourceWorkId/sourceVersionId pairs anchor added fulltext passages",
+    "Original and added evidence require independent factual verification after rewriting",
+    "No new searches, papers, versions or claim identities",
+    "Original claim obligationIds remain unchanged",
+    "Proposals cannot expand factual citations",
+    "Failed rewrites retain previously verified answer"
+  ],
+  "offlineReplay": {
+    "runId": "dr_run_27339cf8b23755d09988cf214afaa0a9",
+    "mechanismPassageAvailable": true,
+    "candidateCounts": {
+      "c1": 14,
+      "c2": 14
+    },
+    "newModelCalls": 0
+  },
+  "focusedTests": {
+    "passed": 68,
+    "seconds": 9.49
+  },
+  "fullRegression": {
+    "passed": 466,
+    "warnings": 2,
+    "seconds": 61.51
+  },
+  "realRetest": {
+    "caseId": "D7",
+    "attempt": 3,
+    "runId": "dr_run_a685a543bc5b51078556a5f71dc1d0d2",
+    "status": "completed",
+    "receipt": "tmp/dr-acceptance-receipts/D7-v3.json",
+    "serverOutcome": "complete",
+    "manualOutcome": "failed",
+    "modelCalls": 12,
+    "tokens": 43521,
+    "elapsedSeconds": 135.0,
+    "repairTriggered": false,
+    "findings": [
+      "Final completeness audit executed without reserve exhaustion",
+      "Answer still omits view distance and view-frustum activation",
+      "The uncertainty passage describes a limitation of the compared method; it does not establish the same limitation for Scaffold-GS",
+      "Automatic factual and coverage checks incorrectly accepted the compressed answer",
+      "New candidate expansion path remains offline-verified only because this run did not trigger repair"
+    ]
+  },
+  "remaining": [
+    "Replace coarse whole-claim checking with explicit subject attribution and essential-aspect evidence binding; no immediate blind rerun",
+    "D7 content quality still requires a real verification",
+    "D3 executable configuration and scoped metrics",
+    "Independent held-out acceptance"
+  ],
+  "codeCommit": "8eb3eba",
+  "runtimeLoaded": true
+}

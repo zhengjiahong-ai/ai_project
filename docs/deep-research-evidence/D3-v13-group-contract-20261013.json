@@ -1,0 +1,27 @@
+{
+  "runId": "dr_run_97a45b78f59f5fae9a1a11cce46225ba",
+  "revision": "8054b13",
+  "promptVersion": "dr-v2.20261013.34",
+  "status": "completed",
+  "outcome": "partial",
+  "qualityAccepted": false,
+  "actualModelCalls": 15,
+  "actualTokens": 68402,
+  "elapsedSeconds": 271.607,
+  "repairStatus": "skipped_budget",
+  "groupContractLiveExercised": true,
+  "findings": [
+    "All nine design roles generated. Group parameters explicitly propose removal fraction 0.7 and target SH degree 2, with control/treatment actions rendered in the body.",
+    "Data proposal still chooses a named-order subset before its membership is established; rightly rejected.",
+    "Controls, steps and limits verdicts were rejected because capacity fitting omitted some of their referenced evidence.",
+    "Repair was skipped for budget. No complete scientifically executable design is accepted.",
+    "One read-only Java status query timed out. Read-only authoritative SQLite inspection confirmed completed/partial; no request was repeated."
+  ],
+  "offlineCapacityExperiment": {
+    "change": "Compact JSON whitespace only, subsequently reverted as insufficient",
+    "config": {"bytes": 23977, "evidenceCount": 3, "missingRefs": 2},
+    "science": {"bytes": 23826, "evidenceCount": 4, "missingRefs": 1},
+    "modelCalls": 0
+  },
+  "nextAction": "Reduce repeated verifier serialization and long routing identities while preserving source identity, whole quotes, visible evidence permissions and budget limits. Review data coverage separately."
+}

@@ -1,0 +1,33 @@
+{
+  "taskId": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+  "revision": 8,
+  "note": {
+    "id": "98b70dfd-8a8c-47a8-b37b-7ef01cf69a9f",
+    "title": "原文笔记",
+    "text": "significance\n\n## 阅读笔记\n\n“significance” 在本文中指每个 3D Gaussian 对最终渲染质量的**全局重要性/显著性**，而不是 Fig. 3 中仅用高斯不透明度 $\\alpha$ 作为剪枝标准的那种局部、简单指标。文中指出，仅按 opacity 剪枝会让 PSNR 从 27.2 下降到 25.3，导致图像损失细节。因此作者提出 Global Significance Calculation：先统计每个高斯在所有训练视图下与像素射线 $r_i$ 是否相交的命中次数 $1(G(X_j), r_i)$，再用调整后的 3D Gaussian 体积 $\\gamma(\\Sigma_j)$ 和不透明度 $\\sigma_j$ 进行加权细化。这些因素对应渲染公式 Eq. 2 中颜色 $c_i$、不透明度 $\\alpha_i$ 以及累积透射率 $\\prod(1-\\alpha)$ 对像素颜色的贡献。当前 PDF 中体积计算部分被截断，因此无法给出完整公式，但可见因素表明 significance 综合了命中覆盖、体积与不透明度。",
+    "paperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "source": {
+      "text": "significance",
+      "aiInterpretation": "“significance” 在本文中指每个 3D Gaussian 对最终渲染质量的**全局重要性/显著性**，而不是 Fig. 3 中仅用高斯不透明度 $\\alpha$ 作为剪枝标准的那种局部、简单指标。文中指出，仅按 opacity 剪枝会让 PSNR 从 27.2 下降到 25.3，导致图像损失细节。因此作者提出 Global Significance Calculation：先统计每个高斯在所有训练视图下与像素射线 $r_i$ 是否相交的命中次数 $1(G(X_j), r_i)$，再用调整后的 3D Gaussian 体积 $\\gamma(\\Sigma_j)$ 和不透明度 $\\sigma_j$ 进行加权细化。这些因素对应渲染公式 Eq. 2 中颜色 $c_i$、不透明度 $\\alpha_i$ 以及累积透射率 $\\prod(1-\\alpha)$ 对像素颜色的贡献。当前 PDF 中体积计算部分被截断，因此无法给出完整公式，但可见因素表明 significance 综合了命中覆盖、体积与不透明度。",
+      "pageNumber": 3,
+      "sourceAnchorId": "selection-1791470810456",
+      "sourcePageIndex": 3,
+      "sourceActionId": "explain",
+      "sourceActionLabel": "AI 解释"
+    },
+    "versions": [],
+    "sources": [
+      {
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "sourceId": "selection-1791470810456",
+        "sourceAnchorId": "selection-1791470810456",
+        "pageIndex": 3,
+        "text": "significance"
+      }
+    ]
+  },
+  "modelCasesSubmitted": 1,
+  "automaticRetryAllowed": false
+}

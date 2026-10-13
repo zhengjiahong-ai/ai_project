@@ -59,6 +59,10 @@ class ChatRequest(BaseModel):
     pdfId: Optional[str] = None
     history: Optional[List[Dict[str, str]]] = None
     paperSkeleton: Optional[Dict[str, Any]] = None
+    taskId: Optional[str] = None
+    allowedPaperIds: Optional[List[str]] = None
+    primaryPaperId: Optional[str] = None
+    strictScope: bool = False
 
 
 class PageTranslationRequest(BaseModel):
@@ -72,11 +76,14 @@ class PageTranslationRequest(BaseModel):
 class DeepAnalysisRequest(BaseModel):
     paper_content: Optional[str] = None
     pdf_id: Optional[str] = None
+    focus_question: Optional[str] = Field(default=None, max_length=3000)
 
 
 class ResearchTaskCreateRequest(BaseModel):
     question: str
+    operationKey: Optional[str] = Field(default=None, max_length=512)
     pdfId: str
+    allowedPaperIds: Optional[List[str]] = None
     paperSkeleton: Optional[Dict[str, Any]] = None
     userConstraints: Optional[str] = ""
     briefPreview: Optional[Dict[str, Any]] = None

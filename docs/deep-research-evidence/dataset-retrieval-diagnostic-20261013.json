@@ -1,0 +1,29 @@
+{
+  "query": "Tanks and Temples datasets evaluation number of scenes",
+  "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+  "method": "retrieve_current_paper_evidence(limit=5, allow_query_rewrite=False)",
+  "modelCalls": 0,
+  "resultCount": 5,
+  "firstHit": {
+    "chunkIndex": 57,
+    "pageIndex": 7,
+    "indexVersion": "729ba31ab10aefcb",
+    "quote": "two scenes from the Tanks&Temples dataset[2017]and two scenes provided by Hedman et al.[Hedman et al. 2018]."
+  },
+  "secondHit": {
+    "chunkIndex": 58,
+    "pageIndex": 7,
+    "quote": "taking every 8th photo for test"
+  },
+  "finding": "The existing local index retrieves the dataset cardinality as its first result for a targeted evaluation query. Next inspect whether experiment verification receives that evidence; do not hardcode this paper-specific count or call the proposal feasible without checking subset membership.",
+  "D3v5Inspection": {
+    "runId": "dr_run_be7d6d2085745e4e92461c65168ff337",
+    "collectedEvidenceCount": 29,
+    "collectedEvidenceContainingTwoScenes": 0,
+    "collectedSourcesContainingTwoScenes": 0,
+    "dataClaim": "c4",
+    "citedEvidence": "ev_719907a16756564f21023121ec7e67208547637093df21341b5cf47feb07a912",
+    "citedEvidenceScope": "LightGaussian says it selects the same scenes as reference 16; it does not establish the number or names.",
+    "diagnosis": "Required capacity evidence was not acquired, and a concrete proposed count was incorrectly treated as executable without dataset availability grounding."
+  }
+}

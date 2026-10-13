@@ -1,0 +1,414 @@
+- banner:
+  - strong: 貔貅
+  - generic: 学术工作台
+  - generic "阶段6：有材料的对话起点验收"
+  - button "未同步草稿"
+  - button "重命名"
+  - group "布局":
+    - button "并排"
+    - button "专注阅读"
+    - button "专注对话"
+  - button "切换主题":
+- main:
+  - complementary "任务导航":
+    - combobox "当前任务":
+      - option "阶段6：有材料的对话起点验收" [selected]
+      - option "阶段4：critique修复核验-v5"
+      - option "阶段4：compose修复核验-v5"
+      - option "阶段4：critique修复核验-v4"
+      - option "阶段4：compose修复核验-v4"
+      - option "阶段4：critique修复核验-v3"
+      - option "阶段4：compose修复核验-v3"
+      - option "阶段6：首次使用与任务输入验收"
+      - option "新任务"
+      - option "阶段6：真实论文阅读工具验收"
+      - option "阶段4：3DGS验证材料"
+      - option "阶段6：阅读与编辑体验验收"
+      - option "阶段5：版本与草稿恢复验收"
+      - option "阶段5：缺文件提示验收"
+      - option "新任务"
+      - option "阶段4：critique真实验收-v2"
+      - option "演示：LightGaussian 压缩方法"
+      - option "阶段5：旧文档标识补全验收"
+      - option "阶段5：移动目标任务"
+      - option "阶段5：移动原任务"
+      - option "阶段4：compose真实验收-v2"
+      - option "阶段4：research真实验收"
+      - option "阶段4：compose真实验收"
+      - option "阶段4：critique真实验收"
+      - option "阶段4：compare真实验收"
+      - option "阶段4：研究回答显示验收"
+      - option "阶段3：新手主动RIS学习闭环"
+      - option "阶段3：主动RIS自测闭环"
+      - option "阶段2：新版补课协议验收"
+      - option "阶段2：多论文范围与比较验收"
+      - option "阶段2：研究终稿发布验收"
+      - option "阶段2：精读入口验收"
+      - option "阶段2：自测入口验收"
+      - option "阶段2：批判成果恢复验收"
+      - option "阶段2：执行前停止验收"
+      - option "阶段2：失败与重试验收"
+      - option "阶段2：先阅读再解析验收"
+      - option "阶段2统一对话验收"
+      - option "阶段1文件恢复验收"
+      - option "任务标识编码验收"
+      - option "并发隔离验收"
+      - option "新任务"
+    - button "收起导航":
+    - button "新任务":
+      - text: 新任务
+    - heading "论文与材料" [level=2]
+    - button "添加已有论文":
+    - 'button "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"':
+      - generic: "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+    - 'button "移出任务：LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"':
+    - button "上传 PDF":
+      - text: 上传 PDF
+    - button "当前论文目录":
+      - text: 当前论文目录
+    - heading "笔记与成果" [level=2]
+    - button "原文笔记":
+      - generic: 原文笔记
+    - button "原文笔记":
+      - generic: 原文笔记
+    - button "原文笔记":
+      - generic: 原文笔记
+    - 'button "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文"':
+      - generic: "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文"
+    - 'button "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文"':
+      - generic: "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文"
+  - region "论文与成果":
+    - strong: 原文笔记
+    - button "返回论文"
+    - button "收起阅读区":
+    - group "成果视图":
+      - button "阅读" [pressed]
+      - button "编辑"
+    - button "下载":
+      - text: 下载
+    - status: 已保存
+    - generic "历史版本（0）"
+    - generic "整理成果"
+    - option "选择任务" [selected]
+    - option "阶段4：critique修复核验-v5"
+    - option "阶段4：compose修复核验-v5"
+    - option "阶段4：critique修复核验-v4"
+    - option "阶段4：compose修复核验-v4"
+    - option "阶段4：critique修复核验-v3"
+    - option "阶段4：compose修复核验-v3"
+    - option "阶段6：首次使用与任务输入验收"
+    - option "新任务"
+    - option "阶段6：真实论文阅读工具验收"
+    - option "阶段4：3DGS验证材料"
+    - option "阶段6：阅读与编辑体验验收"
+    - option "阶段5：版本与草稿恢复验收"
+    - option "阶段5：缺文件提示验收"
+    - option "新任务"
+    - option "阶段4：critique真实验收-v2"
+    - option "演示：LightGaussian 压缩方法"
+    - option "阶段5：旧文档标识补全验收"
+    - option "阶段5：移动目标任务"
+    - option "阶段5：移动原任务"
+    - option "阶段4：compose真实验收-v2"
+    - option "阶段4：research真实验收"
+    - option "阶段4：compose真实验收"
+    - option "阶段4：critique真实验收"
+    - option "阶段4：compare真实验收"
+    - option "阶段4：研究回答显示验收"
+    - option "阶段3：新手主动RIS学习闭环"
+    - option "阶段3：主动RIS自测闭环"
+    - option "阶段2：新版补课协议验收"
+    - option "阶段2：多论文范围与比较验收"
+    - option "阶段2：研究终稿发布验收"
+    - option "阶段2：精读入口验收"
+    - option "阶段2：自测入口验收"
+    - option "阶段2：批判成果恢复验收"
+    - option "阶段2：执行前停止验收"
+    - option "阶段2：失败与重试验收"
+    - option "阶段2：先阅读再解析验收"
+    - option "阶段2统一对话验收"
+    - option "阶段1文件恢复验收"
+    - option "任务标识编码验收"
+    - option "并发隔离验收"
+    - option "新任务"
+    - generic "材料来源（1）" [active]
+    - button "跳回原文 p.4":
+      - generic: 跳回原文 p.4
+    - button "查看片段":
+      - text: 查看片段
+    - generic "原图与图文下载 · 第 4 页"
+    - article "成果正文":
+      - paragraph: significance
+      - heading "阅读笔记" [level=2]
+      - paragraph:
+        - text: 在该论文中，
+        - strong: significance
+        - text: 指用于剪枝的“全局显著性分数”
+        - text: G
+        - text: S
+        - generic: j
+        - text: ，衡量第
+        - generic: j
+        - text: 个 3D 高斯对渲染质量的贡献，而不是直接使用不透明度。其计算为
+        - text: G
+        - text: S
+        - generic: j
+        - text: =
+        - text: ∑
+        - generic: i=1
+        - generic: M×H×W
+        - text: 1(G(
+        - text: X
+        - generic: j
+        - text: ),
+        - text: r
+        - generic: i
+        - text: ) ⋅
+        - text: σ
+        - generic: j
+        - text: ⋅
+        - generic: T ⋅
+        - text: γ(
+        - text: Σ
+        - generic: j
+        - text: )
+        - text: ，其中
+        - text: 1(G(
+        - text: X
+        - generic: j
+        - text: ),
+        - text: r
+        - generic: i
+        - text: )
+        - text: 表示该高斯是否与训练光线
+        - text: r
+        - generic: i
+        - text: 相交，
+        - text: σ
+        - generic: j
+        - text: 是高斯不透明度，
+        - generic: T =
+        - text: ∏
+        - generic: i=1
+        - generic: j−1
+        - text: (1 −
+        - text: σ
+        - generic: i
+        - text: )
+        - text: 是光线到达该高斯前的累积透射率。
+        - text: γ(
+        - text: Σ
+        - generic: j
+        - text: )
+        - text: 是基于高斯体积
+        - text: V(
+        - text: Σ
+        - generic: j
+        - text: ) =
+        - generic: "3"
+        - generic: "4"
+        - text: πabc
+        - text: （
+        - generic: abc
+        - text: 为缩放
+        - generic: S
+        - text: 的三维分量）调整后的体积项，使空间范围更大的高斯获得更高权重。相比仅用 opacity 剪枝会丢失细节、PSNR 从 27.2 降到 25.3，该显著性分数旨在更全面地保留对渲染质量重要的高斯。
+  - separator "调整阅读与对话宽度"
+  - region "任务对话":
+    - strong: 对话
+    - generic: 1 篇材料
+    - button "收起对话区":
+    - generic: "▣ 任务材料 1 篇 · 正在阅读 LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+    - paragraph: Significance
+    - button "删除此消息":
+    - button "收藏到学术笔记":
+    - button "回到原文位置":
+    - article:
+      - generic: 阅读助手
+      - button "删除此消息":
+      - button "收藏到学术笔记":
+      - button "保存为成果":
+      - button "回到原文位置":
+      - paragraph:
+        - text: 在本文中，“Significance”指用于高斯剪枝的
+        - strong: 全局重要性度量
+        - text: ，衡量每个 3D 高斯对最终渲染质量的贡献大小。它不是简单地只看高斯不透明度
+        - generic: α
+        - text: ，而是受渲染公式
+        - generic: C =
+        - text: ∑
+        - generic: i∈N
+        - text: c
+        - generic: i
+        - text: α
+        - generic: i
+        - text: ∏
+        - generic: j=1
+        - generic: i−1
+        - text: (1 −
+        - text: α
+        - generic: j
+        - text: )
+        - text: 启发，通过统计每个高斯在所有训练视图光线
+        - text: r
+        - generic: i
+        - text: 上的相交命中次数来得到初始分数
+        - text: G(
+        - text: X
+        - generic: j
+        - text: )
+        - text: 。该分数还会进一步结合高斯的体积
+        - text: V(
+        - text: Σ
+        - generic: j
+        - text: ) =
+        - generic: "3"
+        - generic: "4"
+        - text: πabc
+        - text: 和自身不透明度
+        - text: σ
+        - generic: j
+        - text: 进行加权，从而更准确地反映其对场景重建的重要性。这样做的目的是避免仅按不透明度剪枝而丢失细节，例如图中仅按不透明度剪枝会使 PSNR 从 27.2 降到 25.3。最终，重要性较低的高斯被视为冗余并可被剪除，以压缩模型并保持渲染质量。
+      - button "跳回原文 p.4":
+        - generic: 跳回原文 p.4
+      - button "查看片段":
+        - text: 查看片段
+    - paragraph: significance
+    - button "删除此消息":
+    - button "收藏到学术笔记":
+    - button "回到原文位置":
+    - article:
+      - generic: 阅读助手
+      - button "删除此消息":
+      - button "收藏到学术笔记":
+      - button "保存为成果":
+      - button "回到原文位置":
+      - paragraph:
+        - text: “significance” 在本文中指每个 3D Gaussian 对最终渲染质量的
+        - strong: 全局重要性/显著性
+        - text: ，而不是 Fig. 3 中仅用高斯不透明度
+        - generic: α
+        - text: 作为剪枝标准的那种局部、简单指标。文中指出，仅按 opacity 剪枝会让 PSNR 从 27.2 下降到 25.3，导致图像损失细节。因此作者提出 Global Significance Calculation：先统计每个高斯在所有训练视图下与像素射线
+        - text: r
+        - generic: i
+        - text: 是否相交的命中次数
+        - text: 1(G(
+        - text: X
+        - generic: j
+        - text: ),
+        - text: r
+        - generic: i
+        - text: )
+        - text: ，再用调整后的 3D Gaussian 体积
+        - text: γ(
+        - text: Σ
+        - generic: j
+        - text: )
+        - text: 和不透明度
+        - text: σ
+        - generic: j
+        - text: 进行加权细化。这些因素对应渲染公式 Eq. 2 中颜色
+        - text: c
+        - generic: i
+        - text: 、不透明度
+        - text: α
+        - generic: i
+        - text: 以及累积透射率
+        - generic: ∏(1 −
+        - generic: α)
+        - text: 对像素颜色的贡献。当前 PDF 中体积计算部分被截断，因此无法给出完整公式，但可见因素表明 significance 综合了命中覆盖、体积与不透明度。
+      - button "跳回原文 p.4":
+        - generic: 跳回原文 p.4
+      - button "查看片段":
+        - text: 查看片段
+    - paragraph: significance
+    - button "删除此消息":
+    - button "收藏到学术笔记":
+    - button "回到原文位置":
+    - article:
+      - generic: 阅读助手
+      - button "删除此消息":
+      - button "收藏到学术笔记":
+      - button "保存为成果":
+      - button "回到原文位置":
+      - paragraph:
+        - text: 在该论文中，
+        - strong: significance
+        - text: 指用于剪枝的“全局显著性分数”
+        - text: G
+        - text: S
+        - generic: j
+        - text: ，衡量第
+        - generic: j
+        - text: 个 3D 高斯对渲染质量的贡献，而不是直接使用不透明度。其计算为
+        - text: G
+        - text: S
+        - generic: j
+        - text: =
+        - text: ∑
+        - generic: i=1
+        - generic: M×H×W
+        - text: 1(G(
+        - text: X
+        - generic: j
+        - text: ),
+        - text: r
+        - generic: i
+        - text: ) ⋅
+        - text: σ
+        - generic: j
+        - text: ⋅
+        - generic: T ⋅
+        - text: γ(
+        - text: Σ
+        - generic: j
+        - text: )
+        - text: ，其中
+        - text: 1(G(
+        - text: X
+        - generic: j
+        - text: ),
+        - text: r
+        - generic: i
+        - text: )
+        - text: 表示该高斯是否与训练光线
+        - text: r
+        - generic: i
+        - text: 相交，
+        - text: σ
+        - generic: j
+        - text: 是高斯不透明度，
+        - generic: T =
+        - text: ∏
+        - generic: i=1
+        - generic: j−1
+        - text: (1 −
+        - text: σ
+        - generic: i
+        - text: )
+        - text: 是光线到达该高斯前的累积透射率。
+        - text: γ(
+        - text: Σ
+        - generic: j
+        - text: )
+        - text: 是基于高斯体积
+        - text: V(
+        - text: Σ
+        - generic: j
+        - text: ) =
+        - generic: "3"
+        - generic: "4"
+        - text: πabc
+        - text: （
+        - generic: abc
+        - text: 为缩放
+        - generic: S
+        - text: 的三维分量）调整后的体积项，使空间范围更大的高斯获得更高权重。相比仅用 opacity 剪枝会丢失细节、PSNR 从 27.2 降到 25.3，该显著性分数旨在更全面地保留对渲染质量重要的高斯。
+      - button "跳回原文 p.4":
+        - generic: 跳回原文 p.4
+      - button "查看片段":
+        - text: 查看片段
+    - textbox "输入问题":
+      - /placeholder: 输入问题，/ 选功能，@ 选材料
+    - button "发送消息" [disabled]:
+- generic "通知"

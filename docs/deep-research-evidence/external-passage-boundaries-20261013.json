@@ -1,0 +1,16 @@
+{
+  "sourceRun": "dr_run_fd3af380a6845fcc81f008542a45b2ec",
+  "finding": "Fixed offset 2000 cut page 2 inside the word method, yielding a literal but broken quotation starting ethod.",
+  "change": "Prefer sentence/paragraph ends, with whitespace fallback for long sentences. Keep exact original slices, a 6000-character page envelope, and a 3000-character maximum passage matching the extractor. Include endOffset in source identity to distinguish changed passage boundaries.",
+  "offlineReplay": [
+    {"page": 2, "offsets": [0, 2143, 4154], "sizes": [2143, 2011, 970], "losslessWithinLimit": true},
+    {"page": 3, "offsets": [0, 2131], "sizes": [2131, 1713], "losslessWithinLimit": true},
+    {"page": 4, "offsets": [0, 2094, 4160], "sizes": [2094, 2066, 61], "losslessWithinLimit": true}
+  ],
+  "tests": {"passed": 43, "seconds": 8.63},
+  "modelCalls": 0,
+  "runtimeLoaded": false,
+  "qualityAccepted": false,
+  "promptVersion": "dr-v2.20261013.49",
+  "limitation": "Very long unpunctuated text and the overall page envelope can still end mid-sentence. This is bounded passage construction, not a claim that all paper sentences are available."
+}

@@ -1,0 +1,11 @@
+{
+  "authorization": "User requested start after four-case DeepSeek repair-test plan",
+  "case": "single-page-translation",
+  "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "pageIndex": 3,
+  "client": "Actual unified UI",
+  "trigger": "One explicit retry translation click on existing page 4",
+  "reservedAt": 1791470438.1400542,
+  "maximumGenerationAttempts": 1,
+  "automaticRetryAllowed": false
+}

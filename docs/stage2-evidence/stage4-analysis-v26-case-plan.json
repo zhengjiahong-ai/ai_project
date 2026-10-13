@@ -1,0 +1,56 @@
+{
+  "status": "executed_once",
+  "authorization": "用户明确回复：统一授权。覆盖当前重构必要复测，使用既定公开LightGaussian/3DGS片段发送至https://api.deepseek.com；固定案例、仅一次提交、不自动重试。",
+  "provider": "https://api.deepseek.com",
+  "sourceCommit": "c926abf",
+  "providerOriginVerified": true,
+  "maxCases": 1,
+  "casesExecuted": 1,
+  "previousCasesConsumed": 39,
+  "materials": [
+    {
+      "name": "LightGaussian",
+      "path": "D:/3DGS/paper/LightGaussian/2311.17245v6.pdf",
+      "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    }
+  ],
+  "cases": [
+    {
+      "id": "stage4-critique-v26",
+      "taskId": "stage4-3dgs-critique-20261010-v26",
+      "requestId": "stage4-3dgs-critique-20261010-v26-request",
+      "capability": "critique",
+      "scope": "LightGaussian only",
+      "prompt": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？",
+      "checks": [
+        "事实与推断分别引用，数字绑定在所属判断内，缺证据时不伪造",
+        "剪枝、SH和VQ各有实质性且有依据的回应，不靠删除失败项通过",
+        "数字精度、实验条件和基线正确；训练采样不冒充泛化硬边界",
+        "摘要保留压缩、速度及质量取舍，来源与过程默认折叠",
+        "排序或分位归一化参考不改称全局最大值，不把蒸馏误称降阶本身"
+      ]
+    }
+  ],
+  "executionRules": [
+    "用户已统一授权当前重构必要复测；本批仍限定一个固定案例，仅提交一次并保存结果",
+    "执行前核对实际Provider域名、模型及运行源码；未核对不得发送",
+    "仅一次提交，独占attempt并保存原始响应、收据和任务，不自动重试",
+    "批判可能包含多个内部初始请求，案例数不等于请求数",
+    "不重跑比较、解释或翻译，不启用外部搜索",
+    "离线回放及人工受控样例不替代真实质量证据"
+  ],
+  "authorizedAt": "2026-10-10T21:28:46.45079+08:00",
+  "providerVerification": {
+    "origin": "https://api.deepseek.com",
+    "model": "deepseek-v4-pro",
+    "runningSince": "2026-10-10T13:28:18.362596393Z",
+    "sourceHashes": {
+      "conversation_capability_service.py": "3e63dadd8cbf06df64d1210909c66c7234eeec90b14eb71c3926d39f87e3954e",
+      "grounded_numeric_rendering.py": "e88ddeab736291b88c58a46afff71a66d04ee6f31445ea59e274118f217d504f",
+      "grounded_critique.py": "438e54e2c5652700ec2b1b98678e7a00c6d8aecd6fc835ca775af73605c37670"
+    }
+  },
+  "totalCasesConsumed": 40,
+  "actualStatus": "succeeded",
+  "partial": false
+}

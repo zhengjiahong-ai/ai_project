@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-13",
+  "scope": "single-instance coordinated offline backup and isolated restore",
+  "sourceCommit": "14ad3f8",
+  "rawEvidenceDirectory": "tmp/dr-deployment-drill-20261013",
+  "backupFiles": 16,
+  "research": {
+    "runsBeforeAndAfter": 33,
+    "callsBeforeAndAfter": 971,
+    "runContentHash": "7e04d4b14f0498fff73a1f708e06477e8c85de5477d18bd0cd9de6b7eec5188c",
+    "ledgerHash": "0a5b47c886ec9592f2a86524f1a9bc075e70c4a34139e53da77355907a0bf3b5",
+    "cachedSourceHash": "90581a1b767a48b36dcdd8a2936d67aa2520401a202923d2ecf915d5d7bd72a1",
+    "cachedSourceBytes": 5403959,
+    "matchesBackup": true
+  },
+  "javaApi": {
+    "taskId": "dr-live-d2-20261012",
+    "snapshotEquality": ["before", "original-restarted", "restored"],
+    "papers": 2,
+    "notes": 0,
+    "messages": 8,
+    "artifacts": 16,
+    "researchRuns": 15,
+    "paperFileHashesMatchFrozenManifest": true,
+    "reportFingerprintUnchanged": true
+  },
+  "restoredIndex": {"light": 55, "original": 82, "scaffold": 57, "four_d": 56, "totalIncludingOtherIdentities": 363},
+  "rollback": {
+    "newEngineEnabled": false,
+    "externalAcademic": false,
+    "fulltext": false,
+    "newRunHttpStatus": 503,
+    "publicationSyncHttpStatuses": [200, 200],
+    "messagesAndArtifactsUnchanged": true,
+    "additionalModelCalls": 0
+  },
+  "setupIssuesCorrected": ["WAL shared-memory creation requires writable mount despite read-only SQL connection", "explicit Chroma and fulltext paths required", "internal Docker network did not publish host port on this machine"],
+  "limitations": ["representative Java task checked, not every UI path", "nonempty note editing not covered by this task", "not a live research quality pass", "not production or multi-instance acceptance"]
+}

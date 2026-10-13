@@ -1,0 +1,54 @@
+{
+  "runId": "dr_run_fd3af380a6845fcc81f008542a45b2ec",
+  "revision": "4986dde",
+  "promptVersion": "dr-v2.20261013.45",
+  "status": "completed",
+  "outcome": "partial",
+  "qualityAccepted": false,
+  "modelCalls": 8,
+  "tokens": 14387,
+  "elapsedSeconds": 44.285,
+  "externalSearches": 2,
+  "fulltextFetches": 1,
+  "arxivId": "2310.08528v3",
+  "versionId": "arxiv:2310.08528v3",
+  "accessLevel": "fulltext",
+  "contentHash": "3ed48987c72be26fe59778e382c145599a55f97456ea9a1e2711035a673264d6",
+  "failure": "Answer explains only a high-level encoder function, omits decoder division and explicit access-level statement. Fulltext transport does not establish content quality.",
+  "diagnosis": "Repeated discovery of the same version relabeled the first query's passages instead of selecting passages for the second obligation.",
+  "fix": "Cache acquired material by version, select pages for each question, merge only genuinely overlapping source IDs, and fetch once. Use question terms for local page selection, falling back to translated discovery query when no English terms exist.",
+  "offlineReplay": {
+    "previousSharedPages": [
+      11,
+      2,
+      4
+    ],
+    "encoderPages": [
+      4,
+      2,
+      7
+    ],
+    "decoderPages": [
+      4,
+      2,
+      3
+    ],
+    "modelCalls": 0
+  },
+  "tests": {
+    "externalAndGraphPassed": 39,
+    "seconds": 24.28,
+    "warnings": 2,
+    "finalExternalPassed": 18,
+    "finalSeconds": 5.12
+  },
+  "holdoutConsumedForDiagnosis": true,
+  "replacementIndependentCaseRequired": true,
+  "newRuntimeLoaded": false,
+  "rawResultReceipt": "tmp/dr-acceptance-receipts/H3-v1.result.json",
+  "cachedPdfVerification": {
+    "bytes": 4431798,
+    "hashMatches": true,
+    "pdfHeader": true
+  }
+}

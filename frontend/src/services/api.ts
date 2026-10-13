@@ -26,6 +26,17 @@ export interface ChatResponse {
   };
 }
 
+export interface TaskChatRequest {
+  message: string;
+  taskId: string;
+  allowedPaperIds: string[];
+  primaryPaperId: string | null;
+  strictScope: boolean;
+  history?: ChatMessage[];
+  paperSkeleton?: PaperSkeleton | null;
+  activityId?: string;
+}
+
 export interface UploadResponse {
   status: string;
   pdfId: string;
@@ -38,6 +49,11 @@ export interface UploadResponse {
   paper_structure?: Record<string, unknown>;
   message?: string;
   authors?: string[];
+  readingReady?: boolean;
+  questionReady?: boolean;
+  processingStatus?: string;
+  aiAnalysisStatus?: string;
+  processingError?: string;
 }
 
 export interface CriticalReadingResponse {
@@ -148,9 +164,11 @@ export interface ApiClient extends AxiosInstance {
 
 export interface ApiService {
   uploadPdf: (file: File) => Promise<UploadResponse>;
+  uploadTaskMaterial: (file: File, signal?: AbortSignal) => Promise<UploadResponse>;
   sendMessage: (message: string, pdfId: string | null, history: ChatMessage[], paperSkeleton: PaperSkeleton | null, signal?: AbortSignal | null) => Promise<ChatResponse>;
-  criticalReading: (pdfId: string) => Promise<CriticalReadingResponse>;
-  backgroundKnowledge: (params: BackgroundKnowledgeRequest) => Promise<unknown>;
+  sendTaskMessage: (request: TaskChatRequest, signal?: AbortSignal | null) => Promise<ChatResponse>;
+  criticalReading: (pdfId: string, signal?: AbortSignal | null) => Promise<CriticalReadingResponse>;
+  backgroundKnowledge: (params: BackgroundKnowledgeRequest, signal?: AbortSignal | null) => Promise<unknown>;
   startSocraticSession: (pdfId: string, paperSkeleton: Record<string, unknown> | null, readingProgress: Record<string, unknown>) => Promise<unknown>;
   answerSocraticSession: (pdfId: string, paperSkeleton: Record<string, unknown> | null, readingProgress: Record<string, unknown>, currentIndex: number, currentQuestion: string, userAnswer: string, turns?: Record<string, unknown>[]) => Promise<unknown>;
   translatePage: (pdfId: string, pageIndex: number, pageText: string, paperSkeleton: Record<string, unknown> | null, pageLayout: Record<string, unknown> | null, options?: TranslatePageOptions) => Promise<unknown>;
@@ -283,6 +301,16 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
     });
   },
 
+  uploadTaskMaterial: async (file, signal) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return client.post('/materials/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+      signal,
+    });
+  },
+
   uploadCodeExecutionArtifact: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -317,6 +345,22 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
       },
       signal ? { signal } : {},
     ),
+
+  sendTaskMessage: async (request, signal = undefined) => client.post(
+    '/chat',
+    {
+      message: request.message,
+      taskId: request.taskId,
+      allowedPaperIds: [...request.allowedPaperIds],
+      primaryPaperId: request.primaryPaperId,
+      strictScope: request.strictScope,
+      pdfId: request.primaryPaperId,
+      history: request.history ?? [],
+      ...(request.paperSkeleton ? { paperSkeleton: request.paperSkeleton } : {}),
+      ...(request.activityId ? { activityId: request.activityId } : {}),
+    },
+    signal ? { signal } : {},
+  ),
 
   getChatHistory: async (sessionId) => client.get(`/chat/history/${encodeURIComponent(sessionId)}`),
 
@@ -603,7 +647,7 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
       turns,
     }),
 
-  criticalReading: async (pdfId) => client.post(`/critical-reading/${encodeURIComponent(pdfId)}`),
+  criticalReading: async (pdfId, signal = undefined) => client.post(`/critical-reading/${encodeURIComponent(pdfId)}`, undefined, signal ? { signal } : {}),
 
   backgroundKnowledge: async ({
     pdfId,
@@ -613,7 +657,7 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
     user_knowledge_level = '普通/一般',
     reader_profile = null,
     behavior_signals = null,
-  }) =>
+  }, signal = undefined) =>
     client.post('/background-knowledge', {
       pdfId,
       paperSkeleton,
@@ -622,7 +666,7 @@ export const createApiService = (client: ApiClient, agentFallbackClient: ApiClie
       user_knowledge_level,
       reader_profile,
       behavior_signals,
-    }),
+    }, signal ? { signal } : {}),
 
   translatePage: async (pdfId, pageIndex, pageText, paperSkeleton = null, pageLayout = null, options: TranslatePageOptions = {}) => {
     const timeoutMs = Number(options?.timeoutMs) > 0 ? Number(options.timeoutMs) : 90000;

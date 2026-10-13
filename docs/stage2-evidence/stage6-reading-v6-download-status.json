@@ -1,0 +1,27 @@
+{
+  "scope": "Actual v6 UI HTML download attempts; no new file observed in known Downloads location",
+  "checkedAt": "2026-10-09T10:45:39.9950252+00:00",
+  "downloadEventObserved": false,
+  "eventTimeoutMs": 12000,
+  "uiDownloadAttempts": 2,
+  "newFileObserved": false,
+  "matchingFiles": [
+    {
+      "Name": "LightGaussian_ Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文 (2).html",
+      "Length": 1606549,
+      "LastWriteTimeUtc": "2026-10-09T08:49:46.0610619Z"
+    },
+    {
+      "Name": "LightGaussian_ Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文 (1).html",
+      "Length": 1606549,
+      "LastWriteTimeUtc": "2026-10-09T02:10:02.1350766Z"
+    },
+    {
+      "Name": "LightGaussian_ Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS · 第 4 页译文.html",
+      "Length": 1606538,
+      "LastWriteTimeUtc": "2026-10-08T16:51:48.9386688Z"
+    }
+  ],
+  "providerCalls": 0,
+  "independentExportAccepted": false
+}

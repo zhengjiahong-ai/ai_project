@@ -1,0 +1,34 @@
+{
+  "body": "部分分析\n\n推断：在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为Mip-NeRF 360 Datasets：Ours Size压缩17.378倍。（NVIDIA A6000 GPU，Ours相对基线3D-GS * [16]） [1] [2] [3]\n\nLightGaussian 在两组已测真实大规模场景中的实时渲染帧率分别为Mip-NeRF 360 Datasets：Ours FPS 237和Tank and Temple Datasets：Ours FPS 357；这一帧率仅在论文给出的 A6000 平台和对应测试设置下成立。（NVIDIA A6000 GPU，模型Ours） [1] [2] [3]\n\n推断：与同硬件重新训练的 3D-GS* 相比，LightGaussian 的 PSNR、SSIM 略低、LPIPS 略高，说明压缩伴随轻微质量代价。 [1]\n\n尚待确认\n补充结论\n待核查问题\n原文依据",
+  "folds": [
+    {
+      "open": false,
+      "title": "历史版本（0）"
+    },
+    {
+      "open": false,
+      "title": "整理成果"
+    },
+    {
+      "open": false,
+      "title": "材料来源（4）"
+    },
+    {
+      "open": false,
+      "title": "尚待确认"
+    },
+    {
+      "open": false,
+      "title": "补充结论"
+    },
+    {
+      "open": false,
+      "title": "待核查问题"
+    },
+    {
+      "open": false,
+      "title": "原文依据"
+    }
+  ],
+  "url": "http://localhost:5173/?unified=1"
+}

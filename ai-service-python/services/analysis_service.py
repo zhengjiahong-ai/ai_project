@@ -1,3 +1,4 @@
+import asyncio
 import os
 import shutil
 import tempfile
@@ -231,14 +232,21 @@ def _build_full_paper_context(parsed_sections, abstract: str = "") -> str:
     return context
 
 
-async def analyze_pdf(file: UploadFile) -> dict[str, Any]:
+async def analyze_pdf(file: UploadFile, *, include_ai_analysis: bool = True) -> dict[str, Any]:
+    content = await file.read()
+    return await asyncio.to_thread(_analyze_pdf_bytes, content, file.filename,
+                                   include_ai_analysis=include_ai_analysis)
+
+
+def _analyze_pdf_bytes(content: bytes, filename: str | None, *, include_ai_analysis: bool) -> dict[str, Any]:
+    """Keep synchronous PDF parsing, embedding and model I/O off the ASGI loop."""
     input_dir = tempfile.mkdtemp()
     output_dir = tempfile.mkdtemp()
 
     try:
         file_path = os.path.join(input_dir, "target_paper.pdf")
         with open(file_path, "wb") as buffer:
-            buffer.write(await file.read())
+            buffer.write(content)
 
         pdf_stats = _extract_pdf_text_stats(file_path)
 
@@ -258,11 +266,14 @@ async def analyze_pdf(file: UploadFile) -> dict[str, Any]:
                 tei_text_char_count=0,
             )
             if diagnostics["parseStatus"] == PARSE_STATUS_SCANNED_OR_LOW_TEXT:
-                return _build_low_text_upload_response(file.filename or "uploaded.pdf", pdf_stats)
+                response = _build_low_text_upload_response(filename or "uploaded.pdf", pdf_stats)
+                response.update({"readingReady": True, "questionReady": False,
+                                 "aiAnalysisStatus": "unavailable"})
+                return response
             raise RuntimeError("GROBID did not produce a TEI XML file.")
 
         tei_file = os.path.join(output_dir, xml_files[0])
-        parsed_sections = parse_tei_xml(tei_file)
+        parsed_sections = parse_tei_xml(tei_file, file_path)
         tei_text_char_count = sum(
             _count_non_whitespace_characters(section.get("content", ""))
             for section in parsed_sections
@@ -308,7 +319,10 @@ async def analyze_pdf(file: UploadFile) -> dict[str, Any]:
         )
 
         paper_structure: dict[str, Any] = {}
-        if combined_context:
+        if not include_ai_analysis:
+            section_summaries = {}
+            paper_structure = {"outlineVersion": outline_version, "sections": section_outline}
+        elif combined_context:
             summary_prompt = f"""
 You are a rigorous paper reader.
 Summarize each paper section below in concise Chinese.
@@ -363,8 +377,8 @@ Paper context:
                 "sections": section_outline,
             }
 
-        clean_pdf_id = normalize_id(file.filename)
-        title = _extract_title(parsed_sections, file.filename)
+        clean_pdf_id = normalize_id(filename)
+        title = _extract_title(parsed_sections, filename)
         authors = _extract_authors(parsed_sections)
         rag_indexed = True
         rag_message = None
@@ -408,6 +422,12 @@ Paper context:
             "ragIndexed": rag_indexed,
             "ragChunkCount": rag_chunk_count,
             "parseStatus": parse_diagnostics["parseStatus"],
+            "readingReady": True,
+            "questionReady": rag_indexed,
+            "aiAnalysisStatus": (
+                "not_requested" if not include_ai_analysis else
+                "failed" if paper_structure.get("error") else "completed"
+            ),
         }
         if parse_diagnostics.get("parseMessage"):
             response["parseMessage"] = parse_diagnostics["parseMessage"]
@@ -457,6 +477,17 @@ def _build_inline_documents(paper_content: str) -> list[dict[str, Any]]:
         })
     return normalize_evidence_items(documents, source_type="current_paper", max_text_chars=1800)
 
+def _assert_analysis_scope(items: list[dict[str, Any]], pdf_id: str) -> None:
+    """Check original identities before normalization assigns the caller's ID."""
+    expected = normalize_id(pdf_id)
+    for item in items:
+        metadata = item.get('metadata') or {}
+        identities = [item.get('pdfId'), item.get('pdf_id'),
+                      metadata.get('pdfId'), metadata.get('pdf_id'), metadata.get('id')]
+        if any(value and normalize_id(value) != expected for value in identities):
+            raise ValueError('批判检索返回了指定论文之外的证据')
+
+
 def _load_analysis_source(request: DeepAnalysisRequest) -> tuple[list[dict[str, Any]], str, str | None, str]:
     with trace_step(
         "load_analysis_source",
@@ -481,6 +512,7 @@ def _load_analysis_source(request: DeepAnalysisRequest) -> tuple[list[dict[str, 
                     RAG_INDEX_UNAVAILABLE_ERROR_CODE,
                 )
             raw_documents = rag.get_documents_by_metadata({"id": normalized_id}, limit=400)
+            _assert_analysis_scope(raw_documents, normalized_id)
             documents = normalize_evidence_items(
                 raw_documents,
                 source_type="current_paper",
@@ -514,7 +546,7 @@ def _build_axis_query(query_plan: dict[str, Any], axis: dict[str, Any]) -> str:
     刻意不把 keywords 全拼进去：向量检索要的是简洁自然查询，堆词会稀释语义；
     精确术语召回交给 BM25 那一路（HybridRetriever 内部已按论文分片建索引）。
     """
-    for candidate in (query_plan.get("rewritten"), query_plan.get("original"), axis.get("question")):
+    for candidate in (query_plan.get("retrieval"), query_plan.get("rewritten"), query_plan.get("original"), axis.get("question")):
         query = " ".join(str(candidate or "").split())
         if query:
             return query[:300]
@@ -540,10 +572,16 @@ def _build_axis_query_plan(axis: dict[str, Any]) -> dict[str, Any]:
 
     keywords 直接用轴自带的 seed_terms（本来就是常量）。下游 _normalize_terms 与
     _build_axis_terms 都会去重，所以与调用点里已有的 seed_terms 拼接不会重复计分，
-    query_plan 的字段形状也与 LLM 版逐键一致。
+    保留旧计划字段，retrieval 额外记录实际检索式，关注问题仍完整留在 original/rewritten。
     """
     question = " ".join(str(axis.get("question") or "").split())
     retrieval_question = " ".join(str(axis.get("retrieval_question") or "").split())
+    focus = " ".join(str(axis.get("focus_question") or "").split())
+    if focus:
+        question = focus + "；" + question
+        retrieval_question = focus + " " + retrieval_question
+    from services.focused_evidence import focus_groups
+    local_terms = list(dict.fromkeys(term for group in focus_groups(focus) for term in group))
     keywords = [
         " ".join(str(term or "").split())
         for term in (axis.get("seed_terms") or [])
@@ -552,6 +590,7 @@ def _build_axis_query_plan(axis: dict[str, Any]) -> dict[str, Any]:
     return {
         "original": question,
         "rewritten": retrieval_question or question,
+        "retrieval": ' '.join([str(axis.get('retrieval_question') or ''), *local_terms]).strip() or retrieval_question or question,
         "keywords": keywords,
         "taskType": "critical",
         "source": "axis-fixed",
@@ -568,7 +607,7 @@ def _retrieve_axis_evidence(
     """按轴取证据。
 
     有 pdf_id 时走真检索：HybridRetriever 的向量 + BM25 + 融合，按论文分片建索引，
-    中文轴问题会被自动改写成英文，similarity 是真实余弦。
+    使用确定性英文轴问题与本地主题提示，不调用查询翻译模型；similarity 是真实余弦。
 
     旧实现在预加载的 documents 上做子串计数，similarity 由 0.42 + coverage*0.4 合成，
     既不反映语义相关性，也让“轴问题中文 × 论文英文”这个组合恒零命中：
@@ -594,7 +633,9 @@ def _retrieve_axis_evidence(
                 query,
                 top_k=ANALYSIS_RETRIEVAL_TOP_K,
                 filter_metadata={"id": pdf_id},
+                allow_query_rewrite=False,
             )
+            _assert_analysis_scope([*retrieved, *documents], pdf_id)
             # 先全量归一化、再按章节挑：归一化时就截断等于把 BM25 追加在后半段的
             # 补召回又砍掉，那就回到改动前的行为了。所以这里不传 limit。
             normalized = normalize_evidence_items(
@@ -603,8 +644,12 @@ def _retrieve_axis_evidence(
                 pdf_id=pdf_id,
                 max_text_chars=ANALYSIS_EVIDENCE_MAX_TEXT_CHARS,
             )
-            evidence = select_section_diverse_evidence(
+            from services.focused_evidence import select_focused_evidence
+            evidence = select_focused_evidence(
                 normalized,
+                documents,
+                axis.get('focus_question') or '',
+                axis.get('key'),
                 limit=limit,
                 # 在调用时读本模块常量，而不是把它当默认参数绑到公共函数上：
                 # 运行期配置与测试补丁（patch.object ANALYSIS_AXIS_SECTION_CAP）才能生效。
@@ -746,7 +791,7 @@ def _analyze_axis(
         "evidence": evidence,
     }
 
-def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
+def deep_analysis(request: DeepAnalysisRequest, *, grounded: bool = False) -> dict[str, Any]:
     trace_id = start_trace(
         "critical",
         request_meta={
@@ -759,13 +804,35 @@ def deep_analysis(request: DeepAnalysisRequest) -> dict[str, Any]:
         analysis_context = _build_analysis_context(documents)
         axis_results = [
             _analyze_axis(
-                axis_config,
+                {**axis_config, "focus_question": request.focus_question} if request.focus_question else axis_config,
                 documents,
                 pdf_id=normalized_id,
             )
             for axis_config in ANALYSIS_AXIS_CONFIGS
         ]
-        report = _generate_structured_critical_report(axis_results, analysis_context or paper_content[:2400], resolved_from)
+        if grounded:
+            from rag.store import normalize_id
+            from services.grounded_critique import synthesize_critique
+            from services.focused_evidence import select_critique_evidence
+            # Select before synthesis. Taking the first ten from ordered axes
+            # otherwise fills the budget with contributions/methods and drops results.
+            pool = _merge_evidence_lists(*[axis.get('evidence') or [] for axis in axis_results])
+            if not normalized_id or any(normalize_id(source.get('pdfId') or (source.get('metadata') or {}).get('id')) != normalized_id
+                                        for source in pool) or any(normalize_id((document.get('metadata') or {}).get('id')) != normalized_id
+                                                                   for document in documents):
+                raise ValueError('批判证据不属于指定论文，已停止生成。')
+            corpus = normalize_evidence_items(documents, pdf_id=normalized_id, max_text_chars=ANALYSIS_EVIDENCE_MAX_TEXT_CHARS)
+            response_sources = select_critique_evidence(pool, corpus, request.focus_question or '整体批判阅读',
+                                                        limit=ANALYSIS_RESPONSE_SOURCE_LIMIT)
+            response = synthesize_critique(request.focus_question or '整体批判阅读', response_sources, allow_partial=True)
+            record_metric('axisCount', len(axis_results))
+            record_metric('responseSources', len(response['rag_sources']))
+            record_metric('literalFindings', len(response['groundedClaims']))
+            finalize_trace('success', response_meta={'resolvedFrom': resolved_from, 'grounded': True})
+            return {**response, 'resolved_from': resolved_from, 'pdf_id': normalized_id, 'traceId': trace_id}
+        report = _generate_structured_critical_report(
+            axis_results, analysis_context or paper_content[:2400], resolved_from,
+            **({"focus_question": request.focus_question} if request.focus_question else {}))
         claims = _build_claim_support_items(report, axis_results, use_llm=True)
         assessment = _build_contribution_assessment(report, claims, axis_results)
         response_sources = _collect_response_sources(axis_results, claims)

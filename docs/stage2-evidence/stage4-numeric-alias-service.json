@@ -1,0 +1,20 @@
+{
+  "statusCode": 200,
+  "body": {
+    "status": "ok",
+    "checks": {
+      "grobid": {
+        "status": "ok",
+        "message": "GROBID is reachable."
+      },
+      "rag": {
+        "status": "ok",
+        "message": "RAG backend is ready."
+      }
+    },
+    "uptime_seconds": 30.4
+  },
+  "commit": "2754a1f",
+  "providerCalls": 0,
+  "restartSucceeded": true
+}

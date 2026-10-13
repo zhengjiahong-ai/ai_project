@@ -1,0 +1,22 @@
+{
+  "runId": "dr_run_2611559f6a835e108fafa3cb0af4d1c2",
+  "revision": "b464ff4",
+  "promptVersion": "dr-v2.20261013.33",
+  "status": "completed",
+  "outcome": "partial",
+  "qualityAccepted": false,
+  "actualModelCalls": 13,
+  "actualTokens": 68588,
+  "elapsedSeconds": 239,
+  "findings": [
+    "All eight prospective claims now include designRole; data and analysis executionSpec fields are present.",
+    "Data replication was the exact string fixed_checkpoint instead of the object {mode:fixed_checkpoint}, in both synthesis and repair; structural rejection prevented semantic checking of that data proposal.",
+    "The pruning criterion still uses an unassigned epsilon_alpha. The semantic verifier incorrectly accepted the groups claim; this is an unresolved quality failure.",
+    "Limits were emitted as inference claims, with missing evidence or unestablished absence; not a valid complete design.",
+    "Scene selection, view splitting and small-sample interpretation require further independent review."
+  ],
+  "formatFix": "Normalize only the two exact supported replication enum strings into their equivalent mode objects. Unknown spellings and malformed values remain invalid; preserve original prose and scientific checks.",
+  "offlineReplay": {"claimId": "c4", "beforeErrors": ["replication"], "afterErrors": [], "originalProsePreserved": true, "modelCalls": 0},
+  "targetedTests": {"passed": 114, "seconds": 7.51},
+  "liveValidationOfFix": "pending"
+}

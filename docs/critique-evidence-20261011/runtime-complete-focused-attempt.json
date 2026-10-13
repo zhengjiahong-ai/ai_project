@@ -1,0 +1,22 @@
+{
+  "payload": {
+    "requestId": "critique-final-complete-focused",
+    "kind": "conversation.execute",
+    "input": {
+      "expectedTaskRevision": 3,
+      "message": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+      "displayText": "/批判 只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+      "capability": "critique",
+      "allowedPaperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+      ],
+      "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+      "strictScope": false,
+      "targetPaperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ]
+    }
+  },
+  "submittedOnce": true
+}

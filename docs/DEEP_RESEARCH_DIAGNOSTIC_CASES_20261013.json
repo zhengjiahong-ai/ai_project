@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "frozenAt": "2026-10-13",
+  "budgetProfile": "standard",
+  "materials": {
+    "scaffold": {
+      "path": "D:/3DGS/paper/Scaffold-GS/2312.00109v1.pdf",
+      "sha256": "10be967d56b17a216c37f2d9b9566b73a22fc1c13a278094b679397747a1b96c"
+    }
+  },
+  "cases": [
+    {
+      "id": "D7",
+      "split": "development",
+      "materials": [
+        "scaffold"
+      ],
+      "kind": "claim_verification",
+      "policy": "task_only",
+      "question": "Scaffold-GS怎样根据视角组织高斯？只依据本篇，说明anchor、神经高斯及视角条件的关系，并指出这能否证明所有新视角都无误差。300字以内。",
+      "required": [
+        "稀疏anchor组织局部神经高斯",
+        "视锥内按方向与距离预测属性",
+        "不将实验证据泛化成无误差保证"
+      ],
+      "anchors": [
+        {
+          "page": 1,
+          "label": "Abstract与Figure 1"
+        }
+      ],
+      "derivedFrom": "H1",
+      "purpose": "Verify mechanism condition retention and final answer completeness; not an independent holdout"
+    }
+  ],
+  "rule": "H1 has already been used for diagnosis. D7 is a development regression only; it cannot replace independent held-out acceptance."
+}

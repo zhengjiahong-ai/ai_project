@@ -1,0 +1,17 @@
+{
+  "scope": "One existing public verification PDF index refreshed; no task/receipt/cache migration",
+  "providerCalls": 0,
+  "taskWrites": 0,
+  "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "oldChunkCount": 37,
+  "newChunkCount": 55,
+  "allIndexCount": 662,
+  "backupFile": "stage4-light-index-v7-backup.json",
+  "backupSha256": "4a746511f511302ae6eae02742a87265726f71166f40043756aa5ecb12f87e50",
+  "indexVersions": [
+    "2977684d0da4a8b6"
+  ],
+  "tableChunkCount": 18,
+  "otherPapersBeforeHash": "839caac3e3644fd0c771c2ad3036415262411cc4b1201b5b55b64d7e3d551959",
+  "otherPapersAfterHash": "839caac3e3644fd0c771c2ad3036415262411cc4b1201b5b55b64d7e3d551959"
+}

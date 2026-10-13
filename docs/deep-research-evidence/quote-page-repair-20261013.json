@@ -1,0 +1,94 @@
+{
+  "runId": "dr_run_dc936f3dc4d15f07b50be8047fa0ec32",
+  "modelCalls": 0,
+  "historicalPayloadUnchanged": true,
+  "rows": [
+    {
+      "evidenceId": "ev_4a538a0f01ae020511ea41d4dfb8fcef1de2a35044a5035283d53ae1d9f15c6f",
+      "oldLocation": {
+        "page": 1,
+        "chunk": 2,
+        "section": "Introduction"
+      },
+      "resolvedLocation": {
+        "chunk": 2,
+        "section": "Introduction",
+        "page": 2,
+        "pageIndex": 1,
+        "pageResolution": "exact"
+      }
+    },
+    {
+      "evidenceId": "ev_c5296a7bbb098d94dc822dadcbff1cf4af51d5a1e6c0e88e28a0a96ec35e8bc4",
+      "oldLocation": {
+        "page": 1,
+        "chunk": 3,
+        "section": "Introduction"
+      },
+      "resolvedLocation": {
+        "chunk": 3,
+        "section": "Introduction",
+        "page": 2,
+        "pageIndex": 1,
+        "pageResolution": "exact"
+      }
+    },
+    {
+      "evidenceId": "ev_8ab492383f01ffda3f8e5048e7d08f58829a970494bd65f5340391df84630f03",
+      "oldLocation": {
+        "page": 9,
+        "chunk": 37,
+        "section": "Conclusion"
+      },
+      "resolvedLocation": {
+        "chunk": 37,
+        "section": "Conclusion",
+        "page": 9,
+        "pageIndex": 8,
+        "pageResolution": "exact"
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "change": "Physical PDF quotation page resolution for new task-paper evidence",
+  "promptVersion": "dr-v2.20261013.12",
+  "verificationScope": "Offline replay only; does not change H1 failed acceptance outcome",
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "delivered": [
+      "quote_pages.py",
+      "test_deep_research_quote_pages.py"
+    ],
+    "reviewAdjustments": [
+      "Preserve number hyphens and word boundaries",
+      "Handle PDF inline punctuation spacing"
+    ],
+    "patchSha256": "82410ae0d65af81cc4fed6367035d7e77cf5eb7fa7fa9af76ffba2075158e5b7"
+  },
+  "remaining": [
+    "H1 response still omits frustum, relative direction and distance; needs new independent held-out case",
+    "Real model acceptance for remaining design gates not completed"
+  ],
+  "validation": {
+    "pythonResearchRegression": {
+      "passed": 375,
+      "seconds": 60.07
+    },
+    "frontendCitationTests": {
+      "passed": 6
+    },
+    "frontendTypecheck": "passed",
+    "runtimeLoaded": true,
+    "runtimeHealth": {
+      "httpStatus": 200,
+      "status": "ok",
+      "grobid": "ok",
+      "rag": "ok",
+      "activeRunsBeforeRestart": 0
+    }
+  },
+  "commits": {
+    "backend": "02985d5",
+    "frontend": "e75f974"
+  }
+}

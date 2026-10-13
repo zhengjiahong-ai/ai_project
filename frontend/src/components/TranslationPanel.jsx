@@ -5,6 +5,7 @@ import { buildTranslationArtifact } from './artifactModel.ts';
 import MarkdownContent from './MarkdownContent';
 import { createTranslationPanelViewModel } from './translationPanelModel.js';
 import { buildFidelityTranslationLayout } from '../utils/pdfTranslationLayout.js';
+import PanoramicTranslation from './PanoramicTranslation';
 
 const ROLE_CLASS_NAMES = {
   title: 'text-center',
@@ -343,7 +344,7 @@ const TranslationFidelityStage = ({ pageLayout, translatedBlocks, resetKey }) =>
   );
 };
 
-const TranslationPanel = ({ pdfId, pdfFileName, currentPage = 0, pageData = null, onRetry, onCaptureArtifact }) => {
+const TranslationPanel = ({ pdfId, pdfFileName, fileUrl, currentPage = 0, pageData = null, onRetry, onCancel, onCaptureArtifact, savedArtifactId, onOpenArtifact }) => {
   const pageNumber = Number.isFinite(currentPage) ? currentPage + 1 : 1;
   const status = pageData?.status || 'idle';
   const translatedText = pageData?.translatedText || '';
@@ -356,11 +357,36 @@ const TranslationPanel = ({ pdfId, pdfFileName, currentPage = 0, pageData = null
     canRenderStructuredFallback,
     canRenderPlainColumnFallback,
     shouldShowPlainTranslation,
+    panoramicArtifactText,
+    mathNotice,
   } = viewModel;
+  const artifactText = fileUrl ? panoramicArtifactText : translatedText;
   const translationArtifact = useMemo(
-    () => buildTranslationArtifact({ pdfId, pdfFileName, pageIndex: currentPage, translatedText }),
-    [currentPage, pdfFileName, pdfId, translatedText],
+    () => buildTranslationArtifact({ pdfId, pdfFileName, pageIndex: currentPage, translatedText: artifactText, status, warning: pageData?.warning }),
+    [currentPage, pdfFileName, pdfId, artifactText, status, pageData?.warning],
   );
+
+  const contentKey = JSON.stringify([pdfId, currentPage, artifactText]);
+  const currentContentRef = useRef(contentKey);
+  currentContentRef.current = contentKey;
+  const savingRef = useRef(new Set());
+  const [saveState, setSaveState] = useState({ key: contentKey, status: 'idle', artifactId: null, error: '' });
+  const currentSave = saveState.key === contentKey ? saveState : { status: savingRef.current.has(contentKey) ? 'saving' : 'idle' };
+  const savedId = savedArtifactId || currentSave.artifactId;
+  const isSaved = Boolean(savedId) || currentSave.status === 'saved';
+  const handleSave = async () => {
+    if (savedId && onOpenArtifact) { onOpenArtifact(savedId); return; }
+    if (!translationArtifact || !onCaptureArtifact || isSaved || savingRef.current.has(contentKey)) return;
+    const key = contentKey;
+    savingRef.current.add(key);
+    setSaveState({ key, status: 'saving', artifactId: null, error: '' });
+    try {
+      const result = await onCaptureArtifact(translationArtifact);
+      if (currentContentRef.current === key) setSaveState({ key, status: 'saved', artifactId: typeof result === 'string' ? result : result?.artifactId || result?.id || null, error: '' });
+    } catch (error) {
+      if (currentContentRef.current === key) setSaveState({ key, status: 'error', artifactId: null, error: error?.message || '保存失败，译文仍保留。' });
+    } finally { savingRef.current.delete(key); }
+  };
 
   return (
     <div className="theme-panel-muted flex h-full flex-col">
@@ -376,32 +402,37 @@ const TranslationPanel = ({ pdfId, pdfFileName, currentPage = 0, pageData = null
         <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             type="button"
-            onClick={() => translationArtifact && onCaptureArtifact?.(translationArtifact)}
-            disabled={status !== 'success' || !translationArtifact || !onCaptureArtifact}
+            onClick={handleSave}
+            disabled={currentSave.status === 'saving' || (isSaved ? !(savedId && onOpenArtifact) : !['success', 'partial'].includes(status) || !translationArtifact || !onCaptureArtifact)}
             title={!pdfId ? '请先打开一篇论文。' : !translationArtifact ? '当前页译文尚未生成。' : '保存当前页译文'}
             className="theme-button-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Archive size={14} />
-            加入工作台
+            {currentSave.status === 'saving' ? '保存中…' : isSaved ? (savedId && onOpenArtifact ? '打开成果' : '已保存') : '保存译文'}
           </button>
-          <button
+          {['success', 'partial'].includes(status) && <details key={contentKey} className="relative"><summary className="theme-button-secondary cursor-pointer rounded-lg px-3 py-1.5 text-sm">更多操作</summary><button type="button" onClick={onRetry} disabled={!onRetry} className="theme-panel theme-border absolute right-0 top-full z-20 mt-1 whitespace-nowrap rounded-lg border p-3 text-sm">重新生成译文</button></details>}
+          {status === 'loading' && onCancel && <button type="button" className="theme-button-secondary rounded-lg px-3 py-1.5 text-sm" onClick={onCancel}>停止翻译</button>}
+          {!['success', 'partial', 'loading', 'idle'].includes(status) && <button
             type="button"
             onClick={onRetry}
-            disabled={status === 'loading'}
+            disabled={status === 'loading' || !onRetry}
             className="theme-button-secondary flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw size={14} />
-            重试翻译
-          </button>
+            {status === 'cancelled' ? '继续翻译' : '重试翻译'}
+          </button>}
         </div>
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto p-6">
+        {currentSave.error && <p role="alert" className="text-sm text-red-500">{currentSave.error}</p>}
+        {status === 'cancelled' && <p role="status" className="theme-text-secondary text-sm">已停止本页翻译。点击“继续翻译”可重新开始。</p>}
+        {status === 'partial' && <p role="status" className="theme-text-secondary text-xs">{pageData?.warning || '部分段落未完成，已保留当前译文；可手动重试。'}</p>}
         {status === 'loading' && (
           <div className="theme-card flex items-center gap-3 rounded-2xl p-5">
             <Loader2 size={18} className="animate-spin text-pixiu" />
             <div>
-              <p className="theme-text-primary text-sm font-semibold">正在生成当前页译文...</p>
+              <p className="theme-text-primary text-sm font-semibold">正在翻译本页…</p>
             </div>
           </div>
         )}
@@ -425,14 +456,17 @@ const TranslationPanel = ({ pdfId, pdfFileName, currentPage = 0, pageData = null
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-pixiu/10">
               <ScrollText size={24} className="text-pixiu" />
             </div>
-            <p className="theme-text-primary text-sm font-semibold">打开全景翻译后，这里会展示当前页的译文。</p>
+            <p className="theme-text-primary text-sm font-semibold">正在准备本页译文…</p>
             <p className="theme-text-secondary mt-2 max-w-xs text-xs leading-relaxed">
-              新版会尽量保持原论文的标题区与双栏结构；图片、图表和表格区域不会显示在译文中。
+              正文译文与原图、表格和公式一起阅读，未完成的段落保留原文。
             </p>
           </div>
         )}
 
-        {canRenderFidelity && (
+        {fileUrl && mathNotice && <p className="theme-text-secondary text-xs">{mathNotice}</p>}
+        {fileUrl && <PanoramicTranslation fileUrl={fileUrl} pageIndex={currentPage} pageData={pageData} />}
+
+        {!fileUrl && canRenderFidelity && (
           <TranslationFidelityStage
             pageLayout={pageData?.pageLayout}
             translatedBlocks={pageData?.translatedBlocks}
@@ -440,13 +474,13 @@ const TranslationPanel = ({ pdfId, pdfFileName, currentPage = 0, pageData = null
           />
         )}
 
-        {canRenderStructuredFallback && <TranslationStructuredStage readableLayout={readableLayout} />}
+        {!fileUrl && canRenderStructuredFallback && <TranslationStructuredStage readableLayout={readableLayout} />}
 
-        {canRenderPlainColumnFallback && (
+        {!fileUrl && canRenderPlainColumnFallback && (
           <TranslationPlainColumnFallbackStage pageLayout={pageData?.pageLayout} translatedText={translatedText} />
         )}
 
-        {shouldShowPlainTranslation && (
+        {!fileUrl && shouldShowPlainTranslation && (
           <div className="theme-card rounded-2xl p-5">
             <div className="theme-text-muted mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
               <Languages size={14} className="text-pixiu" />

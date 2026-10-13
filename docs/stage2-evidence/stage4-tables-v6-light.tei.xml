@@ -1,0 +1,1999 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xml:space="preserve" xmlns="http://www.tei-c.org/ns/1.0" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.tei-c.org/ns/1.0 https://raw.githubusercontent.com/kermitt2/grobid/master/grobid-home/schemas/xsd/Grobid.xsd"
+ xmlns:xlink="http://www.w3.org/1999/xlink">
+	<teiHeader xml:lang="en">
+		<fileDesc>
+			<titleStmt>
+				<title level="a" type="main">LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS</title>
+			</titleStmt>
+			<publicationStmt>
+				<publisher/>
+				<availability status="unknown"><licence/></availability>
+				<date type="published" when="2024-11-12">12 Nov 2024</date>
+			</publicationStmt>
+			<sourceDesc>
+				<biblStruct>
+					<analytic>
+						<author>
+							<persName><forename type="first">Zhiwen</forename><surname>Fan</surname></persName>
+							<email>zhiwenfan@utexas.edu</email>
+							<affiliation key="aff0">
+								<orgName type="institution">The University of Texas at Austin</orgName>
+							</affiliation>
+						</author>
+						<author>
+							<persName><forename type="first">Kevin</forename><surname>Wang</surname></persName>
+							<email>kevinwang.1839@utexas.edu</email>
+							<affiliation key="aff0">
+								<orgName type="institution">The University of Texas at Austin</orgName>
+							</affiliation>
+						</author>
+						<author>
+							<persName><forename type="first">Kairun</forename><surname>Wen</surname></persName>
+							<affiliation key="aff0">
+								<orgName type="institution">The University of Texas at Austin</orgName>
+							</affiliation>
+						</author>
+						<author>
+							<persName><forename type="first">Zehao</forename><surname>Zhu</surname></persName>
+							<affiliation key="aff0">
+								<orgName type="institution">The University of Texas at Austin</orgName>
+							</affiliation>
+						</author>
+						<author>
+							<persName><forename type="first">Dejia</forename><surname>Xu</surname></persName>
+							<affiliation key="aff0">
+								<orgName type="institution">The University of Texas at Austin</orgName>
+							</affiliation>
+						</author>
+						<author>
+							<persName><forename type="first">Zhangyang</forename><surname>Wang</surname></persName>
+							<affiliation key="aff0">
+								<orgName type="institution">The University of Texas at Austin</orgName>
+							</affiliation>
+						</author>
+						<title level="a" type="main">LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS</title>
+					</analytic>
+					<monogr>
+						<imprint>
+							<date type="published" when="2024-11-12">12 Nov 2024</date>
+						</imprint>
+					</monogr>
+					<idno type="MD5">09CB0409304C1ACF16B2C58F29D81561</idno>
+					<idno type="arXiv">arXiv:2311.17245v6[cs.CV]</idno>
+				</biblStruct>
+			</sourceDesc>
+		</fileDesc>
+		<encodingDesc>
+			<appInfo>
+				<application version="0.7.2" ident="GROBID" when="2026-10-09T00:31+0000">
+					<desc>GROBID - A machine learning software for extracting information from scholarly documents</desc>
+					<ref target="https://github.com/kermitt2/grobid"/>
+				</application>
+			</appInfo>
+		</encodingDesc>
+		<profileDesc>
+			<textClass>
+				<keywords>
+					<term>PSNR: 27</term>
+					<term>2 (3D-GS) PSNR: 25</term>
+					<term>3(Opacity prune)</term>
+				</keywords>
+			</textClass>
+			<abstract>
+<div xmlns="http://www.tei-c.org/ns/1.0"><p>Ours (0.5M points, 0.916) 3D-GS (1.4M points,0.917) Figure 1: Compressibility and Speed: LightGaussian compacts 3D Gaussians, reducing storage from 782MB to 45MB and boosting FPS from 144 to 237, while maintaining visual quality.</p></div>
+			</abstract>
+		</profileDesc>
+	</teiHeader>
+	<facsimile>
+		<surface n="1" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="2" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="3" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="4" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="5" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="6" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="7" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="8" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="9" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="10" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="11" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="12" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="13" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="14" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="15" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="16" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="17" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="18" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+		<surface n="19" ulx="0.0" uly="0.0" lrx="612.0" lry="792.0"/>
+	</facsimile>
+	<text xml:lang="en">
+		<body>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="1" coords="1,108.00,653.29,82.81,10.75">Introduction</head><p>Novel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="2" coords="2,108.00,466.97,93.74,10.75">Related Works</head><p>Efficient 3D Scene Representations. Neural radiance fields (NeRF) <ref type="bibr" target="#b4">[5]</ref> use multi-layer perceptrons (MLPs) to represent scenes, setting new standards for view synthesis quality. However, NeRF models face challenges with slow inference speeds, limiting practical use. Efforts to address this have explored ray re-parameterizations <ref type="bibr" target="#b5">[6,</ref><ref type="bibr" target="#b6">7]</ref>, explicit spatial data structures <ref type="bibr">[18-21, 9, 14, 13]</ref>, caching and distillation techniques <ref type="bibr" target="#b14">[15,</ref><ref type="bibr" target="#b22">[22]</ref><ref type="bibr" target="#b23">[23]</ref><ref type="bibr" target="#b24">[24]</ref>, and ray-based representations <ref type="bibr" target="#b25">[25,</ref><ref type="bibr" target="#b26">26]</ref>. Nevertheless, achieving real-time rendering remains challenging for NeRF methods, especially for large-scale scenes where multiple queries per pixel hinder performance.</p><p>Point-based representations, like Gaussians, have been explored in various applications, such as shape reconstruction <ref type="bibr" target="#b27">[27]</ref>, molecular modeling <ref type="bibr" target="#b28">[28]</ref>, and point-cloud replacement <ref type="bibr" target="#b29">[29]</ref>, as well as in shadow <ref type="bibr" target="#b30">[30]</ref> and cloud rendering <ref type="bibr" target="#b31">[31]</ref>. Pulsar <ref type="bibr" target="#b32">[32]</ref> demonstrated efficient sphere rasterization, while 3D Gaussian Splatting (3D-GS) <ref type="bibr" target="#b15">[16]</ref> applies anisotropic Gaussians <ref type="bibr" target="#b33">[33]</ref> with tile-based sorting to achieve real-time speed and quality comparable to MLP-based methods like Mip-NeRF 360 <ref type="bibr" target="#b6">[7]</ref>.</p><p>Despite its strengths, 3D-GS has high storage demands due to the extensive attributes stored with each Gaussian, often requiring gigabytes per scene and hindering rendering efficiency. Recent concurrent works address these issues by using region-based vector quantization <ref type="bibr" target="#b34">[34]</ref>, K-means codebooks <ref type="bibr" target="#b35">[35]</ref>, view-direction exclusion <ref type="bibr" target="#b36">[36]</ref>, or learned binary masks and grid-based neural networks instead of spherical harmonics (SHs) <ref type="bibr" target="#b37">[37]</ref> to reduce model size.</p><p>Pruning and Quantization. Model pruning reduces neural network complexity by removing nonsignificant parameters, balancing performance and resource use. Unstructured <ref type="bibr" target="#b38">[38]</ref> and structured pruning <ref type="bibr" target="#b39">[39,</ref><ref type="bibr" target="#b40">40]</ref> eliminate parameters at the weight level and neuron/channel levels, resulting in a smaller, more efficient architecture. Iterative magnitude pruning (IMP), where low-magnitude weights are progressively removed, has proven effective in methods like lottery ticket rewinding <ref type="bibr" target="#b41">[41,</ref><ref type="bibr" target="#b42">42]</ref>.</p><p>Vector quantization (VQ) <ref type="bibr" target="#b43">[43]</ref> compresses data by representing it with discrete codebook entries (tokens), using mean square error (MSE) to select the closest match in the codebook for each data vector. Prior studies <ref type="bibr" target="#b44">[44]</ref><ref type="bibr" target="#b45">[45]</ref><ref type="bibr" target="#b46">[46]</ref> have shown that learning discrete, compact representations enhances visual understanding and model robustness. VQ has thus been widely applied in image synthesis <ref type="bibr" target="#b47">[47]</ref>, text-to-image generation <ref type="bibr" target="#b48">[48]</ref>, and novel view synthesis <ref type="bibr" target="#b18">[18,</ref><ref type="bibr" target="#b49">49,</ref><ref type="bibr" target="#b50">50]</ref>.</p><p>Knowledge Distillation. Knowledge Distillation (KD) <ref type="bibr" target="#b51">[51]</ref><ref type="bibr" target="#b52">[52]</ref><ref type="bibr" target="#b53">[53]</ref><ref type="bibr" target="#b54">[54]</ref><ref type="bibr" target="#b14">15]</ref> trains a smaller student model by transferring knowledge from a larger teacher model <ref type="bibr" target="#b55">[55]</ref>. In 3D vision, KD has been applied to neural scene representations, leveraging view renderings to incorporate 2D priors. For example, DreamFusion <ref type="bibr" target="#b56">[56]</ref> and NeuralLift-360 <ref type="bibr" target="#b57">[57]</ref> use pre-trained diffusion models for 3D generation, while models like DFF <ref type="bibr" target="#b58">[58]</ref>, NeRF-SOS <ref type="bibr" target="#b59">[59]</ref>, INS <ref type="bibr" target="#b60">[60]</ref>, and SA3D <ref type="bibr" target="#b61">[61]</ref> distill 2D image feature extractors to 3D tasks. KD has also been central to compressing scene representation models <ref type="bibr" target="#b14">[15,</ref><ref type="bibr" target="#b24">24]</ref>.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="3" coords="3,108.00,427.49,62.43,10.75">Methods</head><p>Overview. The LightGaussian framework is illustrated in Fig. <ref type="figure" target="#fig_0">2</ref>. The 3D-GS model is trained on multi-view images, initialized from SfM point clouds, and expanded to millions of Gaussians to represent the scene comprehensively. Our pipeline then processes the 3D-GS model into a compact format using Gaussian Prune and Recovery to reduce the number of Gaussians, SH Distillation to eliminate redundant SHs while retaining key lighting information, and Vector Quantization to store Gaussians with lower bit-width.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="3.1" coords="3,108.00,529.86,176.46,8.96">Background: 3D Gaussian Splatting</head><p>3D Gaussian Splatting (3D-GS) <ref type="bibr" target="#b15">[16]</ref> is an explicit point-based 3D scene representation, utilizing Gaussians with various attributes to model the scene. When representing a complex real-world scene, 3D-GS is initialized from a sparse point cloud generated by SfM, and Gaussian Densification is applied to increase the Gaussian counts that are used for handling small-scale geometry insufficiently covered and over reconstruction. Formally, each Gaussian is characterized by a covariance matrix Σ and a center point X, which is referred to as the mean value of the Gaussian:</p><formula xml:id="formula_0">G(X) = e − 1 2 X T Σ −1 X , Σ = RSS T R T ,<label>(1)</label></formula><p>where Σ can be decomposed into a scaling matrix S and a rotation matrix R.</p><p>The complex directional appearance is modeled by an additional property, Spherical Harmonics (SH), with n coefficients, c i ∈ R 3 |i = 1, 2, . . . , n where n = D 2 represents the number of coefficients of SH with degree D. A higher degree D equips 3D-GS with a better capacity to model the viewdependent effect but causes a significantly heavier attribute load.</p><p>When rendering 2D images from the 3D Gaussians, the technique of splatting <ref type="bibr" target="#b62">[62,</ref><ref type="bibr" target="#b16">17]</ref> is employed for the Gaussians within the camera planes. With a viewing transform denoted as W and the Jacobian of the affine approximation of the projective transformation represented by J , the covariance matrix Σ ′ in camera coordinates can be computed as Σ ′ = J W ΣW T J T . Specifically, for each pixel, the color and opacity of all the Gaussians are computed using the Gaussian's representation Eq. 1. The blending of N ordered points that overlap the pixel is given by the formula:</p><formula xml:id="formula_1">C = i∈N c i α i i−1 j=1 (1 − α i ).<label>(2)</label></formula><p>Here, c i , α i represents the view-dependent color and opacity, calculated from a 2D Gaussian with covariance Σ multiplied by an optimizable per-3D Gaussian's opacity. In summary, each Gaussian point is characterized by attributes including: position X ∈ R 3 , color defined by spherical harmonics coefficients SH ∈ R (k+1) 2 × 3 (where k represents the degrees of freedom), opacity α ∈ R, rotation factor R ∈ R 4 , and scaling factor S ∈ R 3 .</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="3.2" coords="4,108.00,433.67,152.01,8.96">Gaussian Pruning &amp; Recovery</head><p>Gaussian densification <ref type="bibr" target="#b15">[16]</ref>, which clones and refines the initial SfM point cloud, enhances small-scale geometry and detailed scene appearance by improving coverage. While this approach significantly boosts reconstruction quality, it increases the number of Gaussians from thousands to millions after optimization, resulting in substantial storage demands.Inspired by neural network pruning techniques <ref type="bibr" target="#b63">[63]</ref> that remove less impactful neurons while preserving overall performance, we propose a tailored pruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig. <ref type="figure" target="#fig_1">3</ref>.</p><p>Global Significance Calculation. Inspired by Eq. 2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera viewpoint for rendering. The initial significance score of each Gaussian (denoted as G(X j )) can then be quantified based on its contribution to each pixel (ray, r i ) across all training views using the criteria 1(G(X j ), r i ) whether they intersect or not. Consequently, we iterate over all training pixels to calculate the hit count of each Gaussian. The score is further refined by the adjusted 3D Gaussian's volume γ (Σ j ) and 3D Gaussian's opacity σ j , as they all contribute for the rendering formula. The volume calculation equation of the j-th 3D Guassian is V(Σ j ) = 4 3 πabc, where abc are the 3 dimensions of Scale (S). We also consider the transmittance T is calculated with one subtract all the 3D Gaussian's opacity the ray hit before the j-th 3D Gaussian, T = j−1 i=1 (1-σ i ). Finally, the global significance score can be summarized as:</p><formula xml:id="formula_2">GS j = M HW i=1 1(G(X j ), r i ) • σ j • T • γ(Σ j ),<label>(3)</label></formula><p>where j is the Gaussian index, i denotes a pixel, and M , H, and W represent the number of training views, image height, and width, respectively. 1 is an indicator function that determines whether a Gaussian intersects a given ray. However, using Gaussian volume alone tends to overemphasize background Gaussians, leading to excessive pruning of Gaussians modeling fine geometry. Thus, we propose a more adaptive approach to measuring volume dimensions:</p><formula xml:id="formula_3">γ(Σ) = (V norm ) β ,<label>(4)</label></formula><formula xml:id="formula_4">V norm = min V(Σ) V max90 , 1 .</formula><p>Here, the calculated Gaussian volume is firstly normalized by the 90% largest of all sorted Gaussians, clipping the range between 0 and 1, to avoid excessive floating Gaussians derived from vanilla 3D-GS. The β is introduced to provide additional flexibility.</p><p>Gaussian Co-adaptation. We rank all Gaussians by their global significance scores to quantitatively guide pruning of the lower-ranked Gaussians. The remaining Gaussians are then jointly adapted by fine-tuning their attributes-without additional densification-to offset the minor loss from pruning. This adaptation is performed using photometric loss on the original training views, aligned with 3D-GS training for 5,000 iterations.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="3.3" coords="5,108.00,294.36,141.15,8.96">Distilling into Compact SHs</head><p>In the uncompressed Gaussian Splat representation, a substantial 81.3 percent of the feature dimension is occupied by Spherical Harmonics (SH) coefficients, requiring (45+3) floating-point values per splat. Directly reducing the SH degree can save disk space but also diminishes surface "shininess" and affects specular reflections.</p><p>To balance model size with scene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:</p><formula xml:id="formula_5">L distill = 1 HW HW i=1 ∥C teacher (r i ; [R|t]) − C student (r i ; [R|t])∥ 2 2 .</formula><p>(5)</p><formula xml:id="formula_6">t pseudo = t train + N (0, σ 2 ),<label>(6)</label></formula><p>where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N denotes a Gaussian distribution with mean 0 and variance σ 2 , which is added to the original position to generate the new position.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="3.4" coords="5,108.00,520.44,196.39,8.96">Gaussian Attributes Vector Quantization</head><p>Vector quantization (VQ) clusters voxels into compact codebooks, enabling high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.</p><p>We propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = {g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = {c 1 , c 2 , . . . , c K }, where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:</p><formula xml:id="formula_7">c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j</formula><p>is the significance score (Eq. 3) which is assigned to the code vector c k , R(c k ) is the set of Gaussians associated to the k-th code. λ d = 0.8 represents the decay value, which is utilized to update the  <ref type="bibr" target="#b11">[12,</ref><ref type="bibr" target="#b13">14]</ref> exhibit insufficient capacity for representing large-scale scenes and are unable to achieve real-time performance. Mip-NeRF360 <ref type="bibr" target="#b6">[7]</ref> produces the highest visual quality, but requires over 16 seconds to render a single image. Our method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS <ref type="bibr" target="#b34">[34]</ref> using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.</p><p>code vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="4" coords="6,108.00,572.45,83.02,10.75">Experiments</head></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="4.1" coords="6,108.00,597.66,116.78,8.96">Experimental Settings</head><p>Datasets and Metrics. We conduct comparisons using the scene-scale view synthesis dataset provided by Mip-NeRF360 <ref type="bibr" target="#b64">[64]</ref>, which comprises nine real-world large-scale scenes, including five unbounded outdoor and four indoor settings with complex backgrounds. In addition, we utilize the Tanks and Temples dataset <ref type="bibr" target="#b65">[65]</ref>, a comprehensive unbounded dataset, and select the same scenes as used in <ref type="bibr" target="#b15">[16]</ref>. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structural similarity (SSIM), and perceptual similarity as measured by LPIPS <ref type="bibr" target="#b66">[66]</ref>.</p><p>Compared Baselines. We compare our approach with methods suited for large-scale scene modeling, including Plenoxel <ref type="bibr" target="#b11">[12]</ref>, Mip-NeRF360 <ref type="bibr" target="#b6">[7]</ref>, and 3D-GS <ref type="bibr" target="#b15">[16]</ref>. Additionally, we evaluate against efficient techniques like Instant-NGP <ref type="bibr" target="#b13">[14]</ref>, which uses a hash grid for storage efficiency, and VQ-DVGO <ref type="bibr" target="#b49">[49]</ref>, which extends DVGO <ref type="bibr" target="#b8">[9]</ref> with voxel pruning and VQ for optimized representation.</p><p>Implementation Details. Our framework is implemented in PyTorch and integrates the differentiable Gaussian rasterization technique from 3D-GS <ref type="bibr" target="#b15">[16]</ref>. All performance evaluations are conducted on an A6000 GPU. In the Global Significance Calculation phase, we assign a power value of 0.1 in Eq. 4 and proceed to fine-tune the model for 5,000 steps during the Gaussian Co-adaptation process.</p><p>For SH distillation, we downscale the 3-degree SHs to 2-degree, thereby reducing 21 elements for each Gaussian. This is further optimized by setting σ to 0.1 in the pseudo view synthesis stage.</p><p>In the Gaussian VQ step, the codebook size is configured to 8192, selecting SHs with the least 60% significance score for the vector quantization (VQ ratio), to balance the trade-off between compression efficiency and fidelity. </p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="4.2" coords="8,108.00,175.40,114.01,8.96">Experimental Results</head><p>Quantitative Results. We assess the performance of various methods for novel view synthesis, with quantitative metrics summarized in Tab. 1. This includes efficient voxel-based NeRFs like Plenoxel <ref type="bibr" target="#b11">[12]</ref> and Instant-NGP <ref type="bibr" target="#b13">[14]</ref>, the compact MLP-based Mip-NeRF360 <ref type="bibr" target="#b6">[7]</ref>, vector-quantized NeRF <ref type="bibr" target="#b49">[49]</ref>, and 3D Gaussian Splatting <ref type="bibr" target="#b15">[16]</ref>.</p><p>On the Mip-NeRF360 dataset, MLP-based NeRF methods achieve competitive accuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.</p><p>Our method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.</p><p>LightGaussian also outperforms 3D-GS on the Tank &amp; Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB.</p><p>Qualitative Results. We conducted a comparative analysis of rendering results between 3D-GS and LightGaussian, focusing on intricate details and background regions, as shown in Fig. <ref type="figure" target="#fig_2">4</ref>. Both 3D-GS and LightGaussian exhibit comparable visual quality, even in challenging scenes with thin structures, showing that LightGaussian effectively removes redundancy while preserving reconstruction fidelity.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head coords="8,108.00,426.71,228.16,8.96">Generalization to Other Point-based Representations</head><p>We further apply our Gaussian Pruning approach to Scaffold-GS <ref type="bibr" target="#b67">[67]</ref>, an advanced neural Gaussian-based 3D representation. In this method, we prune Gaussians that contribute minimally to scene reconstruction, reducing redundancy while preserving visual fidelity. Experiments on the MipNeRF360 dataset demonstrate that pruning 80% of neural Gaussians increases the rendering speed from 152 to 178 FPS, as shown in Tab. 5. These results underscore LightGaussian's potential as an effective optimization tool for other Gaussian-based representations.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="4.3" coords="8,108.00,516.42,93.00,8.96">Ablation Studies</head><p>We performed ablation studies on each component of our method to evaluate their individual impacts.</p><p>Results show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework.</p><p>Significance Criteria To identify the optimal criteria for measuring each Gaussian's global significance, we evaluated key characteristics: Gaussian-ray interaction count, Gaussian opacity, and functional volume. Tab. 3 illustrates that integrating these three factors -by weighting the hit count with opacity and Gaussian volume -yields the highest rendering quality post zero-shot pruning. A quick Gaussian Co-adaptation (the last row) which optimizes the remaining Gaussians, can effectively recover the rendering accuracy to its pre-pruning level. The visual comparison of rasterized images, before and after pruning, alongside the depiction of pruned Gaussians, is presented in Fig. <ref type="figure" target="#fig_3">5</ref>.  </p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head coords="8,108.00,702.22,13.18,8.96">SH</head></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head coords="15,108.00,73.71,49.53,10.75">Appendix</head><p>Algorithm Explanation. We detail the procedures of LightGaussian in Algorithm 1. The trained 3D-GS <ref type="bibr" target="#b15">[16]</ref> features a Gaussian location with a dimension of 3, Spherical Harmonics coefficients with a dimension of 48, and opacity, rotation, and scale, whose dimensions are 1, 4, and 3, respectively.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head coords="15,107.64,146.31,205.57,9.03">Algorithm 1 The overall pipeline of LightGaussian</head><p>Initialize: Training view images I = {Ii ∈ R M } N i=1 and their associated camera poses P = {ϕ i ∈ R 3×4 } N i=1 . 1: # Pre-Training 3D-GS <ref type="bibr" target="#b15">[16]</ref>. 2: # Gi with attributes XYZ, SH-3deg, Opacity, Rotation, Scale. 3: Post-Finetuning of Vector Quantization. Applying vector quantization (VQ) based on the significance score facilitates a reduction in the required codebook size compared to the full model. Nonetheless, this method results in a decrease in accuracy as it groups the attributes into several clusters (codes). We observe that the SSIM decreases from 0.923 (#6) to 0.915 (#7), as illustrated in Table <ref type="table" target="#tab_1">2</ref> of the main draft. This observation motivates us to joint optimize all other attributes and the codes post the VQ. Specifically, by assigning a unique code to each Gaussian, we proceed to implement differentiable finetuning using photometric loss, which is similar to the methodology  employed in 3D-GS, and optimize all the attributes in conjunction with VQ. This approach permits precise adjustments to the codebook and the rest attributes, improving its alignment with the training images (#8, SSIM improves from 0.915 to 0.923).</p><formula xml:id="formula_8">G = {Gi ∈ R (3+48+1+4+3) )} N i=1 ← 3D-</formula></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head n="6" coords="16,108.00,531.50,149.20,10.75">More Experiment Results</head><p>In addition to realistic indoor and outdoor scenes in the Mip-NeRF360 <ref type="bibr" target="#b6">[7]</ref> and Tank and Temple datasets <ref type="bibr" target="#b65">[65]</ref>, we further evaluate our method on the synthetic Blender dataset <ref type="bibr" target="#b4">[5]</ref>, and provide a scene-wise evaluation on all datasets, accompanied by detailed visualizations.</p><p>Results on NeRF-Synthetic 360°(Blender) Dataset. The synthetic Blender dataset <ref type="bibr" target="#b4">[5]</ref> includes eight photo-realistic synthetic objects with ground-truth controlled camera poses and rendered viewpoints (100 for training and 200 for testing). Similar to 3D-GS <ref type="bibr" target="#b15">[16]</ref>, we start training the model using random initialization. Consequently, we calculate the Global Significance of each Gaussian, work to reduce the SH redundancy, and apply the Vector Quantization (codebook size set at 8192) to the learned representation. Overall comparisons with previous methods are listed in Table <ref type="table" target="#tab_7">7</ref>, where we observe our LightGaussian markedly reduces the average storage size from 52.38MB to 7.89MB, while improving the FPS from 310 to 411 with only a slight rendering quality decrease.</p><p>Additional Qualitative Results on Mip-NeRF360. We provide extra visualizations for 3D-GS <ref type="bibr" target="#b15">[16]</ref>, LightGaussian (ours), and VQ-DVGO <ref type="bibr" target="#b49">[49]</ref>, accompanied by the corresponding residual maps from the We re-train 3D-GS, Compressed 3D-GS, Compact 3D-GS using their original code and 3D-GS configurations on our platform, to perform a fair comparison. We present the rendering results from 3D-GS <ref type="bibr" target="#b15">[16]</ref>, LightGaussian, and VQ-DVGO <ref type="bibr" target="#b49">[49]</ref>. The residual maps highlight the differences between the rendered images and ground truth (GT) images.</p><p>Overall Analysis. We report the performance of the investigation on the proposed modules in Tab. 2 and Fig. <ref type="figure" target="#fig_5">7</ref>. We verify that our design of Gaussian Pruning &amp; Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy. This proves that the proposed global significance, based on principle of splatting, accurately represents the critical aspects of each Gaussian. By removing the high-degree SHs and transferring the knowledge to a compact representation (Exp #3 →5), our method successfully demonstrates the benefits from using soft targets and extra data from view augmentation, results in negligible changes</p></div><figure xmlns="http://www.tei-c.org/ns/1.0" xml:id="fig_0" coords="3,108.00,172.75,396.00,9.03;3,108.00,184.05,396.00,8.64;3,107.64,194.96,396.36,8.64;3,108.00,205.87,396.00,8.64;3,108.00,216.78,71.95,8.64"><head>Figure 2 :</head><label>2</label><figDesc>Figure 2: Pipeline of LightGaussian. 3D Gaussians are optimized from multi-view images and SfM points. LightGaussian calculates each Gaussian's global significance on training data, pruning those with the least significance. Next, SH coefficients are distilled into a compact format using synthesized pseudo-views. Finally, vector quantization, including codebook initialization and assignment, reduces model bandwidth.</figDesc></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" xml:id="fig_1" coords="4,108.00,206.19,396.00,9.03;4,108.00,217.49,396.00,8.64;4,108.00,228.40,395.99,8.64;4,108.00,239.31,396.00,8.64;4,108.00,250.22,348.89,8.64;4,306.45,76.59,187.63,121.41"><head>Figure 3 :</head><label>3</label><figDesc>Figure 3: Zero-shot Opacity-based Pruning. A significant number of Gaussians exhibit small opacity values (top). Simply utilizing Gaussian opacity as an indicator for pruning the least important Gaussians results in the rendered image losing intricate details (bottom), with the PSNR dropping from 27.2 to 25.3. This has inspired us to find better criteria to measure global significance in terms of rendering quality. The accumulated Probability Density Function(PDF) is equal to 1.</figDesc><graphic coords="4,306.45,76.59,187.63,121.41" type="bitmap" /></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" xml:id="fig_2" coords="6,108.00,418.17,396.00,9.03;6,108.00,429.47,397.75,8.64;6,108.00,440.38,396.00,8.64;6,108.00,451.29,396.00,8.64;6,108.00,462.20,397.74,8.64;6,108.00,473.11,313.93,8.64"><head>Figure 4 :</head><label>4</label><figDesc>Figure 4: Visual Comparisons. We compare LightGaussian with the vanilla 3D-GS [16], displaying a residual map between predictions and ground truth scaled from 0 to 127 to emphasize differences. LightGaussian retains most specular reflections (yellow boxes) in its compact format, with a slight change in lightness visible in the bottom white box. The residual maps illustrate discrepancies between rendered images and ground-truth RGB values, where darker areas indicate closer alignment. For a full dynamic viewpoint comparison, please see our supplementary video.</figDesc></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" xml:id="fig_3" coords="9,108.00,256.99,396.35,9.03;9,108.00,268.10,396.00,8.82;9,108.00,279.19,73.05,8.64"><head>Figure 5 :</head><label>5</label><figDesc>Figure 5: Visualization of Pruned Gaussians. We show the pruned Gaussians (middle) obtained by applying the proposed Gaussian Prune and Recovery. The residual is visualized by rasterizing the pruned Gaussians.</figDesc></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" xml:id="fig_5" coords="16,108.00,377.75,396.00,9.03;16,108.00,389.04,396.00,8.64;16,107.69,399.95,396.31,8.64;16,108.00,410.86,396.00,8.64;16,108.00,421.77,395.99,8.64;16,107.64,432.29,396.36,9.03;16,108.00,443.59,221.56,8.64;16,130.62,289.42,92.08,61.39"><head>Figure 7 :</head><label>7</label><figDesc>Figure 7: Visual Comparisons for Ablation Study. We visualize the rendered RGB images and the residual map between the ground-truth image, aligned with the experiment ID as shown in Tab. The final model (Exp #9) demonstrates close results to 3D-GS (Exp #1), while the Gaussian Co-adaptation, along with SH distillation, almost completely mitigates the information loss. To highlight the difference, we visualize the SSIM between the rendered images and the GT, where a whiter output in the residual signifies closer alignment with the GT, denoting better quality, and the area with greater color intensity indicates lower quality.</figDesc><graphic coords="16,130.62,289.42,92.08,61.39" type="bitmap" /></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" xml:id="fig_6" coords="18,108.00,590.68,396.00,9.03;18,108.00,601.98,396.00,8.64;18,108.00,612.89,286.92,8.64;18,384.18,508.59,93.90,62.47"><head>Figure 8 :</head><label>8</label><figDesc>Figure 8: Additional Visual Comparisons on the Mip-NeRF360 Datasets.We present the rendering results from 3D-GS<ref type="bibr" target="#b15">[16]</ref>, LightGaussian, and VQ-DVGO<ref type="bibr" target="#b49">[49]</ref>. The residual maps highlight the differences between the rendered images and ground truth (GT) images.</figDesc><graphic coords="18,384.18,508.59,93.90,62.47" type="bitmap" /></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" type="table" xml:id="tab_0" coords="6,107.69,49.78,379.35,99.76"><head>Table 1 :</head><label>1</label><figDesc>Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods</figDesc><table coords="6,135.51,49.78,342.68,80.21"><row><cell>Methods</cell><cell>FPS↑</cell><cell cols="5">Mip-NeRF 360 Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ FPS↑</cell><cell cols="4">Tank and Temple Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓</cell></row><row><cell>Plenoxels [12]</cell><cell cols="2">6.79 2.1 GB</cell><cell>23.08</cell><cell>0.626</cell><cell>0.463</cell><cell cols="2">11.2 2.3 GB</cell><cell>21.08</cell><cell>0.719</cell><cell>0.379</cell></row><row><cell>INGP-Big [14]</cell><cell>9.43</cell><cell>48MB</cell><cell>25.59</cell><cell>0.699</cell><cell>0.331</cell><cell>14.4</cell><cell>48MB</cell><cell>21.92</cell><cell>0.745</cell><cell>0.305</cell></row><row><cell>Mip-NeRF 360 [7]</cell><cell>0.06</cell><cell>8.6MB</cell><cell>27.69</cell><cell>0.792</cell><cell>0.237</cell><cell>0.14</cell><cell>8.6MB</cell><cell>22.22</cell><cell>0.759</cell><cell>0.257</cell></row><row><cell>VQ-DVGO [49]</cell><cell>4.65</cell><cell>63MB</cell><cell>24.23</cell><cell>0.636</cell><cell>0.393</cell><cell>-</cell><cell>-</cell><cell>-</cell><cell>-</cell><cell>-</cell></row><row><cell>Compressed 3D-GS  *  [34]</cell><cell>152</cell><cell>28MB</cell><cell>27.03</cell><cell>0.802</cell><cell>0.238</cell><cell>202</cell><cell>17MB</cell><cell>23.54</cell><cell>0.838</cell><cell>0.189</cell></row><row><cell>Compact 3D-GS [37]</cell><cell>128</cell><cell>48MB</cell><cell>27.08</cell><cell>0.798</cell><cell>0.247</cell><cell>185</cell><cell>39MB</cell><cell>23.32</cell><cell>0.831</cell><cell>0.201</cell></row><row><cell>3D-GS [16]</cell><cell>134</cell><cell>734MB</cell><cell>27.21</cell><cell>0.815</cell><cell>0.214</cell><cell>154</cell><cell>411MB</cell><cell>23.14</cell><cell>0.841</cell><cell>0.183</cell></row><row><cell>3D-GS  *  [16]</cell><cell>144</cell><cell>782MB</cell><cell>27.40</cell><cell>0.813</cell><cell>0.217</cell><cell>106</cell><cell>433MB</cell><cell>23.66</cell><cell>0.845</cell><cell>0.178</cell></row><row><cell>Ours</cell><cell>237</cell><cell>45MB</cell><cell>27.13</cell><cell>0.806</cell><cell>0.237</cell><cell>357</cell><cell>25MB</cell><cell>23.44</cell><cell>0.832</cell><cell>0.202</cell></row></table></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" type="table" xml:id="tab_1" coords="7,107.64,72.84,397.60,250.05"><head>Table 2 :</head><label>2</label><figDesc>Ablation studies on the Gaussian Pruning &amp; Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).</figDesc><table coords="7,163.84,72.84,286.14,250.05"><row><cell cols="2">Exp# Model</cell><cell></cell><cell>FPS↑</cell><cell cols="2">Size↓</cell><cell>PSNR↑ SSIM↑ LPIPS↓</cell></row><row><cell>[1]</cell><cell>Baseline (3D-GS [16])</cell><cell></cell><cell cols="3">156.21 365MB</cell><cell>31.34</cell><cell>0.917</cell><cell>0.221</cell></row><row><cell>[2]</cell><cell>+ Gaussian Pruning</cell><cell></cell><cell cols="3">308.10 123MB</cell><cell>30.67</cell><cell>0.910</cell><cell>0.234</cell></row><row><cell>[3]</cell><cell>+ Co-adaptation</cell><cell></cell><cell cols="3">304.64 123MB</cell><cell>31.64</cell><cell>0.918</cell><cell>0.228</cell></row><row><cell>[4]</cell><cell>+ SH Compactness</cell><cell></cell><cell cols="3">311.58 81MB</cell><cell>30.32</cell><cell>0.904</cell><cell>0.238</cell></row><row><cell>[5]</cell><cell>+ photometric loss</cell><cell></cell><cell cols="3">302.20 81MB</cell><cell>31.42</cell><cell>0.916</cell><cell>0.234</cell></row><row><cell>[6]</cell><cell cols="5">+ Distillation + Pseudo-views 302.89 81MB</cell><cell>31.48</cell><cell>0.917</cell><cell>0.231</cell></row><row><cell>[7]</cell><cell>+ Codebook Quant.</cell><cell></cell><cell cols="3">301.21 21MB</cell><cell>31.09</cell><cell>0.918</cell><cell>0.236</cell></row><row><cell>[8]</cell><cell>+ VQ finetune</cell><cell></cell><cell cols="3">302.01 21MB</cell><cell>31.40</cell><cell>0.916</cell><cell>0.232</cell></row><row><cell>[9]</cell><cell>LightGaussian (Ours)</cell><cell></cell><cell cols="3">302.01 21MB</cell><cell>31.40</cell><cell>0.916</cell><cell>0.232</cell></row><row><cell>Model</cell><cell></cell><cell>FPS↑</cell><cell>Size↓</cell><cell></cell><cell cols="2">PSNR↑ SSIM↑ LPIPS↓</cell></row><row><cell cols="2">Baseline</cell><cell cols="3">156.21 365MB</cell><cell cols="2">31.34</cell><cell>0.917</cell><cell>0.221</cell></row><row><cell cols="2">Hit Count Only</cell><cell cols="3">301.52 123MB</cell><cell cols="2">28.16</cell><cell>0.886</cell><cell>0.261</cell></row><row><cell cols="2">+ Co-adaptation</cell><cell cols="3">303.43 123MB</cell><cell cols="2">30.13</cell><cell>0.912</cell><cell>0.238</cell></row><row><cell cols="2">× Opacity</cell><cell cols="3">310.29 123MB</cell><cell cols="2">30.27</cell><cell>0.909</cell><cell>0.239</cell></row><row><cell cols="2">+ Co-adaptation</cell><cell cols="3">304.84 123MB</cell><cell cols="2">31.60</cell><cell>0.916</cell><cell>0.231</cell></row><row><cell cols="5">× Opacity × γ(Volume). 312.30 123MB</cell><cell cols="2">30.67</cell><cell>0.910</cell><cell>0.234</cell></row><row><cell cols="2">+ Co-adaptation</cell><cell cols="3">304.64 123MB</cell><cell cols="2">31.64</cell><cell>0.918</cell><cell>0.228</cell></row></table></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" type="table" xml:id="tab_2" coords="7,107.69,330.02,396.48,168.67"><head>Table 3 :</head><label>3</label><figDesc></figDesc><table coords="7,164.09,414.79,283.64,83.90"><row><cell>Model</cell><cell>Size↓</cell><cell cols="3">PSNR↑ SSIM↑ LPIPS↓</cell></row><row><cell>Baseline</cell><cell>80.99MB</cell><cell>31.48</cell><cell>0.917</cell><cell>0.231</cell></row><row><cell>+FP16</cell><cell>36.51MB</cell><cell>31.35</cell><cell>0.914</cell><cell>0.232</cell></row><row><cell>+ VQ All att.</cell><cell>18.74MB</cell><cell>23.11</cell><cell>0.731</cell><cell>0.378</cell></row><row><cell>+ VQ All att. × GS</cell><cell>19.74MB</cell><cell>26.23</cell><cell>0.826</cell><cell>0.323</cell></row><row><cell>+ VQ SH.</cell><cell>21.10MB</cell><cell>30.68</cell><cell>0.907</cell><cell>0.244</cell></row><row><cell>+ VQ SH × GS</cell><cell>21.10MB</cell><cell>31.16</cell><cell>0.911</cell><cell>0.235</cell></row><row><cell cols="2">LightGaussian (w/ VQ Finetune) 21.10MB</cell><cell>31.40</cell><cell>0.916</cell><cell>0.232</cell></row></table><note>Ablation study of the Gaussian Pruning &amp; Recovery, by using different Gaussian attributes for computing its global significance score. By considering only the hit count of each Gaussian from training rays, the zero-shot pruning leads to inferior performance. Incorporating the opacity and volume drives us to a better criterion. The subsequent Gaussian Co-adaptation is used to recover most of the information loss from the pruning of redundant Gaussians.</note></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" type="table" xml:id="tab_3" coords="7,107.69,505.73,397.56,52.66"><head>Table 4 :</head><label>4</label><figDesc>Ablation</figDesc><table /><note>Study: Gaussian Attribute Vector Quantization (VQ). Quantizing all attributes to FP16 achieves a smaller model, but applying VQ to all attributes degrades modeling accuracy. Using Global Significance (GS) to target less crucial Gaussians mitigates this loss. Some attributes (e.g., scale) are sensitive to VQ, so we limit VQ to the SH coefficients. By combining VQ with significance scores, LightGaussian achieves an effective balance between model size and quality.</note></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" type="table" xml:id="tab_4" coords="8,107.64,75.40,397.61,69.80"><head>Table 5 :</head><label>5</label><figDesc>LightGaussian removes redundant neural Gaussians in Scaffold-GS, reducing model size and improving rendering speed. All experiments were rerun on our platform for fair comparison, with results averaged on the MipNeRF-360 dataset.</figDesc><table coords="8,163.67,90.38,280.71,17.12"><row><cell>Scaffold-GS</cell><cell>173.60 152</cell><cell>27.96</cell><cell>0.8240</cell><cell>0.2075</cell></row><row><cell cols="2">Scaffold-GS + LightGaussian 112.56 178</cell><cell>27.78</cell><cell>0.8187</cell><cell>0.2197</cell></row></table><note>Size ↓ FPS PSNR ↑ SSIM ↑ LPIPS ↓</note></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" type="table" xml:id="tab_5" coords="9,107.69,394.42,396.31,327.73"><head>Table 6 :</head><label>6</label><figDesc>Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation &amp; Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning &amp; Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70%, with a more rapid deterioration as the VQ ratio approaches 65%. In Tab 6, we observe that 2-degree SH compactness reduces the SSIM from 0.927 to 0.926, while 1-degree SH compactness further reduces it to 0.923. LightGaussian's compact representation has the potential to democratize high-quality 3D content for applications in VR, AR, and autonomous driving by reducing resource demands, enabling more accessible and scalable deployment across industries. While we do not foresee any significant risk from this specific technique, 3D reconstruction may infringe on personal privacy when applied in public spaces or with drone footage, contradicting our ethical intentions.</figDesc><table coords="9,108.00,406.17,396.00,275.00"><row><cell>[1]</cell><cell>3D-GS</cell><cell>353.27 MB</cell><cell>192</cell><cell>31.687</cell><cell>0.927</cell><cell>0.200</cell></row><row><cell>[2]</cell><cell>[1] + 2-degree SH compactness</cell><cell>140.16 MB</cell><cell>238</cell><cell>30.625</cell><cell>0.917</cell><cell>0.208</cell></row><row><cell>[3]</cell><cell>[2] + proposed distillation</cell><cell>140.16 MB</cell><cell>243</cell><cell>31.754</cell><cell>0.926</cell><cell>0.201</cell></row><row><cell>[4]</cell><cell>[1] + 1-degree SH compactness</cell><cell>88.89 MB</cell><cell>249</cell><cell>29.173</cell><cell>0.900</cell><cell>0.223</cell></row><row><cell>[5]</cell><cell>[4] + proposed distillation</cell><cell>88.89 MB</cell><cell>244</cell><cell>31.440</cell><cell>0.923</cell><cell>0.205</cell></row><row><cell cols="2">(a). SSIM, FPS vs. Prune Ratio</cell><cell cols="5">(b). SSIM, Quantize Ratio vs. VQ Ratio</cell></row><row><cell cols="7">Figure 6: Rendering performance comparison across different pruning levels and VQ ratios. Note</cell></row><row><cell cols="7">that in subfigure (b), we use the VQ ratio to indicate the proportion of SH parameters quantized to an</cell></row><row><cell cols="7">8192-codebook, while the (overall) quantization ratio reflects combined compression from VQ and</cell></row><row><cell cols="2">FP32-to-FP16 bitwise quantization.</cell><cell></cell><cell></cell><cell></cell><cell></cell><cell></cell></row></table><note>Exp ID Model settingModel Size ↓ FPS ↑ PSNR ↑ SSIM ↑ LPIPS ↓</note></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" type="table" xml:id="tab_6" coords="15,107.64,205.58,397.93,417.35"><head></head><label></label><figDesc>′′′ ← VQ(G ′′ , GS) ▷ VQ based on Significance Score 19: G ′′′ ← VQFINETUNE(G ′′′ ) ▷ VQ Finetuning 20: #Save Model. 21: Save optimized model G ′′′ to disk.Specifically, we detail how we calculate each Gaussian's Global Significance Score in Algorithm 2.</figDesc><table coords="15,107.64,205.58,397.93,417.35"><row><cell></cell><cell>GS(I, P)</cell><cell></cell><cell>▷ Initial 3D-GS: G</cell></row><row><cell cols="2">4: #Gaussian Pruning and Recovery: G → G ′ .</cell><cell></cell></row><row><cell cols="2">5: GS ← CALGS(G)</cell><cell cols="2">▷ Calculate Global Significance Score GS</cell></row><row><cell cols="2">6: G ′ ← PRUNE(G, GS)</cell><cell cols="2">▷ Prune Least Significant Ones of G, based on GS</cell></row><row><cell cols="2">7: G ′ ← RECOVERY(G ′ , P)</cell><cell cols="2">▷ Gaussian Recovery (Finetune G ′ on P)</cell></row><row><cell cols="3">8: #Distilling into Compact SHs: Reduce from 3-degree to 2-degree</cell></row><row><cell cols="2">9: G ′′ ← REDUCESH(G ′ )</cell><cell cols="2">▷ Reduce the SH degree</cell></row><row><cell cols="2">10: while Few Steps do</cell><cell></cell><cell>▷ SH Distillation</cell></row><row><cell>11:</cell><cell>P = SampleView(P)</cell><cell cols="2">▷ Synthesize Pseudo Views</cell></row><row><cell>12:</cell><cell>It ← TEACHER( P, G ′ )</cell><cell></cell><cell>▷ Teacher render</cell></row><row><cell>13:</cell><cell>Is ← STUDENT( P, G ′′ )</cell><cell></cell><cell>▷ Student render</cell></row><row><cell>14:</cell><cell>∇L ← LOSS(Is, It)</cell><cell></cell></row><row><cell>15:</cell><cell>G ′′ ← ADAM(∇L)</cell><cell></cell><cell>▷ Backprop &amp; Step</cell></row><row><cell cols="2">16: end while</cell><cell></cell></row><row><cell cols="2">17: #Vector Quantization.</cell><cell></cell></row><row><cell cols="3">18: G Algorithm 2 Global significance calculation for gaussians.</cell></row><row><cell cols="3">1: # G contains all gaussians with attributes XYZ, SH-3deg, Opacity, Rotation, Scale.</cell></row><row><cell cols="2">2: # P Sample cameras from training views.</cell><cell></cell></row><row><cell cols="2">3: function CalGS(G, P)</cell><cell></cell></row><row><cell>4:</cell><cell>ScoreList = list()</cell><cell></cell></row><row><cell>5:</cell><cell>for all Gaussian Gi in G do</cell><cell></cell></row><row><cell>6:</cell><cell>score ← 0</cell><cell cols="2">▷ Init Global Significance</cell></row><row><cell>7:</cell><cell>count ← 0</cell><cell></cell><cell>▷ Init Hit Count Value</cell></row><row><cell>8:</cell><cell>for all Pixel/Ray ri in RenderFunc(P) do</cell><cell></cell></row><row><cell>9:</cell><cell>count = GETHITCOUNT(Gi, ri)</cell><cell></cell><cell>▷ Gaussian Hit count</cell></row><row><cell>10:</cell><cell># Score weighted by opacity/volume</cell><cell></cell></row><row><cell>11:</cell><cell cols="2">score ← score + count • opacity• VOLUMEFUNC(scale)</cell><cell>▷ Eq.3 in draft.</cell></row><row><cell>12:</cell><cell>end for</cell><cell></cell></row><row><cell>13:</cell><cell>ScoreList.append(score)</cell><cell></cell></row><row><cell>14:</cell><cell>end for</cell><cell></cell></row><row><cell>15:</cell><cell>return ScoreList</cell><cell></cell></row><row><cell cols="2">16: end function</cell><cell></cell></row></table></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" type="table" xml:id="tab_7" coords="17,135.12,72.76,343.91,161.31"><head>Table 7 :</head><label>7</label><figDesc>Per-scene results on Synthetic-NeRF.</figDesc><table coords="17,135.12,94.09,343.91,139.99"><row><cell cols="3">Method Chair Drums</cell><cell cols="2">Ficus Hotdog</cell><cell>Lego</cell><cell>Materials</cell><cell>Mic</cell><cell>Ship</cell><cell>Avg.</cell></row><row><cell></cell><cell></cell><cell></cell><cell></cell><cell></cell><cell>Size(MB)</cell><cell></cell><cell></cell><cell></cell><cell></cell></row><row><cell cols="6">3D-GS 94.612 64.163 35.839 39.607 64.910</cell><cell>29.335</cell><cell cols="3">34.185 56.400 52.381</cell></row><row><cell>Ours</cell><cell cols="2">13.785 9.596</cell><cell>5.473</cell><cell>5.994</cell><cell>9.600</cell><cell>4.542</cell><cell>5.252</cell><cell>8.464</cell><cell>7.838</cell></row><row><cell></cell><cell></cell><cell></cell><cell></cell><cell></cell><cell cols="2">PSNR(dB)</cell><cell></cell><cell></cell><cell></cell></row><row><cell cols="5">3D-GS 35.436 26.294 35.614 37.848</cell><cell>35.45</cell><cell>30.533</cell><cell cols="3">36.585 31.642 33.716</cell></row><row><cell>Ours</cell><cell cols="5">34.769 26.022 34.484 36.461 34.944</cell><cell>29.341</cell><cell cols="3">35.370 30.405 32.725</cell></row><row><cell></cell><cell></cell><cell></cell><cell></cell><cell></cell><cell>SSIM</cell><cell></cell><cell></cell><cell></cell><cell></cell></row><row><cell>3D-GS</cell><cell>0.987</cell><cell>0.954</cell><cell>0.987</cell><cell>0.985</cell><cell>0.981</cell><cell>0.961</cell><cell>0.992</cell><cell>0.904</cell><cell>0.969</cell></row><row><cell>Ours</cell><cell>0.986</cell><cell>0.952</cell><cell>0.985</cell><cell>0.982</cell><cell>0.979</cell><cell>0.954</cell><cell>0.990</cell><cell>0.896</cell><cell>0.965</cell></row><row><cell></cell><cell></cell><cell></cell><cell></cell><cell></cell><cell>LPIPS</cell><cell></cell><cell></cell><cell></cell><cell></cell></row><row><cell cols="6">3D-GS 0.0133 0.0405 0.0121 0.0232 0.0195</cell><cell>0.0404</cell><cell cols="3">0.0073 0.111 0.0334</cell></row><row><cell>Ours</cell><cell cols="5">0.0142 0.0431 0.0137 0.0275 0.0222</cell><cell>0.0461</cell><cell cols="3">0.0087 0.121 0.0370</cell></row></table></figure>
+<figure xmlns="http://www.tei-c.org/ns/1.0" type="table" xml:id="tab_8" coords="17,107.69,251.27,378.63,9.03"><head>Table 8 :</head><label>8</label><figDesc>Quantitative Comparison (PSNR) on Mip-NeRF360 and Tank &amp; Temple Scenes.</figDesc><table /></figure>
+		</body>
+		<back>
+			<div type="annex">
+<div xmlns="http://www.tei-c.org/ns/1.0"><p>Additional Quantitative Results on Mip-NeRF360. Tables <ref type="table">8, 9</ref>, and 10 present the comprehensive error metrics compiled for our evaluation across all real-world scenes (Mip-NeRF360 and Tank and Temple datasets). Our method not only compresses the average model size from 782MB to 45MB, but also consistently demonstrates comparable metrics with 3D-GS on all scenes. LightGaussian additionally shows better rendering quality than Plenoxel, INGP, mip-NeRF360, and VQ-DVGO.</p><p>Implementation Details of VQ-DVGO. In the implementation of VQ-DVGO <ref type="bibr" target="#b49">[49]</ref>, we initially obtain a non-compressed grid model following the default training configuration of DVGO <ref type="bibr" target="#b8">[9]</ref>. The pruning quantile β p is set to 0.001, the keeping quantile β k is set to 0.9999, and the codebook size is configured to 4096. We save the volume density and the non-VQ voxels in the fp16 format without additional quantization. For the joint finetuning process, we have increased the iteration count to 25,000, surpassing the default setting of 10,000 iterations, to maximize the model's capabilities. All other parameters are aligned with those specified in the original VQ-DVGO paper <ref type="bibr" target="#b49">[49]</ref>, ensuring a faithful replication of established methodologies. Table <ref type="table">9</ref>: Quantitative Comparison (SSIM) on Mip-NeRF360 and Tank &amp; Temple Scenes. We re-train 3D-GS, Compressed 3D-GS, Compact 3D-GS using their original code and 3D-GS configurations on our platform, to perform a fair comparison.  We present the rendering results from 3D-GS <ref type="bibr" target="#b15">[16]</ref>, LightGaussian, and VQ-DVGO <ref type="bibr" target="#b49">[49]</ref>. The residual maps highlight the differences between the rendered images and ground truth (GT) images.</p></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head coords="17,146.73,653.00,23.47,5.67">Methods</head></div>
+<div xmlns="http://www.tei-c.org/ns/1.0"><head coords="17,310.68,649.80,14.72,5.47">SSIM</head><p>in specular reflection. In practical post-processing, the vector quantization on the least important Gaussians (Exp #7), showcases the advantage of adopting VQ to further reduce model size. </p></div>			</div>
+			<div type="references">
+
+				<listBibl>
+
+<biblStruct xml:id="b0">
+	<analytic>
+		<title level="a" type="main">A view synthesis-based 360°vr caching system over mec-enabled c-ran</title>
+		<author>
+			<persName><forename type="first">Jianmei</forename><surname>Dai</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zhilong</forename><surname>Zhang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Shiwen</forename><surname>Mao</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Danpu</forename><surname>Liu</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">IEEE Transactions on Circuits and Systems for Video Technology</title>
+				<imprint>
+			<date type="published" when="2019">2019</date>
+			<biblScope unit="volume">30</biblScope>
+			<biblScope unit="page" from="3843" to="3855" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b1">
+	<monogr>
+		<title level="m" type="main">Stereo magnification: Learning view synthesis using multiplane images</title>
+		<author>
+			<persName><forename type="first">Tinghui</forename><surname>Zhou</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Richard</forename><surname>Tucker</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">John</forename><surname>Flynn</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Graham</forename><surname>Fyffe</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Noah</forename><surname>Snavely</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:1805.09817</idno>
+		<imprint>
+			<date type="published" when="2018">2018</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b2">
+	<analytic>
+		<title level="a" type="main">Scannerf: a scalable benchmark for neural radiance fields</title>
+		<author>
+			<persName><forename type="first">Luca</forename><surname>De</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Luigi</forename></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Damiano</forename><surname>Bolognini</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Federico</forename><surname>Domeniconi</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Daniele</forename><forename type="middle">De</forename><surname>Gregorio</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Matteo</forename><surname>Poggi</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Luigi</forename><surname>Di</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Stefano</forename></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision</title>
+				<meeting>the IEEE/CVF Winter Conference on Applications of Computer Vision</meeting>
+		<imprint>
+			<date type="published" when="2023">2023</date>
+			<biblScope unit="page" from="816" to="825" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b3">
+	<monogr>
+		<title level="m" type="main">Mars: An instance-aware, modular and realistic simulator for autonomous driving</title>
+		<author>
+			<persName><forename type="first">Zirui</forename><surname>Wu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Tianyu</forename><surname>Liu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Liyi</forename><surname>Luo</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zhide</forename><surname>Zhong</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jianteng</forename><surname>Chen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Hongmin</forename><surname>Xiao</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Chao</forename><surname>Hou</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Haozhe</forename><surname>Lou</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yuantao</forename><surname>Chen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Runyi</forename><surname>Yang</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2307.15058</idno>
+		<imprint>
+			<date type="published" when="2023">2023</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b4">
+	<analytic>
+		<title level="a" type="main">Nerf: Representing Scenes As Neural Radiance Fields for View Synthesis</title>
+		<author>
+			<persName><forename type="first">Ben</forename><surname>Mildenhall</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Matthew</forename><surname>Pratul P Srinivasan</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jonathan</forename><forename type="middle">T</forename><surname>Tancik</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ravi</forename><surname>Barron</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ren</forename><surname>Ramamoorthi</surname></persName>
+		</author>
+		<author>
+			<persName><surname>Ng</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">Communications of the ACM</title>
+		<imprint>
+			<biblScope unit="volume">65</biblScope>
+			<biblScope unit="issue">1</biblScope>
+			<biblScope unit="page" from="99" to="106" />
+			<date type="published" when="2021">2021</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b5">
+	<analytic>
+		<title level="a" type="main">Mip-Nerf: A Multiscale Representation for Anti-Aliasing Neural Radiance Fields</title>
+		<author>
+			<persName><forename type="first">Jonathan</forename><forename type="middle">T</forename><surname>Barron</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ben</forename><surname>Mildenhall</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Matthew</forename><surname>Tancik</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Peter</forename><surname>Hedman</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ricardo</forename><surname>Martin-Brualla</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Pratul P</forename><surname>Srinivasan</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF International Conference on Computer Vision</title>
+				<meeting>the IEEE/CVF International Conference on Computer Vision</meeting>
+		<imprint>
+			<date type="published" when="2021">2021</date>
+			<biblScope unit="page" from="5855" to="5864" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b6">
+	<monogr>
+		<author>
+			<persName><forename type="first">Jonathan</forename><forename type="middle">T</forename><surname>Barron</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ben</forename><surname>Mildenhall</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Dor</forename><surname>Verbin</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">P</forename><surname>Pratul</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Peter</forename><surname>Srinivasan</surname></persName>
+		</author>
+		<author>
+			<persName><surname>Hedman</surname></persName>
+		</author>
+		<title level="m">Mip-NeRF 360: Unbounded Anti-Aliased Neural Radiance Fields. 2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)</title>
+				<imprint>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="5460" to="5469" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b7">
+	<analytic>
+		<title level="a" type="main">Volume rendering</title>
+		<author>
+			<persName><forename type="first">Loren</forename><surname>Robert A Drebin</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Pat</forename><surname>Carpenter</surname></persName>
+		</author>
+		<author>
+			<persName><surname>Hanrahan</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">ACM Siggraph Computer Graphics</title>
+		<imprint>
+			<biblScope unit="volume">22</biblScope>
+			<biblScope unit="issue">4</biblScope>
+			<biblScope unit="page" from="65" to="74" />
+			<date type="published" when="1988">1988</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b8">
+	<analytic>
+		<title level="a" type="main">Direct Voxel Grid Optimization: Super-Fast Convergence for Radiance Fields Reconstruction</title>
+		<author>
+			<persName><forename type="first">Cheng</forename><surname>Sun</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Min</forename><surname>Sun</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Hwann-Tzong</forename><surname>Chen</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</title>
+				<meeting>the IEEE/CVF Conference on Computer Vision and Pattern Recognition</meeting>
+		<imprint>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="5459" to="5469" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b9">
+	<analytic>
+		<title level="a" type="main">Fourier PlenOctrees for Dynamic Radiance Field Rendering in Real-Time</title>
+		<author>
+			<persName><forename type="first">Liao</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jiakai</forename><surname>Zhang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Xinhang</forename><surname>Liu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Fuqiang</forename><surname>Zhao</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yanshun</forename><surname>Zhang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yingliang</forename><surname>Zhang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Minye</forename><surname>Wu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jingyi</forename><surname>Yu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Lan</forename><surname>Xu</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</title>
+				<meeting>the IEEE/CVF Conference on Computer Vision and Pattern Recognition</meeting>
+		<imprint>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="13524" to="13534" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b10">
+	<monogr>
+		<title level="m" type="main">Voxgraf: Fast 3d-Aware Image Synthesis With Sparse Voxel Grids</title>
+		<author>
+			<persName><forename type="first">Katja</forename><surname>Schwarz</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Axel</forename><surname>Sauer</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Michael</forename><surname>Niemeyer</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yiyi</forename><surname>Liao</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Andreas</forename><surname>Geiger</surname></persName>
+		</author>
+		<idno>ArXiv:2206.07695</idno>
+		<imprint>
+			<date type="published" when="2022">2022</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">ArXiv Preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b11">
+	<monogr>
+		<author>
+			<persName><forename type="first">Alex</forename><surname>Yu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Sara</forename><surname>Fridovich-Keil</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Matthew</forename><surname>Tancik</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Qinhong</forename><surname>Chen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Benjamin</forename><surname>Recht</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Angjoo</forename><surname>Kanazawa</surname></persName>
+		</author>
+		<title level="m">Plenoxels: Radiance Fields Without Neural Networks. 2022 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)</title>
+				<imprint>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="5491" to="5500" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b12">
+	<analytic>
+		<title level="a" type="main">Tensorf: Tensorial radiance fields</title>
+		<author>
+			<persName><forename type="first">Anpei</forename><surname>Chen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zexiang</forename><surname>Xu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Andreas</forename><surname>Geiger</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jingyi</forename><surname>Yu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Hao</forename><surname>Su</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">European Conference on Computer Vision</title>
+				<imprint>
+			<publisher>Springer</publisher>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="333" to="350" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b13">
+	<analytic>
+		<title level="a" type="main">Instant Neural Graphics Primitives With a Multiresolution Hash Encoding</title>
+		<author>
+			<persName><forename type="first">Thomas</forename><surname>Müller</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Alex</forename><surname>Evans</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Christoph</forename><surname>Schied</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Alexander</forename><surname>Keller</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">ACM Transactions on Graphics</title>
+		<imprint>
+			<biblScope unit="volume">41</biblScope>
+			<biblScope unit="page" from="1" to="15" />
+			<date type="published" when="2022">2022</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b14">
+	<analytic>
+		<title level="a" type="main">R2l: Distilling neural radiance field to neural light field for efficient novel view synthesis</title>
+		<author>
+			<persName><forename type="first">Huan</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jian</forename><surname>Ren</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zeng</forename><surname>Huang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Kyle</forename><surname>Olszewski</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Menglei</forename><surname>Chai</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yun</forename><surname>Fu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Sergey</forename><surname>Tulyakov</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">European Conference on Computer Vision</title>
+				<imprint>
+			<publisher>Springer</publisher>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="612" to="629" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b15">
+	<analytic>
+		<title level="a" type="main">3d gaussian splatting for real-time radiance field rendering</title>
+		<author>
+			<persName><forename type="first">Bernhard</forename><surname>Kerbl</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Georgios</forename><surname>Kopanas</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Thomas</forename><surname>Leimkühler</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">George</forename><surname>Drettakis</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">ACM Transactions on Graphics (ToG)</title>
+		<imprint>
+			<biblScope unit="volume">42</biblScope>
+			<biblScope unit="issue">4</biblScope>
+			<biblScope unit="page" from="1" to="14" />
+			<date type="published" when="2023">2023</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b16">
+	<analytic>
+		<title level="a" type="main">Point-based neural rendering with per-view optimization</title>
+		<author>
+			<persName><forename type="first">Georgios</forename><surname>Kopanas</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Julien</forename><surname>Philip</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Thomas</forename><surname>Leimkühler</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">George</forename><surname>Drettakis</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Computer Graphics Forum</title>
+				<imprint>
+			<biblScope unit="volume">40</biblScope>
+			<biblScope unit="page" from="29" to="43" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b17">
+	<monogr>
+		<title/>
+		<author>
+			<persName><forename type="first">Wiley</forename><surname>Online</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Library</forename></persName>
+		</author>
+		<imprint>
+			<date type="published" when="2021">2021</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b18">
+	<analytic>
+		<title level="a" type="main">Plenoctrees for real-time rendering of neural radiance fields</title>
+		<author>
+			<persName><forename type="first">Alex</forename><surname>Yu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ruilong</forename><surname>Li</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Matthew</forename><surname>Tancik</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Hao</forename><surname>Li</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ren</forename><surname>Ng</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Angjoo</forename><surname>Kanazawa</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF International Conference on Computer Vision</title>
+				<meeting>the IEEE/CVF International Conference on Computer Vision</meeting>
+		<imprint>
+			<date type="published" when="2021">2021</date>
+			<biblScope unit="page" from="5752" to="5761" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b19">
+	<analytic>
+		<title level="a" type="main">Plenoxels: Radiance Fields Without Neural Networks</title>
+		<author>
+			<persName><forename type="first">Sara</forename><surname>Fridovich-Keil</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Alex</forename><surname>Yu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Matthew</forename><surname>Tancik</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Qinhong</forename><surname>Chen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Benjamin</forename><surname>Recht</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Angjoo</forename><surname>Kanazawa</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</title>
+				<meeting>the IEEE/CVF Conference on Computer Vision and Pattern Recognition</meeting>
+		<imprint>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="5501" to="5510" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b20">
+	<analytic>
+		<title level="a" type="main">Neural Sparse Voxel Fields</title>
+		<author>
+			<persName><forename type="first">Lingjie</forename><surname>Liu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jiatao</forename><surname>Gu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Kyaw</forename><surname>Zaw Lin</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Tat-Seng</forename><surname>Chua</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Christian</forename><surname>Theobalt</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Advances in Neural Information Processing Systems</title>
+				<imprint>
+			<date type="published" when="2020">2020</date>
+			<biblScope unit="volume">33</biblScope>
+			<biblScope unit="page" from="15651" to="15663" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b21">
+	<analytic>
+		<title level="a" type="main">EfficientNeRF Efficient Neural Radiance Fields</title>
+		<author>
+			<persName><forename type="first">Tao</forename><surname>Hu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Shu</forename><surname>Liu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yilun</forename><surname>Chen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Tiancheng</forename><surname>Shen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jiaya</forename><surname>Jia</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</title>
+				<meeting>the IEEE/CVF Conference on Computer Vision and Pattern Recognition</meeting>
+		<imprint>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="12902" to="12911" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b22">
+	<analytic>
+		<title level="a" type="main">Fastnerf: High-fidelity neural rendering at 200fps</title>
+		<author>
+			<persName><forename type="first">Stephan</forename><forename type="middle">J</forename><surname>Garbin</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Marek</forename><surname>Kowalski</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Matthew</forename><surname>Johnson</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jamie</forename><surname>Shotton</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Julien</forename><surname>Valentin</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF International Conference on Computer Vision</title>
+				<meeting>the IEEE/CVF International Conference on Computer Vision</meeting>
+		<imprint>
+			<date type="published" when="2021">2021</date>
+			<biblScope unit="page" from="14346" to="14355" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b23">
+	<analytic>
+		<title level="a" type="main">Baking neural radiance fields for real-time view synthesis</title>
+		<author>
+			<persName><forename type="first">Peter</forename><surname>Hedman</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ben</forename><surname>Pratul P Srinivasan</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jonathan</forename><forename type="middle">T</forename><surname>Mildenhall</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Paul</forename><surname>Barron</surname></persName>
+		</author>
+		<author>
+			<persName><surname>Debevec</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF International Conference on Computer Vision</title>
+				<meeting>the IEEE/CVF International Conference on Computer Vision</meeting>
+		<imprint>
+			<date type="published" when="2021">2021</date>
+			<biblScope unit="page" from="5875" to="5884" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b24">
+	<analytic>
+		<title level="a" type="main">Kilonerf: Speeding up neural radiance fields with thousands of tiny mlps</title>
+		<author>
+			<persName><forename type="first">Christian</forename><surname>Reiser</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Songyou</forename><surname>Peng</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yiyi</forename><surname>Liao</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Andreas</forename><surname>Geiger</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF International Conference on Computer Vision</title>
+				<meeting>the IEEE/CVF International Conference on Computer Vision</meeting>
+		<imprint>
+			<date type="published" when="2021">2021</date>
+			<biblScope unit="page" from="14335" to="14345" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b25">
+	<analytic>
+		<title level="a" type="main">Learning Neural Light Fields With Ray-Space Embedding Networks</title>
+		<author>
+			<persName><forename type="first">Benjamin</forename><surname>Attal</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jia-Bin</forename><surname>Huang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Michael</forename><surname>Zollhoefer</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Johannes</forename><surname>Kopf</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Changil</forename><surname>Kim</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)</title>
+				<imprint>
+			<date type="published" when="2022">2022. 2022</date>
+			<biblScope unit="page" from="19787" to="19797" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b26">
+	<analytic>
+		<title level="a" type="main">Light Field Networks: Neural Scene Representations With Single-Evaluation Rendering</title>
+		<author>
+			<persName><forename type="first">Semon</forename><surname>Vincent Sitzmann</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">William</forename><forename type="middle">T</forename><surname>Rezchikov</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Joshua</forename><forename type="middle">B</forename><surname>Freeman</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Frédo</forename><surname>Tenenbaum</surname></persName>
+		</author>
+		<author>
+			<persName><surname>Durand</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Advances in Neural Information Processing Systems</title>
+				<imprint>
+			<date type="published" when="2021">2021</date>
+			<biblScope unit="volume">34</biblScope>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b27">
+	<monogr>
+		<author>
+			<persName><forename type="first">Leonid</forename><surname>Keselman</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Martial</forename><surname>Hebert</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2308.14737</idno>
+		<title level="m">Flexible techniques for differentiable rendering with 3d gaussians</title>
+				<imprint>
+			<date type="published" when="2023">2023</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b28">
+	<analytic>
+		<title level="a" type="main">A generalization of algebraic surface drawing</title>
+		<author>
+			<persName><surname>James F Blinn</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">ACM transactions on graphics (TOG)</title>
+		<imprint>
+			<biblScope unit="volume">1</biblScope>
+			<biblScope unit="issue">3</biblScope>
+			<biblScope unit="page" from="235" to="256" />
+			<date type="published" when="1982">1982</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b29">
+	<analytic>
+		<title level="a" type="main">Accelerated generative models for 3d point cloud data</title>
+		<author>
+			<persName><forename type="first">Benjamin</forename><surname>Eckart</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Kihwan</forename><surname>Kim</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Alejandro</forename><surname>Troccoli</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Alonzo</forename><surname>Kelly</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jan</forename><surname>Kautz</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE conference on computer vision and pattern recognition</title>
+				<meeting>the IEEE conference on computer vision and pattern recognition</meeting>
+		<imprint>
+			<date type="published" when="2016">2016</date>
+			<biblScope unit="page" from="5497" to="5505" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b30">
+	<analytic>
+		<title level="a" type="main">Splatting with shadows</title>
+		<author>
+			<persName><forename type="first">Manjushree</forename><surname>Nulkar</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Klaus</forename><surname>Mueller</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the Joint IEEE TCVG and Eurographics Workshop in</title>
+				<meeting>the Joint IEEE TCVG and Eurographics Workshop in<address><addrLine>Stony Brook, New York, USA</addrLine></address></meeting>
+		<imprint>
+			<publisher>Springer</publisher>
+			<date type="published" when="2001">June 21-22, 2001. 2001</date>
+			<biblScope unit="volume">2001</biblScope>
+			<biblScope unit="page" from="35" to="49" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b31">
+	<analytic>
+		<title level="a" type="main">Generating and real-time rendering of clouds</title>
+		<author>
+			<persName><forename type="first">Petr</forename><surname>Man</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Central European seminar on computer graphics</title>
+				<meeting><address><addrLine>Slovakia</addrLine></address></meeting>
+		<imprint>
+			<date type="published" when="2006">2006</date>
+			<biblScope unit="volume">1</biblScope>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b32">
+	<analytic>
+		<title level="a" type="main">Pulsar: Efficient sphere-based neural rendering</title>
+		<author>
+			<persName><forename type="first">Christoph</forename><surname>Lassner</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Michael</forename><surname>Zollhofer</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</title>
+				<meeting>the IEEE/CVF Conference on Computer Vision and Pattern Recognition</meeting>
+		<imprint>
+			<date type="published" when="2021">2021</date>
+			<biblScope unit="page" from="1440" to="1449" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b33">
+	<analytic>
+		<title level="a" type="main">Jeroen Van Baar, and Markus Gross. Ewa volume splatting</title>
+		<author>
+			<persName><forename type="first">Matthias</forename><surname>Zwicker</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Hanspeter</forename><surname>Pfister</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings Visualization, 2001. VIS&apos;01</title>
+				<meeting>Visualization, 2001. VIS&apos;01</meeting>
+		<imprint>
+			<publisher>IEEE</publisher>
+			<date type="published" when="2001">2001</date>
+			<biblScope unit="page" from="29" to="538" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b34">
+	<monogr>
+		<title level="m" type="main">Compressed 3d gaussian splatting for accelerated novel view synthesis</title>
+		<author>
+			<persName><forename type="first">Simon</forename><surname>Niedermayr</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Josef</forename><surname>Stumpfegger</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Rüdiger</forename><surname>Westermann</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2401.02436</idno>
+		<imprint>
+			<date type="published" when="2023">2023</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b35">
+	<monogr>
+		<author>
+			<persName><forename type="first">Kossar</forename><surname>Kl Navaneet</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Soroush</forename><surname>Pourahmadi Meibodi</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Hamed</forename><surname>Abbasi Koohpayegani</surname></persName>
+		</author>
+		<author>
+			<persName><surname>Pirsiavash</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2311.18159</idno>
+		<title level="m">Compact3d: Compressing gaussian splat radiance field models with vector quantization</title>
+				<imprint>
+			<date type="published" when="2023">2023</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b36">
+	<analytic>
+		<title level="a" type="main">Radiative gaussian splatting for efficient x-ray novel view synthesis</title>
+		<author>
+			<persName><forename type="first">Yuanhao</forename><surname>Cai</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yixun</forename><surname>Liang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jiahao</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Angtian</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yulun</forename><surname>Zhang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Xiaokang</forename><surname>Yang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zongwei</forename><surname>Zhou</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Alan</forename><surname>Yuille</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">European Conference on Computer Vision</title>
+				<imprint>
+			<publisher>Springer</publisher>
+			<date type="published" when="2025">2025</date>
+			<biblScope unit="page" from="283" to="299" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b37">
+	<monogr>
+		<author>
+			<persName><forename type="first">Chan</forename><surname>Joo</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Daniel</forename><surname>Lee</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Xiangyu</forename><surname>Rho</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jong</forename><forename type="middle">Hwan</forename><surname>Sun</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Eunbyung</forename><surname>Ko</surname></persName>
+		</author>
+		<author>
+			<persName><surname>Park</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2311.13681</idno>
+		<title level="m">Compact 3d gaussian representation for radiance field</title>
+				<imprint>
+			<date type="published" when="2023">2023</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b38">
+	<analytic>
+		<title level="a" type="main">Optimal brain damage</title>
+		<author>
+			<persName><forename type="first">Yann</forename><surname>Lecun</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">John</forename><surname>Denker</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Sara</forename><surname>Solla</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Advances in neural information processing systems</title>
+				<imprint>
+			<date type="published" when="1989">1989</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b39">
+	<monogr>
+		<title level="m" type="main">Soft filter pruning for accelerating deep convolutional neural networks</title>
+		<author>
+			<persName><forename type="first">Yang</forename><surname>He</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Guoliang</forename><surname>Kang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Xuanyi</forename><surname>Dong</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yanwei</forename><surname>Fu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yi</forename><surname>Yang</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:1808.06866</idno>
+		<imprint>
+			<date type="published" when="2018">2018</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b40">
+	<analytic>
+		<title level="a" type="main">Structured pruning of deep convolutional neural networks</title>
+		<author>
+			<persName><forename type="first">Sajid</forename><surname>Anwar</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Kyuyeon</forename><surname>Hwang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Wonyong</forename><surname>Sung</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">ACM Journal on Emerging Technologies in Computing Systems (JETC)</title>
+		<imprint>
+			<biblScope unit="volume">13</biblScope>
+			<biblScope unit="issue">3</biblScope>
+			<biblScope unit="page" from="1" to="18" />
+			<date type="published" when="2017">2017</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b41">
+	<monogr>
+		<title level="m" type="main">The lottery ticket hypothesis: Finding sparse, trainable neural networks</title>
+		<author>
+			<persName><forename type="first">Jonathan</forename><surname>Frankle</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Michael</forename><surname>Carbin</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:1803.03635</idno>
+		<imprint>
+			<date type="published" when="2018">2018</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b42">
+	<analytic>
+		<title level="a" type="main">Linear mode connectivity and the lottery ticket hypothesis</title>
+		<author>
+			<persName><forename type="first">Jonathan</forename><surname>Frankle</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Gintare</forename><surname>Karolina Dziugaite</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Daniel</forename><surname>Roy</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Michael</forename><surname>Carbin</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">International Conference on Machine Learning</title>
+				<imprint>
+			<publisher>PMLR</publisher>
+			<date type="published" when="2020">2020</date>
+			<biblScope unit="page" from="3259" to="3269" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b43">
+	<monogr>
+		<title level="m" type="main">Advances in neural information processing systems</title>
+		<author>
+			<persName><forename type="first">Aaron</forename><surname>Van Den</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Oriol</forename><surname>Oord</surname></persName>
+		</author>
+		<author>
+			<persName><surname>Vinyals</surname></persName>
+		</author>
+		<imprint>
+			<date type="published" when="2017">2017</date>
+			<biblScope unit="volume">30</biblScope>
+		</imprint>
+	</monogr>
+	<note>Neural discrete representation learning</note>
+</biblStruct>
+
+<biblStruct xml:id="b44">
+	<analytic>
+		<title level="a" type="main">Visual categorization with bags of keypoints</title>
+		<author>
+			<persName><forename type="first">Gabriella</forename><surname>Csurka</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Christopher</forename><surname>Dance</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Lixin</forename><surname>Fan</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jutta</forename><surname>Willamowski</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Cédric</forename><surname>Bray</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Workshop on statistical learning in computer vision, ECCV</title>
+				<meeting><address><addrLine>Prague</addrLine></address></meeting>
+		<imprint>
+			<date type="published" when="2004">2004</date>
+			<biblScope unit="volume">1</biblScope>
+			<biblScope unit="page" from="1" to="2" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b45">
+	<analytic>
+		<title level="a" type="main">Vector quantization</title>
+		<author>
+			<persName><forename type="first">Robert</forename><surname>Gray</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">IEEE Assp Magazine</title>
+		<imprint>
+			<biblScope unit="volume">1</biblScope>
+			<biblScope unit="issue">2</biblScope>
+			<biblScope unit="page" from="4" to="29" />
+			<date type="published" when="1984">1984</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b46">
+	<monogr>
+		<author>
+			<persName><forename type="first">Chengzhi</forename><surname>Mao</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Lu</forename><surname>Jiang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Mostafa</forename><surname>Dehghani</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Carl</forename><surname>Vondrick</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Rahul</forename><surname>Sukthankar</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Irfan</forename><surname>Essa</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2111.10493</idno>
+		<title level="m">Discrete representations strengthen vision transformer robustness</title>
+				<imprint>
+			<date type="published" when="2021">2021</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b47">
+	<analytic>
+		<title level="a" type="main">Taming transformers for high-resolution image synthesis</title>
+		<author>
+			<persName><forename type="first">Patrick</forename><surname>Esser</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Robin</forename><surname>Rombach</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Bjorn</forename><surname>Ommer</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF conference on computer vision and pattern recognition</title>
+				<meeting>the IEEE/CVF conference on computer vision and pattern recognition</meeting>
+		<imprint>
+			<date type="published" when="2021">2021</date>
+			<biblScope unit="page" from="12873" to="12883" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b48">
+	<analytic>
+		<title level="a" type="main">Vector quantized diffusion model for text-to-image synthesis</title>
+		<author>
+			<persName><forename type="first">Shuyang</forename><surname>Gu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Dong</forename><surname>Chen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jianmin</forename><surname>Bao</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Fang</forename><surname>Wen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Bo</forename><surname>Zhang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Dongdong</forename><surname>Chen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Lu</forename><surname>Yuan</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Baining</forename><surname>Guo</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</title>
+				<meeting>the IEEE/CVF Conference on Computer Vision and Pattern Recognition</meeting>
+		<imprint>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="10696" to="10706" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b49">
+	<analytic>
+		<title level="a" type="main">Compressing volumetric radiance fields to 1 mb</title>
+		<author>
+			<persName><forename type="first">Lingzhi</forename><surname>Li</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zhen</forename><surname>Shen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zhongshu</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Li</forename><surname>Shen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Liefeng</forename><surname>Bo</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</title>
+				<meeting>the IEEE/CVF Conference on Computer Vision and Pattern Recognition</meeting>
+		<imprint>
+			<date type="published" when="2023">2023</date>
+			<biblScope unit="page" from="4222" to="4231" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b50">
+	<analytic>
+		<title level="a" type="main">Compact neural volumetric video representations with dynamic codebooks</title>
+		<author>
+			<persName><forename type="first">Haoyu</forename><surname>Guo</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Sida</forename><surname>Peng</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yunzhi</forename><surname>Yan</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Linzhan</forename><surname>Mou</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yujun</forename><surname>Shen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Hujun</forename><surname>Bao</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Xiaowei</forename><surname>Zhou</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Thirty-seventh Conference on Neural Information Processing Systems</title>
+				<imprint>
+			<date type="published" when="2023">2023</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b51">
+	<monogr>
+		<author>
+			<persName><forename type="first">Geoffrey</forename><surname>Hinton</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Oriol</forename><surname>Vinyals</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jeff</forename><surname>Dean</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:1503.02531</idno>
+		<title level="m">Distilling the knowledge in a neural network</title>
+				<imprint>
+			<date type="published" when="2015">2015</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b52">
+	<monogr>
+		<title level="m" type="main">Is label smoothing truly incompatible with knowledge distillation: An empirical study</title>
+		<author>
+			<persName><forename type="first">Zhiqiang</forename><surname>Shen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zechun</forename><surname>Liu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Dejia</forename><surname>Xu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zitian</forename><surname>Chen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Kwang-Ting</forename><surname>Cheng</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Marios</forename><surname>Savvides</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2104.00676</idno>
+		<imprint>
+			<date type="published" when="2021">2021</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b53">
+	<monogr>
+		<title level="m" type="main">Distilbert, a distilled version of bert: smaller, faster, cheaper and lighter</title>
+		<author>
+			<persName><forename type="first">Victor</forename><surname>Sanh</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Lysandre</forename><surname>Debut</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Julien</forename><surname>Chaumond</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Thomas</forename><surname>Wolf</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:1910.01108</idno>
+		<imprint>
+			<date type="published" when="2019">2019</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b54">
+	<analytic>
+		<title level="a" type="main">Knowledge distillation and student-teacher learning for visual intelligence: A review and new outlooks</title>
+		<author>
+			<persName><forename type="first">Lin</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Kuk-Jin</forename><surname>Yoon</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">IEEE transactions on pattern analysis and machine intelligence</title>
+				<imprint>
+			<date type="published" when="2021">2021</date>
+			<biblScope unit="volume">44</biblScope>
+			<biblScope unit="page" from="3048" to="3068" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b55">
+	<analytic>
+		<title level="a" type="main">Model compression</title>
+		<author>
+			<persName><forename type="first">Cristian</forename><surname>Buciluǎ</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Rich</forename><surname>Caruana</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Alexandru</forename><surname>Niculescu-Mizil</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the 12th ACM SIGKDD international conference on Knowledge discovery and data mining</title>
+				<meeting>the 12th ACM SIGKDD international conference on Knowledge discovery and data mining</meeting>
+		<imprint>
+			<date type="published" when="2006">2006</date>
+			<biblScope unit="page" from="535" to="541" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b56">
+	<monogr>
+		<author>
+			<persName><forename type="first">Ben</forename><surname>Poole</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ajay</forename><surname>Jain</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jonathan</forename><forename type="middle">T</forename><surname>Barron</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ben</forename><surname>Mildenhall</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2209.14988</idno>
+		<title level="m">Dreamfusion: Text-to-3d using 2d diffusion</title>
+				<imprint>
+			<date type="published" when="2022">2022</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b57">
+	<monogr>
+		<author>
+			<persName><forename type="first">Dejia</forename><surname>Xu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yifan</forename><surname>Jiang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Peihao</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zhiwen</forename><surname>Fan</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yi</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zhangyang</forename><surname>Wang</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2211.16431</idno>
+		<title level="m">Neurallift-360: Lifting an in-the-wild 2d photo to a 3d object with 360 {\deg} views</title>
+				<imprint>
+			<date type="published" when="2022">2022</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b58">
+	<analytic>
+		<title level="a" type="main">Decomposing nerf for editing via feature field distillation</title>
+		<author>
+			<persName><forename type="first">Sosuke</forename><surname>Kobayashi</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Eiichi</forename><surname>Matsumoto</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Vincent</forename><surname>Sitzmann</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Advances in Neural Information Processing Systems</title>
+				<imprint>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="volume">35</biblScope>
+			<biblScope unit="page" from="23311" to="23330" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b59">
+	<monogr>
+		<title level="m" type="main">Nerf-sos: Any-view self-supervised object segmentation on complex scenes</title>
+		<author>
+			<persName><forename type="first">Zhiwen</forename><surname>Fan</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Peihao</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yifan</forename><surname>Jiang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Xinyu</forename><surname>Gong</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Dejia</forename><surname>Xu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zhangyang</forename><surname>Wang</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2209.08776</idno>
+		<imprint>
+			<date type="published" when="2022">2022</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b60">
+	<analytic>
+		<title level="a" type="main">Unified implicit neural stylization</title>
+		<author>
+			<persName><forename type="first">Zhiwen</forename><surname>Fan</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yifan</forename><surname>Jiang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Peihao</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Xinyu</forename><surname>Gong</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Dejia</forename><surname>Xu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zhangyang</forename><surname>Wang</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">European Conference on Computer Vision</title>
+				<imprint>
+			<publisher>Springer</publisher>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="636" to="654" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b61">
+	<monogr>
+		<author>
+			<persName><forename type="first">Jiazhong</forename><surname>Cen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Zanwei</forename><surname>Zhou</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jiemin</forename><surname>Fang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Wei</forename><surname>Shen</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Lingxi</forename><surname>Xie</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Xiaopeng</forename><surname>Zhang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Qi</forename><surname>Tian</surname></persName>
+		</author>
+		<idno type="arXiv">arXiv:2304.12308</idno>
+		<title level="m">Segment anything in 3d with nerfs</title>
+				<imprint>
+			<date type="published" when="2023">2023</date>
+		</imprint>
+	</monogr>
+	<note type="report_type">arXiv preprint</note>
+</biblStruct>
+
+<biblStruct xml:id="b62">
+	<analytic>
+		<title level="a" type="main">Differentiable surface splatting for point-based geometry processing</title>
+		<author>
+			<persName><forename type="first">Wang</forename><surname>Yifan</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Felice</forename><surname>Serena</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Shihao</forename><surname>Wu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Cengiz</forename><surname>Öztireli</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Olga</forename><surname>Sorkine-Hornung</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">ACM Transactions on Graphics</title>
+		<imprint>
+			<biblScope unit="volume">38</biblScope>
+			<biblScope unit="issue">6</biblScope>
+			<biblScope unit="page" from="1" to="14" />
+			<date type="published" when="2019">2019</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b63">
+	<analytic>
+		<title level="a" type="main">Learning both weights and connections for efficient neural network</title>
+		<author>
+			<persName><forename type="first">Song</forename><surname>Han</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jeff</forename><surname>Pool</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">John</forename><surname>Tran</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">William</forename><surname>Dally</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">Advances in neural information processing systems</title>
+		<imprint>
+			<biblScope unit="volume">28</biblScope>
+			<date type="published" when="2015">2015</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b64">
+	<analytic>
+		<title level="a" type="main">Mipnerf 360: Unbounded anti-aliased neural radiance fields</title>
+		<author>
+			<persName><forename type="first">Jonathan</forename><forename type="middle">T</forename><surname>Barron</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Ben</forename><surname>Mildenhall</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Dor</forename><surname>Verbin</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Peter</forename><surname>Pratul P Srinivasan</surname></persName>
+		</author>
+		<author>
+			<persName><surname>Hedman</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</title>
+				<meeting>the IEEE/CVF Conference on Computer Vision and Pattern Recognition</meeting>
+		<imprint>
+			<date type="published" when="2022">2022</date>
+			<biblScope unit="page" from="5470" to="5479" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b65">
+	<analytic>
+		<title level="a" type="main">Tanks and temples: Benchmarking large-scale scene reconstruction</title>
+		<author>
+			<persName><forename type="first">Arno</forename><surname>Knapitsch</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Jaesik</forename><surname>Park</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Qian-Yi</forename><surname>Zhou</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Vladlen</forename><surname>Koltun</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="j">ACM Transactions on Graphics (ToG)</title>
+		<imprint>
+			<biblScope unit="volume">36</biblScope>
+			<biblScope unit="issue">4</biblScope>
+			<biblScope unit="page" from="1" to="13" />
+			<date type="published" when="2017">2017</date>
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b66">
+	<analytic>
+		<title level="a" type="main">The unreasonable effectiveness of deep features as a perceptual metric</title>
+		<author>
+			<persName><forename type="first">Richard</forename><surname>Zhang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Phillip</forename><surname>Isola</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Alexei</forename><forename type="middle">A</forename><surname>Efros</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Eli</forename><surname>Shechtman</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Oliver</forename><surname>Wang</surname></persName>
+		</author>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE conference on computer vision and pattern recognition</title>
+				<meeting>the IEEE conference on computer vision and pattern recognition</meeting>
+		<imprint>
+			<date type="published" when="2018">2018</date>
+			<biblScope unit="page" from="586" to="595" />
+		</imprint>
+	</monogr>
+</biblStruct>
+
+<biblStruct xml:id="b67">
+	<analytic>
+		<title level="a" type="main">Methods PSNR bicycle flowers garden stump room treehill counter kitchen bonsai truck(T&amp;T) train(T&amp;T) Plenoxels</title>
+		<author>
+			<persName><forename type="first">Tao</forename><surname>Lu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Mulin</forename><surname>Yu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Linning</forename><surname>Xu</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Yuanbo</forename><surname>Xiangli</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Limin</forename><surname>Wang</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Dahua</forename><surname>Lin</surname></persName>
+		</author>
+		<author>
+			<persName><forename type="first">Bo</forename><surname>Dai</surname></persName>
+		</author>
+		<idno>21.912 20.097 23.4947 20.661 22.248 27.594 23.624 23.420 24.669 23.221 18.927 INGP-Big 22.171 20.652 25.069 23.466 22.373 29.690 26.691 29.479 30.685 23.383 20.456 mip-NeRF360 24.305 21.649 26.875 26.175 22.929 31.467 29.447 31.989 33.397</idno>
+	</analytic>
+	<monogr>
+		<title level="m">Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition</title>
+				<meeting>the IEEE/CVF Conference on Computer Vision and Pattern Recognition</meeting>
+		<imprint>
+			<date type="published" when="2024">2024</date>
+			<biblScope unit="page" from="20654" to="20664" />
+		</imprint>
+	</monogr>
+	<note>Scaffoldgs: Structured 3d gaussians for view-adaptive rendering</note>
+</biblStruct>
+
+<biblStruct xml:id="b68">
+	<monogr>
+		<title level="m" type="main">LightGaussian outperforms VQ-DVGO, which utilizes NeRF as a basic representation. Furthermore, LightGaussian achieves a comparable rendering quality to 3D</title>
+		<idno>77 31.399 22.685 28.478 30.869 31.414 25.399 21.838</idno>
+		<imprint/>
+	</monogr>
+	<note>ground truth. As evidenced in Figure 8 and Figure 9. -GS [16], demonstrating the effectiveness of our proposed compact representation</note>
+</biblStruct>
+
+				</listBibl>
+			</div>
+		</back>
+	</text>
+</TEI>

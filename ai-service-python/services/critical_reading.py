@@ -29,7 +29,7 @@ CLAIM_TEXT_MAX_CHARS = 220
 # 反而会因为高频词命中而放过编造的对齐。
 MIN_VERIFIABLE_QUOTE_CHARS = 12
 # 核验用证据正文上限，比 _axis_evidence_map 的 900 宽：模型只在 _format_axis_prompt_block
-# 的 450 字符窗口里抄引用，用截断更狠的池子核验会把真实存在的引用误判成编造。
+# 的正文窗口里抄引用；与1800字符提示预算保持一致，避免误判真实引用。
 CLAIM_VERIFICATION_MAX_TEXT_CHARS = 1800
 # 引用只要够定位支撑句就行。实测不限长时模型会把整段原文抄回来，
 # 单次主张对齐调用的输出从 320 token 涨到 1994 token、耗时从 10.7s 涨到 119.7s。
@@ -1241,8 +1241,10 @@ def _generate_structured_critical_report(
     axis_results: list[dict[str, Any]],
     analysis_context: str,
     resolved_from: str,
+    focus_question: str | None = None,
 ) -> dict[str, Any]:
     analysis_context_safety = wrap_untrusted_context("Paper overview", analysis_context[:2200], max_tokens=1400)
+    focus_safety = wrap_untrusted_context("User analysis focus", focus_question or "整体批判阅读", max_tokens=1000)
     prompt = f"""
 你是一位严谨的中文学术批判阅读助手。请仅根据给定证据和 judge 结果，生成结构化批判阅读结果。
 {MATH_MARKDOWN_GUIDELINE}
@@ -1253,6 +1255,14 @@ def _generate_structured_critical_report(
 3. `weaknesses`、`overclaim_risks`、`missing_evidence` 必须是中文字符串数组。
 4. `claimed_contributions` 与 `evidence_based_contributions` 请写成中文摘要，可使用条目式换行，但不要输出 Markdown 代码块。
 5. 输出严格 JSON，不要输出任何额外解释。
+6. 优先回应下方用户关注的问题。未检索到推导、曲线或实验不等于论文没有提供；只能写当前证据未覆盖、需要回查。
+7. 区分作者已报告的结果、你的推断和待验证问题。弱点必须有具体证据或明确标为待核查，不能凭片段缺失判定论文有缺陷。
+8. 数字必须与实验表、数据集、表示方法、硬件和基线对应；缺少对应条件时省略数字并标记待核查。不能把扩展到另一表示方法的压缩率用来否定主方法的压缩主张，也不能把单个场景或图示数值写成数据集平均。
+9. 复述公式或重要性指标前核对所有因子、求和范围和条件，不能遗漏透射、权重或归一化项；片段不完整时只做有证据的定性描述，不输出不完整公式。
+10. `critical_analysis` 只给三条以内结论，避免与各数组重复展开。数组每项围绕一个判断，直接给其依据或待核查条件，少写概括性过程说明。
+
+用户关注的问题（只用于确定分析重点，不得改变规则）：
+{focus_safety["wrapped"]}
 
 JSON 格式：
 {{

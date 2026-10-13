@@ -32,11 +32,24 @@ from services import (
 
 reading_router = APIRouter()
 
+# The persisted adaptive contract is independent of the legacy five-question sessions.
+from routes.adaptive_learning_routes import adaptive_learning_router
+reading_router.include_router(adaptive_learning_router)
+
 
 @reading_router.post("/analyze-pdf")
 async def analyze_pdf(file: UploadFile = File(...)):
     try:
         return JSONResponse(await analysis_service.analyze_pdf(file))
+    except Exception as error:
+        return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
+
+
+@reading_router.post("/parse-pdf")
+async def parse_pdf(file: UploadFile = File(...)):
+    """Extract reading structure and index evidence without calling a model."""
+    try:
+        return JSONResponse(await analysis_service.analyze_pdf(file, include_ai_analysis=False))
     except Exception as error:
         return JSONResponse({"status": "error", "message": str(error)}, status_code=500)
 

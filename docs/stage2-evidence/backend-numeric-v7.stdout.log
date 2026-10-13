@@ -1,0 +1,45 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.2)
+
+2026-10-09T19:53:22.173+08:00  INFO 5116 --- [backend-java] [           main] c.a.a.b.BackendJavaApplication           : Starting BackendJavaApplication v0.0.1-SNAPSHOT using Java 25.0.1 with PID 5116 (D:\aiproj\ai_project\backend-java\target\backend-java-0.0.1-SNAPSHOT.jar started by Lenovo in D:\aiproj\ai_project\backend-java)
+2026-10-09T19:53:22.178+08:00  INFO 5116 --- [backend-java] [           main] c.a.a.b.BackendJavaApplication           : No active profile set, falling back to 1 default profile: "default"
+2026-10-09T19:53:23.146+08:00  INFO 5116 --- [backend-java] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-09T19:53:23.266+08:00  INFO 5116 --- [backend-java] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 102 ms. Found 5 JPA repository interfaces.
+2026-10-09T19:53:24.545+08:00  INFO 5116 --- [backend-java] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8081 (http)
+2026-10-09T19:53:24.585+08:00  INFO 5116 --- [backend-java] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-09T19:53:24.587+08:00  INFO 5116 --- [backend-java] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.34]
+2026-10-09T19:53:24.695+08:00  INFO 5116 --- [backend-java] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-10-09T19:53:24.697+08:00  INFO 5116 --- [backend-java] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2440 ms
+2026-10-09T19:53:25.006+08:00  INFO 5116 --- [backend-java] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-10-09T19:53:25.136+08:00  INFO 5116 --- [backend-java] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.5.Final
+2026-10-09T19:53:25.214+08:00  INFO 5116 --- [backend-java] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-10-09T19:53:25.806+08:00  INFO 5116 --- [backend-java] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-09T19:53:25.883+08:00  INFO 5116 --- [backend-java] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-09T19:53:27.446+08:00  INFO 5116 --- [backend-java] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:file:./target/stage0-data/academic_db user=SA
+2026-10-09T19:53:27.449+08:00  INFO 5116 --- [backend-java] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-09T19:53:27.491+08:00  WARN 5116 --- [backend-java] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-10-09T19:53:27.529+08:00  INFO 5116 --- [backend-java] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-09T19:53:28.892+08:00  INFO 5116 --- [backend-java] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-09T19:53:28.976+08:00  INFO 5116 --- [backend-java] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-09T19:53:29.719+08:00  INFO 5116 --- [backend-java] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-10-09T19:53:30.725+08:00  WARN 5116 --- [backend-java] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-10-09T19:53:31.619+08:00  INFO 5116 --- [backend-java] [           main] o.s.b.a.h2.H2ConsoleAutoConfiguration    : H2 console available at '/h2-console'. Database available at 'jdbc:h2:file:./target/stage0-data/academic_db'
+2026-10-09T19:53:31.806+08:00  INFO 5116 --- [backend-java] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path '/'
+2026-10-09T19:53:31.846+08:00  INFO 5116 --- [backend-java] [           main] c.a.a.b.BackendJavaApplication           : Started BackendJavaApplication in 10.352 seconds (process running for 11.082)
+2026-10-09T19:54:04.753+08:00  INFO 5116 --- [backend-java] [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-09T19:54:04.755+08:00  INFO 5116 --- [backend-java] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-09T19:54:04.757+08:00  INFO 5116 --- [backend-java] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms

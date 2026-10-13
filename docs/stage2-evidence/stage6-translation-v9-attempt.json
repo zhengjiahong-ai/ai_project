@@ -1,0 +1,15 @@
+{
+  "authorization": "用户2026-10-09明确回复：允许这3个修复后案例",
+  "provider": "https://api.deepseek.com",
+  "taskId": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+  "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "pageIndex": 3,
+  "status": "completed_saved_refreshed_exported",
+  "createdAt": "2026-10-09T14:31:18.205588+00:00",
+  "maxGenerationSubmissions": 1,
+  "automaticRetryAllowed": false,
+  "generationSubmissions": 1,
+  "submittedAt": "2026-10-09T14:31:54.319324+00:00",
+  "artifactId": "882613db-8f6e-4c27-9f3a-bc2bdfc85cff",
+  "taskRevision": 19
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pixiu/task-workspace/v1",
+  "title": "Authoritative task workspace response",
+  "type": "object",
+  "required": ["id", "title", "revision", "paperIds", "focusedPaperId", "messages", "notes", "artifacts", "activeActivity", "activityHistory", "researchRuns", "appliedRequestIds", "updatedAt"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 255},
+    "title": {"type": "string", "maxLength": 500},
+    "revision": {"type": "integer", "minimum": 0},
+    "updatedAt": {"type": "string"},
+    "paperIds": {"$ref": "#/$defs/paperIds"},
+    "focusedPaperId": {"type": ["string", "null"]},
+    "messages": {"type": "array", "items": {"type": "object", "properties": {"context": {"$ref": "#/$defs/materialScope"}, "rag_sources": {"type": "array", "items": {"$ref": "#/$defs/source"}}}}},
+    "notes": {"type": "array", "items": {"$ref": "#/$defs/document"}},
+    "artifacts": {"type": "array", "items": {"$ref": "#/$defs/document"}},
+    "activeActivity": {"type": ["object", "null"]},
+    "activityHistory": {"type": "array", "items": {"type": "object"}},
+    "researchRuns": {"type": "array", "items": {"type": "object", "required": ["researchId", "paperIds"], "properties": {"researchId": {"type": "string", "minLength": 1}, "paperIds": {"$ref": "#/$defs/paperIds"}}}},
+    "appliedRequestIds": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+  },
+  "$defs": {
+    "paperIds": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "materialScope": {"type": "object", "required": ["taskId", "allowedPaperIds", "primaryPaperId", "strictScope"], "properties": {"taskId": {"type": "string"}, "allowedPaperIds": {"$ref": "#/$defs/paperIds"}, "primaryPaperId": {"type": ["string", "null"]}, "strictScope": {"type": "boolean"}, "activityId": {"type": "string"}}},
+    "source": {"type": "object", "properties": {"sourceId": {"type": "string"}, "pdfId": {"type": "string"}, "text": {"type": "string"}, "quote": {"type": "string"}, "pageIndex": {"type": "integer", "minimum": 0}}},
+    "document": {"type": "object", "properties": {"id": {"type": "string"}, "title": {"type": "string"}, "text": {"type": "string"}, "paperIds": {"$ref": "#/$defs/paperIds"}, "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}}, "versions": {"type": "array", "items": {"type": "object"}}}}
+  },
+  "description": "Legacy document fields are preserved. Server enforces focus/scope membership and activity revisions. activeActivity, activityHistory, researchRuns and appliedRequestIds are protected against ordinary client PUT. Learning state is specified by schemas/adaptive_learning.py. Imported history is not executable authority."
+}

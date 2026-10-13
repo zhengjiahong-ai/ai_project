@@ -1,0 +1,39 @@
+{
+  "since": "2026-10-08T14:39:45Z",
+  "checkedAt": "2026-10-08T16:12:21.515993+00:00",
+  "dockerLogQueryExitCode": 0,
+  "fixedCasesSubmitted": 4,
+  "automaticCaseResubmissions": 0,
+  "translationHttp200Count": 1,
+  "explanationHttp200Count": 1,
+  "traces": [
+    {
+      "traceId": "024433e9-6866-4f49-8951-a6516477bbe8",
+      "taskType": "chat",
+      "mode": "chat",
+      "status": "success",
+      "durationMs": 24014,
+      "llmCalls": 2,
+      "retryCount": 0
+    },
+    {
+      "traceId": "eb41c070-d661-4b6e-b3aa-1c3b91ee8cfc",
+      "taskType": "critical",
+      "mode": null,
+      "status": "success",
+      "durationMs": 243695,
+      "llmCalls": 2,
+      "retryCount": 0
+    },
+    {
+      "traceId": "ea6b11be-fea6-408a-8b00-7d4de8e87009",
+      "taskType": "chat",
+      "mode": "explain",
+      "status": "success",
+      "durationMs": 22430,
+      "llmCalls": 2,
+      "retryCount": 0
+    }
+  ],
+  "scope": "Trace counters do not cover all provider calls, including rewrite/translation/standalone comparison; four cases is not four LLM calls."
+}

@@ -1,0 +1,58 @@
+{
+  "promptVersion": "dr-v2.20261013.27",
+  "changes": [
+    "Compute repair prompt byte ceiling from both remaining total and normal token pools, minus shared runtime output cap and framing allowance",
+    "Read current ledger snapshot after initial verification rather than stale pre-verification budget",
+    "Fit whole evidence rows and recompute permitted evidence references; never clip quotations",
+    "Atomic ledger reservation remains authoritative and can reject a raced request",
+    "Fixed-content overflow records skipped_budget without making a model request"
+  ],
+  "tests": {
+    "targetedPassed": 98,
+    "fullPassed": 829,
+    "warnings": 2,
+    "seconds": 81.14,
+    "command": "python -m pytest tests/test_deep_research_*.py tests/test_llm_instance_timeout.py tests/test_offline_llm.py tests/test_pdf_table_columns.py tests/test_table_evidence.py -q -p no:cacheprovider --basetemp=/tmp/dr-adaptive-repair-full"
+  },
+  "readonlyReplay": {
+    "runId": "dr_run_fd9c613b7725553294170dbcb2714fe1",
+    "promptByteCeiling": 20077,
+    "actualPromptBytes": 20006,
+    "reservationTokens": 29222,
+    "remainingNormalTokens": 29293,
+    "modelCalls": 0,
+    "historicalRunModified": false
+  },
+  "limits": [
+    "Budget fit is not proof that repair quality or subsequent independent verification succeeds"
+  ],
+  "runtime": {
+    "commit": "a72c048",
+    "promptVersion": "dr-v2.20261013.27",
+    "health": {
+      "api": "ok",
+      "rag": "ok",
+      "grobid": "ok"
+    },
+    "D3attempt8": {
+      "runId": "dr_run_9981b502aea454f286aa6f948e8b7023",
+      "receipt": "tmp/dr-acceptance-receipts/D3-v8.json",
+      "status": "completed",
+      "outcome": "partial",
+      "manual": "failed",
+      "calls": 11,
+      "tokens": 63396,
+      "elapsedSeconds": 181,
+      "repairStatus": "skipped_budget",
+      "normalTokens": 19969,
+      "repairPromptByteCeiling": 20815,
+      "fixedPromptBytesWithoutEvidence": 21648,
+      "findings": [
+        "Budget ceiling was applied, but rejected claim payload plus accepted context and instructions alone exceeded it",
+        "No repair model request was sent",
+        "Six initial rejected claims include invalid data role-kind, missing inference evidence, numerical mismatch, and exact audit binding failures for groups/budget/analysis"
+      ],
+      "next": "Reduce redundant repair prompt serialization and duplicate generated protocol text without removing configuration or weakening checks; replay offline before additional real calls"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "taskId": "stage6-paper-tools-20261008",
+  "revision": 3,
+  "checks": {
+    "selectionNoteSavedExactlyOnce": true,
+    "originalTextPreserved": true,
+    "paperAndPageSourcePreserved": true,
+    "sourceAnchorPreserved": true,
+    "twoTaskMaterialsAndFocusedPaperPreserved": true,
+    "noMessagesInFixture": true,
+    "artificialFixtureClearlyLabeled": true
+  },
+  "method": "Read-only Java task API, separate from browser observations",
+  "selectionNote": {
+    "id": "6ac0b4ab-c0a0-49be-9720-5e5cb6aab1cb",
+    "title": "原文笔记",
+    "text": "shot",
+    "paperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "source": {
+      "text": "shot",
+      "aiInterpretation": "已保存为边注，可继续补充自己的观察与问题。",
+      "pageNumber": 3,
+      "sourceAnchorId": "selection-1791446621662",
+      "sourcePageIndex": 3,
+      "sourceActionId": "note",
+      "sourceActionLabel": "边注"
+    },
+    "versions": [],
+    "sources": [
+      {
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "sourceId": "selection-1791446621662",
+        "pageIndex": 3,
+        "text": "shot"
+      }
+    ]
+  },
+  "modelRequestsSubmittedByThisVerifier": 0
+}

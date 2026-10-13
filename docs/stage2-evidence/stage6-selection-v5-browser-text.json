@@ -1,0 +1,3 @@
+{
+  "text": "AI 解释\np.4\n黄色\n2026/10/9 10:02:37\nsignificance\n存为笔记\n原文片段\n\nsignificance\n\n当前追问链\nPixiu\n\n在该论文中，significance 指用于剪枝的“全局显著性分数”GS\nj\n\t​\n\n，衡量第 j 个 3D 高斯对渲染质量的贡献，而不是直接使用不透明度。其计算为 GS\nj\n\t​\n\n=∑\ni=1\nM×H×W\n\t​\n\n1(G(X\nj\n\t​\n\n),r\ni\n\t​\n\n)⋅σ\nj\n\t​\n\n⋅T⋅γ(Σ\nj\n\t​\n\n)，其中 1(G(X\nj\n\t​\n\n),r\ni\n\t​\n\n) 表示该高斯是否与训练光线 r\ni\n\t​\n\n 相交，σ\nj\n\t​\n\n 是高斯不透明度，T=∏\ni=1\nj−1\n\t​\n\n(1−σ\ni\n\t​\n\n) 是光线到达该高斯前的累积透射率。γ(Σ\nj\n\t​\n\n) 是基于高斯体积 V(Σ\nj\n\t​\n\n)=\n3\n4\n\t​\n\nπabc（abc 为缩放 S 的三维分量）调整后的体积项，使空间范围更大的高斯获得更高权重。相比仅用 opacity 剪枝会丢失细节、PSNR 从 27.2 降到 25.3，该显著性分数旨在更全面地保留对渲染质量重要的高斯。"
+}

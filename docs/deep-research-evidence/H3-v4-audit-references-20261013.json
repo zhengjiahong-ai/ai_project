@@ -1,0 +1,56 @@
+{
+  "caseId": "H3",
+  "attempt": 4,
+  "purpose": "Development regression, not independent holdout acceptance",
+  "runId": "dr_run_58cab33cf17958158eff2f5e2cb629d4",
+  "runtimeRevision": "7378338",
+  "promptVersion": "dr-v2.20261013.51",
+  "submission": "One confirmed submission; GET-only receipt refresh; no retry",
+  "status": "completed",
+  "outcome": "partial",
+  "accepted": false,
+  "settledModelCalls": 7,
+  "settledTokens": 25560,
+  "elapsedSeconds": 55.28,
+  "externalDiscoveries": 2,
+  "fulltextFetches": 1,
+  "sourceVersion": "arxiv:2310.08528v3",
+  "localMaterials": 0,
+  "evidenceCount": 16,
+  "acceptedClaims": 2,
+  "rejectedClaims": 0,
+  "answerCharacterCount": 162,
+  "contentInspection": [
+    "The answer identifies H(G,t), six multi-resolution planes and tiny MLP as the encoder, with the decoder receiving features and predicting Gaussian deformation through separate heads",
+    "Encoder statements are supported by saved page 4 text; decoder/heads by page 7 ablation text and page 4 context",
+    "Cited access is disclosed as fulltext passages; the metadata obligation now passes structurally",
+    "The narrow mechanism explanation improved, but overall acceptance remains false because completeness auditing failed"
+  ],
+  "audit": {
+    "status": "invalid_response",
+    "invalidObligations": ["ob1"],
+    "wholeQuestionVerdictMissing": true,
+    "causes": ["Source excerpt transcription changes PDF whitespace/punctuation", "One answer binding inserts an ellipsis absent from the answer", "The original-question scope verdict is omitted"]
+  },
+  "sourceAuditFix": {
+    "promptVersion": "dr-v2.20261013.52",
+    "change": "A model may reference exact fields from evidence and accepted claims actually supplied in this audit call. Server resolves the unchanged strings before the existing literal, identity, aspect and whole-question checks.",
+    "guards": ["Unknown or duplicate IDs fail", "Only quote, supplied before/after context, answer text and serialized answer conditions are allowed", "Evidence or context omitted by prompt fitting is unavailable", "Field plus excerpt conflicts fail", "Legacy bad excerpts are never rewritten", "Selecting a field does not replace semantic judgment or missing aspects", "Original-question scope remains required"],
+    "testsBeforeExplicitScopePrompt": {"fullPassed": 976, "warnings": 2, "seconds": 95.90},
+    "testsAfterExplicitScopePrompt": {"targetedPassed": 30, "seconds": 4.49},
+    "finalFullOfflineRegression": {"passed": 978, "warnings": 2, "seconds": 98.81},
+    "qoderReview": {
+      "model": "bailian/qwen3.8-max-tp",
+      "scope": "Six source/test files only; tools disabled; no papers, runtime data or secrets",
+      "exitCode": 0,
+      "resultFile": "tmp/qoder-dr-audit-fields-20261013/output.txt",
+      "changes": ["Preserve conflicting model excerpts with explicit referenceError rather than blanking their text", "Align evidence identity type and empty-ID guards", "Record unavailable-field reasons in the audit trail"],
+      "rejectedSuggestion": "Merely leaving a field+excerpt conflict unchanged could accept a literal match despite invalid field syntax; explicit rejection was added instead",
+      "targetedRegression": {"passed": 57, "seconds": 8.33}
+    },
+    "runtimeLoaded": false,
+    "newLiveQualityVerified": false
+  },
+  "publicationNoticeFix": "No claim that paper facts were checked when the published result retains no factual claims; hypotheses/proposals keep an untested boundary.",
+  "limits": ["No historical report, verdict or receipt promoted", "H3 remains a consumed development sample", "Final DR0-DR5 acceptance is incomplete"]
+}

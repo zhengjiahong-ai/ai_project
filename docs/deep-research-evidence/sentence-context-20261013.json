@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-13",
+  "feature": "Sentence-aware exact source context",
+  "promptVersion": "dr-v2.20261013.16",
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "patchSha256": "a5ea205b8e866c3c451cb35e3178171b3fdd046bafd06e2a3a004bd4ce9c2346",
+    "reviewCorrections": [
+      "Removed duplicated quote field from context packet",
+      "Corrected tests that stripped literal quotation marks or spaces",
+      "Removed unrelated standard-library test; use normal project imports"
+    ]
+  },
+  "behavior": [
+    "Keep up to three preceding and two following nonempty sentence segments",
+    "Preserve exact characters and PDF line wraps, with bounded per-side character limits",
+    "All downstream synthesis, repair, factual and coverage checks use the same helper"
+  ],
+  "offlineReplay": {
+    "runId": "dr_run_a685a543bc5b51078556a5f71dc1d0d2",
+    "oldContainsNamedBaseline": true,
+    "oldContainsContrastSubjectClause": false,
+    "newContainsContrastSubjectClause": true,
+    "beforeCharacters": 386,
+    "afterCharacters": 199,
+    "exactContiguousText": true,
+    "newModelCalls": 0
+  },
+  "diagnosticCorrection": "The old 240-character window already contained 3D-GS, but cut the beginning of its contrast clause. Context truncation was not a sufficient explanation for the semantic checker failure.",
+  "finalRegression": {
+    "passed": 500,
+    "seconds": 65.42,
+    "warnings": 2
+  },
+  "runtimeLoaded": true,
+  "realModelRetest": false,
+  "remaining": [
+    "Validate source subject attribution and per-aspect coverage with real model",
+    "No claim that longer context or structural schema proves semantic completeness",
+    "D3 executable configurations and independent held-out acceptance remain open"
+  ],
+  "codeCommit": "ae01780",
+  "health": {
+    "status": "ok",
+    "rag": "ok",
+    "grobid": "ok"
+  }
+}

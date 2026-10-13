@@ -1,0 +1,19 @@
+{
+  "health": {
+    "status": "ok",
+    "checks": {
+      "grobid": {
+        "status": "ok",
+        "message": "GROBID is reachable."
+      },
+      "rag": {
+        "status": "ok",
+        "message": "RAG backend is ready."
+      }
+    },
+    "uptime_seconds": 25.4
+  },
+  "loadedProtection": "Loaded inline math protection: 2 expressions, no model call",
+  "idleGuardPassed": true,
+  "modelCalls": 0
+}

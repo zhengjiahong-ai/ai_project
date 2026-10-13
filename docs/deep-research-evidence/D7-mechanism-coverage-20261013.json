@@ -1,0 +1,35 @@
+{
+  "caseId": "D7",
+  "split": "development",
+  "derivedFrom": "H1",
+  "runId": "dr_run_006bc964976258f08b34845901bad8a2",
+  "promptVersion": "dr-v2.20261013.13",
+  "codeCommit": "136291d",
+  "outcome": "partial",
+  "manualOutcome": "failed",
+  "coverageGateOutcome": "correctly_detected_incomplete_answer",
+  "budget": {
+    "profile": "standard",
+    "modelCalls": 13,
+    "maxModelCalls": 18,
+    "tokens": 39224,
+    "maxTokens": 100000,
+    "externalSearches": 0,
+    "fulltextFetches": 0,
+    "elapsedSeconds": 98.0,
+    "cost": null
+  },
+  "findings": [
+    "Answer now mentions view frustum, but still replaces relative direction and distance with generic viewing position",
+    "Evidence already contains directions and distances; remaining omission is in synthesis",
+    "Unsupported paper-absence wording was rejected; final answer did not answer guarantee boundary",
+    "New final audit correctly marked mechanism obligation partial, guarantee obligation missing and original question partial",
+    "Two previously wrong page-1 quotations now use physical page 2",
+    "Report repeated obligations and original question in gap section; follow-up renderer folds and deduplicates future reports"
+  ],
+  "nextAction": "Run completeness audit early enough for the single bounded revision to address both unsupported claims and omissions, then recheck factual support and final coverage. Preserve no-retry and budget limits.",
+  "independentHoldout": false,
+  "automaticRetry": false,
+  "receipt": "tmp/dr-acceptance-receipts/D7-v1.json",
+  "result": "tmp/dr-acceptance-receipts/D7-v1.result.json"
+}

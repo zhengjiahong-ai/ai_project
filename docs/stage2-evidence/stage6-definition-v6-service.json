@@ -1,0 +1,22 @@
+{
+  "endpoint": "/health",
+  "activeResearchBeforeRestart": 0,
+  "restartSucceeded": true,
+  "providerCalls": 0,
+  "activeOperationsBeforeRestart": 0,
+  "statusCode": 200,
+  "body": {
+    "status": "ok",
+    "checks": {
+      "grobid": {
+        "status": "ok",
+        "message": "GROBID is reachable."
+      },
+      "rag": {
+        "status": "ok",
+        "message": "RAG backend is ready."
+      }
+    },
+    "uptime_seconds": 68.9
+  }
+}

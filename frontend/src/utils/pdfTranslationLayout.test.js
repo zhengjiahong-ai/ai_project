@@ -10,6 +10,12 @@ import {
 } from './pdfTranslationLayout.js';
 
 const run = () => {
+  const detachedVariables = buildTranslationRequestPageLayout({blocks:[
+    {id:'residue',text:'M HWX',bbox:{left:0.4,top:0.86,width:0.04,height:0.013}},
+    {id:'body',text:'The global score combines the contributions of all rays.',bbox:{left:0.1,top:0.7,width:0.7,height:0.1}},
+    {id:'abbreviation',text:'DNA',bbox:{left:0.1,top:0.7,width:0.04,height:0.013}},
+  ]});
+  assert.deepEqual(detachedVariables.blocks.map(block=>block.id),['body','abbreviation']);
   const viewport = { width: 600, height: 800 };
   const textContent = {
     items: [

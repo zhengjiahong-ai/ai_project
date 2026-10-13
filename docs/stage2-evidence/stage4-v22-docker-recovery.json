@@ -1,0 +1,9 @@
+{
+  "pid": 30036,
+  "ipcBackups": [
+    "dockerInference.stage4-v22-backup",
+    "engine.sock.stage4-v22-backup",
+    "userAnalyticsOtlpHttp.sock.stage4-v22-backup"
+  ],
+  "startedAt": "2026-10-10T18:32:47.4634386+08:00"
+}

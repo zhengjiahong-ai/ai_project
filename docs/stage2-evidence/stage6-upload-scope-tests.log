@@ -1,0 +1,24 @@
+
+ RUN  v4.1.10 D:/aiproj/ai_project/frontend
+
+ ❯ src/UnifiedTaskApp.test.jsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/UnifiedTaskApp.test.jsx [ src/UnifiedTaskApp.test.jsx ]
+Error: EPERM: operation not permitted, realpath 'D:\aiproj\ai_project\frontend\src\test-setup.js'
+ ❯ getRealPath node_modules/vite/dist/node/chunks/config.js:32933:36
+ ❯ tryResolveRealFileOrType node_modules/vite/dist/node/chunks/config.js:32927:9
+ ❯ tryCleanFsResolve node_modules/vite/dist/node/chunks/config.js:32651:21
+ ❯ tryFsResolve node_modules/vite/dist/node/chunks/config.js:32644:14
+ ❯ ResolveIdContext.handler node_modules/vite/dist/node/chunks/config.js:32518:16
+ ❯ EnvironmentPluginContainer.resolveId node_modules/vite/dist/node/chunks/config.js:28717:56
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  17:09:45
+   Duration  4.17s (transform 0ms, setup 0ms, import 0ms, tests 0ms, environment 3.41s)
+

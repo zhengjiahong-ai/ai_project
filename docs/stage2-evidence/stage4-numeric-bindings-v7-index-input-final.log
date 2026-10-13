@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/app/scripts/verify_numeric_bindings_input.py", line 40, in <module>
+    assert '3dgs*' in name_key(baseline[1]) and 'Ours' in ours[1], 'Unexpected source rows: ' + repr([baseline[1], ours[1]])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Unexpected source rows: ['VQ-DVGO [49]', 'Compressed 3D-GS  *  [34]']

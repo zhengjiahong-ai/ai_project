@@ -1,0 +1,52 @@
+{
+  "status": "executed_once_single_case",
+  "authorization": "用户2026-10-10明确回复：允许这1个新版批判案例",
+  "authorizedAt": "2026-10-10T07:00:20+00:00",
+  "providerOriginVerified": true,
+  "provider": "https://api.deepseek.com",
+  "sourceCommit": "2bbc095",
+  "providerVerification": {
+    "origin": "https://api.deepseek.com",
+    "model": "deepseek-v4-pro",
+    "runningSince": "2026-10-10T06:51:14.560362061Z",
+    "sourceCommit": "2bbc095"
+  },
+  "maxCases": 1,
+  "casesExecuted": 1,
+  "previousCasesConsumed": 35,
+  "totalCasesConsumed": 36,
+  "materials": [{
+    "name": "LightGaussian",
+    "path": "D:/3DGS/paper/LightGaussian/2311.17245v6.pdf",
+    "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+  }],
+  "cases": [{
+    "id": "stage4-critique-v19",
+    "taskId": "stage4-3dgs-critique-20261010-v19",
+    "requestId": "stage4-3dgs-critique-20261010-v19-request",
+    "capability": "critique",
+    "scope": "LightGaussian only",
+    "prompt": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？",
+    "checks": [
+      "新生成使用assessments，事实与推断各有独立引用且角色正确",
+      "剪枝、SH和VQ子问题有实质性、有依据的回应；不能以删除失败项算通过",
+      "机制概述完整引用必要因子，或只讨论有直接依据的局部代价",
+      "数字精度、实验条件和基线正确；训练采样不冒充泛化硬边界",
+      "未核查主题不写成原文缺失；先给简洁结果，来源默认折叠"
+    ]
+  }],
+  "executionRules": [
+    "35个旧固定案例已用完；重启许可和结束体验不授权新的Provider发送",
+    "须对此一例收到新明确授权，并核对实际Provider域名和运行版本后才执行",
+    "仅一次提交，独占attempt，不自动重试；保存原始响应、收据和完整任务",
+    "批判可能含多个内部初始请求；案例数不等于请求数或账单数",
+    "不重跑已通过的比较、解释和翻译，不启用外部搜索",
+    "受控回放不能计为真实模型通过，不改写旧结果或本人体验记录"
+  ],
+  "purpose": "核验独立事实/推断协议的真实执行及剩余批判质量",
+  "automaticResubmissions": 0,
+  "terminalStatuses": {"critique": "succeeded"},
+  "partial": true,
+  "contentAcceptance": {"critique": "not_accepted_unbound_method_parameter_and_incomplete_pruning_risk"},
+  "summaryFixAfterExecution": "643ba9e；仅原始响应离线验证，不改写本次收据或成果"
+}

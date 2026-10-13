@@ -1,0 +1,642 @@
+{
+  "taskId": "stage4-3dgs-critique-20261010-v13",
+  "requestId": "stage4-3dgs-critique-20261010-v13-request",
+  "kind": "conversation.execute",
+  "status": "succeeded",
+  "error": "",
+  "createdAt": "2026-10-10T04:29:40.490320+00:00",
+  "updatedAt": "2026-10-10T04:31:56.435502+00:00",
+  "request": {
+    "expectedTaskRevision": 0,
+    "message": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？",
+    "capability": "critique",
+    "allowedPaperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+    "strictScope": true,
+    "steps": [],
+    "allowExternalSearch": false
+  },
+  "paperIds": [
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+  ],
+  "result": {
+    "artifact": {
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "partial": true,
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+            },
+            {
+              "quote": "where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+            },
+            {
+              "quote": "Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+            },
+            {
+              "quote": "Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+            },
+            {
+              "quote": "To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+            }
+          ],
+          "sentence": "SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+          ],
+          "target": "message"
+        }
+      ],
+      "sources": [
+        {
+          "chunkIndex": 17,
+          "metadata": {
+            "chunk_index": 17,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 5,
+            "page_index": 4,
+            "section_id": "section-6",
+            "section_title": "Distilling into Compact SHs",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 4,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-6",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+          "sourceType": "current_paper",
+          "text": "scene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N denotes a Gaussian distribution with mean 0 and variance σ 2 , which is added to the original position to generate the new position.\nEquation: L distill = 1 HW HW i=1 ∥C teacher (r i ; [R|t]) − C student (r i ; [R|t])∥ 2 2 .\nEquation: t pseudo = t train + N (0, σ 2 ),(6)"
+        },
+        {
+          "chunkIndex": 19,
+          "metadata": {
+            "chunk_index": 19,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 5,
+            "page_index": 4,
+            "section_id": "section-7",
+            "section_title": "Gaussian Attributes Vector Quantization",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 4,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-7",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+          "sourceType": "current_paper",
+          "text": "high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = {g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = {c 1 , c 2 , . . . , c K }, where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:"
+        },
+        {
+          "chunkIndex": 21,
+          "metadata": {
+            "chunk_index": 21,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 5,
+            "page_index": 4,
+            "section_id": "section-7",
+            "section_title": "Gaussian Attributes Vector Quantization",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 4,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-7",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+          "sourceType": "current_paper",
+          "text": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+        }
+      ],
+      "text": "**部分分析**\n\n推断：SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。 [1] [2] [3]\n\n<details>\n<summary>尚待确认</summary>\n\n另有2项判断暂未确认，未纳入本次结论。\n\n</details>\n\n<details>\n<summary>待核查问题</summary>\n\n- 待核查：合成物体级数据集上压缩比、帧率和质量代价是否支持相同结论\n- 待核查：SH降阶蒸馏中旋转扰动是否纳入，以及VQ码本大小对质量-压缩权衡的影响\n\n</details>\n\n<details>\n<summary>原文依据</summary>\n\n- [1] “Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.”\n- [1] “where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively.”\n- [2] “Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.”\n- [2] “Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).”\n- [3] “To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.”\n\n</details>"
+    },
+    "capability": "critique",
+    "materialScope": {
+      "allowedPaperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+      "strictScope": true,
+      "taskId": "stage4-3dgs-critique-20261010-v13"
+    },
+    "message": "部分结果：\n\n推断：SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。 [1] [2] [3]",
+    "partial": true,
+    "resultVersion": 1,
+    "sentenceSourceMap": [
+      {
+        "id": "grounded-1",
+        "kind": "inference",
+        "method": "literal_quote",
+        "references": [
+          {
+            "quote": "Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+          },
+          {
+            "quote": "where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively.",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+          },
+          {
+            "quote": "Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+          },
+          {
+            "quote": "Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+          },
+          {
+            "quote": "To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+          }
+        ],
+        "sentence": "SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。",
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+        ],
+        "target": "message"
+      }
+    ],
+    "sources": [
+      {
+        "chunkIndex": 17,
+        "metadata": {
+          "chunk_index": 17,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 5,
+          "page_index": 4,
+          "section_id": "section-6",
+          "section_title": "Distilling into Compact SHs",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 4,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-6",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+        "sourceType": "current_paper",
+        "text": "scene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N denotes a Gaussian distribution with mean 0 and variance σ 2 , which is added to the original position to generate the new position.\nEquation: L distill = 1 HW HW i=1 ∥C teacher (r i ; [R|t]) − C student (r i ; [R|t])∥ 2 2 .\nEquation: t pseudo = t train + N (0, σ 2 ),(6)"
+      },
+      {
+        "chunkIndex": 19,
+        "metadata": {
+          "chunk_index": 19,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 5,
+          "page_index": 4,
+          "section_id": "section-7",
+          "section_title": "Gaussian Attributes Vector Quantization",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 4,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-7",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+        "sourceType": "current_paper",
+        "text": "high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = {g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = {c 1 , c 2 , . . . , c K }, where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:"
+      },
+      {
+        "chunkIndex": 21,
+        "metadata": {
+          "chunk_index": 21,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 5,
+          "page_index": 4,
+          "section_id": "section-7",
+          "section_title": "Gaussian Attributes Vector Quantization",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 4,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-7",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+        "sourceType": "current_paper",
+        "text": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+      }
+    ],
+    "status": "success",
+    "steps": [
+      {
+        "capability": "critique",
+        "results": [
+          {
+            "groundedClaims": [
+              {
+                "kind": "inference",
+                "references": [
+                  {
+                    "quote": "Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+                  },
+                  {
+                    "quote": "where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+                  },
+                  {
+                    "quote": "Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+                  },
+                  {
+                    "quote": "Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+                  },
+                  {
+                    "quote": "To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  }
+                ],
+                "section": "risk",
+                "summary": "SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。"
+              }
+            ],
+            "message": "**部分分析**\n\n推断：SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。 [1] [2] [3]\n\n<details>\n<summary>尚待确认</summary>\n\n另有2项判断暂未确认，未纳入本次结论。\n\n</details>\n\n<details>\n<summary>待核查问题</summary>\n\n- 待核查：合成物体级数据集上压缩比、帧率和质量代价是否支持相同结论\n- 待核查：SH降阶蒸馏中旋转扰动是否纳入，以及VQ码本大小对质量-压缩权衡的影响\n\n</details>\n\n<details>\n<summary>原文依据</summary>\n\n- [1] “Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.”\n- [1] “where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively.”\n- [2] “Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.”\n- [2] “Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).”\n- [3] “To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.”\n\n</details>",
+            "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "partial": true,
+            "pdf_id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "pendingQuestions": [
+              "待核查：合成物体级数据集上压缩比、帧率和质量代价是否支持相同结论",
+              "待核查：SH降阶蒸馏中旋转扰动是否纳入，以及VQ码本大小对质量-压缩权衡的影响"
+            ],
+            "rag_sources": [
+              {
+                "chunkIndex": 17,
+                "metadata": {
+                  "chunk_index": 17,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 5,
+                  "page_index": 4,
+                  "section_id": "section-6",
+                  "section_title": "Distilling into Compact SHs",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 4,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-6",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                "sourceType": "current_paper",
+                "text": "scene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N denotes a Gaussian distribution with mean 0 and variance σ 2 , which is added to the original position to generate the new position.\nEquation: L distill = 1 HW HW i=1 ∥C teacher (r i ; [R|t]) − C student (r i ; [R|t])∥ 2 2 .\nEquation: t pseudo = t train + N (0, σ 2 ),(6)"
+              },
+              {
+                "chunkIndex": 19,
+                "metadata": {
+                  "chunk_index": 19,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 5,
+                  "page_index": 4,
+                  "section_id": "section-7",
+                  "section_title": "Gaussian Attributes Vector Quantization",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 4,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-7",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "sourceType": "current_paper",
+                "text": "high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = {g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = {c 1 , c 2 , . . . , c K }, where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:"
+              },
+              {
+                "chunkIndex": 21,
+                "metadata": {
+                  "chunk_index": 21,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 5,
+                  "page_index": 4,
+                  "section_id": "section-7",
+                  "section_title": "Gaussian Attributes Vector Quantization",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 4,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-7",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "sourceType": "current_paper",
+                "text": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+              }
+            ],
+            "resolved_from": "pdf_id",
+            "status": "success",
+            "summary": "推断：SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。 [1] [2] [3]",
+            "traceId": "a37e14d7-4beb-477e-ab98-96f9cc787f5f"
+          }
+        ]
+      }
+    ]
+  },
+  "task": {
+    "id": "stage4-3dgs-critique-20261010-v13",
+    "title": "阶段4：critique表格范围修复核验-v13",
+    "paperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "messages": [
+      {
+        "context": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "strictScope": true,
+          "taskId": "stage4-3dgs-critique-20261010-v13"
+        },
+        "content": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？",
+        "id": "stage4-3dgs-critique-20261010-v13-request:user",
+        "role": "user",
+        "sourceRequestId": "stage4-3dgs-critique-20261010-v13-request"
+      },
+      {
+        "sourceRequestId": "stage4-3dgs-critique-20261010-v13-request",
+        "context": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "strictScope": true,
+          "taskId": "stage4-3dgs-critique-20261010-v13"
+        },
+        "id": "stage4-3dgs-critique-20261010-v13-request:ai",
+        "capability": "critique",
+        "role": "ai",
+        "content": "部分结果：\n\n推断：SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。 [1] [2] [3]",
+        "rag_sources": [
+          {
+            "chunkIndex": 17,
+            "metadata": {
+              "chunk_index": 17,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-6",
+              "section_title": "Distilling into Compact SHs",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-6",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+            "sourceType": "current_paper",
+            "text": "scene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N denotes a Gaussian distribution with mean 0 and variance σ 2 , which is added to the original position to generate the new position.\nEquation: L distill = 1 HW HW i=1 ∥C teacher (r i ; [R|t]) − C student (r i ; [R|t])∥ 2 2 .\nEquation: t pseudo = t train + N (0, σ 2 ),(6)"
+          },
+          {
+            "chunkIndex": 19,
+            "metadata": {
+              "chunk_index": 19,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+            "sourceType": "current_paper",
+            "text": "high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = {g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = {c 1 , c 2 , . . . , c K }, where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:"
+          },
+          {
+            "chunkIndex": 21,
+            "metadata": {
+              "chunk_index": 21,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+            "sourceType": "current_paper",
+            "text": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+          }
+        ],
+        "sentenceSourceMap": [
+          {
+            "id": "grounded-1",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+              },
+              {
+                "quote": "where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+              },
+              {
+                "quote": "Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+              },
+              {
+                "quote": "Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+              },
+              {
+                "quote": "To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              }
+            ],
+            "sentence": "SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+            ],
+            "target": "message"
+          }
+        ],
+        "artifactId": "stage4-3dgs-critique-20261010-v13-request:artifact"
+      }
+    ],
+    "notes": [],
+    "artifacts": [
+      {
+        "createdAt": "2026-10-10T04:31:58.344287500Z",
+        "sourceRequestId": "stage4-3dgs-critique-20261010-v13-request",
+        "versions": [],
+        "text": "**部分分析**\n\n推断：SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。 [1] [2] [3]\n\n<details>\n<summary>尚待确认</summary>\n\n另有2项判断暂未确认，未纳入本次结论。\n\n</details>\n\n<details>\n<summary>待核查问题</summary>\n\n- 待核查：合成物体级数据集上压缩比、帧率和质量代价是否支持相同结论\n- 待核查：SH降阶蒸馏中旋转扰动是否纳入，以及VQ码本大小对质量-压缩权衡的影响\n\n</details>\n\n<details>\n<summary>原文依据</summary>\n\n- [1] “Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.”\n- [1] “where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively.”\n- [2] “Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.”\n- [2] “Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).”\n- [3] “To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.”\n\n</details>",
+        "paperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "id": "stage4-3dgs-critique-20261010-v13-request:artifact",
+        "sources": [
+          {
+            "chunkIndex": 17,
+            "metadata": {
+              "chunk_index": 17,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-6",
+              "section_title": "Distilling into Compact SHs",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-6",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+            "sourceType": "current_paper",
+            "text": "scene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N denotes a Gaussian distribution with mean 0 and variance σ 2 , which is added to the original position to generate the new position.\nEquation: L distill = 1 HW HW i=1 ∥C teacher (r i ; [R|t]) − C student (r i ; [R|t])∥ 2 2 .\nEquation: t pseudo = t train + N (0, σ 2 ),(6)"
+          },
+          {
+            "chunkIndex": 19,
+            "metadata": {
+              "chunk_index": 19,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+            "sourceType": "current_paper",
+            "text": "high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = {g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = {c 1 , c 2 , . . . , c K }, where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:"
+          },
+          {
+            "chunkIndex": 21,
+            "metadata": {
+              "chunk_index": 21,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+            "sourceType": "current_paper",
+            "text": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+          }
+        ],
+        "title": "对话成果",
+        "sentenceSourceMap": [
+          {
+            "id": "grounded-1",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+              },
+              {
+                "quote": "where R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+              },
+              {
+                "quote": "Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+              },
+              {
+                "quote": "Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+              },
+              {
+                "quote": "To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              }
+            ],
+            "sentence": "SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+            ],
+            "target": "message"
+          }
+        ]
+      }
+    ],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [
+      "stage4-3dgs-critique-20261010-v13-request"
+    ],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-10T04:31:58.344287Z",
+    "revision": 1
+  }
+}

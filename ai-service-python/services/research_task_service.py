@@ -1,15 +1,19 @@
 import copy
+import hashlib
 import json
 import logging
 import os
 import sqlite3
 import threading
 import uuid
+from functools import wraps
+from services.operation_control import OperationCancelled, cancellation_scope
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from rag.store import normalize_id
 
 from schemas.requests import (
     ResearchFinalReviewRequest,
@@ -63,8 +67,9 @@ _TASK_CONTEXTS: dict[str, dict[str, Any]] = {}
 _TASK_CANCELLATIONS: set[str] = set()
 _TASK_LOCK = threading.RLock()
 _TASK_EXECUTOR = ThreadPoolExecutor(max_workers=2)
+_RUNNING_TASKS: dict[str, int] = {}
 _STORAGE_LOADED = False
-INTERRUPTED_RESTART_ERROR = "服务已重启，运行中的深度研究任务无法继续执行，请重新发起任务。"
+INTERRUPTED_RESTART_ERROR = "服务已重启，研究执行已中断。已保存的计划与结果保留，可继续未完成部分。"
 MAX_DYNAMIC_FOLLOW_UPS = 1
 MAX_RESEARCH_CONFLICTS = 5
 
@@ -73,6 +78,35 @@ class ResearchTaskNotFoundError(Exception):
 
 class ResearchReviewConflictError(Exception):
     pass
+
+
+def _tracked_execution(function):
+    @wraps(function)
+    def execute(task_id, *args, **kwargs):
+        with _TASK_LOCK:
+            if _is_cancelled(task_id):
+                return _copy_task_snapshot(task_id)
+            _RUNNING_TASKS[task_id] = _RUNNING_TASKS.get(task_id, 0) + 1
+        try:
+            with cancellation_scope(lambda: _is_cancelled(task_id)):
+                return function(task_id, *args, **kwargs)
+        except OperationCancelled:
+            return _copy_task_snapshot(task_id)
+        except Exception as error:
+            if not _is_cancelled(task_id):
+                _fail_task(task_id, "研究执行未完成，请保留已保存的计划与结果。")
+            _logger.error("Research worker failed: %s", type(error).__name__)
+            return _copy_task_snapshot(task_id)
+        finally:
+            with _TASK_LOCK:
+                remaining = _RUNNING_TASKS.get(task_id, 1) - 1
+                if remaining:
+                    _RUNNING_TASKS[task_id] = remaining
+                else:
+                    _RUNNING_TASKS.pop(task_id, None)
+                    if _is_cancelled(task_id):
+                        _update_task_snapshot(task_id, status="cancelled", stage=DONE_STAGE)
+    return execute
 
 def create_research_task(
     request: ResearchTaskCreateRequest,
@@ -87,8 +121,21 @@ def create_research_task(
         raise ValueError("Question cannot be empty.")
     if not pdf_id:
         raise ValueError("pdfId cannot be empty.")
+    allowed_papers = request.allowedPaperIds
+    if allowed_papers is not None:
+        allowed_papers = list(dict.fromkeys(normalize_id(value) for value in allowed_papers))
+        if normalize_id(pdf_id) not in allowed_papers:
+            raise ValueError("Research primary paper is outside the material snapshot.")
 
-    task_id = str(uuid.uuid4())
+    operation_key = request.operationKey
+    task_id = str(uuid.uuid5(uuid.NAMESPACE_URL, "pixiu:research:" + operation_key)) if operation_key else str(uuid.uuid4())
+    fingerprint = hashlib.sha256(json.dumps(request.model_dump(mode="json"), sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    if operation_key:
+        with _TASK_LOCK:
+            if task_id in _TASKS:
+                if _TASK_CONTEXTS[task_id].get("operationFingerprint") != fingerprint:
+                    raise ResearchReviewConflictError("Research request identity was reused with different input.")
+                return {"status": "success", "task": copy.deepcopy(_TASKS[task_id])}
     trace_id = start_trace(
         "deep_research",
         request_meta={
@@ -127,11 +174,18 @@ def create_research_task(
     }
 
     with _TASK_LOCK:
+        # A second caller may have created this identity while we built the snapshot.
+        if operation_key and task_id in _TASKS:
+            if _TASK_CONTEXTS[task_id].get("operationFingerprint") != fingerprint:
+                raise ResearchReviewConflictError("Research request identity was reused with different input.")
+            return {"status": "success", "task": copy.deepcopy(_TASKS[task_id])}
         _TASKS[task_id] = copy.deepcopy(task)
         _TASK_CONTEXTS[task_id] = {
             "paperSkeleton": copy.deepcopy(request.paperSkeleton or {}),
             "userConstraints": user_constraints,
             "briefPreview": copy.deepcopy(brief_preview),
+            "allowedPaperIds": copy.deepcopy(allowed_papers),
+            "operationFingerprint": fingerprint,
         }
         _TASK_CANCELLATIONS.discard(task_id)
         _persist_task_snapshot_locked(_TASKS[task_id])
@@ -212,14 +266,15 @@ def cancel_research_task(task_id: str) -> dict[str, Any]:
         task = _TASKS.get(task_id)
         if task is None:
             raise ResearchTaskNotFoundError("Research task not found.")
-        if str(task.get("status") or "") in TERMINAL_STATUSES:
+        interrupted = task.get("status") == "failed" and task.get("error") == INTERRUPTED_RESTART_ERROR
+        if str(task.get("status") or "") in TERMINAL_STATUSES and not interrupted:
             return {"status": "success", "task": copy.deepcopy(task)}
 
         _TASK_CANCELLATIONS.add(task_id)
         cancelled = {
             **task,
-            "status": "cancelled",
-            "stage": DONE_STAGE,
+            "status": "cancelling" if _RUNNING_TASKS.get(task_id, 0) else "cancelled",
+            "stage": task.get("stage") if _RUNNING_TASKS.get(task_id, 0) else DONE_STAGE,
             "updatedAt": _utc_now(),
         }
         _TASKS[task_id] = cancelled
@@ -255,9 +310,10 @@ def reload_research_tasks_from_storage() -> None:
         _STORAGE_LOADED = False
     _ensure_storage_loaded()
 
+@_tracked_execution
 def run_research_task_now(task_id: str) -> dict[str, Any]:
     _ensure_storage_loaded()
-    task = _copy_task_snapshot(task_id)
+    task = _ensure_execution_trace(task_id)
     context = _copy_task_context(task_id)
     with use_trace(str(task.get("traceId") or "")):
         _run_research_task(
@@ -271,6 +327,7 @@ def run_research_task_now(task_id: str) -> dict[str, Any]:
         )
     return _copy_task_snapshot(task_id)
 
+@_tracked_execution
 def prepare_research_task_now(task_id: str) -> dict[str, Any]:
     task = _copy_task_snapshot(task_id)
     context = _copy_task_context(task_id)
@@ -292,6 +349,41 @@ def prepare_research_task_now(task_id: str) -> dict[str, Any]:
         _TASK_CONTEXTS[task_id] = {**context, "brief": brief, "normalizedPdfId": normalized_pdf_id, "approvedPlan": []}
     return _update_task_snapshot(task_id, status="awaiting_plan_review", stage=PLANNING_STAGE, progress=0.2, plan=plan_items)
 
+def _serialized_control(function):
+    @wraps(function)
+    def control(task_id, *args, **kwargs):
+        _ensure_storage_loaded()
+        with _TASK_LOCK:
+            return function(task_id, *args, **kwargs)
+    return control
+
+
+def _ensure_execution_trace(task_id: str, *, restart: bool = False) -> dict[str, Any]:
+    """A persisted task can outlive the process-local trace store."""
+    with _TASK_LOCK:
+        task = _copy_task_snapshot(task_id)
+        if not restart:
+            try:
+                get_trace_snapshot(str(task.get("traceId") or ""))
+                return task
+            except KeyError:
+                pass
+        trace_id = start_trace(
+            "deep_research",
+            request_meta={
+                "question": sanitize_text(task.get("question"), max_chars=120),
+                "pdfId": sanitize_text(task.get("pdfId"), max_chars=80),
+                "previousTraceId": str(task.get("traceId") or ""),
+                "taskId": task_id,
+            },
+            activate=False,
+            initial_status="pending",
+        )
+        # Keep persisted findings and prior summary until the new execution checkpoints.
+        return _update_task_snapshot(task_id, traceId=trace_id)
+
+
+@_serialized_control
 def review_research_plan(task_id: str, request: ResearchPlanReviewRequest) -> dict[str, Any]:
     task = _copy_task_snapshot(task_id)
     if task.get("status") != "awaiting_plan_review":
@@ -312,6 +404,34 @@ def review_research_plan(task_id: str, request: ResearchPlanReviewRequest) -> di
     _TASK_EXECUTOR.submit(run_research_task_now, task_id)
     return {"status": "success", "task": updated}
 
+
+def resume_research_task(task_id: str) -> dict[str, Any]:
+    """Explicit continuation only; repeated acknowledgements never schedule twice."""
+    _ensure_storage_loaded()
+    with _TASK_LOCK:
+        task = _copy_task_snapshot(task_id)
+        if task["status"] not in {"failed", "cancelled"}:
+            return {"status": "success", "task": task}
+        if _RUNNING_TASKS.get(task_id):
+            raise ResearchReviewConflictError("Research worker has not stopped yet.")
+        context = _copy_task_context(task_id)
+        if not context.get("approvedPlan"):
+            if not task.get("plan"):
+                raise ResearchReviewConflictError("No saved plan is available. Start a new research request.")
+            next_status = "awaiting_plan_review"
+        else:
+            next_status = "running"
+        task = _ensure_execution_trace(task_id, restart=True)
+        _TASK_CANCELLATIONS.discard(task_id)
+        # Directly transition under the same lock: ordinary updates cannot revive cancellation.
+        task = {**task, "status": next_status, "stage": PLANNING_STAGE, "error": "", "updatedAt": _utc_now()}
+        _TASKS[task_id] = task
+        _persist_task_snapshot_locked(task)
+        if next_status == "running":
+            _TASK_EXECUTOR.submit(run_research_task_now, task_id)
+        return {"status": "success", "task": copy.deepcopy(task)}
+
+@_serialized_control
 def review_research_final(task_id: str, request: ResearchFinalReviewRequest) -> dict[str, Any]:
     task = _copy_task_snapshot(task_id)
     if task.get("status") == "succeeded":
@@ -341,6 +461,7 @@ def _run_research_task(
     if _is_cancelled(task_id):
         return
 
+    context = _copy_task_context(task_id)
     _update_task_snapshot(task_id, status="running", stage=PLANNING_STAGE, progress=0.0)
 
     try:
@@ -368,17 +489,24 @@ def _run_research_task(
         else:
             brief, sub_questions = _build_research_plan(research_question, paper_skeleton, documents, brief_override=brief_override)
         record_metric("subQuestionCount", len(sub_questions))
-        plan_items = _build_initial_plan_items(sub_questions)
+        saved = _copy_task_snapshot(task_id)
+        plan_items = copy.deepcopy(saved.get("plan") or []) if approved_plan else []
+        if not plan_items:
+            plan_items = _build_initial_plan_items(sub_questions)
         _update_task_snapshot(task_id, stage=PLANNING_STAGE, progress=0.2, plan=copy.deepcopy(plan_items))
         if _is_cancelled(task_id):
             return
 
-        findings: list[dict[str, Any]] = []
-        follow_up_count = 0
+        findings: list[dict[str, Any]] = copy.deepcopy(saved.get("findings") or []) if approved_plan else []
+        follow_up_count = sum(item.get("kind") == "follow_up" for item in plan_items)
         index = 0
         while index < len(plan_items):
             if _is_cancelled(task_id):
                 return
+
+            if plan_items[index].get("status") == "done":
+                index += 1
+                continue
 
             plan_items[index]["status"] = "running"
             sub_question = _clean_text(plan_items[index].get("question"))
@@ -405,6 +533,7 @@ def _run_research_task(
                     pdf_id=normalized_pdf_id,
                     paper_skeleton=paper_skeleton,
                     documents=documents,
+                    **({"allowed_paper_ids": context["allowedPaperIds"]} if context.get("allowedPaperIds") is not None else {}),
                 )
                 step["outputSize"] = len(finding.get("sourceIds") or [])
             if _is_cancelled(task_id):
@@ -420,6 +549,8 @@ def _run_research_task(
 
             findings.append(finding)
             plan_items[index]["status"] = "done"
+            # Checkpoint before a follow-up model call can fail or the process can restart.
+            _update_task_snapshot(task_id, plan=copy.deepcopy(plan_items), findings=copy.deepcopy(findings))
             if follow_up_count < MAX_DYNAMIC_FOLLOW_UPS and _should_create_follow_up(finding):
                 with trace_step(
                     "research_replanning",
@@ -530,8 +661,8 @@ def _update_task_snapshot(task_id: str, **updates: Any) -> dict[str, Any]:
         if task is None:
             raise ResearchTaskNotFoundError("Research task not found.")
         if (
-            str(task.get("status") or "") == "cancelled"
-            and updates.get("status") != "cancelled"
+            str(task.get("status") or "") in {"cancelled", "cancelling"}
+            and updates.get("status") not in {"cancelled", "cancelling"}
             and set(updates.keys()) != {"traceSummary"}
         ):
             return copy.deepcopy(task)
@@ -580,6 +711,8 @@ def _ensure_storage_loaded() -> None:
 
 def _restore_task_after_restart(task: dict[str, Any]) -> dict[str, Any]:
     status = str(task.get("status") or "")
+    if status == "cancelling":
+        return {**task, "status": "cancelled", "stage": DONE_STAGE, "updatedAt": _utc_now()}
     if status in TERMINAL_STATUSES or status in {"awaiting_plan_review", "awaiting_final_review"}:
         return task
     restored = {

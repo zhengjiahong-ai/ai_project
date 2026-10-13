@@ -39,6 +39,9 @@ class ApiContractSmokeTest {
     @MockBean
     private AiService aiService;
 
+    @MockBean
+    private com.ai.assistant.backend_java.service.MaterialProcessingService materialProcessing;
+
     @BeforeAll
     static void loadSharedContract() throws Exception {
         Path contractPath = resolveContractPath();

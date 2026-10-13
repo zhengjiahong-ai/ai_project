@@ -1,0 +1,47 @@
+{
+  "runId": "dr_run_f555b2bfe3805ffcb904716f9219541c",
+  "revision": "cec9b2d",
+  "promptVersion": "dr-v2.20261013.41",
+  "status": "completed",
+  "outcome": "partial",
+  "qualityAccepted": false,
+  "settledModelCalls": 13,
+  "settledTokens": 62990,
+  "elapsedSeconds": 129.329,
+  "repairStatus": "response_received",
+  "finalAcceptedClaimCount": 7,
+  "finalRejectedClaimIds": [
+    "c9",
+    "c4"
+  ],
+  "finalCoverageStatus": "budget_exhausted",
+  "manualFindings": [
+    "Repair incorrectly interprets training/evaluation split as splitting scenes instead of views within each scene; the data claim remains rejected.",
+    "Accepted revised steps say train until convergence without an operational stopping rule or fixed baseline training budget.",
+    "The hypothesis promises an additivity test while analysis only supplies descriptive effects; no inferential conclusion is justified.",
+    "The current accepted/rejected split is not sufficient evidence of scientific quality."
+  ],
+  "offlineReplay": {
+    "modelRequests": 0,
+    "oldPromptBytes": 23883,
+    "oldRequestedReservation": 28407,
+    "remainingNormalTokens": 24196,
+    "remainingTotalTokens": 37010,
+    "newPromptByteLimit": 19672,
+    "newPromptBytes": 19671,
+    "newRequestedReservation": 24195,
+    "retainedFullClaims": 7,
+    "retainedWholeEvidenceRows": 8,
+    "contentQualityValidated": false
+  },
+  "change": "Fit final coverage evidence to current pool capacity without modifying accepted claims, clipping quotes, raising total limits, or resending the completed run.",
+  "targetedTestsPassed": 84,
+  "targetedTestSeconds": 6.59,
+  "newRuntimeLoaded": false,
+  "newLiveCaseSubmitted": false,
+  "fullOfflineRegression": {
+    "passed": 939,
+    "warnings": 2,
+    "seconds": 102.23
+  }
+}

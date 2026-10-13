@@ -1,0 +1,19 @@
+{"checks":{"operatorOutsideProse":true,"productHiddenFromTranslation":true,"readableProseRetained":true,"productRegionLocated":true,"uniquePageTokens":true,"everyLocatedMarkerSent":true,"sourcesSurviveReload":false},"formulaCount":8,"transmittance":{"start":962,"end":981,"token":"⟦原式8⟧","text":"T = Qji=1−1 (1- σi)","bbox":{"left":0.620838,"top":0.832714,"width":0.204693,"height":0.024411}},"providerCalls":0}
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(Object.values(checks).every(Boolean))
+
+    at file:///D:/aiproj/ai_project/frontend/scripts/verify-inline-math.mjs:37:10 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.14.0

@@ -1,0 +1,13 @@
+{
+  "change": "Report and conversation summary show a compact deterministic access-level statement for cited external evidence; source details distinguish fulltext excerpts from abstract-only material.",
+  "scope": "Only evidenceRefs of accepted claims are counted. Uncited downloads cannot imply fulltext use; fulltext never implies the entire paper was read.",
+  "offlineReplayRun": "dr_run_fd3af380a6845fcc81f008542a45b2ec",
+  "reportLine": "本回答引用：全文片段。",
+  "summaryLine": "本回答引用：全文片段。",
+  "historicalReportModified": false,
+  "modelCalls": 0,
+  "tests": {"passed": 53, "warnings": 2, "seconds": 27.21},
+  "runtimeLoaded": false,
+  "qualityAccepted": false,
+  "promptVersion": "dr-v2.20261013.48"
+}

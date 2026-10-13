@@ -267,6 +267,9 @@ class RagServiceTests(unittest.IsolatedAsyncioTestCase):
                         "content": "method evidence",
                         "pageIndex": 3,
                         "page": 4,
+                        "evidenceKind": "table",
+                        "tableId": "tab-1",
+                        "tableColumnMappingUnverified": True,
                     }
                 ],
                 "paper.pdf",
@@ -281,6 +284,20 @@ class RagServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(metadata["section_title"], "Methods")
         self.assertEqual(metadata["page_index"], 3)
         self.assertEqual(metadata["page"], 4)
+        self.assertEqual(metadata["evidence_kind"], "table")
+        self.assertEqual(metadata["table_id"], "tab-1")
+        self.assertIs(metadata["table_column_mapping_unverified"], True)
+        self.assertRegex(metadata['index_version'], r'^[0-9a-f]{16}$')
+        original_version = metadata['index_version']
+        original_sections = [{"id": "section-2", "section": "Methods", "content": "method evidence",
+                              "pageIndex": 3, "page": 4, "evidenceKind": "table", "tableId": "tab-1",
+                              "tableColumnMappingUnverified": True}]
+        with patch.object(rag_vector_db, "invalidate_hybrid_cache"):
+            rag.add_sections_to_db(original_sections, 'renamed.pdf', {'id': 'Paper Two'})
+            self.assertEqual(rag.collection.added['metadatas'][0]['index_version'], original_version)
+            original_sections[0]['content'] = 'changed evidence'
+            rag.add_sections_to_db(original_sections, 'renamed.pdf', {'id': 'Paper Two'})
+            self.assertNotEqual(rag.collection.added['metadatas'][0]['index_version'], original_version)
 
     def test_hybrid_cache_invalidation_rebuilds_bm25_from_updated_collection(self):
         original_rag = store._rag

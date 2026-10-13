@@ -1,0 +1,21 @@
+{
+  "loadedCommit": "5867020",
+  "health": {
+    "status": "ok",
+    "checks": {
+      "grobid": {
+        "status": "ok",
+        "message": "GROBID is reachable."
+      },
+      "rag": {
+        "status": "ok",
+        "message": "RAG backend is ready."
+      }
+    },
+    "uptime_seconds": 24.6
+  },
+  "frontendHttpStatus": 200,
+  "readingTaskUnchanged": true,
+  "readingRevision": 19,
+  "providerCallsByThisCheck": 0
+}

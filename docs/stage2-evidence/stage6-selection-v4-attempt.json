@@ -1,0 +1,12 @@
+{
+  "authorization": "User requested start after four-case DeepSeek repair-test plan",
+  "case": "selection-explanation",
+  "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "pageIndex": 3,
+  "selectedText": "Significance",
+  "context": "Page 4 Global Significance Calculation",
+  "client": "Actual unified UI",
+  "reservedAt": 1791470555.1557155,
+  "maximumGenerationAttempts": 1,
+  "automaticRetryAllowed": false
+}

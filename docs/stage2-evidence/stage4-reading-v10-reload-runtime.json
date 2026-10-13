@@ -1,0 +1,20 @@
+{
+  "health": {
+    "status": "ok",
+    "checks": {
+      "grobid": {
+        "status": "ok",
+        "message": "GROBID is reachable."
+      },
+      "rag": {
+        "status": "ok",
+        "message": "RAG backend is ready."
+      }
+    },
+    "uptime_seconds": 34.4
+  },
+  "readingTaskUnchanged": true,
+  "readingRevision": 19,
+  "loadedCommit": "8f164ff",
+  "providerCalls": 0
+}

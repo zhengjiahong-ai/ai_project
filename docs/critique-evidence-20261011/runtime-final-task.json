@@ -1,0 +1,2150 @@
+{
+  "id": "critique-final-20261011",
+  "title": "新版批判阅读验收",
+  "paperIds": [
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+    "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+  ],
+  "messages": [
+    {
+      "role": "user",
+      "id": "critique-final-focused:user",
+      "content": "/批判 只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "critique-final-focused"
+    },
+    {
+      "capability": "critique",
+      "id": "critique-final-focused:ai",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "critique-final-focused",
+      "content": "**1. VQ量化后的恢复条件**\n\n作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。 [2]\n\n作者报告将属性分组为若干码字会降低准确度（SSIM下降）。 [1]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "role": "ai",
+      "rag_sources": [
+        {
+          "chunkIndex": 31,
+          "metadata": {
+            "chunk_index": 31,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 15,
+            "page_index": 14,
+            "section_id": "section-15",
+            "section_title": "Algorithm 1 The overall pipeline of LightGaussian",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 14,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-15",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-31",
+          "sourceType": "current_paper",
+          "text": "Initialize: Training view images I = {Ii ∈ R M } N i=1 and their associated camera poses P = {ϕ i ∈ R 3×4 } N i=1 .\n1: # Pre-Training 3D-GS[16].\n2: # Gi with attributes XYZ, SH-3deg, Opacity, Rotation, Scale.\n3: Post-Finetuning of Vector Quantization.\nApplying vector quantization (VQ) based on the significance score facilitates a reduction in the required codebook size compared to the full model.\nNonetheless, this method results in a decrease in accuracy as it groups the attributes into several clusters (codes).\nWe observe that the SSIM decreases from 0.923 (#6) to 0.915 (#7), as illustrated in Table2of the main draft.\nThis observation motivates us to joint optimize all other attributes and the codes post the VQ."
+        },
+        {
+          "chunkIndex": 32,
+          "metadata": {
+            "chunk_index": 32,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 15,
+            "page_index": 14,
+            "section_id": "section-15",
+            "section_title": "Algorithm 1 The overall pipeline of LightGaussian",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 14,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-15",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32",
+          "sourceType": "current_paper",
+          "text": "We observe that the SSIM decreases from 0.923 (#6) to 0.915 (#7), as illustrated in Table2of the main draft.\nThis observation motivates us to joint optimize all other attributes and the codes post the VQ.\nSpecifically, by assigning a unique code to each Gaussian, we proceed to implement differentiable finetuning using photometric loss, which is similar to the methodology employed in 3D-GS, and optimize all the attributes in conjunction with VQ.\nThis approach permits precise adjustments to the codebook and the rest attributes, improving its alignment with the training images (#8, SSIM improves from 0.915 to 0.923).\nEquation: G = {Gi ∈ R (3+48+1+4+3) )} N i=1 ← 3D-"
+        }
+      ],
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Nonetheless, this method results in a decrease in accuracy as it groups the attributes into several clusters (codes).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-31"
+            }
+          ],
+          "sentence": "作者报告将属性分组为若干码字会降低准确度（SSIM下降）。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-31"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-2",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Specifically, by assigning a unique code to each Gaussian, we proceed to implement differentiable finetuning using photometric loss, which is similar to the methodology employed in 3D-GS, and optimize all the attributes in conjunction with VQ.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32"
+            },
+            {
+              "quote": "This approach permits precise adjustments to the codebook and the rest attributes, improving its alignment with the training images (#8, SSIM improves from 0.915 to 0.923).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32"
+            }
+          ],
+          "sentence": "作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32"
+          ],
+          "target": "message"
+        }
+      ],
+      "critique": {
+        "artifactBlocks": [
+          {
+            "issueId": "issue-27d8f2cb75616de1",
+            "text": "**1. VQ量化后的恢复条件**\n\n作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。 [2]\n\n作者报告将属性分组为若干码字会降低准确度（SSIM下降）。 [1]"
+          }
+        ],
+        "artifactLead": "",
+        "artifactPending": "当前仅形成1项有依据的判断，其余仍待核查。",
+        "chatBlocks": [
+          {
+            "issueId": "issue-27d8f2cb75616de1",
+            "text": "**1. VQ量化后的恢复条件**\n\n作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。 [2]\n\n作者报告将属性分组为若干码字会降低准确度（SSIM下降）。 [1]"
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim-3a1f48e897a448cc",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "Nonetheless, this method results in a decrease in accuracy as it groups the attributes into several clusters (codes).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-31"
+              }
+            ],
+            "text": "作者报告将属性分组为若干码字会降低准确度（SSIM下降）。"
+          },
+          {
+            "id": "claim-5bec97c45851ffbc",
+            "kind": "inference",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "Specifically, by assigning a unique code to each Gaussian, we proceed to implement differentiable finetuning using photometric loss, which is similar to the methodology employed in 3D-GS, and optimize all the attributes in conjunction with VQ.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32"
+              },
+              {
+                "quote": "This approach permits precise adjustments to the codebook and the rest attributes, improving its alignment with the training images (#8, SSIM improves from 0.915 to 0.923).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32"
+              }
+            ],
+            "text": "作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。"
+          }
+        ],
+        "coverage": {
+          "answeredQuestionPartIds": [
+            "main"
+          ],
+          "availablePoints": 1,
+          "requestedPoints": 2,
+          "unresolvedQuestionPartIds": []
+        },
+        "issues": [
+          {
+            "conclusionClaimId": "claim-5bec97c45851ffbc",
+            "id": "issue-27d8f2cb75616de1",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 0,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [
+              "claim-3a1f48e897a448cc"
+            ],
+            "title": "VQ量化后的恢复条件",
+            "topicKey": "VQ量化恢复"
+          }
+        ],
+        "lead": "",
+        "pending": [],
+        "presentation": {
+          "artifactIssueIds": [
+            "issue-27d8f2cb75616de1"
+          ],
+          "chatIssueIds": [
+            "issue-27d8f2cb75616de1"
+          ],
+          "leadClaimIds": [],
+          "standalone": true
+        },
+        "question": {
+          "original": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+          "parts": [
+            {
+              "id": "main",
+              "text": "压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点"
+            }
+          ],
+          "requestedPoints": 2
+        },
+        "schemaVersion": 2,
+        "scope": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "targetPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ]
+        },
+        "visiblePending": "当前仅形成1项有依据的判断，其余仍待核查。"
+      },
+      "artifactId": "critique-final-focused:artifact"
+    },
+    {
+      "role": "user",
+      "id": "critique-final-focused-regenerated:user",
+      "content": "/批判 只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "critique-final-focused-regenerated"
+    },
+    {
+      "capability": "critique",
+      "id": "critique-final-focused-regenerated:ai",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "critique-final-focused-regenerated",
+      "content": "**1. 剪枝恢复与SH蒸馏的质量保持条件**\n\n作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。 [1]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "role": "ai",
+      "rag_sources": [
+        {
+          "chunkIndex": 36,
+          "metadata": {
+            "chunk_index": 36,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 16,
+            "page_index": 15,
+            "section_id": "section-16",
+            "section_title": "More Experiment Results",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 15,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-16",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36",
+          "sourceType": "current_paper",
+          "text": "accompanied by the corresponding residual maps from the We re-train 3D-GS, Compressed 3D-GS, Compact 3D-GS using their original code and 3D-GS configurations on our platform, to perform a fair comparison. We present the rendering results from 3D-GS[16], LightGaussian, and VQ-DVGO[49]. The residual maps highlight the differences between the rendered images and ground truth (GT) images.\nOverall Analysis. We report the performance of the investigation on the proposed modules in Tab. 2 and Fig.7. We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy. This proves that the proposed global significance, based on principle of splatting, accurately represents the critical aspects of each Gaussian. By removing the high-degree SHs and transferring the knowledge to a compact representation (Exp #3 →5), our method successfully demonstrates the benefits from using soft targets and extra data from view augmentation, results in negligible changes"
+        }
+      ],
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+            },
+            {
+              "quote": "By removing the high-degree SHs and transferring the knowledge to a compact representation (Exp #3 →5), our method successfully demonstrates the benefits from using soft targets and extra data from view augmentation, results in negligible changes",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+            }
+          ],
+          "sentence": "作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+          ],
+          "target": "message"
+        }
+      ],
+      "critique": {
+        "artifactBlocks": [
+          {
+            "issueId": "issue-cf4ed77e1131b29c",
+            "text": "**1. 剪枝恢复与SH蒸馏的质量保持条件**\n\n作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。 [1]"
+          }
+        ],
+        "artifactLead": "",
+        "artifactPending": "当前仅形成1项有依据的判断，其余仍待核查。",
+        "chatBlocks": [
+          {
+            "issueId": "issue-cf4ed77e1131b29c",
+            "text": "**1. 剪枝恢复与SH蒸馏的质量保持条件**\n\n作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。 [1]"
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim-7d353d79d5b6b49e",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+              },
+              {
+                "quote": "By removing the high-degree SHs and transferring the knowledge to a compact representation (Exp #3 →5), our method successfully demonstrates the benefits from using soft targets and extra data from view augmentation, results in negligible changes",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+              }
+            ],
+            "text": "作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。"
+          }
+        ],
+        "coverage": {
+          "answeredQuestionPartIds": [
+            "main"
+          ],
+          "availablePoints": 1,
+          "requestedPoints": 2,
+          "unresolvedQuestionPartIds": []
+        },
+        "issues": [
+          {
+            "conclusionClaimId": "claim-7d353d79d5b6b49e",
+            "id": "issue-cf4ed77e1131b29c",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 0,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [],
+            "title": "剪枝恢复与SH蒸馏的质量保持条件",
+            "topicKey": "剪枝恢复与SH蒸馏"
+          }
+        ],
+        "lead": "",
+        "pending": [],
+        "presentation": {
+          "artifactIssueIds": [
+            "issue-cf4ed77e1131b29c"
+          ],
+          "chatIssueIds": [
+            "issue-cf4ed77e1131b29c"
+          ],
+          "leadClaimIds": [],
+          "standalone": true
+        },
+        "question": {
+          "original": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+          "parts": [
+            {
+              "id": "main",
+              "text": "压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点"
+            }
+          ],
+          "requestedPoints": 2
+        },
+        "schemaVersion": 2,
+        "scope": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "targetPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ]
+        },
+        "visiblePending": "当前仅形成1项有依据的判断，其余仍待核查。"
+      },
+      "artifactId": "critique-final-focused:artifact"
+    },
+    {
+      "role": "user",
+      "id": "32ddba24-0f75-3d4d-ab49-930ecbe9f6ca:user",
+      "content": "/批判 对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "32ddba24-0f75-3d4d-ab49-930ecbe9f6ca"
+    },
+    {
+      "capability": "critique",
+      "id": "32ddba24-0f75-3d4d-ab49-930ecbe9f6ca:ai",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "32ddba24-0f75-3d4d-ab49-930ecbe9f6ca",
+      "content": "**1. 存储与速度报告**\n\n作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。 [1] [2]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "role": "ai",
+      "rag_sources": [
+        {
+          "chunkIndex": 26,
+          "metadata": {
+            "chunk_index": 26,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 8,
+            "page_index": 7,
+            "section_id": "section-10",
+            "section_title": "Experimental Results",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 7,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-10",
+          "similarity": 0.8108350038528442,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26",
+          "sourceType": "current_paper",
+          "text": "accuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.\nLightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB.\nQualitative Results. We conducted a comparative analysis of rendering results between 3D-GS and LightGaussian, focusing on intricate details and background regions, as shown in Fig.4. Both 3D-GS and LightGaussian exhibit comparable visual quality, even in challenging scenes with thin structures, showing that LightGaussian effectively removes redundancy while preserving reconstruction fidelity."
+        },
+        {
+          "chunkIndex": 0,
+          "metadata": {
+            "chunk_index": 0,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 1,
+            "page_index": 0,
+            "section_id": "section-1",
+            "section_title": "Introduction",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 0,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-1",
+          "similarity": 0.801863431930542,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+          "sourceType": "current_paper",
+          "text": "Novel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+        }
+      ],
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26"
+            },
+            {
+              "quote": "LightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26"
+            },
+            {
+              "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        }
+      ],
+      "critique": {
+        "artifactBlocks": [
+          {
+            "issueId": "issue-d0483b5e6aa6874b",
+            "text": "**1. 存储与速度报告**\n\n作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。 [1] [2]"
+          }
+        ],
+        "artifactLead": "",
+        "artifactPending": "当前仅形成1项有依据的判断，其余仍待核查。",
+        "chatBlocks": [
+          {
+            "issueId": "issue-d0483b5e6aa6874b",
+            "text": "**1. 存储与速度报告**\n\n作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。 [1] [2]"
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim-d27f9f4d65c46d29",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26"
+              },
+              {
+                "quote": "LightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26"
+              },
+              {
+                "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。"
+          }
+        ],
+        "coverage": {
+          "answeredQuestionPartIds": [
+            "main"
+          ],
+          "availablePoints": 1,
+          "requestedPoints": 2,
+          "unresolvedQuestionPartIds": []
+        },
+        "issues": [
+          {
+            "conclusionClaimId": "claim-d27f9f4d65c46d29",
+            "id": "issue-d0483b5e6aa6874b",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 0,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [],
+            "title": "存储与速度报告",
+            "topicKey": "作者报告性能"
+          }
+        ],
+        "lead": "",
+        "pending": [],
+        "presentation": {
+          "artifactIssueIds": [
+            "issue-d0483b5e6aa6874b"
+          ],
+          "chatIssueIds": [
+            "issue-d0483b5e6aa6874b"
+          ],
+          "leadClaimIds": [],
+          "standalone": true
+        },
+        "question": {
+          "original": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。",
+          "parts": [
+            {
+              "id": "main",
+              "text": "用户要求判断LightGaussian最影响复现和使用决策的两个判断，并区分作者报告、设计推断和待核查问题。"
+            }
+          ],
+          "requestedPoints": 2
+        },
+        "schemaVersion": 2,
+        "scope": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "targetPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ]
+        },
+        "visiblePending": "当前仅形成1项有依据的判断，其余仍待核查。"
+      },
+      "artifactId": "32ddba24-0f75-3d4d-ab49-930ecbe9f6ca:artifact"
+    },
+    {
+      "role": "user",
+      "id": "critique-final-complete-focused:user",
+      "content": "/批判 只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "critique-final-complete-focused"
+    },
+    {
+      "capability": "critique",
+      "id": "critique-final-complete-focused:ai",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "critique-final-complete-focused",
+      "content": "**1. 剪枝恢复条件**\n\n因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。 [1]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "role": "ai",
+      "rag_sources": [
+        {
+          "chunkIndex": 36,
+          "metadata": {
+            "chunk_index": 36,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 16,
+            "page_index": 15,
+            "section_id": "section-16",
+            "section_title": "More Experiment Results",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 15,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-16",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36",
+          "sourceType": "current_paper",
+          "text": "accompanied by the corresponding residual maps from the We re-train 3D-GS, Compressed 3D-GS, Compact 3D-GS using their original code and 3D-GS configurations on our platform, to perform a fair comparison. We present the rendering results from 3D-GS[16], LightGaussian, and VQ-DVGO[49]. The residual maps highlight the differences between the rendered images and ground truth (GT) images.\nOverall Analysis. We report the performance of the investigation on the proposed modules in Tab. 2 and Fig.7. We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy. This proves that the proposed global significance, based on principle of splatting, accurately represents the critical aspects of each Gaussian. By removing the high-degree SHs and transferring the knowledge to a compact representation (Exp #3 →5), our method successfully demonstrates the benefits from using soft targets and extra data from view augmentation, results in negligible changes"
+        }
+      ],
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+            }
+          ],
+          "sentence": "因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+          ],
+          "target": "message"
+        }
+      ],
+      "critique": {
+        "artifactBlocks": [
+          {
+            "issueId": "issue-b73e2bfd2b329140",
+            "text": "**1. 剪枝恢复条件**\n\n因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。 [1]"
+          }
+        ],
+        "artifactLead": "",
+        "artifactPending": "当前仅形成1项有依据的判断，其余仍待核查。",
+        "chatBlocks": [
+          {
+            "issueId": "issue-b73e2bfd2b329140",
+            "text": "**1. 剪枝恢复条件**\n\n因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。 [1]"
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim-2fb0abf90ea0b847",
+            "kind": "inference",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+              }
+            ],
+            "text": "因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。"
+          }
+        ],
+        "coverage": {
+          "answeredQuestionPartIds": [
+            "main"
+          ],
+          "availablePoints": 1,
+          "requestedPoints": 2,
+          "unresolvedQuestionPartIds": []
+        },
+        "issues": [
+          {
+            "conclusionClaimId": "claim-2fb0abf90ea0b847",
+            "id": "issue-b73e2bfd2b329140",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 0,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [],
+            "title": "剪枝恢复条件",
+            "topicKey": "gaussian-pruning-recovery"
+          }
+        ],
+        "lead": "",
+        "pending": [],
+        "presentation": {
+          "artifactIssueIds": [
+            "issue-b73e2bfd2b329140"
+          ],
+          "chatIssueIds": [
+            "issue-b73e2bfd2b329140"
+          ],
+          "leadClaimIds": [],
+          "standalone": true
+        },
+        "question": {
+          "original": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+          "parts": [
+            {
+              "id": "main",
+              "text": "压缩后“画质几乎不变”的主张在什么条件下成立？"
+            }
+          ],
+          "requestedPoints": 2
+        },
+        "schemaVersion": 2,
+        "scope": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "targetPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ]
+        },
+        "visiblePending": "当前仅形成1项有依据的判断，其余仍待核查。"
+      },
+      "artifactId": "critique-final-complete-focused:artifact"
+    },
+    {
+      "role": "user",
+      "id": "critique-final-complete-review:user",
+      "content": "/批判 对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "critique-final-complete-review"
+    },
+    {
+      "capability": "critique",
+      "id": "critique-final-complete-review:ai",
+      "context": {
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+        ],
+        "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "strictScope": false,
+        "taskId": "critique-final-20261011"
+      },
+      "sourceRequestId": "critique-final-complete-review",
+      "content": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。 [1]\n\n**1. 压缩与速度权衡**\n\n在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。 [1]\n\n作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。 [1]\n\n**2. 跨格式泛化**\n\n该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。 [1]\n\n作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。 [1]",
+      "role": "ai",
+      "rag_sources": [
+        {
+          "chunkIndex": 0,
+          "metadata": {
+            "chunk_index": 0,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 1,
+            "page_index": 0,
+            "section_id": "section-1",
+            "section_title": "Introduction",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 0,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-1",
+          "similarity": 0.801863431930542,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+          "sourceType": "current_paper",
+          "text": "Novel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+        }
+      ],
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            },
+            {
+              "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-2",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            },
+            {
+              "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-3",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-4",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-5",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            },
+            {
+              "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            },
+            {
+              "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        }
+      ],
+      "critique": {
+        "artifactBlocks": [
+          {
+            "issueId": "issue-5b825b1571ddff8a",
+            "text": "**1. 压缩与速度权衡**\n\n在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。 [1]\n\n作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。 [1]"
+          },
+          {
+            "issueId": "issue-8c441014cc5ae6ca",
+            "text": "**2. 跨格式泛化**\n\n该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。 [1]\n\n作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。 [1]"
+          }
+        ],
+        "artifactLead": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。 [1]",
+        "artifactPending": "",
+        "chatBlocks": [
+          {
+            "issueId": "issue-5b825b1571ddff8a",
+            "text": "**1. 压缩与速度权衡**\n\n在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。 [1]\n\n作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。 [1]"
+          },
+          {
+            "issueId": "issue-8c441014cc5ae6ca",
+            "text": "**2. 跨格式泛化**\n\n该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。 [1]\n\n作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。 [1]"
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim-33598b562f6df029",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              },
+              {
+                "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。"
+          },
+          {
+            "id": "claim-a3003e6ae0374b4c",
+            "kind": "inference",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              },
+              {
+                "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。"
+          },
+          {
+            "id": "claim-efad3d0bef0b5833",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。"
+          },
+          {
+            "id": "claim-f645a7ce294b992f",
+            "kind": "inference",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。"
+          },
+          {
+            "id": "claim-35560a4242dd3a67",
+            "kind": "inference",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              },
+              {
+                "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              },
+              {
+                "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。"
+          }
+        ],
+        "coverage": {
+          "answeredQuestionPartIds": [
+            "main"
+          ],
+          "availablePoints": 2,
+          "requestedPoints": 2,
+          "unresolvedQuestionPartIds": []
+        },
+        "issues": [
+          {
+            "conclusionClaimId": "claim-a3003e6ae0374b4c",
+            "id": "issue-5b825b1571ddff8a",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 0,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [
+              "claim-33598b562f6df029"
+            ],
+            "title": "压缩与速度权衡",
+            "topicKey": "存储压缩与渲染速度"
+          },
+          {
+            "conclusionClaimId": "claim-f645a7ce294b992f",
+            "id": "issue-8c441014cc5ae6ca",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 1,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [
+              "claim-efad3d0bef0b5833"
+            ],
+            "title": "跨格式泛化",
+            "topicKey": "剪枝恢复通用性"
+          }
+        ],
+        "lead": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。 [1]",
+        "pending": [
+          {
+            "id": "pending-e3fd84048d6854b6",
+            "questionPartIds": [
+              "main"
+            ],
+            "topic": "跨格式剪枝恢复方法的泛化性及适用边界",
+            "whatToCheck": "跨格式剪枝恢复方法的泛化性及适用边界"
+          }
+        ],
+        "presentation": {
+          "artifactIssueIds": [
+            "issue-5b825b1571ddff8a",
+            "issue-8c441014cc5ae6ca"
+          ],
+          "chatIssueIds": [
+            "issue-5b825b1571ddff8a",
+            "issue-8c441014cc5ae6ca"
+          ],
+          "leadClaimIds": [
+            "claim-35560a4242dd3a67"
+          ],
+          "standalone": true
+        },
+        "question": {
+          "original": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。",
+          "parts": [
+            {
+              "id": "main",
+              "text": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。"
+            }
+          ],
+          "requestedPoints": 2
+        },
+        "schemaVersion": 2,
+        "scope": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "targetPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ]
+        },
+        "visiblePending": ""
+      },
+      "artifactId": "critique-final-complete-review:artifact"
+    }
+  ],
+  "notes": [],
+  "artifacts": [
+    {
+      "title": "对话成果",
+      "sources": [
+        {
+          "chunkIndex": 36,
+          "metadata": {
+            "chunk_index": 36,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 16,
+            "page_index": 15,
+            "section_id": "section-16",
+            "section_title": "More Experiment Results",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 15,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-16",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36",
+          "sourceType": "current_paper",
+          "text": "accompanied by the corresponding residual maps from the We re-train 3D-GS, Compressed 3D-GS, Compact 3D-GS using their original code and 3D-GS configurations on our platform, to perform a fair comparison. We present the rendering results from 3D-GS[16], LightGaussian, and VQ-DVGO[49]. The residual maps highlight the differences between the rendered images and ground truth (GT) images.\nOverall Analysis. We report the performance of the investigation on the proposed modules in Tab. 2 and Fig.7. We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy. This proves that the proposed global significance, based on principle of splatting, accurately represents the critical aspects of each Gaussian. By removing the high-degree SHs and transferring the knowledge to a compact representation (Exp #3 →5), our method successfully demonstrates the benefits from using soft targets and extra data from view augmentation, results in negligible changes"
+        }
+      ],
+      "id": "critique-final-focused:artifact",
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+      ],
+      "text": "**1. 剪枝恢复与SH蒸馏的质量保持条件**\n\n作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。 [1]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "versions": [
+        {
+          "text": "**1. VQ量化后的恢复条件**\n\n作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。 [2]\n\n作者报告将属性分组为若干码字会降低准确度（SSIM下降）。 [1]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+          "critique": {
+            "artifactBlocks": [
+              {
+                "issueId": "issue-27d8f2cb75616de1",
+                "text": "**1. VQ量化后的恢复条件**\n\n作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。 [2]\n\n作者报告将属性分组为若干码字会降低准确度（SSIM下降）。 [1]"
+              }
+            ],
+            "artifactLead": "",
+            "artifactPending": "当前仅形成1项有依据的判断，其余仍待核查。",
+            "chatBlocks": [
+              {
+                "issueId": "issue-27d8f2cb75616de1",
+                "text": "**1. VQ量化后的恢复条件**\n\n作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。 [2]\n\n作者报告将属性分组为若干码字会降低准确度（SSIM下降）。 [1]"
+              }
+            ],
+            "claims": [
+              {
+                "id": "claim-3a1f48e897a448cc",
+                "kind": "reported",
+                "paperIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+                ],
+                "references": [
+                  {
+                    "quote": "Nonetheless, this method results in a decrease in accuracy as it groups the attributes into several clusters (codes).",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-31"
+                  }
+                ],
+                "text": "作者报告将属性分组为若干码字会降低准确度（SSIM下降）。"
+              },
+              {
+                "id": "claim-5bec97c45851ffbc",
+                "kind": "inference",
+                "paperIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+                ],
+                "references": [
+                  {
+                    "quote": "Specifically, by assigning a unique code to each Gaussian, we proceed to implement differentiable finetuning using photometric loss, which is similar to the methodology employed in 3D-GS, and optimize all the attributes in conjunction with VQ.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32"
+                  },
+                  {
+                    "quote": "This approach permits precise adjustments to the codebook and the rest attributes, improving its alignment with the training images (#8, SSIM improves from 0.915 to 0.923).",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32"
+                  }
+                ],
+                "text": "作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。"
+              }
+            ],
+            "coverage": {
+              "answeredQuestionPartIds": [
+                "main"
+              ],
+              "availablePoints": 1,
+              "requestedPoints": 2,
+              "unresolvedQuestionPartIds": []
+            },
+            "issues": [
+              {
+                "conclusionClaimId": "claim-5bec97c45851ffbc",
+                "id": "issue-27d8f2cb75616de1",
+                "paperIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+                ],
+                "priority": 0,
+                "questionPartIds": [
+                  "main"
+                ],
+                "relatedPendingIds": [],
+                "supportClaimIds": [
+                  "claim-3a1f48e897a448cc"
+                ],
+                "title": "VQ量化后的恢复条件",
+                "topicKey": "VQ量化恢复"
+              }
+            ],
+            "lead": "",
+            "pending": [],
+            "presentation": {
+              "artifactIssueIds": [
+                "issue-27d8f2cb75616de1"
+              ],
+              "chatIssueIds": [
+                "issue-27d8f2cb75616de1"
+              ],
+              "leadClaimIds": [],
+              "standalone": true
+            },
+            "question": {
+              "original": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+              "parts": [
+                {
+                  "id": "main",
+                  "text": "压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点"
+                }
+              ],
+              "requestedPoints": 2
+            },
+            "schemaVersion": 2,
+            "scope": {
+              "allowedPaperIds": [
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+              ],
+              "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "targetPaperIds": [
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+              ]
+            },
+            "visiblePending": "当前仅形成1项有依据的判断，其余仍待核查。"
+          },
+          "generatedText": "**1. VQ量化后的恢复条件**\n\n作者后续对属性和码本进行联合微调，使SSIM恢复，说明该微调是维持压缩后画质的实验条件。 [2]\n\n作者报告将属性分组为若干码字会降低准确度（SSIM下降）。 [1]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+          "edited": false,
+          "sources": [
+            {
+              "chunkIndex": 31,
+              "metadata": {
+                "chunk_index": 31,
+                "file_name": "target_paper.pdf",
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "index_version": "2977684d0da4a8b6",
+                "page": 15,
+                "page_index": 14,
+                "section_id": "section-15",
+                "section_title": "Algorithm 1 The overall pipeline of LightGaussian",
+                "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+              },
+              "pageIndex": 14,
+              "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "score": null,
+              "sectionId": "section-15",
+              "similarity": null,
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-31",
+              "sourceType": "current_paper",
+              "text": "Initialize: Training view images I = {Ii ∈ R M } N i=1 and their associated camera poses P = {ϕ i ∈ R 3×4 } N i=1 .\n1: # Pre-Training 3D-GS[16].\n2: # Gi with attributes XYZ, SH-3deg, Opacity, Rotation, Scale.\n3: Post-Finetuning of Vector Quantization.\nApplying vector quantization (VQ) based on the significance score facilitates a reduction in the required codebook size compared to the full model.\nNonetheless, this method results in a decrease in accuracy as it groups the attributes into several clusters (codes).\nWe observe that the SSIM decreases from 0.923 (#6) to 0.915 (#7), as illustrated in Table2of the main draft.\nThis observation motivates us to joint optimize all other attributes and the codes post the VQ."
+            },
+            {
+              "chunkIndex": 32,
+              "metadata": {
+                "chunk_index": 32,
+                "file_name": "target_paper.pdf",
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "index_version": "2977684d0da4a8b6",
+                "page": 15,
+                "page_index": 14,
+                "section_id": "section-15",
+                "section_title": "Algorithm 1 The overall pipeline of LightGaussian",
+                "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+              },
+              "pageIndex": 14,
+              "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "score": null,
+              "sectionId": "section-15",
+              "similarity": null,
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32",
+              "sourceType": "current_paper",
+              "text": "We observe that the SSIM decreases from 0.923 (#6) to 0.915 (#7), as illustrated in Table2of the main draft.\nThis observation motivates us to joint optimize all other attributes and the codes post the VQ.\nSpecifically, by assigning a unique code to each Gaussian, we proceed to implement differentiable finetuning using photometric loss, which is similar to the methodology employed in 3D-GS, and optimize all the attributes in conjunction with VQ.\nThis approach permits precise adjustments to the codebook and the rest attributes, improving its alignment with the training images (#8, SSIM improves from 0.915 to 0.923).\nEquation: G = {Gi ∈ R (3+48+1+4+3) )} N i=1 ← 3D-"
+            }
+          ],
+          "paperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "sourceRequestId": "critique-final-focused",
+          "savedAt": "2026-10-11T09:42:20.117278400Z",
+          "kind": "generated"
+        }
+      ],
+      "sourceRequestId": "critique-final-focused-regenerated",
+      "createdAt": "2026-10-11T09:42:20.117278400Z",
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+            },
+            {
+              "quote": "By removing the high-degree SHs and transferring the knowledge to a compact representation (Exp #3 →5), our method successfully demonstrates the benefits from using soft targets and extra data from view augmentation, results in negligible changes",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+            }
+          ],
+          "sentence": "作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+          ],
+          "target": "message"
+        }
+      ],
+      "critique": {
+        "artifactBlocks": [
+          {
+            "issueId": "issue-cf4ed77e1131b29c",
+            "text": "**1. 剪枝恢复与SH蒸馏的质量保持条件**\n\n作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。 [1]"
+          }
+        ],
+        "artifactLead": "",
+        "artifactPending": "当前仅形成1项有依据的判断，其余仍待核查。",
+        "chatBlocks": [
+          {
+            "issueId": "issue-cf4ed77e1131b29c",
+            "text": "**1. 剪枝恢复与SH蒸馏的质量保持条件**\n\n作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。 [1]"
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim-7d353d79d5b6b49e",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+              },
+              {
+                "quote": "By removing the high-degree SHs and transferring the knowledge to a compact representation (Exp #3 →5), our method successfully demonstrates the benefits from using soft targets and extra data from view augmentation, results in negligible changes",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+              }
+            ],
+            "text": "作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。"
+          }
+        ],
+        "coverage": {
+          "answeredQuestionPartIds": [
+            "main"
+          ],
+          "availablePoints": 1,
+          "requestedPoints": 2,
+          "unresolvedQuestionPartIds": []
+        },
+        "issues": [
+          {
+            "conclusionClaimId": "claim-7d353d79d5b6b49e",
+            "id": "issue-cf4ed77e1131b29c",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 0,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [],
+            "title": "剪枝恢复与SH蒸馏的质量保持条件",
+            "topicKey": "剪枝恢复与SH蒸馏"
+          }
+        ],
+        "lead": "",
+        "pending": [],
+        "presentation": {
+          "artifactIssueIds": [
+            "issue-cf4ed77e1131b29c"
+          ],
+          "chatIssueIds": [
+            "issue-cf4ed77e1131b29c"
+          ],
+          "leadClaimIds": [],
+          "standalone": true
+        },
+        "question": {
+          "original": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+          "parts": [
+            {
+              "id": "main",
+              "text": "压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点"
+            }
+          ],
+          "requestedPoints": 2
+        },
+        "schemaVersion": 2,
+        "scope": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "targetPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ]
+        },
+        "visiblePending": "当前仅形成1项有依据的判断，其余仍待核查。"
+      },
+      "generatedText": "**1. 剪枝恢复与SH蒸馏的质量保持条件**\n\n作者报告剪枝恢复移除冗余高斯（Exp #1→3）可忽略质量退化，且移除高次球谐并用软目标与视角增强蒸馏（Exp #3→5）变化可忽略。 [1]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "edited": false,
+      "updatedAt": "2026-10-11T10:03:42.726312Z"
+    },
+    {
+      "title": "对话成果",
+      "sources": [
+        {
+          "chunkIndex": 26,
+          "metadata": {
+            "chunk_index": 26,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 8,
+            "page_index": 7,
+            "section_id": "section-10",
+            "section_title": "Experimental Results",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 7,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-10",
+          "similarity": 0.8108350038528442,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26",
+          "sourceType": "current_paper",
+          "text": "accuracy with compact representations but suffer from slow inference speeds (0.06 FPS), limiting their practicality. Voxelbased NeRFs improve rendering efficiency but still fall short of real-time performance; for example, Plenoxel requires 2.1GB for a single large-scale scene. In contrast, 3D-GS offers a good balance between quality and speed but demands substantial storage per scene.\nOur method, LightGaussian, exceeds existing techniques with rendering speeds over 200 FPS, enabled by efficient rasterization that prunes insignificant Gaussians. This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.\nLightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB.\nQualitative Results. We conducted a comparative analysis of rendering results between 3D-GS and LightGaussian, focusing on intricate details and background regions, as shown in Fig.4. Both 3D-GS and LightGaussian exhibit comparable visual quality, even in challenging scenes with thin structures, showing that LightGaussian effectively removes redundancy while preserving reconstruction fidelity."
+        },
+        {
+          "chunkIndex": 0,
+          "metadata": {
+            "chunk_index": 0,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 1,
+            "page_index": 0,
+            "section_id": "section-1",
+            "section_title": "Introduction",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 0,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-1",
+          "similarity": 0.801863431930542,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+          "sourceType": "current_paper",
+          "text": "Novel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+        }
+      ],
+      "id": "32ddba24-0f75-3d4d-ab49-930ecbe9f6ca:artifact",
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+      ],
+      "text": "**1. 存储与速度报告**\n\n作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。 [1] [2]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "versions": [],
+      "sourceRequestId": "32ddba24-0f75-3d4d-ab49-930ecbe9f6ca",
+      "createdAt": "2026-10-11T10:03:46.097050900Z",
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26"
+            },
+            {
+              "quote": "LightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26"
+            },
+            {
+              "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        }
+      ],
+      "critique": {
+        "artifactBlocks": [
+          {
+            "issueId": "issue-d0483b5e6aa6874b",
+            "text": "**1. 存储与速度报告**\n\n作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。 [1] [2]"
+          }
+        ],
+        "artifactLead": "",
+        "artifactPending": "当前仅形成1项有依据的判断，其余仍待核查。",
+        "chatBlocks": [
+          {
+            "issueId": "issue-d0483b5e6aa6874b",
+            "text": "**1. 存储与速度报告**\n\n作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。 [1] [2]"
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim-d27f9f4d65c46d29",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "This approach reduces 3D Gaussian model redundancy, cutting storage from 782MB to 45MB on Mip-NeRF360-a 15× reduction.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26"
+              },
+              {
+                "quote": "LightGaussian also outperforms 3D-GS on the Tank & Temple datasets, nearly doubling rendering speed and reducing storage from 380MB to 22MB.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-26"
+              },
+              {
+                "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。"
+          }
+        ],
+        "coverage": {
+          "answeredQuestionPartIds": [
+            "main"
+          ],
+          "availablePoints": 1,
+          "requestedPoints": 2,
+          "unresolvedQuestionPartIds": []
+        },
+        "issues": [
+          {
+            "conclusionClaimId": "claim-d27f9f4d65c46d29",
+            "id": "issue-d0483b5e6aa6874b",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 0,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [],
+            "title": "存储与速度报告",
+            "topicKey": "作者报告性能"
+          }
+        ],
+        "lead": "",
+        "pending": [],
+        "presentation": {
+          "artifactIssueIds": [
+            "issue-d0483b5e6aa6874b"
+          ],
+          "chatIssueIds": [
+            "issue-d0483b5e6aa6874b"
+          ],
+          "leadClaimIds": [],
+          "standalone": true
+        },
+        "question": {
+          "original": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。",
+          "parts": [
+            {
+              "id": "main",
+              "text": "用户要求判断LightGaussian最影响复现和使用决策的两个判断，并区分作者报告、设计推断和待核查问题。"
+            }
+          ],
+          "requestedPoints": 2
+        },
+        "schemaVersion": 2,
+        "scope": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "targetPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ]
+        },
+        "visiblePending": "当前仅形成1项有依据的判断，其余仍待核查。"
+      },
+      "generatedText": "**1. 存储与速度报告**\n\n作者报告LightGaussian在大规模场景中显著压缩存储并提升渲染速度，视觉质量接近3D-GS。 [1] [2]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "edited": false
+    },
+    {
+      "title": "对话成果",
+      "sources": [
+        {
+          "chunkIndex": 36,
+          "metadata": {
+            "chunk_index": 36,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 16,
+            "page_index": 15,
+            "section_id": "section-16",
+            "section_title": "More Experiment Results",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 15,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-16",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36",
+          "sourceType": "current_paper",
+          "text": "accompanied by the corresponding residual maps from the We re-train 3D-GS, Compressed 3D-GS, Compact 3D-GS using their original code and 3D-GS configurations on our platform, to perform a fair comparison. We present the rendering results from 3D-GS[16], LightGaussian, and VQ-DVGO[49]. The residual maps highlight the differences between the rendered images and ground truth (GT) images.\nOverall Analysis. We report the performance of the investigation on the proposed modules in Tab. 2 and Fig.7. We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy. This proves that the proposed global significance, based on principle of splatting, accurately represents the critical aspects of each Gaussian. By removing the high-degree SHs and transferring the knowledge to a compact representation (Exp #3 →5), our method successfully demonstrates the benefits from using soft targets and extra data from view augmentation, results in negligible changes"
+        }
+      ],
+      "id": "critique-final-complete-focused:artifact",
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+      ],
+      "text": "**1. 剪枝恢复条件**\n\n因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。 [1]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "versions": [],
+      "sourceRequestId": "critique-final-complete-focused",
+      "createdAt": "2026-10-11T10:17:02.433499700Z",
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+            }
+          ],
+          "sentence": "因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+          ],
+          "target": "message"
+        }
+      ],
+      "critique": {
+        "artifactBlocks": [
+          {
+            "issueId": "issue-b73e2bfd2b329140",
+            "text": "**1. 剪枝恢复条件**\n\n因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。 [1]"
+          }
+        ],
+        "artifactLead": "",
+        "artifactPending": "当前仅形成1项有依据的判断，其余仍待核查。",
+        "chatBlocks": [
+          {
+            "issueId": "issue-b73e2bfd2b329140",
+            "text": "**1. 剪枝恢复条件**\n\n因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。 [1]"
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim-2fb0abf90ea0b847",
+            "kind": "inference",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "We verify that our design of Gaussian Pruning & Recovery is effective in removing redundant Gaussians (Exp #1→3) with negligible quality degradation while preserving rendering accuracy.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-36"
+              }
+            ],
+            "text": "因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。"
+          }
+        ],
+        "coverage": {
+          "answeredQuestionPartIds": [
+            "main"
+          ],
+          "availablePoints": 1,
+          "requestedPoints": 2,
+          "unresolvedQuestionPartIds": []
+        },
+        "issues": [
+          {
+            "conclusionClaimId": "claim-2fb0abf90ea0b847",
+            "id": "issue-b73e2bfd2b329140",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 0,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [],
+            "title": "剪枝恢复条件",
+            "topicKey": "gaussian-pruning-recovery"
+          }
+        ],
+        "lead": "",
+        "pending": [],
+        "presentation": {
+          "artifactIssueIds": [
+            "issue-b73e2bfd2b329140"
+          ],
+          "chatIssueIds": [
+            "issue-b73e2bfd2b329140"
+          ],
+          "leadClaimIds": [],
+          "standalone": true
+        },
+        "question": {
+          "original": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。",
+          "parts": [
+            {
+              "id": "main",
+              "text": "压缩后“画质几乎不变”的主张在什么条件下成立？"
+            }
+          ],
+          "requestedPoints": 2
+        },
+        "schemaVersion": 2,
+        "scope": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "targetPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ]
+        },
+        "visiblePending": "当前仅形成1项有依据的判断，其余仍待核查。"
+      },
+      "generatedText": "**1. 剪枝恢复条件**\n\n因此，压缩后画质接近不变的一个条件是在剪除冗余高斯后执行恢复步骤，并限定于作者报告的该消融场景。 [1]\n\n当前仅形成1项有依据的判断，其余仍待核查。",
+      "edited": false
+    },
+    {
+      "title": "对话成果",
+      "sources": [
+        {
+          "chunkIndex": 0,
+          "metadata": {
+            "chunk_index": 0,
+            "file_name": "target_paper.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 1,
+            "page_index": 0,
+            "section_id": "section-1",
+            "section_title": "Introduction",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 0,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-1",
+          "similarity": 0.801863431930542,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+          "sourceType": "current_paper",
+          "text": "Novel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+        }
+      ],
+      "id": "critique-final-complete-review:artifact",
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+      ],
+      "text": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。 [1]\n\n**1. 压缩与速度权衡**\n\n在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。 [1]\n\n作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。 [1]\n\n**2. 跨格式泛化**\n\n该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。 [1]\n\n作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。 [1]\n\n<details>\n<summary>待核查</summary>\n\n- 待核查：跨格式剪枝恢复方法的泛化性及适用边界\n\n</details>",
+      "versions": [],
+      "sourceRequestId": "critique-final-complete-review",
+      "createdAt": "2026-10-11T10:18:18.184225300Z",
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            },
+            {
+              "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-2",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            },
+            {
+              "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-3",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-4",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-5",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            },
+            {
+              "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            },
+            {
+              "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            }
+          ],
+          "sentence": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        }
+      ],
+      "critique": {
+        "artifactBlocks": [
+          {
+            "issueId": "issue-5b825b1571ddff8a",
+            "text": "**1. 压缩与速度权衡**\n\n在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。 [1]\n\n作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。 [1]"
+          },
+          {
+            "issueId": "issue-8c441014cc5ae6ca",
+            "text": "**2. 跨格式泛化**\n\n该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。 [1]\n\n作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。 [1]"
+          }
+        ],
+        "artifactLead": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。 [1]",
+        "artifactPending": "",
+        "chatBlocks": [
+          {
+            "issueId": "issue-5b825b1571ddff8a",
+            "text": "**1. 压缩与速度权衡**\n\n在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。 [1]\n\n作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。 [1]"
+          },
+          {
+            "issueId": "issue-8c441014cc5ae6ca",
+            "text": "**2. 跨格式泛化**\n\n该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。 [1]\n\n作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。 [1]"
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim-33598b562f6df029",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              },
+              {
+                "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。"
+          },
+          {
+            "id": "claim-a3003e6ae0374b4c",
+            "kind": "inference",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              },
+              {
+                "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。"
+          },
+          {
+            "id": "claim-efad3d0bef0b5833",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。"
+          },
+          {
+            "id": "claim-f645a7ce294b992f",
+            "kind": "inference",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。"
+          },
+          {
+            "id": "claim-35560a4242dd3a67",
+            "kind": "inference",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "quote": "This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              },
+              {
+                "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              },
+              {
+                "quote": "Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+              }
+            ],
+            "text": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。"
+          }
+        ],
+        "coverage": {
+          "answeredQuestionPartIds": [
+            "main"
+          ],
+          "availablePoints": 2,
+          "requestedPoints": 2,
+          "unresolvedQuestionPartIds": []
+        },
+        "issues": [
+          {
+            "conclusionClaimId": "claim-a3003e6ae0374b4c",
+            "id": "issue-5b825b1571ddff8a",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 0,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [
+              "claim-33598b562f6df029"
+            ],
+            "title": "压缩与速度权衡",
+            "topicKey": "存储压缩与渲染速度"
+          },
+          {
+            "conclusionClaimId": "claim-f645a7ce294b992f",
+            "id": "issue-8c441014cc5ae6ca",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "priority": 1,
+            "questionPartIds": [
+              "main"
+            ],
+            "relatedPendingIds": [],
+            "supportClaimIds": [
+              "claim-efad3d0bef0b5833"
+            ],
+            "title": "跨格式泛化",
+            "topicKey": "剪枝恢复通用性"
+          }
+        ],
+        "lead": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。 [1]",
+        "pending": [
+          {
+            "id": "pending-e3fd84048d6854b6",
+            "questionPartIds": [
+              "main"
+            ],
+            "topic": "跨格式剪枝恢复方法的泛化性及适用边界",
+            "whatToCheck": "跨格式剪枝恢复方法的泛化性及适用边界"
+          }
+        ],
+        "presentation": {
+          "artifactIssueIds": [
+            "issue-5b825b1571ddff8a",
+            "issue-8c441014cc5ae6ca"
+          ],
+          "chatIssueIds": [
+            "issue-5b825b1571ddff8a",
+            "issue-8c441014cc5ae6ca"
+          ],
+          "leadClaimIds": [
+            "claim-35560a4242dd3a67"
+          ],
+          "standalone": true
+        },
+        "question": {
+          "original": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。",
+          "parts": [
+            {
+              "id": "main",
+              "text": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。"
+            }
+          ],
+          "requestedPoints": 2
+        },
+        "schemaVersion": 2,
+        "scope": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "targetPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ]
+        },
+        "visiblePending": ""
+      },
+      "generatedText": "作者报告其方法在测试数据上显著压缩并加速，且声称跨格式泛化；使用前需接受轻微质量损失并验证目标格式。 [1]\n\n**1. 压缩与速度权衡**\n\n在作者报告的实验条件与数据集上，该方法以轻微质量代价换取高压缩和更快渲染，适合体积与帧率敏感场景。 [1]\n\n作者报告该方法大幅压缩存储并提升渲染速度，同时保持视觉保真度（SSIM仅小幅下降）。 [1]\n\n**2. 跨格式泛化**\n\n该方法的核心剪枝与恢复策略可能适用于类似的高斯表示，但适用边界仍需目标格式验证。 [1]\n\n作者报告其Gaussian Pruning and Recovery方法在Scaffold-GS等不同3D Gaussian格式上泛化良好并提升性能。 [1]\n\n<details>\n<summary>待核查</summary>\n\n- 待核查：跨格式剪枝恢复方法的泛化性及适用边界\n\n</details>",
+      "edited": false
+    }
+  ],
+  "researchRuns": [],
+  "activityHistory": [],
+  "appliedRequestIds": [
+    "critique-final-focused",
+    "critique-final-focused-regenerated",
+    "32ddba24-0f75-3d4d-ab49-930ecbe9f6ca",
+    "critique-final-complete-focused",
+    "critique-final-complete-review"
+  ],
+  "focusedPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "activeActivity": null,
+  "updatedAt": "2026-10-11T10:18:18.184755Z",
+  "revision": 5
+}

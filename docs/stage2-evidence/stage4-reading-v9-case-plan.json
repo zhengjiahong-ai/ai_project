@@ -1,0 +1,83 @@
+{
+  "provider": "https://api.deepseek.com",
+  "maxCases": 3,
+  "materials": [
+    {
+      "name": "Original 3DGS",
+      "path": "D:/3DGS/paper/3DGS原始论文/2308.04079v1.pdf",
+      "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf"
+    },
+    {
+      "name": "LightGaussian",
+      "path": "D:/3DGS/paper/LightGaussian/2311.17245v6.pdf",
+      "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    }
+  ],
+  "cases": [
+    {
+      "id": "stage4-critique-v9",
+      "taskId": "stage4-3dgs-critique-20261009-v9",
+      "requestId": "stage4-3dgs-critique-20261009-v9-request",
+      "scope": "LightGaussian only",
+      "prompt": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？",
+      "checks": [
+        "正常完成并发布一次",
+        "数字由同条件表格绑定且方法参数与作者主张分开",
+        "不把检索缺口当论文缺失",
+        "前三条结论只呈现一次且原文依据折叠",
+        "前三条结论均有同论文依据；未检索覆盖收束为问题，不冒充缺陷",
+        "完整结果满足内容核对；partial状态不能被记成全部通过"
+      ]
+    },
+    {
+      "id": "stage4-compose-v9",
+      "taskId": "stage4-3dgs-compose-20261009-v9",
+      "requestId": "stage4-3dgs-compose-20261009-v9-request",
+      "scope": "Both papers, explanation primary Original 3DGS",
+      "prompt": "先用两句话解释3DGS的高斯、透明度与球谐颜色，再比较原始3DGS与LightGaussian如何在表示规模、质量和渲染速度之间取舍。",
+      "checks": [
+        "解释和比较正常完成且保持原材料范围",
+        "表格数据集、硬件及带星号基线保持",
+        "舍入与差值方向一致",
+        "对话先给简洁结论",
+        "已核验作者数值短语简洁中文，无SSIM下降重复，≥与超过不互换",
+        "完整结果满足内容核对；partial状态不能被记成全部通过"
+      ]
+    },
+    {
+      "id": "stage6-translation-v9",
+      "scope": "LightGaussian physical page 4",
+      "action": "在实际阅读界面手动重译一次，保存为新成果且不覆盖旧记录",
+      "checks": [
+        "没有减去所有对象的不透明度的语义错误",
+        "保留8个唯一原式标记及对应原图",
+        "不把损坏运算符猜成已经核对的结构",
+        "保存、刷新及实际下载内容一致",
+        "提交前实际浏览器新输入包含8个标记，T的visibleOperators为product且structureVerified=false",
+        "若仍为部分译文，记录缺失段落，不计翻译质量通过"
+      ],
+      "attemptFile": "stage6-translation-v9-attempt.json"
+    }
+  ],
+  "executionRules": [
+    "没有新的具体授权不执行本计划的真实生成",
+    "每例仅提交一次；先查原身份，已执行案例不重复生成",
+    "批判和分批翻译可能各包含多个内部初始请求；案例数不等于模型请求数",
+    "不自动重试，不调用外部搜索，保留每例输入、原始响应、收据和失败结果",
+    "此前已通过的significance固定案例不再次生成",
+    "离线测试或合成夹具不计真实内容通过"
+  ],
+  "status": "executed_once_all_three_cases",
+  "previousCasesConsumed": 25,
+  "casesExecuted": 3,
+  "sourceCommits": [
+    "43a08ed",
+    "3007020"
+  ],
+  "purpose": "Confirm new generation after verified quantity display and original-font operator repairs; offline replay does not count.",
+  "authorization": "用户2026-10-09明确回复：允许这3个修复后案例",
+  "authorizedAt": "2026-10-09T14:24:48.163896+00:00",
+  "totalCasesConsumed": 28,
+  "automaticResubmissions": 0,
+  "contentAcceptance": "critique_partial; compose_complete_but_readability_and_table_mapping_unmet; page4_conservative_translation_saved_exported"
+}

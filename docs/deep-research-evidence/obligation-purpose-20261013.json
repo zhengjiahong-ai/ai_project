@@ -1,0 +1,93 @@
+{
+  "date": "2026-10-13",
+  "promptVersion": "dr-v2.20261013.22",
+  "qoder": {
+    "model": "bailian/qwen3.8-max-tp",
+    "patchSha256": "4b13bfb4f4cd87033c7f2c1e8c4e2980cea94af5ed0c078417858a056427dd4b",
+    "reviewCorrections": [
+      "Generated code incorrectly treated nested plan items as flat obligations.",
+      "Generated code used id instead of obligationId/claimId.",
+      "Generated tests mocked the binding and coverage helpers, concealing contract mismatch.",
+      "Main review corrected nesting, identity fields and independent verdict request grounding; replaced mocks with real helpers."
+    ]
+  },
+  "behavior": [
+    "Legacy and ungrounded obligations remain answer requirements.",
+    "Supporting research needs an explicit planning hint grounded in the original user question.",
+    "Final not_required disposition needs a unique verdict, reason, original-request excerpt and exact accepted-answer bindings.",
+    "Whole original request and all required obligations must be covered with valid audit aspects before any support question becomes nonblocking.",
+    "Revalidate against current accepted claims at publication, not a stored exemption list.",
+    "Keep original source gaps in run history; not_required is not converted into covered.",
+    "Collapsed report note names auxiliary questions outside current answer scope; model audit rationale is stored but not rendered as unchecked report prose."
+  ],
+  "acceptance": "Scope classification and structural gating exercised, but experiment content remains manually failed. No further retry submitted.",
+  "offlineTests": {
+    "passed": 719,
+    "warnings": 2,
+    "seconds": 71.06,
+    "initialFailures": "Four end-to-end fixtures parsed an old prompt section header; updated only the fixture parser, retaining lifecycle and idempotency assertions."
+  },
+  "loadedRuntime": {
+    "commit": "811d179",
+    "promptVersion": "dr-v2.20261013.22",
+    "health": "ok",
+    "rag": "ok",
+    "grobid": "ok",
+    "activeRunsBeforeRestart": 0
+  },
+  "followupCase": {
+    "caseId": "D3",
+    "attempt": 5,
+    "runId": "dr_run_be7d6d2085745e4e92461c65168ff337",
+    "status": "completed",
+    "receipt": "tmp/dr-acceptance-receipts/D3-v5.json",
+    "observedPlanPurposes": [
+      "supporting_research",
+      "supporting_research"
+    ],
+    "outcome": "partial",
+    "manualAcceptance": "failed",
+    "modelCalls": 11,
+    "tokens": 58290,
+    "seconds": 139,
+    "repairStatus": "skipped_budget",
+    "acceptedClaims": [
+      "c1",
+      "c2",
+      "c3",
+      "c4",
+      "c5",
+      "c6",
+      "c7",
+      "c9"
+    ],
+    "rejectedClaims": [
+      {
+        "claimId": "c8",
+        "reason": "Exact audit bindings for effects and uncertainty were absent from rendered claim text."
+      }
+    ],
+    "nonblockingResearchCount": 0,
+    "findings": [
+      "Data and analysis executionSpec populated with concrete rules, seeds and interval settings.",
+      "No internal E1/E2 routing references in this draft; raw paper reference [16] remains in data prose.",
+      "Analysis formulas and bootstrap count/seed are present mainly in internal spec; verifier fabricated prose-like quotes from metadata. Exact visible-text gate correctly rejected c8.",
+      "Final auditor incorrectly treats hypothesis interaction formula as complete independent-effect judgment after c8 was rejected; missing-design-role gate retains partial outcome.",
+      "Data selection says same Tanks and Temples subset as original 3DGS, take first 5; original paper uses only 2 scenes from that dataset. Config verifier falsely passed it.",
+      "Replication mode retrained_per_seed is internal while seed-specific baseline generation and within-scene seed aggregation are not explicit in prose.",
+      "Supporting research not automatically exempted. Method implementation details still judged missing; no actual not_required behavior accepted in this case."
+    ]
+  },
+  "dataFeasibilitySource": {
+    "path": "D:/3DGS/paper/3DGS原始论文/2308.04079v1.pdf",
+    "physicalPage": 8,
+    "extraction": "PyPDF2 local text, no model call",
+    "quote": "two scenes from the Tanks&Temples dataset [2017]",
+    "conclusion": "Cannot take 5 scenes from the same original-paper subset of 2."
+  },
+  "nextWork": [
+    "Render supported execution choices into explicit human-readable protocol instead of relying on duplicated model prose.",
+    "Ground dataset/subset feasibility in available paper evidence and preserve missing conditions rather than approving arbitrary counts.",
+    "Retain substantive original-question checking; a hypothesis is not the missing analysis method."
+  ]
+}

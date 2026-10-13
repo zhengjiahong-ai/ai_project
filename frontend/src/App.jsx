@@ -1225,6 +1225,7 @@ export default function App() {
     apiService,
     pdfId,
     deconstructData,
+    translationState,
     commitTranslationState,
     setPdfPageState,
     pdfPageState,

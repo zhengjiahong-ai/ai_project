@@ -46,6 +46,13 @@ const run = () => {
   );
   assert.equal(restoredLoadingState.pages[1].status, 'idle');
 
+  const partial = normalizeTranslationState({pages:{0:{status:'translating',translatedText:'部分译文',
+    warning:'还有1段未完成',missingBlockIds:['block-2']}}}, 'paper-1').pages[0];
+  assert.equal(partial.status, 'partial');
+  assert.equal(partial.translatedText, '部分译文');
+  assert.equal(partial.warning, '还有1段未完成');
+  assert.deepEqual(partial.missingBlockIds, ['block-2']);
+
   const overlayPage = normalizeTranslationPage({
     sourceText: 'source',
     translatedText: 'translated',
@@ -137,6 +144,12 @@ const run = () => {
     translatedBlocks: [{ id: 'block-1', translatedText: 'structured translation' }],
   });
   assert.equal(structuredLegacyPage.renderMode, 'overlay');
+
+  const protectedPage = normalizeTranslationPage({ translatedText: '见 ⟦原式1⟧', mathProtectionVersion: 1 });
+  assert.equal(protectedPage.mathProtectionVersion, 1);
+  assert.equal(normalizeTranslationPage(JSON.parse(JSON.stringify(protectedPage))).mathProtectionVersion, 1);
+  assert.equal(normalizeTranslationPage({ translatedText: '旧译文' }).mathProtectionVersion, 0);
+  assert.equal(normalizeTranslationPage({ mathProtectionVersion: 99 }).mathProtectionVersion, 0);
 
   console.log('frontend translation state tests passed');
 };

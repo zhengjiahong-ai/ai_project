@@ -1,0 +1,12 @@
+# Deep Research execution dependency constraints; verified in .venv-refactor.
+# Scope: execution graph/checkpoints, not a lock of all application dependencies.
+langgraph==1.2.14
+langgraph-checkpoint==4.2.0
+langgraph-checkpoint-sqlite==3.1.1
+langgraph-prebuilt==1.1.0
+langgraph-sdk==0.4.6
+langchain-core==1.6.9
+langchain-protocol==0.0.19
+aiosqlite==0.22.1
+ormsgpack==1.12.2
+sqlite-vec==0.1.9

@@ -1,0 +1,27 @@
+{
+  "revision": "7f1a8f2",
+  "sourceRunId": "dr_run_b61ade97852d5a9e9f5e8e4ebdb5f1e8",
+  "diagnosticRunId": "repair_diag_1485682381304400abcbf22d15ae9cb5",
+  "receiptDirectory": "/app/data/dr-repair-diagnostics/D3-v10-a2",
+  "isEndToEndAcceptance": false,
+  "qualityAccepted": false,
+  "actualModelCalls": 3,
+  "actualTokens": 18787,
+  "repairTokens": 6812,
+  "acceptedByVerifier": ["c1", "c8", "c9"],
+  "rejectedByVerifier": ["c2", "c3", "c4", "c5", "c6", "c7"],
+  "segmentedCitation": {
+    "liveExercised": true,
+    "effectsSegments": 7,
+    "allExactlyBound": true,
+    "analysisClaimAccepted": true
+  },
+  "manualFindings": [
+    "Repair assigns the missing budget role but still defers intervention levels instead of proposing executable choices.",
+    "Recovery budgets, rendering choices and metric aggregation remain incomplete.",
+    "Data verifier incorrectly describes a fixed seeded random split as contradictory, and repeats a demand for names despite an all-mode set. This does not validate the draft: its multiple-seed purpose is still unclear.",
+    "The limits claim still contains an internal E5 alias in conditions.",
+    "A passed analysis claim does not establish end-to-end scientific validity while data and interventions remain unresolved."
+  ],
+  "nextAction": "Review generation/repair and reviewer contracts for executable prospective choices and false constraints before another full case; preserve source-bound availability and independent quality gates."
+}

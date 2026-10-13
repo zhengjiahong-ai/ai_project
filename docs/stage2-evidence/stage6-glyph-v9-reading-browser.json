@@ -1,0 +1,15 @@
+{
+  "scope": "Read-only original PDF page 4 UI; does not prove new generated translation or text-layer Unicode repair",
+  "dom": {
+    "bodyPrefix": "貔貅\n学术工作台\n阶段4：简洁比较离线展示-v9\n未同步草稿\n重命名\n并排\n专注阅读\n专注对话\n阶段4：简洁比较离线展示-v9\n阶段4：部分结果离线展示-v8\n阶段4：compose修复核验-v7\n阶段4：critique修复核验-v7\n阶段4：compose修复核验-v6\n阶段6：有材料的对话起点验收\n阶段4：critique修复核验-v6\n阶段6：上传切任务归属-A\n阶段6：上传切任务归属-B\n阶段4：critique修复核验-v5\n阶段4：compose修复核验-v5\n阶段4：critique修复核验-v4\n阶段4：compose修复核验-v4\n阶段4：critique修复核验-v3\n阶段4：compose修复核验-v3\n阶段6：首次使用与任务输入验收\n新任务\n阶段6：真实论文阅读工具验收\n阶段4：3DGS验证材料\n阶段6：阅读与编辑体验验收\n阶段5：版本与草稿恢复验收\n阶段5：缺文件提示验收\n新任务\n阶段4：critique真实验收-v2\n演示：LightGaussian 压缩方法\n阶段5：旧文档标识补全验收\n阶段5：移动目标任务\n阶段5：移动原任务\n阶段4：compose真实验收-v2\n阶段4：research真实验收\n阶段4：compose真实验收\n阶段4：critique真实验收\n阶段4：compare真实验收\n阶段4：研究回答显示验收\n阶段3：新手主动RIS学习闭环\n阶段3：主动RIS自测闭环\n阶段2：新版补课协议验收\n阶段2：多论文范围与比较验收\n阶段2：研究终稿发布验收\n阶段2：精读入口验收\n阶段2：自测入口验收\n阶段2：批判成果恢复验收\n阶段2：执行前停止验收\n阶段2：失败与重试验收\n阶段2：先阅读再解析验收\n阶段2统一对话验收\n阶段1文件恢复验收\n任务标识编码验收\n并发隔离验收\n新任务\n新任务\n论文与材料\n2308.04079v1.pdf\nLightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n上传 PDF\n当前论文目录\n笔记与成果\n离线展示：简洁比较-v9\nLightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n原文\n译文\n对照\n正文已就绪\n生成论文概览\n−\n91%\n＋\n适合宽度\nLightGaussian: Unbounded 3D Gaussian Compression\n\n\nwith 15x Reduction and 200+ FPS\n\n\nZhiwen Fan\n1\n†∗\n\n\n, Kevin Wang\n1\n∗\n, Kairun Wen\n2\n, Zehao Zhu\n1\n, Dejia Xu\n1\n, Zhangyang Wang\n1\n\n\n1\nThe University of Texas at Austin\n \n2\nXMU\n\n\n{zhiwenfan,kevinwang.1839,atlaswang}@utexas.edu\n\n\nProject Website\n:\n \nhttps://lightgaussian.github.io\nOurs\n \n(0.5M points, 0.916)\n\n\n3D-GS\n \n(1.4M points,0.917)\n\n\nFigure 1:\n \nCompressibility and Speed\n:\n \nLightGaussian\n \ncompacts 3D Gaussians, reducing storage\n\n\nfrom 782MB to 45MB and boosting FPS from 144 to 237, while maintaining visual quality.\n\n\nAbstract\n\n\nRecent advances in real-time neural rendering using point-based techniques have\n\n\nenabled broader adoption of 3D representations. However, foundational approaches\n\n\nlike 3D Gaussian Splatting impose substantial storage overhead, as Structure-from-\n\n\nMotion (SfM) points can grow to millions, often requiring gigabyte-level disk\n\n\nspace for a single unbounded scene. This growth presents scalability challenges\n\n\nand hinders splatting efficiency. To address this, we introduce\n \nLightGaussian\n,\n\n\na method for transforming 3D Gaussians into a more compact format. Inspired\n\n\nby Network Pruning, LightGaussian identifies Gaussians with minimal global\n\n\nsignificance on scene reconstruct",
+    "page": "4",
+    "task": "阶段4：简洁比较离线展示-v9",
+    "visibleControls": [
+      "原文",
+      "译文",
+      "对照",
+      "适合宽度"
+    ]
+  },
+  "logs": []
+}

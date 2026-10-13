@@ -1,0 +1,468 @@
+{
+  "regenerated": {
+    "status": "success",
+    "trace": {
+      "traceId": "ebb0d814-19da-4b40-b26b-c4be93213537",
+      "taskType": "critical",
+      "status": "success",
+      "startedAt": "2026-10-11T10:03:39.746024Z",
+      "finishedAt": "2026-10-11T10:03:40.408408Z",
+      "durationMs": 662,
+      "requestMeta": {
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "hasInlineContent": false
+      },
+      "responseMeta": {
+        "resolvedFrom": "pdf_id",
+        "grounded": true
+      },
+      "counters": {
+        "llmCalls": 0,
+        "retrievalCalls": 5,
+        "retryCount": 0,
+        "truncationCount": 0,
+        "estimatedInputTokens": 0,
+        "estimatedOutputTokens": 0,
+        "externalSearchCalls": 0,
+        "externalSearchCacheHits": 0,
+        "externalSearchFailures": 0,
+        "externalEvidenceCount": 0,
+        "externalSearchLatencyMs": 0,
+        "externalSearchBudgetBlocks": 0,
+        "codeExecutionCalls": 0,
+        "codeExecutionFailures": 0,
+        "codeExecutionOutputCount": 0,
+        "webSearchCalls": 0,
+        "webSearchResults": 0,
+        "webSearchFailures": 0,
+        "webSearchLatencyMs": 0,
+        "webSearchBudgetBlocks": 0,
+        "webSearchCacheHits": 0,
+        "webFetchCalls": 0,
+        "webFetchChars": 0,
+        "webFetchFailures": 0,
+        "webFetchBudgetBlocks": 0,
+        "webFetchCacheHits": 0,
+        "webFetchBytes": 0,
+        "agenticLoopIterations": 0,
+        "queryRefinementCalls": 0,
+        "llmCacheHits": 1,
+        "axisCount": 4,
+        "responseSources": 1,
+        "literalFindings": 1
+      },
+      "steps": [
+        {
+          "name": "load_analysis_source",
+          "durationMs": 86,
+          "status": "success",
+          "inputSize": null,
+          "outputSize": 55,
+          "error": "",
+          "meta": {
+            "hasInlineContent": false,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          }
+        },
+        {
+          "name": "axis_contributions_query_plan",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 161,
+          "outputSize": 7,
+          "error": "",
+          "meta": {
+            "label": "贡献与创新",
+            "query": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。 What contributions, innovations and core claims does this paper make?",
+            "source": "axis-fixed"
+          }
+        },
+        {
+          "name": "axis_contributions_retrieve",
+          "durationMs": 87,
+          "status": "success",
+          "inputSize": 55,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "label": "贡献与创新",
+            "scoped": true,
+            "query": "What contributions, innovations and core claims does this paper make? compression compress quality psnr ssim lpips exper...",
+            "retrievedCount": 11,
+            "sectionCount": 6
+          }
+        },
+        {
+          "name": "axis_contributions_judge",
+          "durationMs": 1,
+          "status": "success",
+          "inputSize": 6,
+          "outputSize": 0,
+          "error": "",
+          "meta": {
+            "label": "贡献与创新"
+          }
+        },
+        {
+          "name": "axis_methods_query_plan",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 181,
+          "outputSize": 8,
+          "error": "",
+          "meta": {
+            "label": "方法与机制",
+            "query": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。 What is the method, model design and key mechanism, and what direct evidence supports it?",
+            "source": "axis-fixed"
+          }
+        },
+        {
+          "name": "axis_methods_retrieve",
+          "durationMs": 85,
+          "status": "success",
+          "inputSize": 55,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "label": "方法与机制",
+            "scoped": true,
+            "query": "What is the method, model design and key mechanism, and what direct evidence supports it? compression compress quality p...",
+            "retrievedCount": 11,
+            "sectionCount": 5
+          }
+        },
+        {
+          "name": "axis_methods_judge",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 6,
+          "outputSize": 0,
+          "error": "",
+          "meta": {
+            "label": "方法与机制"
+          }
+        },
+        {
+          "name": "axis_experiments_query_plan",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 167,
+          "outputSize": 9,
+          "error": "",
+          "meta": {
+            "label": "实验与结果",
+            "query": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。 What experiments, metrics, comparisons and results support the conclusions?",
+            "source": "axis-fixed"
+          }
+        },
+        {
+          "name": "axis_experiments_retrieve",
+          "durationMs": 91,
+          "status": "success",
+          "inputSize": 55,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "label": "实验与结果",
+            "scoped": true,
+            "query": "What experiments, metrics, comparisons and results support the conclusions? compression compress quality psnr ssim lpips...",
+            "retrievedCount": 10,
+            "sectionCount": 4
+          }
+        },
+        {
+          "name": "axis_experiments_judge",
+          "durationMs": 1,
+          "status": "success",
+          "inputSize": 6,
+          "outputSize": 0,
+          "error": "",
+          "meta": {
+            "label": "实验与结果"
+          }
+        },
+        {
+          "name": "axis_limitations_query_plan",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 167,
+          "outputSize": 8,
+          "error": "",
+          "meta": {
+            "label": "局限与风险",
+            "query": "只依据LightGaussian：压缩后“画质几乎不变”的主张在什么条件下成立？给最关键的两点，150字以内，不做全面综述，不写具体数值。每个结论句尽量简短，优先核对直接实验及条件。 What limitations, risks, failure cases and unverified aspects are reported?",
+            "source": "axis-fixed"
+          }
+        },
+        {
+          "name": "axis_limitations_retrieve",
+          "durationMs": 92,
+          "status": "success",
+          "inputSize": 55,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "label": "局限与风险",
+            "scoped": true,
+            "query": "What limitations, risks, failure cases and unverified aspects are reported? compression compress quality psnr ssim lpips...",
+            "retrievedCount": 12,
+            "sectionCount": 6
+          }
+        },
+        {
+          "name": "axis_limitations_judge",
+          "durationMs": 1,
+          "status": "success",
+          "inputSize": 6,
+          "outputSize": 0,
+          "error": "",
+          "meta": {
+            "label": "局限与风险"
+          }
+        },
+        {
+          "name": "grounded_critical_synthesis",
+          "durationMs": 21,
+          "status": "success",
+          "inputSize": 26438,
+          "outputSize": 1086,
+          "error": ""
+        }
+      ],
+      "stepsOmitted": 0
+    }
+  },
+  "retried": {
+    "status": "success",
+    "trace": {
+      "traceId": "aa610549-f088-4a5d-a801-157656443b04",
+      "taskType": "critical",
+      "status": "success",
+      "startedAt": "2026-10-11T10:03:43.028371Z",
+      "finishedAt": "2026-10-11T10:03:43.234720Z",
+      "durationMs": 206,
+      "requestMeta": {
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "hasInlineContent": false
+      },
+      "responseMeta": {
+        "resolvedFrom": "pdf_id",
+        "grounded": true
+      },
+      "counters": {
+        "llmCalls": 0,
+        "retrievalCalls": 5,
+        "retryCount": 0,
+        "truncationCount": 0,
+        "estimatedInputTokens": 0,
+        "estimatedOutputTokens": 0,
+        "externalSearchCalls": 0,
+        "externalSearchCacheHits": 0,
+        "externalSearchFailures": 0,
+        "externalEvidenceCount": 0,
+        "externalSearchLatencyMs": 0,
+        "externalSearchBudgetBlocks": 0,
+        "codeExecutionCalls": 0,
+        "codeExecutionFailures": 0,
+        "codeExecutionOutputCount": 0,
+        "webSearchCalls": 0,
+        "webSearchResults": 0,
+        "webSearchFailures": 0,
+        "webSearchLatencyMs": 0,
+        "webSearchBudgetBlocks": 0,
+        "webSearchCacheHits": 0,
+        "webFetchCalls": 0,
+        "webFetchChars": 0,
+        "webFetchFailures": 0,
+        "webFetchBudgetBlocks": 0,
+        "webFetchCacheHits": 0,
+        "webFetchBytes": 0,
+        "agenticLoopIterations": 0,
+        "queryRefinementCalls": 0,
+        "llmCacheHits": 1,
+        "axisCount": 4,
+        "responseSources": 2,
+        "literalFindings": 1
+      },
+      "steps": [
+        {
+          "name": "load_analysis_source",
+          "durationMs": 4,
+          "status": "success",
+          "inputSize": null,
+          "outputSize": 55,
+          "error": "",
+          "meta": {
+            "hasInlineContent": false,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          }
+        },
+        {
+          "name": "axis_contributions_query_plan",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 155,
+          "outputSize": 7,
+          "error": "",
+          "meta": {
+            "label": "贡献与创新",
+            "query": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。 What contributions, innovations and core claims does this paper make?",
+            "source": "axis-fixed"
+          }
+        },
+        {
+          "name": "axis_contributions_retrieve",
+          "durationMs": 45,
+          "status": "success",
+          "inputSize": 55,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "label": "贡献与创新",
+            "scoped": true,
+            "query": "What contributions, innovations and core claims does this paper make? lightgaussian",
+            "retrievedCount": 11,
+            "sectionCount": 6
+          }
+        },
+        {
+          "name": "axis_contributions_judge",
+          "durationMs": 1,
+          "status": "success",
+          "inputSize": 6,
+          "outputSize": 0,
+          "error": "",
+          "meta": {
+            "label": "贡献与创新"
+          }
+        },
+        {
+          "name": "axis_methods_query_plan",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 175,
+          "outputSize": 8,
+          "error": "",
+          "meta": {
+            "label": "方法与机制",
+            "query": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。 What is the method, model design and key mechanism, and what direct evidence supports it?",
+            "source": "axis-fixed"
+          }
+        },
+        {
+          "name": "axis_methods_retrieve",
+          "durationMs": 30,
+          "status": "success",
+          "inputSize": 55,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "label": "方法与机制",
+            "scoped": true,
+            "query": "What is the method, model design and key mechanism, and what direct evidence supports it? lightgaussian",
+            "retrievedCount": 13,
+            "sectionCount": 6
+          }
+        },
+        {
+          "name": "axis_methods_judge",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 6,
+          "outputSize": 0,
+          "error": "",
+          "meta": {
+            "label": "方法与机制"
+          }
+        },
+        {
+          "name": "axis_experiments_query_plan",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 161,
+          "outputSize": 9,
+          "error": "",
+          "meta": {
+            "label": "实验与结果",
+            "query": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。 What experiments, metrics, comparisons and results support the conclusions?",
+            "source": "axis-fixed"
+          }
+        },
+        {
+          "name": "axis_experiments_retrieve",
+          "durationMs": 39,
+          "status": "success",
+          "inputSize": 55,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "label": "实验与结果",
+            "scoped": true,
+            "query": "What experiments, metrics, comparisons and results support the conclusions? lightgaussian",
+            "retrievedCount": 9,
+            "sectionCount": 4
+          }
+        },
+        {
+          "name": "axis_experiments_judge",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 6,
+          "outputSize": 0,
+          "error": "",
+          "meta": {
+            "label": "实验与结果"
+          }
+        },
+        {
+          "name": "axis_limitations_query_plan",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 161,
+          "outputSize": 8,
+          "error": "",
+          "meta": {
+            "label": "局限与风险",
+            "query": "对LightGaussian作批判阅读：最影响复现和使用决策的两个判断是什么？区分作者报告、设计推断和待核查问题。每个结论句最多70字，不写具体数值，不强行给机制配缺点。 What limitations, risks, failure cases and unverified aspects are reported?",
+            "source": "axis-fixed"
+          }
+        },
+        {
+          "name": "axis_limitations_retrieve",
+          "durationMs": 50,
+          "status": "success",
+          "inputSize": 55,
+          "outputSize": 6,
+          "error": "",
+          "meta": {
+            "label": "局限与风险",
+            "scoped": true,
+            "query": "What limitations, risks, failure cases and unverified aspects are reported? lightgaussian",
+            "retrievedCount": 12,
+            "sectionCount": 6
+          }
+        },
+        {
+          "name": "axis_limitations_judge",
+          "durationMs": 0,
+          "status": "success",
+          "inputSize": 6,
+          "outputSize": 0,
+          "error": "",
+          "meta": {
+            "label": "局限与风险"
+          }
+        },
+        {
+          "name": "grounded_critical_synthesis",
+          "durationMs": 1,
+          "status": "success",
+          "inputSize": 26195,
+          "outputSize": 1951,
+          "error": ""
+        }
+      ],
+      "stepsOmitted": 0
+    }
+  }
+}

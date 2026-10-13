@@ -52,6 +52,34 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 
 ## 阅读 IDE API
 
+### 统一任务状态（迁移中）
+
+统一研究通过以下任务内接口访问：
+
+| 方法与路径 | 行为 |
+| --- | --- |
+| `POST /api/task-workspaces/{id}/research/start` | 提交 `question`、`expectedTaskRevision`，可指定 `allowedPaperIds` 和 `pdfId`；返回 `{task: 工作区, result: 研究响应}` |
+| `GET /api/task-workspaces/{id}/research/{researchId}` | 校验研究归属后返回研究状态 |
+| `POST /api/task-workspaces/{id}/research/{researchId}/cancel` | 取消研究 |
+| `POST /api/task-workspaces/{id}/research/{researchId}/plan-review` | 提交用户确认的 `subQuestions`、`reviewNotes` |
+| `POST /api/task-workspaces/{id}/research/{researchId}/final-review` | 提交 `reviewNotes`、逐项 `riskReviews` |
+
+材料必须是服务端任务论文的非空子集，主论文必须在该范围内。统一研究当前拒绝开启外部或网页检索。服务端创建研究后将绑定保存为 `researchRuns`；公开创建和更新任务不能伪造或覆盖此绑定。绑定发生版本冲突时取消新研究，取消未确认会明确报错。后续接口均校验研究归属。研究状态与报告仍由 Python 持久化，前端刷新后按绑定恢复；确认的报告在原任务内去重保存为对话结果和成果。
+
+统一界面以任务持有论文列表、对话、笔记、成果和当前活动。Java `/api/task-workspaces` 保存任务 JSON；PDF 文件和索引仍按现有论文接口管理。
+
+| 方法与路径 | 请求与响应 |
+| --- | --- |
+| `GET /api/task-workspaces` | 返回任务对象数组，按更新时间降序 |
+| `POST /api/task-workspaces` | 创建完整任务，成功返回 `201` 与服务端任务；可传本地迁移 ID，重复 ID 返回 `409` |
+| `GET /api/task-workspaces/{id}` | 返回任务；不存在返回 `404` |
+| `PUT /api/task-workspaces/{id}` | 提交完整任务及最近读取的 `revision`；成功返回新版本，版本冲突返回 `409` |
+| `DELETE /api/task-workspaces/{id}?revision=N` | 删除指定版本的任务，成功 `204`；不删除论文文件 |
+
+任务字段：`id`、`title`、`paperIds`、`messages`、`notes`、`artifacts`、`focusedPaperId`、`activeActivity`、`updatedAt`、`revision`。`updatedAt` 和 `revision` 由服务端返回；阅读焦点非空时必须属于 `paperIds`。PUT 是完整替换，数组缺省会规范为空数组，调用方不得将局部 patch 直接提交。活动对象的持久化不代表活动执行接口已完成。
+
+客户端只在服务端确认后标记保存成功；离线读取缓存、离线草稿和版本冲突应明确呈现。此接口当前面向现有本地应用，尚不提供多用户权限隔离。
+
 以下接口主要由单论文阅读工作流使用，并通过 Java 网关访问。
 
 ### `POST /api/upload`
@@ -106,7 +134,20 @@ Pixiu Academic Assistant 当前有两条 API 访问路径：
 
 ### `POST /api/chat`
 
-单论文问答。
+论文问答；兼容旧单论文请求，并支持统一任务的材料范围。
+
+统一任务请求增加以下可选字段：
+
+| 字段 | 含义 |
+| --- | --- |
+| `taskId` | 对话所属任务；Java 历史使用 `task:{taskId}` 保存 |
+| `allowedPaperIds` | 本轮允许检索的论文 ID 快照；空数组不回退到全库 |
+| `primaryPaperId` | 本轮主要讨论的论文，必须位于允许范围内 |
+| `strictScope` | 明确要求严格依照指定材料回答；不会把显式多论文范围缩成一篇 |
+
+携带 `taskId` 但缺少 `allowedPaperIds` 时，论文检索范围按空处理。`paperSkeleton` 仅在 `pdfId` 与有效的主论文一致时使用。任务请求中的 `history` 由前端按本轮材料范围筛选，Java 不再用无材料来源标记的历史覆盖它；旧单论文请求仍由 Java 补充历史。
+
+Java 网关会先读取服务端任务，确认其存在并验证 `allowedPaperIds` 是该任务 `paperIds` 的子集；任务外材料返回 `400`，不存在的任务返回 `404`，不会继续写入聊天记录或调用模型。Python 检索层仍独立约束范围。此校验不等同于多用户权限隔离；三层共享契约的任务用例仍待补齐。
 
 请求示例：
 
@@ -906,3 +947,75 @@ MCP 协议 `tools/list` 仅返回：
 每个工具的 `inputSchema/outputSchema` 来自内部 `tool_registry`，`_meta.pixiu` 包含 `schemaVersion/version/safetyScope/runtimeBudgets`。`tools/call` 仍经过 `ToolRegistry.invoke()` 的严格输入输出校验。
 
 MCP 额外限制：当前论文检索拒绝 `includeAll=true`；`retrieve_current_paper` 的 `topK/limit/maxTextChars` 上限为 `8/5/900`，`retrieve_library` 为 `5/4/700`，论文骨架的 `maxSections/maxCharsPerSection` 上限为 `6/220`。成功调用同时返回 JSON text content 和 `structuredContent`；验证错误保留工具名和字段路径，其他内部异常只返回脱敏 tool error。
+# 统一任务的持久化执行接口
+
+材料恢复：GET `/api/task-workspaces/{taskId}/materials` 列出任务材料及 fileAvailable；GET `/{paperId}/file` 返回 PDF，GET `/{paperId}/analysis` 返回保存的解析结果（以上后两条路径接在 materials 下）。所有读取验证论文属于任务。新上传按 SHA-256 内容标识保存文件和解析结果，同内容重复上传复用保存结果。
+
+旧客户端首次打开已有论文时，可 PUT `/api/task-workspaces/{taskId}/materials/{paperId}/cache`，multipart 字段为 file、analysis（JSON 字符串）。导入必须匹配已存在论文的原始文件名、解析 pdfId 和 success 状态，不触发模型分析；服务端已有不同字节返回 409。文件与解析作为同一事务保存，重复导入无重复。旧材料尚未导入时 fileAvailable=false，应返回明确不可用信息，不能假装文件已恢复。
+
+任务响应共享契约见 `contracts/task-workspace.schema.json`，执行记录见 `contracts/task-operation.schema.json`，学习状态见 Python `schemas/adaptive_learning.py`。浏览器旧缓存允许缺少服务端 revision；导入后采用服务端返回版本，不把未验证旧活动转为可执行状态。
+
+以下入口由 Java 校验任务归属、材料与活动版本后调用 Python。统一界面的学习和研究创建使用这些入口；旧同步能力接口的兼容存在不表示它们具有同等请求去重保证。
+
+| 方法 | 路径 | 用途 |
+|---|---|---|
+| POST | `/api/task-workspaces/{taskId}/operations` | 提交 `{requestId,kind,input}`；kind 为 `learning.start`、`learning.action`、`research.start`、`conversation.execute` |
+| GET | `/api/task-workspaces/{taskId}/operations` | 查询该任务全部执行记录，并合并尚未提交的成功结果 |
+| GET | `/api/task-workspaces/{taskId}/operations/{requestId}` | 查询指定请求；成功结果原子写入任务及对话，重复查询不重复追加 |
+| POST | `/api/task-workspaces/{taskId}/operations/{requestId}/cancel` | 请求取消；`cancelling` 表示工作线程尚未退出 |
+| POST | `/api/task-workspaces/{taskId}/research/{researchId}/resume` | 显式继续已停止的研究，沿用计划、材料和已保存结果 |
+
+input 必须包含 expectedTaskRevision。学习创建包含 pdfId、mode 和可选 goal；学习转换包含 activityId、expectedRevision、action、text，服务端使用保存的学习状态；研究创建包含 question、allowedPaperIds、pdfId，任务外检索默认关闭。同一 requestId 和参数返回原记录，改变参数返回 409。超时后应查询或使用原标识重发，不能自动换标识重新执行。
+
+公共记录状态为 queued、running、cancelling、cancelled、succeeded、failed、interrupted、conflicted；字段契约见 `contracts/task-operation.schema.json`。服务重启保留记录，无法确认的模型调用不自动重跑。研究创建已持久化时可恢复创建关联；研究结果状态另行查询。conflicted 保留结果，可恢复材料后重新查询提交。
+
+研究恢复和计划确认要求原材料仍属于任务；不存在或非本任务研究返回 404，材料变化或没有可恢复计划返回 409。恢复只跳过已保存完成的步骤；崩溃前发出但没有保存结果的调用不保证远程 Provider 端去重，继续需要用户明确发起。
+
+普通任务 PUT 不允许覆盖 activeActivity、activityHistory、researchRuns、appliedRequestIds。任务版本不一致返回 409，浏览器应保留草稿并提示冲突，不能静默覆盖。详细异常与验收范围见 `docs/STAGE1_EXECUTION_CONTRACT.md`。
+
+## 统一对话能力执行（阶段 2）
+
+`conversation.execute` 的 input 包含 `expectedTaskRevision`、`message`、可选 `displayText`、`capability`（chat/background/critique/compare/compose）、`allowedPaperIds`、`primaryPaperId`、`strictScope`。compose 另含二至三个不同的白名单 `steps`；单能力 steps 为空。单次专业分析最多四篇，比较至少两篇；不满足时在调度前返回 400，不静默缩小材料。普通空任务问答允许空材料，不能检索全库。
+
+比较/批判的模型内部数值输出采用服务端实验选项：`numericBindings`选择`factId`，`operation=value`没有比较基线；difference/ratio/inverse_ratio另选同条件`baselineFactId`并标为推断。选项来自本次可见的核对表格及同论文明确硬件条件，系统恢复实际值与原文引用；未知选项、混合条件或重复填写行号/条件/值会被拒绝。此为内部生成协议，浏览器不提交这些字段，对外operation输入不变。旧记录不重写；partial继续表示有判断未通过核验。比较摘要来自最终有效内容，完整表与依据保存在同次成果中。
+
+模型内部`references`可只选择`quoteId`，由服务端在本次摘录目录中唯一恢复`sourceId`和原文；参数/作者报告绑定也可只选摘录ID。兼容显式sourceId但仍严格校验其与摘录归属，不自动纠正旧错配。对外回答仍返回实际来源与原文引用，不返回选择ID来替代证据。
+
+比值展示由服务端计算并校验精度：ratio为结果值/基线值，inverse_ratio为其倒数。若模型指定的小数位使相对误差超过1%，或将非1比值显示为1，逐步增加至最多6位；仍不满足则拒绝该判断。旧自由字段绑定同样拒绝这种粗舍入。此精度校验不证明机制解释或引用语义正确，仍需内容核对。
+
+批判模型内部输出按`assessments`组织，每项含`section`及可选`observation`、`inference`，至少提供一个。两个对象各自包含`summary`、`references`及可选`numericBindings`，不共享引用、不填写或覆盖`kind`；服务端分别固定为reported/inference并独立校验，计算必须放inference。全部独立判断合计最多8项；待核查主题仍单独放`pendingQuestions`。某项校验失败保留其他有效项并标记partial，全无有效判断时不发布成功。旧`findings`继续按原边界和kind校验，不自动截句、重分类或重写旧记录；两种顶层格式不得混用。此为内部生成协议，公共operation输入和结果结构保持不变；分离字段不能证明模型遵守事实/推断的语义边界。
+
+方法参数即使已在references原文中出现，也必须在所属observation/inference内以`numericBindings(kind=method_parameter)`绑定完整literal、quoteId及原文参数名；不从引用自动补填遗漏绑定。展示可去除数据集名称末尾的表头词`Datasets`，但若缩短后与另一数据集名称冲突则保留原名；服务端实验选项中以字节计量的Size显示为“存储”。原材料身份、核对表、数值精度、模型、基线、硬件及原文引用保持。
+
+Java 核验任务材料和主论文；history 只从服务端同任务、来源范围为当前范围子集的最近 20 条对话建立，浏览器的 history 不作为执行依据。外部检索保持关闭。Python 专业能力输出必须带范围内来源，能力之间沿用不可变范围并检查取消。
+
+成功 result 含 capability、message（短结果）、sources、sentenceSourceMap、materialScope、steps 和可空 artifact。Java 独立核对材料快照和来源；消息、完整成果及 appliedRequestIds 同一事务保存。重复 GET 不重复追加，其他客户端笔记和学习活动保留。artifact 存在时，消息带 artifactId，前端可在中栏打开完整正文。此处描述实现契约；完整阶段的真实运行验收尚未完成。
+
+## 先阅读再解析的上传接口（阶段 2）
+
+- `POST /api/materials/upload`：multipart `file`；先按 SHA-256 保存 PDF 和解析占位记录，立即返回 `pdfId`、`readingReady`、`questionReady`、`processingStatus`、`aiAnalysisStatus`。后台调用 Python `POST /api/parse-pdf` 提取目录、翻译坐标及正文索引，不调用模型。原 `/api/upload` 全分析入口保留兼容。
+- `GET /api/task-workspaces/{taskId}/materials/{paperId}/processing`：查询持久化状态和当前解析结果。`analysis` 接口也返回这些状态；`file` 在解析完成前即可读取。
+- `POST .../materials/{paperId}/parse`：显式重试解析。正在处理或正文已就绪时复用现有状态，不重复调度。
+- `POST .../materials/{paperId}/overview`：正文就绪后显式生成全文 AI 概览。正在生成或已有完整概览时不重复调度；失败保留原解析和文件，允许显式重试。
+
+`processingStatus`：queued / parsing / ready / degraded / failed / interrupted；`aiAnalysisStatus`：not_requested / running / completed / failed / interrupted / unavailable。旧记录的状态由保存的解析结果兼容推断。服务重启将未完成工作标记 interrupted，不自动重复模型调用。任务内查询和重试均核验材料归属；正文未就绪的新材料不能进入付费对话能力调用。文件可读不代表全文问答已就绪。
+
+## 请求恢复与重试（阶段 2）
+
+公开 operations 收据增加 `request`（原用户问题和参数的白名单）及 `paperIds`；不返回内部 upstream、Provider 参数、history 或权威活动 state。重试产生的收据还带 `retryOf`，用于刷新后关联原失败。
+
+`POST /api/task-workspaces/{id}/operations/{requestId}/retry`：仅 failed / interrupted / cancelled 建立重试；其他状态返回已有收据。新身份由任务 ID 和原请求 ID 确定，重复提交复用同一次重试。重试刷新任务 revision，沿用保存的材料快照、主论文、活动 ID 和问题 revision；材料已移出或学习位置已变化时拒绝。已生成但应用冲突的结果不重新调用模型。若重试自身失败，显式重试该新收据才能再开始一轮。
+
+前端未确认结果只提供查询和停止，已失败记录提供简短重试入口和折叠详情。服务端收据支持跨客户端恢复原问题；调度前被拒绝的本地请求另保留失败备份，网络未确认的原请求仍按原身份核对。
+# 跨任务移动笔记与成果
+
+`POST /api/task-workspaces/{id}/documents/move` 接受 `requestId`、`targetTaskId`、`documentId`、`collection`（notes/artifacts）、双方 `sourceRevision`/`targetRevision` 和 `includeMaterials`。目标缺少文档来源论文且未明确同意加入时返回409。双方任务、正文来源版本与移动收据在同一事务提交；同一请求身份重放不重复移动，更改用途返回409。
+
+`GET /api/task-workspaces/{id}/documents/moves/{requestId}` 查询原移动结果，仅原任务可读。未完成/不存在返回404。成功返回 `status`、`requestId`、当前 `sourceTask` 和 `targetTask`。客户端超时后保留原身份并查询，不能以新身份重试。
+
+## 旧文档身份修复（阶段5）
+
+- `POST /api/task-workspaces/{id}/documents/identify` 接受 `{revision}`，在任务锁和版本检查后补全notes/artifacts缺失的id/artifactId。返回task、identified及有变更时的backupId；已有身份保留，重复调用无变更时不写版本。修复前完整任务备份与修复同一事务提交，旧版本返回409。
+- `GET /api/task-workspaces/{id}/migration-backups/{backupId}` 获取原始迁移/修复快照；备份归属必须为该任务，其他任务返回404。
+
+2026-10-08按用户要求移除旧研究项目导入入口及其Java/Python专用接口。已有任务中的legacyArchive及legacyMigration仍由服务端保留，读取原有备份不受影响；不删除任务或旧项目数据。缺文件以fileAvailable=false提示，不按相同文件名推断为另一篇已上传材料。cache接口要求已有Paper记录，不提供旧研究项目或全部旧PDF恢复功能。

@@ -1,0 +1,22 @@
+{
+  "promptVersion": "dr-v2.20261013.31",
+  "change": "Require valid designRole on every v2 proposal/suggestion/hypothesis; reject missing or malformed role before semantic invocation. Repair explicitly requests canonical role and full data/analysis spec. Legacy proposals unchanged.",
+  "tests": {
+    "targetedPassed": 89,
+    "fullPassed": 845,
+    "warnings": 2,
+    "seconds": 79.12
+  },
+  "readonlyReplay": {
+    "runId": "dr_run_b61ade97852d5a9e9f5e8e4ebdb5f1e8",
+    "rejectedMissingRoles": 9,
+    "accepted": 0,
+    "modelCalls": 0,
+    "historyModified": false
+  },
+  "next": "Use a separately receipted repair-only diagnostic from saved public-paper draft/evidence before another full research run; do not mutate historical cases.",
+  "limits": [
+    "Runtime remains .30; .31 not loaded",
+    "A missing-role rejection is not proof that its subsequent repair succeeds"
+  ]
+}

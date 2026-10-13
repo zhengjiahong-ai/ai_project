@@ -1,0 +1,15 @@
+........................................................................ [ 30%]
+........................................................................ [ 60%]
+........................................................................ [ 90%]
+.......................                                                  [100%]
+=============================== warnings summary ===============================
+../usr/local/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /usr/local/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../usr/local/lib/python3.11/site-packages/PyPDF2/__init__.py:21
+  /usr/local/lib/python3.11/site-packages/PyPDF2/__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move to the pypdf library instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+239 passed, 2 warnings in 11.67s

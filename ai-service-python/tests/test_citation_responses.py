@@ -1405,7 +1405,7 @@ class AxisQueryPlanDeterminismTests(unittest.TestCase):
         self.assertEqual(len(set(questions)), len(questions), "四轴的检索式必须互不相同")
 
     def test_plan_shape_matches_the_llm_plan_contract(self):
-        """字段形状必须与 LLM 版逐键一致，否则下游 _build_axis_terms 会静默拿不到词。
+        """保留下游所需字段，并显式记录无需模型翻译的实际检索式。
 
         keywords 用轴自带的 seed_terms；下游 _normalize_terms 与 _build_axis_terms
         都去重，所以调用点里已有的 seed_terms 拼接不会重复计分。
@@ -1414,8 +1414,9 @@ class AxisQueryPlanDeterminismTests(unittest.TestCase):
 
         self.assertEqual(
             sorted(plan),
-            ["keywords", "original", "rewritten", "source", "taskType"],
+            ["keywords", "original", "retrieval", "rewritten", "source", "taskType"],
         )
+        self.assertEqual(plan["retrieval"], analysis_service.ANALYSIS_AXIS_CONFIGS[0]["retrieval_question"])
         self.assertEqual(plan["source"], "axis-fixed")
         self.assertEqual(plan["original"], analysis_service.ANALYSIS_AXIS_CONFIGS[0]["question"])
         self.assertEqual(plan["keywords"], analysis_service.ANALYSIS_AXIS_CONFIGS[0]["seed_terms"])

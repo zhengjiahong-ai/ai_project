@@ -1,0 +1,83 @@
+{
+  "status": "passed",
+  "backupId": "document-identities:e9290a2c-8769-3c7d-b90d-647c1df88742",
+  "originalTask": {
+    "id": "stage5-identity-runtime-20261008",
+    "title": "阶段5：旧文档标识补全验收",
+    "paperIds": [
+      "stage5-test-material.pdf"
+    ],
+    "messages": [],
+    "notes": [
+      {
+        "content": "标识补全验收正文",
+        "versions": [
+          {
+            "text": "验收旧版"
+          }
+        ],
+        "sources": [
+          {
+            "pdfId": "stage5-test-material.pdf",
+            "text": "验收来源字段"
+          }
+        ],
+        "customField": {
+          "retained": true
+        }
+      },
+      {
+        "content": "标识补全验收正文"
+      }
+    ],
+    "artifacts": [],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-08T06:09:39.256699Z",
+    "revision": 0
+  },
+  "identifiedTask": {
+    "id": "stage5-identity-runtime-20261008",
+    "title": "阶段5：旧文档标识补全验收",
+    "paperIds": [
+      "stage5-test-material.pdf"
+    ],
+    "messages": [],
+    "notes": [
+      {
+        "content": "标识补全验收正文",
+        "versions": [
+          {
+            "text": "验收旧版"
+          }
+        ],
+        "sources": [
+          {
+            "pdfId": "stage5-test-material.pdf",
+            "text": "验收来源字段"
+          }
+        ],
+        "customField": {
+          "retained": true
+        },
+        "id": "document:0b2c81e0-d3c1-45b0-884d-4c14954ea93e"
+      },
+      {
+        "content": "标识补全验收正文",
+        "id": "document:e3141a52-b48d-459e-93c8-02bff1c0a771"
+      }
+    ],
+    "artifacts": [],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-08T06:09:39.278145Z",
+    "revision": 1
+  },
+  "replayNoWrite": true
+}

@@ -1,0 +1,11 @@
+{
+  "canvases": [
+    {
+      "height": 39,
+      "width": 251
+    }
+  ],
+  "dialogTitle": "⟦原式8⟧",
+  "scope": "只读核验：真实PDF与定位占位正文，不是模型译文，不写任务或调用模型。",
+  "url": "http://127.0.0.1:5173/qa/inline-math.html"
+}

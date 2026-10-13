@@ -10,6 +10,7 @@ services:
       - /app/node_modules       # 防止本地 node_modules 覆盖容器内的
     environment:
       - VITE_API_BASE_URL=http://localhost:8081/api # 指向 Java 后端
+      - VITE_DEEP_RESEARCH_V2_ENABLED=${DEEP_RESEARCH_V2_ENABLED:-false}
     depends_on:
       - backend
 
@@ -65,6 +66,12 @@ services:
       # benchmarks/retrieval_quality 也靠这个开关做 A/B。
       - PIXIU_QUERY_REWRITE_ENABLED=${PIXIU_QUERY_REWRITE_ENABLED:-1}
       - RESEARCH_TASK_DB_PATH=/app/data/research_tasks.sqlite3
+      - DEEP_RESEARCH_V2_ENABLED=${DEEP_RESEARCH_V2_ENABLED:-false}
+      - DEEP_RESEARCH_EXTERNAL_ENABLED=${DEEP_RESEARCH_EXTERNAL_ENABLED:-false}
+      - DEEP_RESEARCH_FULLTEXT_ENABLED=${DEEP_RESEARCH_FULLTEXT_ENABLED:-false}
+      - DEEP_RESEARCH_JAVA_ORIGIN=http://backend:8080/api
+      - DEEP_RESEARCH_DB_PATH=/app/data/deep_research_v2.sqlite3
+      - DEEP_RESEARCH_SOURCE_DIR=/app/data/deep_research_sources
       - NEO4J_URI=${NEO4J_URI:-}
       - NEO4J_USER=${NEO4J_USER:-}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-}

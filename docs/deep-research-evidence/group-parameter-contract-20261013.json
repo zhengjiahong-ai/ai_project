@@ -1,0 +1,12 @@
+{
+  "promptVersion": "dr-v2.20261013.34",
+  "trigger": "D3-v12 c2 was semantically accepted despite an unassigned epsilon_alpha threshold.",
+  "change": "V2 groups claims now require executionSpec factors with explicit control/treatment operations and typed parameter values. Numeric parameters reject symbolic strings, bool, NaN and Infinity. Valid configurations render before independent semantic checking.",
+  "scope": "Generic experiment factors; no paper-specific parameters or values.",
+  "remainingSemanticBoundary": "Action completeness, correct parameter types, omitted required parameters, scientific validity and consistency with prose still require semantic review. A categorical string is not deterministic proof of an executable numeric threshold.",
+  "qoder": {"model": "bailian/qwen3.8-max-tp", "taskDirectory": "tmp/qoder-dr-group-spec-20261013", "status": "completed", "scope": "Standalone module specification only; no papers, runtime data or secrets; tools disabled", "integration": "Reviewed and integrated manually; corrected product wording, numeric rendering boundary and associated tests."},
+  "readOnlyReplay": {"sourceRunId": "dr_run_2611559f6a835e108fafa3cb0af4d1c2", "claimId": "c2", "result": "incomplete_execution_spec", "semanticCheckerInvoked": false, "modelCalls": 0},
+  "liveValidation": "pending",
+  "fullOfflineTests": {"passed": 903, "warnings": 2, "seconds": 98.37},
+  "qualityAccepted": false
+}

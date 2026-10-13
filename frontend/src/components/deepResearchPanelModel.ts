@@ -1,8 +1,13 @@
 import { normalizeSourceLocation } from './evidenceCitationModel.ts';
 
-export const TERMINAL_RESEARCH_STATUSES = ['succeeded', 'failed', 'cancelled'];
+export const TERMINAL_RESEARCH_STATUSES = ['succeeded', 'completed', 'failed', 'cancelled'];
 
 const STATUS_META: Record<string, { label: string; toneClass: string }> = {
+  queued: { label: '等待研究', toneClass: 'theme-text-muted' },
+  waiting_user: { label: '待明确范围', toneClass: 'text-amber-500' },
+  paused: { label: '已暂停', toneClass: 'theme-text-muted' },
+  stopping: { label: '正在停止', toneClass: 'theme-text-muted' },
+  completed: { label: '研究已结束', toneClass: 'text-emerald-500' },
   pending: {
     label: '待开始',
     toneClass: 'border-slate-400/25 bg-slate-500/10 text-slate-400',
@@ -274,7 +279,12 @@ export const clampResearchProgress = (value: unknown): number => {
   return numeric;
 };
 
-export const getResearchStatusMeta = (status: unknown) => STATUS_META[normalizeText(status).toLowerCase()] || STATUS_META.pending;
+export const getResearchStatusMeta = (status: unknown, outcome?: unknown) => {
+  const meta = STATUS_META[normalizeText(status).toLowerCase()] || STATUS_META.pending;
+  if (status !== 'completed') return meta;
+  const labels: Record<string, string> = { complete: '报告已保存', partial: '部分研究', inconclusive: '材料不足以判断', none: '无研究成果' };
+  return { ...meta, label: labels[normalizeText(outcome)] || meta.label };
+};
 
 export const getResearchStageMeta = (stage: unknown) => STAGE_META[normalizeText(stage).toLowerCase()] || STAGE_META.planning;
 

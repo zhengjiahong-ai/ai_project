@@ -1,0 +1,38 @@
+{
+  "checks": [
+    {
+      "path": "comparison",
+      "originalResultUnchanged": true,
+      "scopePapers": 2,
+      "steps": [
+        "compare"
+      ],
+      "taskSha256": "e8bb36dcac4fe966d06b0130ea6b478c8a3efb7ed67ed5d47bd7b19fd802382b",
+      "resultSha256": "739d9189c0eb69e7e0eef02026524e9f25490fa969ae0d4a4ed42b4cd5d3ddd6"
+    },
+    {
+      "path": "composition",
+      "originalResultUnchanged": true,
+      "scopePapers": 2,
+      "steps": [
+        "chat",
+        "compare"
+      ],
+      "taskSha256": "2b4c6eaa249308fd629a2280b9a2b0836359de5bb05dbda6f35da0356c9e9f30",
+      "resultSha256": "2907524262217a34c81a11d9caa6265a99fc00607a3d1b1b912302be173fe8ed"
+    },
+    {
+      "path": "research",
+      "originalReportAndFindingsUnchanged": true,
+      "published": true,
+      "planQuestions": 1,
+      "findings": 1,
+      "taskSha256": "6978b327fe38ff4ab8ae0872aba3f39a5b8ed948ac0ca4cd3446a333c3537a76",
+      "reportSha256": "c7ae1cc72826153144ec68632a6f5a642bcaae63d52389506de70f107981421b"
+    }
+  ],
+  "httpMethod": "GET only",
+  "providerCalls": 0,
+  "taskWrites": 0,
+  "scope": "Preservation and pipeline evidence; historical content limits remain in the original audits"
+}

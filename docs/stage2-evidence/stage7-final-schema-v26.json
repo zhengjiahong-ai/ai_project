@@ -1,0 +1,80 @@
+{
+  "validator": "jsonschema",
+  "validatorVersion": "4.26.0",
+  "checks": [
+    {
+      "name": "stage4-3dgs-critique-20261010-v26",
+      "kind": "task-workspace",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "name": "stage4-3dgs-compare-20261010-v16",
+      "kind": "task-workspace",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "name": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+      "kind": "task-workspace",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "name": "stage4-3dgs-critique-20261010-v26-request",
+      "kind": "task-operation",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "name": "stage4-3dgs-critique-20261010-v26-receipt-task",
+      "kind": "task-workspace",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "name": "stage4-3dgs-compare-20261010-v16-request",
+      "kind": "task-operation",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "name": "stage4-3dgs-compare-20261010-v16-receipt-task",
+      "kind": "task-workspace",
+      "passed": true,
+      "errors": []
+    }
+  ],
+  "negativeChecks": [
+    {
+      "name": "missing task revision",
+      "rejected": true
+    },
+    {
+      "name": "negative task revision",
+      "rejected": true
+    },
+    {
+      "name": "duplicate task materials",
+      "rejected": true
+    },
+    {
+      "name": "success without result",
+      "rejected": true
+    },
+    {
+      "name": "unknown operation state",
+      "rejected": true
+    }
+  ],
+  "status": "passed",
+  "checkedAt": "2026-10-10T13:33:10.641674+00:00",
+  "schemaSha256": {
+    "task-workspace": "27638df2ba2558f5452d48d5e17b708fe96f512e890df82dcb054192eb637be6",
+    "task-operation": "e5e167c115145ece5d33cd97561312a4b26f1a67b7274b7605efc34134a55d34"
+  },
+  "taskStateUnchanged": true,
+  "httpMethod": "GET only",
+  "providerCallsStarted": 0,
+  "scope": "Selected live responses; no browser, teaching quality or write-flow claim"
+}

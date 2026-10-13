@@ -1,0 +1,1 @@
+{"scope": "Native service with real extraction and controlled responses, not translation quality acceptance", "checks": {"everyMarkerSurvives": true, "noAttachedOperatorInModelInput": true, "noMissingParagraph": true, "locatedVersion": true, "success": true}, "initialBatchCount": 4, "providerCalls": 0, "taskWrites": 0, "markerCount": 8}

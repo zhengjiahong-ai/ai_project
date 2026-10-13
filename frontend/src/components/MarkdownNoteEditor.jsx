@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
+import MessageMarkdownRenderer from './MessageMarkdownRenderer.js';
 import { Bold, Italic, Heading, List, Code, Hash, Eye, Edit3 } from 'lucide-react';
 
 const MarkdownNoteEditor = ({
@@ -112,9 +112,9 @@ const MarkdownNoteEditor = ({
       {previewMode ? (
         <div className={previewClasses}>
           {value?.trim() ? (
-            <ReactMarkdown components={markdownComponents}>
+            <MessageMarkdownRenderer components={markdownComponents}>
               {value || '*Nothing to preview*'}
-            </ReactMarkdown>
+            </MessageMarkdownRenderer>
           ) : (
             <span className="text-gray-400 italic">Nothing to preview</span>
           )}

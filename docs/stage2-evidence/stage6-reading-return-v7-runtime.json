@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-09",
+  "url": "http://localhost:5173/?unified=1",
+  "taskTitle": "阶段6：有材料的对话起点验收",
+  "checks": {
+    "startPage": 4,
+    "startZoom": "114%",
+    "openedSavedArtifact": true,
+    "returnedPage": 4,
+    "returnedZoom": "114%"
+  },
+  "providerCalls": 0,
+  "taskContentWrites": 0,
+  "scope": "Browser navigation and saved document display only; cached explanation and translation quality not certified"
+}

@@ -1,0 +1,130 @@
+{
+  "pageIndex": 3,
+  "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "sourceText": "PSNR: 27.2 (3D-GS)\n\nPSNR: 25.3(Opacity prune)\n\nFigure 3: Zero-shot Opacity-based Pruning. A significant number of Gaussians exhibit small\nopacity values (top). Simply utilizing Gaussian opacity as an indicator for pruning the least important\nGaussians results in the rendered image losing intricate details (bottom), with the PSNR dropping\nfrom 27.2 to 25.3. This has inspired us to find better criteria to measure global significance in terms\nof rendering quality. The accumulated Probability Density Function(PDF) is equal to 1.\n\nof the affine approximation of the projective transformation represented by J, the covariance matrix\nΣ′ in camera coordinates can be computed as Σ′ = J WΣWTJT. Specifically, for each pixel, the\ncolor and opacity of all the Gaussians are computed using the Gaussian’s representation Eq. 1. The\nblending of N ordered points that overlap the pixel is given by the formula:\n\nX iY−1\nC = ciαi (1 − αi).\n\n(2)\n\ni∈N j=1\n\nHere, ci, αi represents the view-dependent color and opacity, calculated from a 2D Gaussian with\ncovariance Σ multiplied by an optimizable per-3D Gaussian’s opacity. In summary, each Gaussian\npoint is characterized by attributes including: position X ∈ R3, color defined by spherical harmonics\ncoefficients SH ∈ R(k+1) × 3 (where k represents the degrees of freedom), opacity α ∈ R, rotation\n\n2\n\nfactor R ∈ R4, and scaling factor S ∈ R3.\n\n3.2 Gaussian Pruning & Recovery\nGaussian densification [16], which clones and refines the initial SfM point cloud, enhances small-scale\ngeometry and detailed scene appearance by improving coverage. While this approach significantly\nboosts reconstruction quality, it increases the number of Gaussians from thousands to millions\nafter optimization, resulting in substantial storage demands.Inspired by neural network pruning\ntechniques [63] that remove less impactful neurons while preserving overall performance, we propose\na tailored pruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while\nmaintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach.\nHowever, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling\nperformance, as it may eliminate essential scene details, as shown in Fig. 3.\n\nGlobal Significance Calculation. Inspired by Eq. 2, we go beyond using Gaussian opacity alone\nto assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the\ncamera viewpoint for rendering. The initial significance score of each Gaussian (denoted as G(Xj))\ncan then be quantified based on its contribution to each pixel (ray, ri) across all training views using\nthe criteria 1(G(Xj), ri) whether they intersect or not. Consequently, we iterate over all training\npixels to calculate the hit count of each Gaussian. The score is further refined by the adjusted 3D\nGaussian’s volume γ(Σj) and 3D Gaussian’s opacity σj, as they all contribute for the rendering\nformula. The volume calculation equation of the j-th 3D Guassian is V(Σj) = 43πabc, where abc are\nthe 3 dimensions of Scale (S). We also consider the transmittance T is calculated with one subtractQ\nall the 3D Gaussian’s opacity the ray hit before the j-th 3D Gaussian, T = j−1\n\ni=1 (1- σi). Finally, the\n\nglobal significance score can be summarized as:\n\nM HWX\nGSj = 1(G(Xj), ri) · σj · T · γ(Σj),\n\n(3)\n\ni=1\n\n4",
+  "pageLayout": {
+    "viewport": {
+      "width": 612,
+      "height": 792
+    },
+    "orientation": "portrait",
+    "columnMode": "single-column",
+    "blocks": [
+      {
+        "id": "block-1",
+        "text": "Figure 3: Zero-shot Opacity-based Pruning. A significant number of Gaussians exhibit small\nopacity values (top). Simply utilizing Gaussian opacity as an indicator for pruning the least important\nGaussians results in the rendered image losing intricate details (bottom), with the PSNR dropping\nfrom 27.2 to 25.3. This has inspired us to find better criteria to measure global significance in terms\nof rendering quality. The accumulated Probability Density Function(PDF) is equal to 1.",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.256447,
+          "width": 0.647063,
+          "height": 0.067675
+        },
+        "style": {
+          "fontSize": 10,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 0
+      },
+      {
+        "id": "block-2",
+        "text": "of the affine approximation of the projective transformation represented by J, the covariance matrix\nΣ′ in camera coordinates can be computed as Σ′ = J WΣWTJT. Specifically, for each pixel, the\ncolor and opacity of all the Gaussians are computed using the Gaussian’s representation Eq. 1. The\nblending of N ordered points that overlap the pixel is given by the formula:",
+        "bbox": {
+          "left": 0.175797,
+          "top": 0.349176,
+          "width": 0.648146,
+          "height": 0.055646
+        },
+        "style": {
+          "fontSize": 9.86,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 1
+      },
+      {
+        "id": "block-3",
+        "text": "Here, ci, αi represents the view-dependent color and opacity, calculated from a 2D Gaussian with\ncovariance Σ multiplied by an optimizable per-3D Gaussian’s opacity. In summary, each Gaussian\npoint is characterized by attributes including: position X ∈ R3, color defined by spherical harmonics\ncoefficients SH ∈ R(k+1) × 3 (where k represents the degrees of freedom), opacity α ∈ R, rotation\nfactor R ∈ R4, and scaling factor S ∈ R3.",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.45582,
+          "width": 0.647058,
+          "height": 0.070296
+        },
+        "style": {
+          "fontSize": 9.45,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 2
+      },
+      {
+        "id": "block-4",
+        "text": "3.2 Gaussian Pruning & Recovery\nGaussian densification [16], which clones and refines the initial SfM point cloud, enhances small-scale\ngeometry and detailed scene appearance by improving coverage. While this approach significantly\nboosts reconstruction quality, it increases the number of Gaussians from thousands to millions\nafter optimization, resulting in substantial storage demands.Inspired by neural network pruning\ntechniques [63] that remove less impactful neurons while preserving overall performance, we propose\na tailored pruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while\nmaintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach.\nHowever, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling\nperformance, as it may eliminate essential scene details, as shown in Fig. 3.",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.543661,
+          "width": 0.649904,
+          "height": 0.147993
+        },
+        "style": {
+          "fontSize": 9.98,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 3
+      },
+      {
+        "id": "block-5",
+        "text": "Global Significance Calculation. Inspired by Eq. 2, we go beyond using Gaussian opacity alone\nto assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the\ncamera viewpoint for rendering. The initial significance score of each Gaussian (denoted as G(Xj))\ncan then be quantified based on its contribution to each pixel (ray, ri) across all training views using\nthe criteria 1(G(Xj), ri) whether they intersect or not. Consequently, we iterate over all training\npixels to calculate the hit count of each Gaussian. The score is further refined by the adjusted 3D\nGaussian’s volume γ(Σj) and 3D Gaussian’s opacity σj, as they all contribute for the rendering\nformula. The volume calculation equation of the j-th 3D Guassian is V(Σj) = 43πabc, where abc are\nthe 3 dimensions of Scale (S). We also consider the transmittance T is calculated with one subtractQ\nall the 3D Gaussian’s opacity the ray hit before the j-th 3D Gaussian, T = j−1\nglobal significance score can be summarized as:",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.707501,
+          "width": 0.648149,
+          "height": 0.153916
+        },
+        "style": {
+          "fontSize": 9.62,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 4
+      }
+    ]
+  },
+  "translatedBlocks": [
+    {
+      "id": "block-4",
+      "translatedText": "3.2 高斯剪枝与恢复\n高斯致密化[16]通过克隆并细化初始SfM点云，改善覆盖范围，从而增强小尺度几何结构和详细场景外观。尽管这种方法显著提升了重建质量，但在优化后，它将高斯点的数量从数千增加到数百万，导致巨大的存储需求。受神经网络剪枝技术[63]的启发，这些技术会移除影响较小的神经元，同时保持整体性能，我们提出了一种针对3D高斯泼溅的定制剪枝策略，以减少过参数化的点，同时保持精度。识别冗余但可恢复的高斯点对我们的方法至关重要。然而，基于简单标准（例如点不透明度）剪枝高斯点可能会降低建模性能，因为它可能会消除必要的场景细节，如图3所示。"
+    },
+    {
+      "id": "block-1",
+      "translatedText": "图3：零样本基于不透明度的剪枝。大量高斯表现出较小的不透明度值（上）。简单地将高斯不透明度用作剪除最不重要高斯的指标，会导致渲染图像丢失精细细节（下），PSNR 从 27.2 降至 25.3。这促使我们寻找更好的标准，以根据渲染质量衡量全局重要性。累积概率密度函数(PDF)等于 1。"
+    },
+    {
+      "id": "block-2",
+      "translatedText": "对于由 J 表示的投影变换的仿射近似，相机坐标中的协方差矩阵 Σ′ 可计算为 Σ′ = J WΣWTJT。具体而言，对于每个像素，所有高斯的颜色和不透明度均使用高斯表示 Eq. 1 进行计算。对与该像素重叠的 N 个有序点进行混合的公式为："
+    },
+    {
+      "id": "block-6",
+      "translatedText": "M HWX"
+    },
+    {
+      "id": "block-3",
+      "translatedText": "这里，ci、αi 表示视角相关的颜色和不透明度，由协方差为 Σ 的二维高斯乘以可优化的每个三维高斯的不透明度计算得到。综上所述，每个高斯点由以下属性表征：位置 X ∈ R3，由球谐系数 SH ∈ R(k+1) × 3 定义的颜色（其中 k 表示自由度），不透明度 α ∈ R，旋转因子 R ∈ R4，以及缩放因子 S ∈ R3。"
+    },
+    {
+      "id": "block-5",
+      "translatedText": "全局显著性计算。受式 2 启发，我们不再仅使用高斯不透明度来评估显著性，而是通过在视锥体内评估 3D 高斯，并将它们投影到相机视点上进行渲染。随后，可以基于每个高斯（记为 G(Xj)）在所有训练视图中对每个像素（射线，ri）的贡献，使用判据 1(G(Xj), ri) 判断它们是否相交，来量化其初始显著性得分。因此，我们遍历所有训练像素以计算每个高斯的命中次数。该得分进一步由调整后的 3D 高斯的体积 γ(Σj) 和 3D 高斯的不透明度 σj 细化，因为它们都对渲染公式有贡献。第 j 个 3D 高斯的体积计算公式为 V(Σj) = 43πabc，其中 abc 是尺度（S）的 3 个维度。我们还考虑透射率 T 的计算方式为：1 减去Q 射线在第 j 个 3D 高斯之前击中的所有 3D 高斯的不透明度，T = j−1 全局显著性得分可以总结为："
+    }
+  ],
+  "translatedText": "3.2 高斯剪枝与恢复\n高斯致密化[16]通过克隆并细化初始SfM点云，改善覆盖范围，从而增强小尺度几何结构和详细场景外观。尽管这种方法显著提升了重建质量，但在优化后，它将高斯点的数量从数千增加到数百万，导致巨大的存储需求。受神经网络剪枝技术[63]的启发，这些技术会移除影响较小的神经元，同时保持整体性能，我们提出了一种针对3D高斯泼溅的定制剪枝策略，以减少过参数化的点，同时保持精度。识别冗余但可恢复的高斯点对我们的方法至关重要。然而，基于简单标准（例如点不透明度）剪枝高斯点可能会降低建模性能，因为它可能会消除必要的场景细节，如图3所示。\n\n图3：零样本基于不透明度的剪枝。大量高斯表现出较小的不透明度值（上）。简单地将高斯不透明度用作剪除最不重要高斯的指标，会导致渲染图像丢失精细细节（下），PSNR 从 27.2 降至 25.3。这促使我们寻找更好的标准，以根据渲染质量衡量全局重要性。累积概率密度函数(PDF)等于 1。\n\n对于由 J 表示的投影变换的仿射近似，相机坐标中的协方差矩阵 Σ′ 可计算为 Σ′ = J WΣWTJT。具体而言，对于每个像素，所有高斯的颜色和不透明度均使用高斯表示 Eq. 1 进行计算。对与该像素重叠的 N 个有序点进行混合的公式为：\n\nM HWX\n\n这里，ci、αi 表示视角相关的颜色和不透明度，由协方差为 Σ 的二维高斯乘以可优化的每个三维高斯的不透明度计算得到。综上所述，每个高斯点由以下属性表征：位置 X ∈ R3，由球谐系数 SH ∈ R(k+1) × 3 定义的颜色（其中 k 表示自由度），不透明度 α ∈ R，旋转因子 R ∈ R4，以及缩放因子 S ∈ R3。\n\n全局显著性计算。受式 2 启发，我们不再仅使用高斯不透明度来评估显著性，而是通过在视锥体内评估 3D 高斯，并将它们投影到相机视点上进行渲染。随后，可以基于每个高斯（记为 G(Xj)）在所有训练视图中对每个像素（射线，ri）的贡献，使用判据 1(G(Xj), ri) 判断它们是否相交，来量化其初始显著性得分。因此，我们遍历所有训练像素以计算每个高斯的命中次数。该得分进一步由调整后的 3D 高斯的体积 γ(Σj) 和 3D 高斯的不透明度 σj 细化，因为它们都对渲染公式有贡献。第 j 个 3D 高斯的体积计算公式为 V(Σj) = 43πabc，其中 abc 是尺度（S）的 3 个维度。我们还考虑透射率 T 的计算方式为：1 减去Q 射线在第 j 个 3D 高斯之前击中的所有 3D 高斯的不透明度，T = j−1 全局显著性得分可以总结为：",
+  "status": "success",
+  "modelRequests": 0,
+  "evidenceBoundary": "Saved v3 provider output, including original semantic errors; display fixture only."
+}

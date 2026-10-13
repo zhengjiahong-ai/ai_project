@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from llm.client import get_llm
-from rag.store import get_rag
+from rag.store import get_rag, normalize_id
 from schemas.requests import TermExplainRequest
 from services.chat_service import (
     _evidence_context_title,
@@ -18,6 +18,9 @@ from services.evidence_service import (
     normalize_evidence_items,
 )
 from services.query_service import build_retrieval_queries
+from services.reading_context import focus_page_context
+from services.chat_scope import ChatMaterialScope
+from services.focused_evidence import bounded_evidence_body, select_focused_evidence
 from services.safety_service import (
     build_guarded_messages,
     summarize_safety_results,
@@ -94,6 +97,31 @@ def _retrieve_current_paper_evidence(
 
 # ── term explanation ──
 
+def _definition_evidence(retrieved, pdf_id, term):
+    """Keep neighbouring originals, including late definitions, in a bounded input."""
+    if not pdf_id:
+        return retrieved
+    expected = normalize_id(pdf_id)
+    try:
+        documents = get_rag().get_documents_by_metadata({'id': expected}, limit=400)
+    except Exception:
+        _logger.warning('Definition corpus unavailable; using retrieved current-paper evidence.')
+        documents = []
+    for source in [*retrieved, *documents]:
+        metadata = source.get('metadata') or {}
+        identities = [source.get('pdfId'), source.get('pdf_id'), metadata.get('id'),
+                      metadata.get('pdfId'), metadata.get('pdf_id')]
+        if not any(identities) or any(value and normalize_id(value) != expected for value in identities):
+            raise ValueError('划词证据不属于当前论文，已停止解释。')
+    corpus = normalize_evidence_items(documents, pdf_id=expected, source_type='current_paper', max_text_chars=1800)
+    selected = select_focused_evidence(retrieved, corpus, term, 'methods', limit=5)
+    # Reserve full definition windows for the anchor and its closest neighbour;
+    # the remaining passages share a smaller budget. Never concatenate originals.
+    budgets = [1400, 1400, 566, 566, 566]
+    return [{**source, 'text': bounded_evidence_body(source.get('text'), budget)}
+            for source, budget in zip(selected, budgets)]
+
+
 def explain_term(request: TermExplainRequest) -> dict[str, Any]:
     trace_id = start_trace(
         "chat",
@@ -105,7 +133,9 @@ def explain_term(request: TermExplainRequest) -> dict[str, Any]:
         },
     )
     try:
-        page_context = request.context or ""
+        # The reader already bounds selection context to 4500 characters.
+        # A second, smaller crop can remove a definition later on the same page.
+        page_context = focus_page_context(request.context, request.term, max_chars=4500)
         rag_query = f"Explain the selected academic text '{request.term}' with the following context: {page_context[:200]}"
         with trace_step("build_explain_query_plan", input_size=len(rag_query)) as step:
             query_plan = build_retrieval_queries(rag_query, context=page_context, task_type="explain")
@@ -121,7 +151,12 @@ def explain_term(request: TermExplainRequest) -> dict[str, Any]:
             library_top_k=3,
             current_limit=5,
             library_limit=3,
+            material_scope=ChatMaterialScope(True, (normalize_id(request.pdfId),), normalize_id(request.pdfId), False)
+                if request.pdfId else None,
         )
+        rag_results = _definition_evidence(rag_results, request.pdfId, request.term)
+        if request.pdfId:
+            rag_scope = 'current_paper' if rag_results else ''
 
         rag_context = ""
         rag_safety = None
@@ -131,19 +166,25 @@ def explain_term(request: TermExplainRequest) -> dict[str, Any]:
                 current_title="Current paper RAG context",
                 library_title="Additional literature context",
             )
-            rag_context = format_evidence_context(rag_results, title=context_title, max_items=5, max_text_chars=600)
-            rag_safety = wrap_untrusted_context("Retrieved evidence", rag_context, max_tokens=1200)
+            rag_context = format_evidence_context(rag_results, title=context_title, max_items=5, max_text_chars=1400)
+            rag_safety = wrap_untrusted_context("Retrieved evidence", rag_context, max_tokens=1500)
 
         selected_text_safety = wrap_untrusted_context("Selected text to explain", request.term, max_tokens=160)
         page_context_safety = wrap_untrusted_context(
             f"Current page context{f' (page {request.pageNumber})' if request.pageNumber else ''}",
             page_context,
-            max_tokens=800,
+            max_tokens=1200,
         )
 
         prompt = f"""
 You are an academic research assistant.
 Explain the selected term, formula, or passage in Chinese using the provided context.
+For a paper-specific metric or formula, include every factor visible in its equation and nearby definitions,
+including products/transmittance/normalization. Do not replace the definition with an ablation's shorter list.
+Follow the nearby definitions even when they continue on the following page: explain any stated
+normalization reference, clipping interval and exponent, together with their role. Do not infer
+missing operators from damaged extracted math or turn a paper-specific definition into a universal rule.
+When PDF math is incomplete, explain the readable factors and explicitly avoid reconstructing a full equation.
 {MATH_MARKDOWN_GUIDELINE}
 {_evidence_quality_instruction(retrieval_judge)}
 
@@ -170,7 +211,7 @@ Keep the answer within 5 sentences.
             "status": "success",
             "term": request.term,
             "explanation": explanation,
-            "rag_sources": compact_evidence_for_response(rag_results, max_items=5, max_text_chars=700),
+            "rag_sources": compact_evidence_for_response(rag_results, max_items=5, max_text_chars=1400),
             "queryPlan": query_plan,
             "retrievalJudge": retrieval_judge,
             "traceId": trace_id,

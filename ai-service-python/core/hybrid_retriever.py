@@ -184,7 +184,7 @@ class HybridRetriever:
 
         return results
 
-    def retrieve(self, query, top_k=5, filter_metadata=None):
+    def retrieve(self, query, top_k=5, filter_metadata=None, allow_query_rewrite=True):
         """返回 vector / bm25 / fused 三路结果。
 
         fused 是向量主导、BM25 补召回的合并列表，下游应优先使用它；
@@ -204,7 +204,7 @@ class HybridRetriever:
         except Exception as error:
             _logger.warning("BM25 语料采样失败，改写将仅根据查询语言判定: %s", error)
             corpus_docs = None
-        search_query = rewrite_query(original_query, corpus_sample=corpus_docs)
+        search_query = rewrite_query(original_query, corpus_sample=corpus_docs) if allow_query_rewrite else original_query
 
         vector_results = self.rag.retrieve(search_query, top_k, filter_metadata=filter_metadata)
         bm25_results = self._bm25_search(search_query, top_k, filter_metadata)

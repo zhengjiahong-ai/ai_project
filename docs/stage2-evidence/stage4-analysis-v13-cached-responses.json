@@ -1,0 +1,777 @@
+{
+  "scope": "Two structured cache rows in authorization window with references restricted to approved papers; rows are not request or charge totals",
+  "startUtc": "2026-10-10T04:29:23+00:00",
+  "endUtc": "2026-10-10T04:33:51.376429+00:00",
+  "cacheRows": [
+    {
+      "model": "deepseek-v4-pro",
+      "temperature": 0.3,
+      "createdAt": 1791606716.414583,
+      "response": {
+        "findings": [
+          {
+            "section": "contribution",
+            "summary": "正文主表覆盖实拍大场景，未包含合成物体级数据；与同平台重训的3D-GS基线的比较显示，模型尺寸大幅压缩、帧率达到较高水平，但PSNR与LPIPS等质量指标相对变差，说明压缩与提速以质量损失为代价。",
+            "kind": "reported",
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "80b69d9152d575a8"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "3f482a0dfd0f89db"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                "quoteId": "ef7e73c933557115"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                "quoteId": "3c2cb61da2c307ba"
+              }
+            ],
+            "numericBindings": [
+              {
+                "id": 1,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "Size",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS  *  [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "inverse_ratio",
+                "decimals": 2
+              },
+              {
+                "id": 2,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "FPS",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS  *  [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "value",
+                "decimals": 0
+              },
+              {
+                "id": 3,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "PSNR",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS  *  [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "difference",
+                "decimals": 2
+              },
+              {
+                "id": 4,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "LPIPS",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS  *  [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "difference",
+                "decimals": 3
+              },
+              {
+                "id": 5,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 1,
+                "metric": "Size",
+                "baselineRow": 9,
+                "dataset": "Tank and Temple Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS  *  [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "inverse_ratio",
+                "decimals": 2
+              },
+              {
+                "id": 6,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 1,
+                "metric": "FPS",
+                "baselineRow": 9,
+                "dataset": "Tank and Temple Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS  *  [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "value",
+                "decimals": 0
+              },
+              {
+                "id": 7,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 1,
+                "metric": "PSNR",
+                "baselineRow": 9,
+                "dataset": "Tank and Temple Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS  *  [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "difference",
+                "decimals": 2
+              },
+              {
+                "id": 8,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 1,
+                "metric": "LPIPS",
+                "baselineRow": 9,
+                "dataset": "Tank and Temple Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS  *  [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "difference",
+                "decimals": 3
+              }
+            ]
+          },
+          {
+            "section": "weakness",
+            "summary": "剪枝的全局显著性分数仅由训练视图射线命中计数、体积和透明度构成，计算范围限定在所有训练像素；因此其对训练视角覆盖不足的未见视点是否可靠未被检验。作者报告零样本剪枝会降低质量，需要联合适配步骤才能恢复大部分细节而非完全恢复，且该适配不增加致密化，因此难以恢复被删高斯所承载的高频几何信息。",
+            "kind": "inference",
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                "quoteId": "6ce9785fb5b5cd64"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                "quoteId": "cf740ea8049a8aa6"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-39",
+                "quoteId": "a5e6d434e2974891"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                "quoteId": "95d12e65c99d820f"
+              }
+            ]
+          },
+          {
+            "section": "risk",
+            "summary": "SH降阶通过知识蒸馏实现，伪视图仅在训练相机位置附近按高斯分布扰动生成，监督项只比较像素强度；因此低阶SH对远离训练位置或未扰动的旋转视角的泛化未必充分。VQ仅对最不显著的SH系数进行，并显式跳过位置、形状、旋转、不透明度和高显著SH，而作者报告对包括位置、旋转、尺度在内的全属性量化会带来显著精度损失；这降低了量化对核心属性的风险，但也把压缩收益限制在SH子集。",
+            "kind": "inference",
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                "quoteId": "82d6cccc3d4e76c8"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                "quoteId": "aa4c6b08b8198e38"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "quoteId": "db7463c49cdd7c7f"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "quoteId": "dfc2f3cca3349211"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "2167fb002ed62028"
+              }
+            ]
+          }
+        ],
+        "pendingQuestions": [
+          {
+            "topic": "合成物体级数据集上压缩比、帧率和质量代价是否支持相同结论"
+          },
+          {
+            "topic": "SH降阶蒸馏中旋转扰动是否纳入，以及VQ码本大小对质量-压缩权衡的影响"
+          }
+        ]
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "temperature": 0.3,
+      "createdAt": 1791606803.961889,
+      "response": {
+        "claims": [
+          {
+            "summary": "原始3DGS以各向异性高斯的未压缩表达换取较高视觉质量和1080p实时渲染；LightGaussian通过高斯剪枝与向量量化大幅压缩表示，并在同平台对比中提升帧率，但质量指标小幅退化。",
+            "kind": "inference",
+            "paperIds": [
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                "quoteId": "afc39c4a49deffee"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                "quoteId": "c0be7ed3c0768423"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "ea6d0636b163d395"
+              }
+            ]
+          },
+          {
+            "summary": "在LightGaussian报告的A6000回训基线对比中，LightGaussian相较3D-GS*在两个数据集上模型规模下降、FPS上升，PSNR/SSIM/LPIPS小幅退化；具体数字见比较表。",
+            "kind": "reported",
+            "paperIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "80b69d9152d575a8"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "3f482a0dfd0f89db"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "a3ee810f3fd80b28"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                "quoteId": "ef7e73c933557115"
+              }
+            ]
+          }
+        ],
+        "dimensions": [
+          {
+            "label": "表示规模",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "使用各向异性高斯表达，主张以较低参数数量建模复杂形状；当前片段未提供与LightGaussian回训表相同条件下的模型体积。",
+                "kind": "inference",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+                    "quoteId": "edef36258b0cae26"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "Mip-NeRF360上模型大小从⟦数值1⟧降至⟦数值2⟧；Tank and Temple上从⟦数值3⟧降至⟦数值4⟧。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "numericBindings": [
+                  {
+                    "id": 1,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8",
+                    "row": 9,
+                    "group": 0,
+                    "metric": "Size",
+                    "baselineRow": 10,
+                    "dataset": "Mip-NeRF 360 Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "3D-GS  *  [16]",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db",
+                    "row": 10,
+                    "group": 0,
+                    "metric": "Size",
+                    "baselineRow": 9,
+                    "dataset": "Mip-NeRF 360 Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "LightGaussian (Ours)",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8",
+                    "row": 9,
+                    "group": 1,
+                    "metric": "Size",
+                    "baselineRow": 10,
+                    "dataset": "Tank and Temple Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "3D-GS  *  [16]",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db",
+                    "row": 10,
+                    "group": 1,
+                    "metric": "Size",
+                    "baselineRow": 9,
+                    "dataset": "Tank and Temple Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "LightGaussian (Ours)",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "渲染质量",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "报告达到或优于此前最佳隐式辐射场方法的质量。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9",
+                    "quoteId": "2d1d4bffa0e4d289"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "Mip-NeRF360上PSNR从⟦数值1⟧降至⟦数值2⟧，Tank and Temple上PSNR从⟦数值3⟧降至⟦数值4⟧；SSIM/LPIPS也呈小幅退化（具体见原文表）。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "numericBindings": [
+                  {
+                    "id": 1,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8",
+                    "row": 9,
+                    "group": 0,
+                    "metric": "PSNR",
+                    "baselineRow": 10,
+                    "dataset": "Mip-NeRF 360 Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "3D-GS  *  [16]",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db",
+                    "row": 10,
+                    "group": 0,
+                    "metric": "PSNR",
+                    "baselineRow": 9,
+                    "dataset": "Mip-NeRF 360 Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "LightGaussian (Ours)",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8",
+                    "row": 9,
+                    "group": 1,
+                    "metric": "PSNR",
+                    "baselineRow": 10,
+                    "dataset": "Tank and Temple Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "3D-GS  *  [16]",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db",
+                    "row": 10,
+                    "group": 1,
+                    "metric": "PSNR",
+                    "baselineRow": 9,
+                    "dataset": "Tank and Temple Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "LightGaussian (Ours)",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "渲染速度",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "报告实现高质量实时渲染，训练后的合成场景达到高帧率。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "afc39c4a49deffee"
+                  },
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+                    "quoteId": "74448d5667a51913"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "Mip-NeRF360上FPS从⟦数值1⟧提升至⟦数值2⟧，Tank and Temple上从⟦数值3⟧提升至⟦数值4⟧。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "numericBindings": [
+                  {
+                    "id": 1,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8",
+                    "row": 9,
+                    "group": 0,
+                    "metric": "FPS",
+                    "baselineRow": 10,
+                    "dataset": "Mip-NeRF 360 Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "3D-GS  *  [16]",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db",
+                    "row": 10,
+                    "group": 0,
+                    "metric": "FPS",
+                    "baselineRow": 9,
+                    "dataset": "Mip-NeRF 360 Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "LightGaussian (Ours)",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8",
+                    "row": 9,
+                    "group": 1,
+                    "metric": "FPS",
+                    "baselineRow": 10,
+                    "dataset": "Tank and Temple Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "3D-GS  *  [16]",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "kind": "experiment",
+                    "operation": "value",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db",
+                    "row": 10,
+                    "group": 1,
+                    "metric": "FPS",
+                    "baselineRow": 9,
+                    "dataset": "Tank and Temple Datasets",
+                    "hardware": "A6000 GPU",
+                    "baseline": "LightGaussian (Ours)",
+                    "conditionReferences": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quoteId": "a3ee810f3fd80b28"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quoteId": "ef7e73c933557115"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "核心取舍机制",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "以三维高斯与可见性感知光栅化同时加速训练和渲染，优先保持视觉质量。",
+                "kind": "inference",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "af6db758c8e6ced9"
+                  },
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "3ce54f8e4ac15897"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "通过全局显著性剪枝和向量量化压缩表示，以轻微质量代价换取更小模型与更高帧率。",
+                "kind": "inference",
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                    "quoteId": "c0be7ed3c0768423"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-35",
+                    "quoteId": "0e1e7d57e5c23b02"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "ea6d0636b163d395"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "limitations": [
+          "原始3DGS论文未提供与LightGaussian主表中3D-GS*回训基线完全同条件的自身测量；原始3DGS的合成场景帧率和模型大小比较（如3.8MB与9MB）来自不同实验条件，不能与LightGaussian主表直接排序。",
+          "LightGaussian主表中的数字来自其自身A6000平台回训的3D-GS*基线，不代表原始3DGS论文首次报告值；已核对结果行只包括3D-GS*和Ours，其他行与合并单元格未纳入定量比较。",
+          "LightGaussian表中列映射存在未核对部分（tableColumnMappingUnverified），已核对白名单行之外的原始片段仍有未核对行或合并单元格，不能扩展至全部表列。"
+        ]
+      }
+    }
+  ],
+  "newModelCalls": 0
+}

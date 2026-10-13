@@ -1,0 +1,97 @@
+{
+  "requestId": "093b9c64-99bb-4ba6-b2f6-941623209c7e",
+  "status": "succeeded",
+  "targetTask": {
+    "id": "stage5-move-target-20261008",
+    "title": "阶段5：移动目标任务",
+    "paperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "messages": [],
+    "notes": [
+      {
+        "id": "stage5-http",
+        "title": "HTTP移动验收笔记",
+        "text": "数据整理验收笔记：重要性包含透射率 T。\n\n这是本地测试正文。",
+        "paperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "sources": [
+          {
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-15",
+            "text": "Global significance contains opacity, transmittance and adjusted volume."
+          }
+        ],
+        "versions": [
+          {
+            "text": "此前的本地测试理解",
+            "savedAt": "2026-10-08T03:00:00Z"
+          }
+        ],
+        "transferHistory": [
+          {
+            "sourceTaskId": "stage5-move-source-20261008",
+            "requestId": "stage5-http-move-20261008",
+            "targetTaskId": "stage5-move-target-20261008",
+            "movedAt": "2026-10-08T03:12:25.716302800Z"
+          }
+        ]
+      },
+      {
+        "id": "stage5-ui",
+        "title": "LightGaussian 学习笔记（含来源验收）",
+        "text": "数据整理验收笔记：重要性包含透射率 T。\n\n这是本地测试正文。",
+        "paperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "sources": [
+          {
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-15",
+            "text": "Global significance contains opacity, transmittance and adjusted volume."
+          }
+        ],
+        "versions": [
+          {
+            "text": "此前的本地测试理解",
+            "savedAt": "2026-10-08T03:00:00Z"
+          }
+        ],
+        "transferHistory": [
+          {
+            "sourceTaskId": "stage5-move-source-20261008",
+            "requestId": "093b9c64-99bb-4ba6-b2f6-941623209c7e",
+            "targetTaskId": "stage5-move-target-20261008",
+            "movedAt": "2026-10-08T03:13:55.139717600Z"
+          }
+        ]
+      }
+    ],
+    "artifacts": [],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-08T03:17:42.943012Z",
+    "revision": 3
+  },
+  "sourceTask": {
+    "id": "stage5-move-source-20261008",
+    "title": "阶段5：移动原任务",
+    "paperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "messages": [],
+    "notes": [],
+    "artifacts": [],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-08T03:13:55.139717Z",
+    "revision": 3
+  }
+}

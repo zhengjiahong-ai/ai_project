@@ -1,0 +1,34 @@
+{
+  "details": [
+    {
+      "label": "历史版本（0）",
+      "open": false
+    },
+    {
+      "label": "整理成果",
+      "open": false
+    },
+    {
+      "label": "材料来源（8）",
+      "open": false
+    },
+    {
+      "label": "尚待确认",
+      "open": false
+    },
+    {
+      "label": "补充结论",
+      "open": false
+    },
+    {
+      "label": "待核查问题",
+      "open": false
+    },
+    {
+      "label": "原文依据",
+      "open": false
+    }
+  ],
+  "text": "貔貅\n学术工作台\n阶段4：critique表格范围修复核验-v22\n未同步草稿\n重命名\n并排\n专注阅读\n专注对话\n阶段4：critique表格范围修复核验-v22\n阶段4：critique表格范围修复核验-v19\n阶段4：critique表格范围修复核验-v18\n阶段4：compare表格范围修复核验-v16\n阶段4：critique表格范围修复核验-v16\n阶段4：compare表格范围修复核验-v13\n阶段4：critique表格范围修复核验-v13\n阶段4：compare表格范围修复核验-v12\n阶段4：critique表格范围修复核验-v12\n阶段4：compose修复核验-v9\n阶段4：critique修复核验-v9\n阶段6：有材料的对话起点验收\n阶段4：简洁比较离线展示-v9\n阶段4：部分结果离线展示-v8\n阶段4：compose修复核验-v7\n阶段4：critique修复核验-v7\n阶段4：compose修复核验-v6\n阶段4：critique修复核验-v6\n阶段6：上传切任务归属-A\n阶段6：上传切任务归属-B\n阶段4：critique修复核验-v5\n阶段4：compose修复核验-v5\n阶段4：critique修复核验-v4\n阶段4：compose修复核验-v4\n阶段4：critique修复核验-v3\n阶段4：compose修复核验-v3\n阶段6：首次使用与任务输入验收\n新任务\n阶段6：真实论文阅读工具验收\n阶段4：3DGS验证材料\n阶段6：阅读与编辑体验验收\n阶段5：版本与草稿恢复验收\n阶段5：缺文件提示验收\n新任务\n阶段4：critique真实验收-v2\n演示：LightGaussian 压缩方法\n阶段5：旧文档标识补全验收\n阶段5：移动目标任务\n阶段5：移动原任务\n阶段4：compose真实验收-v2\n阶段4：research真实验收\n阶段4：compose真实验收\n阶段4：critique真实验收\n阶段4：compare真实验收\n阶段4：研究回答显示验收\n阶段3：新手主动RIS学习闭环\n阶段3：主动RIS自测闭环\n阶段2：新版补课协议验收\n阶段2：多论文范围与比较验收\n阶段2：研究终稿发布验收\n阶段2：精读入口验收\n阶段2：自测入口验收\n阶段2：批判成果恢复验收\n阶段2：执行前停止验收\n阶段2：失败与重试验收\n阶段2：先阅读再解析验收\n阶段2统一对话验收\n阶段1文件恢复验收\n任务标识编码验收\n并发隔离验收\n新任务\n新任务\n论文与材料\nLightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n上传 PDF\n笔记与成果\n对话成果\n对话成果\n返回论文\n阅读\n编辑\n下载\n已保存\n历史版本（0）\n整理成果\n材料来源（8）\n\n部分分析\n\n推断：相对重训基线的压缩倍数分别为Mip-NeRF 360：Ours 存储压缩17.38倍、Tank and Temple：Ours 存储压缩17.32倍；帧率倍数分别为Mip-NeRF 360：Ours FPS为基线的1.65倍、Tank and Temple：Ours FPS为基线的3.37倍；重建质量差值分别为Mip-NeRF 360：Ours PSNR下降0.27 dB、Tank and Temple：Ours PSNR下降0.22 dB，感知质量差值分别为Mip-NeRF 360：Ours LPIPS上升0.020、Tank and Temple：Ours LPIPS上升0.024。该比较仅在已核对的大型真实场景表格与同硬件条件下成立，其他数据集的直接可比性需另行核查。（NVIDIA A6000 GPU，Ours相对基线3D-GS * [16]） [1] [2] [3]\n\n作者指出仅以高斯体积衡量会过度强调背景高斯，导致精细几何被过度剪枝；随后提出基于最大体积归一化和β调节的适应体积，并结合不透明度与训练视图射线相交计算显著性。 [4] [5] [6]\n\n推断：剪枝显著性依赖训练视图像素命中计数，因此剪枝评分与训练相机位姿覆盖相关；在训练位姿覆盖不足的视角，评分可能偏向已有观测，需将其视为待核查的泛化风险。 [6]\n\n尚待确认\n补充结论\n待核查问题\n原文依据\n对话\n1 篇材料\n▣ 任务材料 1 篇\n\n重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？\n\n阅读助手\n打开成果\n\n部分结果：\n\n推断：相对重训基线的压缩倍数分别为Mip-NeRF 360：Ours 存储压缩17.38倍、Tank and Temple：Ours 存储压缩17.32倍；帧率倍数分别为Mip-NeRF 360：Ours FPS为基线的1.65倍、Tank and Temple：Ours FPS为基线的3.37倍；重建质量差值分别为Mip-NeRF 360：Ours PSNR下降0.27 dB、Tank and Temple：Ours PSNR下降0.22 dB，感知质量差值分别为Mip-NeRF 360：Ours LPIPS上升0.020、Tank and Temple：Ours LPIPS上升0.024。该比较仅在已核对的大型真实场景表格与同硬件条件下成立，其他数据集的直接可比性需另行核查。（NVIDIA A6000 GPU，Ours相对基线3D-GS * [16]） [1] [2] [3]\n\n作者指出仅以高斯体积衡量会过度强调背景高斯，导致精细几何被过度剪枝；随后提出基于最大体积归一化和β调节的适应体积，并结合不透明度与训练视图射线相交计算显著性。 [4] [5] [6]\n\n推断：剪枝显著性依赖训练视图像素命中计数，因此剪枝评分与训练相机位姿覆盖相关；在训练位姿覆盖不足的视角，评分可能偏向已有观测，需将其视为待核查的泛化风险。 [6]\n\n来源 3",
+  "title": "Pixiu 学术助手"
+}

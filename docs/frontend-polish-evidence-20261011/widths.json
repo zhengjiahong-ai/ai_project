@@ -1,0 +1,122 @@
+[
+  {
+    "composerBottom": 884,
+    "height": 900,
+    "mode": "reader",
+    "overflow": false,
+    "panes": [
+      {
+        "display": "flex",
+        "name": "unified-task-nav ",
+        "width": 258
+      },
+      {
+        "display": "flex",
+        "name": "unified-reader ",
+        "width": 663.8984375
+      },
+      {
+        "display": "flex",
+        "name": "unified-chat ",
+        "width": 508.1015625
+      }
+    ],
+    "width": 1440
+  },
+  {
+    "composerBottom": 884,
+    "height": 900,
+    "mode": "reader",
+    "overflow": false,
+    "panes": [
+      {
+        "display": "flex",
+        "name": "unified-task-nav ",
+        "width": 48
+      },
+      {
+        "display": "flex",
+        "name": "unified-reader ",
+        "width": 695.046875
+      },
+      {
+        "display": "flex",
+        "name": "unified-chat ",
+        "width": 531.953125
+      }
+    ],
+    "width": 1280
+  },
+  {
+    "composerBottom": 884,
+    "height": 900,
+    "mode": "reader",
+    "overflow": false,
+    "panes": [
+      {
+        "display": "flex",
+        "name": "unified-task-nav ",
+        "width": 48
+      },
+      {
+        "display": "flex",
+        "name": "unified-reader ",
+        "width": 593.0859375
+      },
+      {
+        "display": "flex",
+        "name": "unified-chat ",
+        "width": 453.9140625
+      }
+    ],
+    "width": 1100
+  },
+  {
+    "composerBottom": 0,
+    "height": 900,
+    "mode": "reader",
+    "overflow": false,
+    "panes": [
+      {
+        "display": "none",
+        "name": "unified-task-nav unified-compact-hidden",
+        "width": 0
+      },
+      {
+        "display": "flex",
+        "name": "unified-reader ",
+        "width": 900
+      },
+      {
+        "display": "none",
+        "name": "unified-chat ",
+        "width": 0
+      }
+    ],
+    "width": 900
+  },
+  {
+    "composerBottom": 0,
+    "height": 844,
+    "mode": "reader",
+    "overflow": false,
+    "panes": [
+      {
+        "display": "none",
+        "name": "unified-task-nav unified-compact-hidden",
+        "width": 0
+      },
+      {
+        "display": "flex",
+        "name": "unified-reader ",
+        "width": 390
+      },
+      {
+        "display": "none",
+        "name": "unified-chat ",
+        "width": 0
+      }
+    ],
+    "width": 390
+  }
+]

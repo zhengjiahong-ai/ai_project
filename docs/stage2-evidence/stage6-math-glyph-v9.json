@@ -1,0 +1,797 @@
+{
+  "scope": "Actual PDF.js drawing glyphs and original Type1 font-program recovery; converted font data is diagnostic only",
+  "fonts": {
+    "g_d0_f10": {
+      "name": "LPGDGS+CMEX10",
+      "fontDataBytes": 3552,
+      "namedOperators": [
+        "summationtext",
+        "producttext",
+        "summationdisplay",
+        "productdisplay"
+      ],
+      "defaultEncoding": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "space",
+        "exclam",
+        "quotedbl",
+        "numbersign",
+        "dollar",
+        "percent",
+        "ampersand",
+        "quotesingle",
+        "parenleft",
+        "parenright",
+        "asterisk",
+        "plus",
+        "comma",
+        "hyphen",
+        "period",
+        "slash",
+        "zero",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "colon",
+        "semicolon",
+        "less",
+        "equal",
+        "greater",
+        "question",
+        "at",
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "I",
+        "J",
+        "K",
+        "L",
+        "M",
+        "N",
+        "O",
+        "P",
+        "Q",
+        "R",
+        "S",
+        "T",
+        "U",
+        "V",
+        "W",
+        "X",
+        "Y",
+        "Z",
+        "bracketleft",
+        "backslash",
+        "bracketright",
+        "asciicircum",
+        "underscore",
+        "grave",
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+        "f",
+        "g",
+        "h",
+        "i",
+        "j",
+        "k",
+        "l",
+        "m",
+        "n",
+        "o",
+        "p",
+        "q",
+        "r",
+        "s",
+        "t",
+        "u",
+        "v",
+        "w",
+        "x",
+        "y",
+        "z",
+        "braceleft",
+        "bar",
+        "braceright",
+        "asciitilde",
+        "",
+        "Adieresis",
+        "Aring",
+        "Ccedilla",
+        "Eacute",
+        "Ntilde",
+        "Odieresis",
+        "Udieresis",
+        "aacute",
+        "agrave",
+        "acircumflex",
+        "adieresis",
+        "atilde",
+        "aring",
+        "ccedilla",
+        "eacute",
+        "egrave",
+        "ecircumflex",
+        "edieresis",
+        "iacute",
+        "igrave",
+        "icircumflex",
+        "idieresis",
+        "ntilde",
+        "oacute",
+        "ograve",
+        "ocircumflex",
+        "odieresis",
+        "otilde",
+        "uacute",
+        "ugrave",
+        "ucircumflex",
+        "udieresis",
+        "dagger",
+        "degree",
+        "cent",
+        "sterling",
+        "section",
+        "bullet",
+        "paragraph",
+        "germandbls",
+        "registered",
+        "copyright",
+        "trademark",
+        "acute",
+        "dieresis",
+        "notequal",
+        "AE",
+        "Oslash",
+        "infinity",
+        "plusminus",
+        "lessequal",
+        "greaterequal",
+        "yen",
+        "mu",
+        "partialdiff",
+        "summation",
+        "product",
+        "pi",
+        "integral",
+        "ordfeminine",
+        "ordmasculine",
+        "Omega",
+        "ae",
+        "oslash",
+        "questiondown",
+        "exclamdown",
+        "logicalnot",
+        "radical",
+        "florin",
+        "approxequal",
+        "Delta",
+        "guillemotleft",
+        "guillemotright",
+        "ellipsis",
+        "space",
+        "Agrave",
+        "Atilde",
+        "Otilde",
+        "OE",
+        "oe",
+        "endash",
+        "emdash",
+        "quotedblleft",
+        "quotedblright",
+        "quoteleft",
+        "quoteright",
+        "divide",
+        "lozenge",
+        "ydieresis",
+        "Ydieresis",
+        "fraction",
+        "currency",
+        "guilsinglleft",
+        "guilsinglright",
+        "fi",
+        "fl",
+        "daggerdbl",
+        "periodcentered",
+        "quotesinglbase",
+        "quotedblbase",
+        "perthousand",
+        "Acircumflex",
+        "Ecircumflex",
+        "Aacute",
+        "Edieresis",
+        "Egrave",
+        "Iacute",
+        "Icircumflex",
+        "Idieresis",
+        "Igrave",
+        "Oacute",
+        "Ocircumflex",
+        "apple",
+        "Ograve",
+        "Uacute",
+        "Ucircumflex",
+        "Ugrave",
+        "dotlessi",
+        "circumflex",
+        "tilde",
+        "macron",
+        "breve",
+        "dotaccent",
+        "ring",
+        "cedilla",
+        "hungarumlaut",
+        "ogonek",
+        "caron"
+      ],
+      "differences": [],
+      "toFontChar": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        57344,
+        57345,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        57346,
+        57347,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        57348,
+        57349,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        57350,
+        57351
+      ],
+      "glyphs": [
+        {
+          "originalCharCode": 88,
+          "fontChar": "",
+          "unicode": "X",
+          "accent": null,
+          "width": 1444.5,
+          "isSpace": false,
+          "isInFont": true
+        },
+        {
+          "originalCharCode": 89,
+          "fontChar": "",
+          "unicode": "Y",
+          "accent": null,
+          "width": 1277.8,
+          "isSpace": false,
+          "isInFont": true
+        },
+        {
+          "originalCharCode": 81,
+          "fontChar": "",
+          "unicode": "Q",
+          "accent": null,
+          "width": 944.5,
+          "isSpace": false,
+          "isInFont": true
+        },
+        {
+          "originalCharCode": 88,
+          "fontChar": "",
+          "unicode": "X",
+          "accent": null,
+          "width": 1444.5,
+          "isSpace": false,
+          "isInFont": true
+        }
+      ]
+    }
+  },
+  "pageText": "PSNR: 27.2 (3D-GS)\n\nPSNR: 25.3(Opacity prune)\n\nFigure 3: Zero-shot Opacity-based Pruning. A significant number of Gaussians exhibit small\nopacity values (top). Simply utilizing Gaussian opacity as an indicator for pruning the least important\nGaussians results in the rendered image losing intricate details (bottom), with the PSNR dropping\nfrom 27.2 to 25.3. This has inspired us to find better criteria to measure global significance in terms\nof rendering quality. The accumulated Probability Density Function(PDF) is equal to 1.\n\nof the affine approximation of the projective transformation represented by J, the covariance matrix\nΣ′ in camera coordinates can be computed as Σ′ = J WΣWTJT. Specifically, for each pixel, the\ncolor and opacity of all the Gaussians are computed using the Gaussian’s representation Eq. 1. The\nblending of N ordered points that overlap the pixel is given by the formula:\n\nC = i∑N ciαi ji−=11(1 − αi).\n\n∏\n\n(2)\n\n∈\n\nHere, ci, αi represents the view-dependent color and opacity, calculated from a 2D Gaussian with\ncovariance Σ multiplied by an optimizable per-3D Gaussian’s opacity. In summary, each Gaussian\npoint is characterized by attributes including: position X ∈ R3, color defined by spherical harmonics\ncoefficients SH ∈ R(k+1)2 × 3 (where k represents the degrees of freedom), opacity α ∈ R, rotation\nfactor R ∈ R4, and scaling factor S ∈ R3.\n\n3.2 Gaussian Pruning & Recovery\nGaussian densification [16], which clones and refines the initial SfM point cloud, enhances small-scale\ngeometry and detailed scene appearance by improving coverage. While this approach significantly\nboosts reconstruction quality, it increases the number of Gaussians from thousands to millions\nafter optimization, resulting in substantial storage demands.Inspired by neural network pruning\ntechniques [63] that remove less impactful neurons while preserving overall performance, we propose\na tailored pruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while\nmaintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach.\nHowever, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling\nperformance, as it may eliminate essential scene details, as shown in Fig. 3.\n\nGlobal Significance Calculation. Inspired by Eq. 2, we go beyond using Gaussian opacity alone\nto assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the\ncamera viewpoint for rendering. The initial significance score of each Gaussian (denoted as G(Xj))\ncan then be quantified based on its contribution to each pixel (ray, ri) across all training views using\nthe criteria 1(G(Xj), ri) whether they intersect or not. Consequently, we iterate over all training\npixels to calculate the hit count of each Gaussian. The score is further refined by the adjusted 3D\nGaussian’s volume γ(Σj) and 3D Gaussian’s opacity σj, as they all contribute for the rendering\nformula. The volume calculation equation of the j-th 3D Guassian is V(Σj) = 43πabc, where abc are\nthe 3 dimensions of Scale (S). We also consider the transmittance T is calculated with one subtract\nall the 3D Gaussian’s opacity the ray hit before the j-th 3D Gaussian, T = ∏ji=1−1 (1- σi). Finally, the\nglobal significance score can be summarized as:\n\nGSj = M HW∑i=1 1(G(Xj), ri) · σj · T · γ(Σj),\n\n(3)\n\n4",
+  "pageLayout": {
+    "viewport": {
+      "width": 612,
+      "height": 792
+    },
+    "orientation": "portrait",
+    "columnMode": "single-column",
+    "blocks": [
+      {
+        "id": "block-1",
+        "text": "Figure 3: Zero-shot Opacity-based Pruning. A significant number of Gaussians exhibit small\nopacity values (top). Simply utilizing Gaussian opacity as an indicator for pruning the least important\nGaussians results in the rendered image losing intricate details (bottom), with the PSNR dropping\nfrom 27.2 to 25.3. This has inspired us to find better criteria to measure global significance in terms\nof rendering quality. The accumulated Probability Density Function(PDF) is equal to 1.",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.260347,
+          "width": 0.647063,
+          "height": 0.066493
+        },
+        "style": {
+          "fontSize": 10,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 0,
+        "mathSources": []
+      },
+      {
+        "id": "block-2",
+        "text": "of the affine approximation of the projective transformation represented by J, the covariance matrix\nΣ′ in camera coordinates can be computed as Σ′ = J WΣWTJT. Specifically, for each pixel, the\ncolor and opacity of all the Gaussians are computed using the Gaussian’s representation Eq. 1. The\nblending of N ordered points that overlap the pixel is given by the formula:",
+        "bbox": {
+          "left": 0.175797,
+          "top": 0.353025,
+          "width": 0.648146,
+          "height": 0.054514
+        },
+        "style": {
+          "fontSize": 9.86,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 1,
+        "mathSources": [
+          {
+            "start": 145,
+            "end": 158,
+            "token": "⟦原式1⟧",
+            "text": "Σ′ = J WΣWTJT",
+            "bbox": {
+              "left": 0.473649,
+              "top": 0.363149,
+              "width": 0.139886,
+              "height": 0.020565
+            }
+          }
+        ]
+      },
+      {
+        "id": "block-3",
+        "text": "Here, ci, αi represents the view-dependent color and opacity, calculated from a 2D Gaussian with\ncovariance Σ multiplied by an optimizable per-3D Gaussian’s opacity. In summary, each Gaussian\npoint is characterized by attributes including: position X ∈ R3, color defined by spherical harmonics\ncoefficients SH ∈ R(k+1)2 × 3 (where k represents the degrees of freedom), opacity α ∈ R, rotation\nfactor R ∈ R4, and scaling factor S ∈ R3.",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.459669,
+          "width": 0.647058,
+          "height": 0.069165
+        },
+        "style": {
+          "fontSize": 9.38,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 2,
+        "mathSources": [
+          {
+            "start": 249,
+            "end": 255,
+            "token": "⟦原式2⟧",
+            "text": "X ∈ R3",
+            "bbox": {
+              "left": 0.522534,
+              "top": 0.48327,
+              "width": 0.058829,
+              "height": 0.019118
+            }
+          },
+          {
+            "start": 307,
+            "end": 323,
+            "token": "⟦原式3⟧",
+            "text": "SH ∈ R(k+1)2 × 3",
+            "bbox": {
+              "left": 0.252217,
+              "top": 0.497616,
+              "width": 0.125567,
+              "height": 0.021444
+            }
+          },
+          {
+            "start": 377,
+            "end": 382,
+            "token": "⟦原式4⟧",
+            "text": "α ∈ R",
+            "bbox": {
+              "left": 0.721279,
+              "top": 0.500908,
+              "width": 0.046166,
+              "height": 0.017875
+            }
+          },
+          {
+            "start": 400,
+            "end": 406,
+            "token": "⟦原式5⟧",
+            "text": "R ∈ R4",
+            "bbox": {
+              "left": 0.21634,
+              "top": 0.513441,
+              "width": 0.056183,
+              "height": 0.019116
+            }
+          },
+          {
+            "start": 427,
+            "end": 433,
+            "token": "⟦原式6⟧",
+            "text": "S ∈ R3",
+            "bbox": {
+              "left": 0.397106,
+              "top": 0.513441,
+              "width": 0.052544,
+              "height": 0.019116
+            }
+          }
+        ]
+      },
+      {
+        "id": "block-4",
+        "text": "3.2 Gaussian Pruning & Recovery\nGaussian densification [16], which clones and refines the initial SfM point cloud, enhances small-scale\ngeometry and detailed scene appearance by improving coverage. While this approach significantly\nboosts reconstruction quality, it increases the number of Gaussians from thousands to millions\nafter optimization, resulting in substantial storage demands.Inspired by neural network pruning\ntechniques [63] that remove less impactful neurons while preserving overall performance, we propose\na tailored pruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while\nmaintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach.\nHowever, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling\nperformance, as it may eliminate essential scene details, as shown in Fig. 3.",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.54756,
+          "width": 0.649904,
+          "height": 0.146811
+        },
+        "style": {
+          "fontSize": 9.98,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 3,
+        "mathSources": []
+      },
+      {
+        "id": "block-5",
+        "text": "Global Significance Calculation. Inspired by Eq. 2, we go beyond using Gaussian opacity alone\nto assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the\ncamera viewpoint for rendering. The initial significance score of each Gaussian (denoted as G(Xj))\ncan then be quantified based on its contribution to each pixel (ray, ri) across all training views using\nthe criteria 1(G(Xj), ri) whether they intersect or not. Consequently, we iterate over all training\npixels to calculate the hit count of each Gaussian. The score is further refined by the adjusted 3D\nGaussian’s volume γ(Σj) and 3D Gaussian’s opacity σj, as they all contribute for the rendering\nformula. The volume calculation equation of the j-th 3D Guassian is V(Σj) = 43πabc, where abc are\nthe 3 dimensions of Scale (S). We also consider the transmittance T is calculated with one subtract\nall the 3D Gaussian’s opacity the ray hit before the j-th 3D Gaussian, T = ∏ji=1−1 (1- σi). Finally, the\nglobal significance score can be summarized as:",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.7114,
+          "width": 0.648149,
+          "height": 0.152734
+        },
+        "style": {
+          "fontSize": 9.6,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "readingOrder": 4,
+        "mathSources": [
+          {
+            "start": 761,
+            "end": 775,
+            "token": "⟦原式7⟧",
+            "text": "V(Σj) = 43πabc",
+            "bbox": {
+              "left": 0.494364,
+              "top": 0.805144,
+              "width": 0.234666,
+              "height": 0.02311
+            }
+          },
+          {
+            "start": 962,
+            "end": 981,
+            "token": "⟦原式8⟧",
+            "text": "T = ∏ji=1−1 (1- σi)",
+            "bbox": {
+              "left": 0.620838,
+              "top": 0.832714,
+              "width": 0.204693,
+              "height": 0.024411
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "requestLayout": {
+    "viewport": {
+      "width": 612,
+      "height": 792
+    },
+    "blocks": [
+      {
+        "id": "block-1",
+        "text": "Figure 3: Zero-shot Opacity-based Pruning. A significant number of Gaussians exhibit small\nopacity values (top). Simply utilizing Gaussian opacity as an indicator for pruning the least important\nGaussians results in the rendered image losing intricate details (bottom), with the PSNR dropping\nfrom 27.2 to 25.3. This has inspired us to find better criteria to measure global significance in terms\nof rendering quality. The accumulated Probability Density Function(PDF) is equal to 1.",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.260347,
+          "width": 0.647063,
+          "height": 0.066493
+        },
+        "style": {
+          "fontSize": 10,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "mathSources": []
+      },
+      {
+        "id": "block-2",
+        "text": "of the affine approximation of the projective transformation represented by J, the covariance matrix\nΣ′ in camera coordinates can be computed as ⟦原式1⟧. Specifically, for each pixel, the\ncolor and opacity of all the Gaussians are computed using the Gaussian’s representation Eq. 1. The\nblending of N ordered points that overlap the pixel is given by the formula:",
+        "bbox": {
+          "left": 0.175797,
+          "top": 0.353025,
+          "width": 0.648146,
+          "height": 0.054514
+        },
+        "style": {
+          "fontSize": 9.86,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "mathSources": [
+          {
+            "start": 145,
+            "end": 158,
+            "token": "⟦原式1⟧",
+            "text": "Σ′ = J WΣWTJT",
+            "bbox": {
+              "left": 0.473649,
+              "top": 0.363149,
+              "width": 0.139886,
+              "height": 0.020565
+            }
+          }
+        ]
+      },
+      {
+        "id": "block-3",
+        "text": "Here, ci, αi represents the view-dependent color and opacity, calculated from a 2D Gaussian with\ncovariance Σ multiplied by an optimizable per-3D Gaussian’s opacity. In summary, each Gaussian\npoint is characterized by attributes including: position ⟦原式2⟧, color defined by spherical harmonics\ncoefficients ⟦原式3⟧ (where k represents the degrees of freedom), opacity ⟦原式4⟧, rotation\nfactor ⟦原式5⟧, and scaling factor ⟦原式6⟧.",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.459669,
+          "width": 0.647058,
+          "height": 0.069165
+        },
+        "style": {
+          "fontSize": 9.38,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "mathSources": [
+          {
+            "start": 249,
+            "end": 255,
+            "token": "⟦原式2⟧",
+            "text": "X ∈ R3",
+            "bbox": {
+              "left": 0.522534,
+              "top": 0.48327,
+              "width": 0.058829,
+              "height": 0.019118
+            }
+          },
+          {
+            "start": 307,
+            "end": 323,
+            "token": "⟦原式3⟧",
+            "text": "SH ∈ R(k+1)2 × 3",
+            "bbox": {
+              "left": 0.252217,
+              "top": 0.497616,
+              "width": 0.125567,
+              "height": 0.021444
+            }
+          },
+          {
+            "start": 377,
+            "end": 382,
+            "token": "⟦原式4⟧",
+            "text": "α ∈ R",
+            "bbox": {
+              "left": 0.721279,
+              "top": 0.500908,
+              "width": 0.046166,
+              "height": 0.017875
+            }
+          },
+          {
+            "start": 400,
+            "end": 406,
+            "token": "⟦原式5⟧",
+            "text": "R ∈ R4",
+            "bbox": {
+              "left": 0.21634,
+              "top": 0.513441,
+              "width": 0.056183,
+              "height": 0.019116
+            }
+          },
+          {
+            "start": 427,
+            "end": 433,
+            "token": "⟦原式6⟧",
+            "text": "S ∈ R3",
+            "bbox": {
+              "left": 0.397106,
+              "top": 0.513441,
+              "width": 0.052544,
+              "height": 0.019116
+            }
+          }
+        ]
+      },
+      {
+        "id": "block-4",
+        "text": "3.2 Gaussian Pruning & Recovery\nGaussian densification [16], which clones and refines the initial SfM point cloud, enhances small-scale\ngeometry and detailed scene appearance by improving coverage. While this approach significantly\nboosts reconstruction quality, it increases the number of Gaussians from thousands to millions\nafter optimization, resulting in substantial storage demands.Inspired by neural network pruning\ntechniques [63] that remove less impactful neurons while preserving overall performance, we propose\na tailored pruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while\nmaintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach.\nHowever, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling\nperformance, as it may eliminate essential scene details, as shown in Fig. 3.",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.54756,
+          "width": 0.649904,
+          "height": 0.146811
+        },
+        "style": {
+          "fontSize": 9.98,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "mathSources": []
+      },
+      {
+        "id": "block-5",
+        "text": "Global Significance Calculation. Inspired by Eq. 2, we go beyond using Gaussian opacity alone\nto assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the\ncamera viewpoint for rendering. The initial significance score of each Gaussian (denoted as G(Xj))\ncan then be quantified based on its contribution to each pixel (ray, ri) across all training views using\nthe criteria 1(G(Xj), ri) whether they intersect or not. Consequently, we iterate over all training\npixels to calculate the hit count of each Gaussian. The score is further refined by the adjusted 3D\nGaussian’s volume γ(Σj) and 3D Gaussian’s opacity σj, as they all contribute for the rendering\nformula. The volume calculation equation of the j-th 3D Guassian is ⟦原式7⟧, where abc are\nthe 3 dimensions of Scale (S). We also consider the transmittance T is calculated with one subtract\nall the 3D Gaussian’s opacity the ray hit before the j-th 3D Gaussian, ⟦原式8⟧. Finally, the\nglobal significance score can be summarized as:",
+        "bbox": {
+          "left": 0.176471,
+          "top": 0.7114,
+          "width": 0.648149,
+          "height": 0.152734
+        },
+        "style": {
+          "fontSize": 9.6,
+          "fontWeight": "normal",
+          "italic": false,
+          "textAlign": "left"
+        },
+        "mathSources": [
+          {
+            "start": 761,
+            "end": 775,
+            "token": "⟦原式7⟧",
+            "text": "V(Σj) = 43πabc",
+            "bbox": {
+              "left": 0.494364,
+              "top": 0.805144,
+              "width": 0.234666,
+              "height": 0.02311
+            }
+          },
+          {
+            "start": 962,
+            "end": 981,
+            "token": "⟦原式8⟧",
+            "text": "T = ∏ji=1−1 (1- σi)",
+            "bbox": {
+              "left": 0.620838,
+              "top": 0.832714,
+              "width": 0.204693,
+              "height": 0.024411
+            }
+          }
+        ]
+      }
+    ],
+    "excludedZonesVersion": 1
+  }
+}

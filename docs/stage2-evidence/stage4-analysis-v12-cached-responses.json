@@ -1,0 +1,549 @@
+{
+  "scope": "Two structured cache rows in authorization window with references restricted to approved papers; rows are not request or charge totals",
+  "startUtc": "2026-10-09T16:12:05+00:00",
+  "endUtc": "2026-10-09T16:18:19.310998+00:00",
+  "cacheRows": [
+    {
+      "model": "deepseek-v4-pro",
+      "temperature": 0.3,
+      "createdAt": 1791562531.9316485,
+      "response": {
+        "findings": [
+          {
+            "section": "weakness",
+            "summary": "在真实世界大规模场景的重新训练基线比较中，LightGaussian的帧率为⟦数值1⟧，模型大小压缩比为⟦数值2⟧，PSNR差异为⟦数值3⟧；说明以轻微质量损失换取高压缩与提速，该证据不覆盖合成对象级场景。",
+            "kind": "inference",
+            "numericBindings": [
+              {
+                "id": 1,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "FPS",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "NVIDIA A6000 GPU",
+                "baseline": "3D-GS*",
+                "operation": "value",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ]
+              },
+              {
+                "id": 2,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "Size",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "NVIDIA A6000 GPU",
+                "baseline": "3D-GS*",
+                "operation": "inverse_ratio",
+                "decimals": 2,
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ]
+              },
+              {
+                "id": 3,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "PSNR",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "NVIDIA A6000 GPU",
+                "baseline": "3D-GS*",
+                "operation": "difference",
+                "decimals": 2,
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ]
+              }
+            ],
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "80b69d9152d575a8"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "3f482a0dfd0f89db"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "a3ee810f3fd80b28"
+              }
+            ]
+          },
+          {
+            "section": "weakness",
+            "summary": "剪枝的重要性分数依赖训练视图的射线相交计数、体积和透明度，且体积经90%分位数归一化，但仍可能偏向背景或大体积高斯，存在误剪细节的风险；单独剪枝会降低质量，需要联合微调（co-adaptation）部分恢复，而恢复仅在训练视图邻域进行，泛化到未覆盖视角存疑。",
+            "kind": "inference",
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                "quoteId": "c1c5f0fea721480b"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+                "quoteId": "53e33538955e08f1"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+                "quoteId": "fff731411438c613"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+                "quoteId": "cf740ea8049a8aa6"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-39",
+                "quoteId": "a5e6d434e2974891"
+              }
+            ]
+          },
+          {
+            "section": "weakness",
+            "summary": "球谐降阶依赖教师模型的知识蒸馏，仅在训练视图附近的高斯采样位姿上监督像素强度，因此对偏离训练轨迹的视角的保真度有限；直接消除高阶SH会降低质量，蒸馏只能缓解。VQ仅对低显著性SH系数实施，位置、旋转、缩放、不透明度及高显著性SH保留为float16，这限制了压缩率；若对位置/旋转/缩放等全部元素量化，作者自述会带来显著精度损失，说明该方法依赖相似外观分组假设，对非欧几何属性并不鲁棒。",
+            "kind": "inference",
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                "quoteId": "82d6cccc3d4e76c8"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                "quoteId": "1802905281003ea6"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "quoteId": "db7463c49cdd7c7f"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "quoteId": "04c9eed77892ab27"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "2167fb002ed62028"
+              }
+            ]
+          }
+        ],
+        "pendingQuestions": [
+          {
+            "topic": "合成对象级场景下的压缩比、帧率与质量损失，以及剪枝后未覆盖视角和VQ码书存储开销的定量影响。"
+          }
+        ]
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "temperature": 0.3,
+      "createdAt": 1791562637.961963,
+      "response": {
+        "claims": [
+          {
+            "summary": "原始3DGS以较多高斯表示和自适应密度控制换取视觉质量与实时渲染；LightGaussian以全局显著性剪枝和VQ在轻微质量折让下换取更小模型和更高帧率。直接同条件实验数字来自LightGaussian论文中A6000重训的3D-GS*表1。",
+            "kind": "inference",
+            "paperIds": [
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                "quoteId": "afc39c4a49deffee"
+              },
+              {
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9",
+                "quoteId": "2d1d4bffa0e4d289"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                "quoteId": "c0be7ed3c0768423"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "ea6d0636b163d395"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "a3ee810f3fd80b28"
+              }
+            ]
+          },
+          {
+            "summary": "LightGaussian相比3D-GS*的关键变化：渲染速度、模型规模、PSNR、SSIM、LPIPS分别对应⟦数值1⟧、⟦数值2⟧、⟦数值3⟧、⟦数值4⟧、⟦数值5⟧。",
+            "kind": "inference",
+            "paperIds": [
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "numericBindings": [
+              {
+                "id": 1,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "FPS",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS* [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "ratio",
+                "decimals": 2
+              },
+              {
+                "id": 2,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "Size",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS* [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "ratio",
+                "decimals": 2
+              },
+              {
+                "id": 3,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "PSNR",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS* [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "difference",
+                "decimals": 2
+              },
+              {
+                "id": 4,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "SSIM",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS* [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "difference",
+                "decimals": 3
+              },
+              {
+                "id": 5,
+                "kind": "experiment",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "row": 10,
+                "group": 0,
+                "metric": "LPIPS",
+                "baselineRow": 9,
+                "dataset": "Mip-NeRF 360 Datasets",
+                "hardware": "A6000 GPU",
+                "baseline": "3D-GS* [16]",
+                "conditionReferences": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "a3ee810f3fd80b28"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "quoteId": "ef7e73c933557115"
+                  }
+                ],
+                "operation": "difference",
+                "decimals": 3
+              }
+            ],
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "80b69d9152d575a8"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quoteId": "3f482a0dfd0f89db"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "a3ee810f3fd80b28"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                "quoteId": "ef7e73c933557115"
+              }
+            ]
+          },
+          {
+            "summary": "原始3DGS论文自身的速度、存储与质量声明不能与LightGaussian表1中的重训3D-GS*数字进行跨实验排序；可核对定量比较仅限LightGaussian论文A6000表1白名单行。",
+            "kind": "inference",
+            "paperIds": [
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            ],
+            "references": [
+              {
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+                "quoteId": "74448d5667a51913"
+              },
+              {
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+                "quoteId": "edef36258b0cae26"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quoteId": "a3ee810f3fd80b28"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                "quoteId": "ef7e73c933557115"
+              }
+            ]
+          }
+        ],
+        "dimensions": [
+          {
+            "label": "表示规模与紧凑性",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "原始3DGS使用各向异性高斯以较少参数建模复杂形状，并在正文中主张优于显式点云方法的紧凑性；该数字不与LightGaussian表1同条件比较。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+                    "quoteId": "edef36258b0cae26"
+                  },
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+                    "quoteId": "655ccc116903cdfe"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "LightGaussian表1显示Ours的Size低于同条件重训3D-GS*；其方法通过剪枝与VQ减少过参数化表示。",
+                "kind": "inference",
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                    "quoteId": "c0be7ed3c0768423"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "渲染质量",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "原始3DGS声称达到state-of-the-art视觉质量并支持1080p高质量实时视图合成。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "afc39c4a49deffee"
+                  },
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9",
+                    "quoteId": "2d1d4bffa0e4d289"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "在LightGaussian同条件表1中，Ours的PSNR/SSIM略低于3D-GS*，LPIPS略高，属于质量上的小幅折让。",
+                "kind": "inference",
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "渲染速度与实时性",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "原始3DGS报告其合成场景可高帧率渲染，并强调1080p实时视图合成；但未与LightGaussian同表并列。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+                    "quoteId": "74448d5667a51913"
+                  },
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "afc39c4a49deffee"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "LightGaussian表1显示Ours的FPS高于同条件3D-GS*；论文自述在FPS、模型大小、质量间取得平衡。",
+                "kind": "inference",
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "80b69d9152d575a8"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "quoteId": "3f482a0dfd0f89db"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "quoteId": "ea6d0636b163d395"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "方法层面的取舍机制",
+            "cells": [
+              {
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "summary": "原始3DGS通过密集3D高斯、自适应密度控制、各向异性协方差与快速可见性渲染，优先保证表示精度和实时能力。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "af6db758c8e6ced9"
+                  },
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "7b9d87df95180321"
+                  },
+                  {
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                    "quoteId": "3ce54f8e4ac15897"
+                  }
+                ]
+              },
+              {
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "summary": "LightGaussian通过全局显著性剪枝与VQ减少冗余，并以可微微调补偿量化损失，主动用少量质量换取规模和速度。",
+                "kind": "reported",
+                "references": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                    "quoteId": "c0be7ed3c0768423"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+                    "quoteId": "513f51f3d1a60bde"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-35",
+                    "quoteId": "0e1e7d57e5c23b02"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-32",
+                    "quoteId": "c9facdf60cff8cfd"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "limitations": [
+          "同条件实验数字仅来自LightGaussian论文表1中已核对白名单的3D-GS*与Ours行；原始3DGS论文自身的速度、质量与存储声明来自不同实验设置，不能与这些行进行跨条件排序。",
+          "LightGaussian表1的表格列归属尚未完全核对；本次只采用白名单中已核对的结果行与基线行，未核对行与合并单元格不参与计算。",
+          "数字绑定仅选取Mip-NeRF360数据集的FPS、Size、PSNR、SSIM、LPIPS列；Tank&Temple组及其他未选行未在本结论中计算，需另行核对后才能外推。",
+          "LightGaussian表中的基线为重新训练的3D-GS*，与原始3DGS论文自己的硬件和版本可能不同，不能视为同一实验设置下的独立验证。"
+        ]
+      }
+    }
+  ],
+  "newModelCalls": 0
+}

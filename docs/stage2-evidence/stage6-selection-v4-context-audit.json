@@ -1,0 +1,11 @@
+{
+  "scope": "Offline reproduction using the archived same-PDF page extraction; not a captured request",
+  "pageTextChars": 3383,
+  "firstSelectedWordOffset": 422,
+  "transmittanceOffset": 3123,
+  "clientContextChars": 3383,
+  "clientKeepsTransmittance": true,
+  "serverContextChars": 3000,
+  "serverKeepsTransmittance": false,
+  "serverKeepsScoreFormula": false
+}

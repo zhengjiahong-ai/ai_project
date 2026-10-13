@@ -1,0 +1,141 @@
+
+> frontend@0.0.0 test
+> node src/utils/panoramicTranslation.test.js && node src/utils/selectionContext.test.js && node src/utils/pdfTranslationLayout.test.js && node scripts/layout-parser-benchmark.test.mjs && node src/utils/translationState.test.js && node src/utils/pageTranslationRequest.test.js && node src/utils/socraticSessionModel.test.js && node src/services/api.test.js && node src/components/translationPanelModel.test.js && node src/components/MarkdownContent.test.js && node src/components/criticalAnalysisData.test.js && node src/components/evidenceCitationModel.test.js && node src/components/parseStatusModel.test.js && node src/components/BackgroundKnowledgePanel.test.js && node src/components/deepResearchPanelModel.test.js && node src/components/insightCardModel.test.js && node src/components/artifactModel.test.js && node src/components/agent/agentWorkspaceModel.test.js && node src/components/agent/agentWorkspaceTheme.test.js && vitest run
+
+panoramic translation model tests passed
+selection context tests passed
+frontend pdf translation layout tests passed
+layout parser benchmark tests passed
+frontend translation state tests passed
+frontend page translation request tests passed
+socratic session model smoke tests passed
+frontend api smoke tests passed
+frontend translation panel model tests passed
+markdown math, table and folded source rendering smoke tests passed
+critical analysis data helper smoke tests passed
+evidence citation model smoke tests passed
+parse status model tests passed
+background knowledge panel model smoke tests passed
+deep research panel model smoke tests passed
+insight card model smoke tests passed
+artifact model smoke tests passed
+agentWorkspaceModel tests passed
+agentWorkspaceTheme tests passed
+
+ RUN  v4.1.10 D:/aiproj/ai_project/frontend
+
+ ❯ src/components/DocumentOriginalPage.test.jsx (0 test)
+ ❯ src/components/PanoramicMathSource.test.jsx (0 test)
+ ❯ src/components/DocumentVersionHistory.test.jsx (0 test)
+ ❯ src/components/CollapsedSources.test.jsx (0 test)
+ ❯ src/components/ConversationExecution.test.jsx (0 test)
+ ❯ src/components/a11y.test.jsx (0 test)
+ ❯ src/components/PdfViewerLifecycle.test.jsx (0 test)
+ ❯ src/hooks/useTaskWorkspace.test.jsx (0 test)
+ ❯ src/components/ExplanationPopup.test.jsx (0 test)
+ ❯ src/hooks/useTaskResearch.test.jsx (0 test)
+ ❯ src/components/TaskNavigation.test.jsx (0 test)
+ ❯ src/components/ReadingNotesPanel.test.jsx (0 test)
+ ❯ src/components/PanoramicTranslation.test.jsx (0 test)
+ ❯ src/components/DocumentOrganizer.test.jsx (0 test)
+ ❯ src/components/TaskRename.test.jsx (0 test)
+ ❯ src/components/TaskDraftRecovery.test.jsx (0 test)
+ ❯ src/components/PaperPageNavigation.test.jsx (0 test)
+ ❯ src/UnifiedTaskApp.test.jsx (0 test)
+ ❯ src/components/agent/AgentWorkspace.test.tsx (0 test)
+ ❯ src/components/ChatPanel.test.jsx (0 test)
+ ❯ src/components/Toast.test.jsx (0 test)
+ ❯ src/utils/documentHtmlExport.test.jsx (0 test)
+ ❯ src/components/ErrorBoundary.test.jsx (0 test)
+ ❯ src/hooks/useTaskLearning.test.jsx (0 test)
+ ❯ src/components/EmptyState.test.jsx (0 test)
+ ❯ src/services/taskMaterialCache.test.jsx (0 test)
+ ❯ src/components/ConversationResearch.test.jsx (0 test)
+ ❯ src/components/Skeleton.test.jsx (0 test)
+ ❯ src/utils/documentOriginalPage.test.jsx (0 test)
+ ❯ src/services/taskWorkspaceStore.test.jsx (0 test)
+ ❯ src/hooks/usePageTranslation.test.jsx (0 test)
+ ❯ src/utils/pdfMathGlyphs.test.jsx (0 test)
+ ❯ src/hooks/useTaskOperations.test.jsx (0 test)
+ ❯ src/services/taskWorkspaceRemoteStore.test.jsx (0 test)
+ ❯ src/utils/taskChatHistory.test.tsx (0 test)
+ ❯ src/services/highlightStore.test.js (0 test)
+ ❯ src/utils/conversationSkills.test.tsx (0 test)
+ ❯ src/utils/paperOutline.test.jsx (0 test)
+ ❯ src/utils/pdfPageExport.test.jsx (0 test)
+ ❯ src/utils/inlineMathSources.test.jsx (0 test)
+ ❯ src/utils/namedTaskPapers.test.tsx (0 test)
+ ❯ src/utils/taskWorkspaceModel.test.tsx (0 test)
+ ❯ src/utils/documentVersions.test.jsx (0 test)
+ ❯ src/components/agent/agentRunFallback.test.tsx (0 test)
+ ❯ src/utils/appHelpers.outline.test.jsx (0 test)
+ ❯ src/utils/learningActivityHistory.test.tsx (0 test)
+ ❯ src/utils/documentExport.test.jsx (0 test)
+ ❯ src/utils/artifactChatPreview.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 48 ⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/UnifiedTaskApp.test.jsx [ src/UnifiedTaskApp.test.jsx ]
+ FAIL  src/components/a11y.test.jsx [ src/components/a11y.test.jsx ]
+ FAIL  src/components/ChatPanel.test.jsx [ src/components/ChatPanel.test.jsx ]
+ FAIL  src/components/CollapsedSources.test.jsx [ src/components/CollapsedSources.test.jsx ]
+ FAIL  src/components/ConversationExecution.test.jsx [ src/components/ConversationExecution.test.jsx ]
+ FAIL  src/components/ConversationResearch.test.jsx [ src/components/ConversationResearch.test.jsx ]
+ FAIL  src/components/DocumentOrganizer.test.jsx [ src/components/DocumentOrganizer.test.jsx ]
+ FAIL  src/components/DocumentOriginalPage.test.jsx [ src/components/DocumentOriginalPage.test.jsx ]
+ FAIL  src/components/DocumentVersionHistory.test.jsx [ src/components/DocumentVersionHistory.test.jsx ]
+ FAIL  src/components/EmptyState.test.jsx [ src/components/EmptyState.test.jsx ]
+ FAIL  src/components/ErrorBoundary.test.jsx [ src/components/ErrorBoundary.test.jsx ]
+ FAIL  src/components/ExplanationPopup.test.jsx [ src/components/ExplanationPopup.test.jsx ]
+ FAIL  src/components/PanoramicMathSource.test.jsx [ src/components/PanoramicMathSource.test.jsx ]
+ FAIL  src/components/PanoramicTranslation.test.jsx [ src/components/PanoramicTranslation.test.jsx ]
+ FAIL  src/components/PaperPageNavigation.test.jsx [ src/components/PaperPageNavigation.test.jsx ]
+ FAIL  src/components/PdfViewerLifecycle.test.jsx [ src/components/PdfViewerLifecycle.test.jsx ]
+ FAIL  src/components/ReadingNotesPanel.test.jsx [ src/components/ReadingNotesPanel.test.jsx ]
+ FAIL  src/components/Skeleton.test.jsx [ src/components/Skeleton.test.jsx ]
+ FAIL  src/components/TaskDraftRecovery.test.jsx [ src/components/TaskDraftRecovery.test.jsx ]
+ FAIL  src/components/TaskNavigation.test.jsx [ src/components/TaskNavigation.test.jsx ]
+ FAIL  src/components/TaskRename.test.jsx [ src/components/TaskRename.test.jsx ]
+ FAIL  src/components/Toast.test.jsx [ src/components/Toast.test.jsx ]
+ FAIL  src/hooks/usePageTranslation.test.jsx [ src/hooks/usePageTranslation.test.jsx ]
+ FAIL  src/hooks/useTaskLearning.test.jsx [ src/hooks/useTaskLearning.test.jsx ]
+ FAIL  src/hooks/useTaskOperations.test.jsx [ src/hooks/useTaskOperations.test.jsx ]
+ FAIL  src/hooks/useTaskResearch.test.jsx [ src/hooks/useTaskResearch.test.jsx ]
+ FAIL  src/hooks/useTaskWorkspace.test.jsx [ src/hooks/useTaskWorkspace.test.jsx ]
+ FAIL  src/services/highlightStore.test.js [ src/services/highlightStore.test.js ]
+ FAIL  src/services/taskMaterialCache.test.jsx [ src/services/taskMaterialCache.test.jsx ]
+ FAIL  src/services/taskWorkspaceRemoteStore.test.jsx [ src/services/taskWorkspaceRemoteStore.test.jsx ]
+ FAIL  src/services/taskWorkspaceStore.test.jsx [ src/services/taskWorkspaceStore.test.jsx ]
+ FAIL  src/utils/appHelpers.outline.test.jsx [ src/utils/appHelpers.outline.test.jsx ]
+ FAIL  src/utils/artifactChatPreview.test.tsx [ src/utils/artifactChatPreview.test.tsx ]
+ FAIL  src/utils/conversationSkills.test.tsx [ src/utils/conversationSkills.test.tsx ]
+ FAIL  src/utils/documentExport.test.jsx [ src/utils/documentExport.test.jsx ]
+ FAIL  src/utils/documentHtmlExport.test.jsx [ src/utils/documentHtmlExport.test.jsx ]
+ FAIL  src/utils/documentOriginalPage.test.jsx [ src/utils/documentOriginalPage.test.jsx ]
+ FAIL  src/utils/documentVersions.test.jsx [ src/utils/documentVersions.test.jsx ]
+ FAIL  src/utils/inlineMathSources.test.jsx [ src/utils/inlineMathSources.test.jsx ]
+ FAIL  src/utils/learningActivityHistory.test.tsx [ src/utils/learningActivityHistory.test.tsx ]
+ FAIL  src/utils/namedTaskPapers.test.tsx [ src/utils/namedTaskPapers.test.tsx ]
+ FAIL  src/utils/paperOutline.test.jsx [ src/utils/paperOutline.test.jsx ]
+ FAIL  src/utils/pdfMathGlyphs.test.jsx [ src/utils/pdfMathGlyphs.test.jsx ]
+ FAIL  src/utils/pdfPageExport.test.jsx [ src/utils/pdfPageExport.test.jsx ]
+ FAIL  src/utils/taskChatHistory.test.tsx [ src/utils/taskChatHistory.test.tsx ]
+ FAIL  src/utils/taskWorkspaceModel.test.tsx [ src/utils/taskWorkspaceModel.test.tsx ]
+ FAIL  src/components/agent/agentRunFallback.test.tsx [ src/components/agent/agentRunFallback.test.tsx ]
+ FAIL  src/components/agent/AgentWorkspace.test.tsx [ src/components/agent/AgentWorkspace.test.tsx ]
+Error: EPERM: operation not permitted, realpath 'D:\aiproj\ai_project\frontend\src\test-setup.js'
+ ❯ getRealPath node_modules/vite/dist/node/chunks/config.js:32933:36
+ ❯ tryResolveRealFileOrType node_modules/vite/dist/node/chunks/config.js:32927:9
+ ❯ tryCleanFsResolve node_modules/vite/dist/node/chunks/config.js:32651:21
+ ❯ tryFsResolve node_modules/vite/dist/node/chunks/config.js:32644:14
+ ❯ ResolveIdContext.handler node_modules/vite/dist/node/chunks/config.js:32518:16
+ ❯ EnvironmentPluginContainer.resolveId node_modules/vite/dist/node/chunks/config.js:28717:56
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/48]⎯
+
+
+ Test Files  48 failed (48)
+      Tests  no tests
+   Start at  15:44:57
+   Duration  28.39s (transform 0ms, setup 0ms, import 0ms, tests 0ms, environment 411.90s)
+

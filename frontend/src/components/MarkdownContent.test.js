@@ -125,7 +125,20 @@ const run = async () => {
   assert.match(popupMessageMarkup, /chat-message-popup/);
   assert.match(popupMessageMarkup, /katex/);
 
-  console.log('markdown math rendering smoke tests passed');
+  const reportMarkup = renderToStaticMarkup(React.createElement(MessageMarkdownRenderer, null,
+    '结论。\n\n| 维度 | 论文1 | 论文2 |\n| --- | --- | --- |\n| 目标 | SINR | 互信息 |\n\n<details>\n<summary>原文依据</summary>\n\n- 逐字 **摘录**\n\n</details>'));
+  assert.match(reportMarkup, /<table/);
+  assert.match(reportMarkup, /<details[^>]*><summary/);
+  assert.match(reportMarkup, /<strong>摘录<\/strong>/);
+  assert.doesNotMatch(reportMarkup, /<details[^>]*\bopen\b/);
+  const unsafeMarkup = renderToStaticMarkup(React.createElement(MessageMarkdownRenderer, null,
+    '<details>\n<summary>依据</summary>\n\n<script>alert(1)</script>\n\n</details>'));
+  assert.doesNotMatch(unsafeMarkup, /<script>/);
+  const codeMarkup = renderToStaticMarkup(React.createElement(MessageMarkdownRenderer, null,
+    '```html\n<details>\n<summary>示例</summary>\nbody\n</details>\n```'));
+  assert.doesNotMatch(codeMarkup, /<details[^>]*>/);
+  assert.match(codeMarkup, /<code/);
+  console.log('markdown math, table and folded source rendering smoke tests passed');
 };
 
 run().catch((error) => {

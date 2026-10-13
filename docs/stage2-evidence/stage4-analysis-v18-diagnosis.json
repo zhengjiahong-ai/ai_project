@@ -1,0 +1,118 @@
+{
+  "providerCalls": 0,
+  "taskWrites": 0,
+  "originalResponseUnchanged": true,
+  "findings": [
+    {
+      "findingIndex": 0,
+      "summary": "在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为⟦数值1⟧。",
+      "kind": "inference",
+      "rejection": null,
+      "selectedQuotes": []
+    },
+    {
+      "findingIndex": 1,
+      "summary": "LightGaussian 在两组已测真实大规模场景中的实时渲染帧率分别为⟦数值2⟧和⟦数值3⟧；这一帧率仅在论文给出的 A6000 平台和对应测试设置下成立。",
+      "kind": "reported",
+      "rejection": null,
+      "selectedQuotes": []
+    },
+    {
+      "findingIndex": 2,
+      "summary": "与同硬件重新训练的 3D-GS* 相比，LightGaussian 的 PSNR、SSIM 略低、LPIPS 略高，说明压缩伴随轻微质量代价。",
+      "kind": "inference",
+      "rejection": null,
+      "selectedQuotes": [
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+          "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178"
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+          "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+        }
+      ]
+    },
+    {
+      "findingIndex": 3,
+      "summary": "论文在 Mip-NeRF 360 和 Tanks and Temples 真实大规模场景上评估，性能均基于 A6000 GPU，并对部分对比基线使用原始代码和配置重新训练，比较条件为同平台重训基线。",
+      "kind": "reported",
+      "rejection": null,
+      "selectedQuotes": [
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+          "quote": "In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+          "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * ."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+          "quote": "All performance evaluations are conducted on an A6000 GPU."
+        }
+      ]
+    },
+    {
+      "findingIndex": 4,
+      "summary": "剪枝显著性在所有训练视图像素上统计命中并乘以高斯体积项和不透明度；体积项先经过排序归一化以抑制背景高斯过度主导。机制依赖训练相机覆盖，未覆盖视角的冗余判断存在风险，原文未提供目标域外验证。",
+      "kind": "inference",
+      "rejection": "不能把检索缺口发布为论文缺陷，请改为待核查问题。",
+      "selectedQuotes": [
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+          "quote": "Consequently, we iterate over all training pixels to calculate the hit count of each Gaussian."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+          "quote": "However, using Gaussian volume alone tends to overemphasize background Gaussians, leading to excessive pruning of Gaussians modeling fine geometry."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+          "quote": "Here, the calculated Gaussian volume is firstly normalized by the 90% largest of all sorted Gaussians, clipping the range between 0 and 1, to avoid excessive floating Gaussians derived from vanilla 3D-GS."
+        }
+      ]
+    },
+    {
+      "findingIndex": 5,
+      "summary": "SH 降阶蒸馏仅在训练相机位置附近按高斯分布采样伪视图，监督为教师与学生渲染像素强度的 L2 差；因此提供的是局部视角一致性监督，远视角泛化未被验证。",
+      "kind": "inference",
+      "rejection": "不能把检索缺口发布为论文缺陷，请改为待核查问题。",
+      "selectedQuotes": [
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+          "quote": "Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:"
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+          "quote": "Equation: t pseudo = t train + N (0, σ 2 ),(6)"
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+          "quote": "Equation: L distill = 1 HW HW i=1 ∥C teacher (r i ; [R|t]) − C student (r i ; [R|t])∥ 2 2 ."
+        }
+      ]
+    },
+    {
+      "findingIndex": 6,
+      "summary": "作者报告对高斯所有属性量化会造成显著精度损失，因此 VQ 被限定在球谐系数上，并假设一组高斯外观相似；位置、形状、旋转、不透明度和高显著性球谐系数保持 float16，非 SH 属性未量化可能限制整体压缩率。",
+      "kind": "reported",
+      "rejection": null,
+      "selectedQuotes": [
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+          "quote": "Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+          "quote": "We propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance."
+        },
+        {
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+          "quote": "To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format."
+        }
+      ]
+    }
+  ],
+  "publicContentReplayMatches": true
+}

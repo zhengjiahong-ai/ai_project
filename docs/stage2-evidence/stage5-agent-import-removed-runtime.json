@@ -1,0 +1,4 @@
+{
+  "http://localhost:8081/api/task-workspaces/migrations/agent-projects": 404,
+  "http://localhost:8000/api/agent-migration/projects": 404
+}

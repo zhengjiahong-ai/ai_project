@@ -1,0 +1,251 @@
+{
+  "python": {
+    "status": "ok",
+    "checks": {
+      "grobid": {
+        "status": "ok",
+        "message": "GROBID is reachable."
+      },
+      "rag": {
+        "status": "ok",
+        "message": "RAG backend is ready."
+      }
+    },
+    "uptime_seconds": 139.2
+  },
+  "grobid": true,
+  "frontendStatus": 200,
+  "taskCount": 46,
+  "tasks": [
+    {
+      "id": "stage4-3dgs-compose-20261009-v6",
+      "title": "阶段4：compose修复核验-v6",
+      "revision": 1
+    },
+    {
+      "id": "task:f8b18af5-9681-4bda-ad15-30fd2f3dbafe",
+      "title": "阶段6：有材料的对话起点验收",
+      "revision": 17
+    },
+    {
+      "id": "stage4-3dgs-critique-20261009-v6",
+      "title": "阶段4：critique修复核验-v6",
+      "revision": 0
+    },
+    {
+      "id": "task:19cdd7c8-6bf8-46fb-ac72-0ae2c23fd339",
+      "title": "阶段6：上传切任务归属-A",
+      "revision": 2
+    },
+    {
+      "id": "task:8abdf651-8e21-4a67-ac45-1afb5c451885",
+      "title": "阶段6：上传切任务归属-B",
+      "revision": 1
+    },
+    {
+      "id": "stage4-3dgs-critique-20261009-v5",
+      "title": "阶段4：critique修复核验-v5",
+      "revision": 1
+    },
+    {
+      "id": "stage4-3dgs-compose-20261009-v5",
+      "title": "阶段4：compose修复核验-v5",
+      "revision": 0
+    },
+    {
+      "id": "stage4-3dgs-critique-20261008-v4",
+      "title": "阶段4：critique修复核验-v4",
+      "revision": 1
+    },
+    {
+      "id": "stage4-3dgs-compose-20261008-v4",
+      "title": "阶段4：compose修复核验-v4",
+      "revision": 0
+    },
+    {
+      "id": "stage4-3dgs-critique-20261008-v3",
+      "title": "阶段4：critique修复核验-v3",
+      "revision": 1
+    },
+    {
+      "id": "stage4-3dgs-compose-20261008-v3",
+      "title": "阶段4：compose修复核验-v3",
+      "revision": 0
+    },
+    {
+      "id": "task:acaca995-12ca-4ecb-883f-8fb26899db30",
+      "title": "阶段6：首次使用与任务输入验收",
+      "revision": 2
+    },
+    {
+      "id": "task:85c04a6f-e2a5-43fa-9d84-d19d8fe4435e",
+      "title": "新任务",
+      "revision": 0
+    },
+    {
+      "id": "stage6-paper-tools-20261008",
+      "title": "阶段6：真实论文阅读工具验收",
+      "revision": 3
+    },
+    {
+      "id": "stage4-3dgs-materials-20261008",
+      "title": "阶段4：3DGS验证材料",
+      "revision": 1
+    },
+    {
+      "id": "stage6-reading-demo-20261008",
+      "title": "阶段6：阅读与编辑体验验收",
+      "revision": 3
+    },
+    {
+      "id": "stage5-version-recovery-20261008",
+      "title": "阶段5：版本与草稿恢复验收",
+      "revision": 5
+    },
+    {
+      "id": "stage5-missing-file-20261008",
+      "title": "阶段5：缺文件提示验收",
+      "revision": 0
+    },
+    {
+      "id": "task:057e9f7f-ac05-43ec-973c-4f4660a7a76f",
+      "title": "新任务",
+      "revision": 0
+    },
+    {
+      "id": "stage4-3dgs-critique-20261008-v2",
+      "title": "阶段4：critique真实验收-v2",
+      "revision": 3
+    },
+    {
+      "id": "legacy-agent:a2a04a3d-b30f-39d6-9630-9d74a003d110",
+      "title": "演示：LightGaussian 压缩方法",
+      "revision": 1
+    },
+    {
+      "id": "stage5-identity-runtime-20261008",
+      "title": "阶段5：旧文档标识补全验收",
+      "revision": 1
+    },
+    {
+      "id": "stage5-move-target-20261008",
+      "title": "阶段5：移动目标任务",
+      "revision": 3
+    },
+    {
+      "id": "stage5-move-source-20261008",
+      "title": "阶段5：移动原任务",
+      "revision": 3
+    },
+    {
+      "id": "stage4-3dgs-compose-20261008-v2",
+      "title": "阶段4：compose真实验收-v2",
+      "revision": 0
+    },
+    {
+      "id": "stage4-3dgs-research-20261008",
+      "title": "阶段4：research真实验收",
+      "revision": 2
+    },
+    {
+      "id": "stage4-3dgs-compose-20261008",
+      "title": "阶段4：compose真实验收",
+      "revision": 1
+    },
+    {
+      "id": "stage4-3dgs-critique-20261008",
+      "title": "阶段4：critique真实验收",
+      "revision": 1
+    },
+    {
+      "id": "stage4-3dgs-compare-20261008",
+      "title": "阶段4：compare真实验收",
+      "revision": 1
+    },
+    {
+      "id": "stage4-answer-rendering-20261008",
+      "title": "阶段4：研究回答显示验收",
+      "revision": 1
+    },
+    {
+      "id": "stage3-novice-active-ris-20261008",
+      "title": "阶段3：新手主动RIS学习闭环",
+      "revision": 13
+    },
+    {
+      "id": "stage3-quiz-active-ris-20261008",
+      "title": "阶段3：主动RIS自测闭环",
+      "revision": 3
+    },
+    {
+      "id": "stage2-current-background-20261008",
+      "title": "阶段2：新版补课协议验收",
+      "revision": 1
+    },
+    {
+      "id": "stage2-multi-paper-20261008",
+      "title": "阶段2：多论文范围与比较验收",
+      "revision": 5
+    },
+    {
+      "id": "stage2-research-publication-20261008",
+      "title": "阶段2：研究终稿发布验收",
+      "revision": 2
+    },
+    {
+      "id": "stage2-learning-read-20261008",
+      "title": "阶段2：精读入口验收",
+      "revision": 4
+    },
+    {
+      "id": "stage2-learning-quiz-20261008",
+      "title": "阶段2：自测入口验收",
+      "revision": 1
+    },
+    {
+      "id": "stage2-result-recovery-20261008",
+      "title": "阶段2：批判成果恢复验收",
+      "revision": 3
+    },
+    {
+      "id": "stage2-stop-before-start-20261008",
+      "title": "阶段2：执行前停止验收",
+      "revision": 0
+    },
+    {
+      "id": "stage2-failed-retry-20261008",
+      "title": "阶段2：失败与重试验收",
+      "revision": 1
+    },
+    {
+      "id": "stage2-parse-only-20261007",
+      "title": "阶段2：先阅读再解析验收",
+      "revision": 0
+    },
+    {
+      "id": "stage2-conversation-20261007",
+      "title": "阶段2统一对话验收",
+      "revision": 1
+    },
+    {
+      "id": "stage1-file-1791210362",
+      "title": "阶段1文件恢复验收",
+      "revision": 17
+    },
+    {
+      "id": "stage1:编码-1791211625",
+      "title": "任务标识编码验收",
+      "revision": 0
+    },
+    {
+      "id": "stage1-other-1791210573",
+      "title": "并发隔离验收",
+      "revision": 0
+    },
+    {
+      "id": "task:0192dad6-12fa-4ffc-8b4b-867f4ba39df5",
+      "title": "新任务",
+      "revision": 5
+    }
+  ]
+}

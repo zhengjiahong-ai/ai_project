@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pixiu/task-operation/v1",
+  "title": "Task execution receipt",
+  "type": "object",
+  "required": ["taskId", "requestId", "kind", "status"],
+  "properties": {
+    "taskId": {"type": "string", "minLength": 1, "maxLength": 255},
+    "requestId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "kind": {"enum": ["learning.start", "learning.action", "research.start", "conversation.execute"]},
+    "status": {"enum": ["queued", "running", "cancelling", "cancelled", "succeeded", "failed", "interrupted", "conflicted"]},
+    "createdAt": {"type": "string"},
+    "updatedAt": {"type": "string"},
+    "error": {"type": "string"},
+    "task": {"type": "object"},
+    "result": {"type": ["object", "null"]},
+    "request": {"type": "object", "description": "Original user-facing intent; excludes provider input, history and authoritative activity state."},
+    "retryOf": {"type": "string", "description": "Previous terminal request whose retry this receipt represents."},
+    "paperIds": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  },
+  "allOf": [{"if": {"properties": {"status": {"const": "succeeded"}}}, "then": {"required": ["task", "result"]}}]
+}

@@ -1,0 +1,751 @@
+{
+  "startUtc": "2026-10-10T06:16:03.484742+00:00",
+  "endUtc": "2026-10-10T06:20:39.541349+00:00",
+  "cacheRowsInWindow": 1,
+  "structuredRowsArchived": 1,
+  "ownership": "Exact user/system prompt hashes and cache keys matched native approved-paper inputs",
+  "providerCalls": 0,
+  "taskWrites": 0,
+  "cacheRows": [
+    {
+      "cacheKey": "09cd950809cbaa520479e16536572216e6d5ebdc7d06ae1df1d61a76de341dbf",
+      "model": "deepseek-v4-pro",
+      "temperature": 0.3,
+      "systemPromptHash": "5572c141bb95fa6aea80f1f7279a2c55602ea5696f2746fa872c575cc554ae28",
+      "userPromptHash": "c8720e4529ef2592d118bc846335286ca113134d418c8ef0c7058934b6594cf7",
+      "rawResponse": "{\n  \"findings\": [\n    {\n      \"section\": \"weakness\",\n      \"summary\": \"在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为⟦数值1⟧。\",\n      \"kind\": \"inference\",\n      \"numericBindings\": [\n        {\n          \"id\": 1,\n          \"kind\": \"experiment\",\n          \"factId\": \"1e0cf564666405e783d2\",\n          \"operation\": \"inverse_ratio\",\n          \"baselineFactId\": \"3d91c65f37cc3bb35b6c\",\n          \"decimals\": 3\n        }\n      ],\n      \"references\": []\n    },\n    {\n      \"section\": \"weakness\",\n      \"summary\": \"LightGaussian 在两组已测真实大规模场景中的实时渲染帧率分别为⟦数值2⟧和⟦数值3⟧；这一帧率仅在论文给出的 A6000 平台和对应测试设置下成立。\",\n      \"kind\": \"reported\",\n      \"numericBindings\": [\n        {\n          \"id\": 2,\n          \"kind\": \"experiment\",\n          \"factId\": \"00ceb6de37b5f2060cce\",\n          \"operation\": \"value\"\n        },\n        {\n          \"id\": 3,\n          \"kind\": \"experiment\",\n          \"factId\": \"a6c74111455e867e5de8\",\n          \"operation\": \"value\"\n        }\n      ],\n      \"references\": []\n    },\n    {\n      \"section\": \"weakness\",\n      \"summary\": \"与同硬件重新训练的 3D-GS* 相比，LightGaussian 的 PSNR、SSIM 略低、LPIPS 略高，说明压缩伴随轻微质量代价。\",\n      \"kind\": \"inference\",\n      \"references\": [\n        {\n          \"quoteId\": \"80b69d9152d575a8\"\n        },\n        {\n          \"quoteId\": \"3f482a0dfd0f89db\"\n        }\n      ]\n    },\n    {\n      \"section\": \"weakness\",\n      \"summary\": \"论文在 Mip-NeRF 360 和 Tanks and Temples 真实大规模场景上评估，性能均基于 A6000 GPU，并对部分对比基线使用原始代码和配置重新训练，比较条件为同平台重训基线。\",\n      \"kind\": \"reported\",\n      \"references\": [\n        {\n          \"quoteId\": \"1551db0d017e4237\"\n        },\n        {\n          \"quoteId\": \"a3ee810f3fd80b28\"\n        },\n        {\n          \"quoteId\": \"ef7e73c933557115\"\n        }\n      ]\n    },\n    {\n      \"section\": \"risk\",\n      \"summary\": \"剪枝显著性在所有训练视图像素上统计命中并乘以高斯体积项和不透明度；体积项先经过排序归一化以抑制背景高斯过度主导。机制依赖训练相机覆盖，未覆盖视角的冗余判断存在风险，原文未提供目标域外验证。\",\n      \"kind\": \"inference\",\n      \"references\": [\n        {\n          \"quoteId\": \"77b7f24b1908cd63\"\n        },\n        {\n          \"quoteId\": \"53e33538955e08f1\"\n        },\n        {\n          \"quoteId\": \"fff731411438c613\"\n        }\n      ]\n    },\n    {\n      \"section\": \"risk\",\n      \"summary\": \"SH 降阶蒸馏仅在训练相机位置附近按高斯分布采样伪视图，监督为教师与学生渲染像素强度的 L2 差；因此提供的是局部视角一致性监督，远视角泛化未被验证。\",\n      \"kind\": \"inference\",\n      \"references\": [\n        {\n          \"quoteId\": \"1802905281003ea6\"\n        },\n        {\n          \"quoteId\": \"23c1ebaf58f1c77a\"\n        },\n        {\n          \"quoteId\": \"463a0ba8de680879\"\n        }\n      ]\n    },\n    {\n      \"section\": \"risk\",\n      \"summary\": \"作者报告对高斯所有属性量化会造成显著精度损失，因此 VQ 被限定在球谐系数上，并假设一组高斯外观相似；位置、形状、旋转、不透明度和高显著性球谐系数保持 float16，非 SH 属性未量化可能限制整体压缩率。\",\n      \"kind\": \"reported\",\n      \"references\": [\n        {\n          \"quoteId\": \"db7463c49cdd7c7f\"\n        },\n        {\n          \"quoteId\": \"04c9eed77892ab27\"\n        },\n        {\n          \"quoteId\": \"2167fb002ed62028\"\n        }\n      ]\n    }\n  ],\n  \"pendingQuestions\": [\n    {\n      \"topic\": \"远视角或训练轨迹外视角的泛化是否在其他目标域测试中被验证\"\n    },\n    {\n      \"topic\": \"FPS 测量所用的渲染分辨率、图像尺寸及光栅化设置是否与基线一致\"\n    },\n    {\n      \"topic\": \"压缩比是否计入码本、低阶 SH 及未量化 float16 属性的全部存储开销\"\n    }\n  ]\n}",
+      "response": {
+        "findings": [
+          {
+            "section": "weakness",
+            "summary": "在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为⟦数值1⟧。",
+            "kind": "inference",
+            "numericBindings": [
+              {
+                "id": 1,
+                "kind": "experiment",
+                "factId": "1e0cf564666405e783d2",
+                "operation": "inverse_ratio",
+                "baselineFactId": "3d91c65f37cc3bb35b6c",
+                "decimals": 3
+              }
+            ],
+            "references": []
+          },
+          {
+            "section": "weakness",
+            "summary": "LightGaussian 在两组已测真实大规模场景中的实时渲染帧率分别为⟦数值2⟧和⟦数值3⟧；这一帧率仅在论文给出的 A6000 平台和对应测试设置下成立。",
+            "kind": "reported",
+            "numericBindings": [
+              {
+                "id": 2,
+                "kind": "experiment",
+                "factId": "00ceb6de37b5f2060cce",
+                "operation": "value"
+              },
+              {
+                "id": 3,
+                "kind": "experiment",
+                "factId": "a6c74111455e867e5de8",
+                "operation": "value"
+              }
+            ],
+            "references": []
+          },
+          {
+            "section": "weakness",
+            "summary": "与同硬件重新训练的 3D-GS* 相比，LightGaussian 的 PSNR、SSIM 略低、LPIPS 略高，说明压缩伴随轻微质量代价。",
+            "kind": "inference",
+            "references": [
+              {
+                "quoteId": "80b69d9152d575a8"
+              },
+              {
+                "quoteId": "3f482a0dfd0f89db"
+              }
+            ]
+          },
+          {
+            "section": "weakness",
+            "summary": "论文在 Mip-NeRF 360 和 Tanks and Temples 真实大规模场景上评估，性能均基于 A6000 GPU，并对部分对比基线使用原始代码和配置重新训练，比较条件为同平台重训基线。",
+            "kind": "reported",
+            "references": [
+              {
+                "quoteId": "1551db0d017e4237"
+              },
+              {
+                "quoteId": "a3ee810f3fd80b28"
+              },
+              {
+                "quoteId": "ef7e73c933557115"
+              }
+            ]
+          },
+          {
+            "section": "risk",
+            "summary": "剪枝显著性在所有训练视图像素上统计命中并乘以高斯体积项和不透明度；体积项先经过排序归一化以抑制背景高斯过度主导。机制依赖训练相机覆盖，未覆盖视角的冗余判断存在风险，原文未提供目标域外验证。",
+            "kind": "inference",
+            "references": [
+              {
+                "quoteId": "77b7f24b1908cd63"
+              },
+              {
+                "quoteId": "53e33538955e08f1"
+              },
+              {
+                "quoteId": "fff731411438c613"
+              }
+            ]
+          },
+          {
+            "section": "risk",
+            "summary": "SH 降阶蒸馏仅在训练相机位置附近按高斯分布采样伪视图，监督为教师与学生渲染像素强度的 L2 差；因此提供的是局部视角一致性监督，远视角泛化未被验证。",
+            "kind": "inference",
+            "references": [
+              {
+                "quoteId": "1802905281003ea6"
+              },
+              {
+                "quoteId": "23c1ebaf58f1c77a"
+              },
+              {
+                "quoteId": "463a0ba8de680879"
+              }
+            ]
+          },
+          {
+            "section": "risk",
+            "summary": "作者报告对高斯所有属性量化会造成显著精度损失，因此 VQ 被限定在球谐系数上，并假设一组高斯外观相似；位置、形状、旋转、不透明度和高显著性球谐系数保持 float16，非 SH 属性未量化可能限制整体压缩率。",
+            "kind": "reported",
+            "references": [
+              {
+                "quoteId": "db7463c49cdd7c7f"
+              },
+              {
+                "quoteId": "04c9eed77892ab27"
+              },
+              {
+                "quoteId": "2167fb002ed62028"
+              }
+            ]
+          }
+        ],
+        "pendingQuestions": [
+          {
+            "topic": "远视角或训练轨迹外视角的泛化是否在其他目标域测试中被验证"
+          },
+          {
+            "topic": "FPS 测量所用的渲染分辨率、图像尺寸及光栅化设置是否与基线一致"
+          },
+          {
+            "topic": "压缩比是否计入码本、低阶 SH 及未量化 float16 属性的全部存储开销"
+          }
+        ]
+      },
+      "createdAt": 1791613165.4370399,
+      "capability": "critique",
+      "requestId": "stage4-3dgs-critique-20261010-v18-request",
+      "inputVerification": {
+        "promptMatchesCache": true,
+        "allowedPaperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-39",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28"
+        ],
+        "experimentFactOptions": 20
+      },
+      "nativeReplay": {
+        "status": "success",
+        "partial": true,
+        "capability": "critique",
+        "message": "部分结果：\n\n推断：在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为Mip-NeRF 360 Datasets：Ours Size压缩17.378倍。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [1] [2] [3]",
+        "sources": [
+          {
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+            "text": "high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = {g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = {c 1 , c 2 , . . . , c K }, where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:",
+            "metadata": {
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "page_index": 4,
+              "page": 5,
+              "file_name": "public-light.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS",
+              "section_id": "section-7",
+              "chunk_index": 19,
+              "section_title": "Gaussian Attributes Vector Quantization"
+            },
+            "similarity": null,
+            "score": null,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "chunkIndex": 19,
+            "pageIndex": 4,
+            "sectionId": "section-7",
+            "sourceType": "current_paper"
+          },
+          {
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+            "text": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j",
+            "metadata": {
+              "page": 5,
+              "file_name": "public-light.pdf",
+              "section_id": "section-7",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS",
+              "index_version": "2977684d0da4a8b6",
+              "chunk_index": 21,
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "page_index": 4,
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+            },
+            "similarity": null,
+            "score": null,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "chunkIndex": 21,
+            "pageIndex": 4,
+            "sectionId": "section-7",
+            "sourceType": "current_paper"
+          },
+          {
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+            "text": "In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structural similarity (SSIM), and perceptual similarity as measured by LPIPS[66].\nCompared Baselines. We compare our approach with methods suited for large-scale scene modeling, including Plenoxel[12], Mip-NeRF360[7], and 3D-GS[16]. Additionally, we evaluate against efficient techniques like Instant-NGP[14], which uses a hash grid for storage efficiency, and VQ-DVGO[49], which extends DVGO[9]with voxel pruning and VQ for optimized representation.\nImplementation Details. Our framework is implemented in PyTorch and integrates the differentiable Gaussian rasterization technique from 3D-GS[16]. All performance evaluations are conducted on an A6000 GPU. In the Global Significance Calculation phase, we assign a power value of 0.1 in Eq. 4 and proceed to fine-tune the model for 5,000 steps during the Gaussian Co-adaptation process.",
+            "metadata": {
+              "section_title": "Experimental Settings",
+              "index_version": "2977684d0da4a8b6",
+              "page": 6,
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "section_id": "section-9",
+              "chunk_index": 23,
+              "file_name": "public-light.pdf",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS",
+              "page_index": 5
+            },
+            "similarity": null,
+            "score": null,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "chunkIndex": 23,
+            "pageIndex": 5,
+            "sectionId": "section-9",
+            "sourceType": "current_paper"
+          },
+          {
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+            "text": "Table caption: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\nTable row 1: Methods | FPS↑ | Mip-NeRF 360 Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ FPS↑ [cols=5, rows=1] | Tank and Temple Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ [cols=4, rows=1]\nTable row 7: Compact 3D-GS [37] | 128 | 48MB | 27.08 | 0.798 | 0.247 | 185 | 39MB | 23.32 | 0.831 | 0.201\nTable row 8: 3D-GS [16] | 134 | 734MB | 27.21 | 0.815 | 0.214 | 154 | 411MB | 23.14 | 0.841 | 0.183\nTable row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178\nTable row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+            "metadata": {
+              "table_column_mapping_unverified": true,
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "table_id": "tab_0",
+              "chunk_index": 38,
+              "page": 6,
+              "index_version": "2977684d0da4a8b6",
+              "table_verified_data": "{\"groups\":[[\"Mip-NeRF 360 Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]],[\"Tank and Temple Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]]],\"rows\":[[7,\"Compact 3D-GS [37]\",[\"128\",\"48MB\",\"27.08\",\"0.798\",\"0.247\",\"185\",\"39MB\",\"23.32\",\"0.831\",\"0.201\"]],[8,\"3D-GS [16]\",[\"134\",\"734MB\",\"27.21\",\"0.815\",\"0.214\",\"154\",\"411MB\",\"23.14\",\"0.841\",\"0.183\"]],[9,\"3D-GS  *  [16]\",[\"144\",\"782MB\",\"27.40\",\"0.813\",\"0.217\",\"106\",\"433MB\",\"23.66\",\"0.845\",\"0.178\"]],[10,\"Ours\",[\"237\",\"45MB\",\"27.13\",\"0.806\",\"0.237\",\"357\",\"25MB\",\"23.44\",\"0.832\",\"0.202\"]]]}",
+              "section_id": "table-tab_0",
+              "evidence_kind": "table",
+              "page_index": 5,
+              "section_title": "Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods",
+              "file_name": "public-light.pdf",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "similarity": null,
+            "score": null,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "chunkIndex": 38,
+            "pageIndex": 5,
+            "sectionId": "table-tab_0",
+            "sourceType": "current_paper"
+          }
+        ],
+        "sentenceSourceMap": [
+          {
+            "id": "grounded-1",
+            "target": "message",
+            "sentence": "在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为Mip-NeRF 360 Datasets：Ours Size压缩17.378倍。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+            ],
+            "references": [
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178"
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * ."
+              },
+              {
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                "quote": "All performance evaluations are conducted on an A6000 GPU."
+              }
+            ],
+            "method": "literal_quote",
+            "kind": "inference"
+          }
+        ],
+        "materialScope": {
+          "taskId": "stage4-3dgs-critique-20261010-v18",
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "strictScope": true
+        },
+        "steps": [
+          {
+            "capability": "critique",
+            "results": [
+              {
+                "status": "success",
+                "partial": true,
+                "message": "**部分分析**\n\n推断：在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为Mip-NeRF 360 Datasets：Ours Size压缩17.378倍。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [1] [2] [3]\n\nLightGaussian 在两组已测真实大规模场景中的实时渲染帧率分别为Mip-NeRF 360 Datasets：Ours FPS 237和Tank and Temple Datasets：Ours FPS 357；这一帧率仅在论文给出的 A6000 平台和对应测试设置下成立。（NVIDIA A6000 GPU，模型Ours） [1] [2] [3]\n\n推断：与同硬件重新训练的 3D-GS* 相比，LightGaussian 的 PSNR、SSIM 略低、LPIPS 略高，说明压缩伴随轻微质量代价。 [1]\n\n<details>\n<summary>尚待确认</summary>\n\n另有2项判断暂未确认，未纳入本次结论。\n\n</details>\n\n<details>\n<summary>补充结论</summary>\n\n论文在 Mip-NeRF 360 和 Tanks and Temples 真实大规模场景上评估，性能均基于 A6000 GPU，并对部分对比基线使用原始代码和配置重新训练，比较条件为同平台重训基线。 [3] [2]\n\n作者报告对高斯所有属性量化会造成显著精度损失，因此 VQ 被限定在球谐系数上，并假设一组高斯外观相似；位置、形状、旋转、不透明度和高显著性球谐系数保持 float16，非 SH 属性未量化可能限制整体压缩率。 [4] [2]\n\n</details>\n\n<details>\n<summary>待核查问题</summary>\n\n- 待核查：远视角或训练轨迹外视角的泛化是否在其他目标域测试中被验证\n- 待核查：FPS 测量所用的渲染分辨率、图像尺寸及光栅化设置是否与基线一致\n- 待核查：压缩比是否计入码本、低阶 SH 及未量化 float16 属性的全部存储开销\n\n</details>\n\n<details>\n<summary>原文依据</summary>\n\n- [1] “Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202”\n- [1] “Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178”\n- [2] “For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .”\n- [3] “All performance evaluations are conducted on an A6000 GPU.”\n- [3] “In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16].”\n- [4] “Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.”\n- [4] “We propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance.”\n- [2] “To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.”\n\n</details>",
+                "summary": "推断：在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为Mip-NeRF 360 Datasets：Ours Size压缩17.378倍。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [1] [2] [3]",
+                "groundedClaims": [
+                  {
+                    "summary": "在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为Mip-NeRF 360 Datasets：Ours Size压缩17.378倍。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+                    "kind": "inference",
+                    "references": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                        "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                        "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * ."
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quote": "All performance evaluations are conducted on an A6000 GPU."
+                      }
+                    ],
+                    "section": "weakness"
+                  },
+                  {
+                    "summary": "LightGaussian 在两组已测真实大规模场景中的实时渲染帧率分别为Mip-NeRF 360 Datasets：Ours FPS 237和Tank and Temple Datasets：Ours FPS 357；这一帧率仅在论文给出的 A6000 平台和对应测试设置下成立。（NVIDIA A6000 GPU，模型Ours）",
+                    "kind": "reported",
+                    "references": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                        "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * ."
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quote": "All performance evaluations are conducted on an A6000 GPU."
+                      }
+                    ],
+                    "section": "weakness"
+                  },
+                  {
+                    "summary": "与同硬件重新训练的 3D-GS* 相比，LightGaussian 的 PSNR、SSIM 略低、LPIPS 略高，说明压缩伴随轻微质量代价。",
+                    "kind": "inference",
+                    "references": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                        "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178"
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                        "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+                      }
+                    ],
+                    "section": "weakness"
+                  },
+                  {
+                    "summary": "论文在 Mip-NeRF 360 和 Tanks and Temples 真实大规模场景上评估，性能均基于 A6000 GPU，并对部分对比基线使用原始代码和配置重新训练，比较条件为同平台重训基线。",
+                    "kind": "reported",
+                    "references": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quote": "In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]."
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * ."
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                        "quote": "All performance evaluations are conducted on an A6000 GPU."
+                      }
+                    ],
+                    "section": "weakness"
+                  },
+                  {
+                    "summary": "作者报告对高斯所有属性量化会造成显著精度损失，因此 VQ 被限定在球谐系数上，并假设一组高斯外观相似；位置、形状、旋转、不透明度和高显著性球谐系数保持 float16，非 SH 属性未量化可能限制整体压缩率。",
+                    "kind": "reported",
+                    "references": [
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                        "quote": "Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely."
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                        "quote": "We propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance."
+                      },
+                      {
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                        "quote": "To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format."
+                      }
+                    ],
+                    "section": "risk"
+                  }
+                ],
+                "pendingQuestions": [
+                  "待核查：远视角或训练轨迹外视角的泛化是否在其他目标域测试中被验证",
+                  "待核查：FPS 测量所用的渲染分辨率、图像尺寸及光栅化设置是否与基线一致",
+                  "待核查：压缩比是否计入码本、低阶 SH 及未量化 float16 属性的全部存储开销"
+                ],
+                "rag_sources": [
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                    "text": "high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = {g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = {c 1 , c 2 , . . . , c K }, where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:",
+                    "metadata": {
+                      "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                      "page_index": 4,
+                      "page": 5,
+                      "file_name": "public-light.pdf",
+                      "index_version": "2977684d0da4a8b6",
+                      "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS",
+                      "section_id": "section-7",
+                      "chunk_index": 19,
+                      "section_title": "Gaussian Attributes Vector Quantization"
+                    },
+                    "similarity": null,
+                    "score": null,
+                    "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                    "chunkIndex": 19,
+                    "pageIndex": 4,
+                    "sectionId": "section-7",
+                    "sourceType": "current_paper"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                    "text": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j",
+                    "metadata": {
+                      "page": 5,
+                      "file_name": "public-light.pdf",
+                      "section_id": "section-7",
+                      "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS",
+                      "index_version": "2977684d0da4a8b6",
+                      "chunk_index": 21,
+                      "section_title": "Gaussian Attributes Vector Quantization",
+                      "page_index": 4,
+                      "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+                    },
+                    "similarity": null,
+                    "score": null,
+                    "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                    "chunkIndex": 21,
+                    "pageIndex": 4,
+                    "sectionId": "section-7",
+                    "sourceType": "current_paper"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                    "text": "In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structural similarity (SSIM), and perceptual similarity as measured by LPIPS[66].\nCompared Baselines. We compare our approach with methods suited for large-scale scene modeling, including Plenoxel[12], Mip-NeRF360[7], and 3D-GS[16]. Additionally, we evaluate against efficient techniques like Instant-NGP[14], which uses a hash grid for storage efficiency, and VQ-DVGO[49], which extends DVGO[9]with voxel pruning and VQ for optimized representation.\nImplementation Details. Our framework is implemented in PyTorch and integrates the differentiable Gaussian rasterization technique from 3D-GS[16]. All performance evaluations are conducted on an A6000 GPU. In the Global Significance Calculation phase, we assign a power value of 0.1 in Eq. 4 and proceed to fine-tune the model for 5,000 steps during the Gaussian Co-adaptation process.",
+                    "metadata": {
+                      "section_title": "Experimental Settings",
+                      "index_version": "2977684d0da4a8b6",
+                      "page": 6,
+                      "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                      "section_id": "section-9",
+                      "chunk_index": 23,
+                      "file_name": "public-light.pdf",
+                      "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS",
+                      "page_index": 5
+                    },
+                    "similarity": null,
+                    "score": null,
+                    "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                    "chunkIndex": 23,
+                    "pageIndex": 5,
+                    "sectionId": "section-9",
+                    "sourceType": "current_paper"
+                  },
+                  {
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                    "text": "Table caption: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\nTable row 1: Methods | FPS↑ | Mip-NeRF 360 Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ FPS↑ [cols=5, rows=1] | Tank and Temple Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ [cols=4, rows=1]\nTable row 7: Compact 3D-GS [37] | 128 | 48MB | 27.08 | 0.798 | 0.247 | 185 | 39MB | 23.32 | 0.831 | 0.201\nTable row 8: 3D-GS [16] | 134 | 734MB | 27.21 | 0.815 | 0.214 | 154 | 411MB | 23.14 | 0.841 | 0.183\nTable row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178\nTable row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "metadata": {
+                      "table_column_mapping_unverified": true,
+                      "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                      "table_id": "tab_0",
+                      "chunk_index": 38,
+                      "page": 6,
+                      "index_version": "2977684d0da4a8b6",
+                      "table_verified_data": "{\"groups\":[[\"Mip-NeRF 360 Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]],[\"Tank and Temple Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]]],\"rows\":[[7,\"Compact 3D-GS [37]\",[\"128\",\"48MB\",\"27.08\",\"0.798\",\"0.247\",\"185\",\"39MB\",\"23.32\",\"0.831\",\"0.201\"]],[8,\"3D-GS [16]\",[\"134\",\"734MB\",\"27.21\",\"0.815\",\"0.214\",\"154\",\"411MB\",\"23.14\",\"0.841\",\"0.183\"]],[9,\"3D-GS  *  [16]\",[\"144\",\"782MB\",\"27.40\",\"0.813\",\"0.217\",\"106\",\"433MB\",\"23.66\",\"0.845\",\"0.178\"]],[10,\"Ours\",[\"237\",\"45MB\",\"27.13\",\"0.806\",\"0.237\",\"357\",\"25MB\",\"23.44\",\"0.832\",\"0.202\"]]]}",
+                      "section_id": "table-tab_0",
+                      "evidence_kind": "table",
+                      "page_index": 5,
+                      "section_title": "Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods",
+                      "file_name": "public-light.pdf",
+                      "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                    },
+                    "similarity": null,
+                    "score": null,
+                    "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                    "chunkIndex": 38,
+                    "pageIndex": 5,
+                    "sectionId": "table-tab_0",
+                    "sourceType": "current_paper"
+                  }
+                ],
+                "resolved_from": "pdf_id",
+                "pdf_id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "traceId": "e7b68d7a-2d7c-48a3-b359-ace1c5b8a6b3",
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+              }
+            ]
+          }
+        ],
+        "artifact": {
+          "text": "**部分分析**\n\n推断：在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为Mip-NeRF 360 Datasets：Ours Size压缩17.378倍。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [1] [2] [3]\n\nLightGaussian 在两组已测真实大规模场景中的实时渲染帧率分别为Mip-NeRF 360 Datasets：Ours FPS 237和Tank and Temple Datasets：Ours FPS 357；这一帧率仅在论文给出的 A6000 平台和对应测试设置下成立。（NVIDIA A6000 GPU，模型Ours） [1] [2] [3]\n\n推断：与同硬件重新训练的 3D-GS* 相比，LightGaussian 的 PSNR、SSIM 略低、LPIPS 略高，说明压缩伴随轻微质量代价。 [1]\n\n<details>\n<summary>尚待确认</summary>\n\n另有2项判断暂未确认，未纳入本次结论。\n\n</details>\n\n<details>\n<summary>补充结论</summary>\n\n论文在 Mip-NeRF 360 和 Tanks and Temples 真实大规模场景上评估，性能均基于 A6000 GPU，并对部分对比基线使用原始代码和配置重新训练，比较条件为同平台重训基线。 [3] [2]\n\n作者报告对高斯所有属性量化会造成显著精度损失，因此 VQ 被限定在球谐系数上，并假设一组高斯外观相似；位置、形状、旋转、不透明度和高显著性球谐系数保持 float16，非 SH 属性未量化可能限制整体压缩率。 [4] [2]\n\n</details>\n\n<details>\n<summary>待核查问题</summary>\n\n- 待核查：远视角或训练轨迹外视角的泛化是否在其他目标域测试中被验证\n- 待核查：FPS 测量所用的渲染分辨率、图像尺寸及光栅化设置是否与基线一致\n- 待核查：压缩比是否计入码本、低阶 SH 及未量化 float16 属性的全部存储开销\n\n</details>\n\n<details>\n<summary>原文依据</summary>\n\n- [1] “Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202”\n- [1] “Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178”\n- [2] “For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .”\n- [3] “All performance evaluations are conducted on an A6000 GPU.”\n- [3] “In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16].”\n- [4] “Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.”\n- [4] “We propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance.”\n- [2] “To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.”\n\n</details>",
+          "partial": true,
+          "paperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "sources": [
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+              "text": "high compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance. Fundamentally, VQ segments the Gaussians G = {g 1 , g 2 , . . . , g N } (here we apply it on SH) to the K codes in the codebook C = {c 1 , c 2 , . . . , c K }, where each g j , c k ∈ R d and K ≪ N. d means SH dimension. We aim to strike a balance between rendering quality loss and compression rate by leveraging the pre-computed significance score from Eq. 3. Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs). Specifically, we initialize C via K-means, iteratively sample a batch of G, associates them to the closest codes by euclidean distance, and update each c k via moving average rule:",
+              "metadata": {
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "page_index": 4,
+                "page": 5,
+                "file_name": "public-light.pdf",
+                "index_version": "2977684d0da4a8b6",
+                "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS",
+                "section_id": "section-7",
+                "chunk_index": 19,
+                "section_title": "Gaussian Attributes Vector Quantization"
+              },
+              "similarity": null,
+              "score": null,
+              "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "chunkIndex": 19,
+              "pageIndex": 4,
+              "sectionId": "section-7",
+              "sourceType": "current_paper"
+            },
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+              "text": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j",
+              "metadata": {
+                "page": 5,
+                "file_name": "public-light.pdf",
+                "section_id": "section-7",
+                "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS",
+                "index_version": "2977684d0da4a8b6",
+                "chunk_index": 21,
+                "section_title": "Gaussian Attributes Vector Quantization",
+                "page_index": 4,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+              },
+              "similarity": null,
+              "score": null,
+              "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "chunkIndex": 21,
+              "pageIndex": 4,
+              "sectionId": "section-7",
+              "sourceType": "current_paper"
+            },
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+              "text": "In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structural similarity (SSIM), and perceptual similarity as measured by LPIPS[66].\nCompared Baselines. We compare our approach with methods suited for large-scale scene modeling, including Plenoxel[12], Mip-NeRF360[7], and 3D-GS[16]. Additionally, we evaluate against efficient techniques like Instant-NGP[14], which uses a hash grid for storage efficiency, and VQ-DVGO[49], which extends DVGO[9]with voxel pruning and VQ for optimized representation.\nImplementation Details. Our framework is implemented in PyTorch and integrates the differentiable Gaussian rasterization technique from 3D-GS[16]. All performance evaluations are conducted on an A6000 GPU. In the Global Significance Calculation phase, we assign a power value of 0.1 in Eq. 4 and proceed to fine-tune the model for 5,000 steps during the Gaussian Co-adaptation process.",
+              "metadata": {
+                "section_title": "Experimental Settings",
+                "index_version": "2977684d0da4a8b6",
+                "page": 6,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "section_id": "section-9",
+                "chunk_index": 23,
+                "file_name": "public-light.pdf",
+                "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS",
+                "page_index": 5
+              },
+              "similarity": null,
+              "score": null,
+              "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "chunkIndex": 23,
+              "pageIndex": 5,
+              "sectionId": "section-9",
+              "sourceType": "current_paper"
+            },
+            {
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+              "text": "Table caption: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\nTable row 1: Methods | FPS↑ | Mip-NeRF 360 Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ FPS↑ [cols=5, rows=1] | Tank and Temple Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ [cols=4, rows=1]\nTable row 7: Compact 3D-GS [37] | 128 | 48MB | 27.08 | 0.798 | 0.247 | 185 | 39MB | 23.32 | 0.831 | 0.201\nTable row 8: 3D-GS [16] | 134 | 734MB | 27.21 | 0.815 | 0.214 | 154 | 411MB | 23.14 | 0.841 | 0.183\nTable row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178\nTable row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+              "metadata": {
+                "table_column_mapping_unverified": true,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "table_id": "tab_0",
+                "chunk_index": 38,
+                "page": 6,
+                "index_version": "2977684d0da4a8b6",
+                "table_verified_data": "{\"groups\":[[\"Mip-NeRF 360 Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]],[\"Tank and Temple Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]]],\"rows\":[[7,\"Compact 3D-GS [37]\",[\"128\",\"48MB\",\"27.08\",\"0.798\",\"0.247\",\"185\",\"39MB\",\"23.32\",\"0.831\",\"0.201\"]],[8,\"3D-GS [16]\",[\"134\",\"734MB\",\"27.21\",\"0.815\",\"0.214\",\"154\",\"411MB\",\"23.14\",\"0.841\",\"0.183\"]],[9,\"3D-GS  *  [16]\",[\"144\",\"782MB\",\"27.40\",\"0.813\",\"0.217\",\"106\",\"433MB\",\"23.66\",\"0.845\",\"0.178\"]],[10,\"Ours\",[\"237\",\"45MB\",\"27.13\",\"0.806\",\"0.237\",\"357\",\"25MB\",\"23.44\",\"0.832\",\"0.202\"]]]}",
+                "section_id": "table-tab_0",
+                "evidence_kind": "table",
+                "page_index": 5,
+                "section_title": "Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods",
+                "file_name": "public-light.pdf",
+                "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+              },
+              "similarity": null,
+              "score": null,
+              "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "chunkIndex": 38,
+              "pageIndex": 5,
+              "sectionId": "table-tab_0",
+              "sourceType": "current_paper"
+            }
+          ],
+          "sentenceSourceMap": [
+            {
+              "id": "grounded-1",
+              "target": "message",
+              "sentence": "在 Mip-NeRF 360 数据集上，相对同硬件重训的 3D-GS*，LightGaussian 模型尺寸压缩倍数为Mip-NeRF 360 Datasets：Ours Size压缩17.378倍。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+              "sourceIds": [
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+              ],
+              "references": [
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                  "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                  "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178"
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                  "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * ."
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                  "quote": "All performance evaluations are conducted on an A6000 GPU."
+                }
+              ],
+              "method": "literal_quote",
+              "kind": "inference"
+            },
+            {
+              "id": "grounded-2",
+              "target": "message",
+              "sentence": "LightGaussian 在两组已测真实大规模场景中的实时渲染帧率分别为Mip-NeRF 360 Datasets：Ours FPS 237和Tank and Temple Datasets：Ours FPS 357；这一帧率仅在论文给出的 A6000 平台和对应测试设置下成立。（NVIDIA A6000 GPU，模型Ours）",
+              "sourceIds": [
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+              ],
+              "references": [
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                  "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                  "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * ."
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                  "quote": "All performance evaluations are conducted on an A6000 GPU."
+                }
+              ],
+              "method": "literal_quote",
+              "kind": "reported"
+            },
+            {
+              "id": "grounded-3",
+              "target": "message",
+              "sentence": "与同硬件重新训练的 3D-GS* 相比，LightGaussian 的 PSNR、SSIM 略低、LPIPS 略高，说明压缩伴随轻微质量代价。",
+              "sourceIds": [
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              ],
+              "references": [
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                  "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178"
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                  "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+                }
+              ],
+              "method": "literal_quote",
+              "kind": "inference"
+            },
+            {
+              "id": "grounded-4",
+              "target": "message",
+              "sentence": "论文在 Mip-NeRF 360 和 Tanks and Temples 真实大规模场景上评估，性能均基于 A6000 GPU，并对部分对比基线使用原始代码和配置重新训练，比较条件为同平台重训基线。",
+              "sourceIds": [
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              ],
+              "references": [
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                  "quote": "In addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]."
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                  "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * ."
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                  "quote": "All performance evaluations are conducted on an A6000 GPU."
+                }
+              ],
+              "method": "literal_quote",
+              "kind": "reported"
+            },
+            {
+              "id": "grounded-5",
+              "target": "message",
+              "sentence": "作者报告对高斯所有属性量化会造成显著精度损失，因此 VQ 被限定在球谐系数上，并假设一组高斯外观相似；位置、形状、旋转、不透明度和高显著性球谐系数保持 float16，非 SH 属性未量化可能限制整体压缩率。",
+              "sourceIds": [
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              ],
+              "references": [
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                  "quote": "Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely."
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                  "quote": "We propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appearance."
+                },
+                {
+                  "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                  "quote": "To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format."
+                }
+              ],
+              "method": "literal_quote",
+              "kind": "reported"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -627,6 +627,14 @@ class ResearchTaskDynamicReplanningTests(unittest.TestCase):
 
 class ResearchTaskExternalSearchTests(unittest.TestCase):
     def setUp(self):
+        # This class checks retrieval/provider state transitions. Answer quality
+        # and literal quote validation are covered by test_research_synthesis.
+        def answer(question, evidence):
+            return {"summary": "离线测试结论", "claims": [], "answerStatus": "grounded",
+                    "limitations": [], "sourceIds": [x["sourceId"] for x in evidence]}
+        answer_patch = patch("services.research_synthesis.synthesize_research_finding", side_effect=answer)
+        answer_patch.start()
+        self.addCleanup(answer_patch.stop)
         self.temp_dir = tempfile.TemporaryDirectory()
         self.previous_db_path = os.environ.get("RESEARCH_TASK_DB_PATH")
         os.environ["RESEARCH_TASK_DB_PATH"] = os.path.join(self.temp_dir.name, "research_tasks.sqlite3")

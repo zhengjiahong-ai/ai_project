@@ -1,0 +1,33 @@
+INFO:sentence_transformers.base.model:No device provided, using cpu
+INFO:sentence_transformers.base.model:Loading SentenceTransformer model from intfloat/multilingual-e5-small.
+
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]
+Loading weights:  42%|████▏     | 84/199 [00:00<00:00, 834.87it/s]
+Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1265.18it/s]
+INFO:core.rag_vector_db:嵌入模型就绪: intfloat/multilingual-e5-small -> literature_collection_v4_e5_small
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00,  3.97it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00,  3.97it/s]
+INFO:core.rag_vector_db:RAG 检索完成: 查询='先用两句话解释3DGS的高斯、透明度与球谐颜色，再比较原始3...', 匹配到 4 条片段
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00, 37.82it/s]
+INFO:core.rag_vector_db:RAG 检索完成: 查询='method formulation objective e...', 匹配到 4 条片段
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00, 26.27it/s]
+INFO:core.rag_vector_db:RAG 检索完成: 查询='experimental setup hardware da...', 匹配到 4 条片段
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00, 29.57it/s]
+INFO:core.rag_vector_db:RAG 检索完成: 查询='先用两句话解释3DGS的高斯、透明度与球谐颜色，再比较原始3...', 匹配到 4 条片段
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00, 30.87it/s]
+INFO:core.rag_vector_db:RAG 检索完成: 查询='method formulation objective e...', 匹配到 4 条片段
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00, 54.29it/s]
+INFO:core.rag_vector_db:RAG 检索完成: 查询='experimental setup hardware da...', 匹配到 4 条片段
+{"scope": "Current PDF, persistent retrieval and numeric whitelist checks; no Provider.", "providerCalls": 0, "taskWrites": 0, "indexWrites": 0, "pdfHashMatched": true, "freshPdfVerifiedGroups": [["Mip-NeRF 360 Datasets", ["FPS", "Size", "PSNR", "SSIM", "LPIPS"]], ["Tank and Temple Datasets", ["FPS", "Size", "PSNR", "SSIM", "LPIPS"]]], "freshPdfVerifiedRowNumbers": [3, 4, 5, 6, 7, 8, 9, 10], "actualPromptVerifiedRows": [[9, "3D-GS  *  [16]", ["144", "782MB", "27.40", "0.813", "0.217", "106", "433MB", "23.66", "0.845", "0.178"]], [10, "Ours", ["237", "45MB", "27.13", "0.806", "0.237", "357", "25MB", "23.44", "0.832", "0.202"]]], "rawUnverifiedFlagPreserved": true, "promptExplainsRowWhitelist": true, "controlledChecks": ["核对结果为Mip-NeRF 360 Datasets：FPS 237。（A6000，基线3D-GS  *  [16]）", "核对结果为Mip-NeRF 360 Datasets：Size压缩17.38倍。（A6000，基线3D-GS  *  [16]）", "核对结果为Mip-NeRF 360 Datasets：SSIM下降0.007。（A6000，基线3D-GS  *  [16]）", "核对结果为Tank and Temple Datasets：FPS 357。（A6000，基线3D-GS  *  [16]）", "核对结果为Tank and Temple Datasets：Size压缩17.32倍。（A6000，基线3D-GS  *  [16]）", "核对结果为Tank and Temple Datasets：SSIM下降0.013。（A6000，基线3D-GS  *  [16]）"], "rejections": {"unverified_row": "实验绑定结果、基线或指标未核对。", "wrong_dataset": "比较数字的场景或基线版本不匹配。", "wrong_hardware": "比较数字的硬件没有原文依据。", "unstarred_baseline": "比较数字的场景或基线版本不匹配。"}, "indexBeforeHash": "4708c07a18e305c6aed2bdb183e439ba2de02fcd5ccfa8dc867b44afbf1bf3f9", "indexAfterHash": "4708c07a18e305c6aed2bdb183e439ba2de02fcd5ccfa8dc867b44afbf1bf3f9"}

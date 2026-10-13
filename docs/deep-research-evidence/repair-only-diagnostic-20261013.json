@@ -1,0 +1,24 @@
+{
+  "sourceRunId": "dr_run_b61ade97852d5a9e9f5e8e4ebdb5f1e8",
+  "diagnosticRunId": "repair_diag_b073d9e6abf3444aa82993a840e40850",
+  "revision": "9eb8b07",
+  "receiptDirectory": "/app/data/dr-repair-diagnostics/D3-v10-a1",
+  "separateBudget": true,
+  "isEndToEndAcceptance": false,
+  "qualityAccepted": false,
+  "actualModelCalls": 3,
+  "actualTokens": 18160,
+  "repair": {"finishReason": "stop", "inputTokens": 5150, "outputTokens": 1439, "revisedClaims": 9},
+  "independentVerification": {"accepted": ["c1", "c9"], "rejected": ["c2", "c3", "c4", "c5", "c6", "c7", "c8"]},
+  "findings": [
+    "Direct repair returned nonempty JSON and both independent design checks ran.",
+    "Repair assigned roles but left intervention levels, per-group budgets and measurement aggregation incomplete.",
+    "c5 was assigned controls, leaving budget role absent; no report was published.",
+    "c4 split seed and repeated-seed meaning were unresolved; verifier also questioned scene enumeration despite all selection, which needs separate review.",
+    "c8 science verdict passed but its effects quote concatenated bullets with semicolons and failed exact matching.",
+    "c9 conditions retained an internal E5 alias. Model acceptance is not manual quality acceptance."
+  ],
+  "followup": "Pass existing scoped experimental deliverables to repair; preserve exact evidence and independent verification. New prompt has only offline validation so far.",
+  "targetedOfflineTests": {"passed": 11, "seconds": 5.37},
+  "fullOfflineTests": {"passed": 850, "warnings": 2, "seconds": 87.20}
+}

@@ -1,0 +1,12 @@
+{
+  "authorization": "用户明确允许这4个案例",
+  "case": "selection-explanation",
+  "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+  "pageIndex": 3,
+  "selectedText": "significance",
+  "context": "Global Significance Calculation current physical page 4",
+  "client": "Actual unified UI",
+  "reservedAt": "2026-10-09T02:02:36.934Z",
+  "maximumGenerationAttempts": 1,
+  "automaticRetryAllowed": false
+}

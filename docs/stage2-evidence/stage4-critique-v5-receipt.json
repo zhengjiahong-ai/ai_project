@@ -1,0 +1,2190 @@
+{
+  "taskId": "stage4-3dgs-critique-20261009-v5",
+  "requestId": "stage4-3dgs-critique-20261009-v5-request",
+  "kind": "conversation.execute",
+  "status": "succeeded",
+  "error": "",
+  "createdAt": "2026-10-09T02:00:28.570001+00:00",
+  "updatedAt": "2026-10-09T02:03:16.883424+00:00",
+  "request": {
+    "expectedTaskRevision": 0,
+    "message": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？区分作者原文、推断及未检索覆盖，不能把片段缺失当作论文缺陷。",
+    "capability": "critique",
+    "allowedPaperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+    "strictScope": true,
+    "steps": [],
+    "allowExternalSearch": false
+  },
+  "paperIds": [
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+  ],
+  "result": {
+    "artifact": {
+      "paperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "sentenceSourceMap": [
+        {
+          "confidence": 0.55,
+          "id": "ref-1",
+          "sentence": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.37,
+          "id": "ref-2",
+          "sentence": "在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.18,
+          "id": "ref-3",
+          "sentence": "在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.4,
+          "id": "ref-4",
+          "sentence": "剪枝本身会损害渲染质量：Table 2中直接Gaussian Pruning将SSIM从0.917降至0.910、LPIPS从0.221升至0.234，需Co-adaptation微调才能恢复；",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.29,
+          "id": "ref-5",
+          "sentence": "Hit Count Only方法SSIM降至0.886、LPIPS升至0.261，说明简单显著性度量的质量损失明显。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.5,
+          "id": "ref-6",
+          "sentence": "SH降阶并非无代价：Table 2中直接SH Compactness将PSNR从31.34降至30.32、SSIM从0.917降至0.904；",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.67,
+          "id": "ref-7",
+          "sentence": "Table 6显示SH降到1度时SSIM进一步降至0.923，说明高阶SH被截断会丢失光照细节，需要蒸馏和伪视图训练补偿。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+          ],
+          "target": "message"
+        },
+        {
+          "confidence": 0.25,
+          "id": "ref-8",
+          "sentence": "Table 2中Codebook Quant后PSNR从31.48降至31.09，经VQ finetune才恢复到31.40。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40"
+          ],
+          "target": "message"
+        }
+      ],
+      "sources": [
+        {
+          "chunkIndex": 28,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+          "metadata": {
+            "chunk_index": 28,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 8,
+            "page_index": 7,
+            "section_id": "section-12",
+            "section_title": "Ablation Studies",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 7,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-12",
+          "similarity": 0.8743302822113037,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nWe performed ablation studies on each component of our method to evaluate their individual impacts.\nResults show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework."
+        },
+        {
+          "chunkIndex": 40,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+          "metadata": {
+            "chunk_index": 40,
+            "evidence_kind": "table",
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 7,
+            "page_index": 6,
+            "section_id": "table-tab_1",
+            "section_title": "Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).",
+            "table_column_mapping_unverified": true,
+            "table_id": "tab_1",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 6,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "table-tab_1",
+          "similarity": 0.8714908361434937,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).\n\nContent:\nTable row 5: [4] | + SH Compactness |  | 311.58 81MB [cols=3, rows=1] | 30.32 | 0.904 | 0.238\nTable row 6: [5] |"
+        },
+        {
+          "chunkIndex": 47,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+          "metadata": {
+            "chunk_index": 47,
+            "evidence_kind": "table",
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 9,
+            "page_index": 8,
+            "section_id": "table-tab_5",
+            "section_title": "Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70%, with a more rapid deterioration as the VQ ratio approaches 65%. In Tab 6, we observe that 2-degree SH compactness reduces the SSIM from 0.927 to 0.926, while 1-degree SH compactness further reduces it to 0.923. LightGaussian's compact representation has the potential to democratize high-quality 3D content for applications in VR, AR, and autonomous driving by reducing resource demands, enabling more accessible and scalable deployment across industries. While we do not foresee any significant risk from this specific technique, 3D reconstruction may infringe on personal privacy when applied in public spaces or with drone footage, contradicting our ethical intentions.",
+            "table_column_mapping_unverified": true,
+            "table_id": "tab_5",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 8,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "table-tab_5",
+          "similarity": 0.8667698502540588,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70"
+        },
+        {
+          "chunkIndex": 27,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+          "metadata": {
+            "chunk_index": 27,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 8,
+            "page_index": 7,
+            "section_id": "section-11",
+            "section_title": "Generalization to Other Point-based Representations",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 7,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": 9.39537445446301,
+          "sectionId": "section-11",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Generalization to Other Point-based Representations\n\nContent:\nWe further apply our Gaussian Pruning approach to Scaffold-GS[67], an advanced neural Gaussian-based 3D representation. In this method, we prune Gaussians that contribute minimally to scene reconstruction, reducing redundancy while preserving visual fidelity. Experiments on the MipNeRF360 dataset demonstrate that pruning 80% of neural Gaussians increases the rendering speed from 152 to 178 FPS, as shown in Tab. 5. These results underscore LightGaussian's potential as an effective optimization tool for other Gaussian-based representati"
+        },
+        {
+          "chunkIndex": 0,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+          "metadata": {
+            "chunk_index": 0,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 1,
+            "page_index": 0,
+            "section_id": "section-1",
+            "section_title": "Introduction",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 0,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": 9.025246224342602,
+          "sectionId": "section-1",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Introduction\n\nContent:\nNovel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+        },
+        {
+          "chunkIndex": 19,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+          "metadata": {
+            "chunk_index": 19,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 5,
+            "page_index": 4,
+            "section_id": "section-7",
+            "section_title": "Gaussian Attributes Vector Quantization",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 4,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": 8.273210743389408,
+          "sectionId": "section-7",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+        },
+        {
+          "chunkIndex": 15,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+          "metadata": {
+            "chunk_index": 15,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 4,
+            "page_index": 3,
+            "section_id": "section-5",
+            "section_title": "Gaussian Pruning & Recovery",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 3,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-5",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nM , H, and W represent the number of training views, image height, and width, respectively. 1 is an indicator function that determines whether a Gaussian intersects a given ray. However, using Gaussian volume alone tends to overemphasize background Gaussians, leading to excessive pruning of Gaussians modeling fine geometry. Thus, we propose a more adaptive approach to measuring volume dimensions:\nHere, the calculated Gaussian volume is firstly normalized by the 90% largest of all sorted Gaussians, clipping the range between 0 and 1, to avoid excessive floati"
+        },
+        {
+          "chunkIndex": 14,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+          "metadata": {
+            "chunk_index": 14,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 4,
+            "page_index": 3,
+            "section_id": "section-5",
+            "section_title": "Gaussian Pruning & Recovery",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 3,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-5",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nThe score is further refined by the adjusted 3D Gaussian's volume γ (Σ j ) and 3D Gaussian's opacity σ j , as they all contribute for the rendering formula.\nThe volume calculation equation of the j-th 3D Guassian is V(Σ j ) = 4 3 πabc, where abc are the 3 dimensions of Scale (S).\nWe also consider the transmittance T is calculated with one subtract all the 3D Gaussian's opacity the ray hit before the j-th 3D Gaussian, T = j−1 i=1 (1-σ i ).\nFinally, the global significance score can be summarized as:\nwhere j is the Gaussian index, i denotes a pixel, and M , H,"
+        },
+        {
+          "chunkIndex": 13,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+          "metadata": {
+            "chunk_index": 13,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 4,
+            "page_index": 3,
+            "section_id": "section-5",
+            "section_title": "Gaussian Pruning & Recovery",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 3,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-5",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+        },
+        {
+          "chunkIndex": 17,
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+          "metadata": {
+            "chunk_index": 17,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 5,
+            "page_index": 4,
+            "section_id": "section-6",
+            "section_title": "Distilling into Compact SHs",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 4,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-6",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Distilling into Compact SHs\n\nContent:\nscene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N deno"
+        }
+      ],
+      "text": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；剪枝、SH降阶和VQ都必须配合额外训练或蒸馏才能弥补质量损失，VQ还只覆盖SH系数而不能安全扩展到全部属性。对Scaffold-GS的跨格式泛化及多场景稳健性证据不足，需回查补充后才能支持更强的压缩与通用性结论。\n\n**证据支持的贡献**\n- 在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。Room场景消融显示三模块将模型从365MB降至21MB、FPS从156.21提升至302.01。这些支持压缩和加速在报告场景下成立，但存在质量代价。\n\n**局限**\n- 剪枝本身会损害渲染质量：Table 2中直接Gaussian Pruning将SSIM从0.917降至0.910、LPIPS从0.221升至0.234，需Co-adaptation微调才能恢复；Hit Count Only方法SSIM降至0.886、LPIPS升至0.261，说明简单显著性度量的质量损失明显。\n- SH降阶并非无代价：Table 2中直接SH Compactness将PSNR从31.34降至30.32、SSIM从0.917降至0.904；Table 6显示SH降到1度时SSIM进一步降至0.923，说明高阶SH被截断会丢失光照细节，需要蒸馏和伪视图训练补偿。\n- 向量量化只作用于SH系数，且需要微调：论文明确表示对位置、旋转、尺度等属性量化会造成显著精度损失，因此高显著性SH和几何属性被跳过并以float16存储；Table 2中Codebook Quant后PSNR从31.48降至31.09，经VQ finetune才恢复到31.40。\n- 泛化结果不完整：Scaffold-GS实验仅报告剪枝80%后FPS从152提升至178，未提供质量、模型大小和完整基线数据，无法支持“保持视觉保真度”的跨格式结论。\n\n**过度主张风险**\n- 将“从782MB到45MB”的15倍左右压缩泛化为所有场景存在风险：Table 1中Tanks and Temple的Ours模型为25MB，而Table 2 Room场景为21MB，不同场景压缩幅度不同；该例子对应Mip-NeRF 360的3D-GS*基线，不能代表每个数据集的平均压缩比。\n- 200+FPS与质量代价同时存在：Table 1中Ours FPS达到237/357，但相比3D-GS*的SSIM下降0.007/0.013、LPIPS上升0.020/0.024，不能只宣传速度而不说明保真度折衷；且在无分辨率、渲染负载等条件说明时，FPS指标难以跨系统比较。\n- SH降到1度或剪枝/量化接近临界点时质量明显恶化（如Fig6所示剪枝70%、VQ比例65%或SH 1度时质量下降），标题中“15x reduction”若不限定配置可能掩盖这些临界失效情形。\n\n**待补证据**\n- 当前证据未覆盖除Room外的多场景完整消融数据，无法核实剪枝、SH降阶和VQ对PSNR/SSIM/LPIPS的跨场景平均影响。\n- 未检索到Scaffold-GS泛化实验中的质量、模型大小和基线对比数据，无法核验该泛化主张。\n- 未检索到渲染分辨率、硬件具体设置（除A6000）以及FPS测量条件，无法外推200+FPS到其他硬件或分辨率。\n- 未检索到训练/微调总时间、额外伪视图生成开销或每场景超参数敏感性分析。\n- 未检索到统计显著性检验或多运行方差，无法判断0.007 SSIM下降是否显著或处于噪声范围。"
+    },
+    "capability": "critique",
+    "materialScope": {
+      "allowedPaperIds": [
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+      "strictScope": true,
+      "taskId": "stage4-3dgs-critique-20261009-v5"
+    },
+    "message": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；剪枝、SH降阶和VQ都必须配合额外训练或蒸馏才能弥补质量损失，VQ还只覆盖SH系数而不能安全扩展到全部属性。对Scaffold-GS的跨格式泛化及多场景稳健性证据不足，需回查补充后才能支持更强的压缩与通用性结论。\n\n**证据支持的贡献**\n\n- 在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。Room场景消融显示三模块将模型从365MB降至21MB、FPS从156.21提升至302.01。这些支持压缩和加速在报告场景下成立，但存在质量代价。\n\n**局限**",
+    "resultVersion": 1,
+    "sentenceSourceMap": [
+      {
+        "confidence": 0.55,
+        "id": "ref-1",
+        "sentence": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；",
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+        ],
+        "target": "message"
+      },
+      {
+        "confidence": 0.37,
+        "id": "ref-2",
+        "sentence": "在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；",
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+        ],
+        "target": "message"
+      },
+      {
+        "confidence": 0.18,
+        "id": "ref-3",
+        "sentence": "在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。",
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+        ],
+        "target": "message"
+      }
+    ],
+    "sources": [
+      {
+        "chunkIndex": 28,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+        "metadata": {
+          "chunk_index": 28,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 8,
+          "page_index": 7,
+          "section_id": "section-12",
+          "section_title": "Ablation Studies",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 7,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-12",
+        "similarity": 0.8743302822113037,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nWe performed ablation studies on each component of our method to evaluate their individual impacts.\nResults show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework."
+      },
+      {
+        "chunkIndex": 40,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+        "metadata": {
+          "chunk_index": 40,
+          "evidence_kind": "table",
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 7,
+          "page_index": 6,
+          "section_id": "table-tab_1",
+          "section_title": "Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).",
+          "table_column_mapping_unverified": true,
+          "table_id": "tab_1",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 6,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "table-tab_1",
+        "similarity": 0.8714908361434937,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).\n\nContent:\nTable row 5: [4] | + SH Compactness |  | 311.58 81MB [cols=3, rows=1] | 30.32 | 0.904 | 0.238\nTable row 6: [5] |"
+      },
+      {
+        "chunkIndex": 47,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+        "metadata": {
+          "chunk_index": 47,
+          "evidence_kind": "table",
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 9,
+          "page_index": 8,
+          "section_id": "table-tab_5",
+          "section_title": "Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70%, with a more rapid deterioration as the VQ ratio approaches 65%. In Tab 6, we observe that 2-degree SH compactness reduces the SSIM from 0.927 to 0.926, while 1-degree SH compactness further reduces it to 0.923. LightGaussian's compact representation has the potential to democratize high-quality 3D content for applications in VR, AR, and autonomous driving by reducing resource demands, enabling more accessible and scalable deployment across industries. While we do not foresee any significant risk from this specific technique, 3D reconstruction may infringe on personal privacy when applied in public spaces or with drone footage, contradicting our ethical intentions.",
+          "table_column_mapping_unverified": true,
+          "table_id": "tab_5",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 8,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "table-tab_5",
+        "similarity": 0.8667698502540588,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70"
+      },
+      {
+        "chunkIndex": 27,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+        "metadata": {
+          "chunk_index": 27,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 8,
+          "page_index": 7,
+          "section_id": "section-11",
+          "section_title": "Generalization to Other Point-based Representations",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 7,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": 9.39537445446301,
+        "sectionId": "section-11",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Generalization to Other Point-based Representations\n\nContent:\nWe further apply our Gaussian Pruning approach to Scaffold-GS[67], an advanced neural Gaussian-based 3D representation. In this method, we prune Gaussians that contribute minimally to scene reconstruction, reducing redundancy while preserving visual fidelity. Experiments on the MipNeRF360 dataset demonstrate that pruning 80% of neural Gaussians increases the rendering speed from 152 to 178 FPS, as shown in Tab. 5. These results underscore LightGaussian's potential as an effective optimization tool for other Gaussian-based representati"
+      },
+      {
+        "chunkIndex": 0,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+        "metadata": {
+          "chunk_index": 0,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 1,
+          "page_index": 0,
+          "section_id": "section-1",
+          "section_title": "Introduction",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 0,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": 9.025246224342602,
+        "sectionId": "section-1",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Introduction\n\nContent:\nNovel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+      },
+      {
+        "chunkIndex": 19,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+        "metadata": {
+          "chunk_index": 19,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 5,
+          "page_index": 4,
+          "section_id": "section-7",
+          "section_title": "Gaussian Attributes Vector Quantization",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 4,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": 8.273210743389408,
+        "sectionId": "section-7",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+      },
+      {
+        "chunkIndex": 15,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+        "metadata": {
+          "chunk_index": 15,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 4,
+          "page_index": 3,
+          "section_id": "section-5",
+          "section_title": "Gaussian Pruning & Recovery",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 3,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-5",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nM , H, and W represent the number of training views, image height, and width, respectively. 1 is an indicator function that determines whether a Gaussian intersects a given ray. However, using Gaussian volume alone tends to overemphasize background Gaussians, leading to excessive pruning of Gaussians modeling fine geometry. Thus, we propose a more adaptive approach to measuring volume dimensions:\nHere, the calculated Gaussian volume is firstly normalized by the 90% largest of all sorted Gaussians, clipping the range between 0 and 1, to avoid excessive floati"
+      },
+      {
+        "chunkIndex": 14,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+        "metadata": {
+          "chunk_index": 14,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 4,
+          "page_index": 3,
+          "section_id": "section-5",
+          "section_title": "Gaussian Pruning & Recovery",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 3,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-5",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nThe score is further refined by the adjusted 3D Gaussian's volume γ (Σ j ) and 3D Gaussian's opacity σ j , as they all contribute for the rendering formula.\nThe volume calculation equation of the j-th 3D Guassian is V(Σ j ) = 4 3 πabc, where abc are the 3 dimensions of Scale (S).\nWe also consider the transmittance T is calculated with one subtract all the 3D Gaussian's opacity the ray hit before the j-th 3D Gaussian, T = j−1 i=1 (1-σ i ).\nFinally, the global significance score can be summarized as:\nwhere j is the Gaussian index, i denotes a pixel, and M , H,"
+      },
+      {
+        "chunkIndex": 13,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+        "metadata": {
+          "chunk_index": 13,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 4,
+          "page_index": 3,
+          "section_id": "section-5",
+          "section_title": "Gaussian Pruning & Recovery",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 3,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-5",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+      },
+      {
+        "chunkIndex": 17,
+        "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+        "metadata": {
+          "chunk_index": 17,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 5,
+          "page_index": 4,
+          "section_id": "section-6",
+          "section_title": "Distilling into Compact SHs",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 4,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-6",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Distilling into Compact SHs\n\nContent:\nscene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N deno"
+      }
+    ],
+    "status": "success",
+    "steps": [
+      {
+        "capability": "critique",
+        "results": [
+          {
+            "citationGraph": null,
+            "claimed_contributions": "作者宣称提出LightGaussian，通过Gaussian Pruning & Recovery、SH Distillation和Vector Quantization来压缩无界3D高斯；宣称实现约15倍压缩（如从782MB到45MB），同时在Mip-NeRF 360上SSIM仅下降0.007；宣称渲染速度超过200 FPS；并宣称剪枝方法可泛化至Scaffold-GS等其他3D高斯表示。",
+            "claims": [
+              {
+                "claim": "作者提出LightGaussian框架，通过高斯剪枝与恢复、SH蒸馏和向量量化来压缩无界3D高斯表示。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28"
+                ],
+                "id": "claim-1",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [],
+                "numericVerificationStatus": "not_applicable",
+                "quote": "Combined, these modules substantially improve the overall efficiency and performance of our framework.",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "LightGaussian在Mip-NeRF 360上将模型从782MB压缩到45MB，同时SSIM仅下降0.007。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                ],
+                "id": "claim-2",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [
+                  {
+                    "chunkIndex": 0,
+                    "label": "",
+                    "matchedNumbers": [
+                      "0.007",
+                      "45",
+                      "782"
+                    ],
+                    "metrics": [
+                      "performance"
+                    ],
+                    "numbers": [
+                      "0.007",
+                      "15",
+                      "782",
+                      "45",
+                      "200"
+                    ],
+                    "pageIndex": 0,
+                    "reason": "主张里的 0.007, 45, 782 在本段逐字出现；指标 performance。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-1",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Introduction\n\nContent:\nNovel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+                  },
+                  {
+                    "chunkIndex": 28,
+                    "label": "",
+                    "matchedNumbers": [],
+                    "metrics": [
+                      "performance"
+                    ],
+                    "numbers": [
+                      "15"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "指标 performance；数值 15。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-12",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nWe performed ablation studies on each component of our method to evaluate their individual impacts.\nResults show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework."
+                  },
+                  {
+                    "chunkIndex": 40,
+                    "label": "Table 2",
+                    "matchedNumbers": [],
+                    "metrics": [],
+                    "numbers": [
+                      "311.58",
+                      "30.32",
+                      "0.904",
+                      "0.238",
+                      "15",
+                      "81"
+                    ],
+                    "pageIndex": 6,
+                    "reason": "匹配到 Table 2；数值 311.58, 30.32, 0.904。候选片段仍需人工对照原表或图。",
+                    "sectionId": "table-tab_1",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).\n\nContent:\nTable row 5: [4] | + SH Compactness |  | 311.58 81MB [cols=3, rows=1] | 30.32 | 0.904 | 0.238\nTable row 6: [5] |"
+                  }
+                ],
+                "numericVerificationStatus": "verified",
+                "quote": "In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360).",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "LightGaussian在复杂场景上的渲染速度超过200 FPS。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                ],
+                "id": "claim-3",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [
+                  {
+                    "chunkIndex": 0,
+                    "label": "",
+                    "matchedNumbers": [
+                      "200"
+                    ],
+                    "metrics": [
+                      "performance"
+                    ],
+                    "numbers": [
+                      "0.007",
+                      "15",
+                      "782",
+                      "45",
+                      "200"
+                    ],
+                    "pageIndex": 0,
+                    "reason": "主张里的 200 在本段逐字出现；指标 performance。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-1",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Introduction\n\nContent:\nNovel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+                  },
+                  {
+                    "chunkIndex": 28,
+                    "label": "",
+                    "matchedNumbers": [],
+                    "metrics": [
+                      "performance"
+                    ],
+                    "numbers": [
+                      "15"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "指标 performance；数值 15。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-12",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nWe performed ablation studies on each component of our method to evaluate their individual impacts.\nResults show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework."
+                  },
+                  {
+                    "chunkIndex": 40,
+                    "label": "Table 2",
+                    "matchedNumbers": [],
+                    "metrics": [],
+                    "numbers": [
+                      "311.58",
+                      "30.32",
+                      "0.904",
+                      "0.238",
+                      "15",
+                      "81"
+                    ],
+                    "pageIndex": 6,
+                    "reason": "匹配到 Table 2；数值 311.58, 30.32, 0.904。候选片段仍需人工对照原表或图。",
+                    "sectionId": "table-tab_1",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).\n\nContent:\nTable row 5: [4] | + SH Compactness |  | 311.58 81MB [cols=3, rows=1] | 30.32 | 0.904 | 0.238\nTable row 6: [5] |"
+                  }
+                ],
+                "numericVerificationStatus": "verified",
+                "quote": "Rendering speed also improves, reaching over 200 FPS on complex scenes.",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "高斯剪枝方法可泛化至Scaffold-GS等其他3D高斯表示，剪枝80%神经高斯后帧率从152提升到178 FPS。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27"
+                ],
+                "id": "claim-4",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [
+                  {
+                    "chunkIndex": 27,
+                    "label": "",
+                    "matchedNumbers": [
+                      "178",
+                      "80%"
+                    ],
+                    "metrics": [],
+                    "numbers": [
+                      "80%",
+                      "15",
+                      "178"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "主张里的 178, 80% 在本段逐字出现。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-11",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Generalization to Other Point-based Representations\n\nContent:\nWe further apply our Gaussian Pruning approach to Scaffold-GS[67], an advanced neural Gaussian-based 3D representation. In this method, we prune Gaussians that contribute minimally to scene reconstruction, reducing redundancy while preserving visual fidelity. Experiments on the MipNeRF360 dataset demonstrate that pruning 80% of neural Gaussians increases the rendering speed from 152 to 178 FPS, as shown in Tab. 5. These results underscore LightGaussian's potential as an effective optimization tool for other Gaussian-based representati"
+                  },
+                  {
+                    "chunkIndex": 28,
+                    "label": "",
+                    "matchedNumbers": [],
+                    "metrics": [
+                      "performance"
+                    ],
+                    "numbers": [
+                      "15"
+                    ],
+                    "pageIndex": 7,
+                    "reason": "指标 performance；数值 15。候选片段仍需人工对照原表或图。",
+                    "sectionId": "section-12",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nWe performed ablation studies on each component of our method to evaluate their individual impacts.\nResults show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework."
+                  },
+                  {
+                    "chunkIndex": 40,
+                    "label": "Table 2",
+                    "matchedNumbers": [],
+                    "metrics": [],
+                    "numbers": [
+                      "311.58",
+                      "30.32",
+                      "0.904",
+                      "0.238",
+                      "15",
+                      "81"
+                    ],
+                    "pageIndex": 6,
+                    "reason": "匹配到 Table 2；数值 311.58, 30.32, 0.904。候选片段仍需人工对照原表或图。",
+                    "sectionId": "table-tab_1",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+                    "status": "candidate_found",
+                    "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).\n\nContent:\nTable row 5: [4] | + SH Compactness |  | 311.58 81MB [cols=3, rows=1] | 30.32 | 0.904 | 0.238\nTable row 6: [5] |"
+                  }
+                ],
+                "numericVerificationStatus": "verified",
+                "quote": "Experiments on the MipNeRF360 dataset demonstrate that pruning 80% of neural Gaussians increases the rendering speed from 152 to 178 FPS, as shown in Tab. 5.",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "作者引入知识蒸馏，将全阶SH教师模型的知识迁移到截断的低阶SH学生模型。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+                ],
+                "id": "claim-5",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [],
+                "numericVerificationStatus": "not_applicable",
+                "quote": "Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs.",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              },
+              {
+                "claim": "作者对SH系数中最不显著的元素选择性地应用向量量化以压缩特征空间。",
+                "evidenceSourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+                ],
+                "id": "claim-6",
+                "missingEvidence": [],
+                "numericEvidenceCandidates": [],
+                "numericVerificationStatus": "not_applicable",
+                "quote": "Based on this, we apply VQ selectively on the least significant elements in the Spherical Harmonics (SHs).",
+                "reason": "原文片段可逐字核验，直接支撑该主张。",
+                "supportLevel": "SUPPORTED"
+              }
+            ],
+            "contributionScore": {
+              "basis": {
+                "claimCount": 6,
+                "experimentCovered": true,
+                "methodCovered": true,
+                "partialClaims": 0,
+                "supportedClaims": 6,
+                "unsupportedClaims": 0
+              },
+              "factors": [
+                "主张支撑率 100%",
+                "方法章节证据覆盖充分",
+                "实验章节证据覆盖充分",
+                "仍有 5 条报告级缺失证据",
+                "存在 3 条夸大风险"
+              ],
+              "label": "可信度较高",
+              "level": "high",
+              "score": 100,
+              "summary": "6/6 条主张获得直接证据支撑。"
+            },
+            "critical_analysis": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；剪枝、SH降阶和VQ都必须配合额外训练或蒸馏才能弥补质量损失，VQ还只覆盖SH系数而不能安全扩展到全部属性。对Scaffold-GS的跨格式泛化及多场景稳健性证据不足，需回查补充后才能支持更强的压缩与通用性结论。",
+            "evidenceGraph": {
+              "graphType": "claim_evidence",
+              "linkCount": 6,
+              "links": [
+                {
+                  "relation": "supported_by",
+                  "source": "claim-1",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-2",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-3",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-4",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-5",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17"
+                },
+                {
+                  "relation": "supported_by",
+                  "source": "claim-6",
+                  "target": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19"
+                }
+              ],
+              "nodeCount": 11,
+              "nodes": [
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-1",
+                  "name": "作者提出LightGaussian框架，通过高斯剪枝",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-2",
+                  "name": "LightGaussian在Mip-NeRF 360",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-3",
+                  "name": "LightGaussian在复杂场景上的渲染速度超过",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-4",
+                  "name": "高斯剪枝方法可泛化至Scaffold-GS等其他3D",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-5",
+                  "name": "作者引入知识蒸馏，将全阶SH教师模型的知识迁移到截断",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#22c55e",
+                  "group": "claim",
+                  "id": "claim-6",
+                  "name": "作者对SH系数中最不显著的元素选择性地应用向量量化以",
+                  "supportLevel": "SUPPORTED",
+                  "val": 10
+                },
+                {
+                  "color": "#64748b",
+                  "group": "evidence",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                  "name": "Ablation Studies",
+                  "val": 5
+                },
+                {
+                  "color": "#64748b",
+                  "group": "evidence",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                  "name": "Introduction",
+                  "val": 5
+                },
+                {
+                  "color": "#64748b",
+                  "group": "evidence",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+                  "name": "Generalization to Other Po",
+                  "val": 5
+                },
+                {
+                  "color": "#64748b",
+                  "group": "evidence",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                  "name": "Distilling into Compact SH",
+                  "val": 5
+                },
+                {
+                  "color": "#64748b",
+                  "group": "evidence",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                  "name": "Gaussian Attributes Vector",
+                  "val": 5
+                }
+              ]
+            },
+            "evidence_based_contributions": "在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。Room场景消融显示三模块将模型从365MB降至21MB、FPS从156.21提升至302.01。这些支持压缩和加速在报告场景下成立，但存在质量代价。",
+            "message": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；剪枝、SH降阶和VQ都必须配合额外训练或蒸馏才能弥补质量损失，VQ还只覆盖SH系数而不能安全扩展到全部属性。对Scaffold-GS的跨格式泛化及多场景稳健性证据不足，需回查补充后才能支持更强的压缩与通用性结论。\n\n**证据支持的贡献**\n- 在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。Room场景消融显示三模块将模型从365MB降至21MB、FPS从156.21提升至302.01。这些支持压缩和加速在报告场景下成立，但存在质量代价。\n\n**局限**\n- 剪枝本身会损害渲染质量：Table 2中直接Gaussian Pruning将SSIM从0.917降至0.910、LPIPS从0.221升至0.234，需Co-adaptation微调才能恢复；Hit Count Only方法SSIM降至0.886、LPIPS升至0.261，说明简单显著性度量的质量损失明显。\n- SH降阶并非无代价：Table 2中直接SH Compactness将PSNR从31.34降至30.32、SSIM从0.917降至0.904；Table 6显示SH降到1度时SSIM进一步降至0.923，说明高阶SH被截断会丢失光照细节，需要蒸馏和伪视图训练补偿。\n- 向量量化只作用于SH系数，且需要微调：论文明确表示对位置、旋转、尺度等属性量化会造成显著精度损失，因此高显著性SH和几何属性被跳过并以float16存储；Table 2中Codebook Quant后PSNR从31.48降至31.09，经VQ finetune才恢复到31.40。\n- 泛化结果不完整：Scaffold-GS实验仅报告剪枝80%后FPS从152提升至178，未提供质量、模型大小和完整基线数据，无法支持“保持视觉保真度”的跨格式结论。\n\n**过度主张风险**\n- 将“从782MB到45MB”的15倍左右压缩泛化为所有场景存在风险：Table 1中Tanks and Temple的Ours模型为25MB，而Table 2 Room场景为21MB，不同场景压缩幅度不同；该例子对应Mip-NeRF 360的3D-GS*基线，不能代表每个数据集的平均压缩比。\n- 200+FPS与质量代价同时存在：Table 1中Ours FPS达到237/357，但相比3D-GS*的SSIM下降0.007/0.013、LPIPS上升0.020/0.024，不能只宣传速度而不说明保真度折衷；且在无分辨率、渲染负载等条件说明时，FPS指标难以跨系统比较。\n- SH降到1度或剪枝/量化接近临界点时质量明显恶化（如Fig6所示剪枝70%、VQ比例65%或SH 1度时质量下降），标题中“15x reduction”若不限定配置可能掩盖这些临界失效情形。\n\n**待补证据**\n- 当前证据未覆盖除Room外的多场景完整消融数据，无法核实剪枝、SH降阶和VQ对PSNR/SSIM/LPIPS的跨场景平均影响。\n- 未检索到Scaffold-GS泛化实验中的质量、模型大小和基线对比数据，无法核验该泛化主张。\n- 未检索到渲染分辨率、硬件具体设置（除A6000）以及FPS测量条件，无法外推200+FPS到其他硬件或分辨率。\n- 未检索到训练/微调总时间、额外伪视图生成开销或每场景超参数敏感性分析。\n- 未检索到统计显著性检验或多运行方差，无法判断0.007 SSIM下降是否显著或处于噪声范围。",
+            "missing_evidence": [
+              "当前证据未覆盖除Room外的多场景完整消融数据，无法核实剪枝、SH降阶和VQ对PSNR/SSIM/LPIPS的跨场景平均影响。",
+              "未检索到Scaffold-GS泛化实验中的质量、模型大小和基线对比数据，无法核验该泛化主张。",
+              "未检索到渲染分辨率、硬件具体设置（除A6000）以及FPS测量条件，无法外推200+FPS到其他硬件或分辨率。",
+              "未检索到训练/微调总时间、额外伪视图生成开销或每场景超参数敏感性分析。",
+              "未检索到统计显著性检验或多运行方差，无法判断0.007 SSIM下降是否显著或处于噪声范围。"
+            ],
+            "noveltyDimensions": [
+              {
+                "detail": "6/6 条主张获得直接证据支撑。",
+                "id": "claim_support",
+                "label": "主张支撑",
+                "score": 100,
+                "status": "strong"
+              },
+              {
+                "detail": "方法轴检索到可用证据。",
+                "id": "method_grounding",
+                "label": "方法落地",
+                "score": 100,
+                "status": "strong"
+              },
+              {
+                "detail": "实验轴检索到可用指标或对比证据。",
+                "id": "experiment_validation",
+                "label": "实验验证",
+                "score": 100,
+                "status": "strong"
+              },
+              {
+                "detail": "存在 5 条缺失证据和 3 条夸大风险。",
+                "id": "scope_boundary",
+                "label": "边界约束",
+                "score": 0,
+                "status": "weak"
+              }
+            ],
+            "numericEvidenceSummary": {
+              "candidateCount": 9,
+              "claimCount": 6,
+              "numericClaimCount": 3,
+              "status": "verified",
+              "verifiedClaimCount": 3
+            },
+            "overclaim_risks": [
+              "将“从782MB到45MB”的15倍左右压缩泛化为所有场景存在风险：Table 1中Tanks and Temple的Ours模型为25MB，而Table 2 Room场景为21MB，不同场景压缩幅度不同；该例子对应Mip-NeRF 360的3D-GS*基线，不能代表每个数据集的平均压缩比。",
+              "200+FPS与质量代价同时存在：Table 1中Ours FPS达到237/357，但相比3D-GS*的SSIM下降0.007/0.013、LPIPS上升0.020/0.024，不能只宣传速度而不说明保真度折衷；且在无分辨率、渲染负载等条件说明时，FPS指标难以跨系统比较。",
+              "SH降到1度或剪枝/量化接近临界点时质量明显恶化（如Fig6所示剪枝70%、VQ比例65%或SH 1度时质量下降），标题中“15x reduction”若不限定配置可能掩盖这些临界失效情形。"
+            ],
+            "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "pdf_id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "rag_sources": [
+              {
+                "chunkIndex": 28,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                "metadata": {
+                  "chunk_index": 28,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 8,
+                  "page_index": 7,
+                  "section_id": "section-12",
+                  "section_title": "Ablation Studies",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 7,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-12",
+                "similarity": 0.8743302822113037,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nWe performed ablation studies on each component of our method to evaluate their individual impacts.\nResults show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework."
+              },
+              {
+                "chunkIndex": 40,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+                "metadata": {
+                  "chunk_index": 40,
+                  "evidence_kind": "table",
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 7,
+                  "page_index": 6,
+                  "section_id": "table-tab_1",
+                  "section_title": "Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).",
+                  "table_column_mapping_unverified": true,
+                  "table_id": "tab_1",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 6,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "table-tab_1",
+                "similarity": 0.8714908361434937,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).\n\nContent:\nTable row 5: [4] | + SH Compactness |  | 311.58 81MB [cols=3, rows=1] | 30.32 | 0.904 | 0.238\nTable row 6: [5] |"
+              },
+              {
+                "chunkIndex": 47,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+                "metadata": {
+                  "chunk_index": 47,
+                  "evidence_kind": "table",
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 9,
+                  "page_index": 8,
+                  "section_id": "table-tab_5",
+                  "section_title": "Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70%, with a more rapid deterioration as the VQ ratio approaches 65%. In Tab 6, we observe that 2-degree SH compactness reduces the SSIM from 0.927 to 0.926, while 1-degree SH compactness further reduces it to 0.923. LightGaussian's compact representation has the potential to democratize high-quality 3D content for applications in VR, AR, and autonomous driving by reducing resource demands, enabling more accessible and scalable deployment across industries. While we do not foresee any significant risk from this specific technique, 3D reconstruction may infringe on personal privacy when applied in public spaces or with drone footage, contradicting our ethical intentions.",
+                  "table_column_mapping_unverified": true,
+                  "table_id": "tab_5",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 8,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "table-tab_5",
+                "similarity": 0.8667698502540588,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70"
+              },
+              {
+                "chunkIndex": 27,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+                "metadata": {
+                  "chunk_index": 27,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 8,
+                  "page_index": 7,
+                  "section_id": "section-11",
+                  "section_title": "Generalization to Other Point-based Representations",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 7,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": 9.39537445446301,
+                "sectionId": "section-11",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Generalization to Other Point-based Representations\n\nContent:\nWe further apply our Gaussian Pruning approach to Scaffold-GS[67], an advanced neural Gaussian-based 3D representation. In this method, we prune Gaussians that contribute minimally to scene reconstruction, reducing redundancy while preserving visual fidelity. Experiments on the MipNeRF360 dataset demonstrate that pruning 80% of neural Gaussians increases the rendering speed from 152 to 178 FPS, as shown in Tab. 5. These results underscore LightGaussian's potential as an effective optimization tool for other Gaussian-based representati"
+              },
+              {
+                "chunkIndex": 0,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                "metadata": {
+                  "chunk_index": 0,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 1,
+                  "page_index": 0,
+                  "section_id": "section-1",
+                  "section_title": "Introduction",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 0,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": 9.025246224342602,
+                "sectionId": "section-1",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Introduction\n\nContent:\nNovel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+              },
+              {
+                "chunkIndex": 19,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "metadata": {
+                  "chunk_index": 19,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 5,
+                  "page_index": 4,
+                  "section_id": "section-7",
+                  "section_title": "Gaussian Attributes Vector Quantization",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 4,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": 8.273210743389408,
+                "sectionId": "section-7",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+              },
+              {
+                "chunkIndex": 15,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+                "metadata": {
+                  "chunk_index": 15,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 4,
+                  "page_index": 3,
+                  "section_id": "section-5",
+                  "section_title": "Gaussian Pruning & Recovery",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 3,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-5",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nM , H, and W represent the number of training views, image height, and width, respectively. 1 is an indicator function that determines whether a Gaussian intersects a given ray. However, using Gaussian volume alone tends to overemphasize background Gaussians, leading to excessive pruning of Gaussians modeling fine geometry. Thus, we propose a more adaptive approach to measuring volume dimensions:\nHere, the calculated Gaussian volume is firstly normalized by the 90% largest of all sorted Gaussians, clipping the range between 0 and 1, to avoid excessive floati"
+              },
+              {
+                "chunkIndex": 14,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+                "metadata": {
+                  "chunk_index": 14,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 4,
+                  "page_index": 3,
+                  "section_id": "section-5",
+                  "section_title": "Gaussian Pruning & Recovery",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 3,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-5",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nThe score is further refined by the adjusted 3D Gaussian's volume γ (Σ j ) and 3D Gaussian's opacity σ j , as they all contribute for the rendering formula.\nThe volume calculation equation of the j-th 3D Guassian is V(Σ j ) = 4 3 πabc, where abc are the 3 dimensions of Scale (S).\nWe also consider the transmittance T is calculated with one subtract all the 3D Gaussian's opacity the ray hit before the j-th 3D Gaussian, T = j−1 i=1 (1-σ i ).\nFinally, the global significance score can be summarized as:\nwhere j is the Gaussian index, i denotes a pixel, and M , H,"
+              },
+              {
+                "chunkIndex": 13,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                "metadata": {
+                  "chunk_index": 13,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 4,
+                  "page_index": 3,
+                  "section_id": "section-5",
+                  "section_title": "Gaussian Pruning & Recovery",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 3,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-5",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+              },
+              {
+                "chunkIndex": 17,
+                "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                "metadata": {
+                  "chunk_index": 17,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 5,
+                  "page_index": 4,
+                  "section_id": "section-6",
+                  "section_title": "Distilling into Compact SHs",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 4,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-6",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Distilling into Compact SHs\n\nContent:\nscene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N deno"
+              }
+            ],
+            "resolved_from": "pdf_id",
+            "riskScore": {
+              "basis": {
+                "claimCount": 6,
+                "claimMissingEvidenceCount": 0,
+                "claimRisk": 0.0,
+                "coverageRisk": 0.0,
+                "experimentCovered": true,
+                "methodCovered": true,
+                "missingRisk": 1.0,
+                "overclaimRisk": 1.0,
+                "overclaimRiskCount": 3,
+                "partialClaims": 0,
+                "reportMissingEvidenceCount": 5,
+                "unsupportedClaims": 0
+              },
+              "factors": [
+                "证据不足主张 0/6 条",
+                "部分支撑主张 0/6 条",
+                "缺失证据 5 条（计权按 3 条饱和）",
+                "夸大风险 3 条（计权按 3 条饱和）"
+              ],
+              "label": "低风险",
+              "level": "low",
+              "score": 18,
+              "summary": "检测到 0 条证据不足主张、5 条报告级缺失证据和 3 条夸大风险。"
+            },
+            "sentenceSourceMap": [
+              {
+                "confidence": 1.0,
+                "id": "ref-1",
+                "sentence": "作者宣称提出LightGaussian，通过Gaussian Pruning & Recovery、SH Distillation和Vector Quantization来压缩无界3D高斯；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40"
+                ],
+                "target": "claimed_contributions"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-2",
+                "sentence": "宣称实现约15倍压缩（如从782MB到45MB），同时在Mip-NeRF 360上SSIM仅下降0.007；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                ],
+                "target": "claimed_contributions"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-3",
+                "sentence": "宣称渲染速度超过200 FPS；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40"
+                ],
+                "target": "claimed_contributions"
+              },
+              {
+                "confidence": 0.37,
+                "id": "ref-4",
+                "sentence": "在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+                ],
+                "target": "evidence_based_contributions"
+              },
+              {
+                "confidence": 0.18,
+                "id": "ref-5",
+                "sentence": "在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                ],
+                "target": "evidence_based_contributions"
+              },
+              {
+                "confidence": 0.4,
+                "id": "ref-6",
+                "sentence": "剪枝本身会损害渲染质量：Table 2中直接Gaussian Pruning将SSIM从0.917降至0.910、LPIPS从0.221升至0.234，需Co-adaptation微调才能恢复；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+                ],
+                "target": "weaknesses"
+              },
+              {
+                "confidence": 0.29,
+                "id": "ref-7",
+                "sentence": "Hit Count Only方法SSIM降至0.886、LPIPS升至0.261，说明简单显著性度量的质量损失明显。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                ],
+                "target": "weaknesses"
+              },
+              {
+                "confidence": 0.5,
+                "id": "ref-8",
+                "sentence": "SH降阶并非无代价：Table 2中直接SH Compactness将PSNR从31.34降至30.32、SSIM从0.917降至0.904；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+                ],
+                "target": "weaknesses"
+              },
+              {
+                "confidence": 0.3,
+                "id": "ref-9",
+                "sentence": "将“从782MB到45MB”的15倍左右压缩泛化为所有场景存在风险：Table 1中Tanks and Temple的Ours模型为25MB，而Table 2 Room场景为21MB，不同场景压缩幅度不同；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40"
+                ],
+                "target": "overclaim_risks"
+              },
+              {
+                "confidence": 0.67,
+                "id": "ref-10",
+                "sentence": "该例子对应Mip-NeRF 360的3D-GS*基线，不能代表每个数据集的平均压缩比。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                ],
+                "target": "overclaim_risks"
+              },
+              {
+                "confidence": 0.25,
+                "id": "ref-11",
+                "sentence": "+FPS与质量代价同时存在：Table 1中Ours FPS达到237/357，但相比3D-GS*的SSIM下降0.007/0.013、LPIPS上升0.020/0.024，不能只宣传速度而不说明保真度折衷；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                ],
+                "target": "overclaim_risks"
+              },
+              {
+                "confidence": 0.67,
+                "id": "ref-12",
+                "sentence": "未检索到渲染分辨率、硬件具体设置（除A6000）以及FPS测量条件，无法外推200+FPS到其他硬件或分辨率。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40"
+                ],
+                "target": "missing_evidence"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-13",
+                "sentence": "未检索到统计显著性检验或多运行方差，无法判断0.007 SSIM下降是否显著或处于噪声范围。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+                ],
+                "target": "missing_evidence"
+              },
+              {
+                "confidence": 0.55,
+                "id": "ref-14",
+                "sentence": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+                ],
+                "target": "critical_analysis"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-15",
+                "sentence": "LightGaussian在Mip-NeRF 360上将模型从782MB压缩到45MB，同时SSIM仅下降0.007。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+                ],
+                "target": "claims.claim-2"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-16",
+                "sentence": "LightGaussian在复杂场景上的渲染速度超过200 FPS。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40"
+                ],
+                "target": "claims.claim-3"
+              },
+              {
+                "confidence": 1.0,
+                "id": "ref-17",
+                "sentence": "高斯剪枝方法可泛化至Scaffold-GS等其他3D高斯表示，剪枝80%神经高斯后帧率从152提升到178 FPS。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27"
+                ],
+                "target": "claims.claim-4"
+              }
+            ],
+            "status": "success",
+            "traceId": "bb72839b-c99b-49dd-bace-2993e0afeada",
+            "weaknesses": [
+              "剪枝本身会损害渲染质量：Table 2中直接Gaussian Pruning将SSIM从0.917降至0.910、LPIPS从0.221升至0.234，需Co-adaptation微调才能恢复；Hit Count Only方法SSIM降至0.886、LPIPS升至0.261，说明简单显著性度量的质量损失明显。",
+              "SH降阶并非无代价：Table 2中直接SH Compactness将PSNR从31.34降至30.32、SSIM从0.917降至0.904；Table 6显示SH降到1度时SSIM进一步降至0.923，说明高阶SH被截断会丢失光照细节，需要蒸馏和伪视图训练补偿。",
+              "向量量化只作用于SH系数，且需要微调：论文明确表示对位置、旋转、尺度等属性量化会造成显著精度损失，因此高显著性SH和几何属性被跳过并以float16存储；Table 2中Codebook Quant后PSNR从31.48降至31.09，经VQ finetune才恢复到31.40。",
+              "泛化结果不完整：Scaffold-GS实验仅报告剪枝80%后FPS从152提升至178，未提供质量、模型大小和完整基线数据，无法支持“保持视觉保真度”的跨格式结论。"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "task": {
+    "id": "stage4-3dgs-critique-20261009-v5",
+    "title": "阶段4：critique修复核验-v5",
+    "paperIds": [
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "messages": [
+      {
+        "sourceRequestId": "stage4-3dgs-critique-20261009-v5-request",
+        "context": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "strictScope": true,
+          "taskId": "stage4-3dgs-critique-20261009-v5"
+        },
+        "content": "重点批判LightGaussian的15倍压缩与200+FPS主张：证据适用于哪些场景、比较条件和质量代价？剪枝、球谐降阶和向量量化分别有什么局限？区分作者原文、推断及未检索覆盖，不能把片段缺失当作论文缺陷。",
+        "id": "stage4-3dgs-critique-20261009-v5-request:user",
+        "role": "user"
+      },
+      {
+        "capability": "critique",
+        "role": "ai",
+        "content": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；剪枝、SH降阶和VQ都必须配合额外训练或蒸馏才能弥补质量损失，VQ还只覆盖SH系数而不能安全扩展到全部属性。对Scaffold-GS的跨格式泛化及多场景稳健性证据不足，需回查补充后才能支持更强的压缩与通用性结论。\n\n**证据支持的贡献**\n\n- 在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。Room场景消融显示三模块将模型从365MB降至21MB、FPS从156.21提升至302.01。这些支持压缩和加速在报告场景下成立，但存在质量代价。\n\n**局限**",
+        "sourceRequestId": "stage4-3dgs-critique-20261009-v5-request",
+        "context": {
+          "allowedPaperIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "primaryPaperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "strictScope": true,
+          "taskId": "stage4-3dgs-critique-20261009-v5"
+        },
+        "id": "stage4-3dgs-critique-20261009-v5-request:ai",
+        "rag_sources": [
+          {
+            "chunkIndex": 28,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+            "metadata": {
+              "chunk_index": 28,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-12",
+              "section_title": "Ablation Studies",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 7,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-12",
+            "similarity": 0.8743302822113037,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nWe performed ablation studies on each component of our method to evaluate their individual impacts.\nResults show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework."
+          },
+          {
+            "chunkIndex": 40,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+            "metadata": {
+              "chunk_index": 40,
+              "evidence_kind": "table",
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 7,
+              "page_index": 6,
+              "section_id": "table-tab_1",
+              "section_title": "Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).",
+              "table_column_mapping_unverified": true,
+              "table_id": "tab_1",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 6,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "table-tab_1",
+            "similarity": 0.8714908361434937,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).\n\nContent:\nTable row 5: [4] | + SH Compactness |  | 311.58 81MB [cols=3, rows=1] | 30.32 | 0.904 | 0.238\nTable row 6: [5] |"
+          },
+          {
+            "chunkIndex": 47,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+            "metadata": {
+              "chunk_index": 47,
+              "evidence_kind": "table",
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 9,
+              "page_index": 8,
+              "section_id": "table-tab_5",
+              "section_title": "Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70%, with a more rapid deterioration as the VQ ratio approaches 65%. In Tab 6, we observe that 2-degree SH compactness reduces the SSIM from 0.927 to 0.926, while 1-degree SH compactness further reduces it to 0.923. LightGaussian's compact representation has the potential to democratize high-quality 3D content for applications in VR, AR, and autonomous driving by reducing resource demands, enabling more accessible and scalable deployment across industries. While we do not foresee any significant risk from this specific technique, 3D reconstruction may infringe on personal privacy when applied in public spaces or with drone footage, contradicting our ethical intentions.",
+              "table_column_mapping_unverified": true,
+              "table_id": "tab_5",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 8,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "table-tab_5",
+            "similarity": 0.8667698502540588,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70"
+          },
+          {
+            "chunkIndex": 27,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+            "metadata": {
+              "chunk_index": 27,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-11",
+              "section_title": "Generalization to Other Point-based Representations",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 7,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 9.39537445446301,
+            "sectionId": "section-11",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Generalization to Other Point-based Representations\n\nContent:\nWe further apply our Gaussian Pruning approach to Scaffold-GS[67], an advanced neural Gaussian-based 3D representation. In this method, we prune Gaussians that contribute minimally to scene reconstruction, reducing redundancy while preserving visual fidelity. Experiments on the MipNeRF360 dataset demonstrate that pruning 80% of neural Gaussians increases the rendering speed from 152 to 178 FPS, as shown in Tab. 5. These results underscore LightGaussian's potential as an effective optimization tool for other Gaussian-based representati"
+          },
+          {
+            "chunkIndex": 0,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+            "metadata": {
+              "chunk_index": 0,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 1,
+              "page_index": 0,
+              "section_id": "section-1",
+              "section_title": "Introduction",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 0,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 9.025246224342602,
+            "sectionId": "section-1",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Introduction\n\nContent:\nNovel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+          },
+          {
+            "chunkIndex": 19,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+            "metadata": {
+              "chunk_index": 19,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 8.273210743389408,
+            "sectionId": "section-7",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+          },
+          {
+            "chunkIndex": 15,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+            "metadata": {
+              "chunk_index": 15,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 4,
+              "page_index": 3,
+              "section_id": "section-5",
+              "section_title": "Gaussian Pruning & Recovery",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 3,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-5",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nM , H, and W represent the number of training views, image height, and width, respectively. 1 is an indicator function that determines whether a Gaussian intersects a given ray. However, using Gaussian volume alone tends to overemphasize background Gaussians, leading to excessive pruning of Gaussians modeling fine geometry. Thus, we propose a more adaptive approach to measuring volume dimensions:\nHere, the calculated Gaussian volume is firstly normalized by the 90% largest of all sorted Gaussians, clipping the range between 0 and 1, to avoid excessive floati"
+          },
+          {
+            "chunkIndex": 14,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+            "metadata": {
+              "chunk_index": 14,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 4,
+              "page_index": 3,
+              "section_id": "section-5",
+              "section_title": "Gaussian Pruning & Recovery",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 3,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-5",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nThe score is further refined by the adjusted 3D Gaussian's volume γ (Σ j ) and 3D Gaussian's opacity σ j , as they all contribute for the rendering formula.\nThe volume calculation equation of the j-th 3D Guassian is V(Σ j ) = 4 3 πabc, where abc are the 3 dimensions of Scale (S).\nWe also consider the transmittance T is calculated with one subtract all the 3D Gaussian's opacity the ray hit before the j-th 3D Gaussian, T = j−1 i=1 (1-σ i ).\nFinally, the global significance score can be summarized as:\nwhere j is the Gaussian index, i denotes a pixel, and M , H,"
+          },
+          {
+            "chunkIndex": 13,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+            "metadata": {
+              "chunk_index": 13,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 4,
+              "page_index": 3,
+              "section_id": "section-5",
+              "section_title": "Gaussian Pruning & Recovery",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 3,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-5",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+          },
+          {
+            "chunkIndex": 17,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+            "metadata": {
+              "chunk_index": 17,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-6",
+              "section_title": "Distilling into Compact SHs",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-6",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Distilling into Compact SHs\n\nContent:\nscene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N deno"
+          }
+        ],
+        "sentenceSourceMap": [
+          {
+            "confidence": 0.55,
+            "id": "ref-1",
+            "sentence": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.37,
+            "id": "ref-2",
+            "sentence": "在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.18,
+            "id": "ref-3",
+            "sentence": "在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            ],
+            "target": "message"
+          }
+        ],
+        "artifactId": "stage4-3dgs-critique-20261009-v5-request:artifact"
+      }
+    ],
+    "notes": [],
+    "artifacts": [
+      {
+        "createdAt": "2026-10-09T02:04:07.343979300Z",
+        "sourceRequestId": "stage4-3dgs-critique-20261009-v5-request",
+        "versions": [],
+        "text": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；剪枝、SH降阶和VQ都必须配合额外训练或蒸馏才能弥补质量损失，VQ还只覆盖SH系数而不能安全扩展到全部属性。对Scaffold-GS的跨格式泛化及多场景稳健性证据不足，需回查补充后才能支持更强的压缩与通用性结论。\n\n**证据支持的贡献**\n- 在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。Room场景消融显示三模块将模型从365MB降至21MB、FPS从156.21提升至302.01。这些支持压缩和加速在报告场景下成立，但存在质量代价。\n\n**局限**\n- 剪枝本身会损害渲染质量：Table 2中直接Gaussian Pruning将SSIM从0.917降至0.910、LPIPS从0.221升至0.234，需Co-adaptation微调才能恢复；Hit Count Only方法SSIM降至0.886、LPIPS升至0.261，说明简单显著性度量的质量损失明显。\n- SH降阶并非无代价：Table 2中直接SH Compactness将PSNR从31.34降至30.32、SSIM从0.917降至0.904；Table 6显示SH降到1度时SSIM进一步降至0.923，说明高阶SH被截断会丢失光照细节，需要蒸馏和伪视图训练补偿。\n- 向量量化只作用于SH系数，且需要微调：论文明确表示对位置、旋转、尺度等属性量化会造成显著精度损失，因此高显著性SH和几何属性被跳过并以float16存储；Table 2中Codebook Quant后PSNR从31.48降至31.09，经VQ finetune才恢复到31.40。\n- 泛化结果不完整：Scaffold-GS实验仅报告剪枝80%后FPS从152提升至178，未提供质量、模型大小和完整基线数据，无法支持“保持视觉保真度”的跨格式结论。\n\n**过度主张风险**\n- 将“从782MB到45MB”的15倍左右压缩泛化为所有场景存在风险：Table 1中Tanks and Temple的Ours模型为25MB，而Table 2 Room场景为21MB，不同场景压缩幅度不同；该例子对应Mip-NeRF 360的3D-GS*基线，不能代表每个数据集的平均压缩比。\n- 200+FPS与质量代价同时存在：Table 1中Ours FPS达到237/357，但相比3D-GS*的SSIM下降0.007/0.013、LPIPS上升0.020/0.024，不能只宣传速度而不说明保真度折衷；且在无分辨率、渲染负载等条件说明时，FPS指标难以跨系统比较。\n- SH降到1度或剪枝/量化接近临界点时质量明显恶化（如Fig6所示剪枝70%、VQ比例65%或SH 1度时质量下降），标题中“15x reduction”若不限定配置可能掩盖这些临界失效情形。\n\n**待补证据**\n- 当前证据未覆盖除Room外的多场景完整消融数据，无法核实剪枝、SH降阶和VQ对PSNR/SSIM/LPIPS的跨场景平均影响。\n- 未检索到Scaffold-GS泛化实验中的质量、模型大小和基线对比数据，无法核验该泛化主张。\n- 未检索到渲染分辨率、硬件具体设置（除A6000）以及FPS测量条件，无法外推200+FPS到其他硬件或分辨率。\n- 未检索到训练/微调总时间、额外伪视图生成开销或每场景超参数敏感性分析。\n- 未检索到统计显著性检验或多运行方差，无法判断0.007 SSIM下降是否显著或处于噪声范围。",
+        "paperIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "id": "stage4-3dgs-critique-20261009-v5-request:artifact",
+        "sources": [
+          {
+            "chunkIndex": 28,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+            "metadata": {
+              "chunk_index": 28,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-12",
+              "section_title": "Ablation Studies",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 7,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-12",
+            "similarity": 0.8743302822113037,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-28",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Ablation Studies\n\nContent:\nWe performed ablation studies on each component of our method to evaluate their individual impacts.\nResults show that Gaussian Pruning and Recovery effectively removes redundant Gaussians, retaining only those crucial for scene representation. SH Distillation reduces the Spherical Harmonics degree, simplifying the lighting model with minimal quality loss. Furthermore, Vector Quantization efficiently compresses the feature space, creating a more compact representation. Combined, these modules substantially improve the overall efficiency and performance of our framework."
+          },
+          {
+            "chunkIndex": 40,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+            "metadata": {
+              "chunk_index": 40,
+              "evidence_kind": "table",
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 7,
+              "page_index": 6,
+              "section_id": "table-tab_1",
+              "section_title": "Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).",
+              "table_column_mapping_unverified": true,
+              "table_id": "tab_1",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 6,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "table-tab_1",
+            "similarity": 0.8714908361434937,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 2 : Ablation studies on the Gaussian Pruning & Recovery, SH Compactness, and the Vector Quantization. Scene: Room. Zero-shot Gaussian pruning leads degraded rendering quality (#2), but Co-adaptation can recover most of the scene details (#3). Directly eliminating high-order SH negatively affects the quality (#4), while distillation with pseudo-view helps to mitigate the gap (#5, #6). Codebook quantization further reduces the required model size and bandwidth (#7, #8).\n\nContent:\nTable row 5: [4] | + SH Compactness |  | 311.58 81MB [cols=3, rows=1] | 30.32 | 0.904 | 0.238\nTable row 6: [5] |"
+          },
+          {
+            "chunkIndex": 47,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+            "metadata": {
+              "chunk_index": 47,
+              "evidence_kind": "table",
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 9,
+              "page_index": 8,
+              "section_id": "table-tab_5",
+              "section_title": "Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70%, with a more rapid deterioration as the VQ ratio approaches 65%. In Tab 6, we observe that 2-degree SH compactness reduces the SSIM from 0.927 to 0.926, while 1-degree SH compactness further reduces it to 0.923. LightGaussian's compact representation has the potential to democratize high-quality 3D content for applications in VR, AR, and autonomous driving by reducing resource demands, enabling more accessible and scalable deployment across industries. While we do not foresee any significant risk from this specific technique, 3D reconstruction may infringe on personal privacy when applied in public spaces or with drone footage, contradicting our ethical intentions.",
+              "table_column_mapping_unverified": true,
+              "table_id": "tab_5",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 8,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "table-tab_5",
+            "similarity": 0.8667698502540588,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 6 : Ablation with varying SH compactness: With a Gaussian pruning ratio of 66% and SH reduced to 2 degrees, LightGaussian nearly maintains rendering quality (SSIM drops slightly from 0.927 to 0.926). Reducing SH further to 1 degree lowers SSIM to 0.923.Degradation & Speed vs. Compression Ratio We investigate the interplay between rendering quality and speed across various model compression ratios. Specifically, we adjust parameters such as Gaussian Pruning & Recovery, SH Distilling, and VQ. As depicted in Fig6, we note a marked decline in rendering quality when the pruning ratio reaches 70"
+          },
+          {
+            "chunkIndex": 27,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+            "metadata": {
+              "chunk_index": 27,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-11",
+              "section_title": "Generalization to Other Point-based Representations",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 7,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 9.39537445446301,
+            "sectionId": "section-11",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-27",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Generalization to Other Point-based Representations\n\nContent:\nWe further apply our Gaussian Pruning approach to Scaffold-GS[67], an advanced neural Gaussian-based 3D representation. In this method, we prune Gaussians that contribute minimally to scene reconstruction, reducing redundancy while preserving visual fidelity. Experiments on the MipNeRF360 dataset demonstrate that pruning 80% of neural Gaussians increases the rendering speed from 152 to 178 FPS, as shown in Tab. 5. These results underscore LightGaussian's potential as an effective optimization tool for other Gaussian-based representati"
+          },
+          {
+            "chunkIndex": 0,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+            "metadata": {
+              "chunk_index": 0,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 1,
+              "page_index": 0,
+              "section_id": "section-1",
+              "section_title": "Introduction",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 0,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 9.025246224342602,
+            "sectionId": "section-1",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Introduction\n\nContent:\nNovel view synthesis (NVS) aims to generate photo-realistic images of a 3D scene from unobserved viewpoints, given a set of calibrated multi-view images. This capability has widespread applications In summary, LightGaussian achieves substantial compression (e.g., from 782MB to 45MB) while maintaining visual fidelity (SSIM decrease of only 0.007 on Mip-NeRF 360). Rendering speed also improves, reaching over 200 FPS on complex scenes. Our Gaussian Pruning and Recovery method generalizes well, enhancing performance across different 3D Gaussian formats, such as Scaffold-GS."
+          },
+          {
+            "chunkIndex": 19,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+            "metadata": {
+              "chunk_index": 19,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": 8.273210743389408,
+            "sectionId": "section-7",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-19",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nhigh compression rates. However, quantizing Gaussian attributes in a point-based, inherently non-Euclidean representation poses notable challenges. Our empirical findings indicate that applying quantization across all elements-especially for attributes like position, rotation, and scale-results in significant accuracy losses and a marked reduction in precision when represented discretely.\nWe propose applying VQ to the Spherical Harmonics (SH) coefficients, based on the assumption that a subgroup of 3d Gaussians typically exhibits a similar appear"
+          },
+          {
+            "chunkIndex": 15,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+            "metadata": {
+              "chunk_index": 15,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 4,
+              "page_index": 3,
+              "section_id": "section-5",
+              "section_title": "Gaussian Pruning & Recovery",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 3,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-5",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-15",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nM , H, and W represent the number of training views, image height, and width, respectively. 1 is an indicator function that determines whether a Gaussian intersects a given ray. However, using Gaussian volume alone tends to overemphasize background Gaussians, leading to excessive pruning of Gaussians modeling fine geometry. Thus, we propose a more adaptive approach to measuring volume dimensions:\nHere, the calculated Gaussian volume is firstly normalized by the 90% largest of all sorted Gaussians, clipping the range between 0 and 1, to avoid excessive floati"
+          },
+          {
+            "chunkIndex": 14,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+            "metadata": {
+              "chunk_index": 14,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 4,
+              "page_index": 3,
+              "section_id": "section-5",
+              "section_title": "Gaussian Pruning & Recovery",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 3,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-5",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-14",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\nThe score is further refined by the adjusted 3D Gaussian's volume γ (Σ j ) and 3D Gaussian's opacity σ j , as they all contribute for the rendering formula.\nThe volume calculation equation of the j-th 3D Guassian is V(Σ j ) = 4 3 πabc, where abc are the 3 dimensions of Scale (S).\nWe also consider the transmittance T is calculated with one subtract all the 3D Gaussian's opacity the ray hit before the j-th 3D Gaussian, T = j−1 i=1 (1-σ i ).\nFinally, the global significance score can be summarized as:\nwhere j is the Gaussian index, i denotes a pixel, and M , H,"
+          },
+          {
+            "chunkIndex": 13,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+            "metadata": {
+              "chunk_index": 13,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 4,
+              "page_index": 3,
+              "section_id": "section-5",
+              "section_title": "Gaussian Pruning & Recovery",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 3,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-5",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-13",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Pruning & Recovery\n\nContent:\npruning strategy for 3D Gaussian Splatting to reduce over-parameterized points while maintaining accuracy. Identifying redundant yet recoverable Gaussians is essential to our approach. However, pruning Gaussians based on simple criteria (e.g., point opacity) risks degrading modeling performance, as it may eliminate essential scene details, as shown in Fig.3.\nGlobal Significance Calculation.\nInspired by Eq.\n2, we go beyond using Gaussian opacity alone to assess significance by evaluating 3D Gaussians within the view frustum, projecting them onto the camera vi"
+          },
+          {
+            "chunkIndex": 17,
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+            "metadata": {
+              "chunk_index": 17,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-6",
+              "section_title": "Distilling into Compact SHs",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-6",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-17",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Distilling into Compact SHs\n\nContent:\nscene quality, we introduce a knowledge distillation approach. Knowledge is distilled from a teacher model with full-degree SHs to a student model with truncated, lower-degree SHs. Supervision is based on the difference in predicted pixel intensities between the two models, with images synthesized at camera positions by sampling around each training view according to a Gaussian distribution:\n(5)\nwhere R and t denote rendering camera rotation and position, t pseudo and t train represent the newly synthesized and training camera positions, respectively. N deno"
+          }
+        ],
+        "title": "对话成果",
+        "sentenceSourceMap": [
+          {
+            "confidence": 0.55,
+            "id": "ref-1",
+            "sentence": "基于已提供证据，15倍压缩与200+FPS在A6000和Mip-NeRF 360/Tanks and Temple场景下是可验证的，但并非零代价：相对3D-GS*的SSIM、LPIPS均有小幅退化，且压缩后模型大小因场景而异；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.37,
+            "id": "ref-2",
+            "sentence": "在提供的A6000实验证据中，LightGaussian在Mip-NeRF 360数据集上相对3D-GS*将模型从782MB压缩到45MB、FPS从144提升到237，伴随PSNR从27.40降至27.13、SSIM从0.813降至0.806、LPIPS从0.217升至0.237；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.18,
+            "id": "ref-3",
+            "sentence": "在Tanks and Temple上从433MB压缩到25MB、FPS从106提升到357，PSNR从23.66降至23.44、SSIM从0.845降至0.832、LPIPS从0.178升至0.202。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.4,
+            "id": "ref-4",
+            "sentence": "剪枝本身会损害渲染质量：Table 2中直接Gaussian Pruning将SSIM从0.917降至0.910、LPIPS从0.221升至0.234，需Co-adaptation微调才能恢复；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.29,
+            "id": "ref-5",
+            "sentence": "Hit Count Only方法SSIM降至0.886、LPIPS升至0.261，说明简单显著性度量的质量损失明显。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-0"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.5,
+            "id": "ref-6",
+            "sentence": "SH降阶并非无代价：Table 2中直接SH Compactness将PSNR从31.34降至30.32、SSIM从0.917降至0.904；",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.67,
+            "id": "ref-7",
+            "sentence": "Table 6显示SH降到1度时SSIM进一步降至0.923，说明高阶SH被截断会丢失光照细节，需要蒸馏和伪视图训练补偿。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-47"
+            ],
+            "target": "message"
+          },
+          {
+            "confidence": 0.25,
+            "id": "ref-8",
+            "sentence": "Table 2中Codebook Quant后PSNR从31.48降至31.09，经VQ finetune才恢复到31.40。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-40"
+            ],
+            "target": "message"
+          }
+        ]
+      }
+    ],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [
+      "stage4-3dgs-critique-20261009-v5-request"
+    ],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-09T02:04:07.343979Z",
+    "revision": 1
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "caseId": "D3",
+  "attemptLabel": "official-harness-v1-after-development-v9",
+  "runId": "dr_run_bf3891610b165d9cbe98a16e8673c304",
+  "promptVersion": "dr-v2.20261013.12",
+  "codeCommit": "2102c2f",
+  "providerOutcome": "none",
+  "status": "failed",
+  "manualOutcome": "failed",
+  "budget": {
+    "profile": "standard",
+    "modelCalls": 10,
+    "maxModelCalls": 18,
+    "tokens": 60768,
+    "maxTokens": 100000,
+    "externalSearches": 0,
+    "fulltextFetches": 0,
+    "elapsedSeconds": 243.0,
+    "cost": null
+  },
+  "failure": "verify returned finishReason=length and empty content after 16384 output tokens",
+  "draftFindings": [
+    "SH intervention is still an unspecified preregistered choice",
+    "Three-scene subset and fixed train/evaluation split are not an executable selection rule",
+    "Configuration verdicts incorrectly accepted vague settings; literal audit alone cannot establish executability"
+  ],
+  "receipt": "tmp/dr-acceptance-receipts/D3-v1.json",
+  "result": "tmp/dr-acceptance-receipts/D3-v1.result.json",
+  "automaticRetry": false,
+  "nextDesignCorrection": "Make executable intervention/split choices explicit, and require speed/storage protocols only when relevant to the requested estimand; do not demand unrelated measurements for a quality-only experiment."
+}

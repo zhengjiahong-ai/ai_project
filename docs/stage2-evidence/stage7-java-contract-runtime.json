@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "jdk": "25.0.1",
+  "database": "jdbc:h2:mem:stage7_contract",
+  "upstream": "mocked",
+  "modelCalls": 0,
+  "checks": [
+    {
+      "name": "TaskWorkspaceControllerTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reportModified": "2026-10-08T22:07:38.9300939+08:00"
+    },
+    {
+      "name": "TaskOperationControllerTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reportModified": "2026-10-08T22:07:36.7850136+08:00"
+    },
+    {
+      "name": "TaskLearningControllerTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reportModified": "2026-10-08T22:07:36.0263109+08:00"
+    },
+    {
+      "name": "TaskResearchControllerTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reportModified": "2026-10-08T22:07:38.0993284+08:00"
+    },
+    {
+      "name": "TaskMaterialControllerTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reportModified": "2026-10-08T22:07:36.2166989+08:00"
+    }
+  ]
+}

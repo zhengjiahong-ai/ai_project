@@ -35,6 +35,9 @@ class AcademicControllerTest {
     @MockBean
     private AiService aiService;
 
+    @MockBean
+    private com.ai.assistant.backend_java.service.MaterialProcessingService materialProcessing;
+
     @Test
     void forwardsCodeExecutionApprovalEndpoints() throws Exception {
         Map<String, Object> success = Map.of("status", "success", "job", Map.of("jobId", "job-1"));

@@ -1,0 +1,9 @@
+........................................................................ [ 67%]
+..................................                                       [100%]
+=============================== warnings summary ===============================
+tests/test_comparison_measurements.py::test_critique_axis_receives_checked_columns_without_mutating_source_snapshots
+  /usr/local/lib/python3.11/site-packages/PyPDF2/__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move to the pypdf library instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+106 passed, 1 warning in 4.70s

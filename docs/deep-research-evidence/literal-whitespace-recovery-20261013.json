@@ -1,0 +1,37 @@
+{
+  "sourceRun": "dr_run_fd3af380a6845fcc81f008542a45b2ec",
+  "finding": "Extraction's direct substring gate discarded quotes with PDF newlines replaced by spaces before the existing whitespace-tolerant evidence check.",
+  "change": "Recover a unique original substring differing only in whitespace and persist that exact original text; preserve exact quotes and reject non-whitespace changes or ambiguous recovery.",
+  "offlineReplay": {
+    "candidateQuotes": 7,
+    "originalExact": 1,
+    "additionalWhitespaceRecovered": 1,
+    "stillRejected": 5
+  },
+  "targetedTests": {
+    "passed": 46,
+    "seconds": 6.39
+  },
+  "boundaries": [
+    "No fuzzy match",
+    "No dehyphenation",
+    "No changed words, digits or punctuation",
+    "No source identity widening",
+    "Original context and page retained"
+  ],
+  "modelCalls": 0,
+  "runtimeLoaded": false,
+  "qualityAccepted": false,
+  "promptVersion": "dr-v2.20261013.47",
+  "fullSuiteBeforeFixtureFix": {
+    "passed": 948,
+    "failed": 4,
+    "warnings": 2,
+    "seconds": 101.98
+  },
+  "fixtureFix": "Update end-to-end offline model routing to the compact repair prompt prefix introduced in .45; production pause/resume unchanged.",
+  "affectedRegressionAfterFix": {
+    "passed": 55,
+    "seconds": 11.15
+  }
+}

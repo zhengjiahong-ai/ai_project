@@ -1,0 +1,2073 @@
+{
+  "taskId": "stage4-3dgs-compare-20261010-v16",
+  "requestId": "stage4-3dgs-compare-20261010-v16-request",
+  "kind": "conversation.execute",
+  "status": "succeeded",
+  "error": "",
+  "createdAt": "2026-10-10T05:49:50.245147+00:00",
+  "updatedAt": "2026-10-10T05:52:24.283754+00:00",
+  "request": {
+    "expectedTaskRevision": 0,
+    "message": "比较原始3DGS与LightGaussian如何在表示规模、质量和渲染速度之间取舍。若引用实验数字，请说明对应数据集、硬件与基线版本；先给简短结论，再给比较表。",
+    "capability": "compare",
+    "allowedPaperIds": [
+      "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "primaryPaperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+    "strictScope": false,
+    "steps": [],
+    "allowExternalSearch": false
+  },
+  "paperIds": [
+    "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+    "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+  ],
+  "result": {
+    "artifact": {
+      "paperIds": [
+        "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "partial": false,
+      "sentenceSourceMap": [
+        {
+          "id": "grounded-1",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+            },
+            {
+              "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+            }
+          ],
+          "sentence": "整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-2",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            },
+            {
+              "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            },
+            {
+              "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+            },
+            {
+              "quote": "All performance evaluations are conducted on an A6000 GPU.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+            }
+          ],
+          "sentence": "Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-3",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            },
+            {
+              "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            },
+            {
+              "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+            },
+            {
+              "quote": "All performance evaluations are conducted on an A6000 GPU.",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+            }
+          ],
+          "sentence": "Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-4",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters.",
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+            }
+          ],
+          "sentence": "原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。",
+          "sourceIds": [
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-5",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            },
+            {
+              "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            }
+          ],
+          "sentence": "LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-6",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+            },
+            {
+              "quote": "The trained synthetic scenes rendered at 180-300 FPS.",
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+            }
+          ],
+          "sentence": "原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。",
+          "sourceIds": [
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-7",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            },
+            {
+              "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            }
+          ],
+          "sentence": "LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-8",
+          "kind": "reported",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Second, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;",
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+            },
+            {
+              "quote": "Our results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches.",
+              "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9"
+            }
+          ],
+          "sentence": "原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。",
+          "sourceIds": [
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9"
+          ],
+          "target": "message"
+        },
+        {
+          "id": "grounded-9",
+          "kind": "inference",
+          "method": "literal_quote",
+          "references": [
+            {
+              "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            },
+            {
+              "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+              "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            }
+          ],
+          "sentence": "在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。",
+          "sourceIds": [
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+          ],
+          "target": "message"
+        }
+      ],
+      "sources": [
+        {
+          "chunkIndex": 2,
+          "metadata": {
+            "chunk_index": 2,
+            "file_name": "target_paper.pdf",
+            "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "page": 1,
+            "page_index": 0,
+            "section_id": "section-1",
+            "section_title": "Ours (93 fps)",
+            "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+          },
+          "pageIndex": 0,
+          "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "score": null,
+          "sectionId": "section-1",
+          "similarity": null,
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+          "sourceType": "current_paper",
+          "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.\nFirst, starting from sparse points produced during camera calibration, we represent the scene with 3D Gaussians that preserve desirable properties of continuous volumetric radiance fields for scene optimization while avoiding unnecessary computation in empty space;\nSecond, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;\nThird, we develop a fast visibility-aware rendering algorithm that supports anisotropic splatting and both accelerates training and allows realtime rendering.\nWe demonstrate state-of-the-art visual quality and real-time rendering on several established datasets.\nCCS Concepts: • Computing methodologies → Rendering; Point-based models; Rasterization; Machine learning approaches."
+        },
+        {
+          "chunkIndex": 1,
+          "metadata": {
+            "chunk_index": 1,
+            "file_name": "target_paper.pdf",
+            "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "page": 1,
+            "page_index": 0,
+            "section_id": "section-1",
+            "section_title": "Ours (93 fps)",
+            "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+          },
+          "pageIndex": 0,
+          "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "score": null,
+          "sectionId": "section-1",
+          "similarity": null,
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1",
+          "sourceType": "current_paper",
+          "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\na real-time differentiable renderer, which offers significant speedup to both scene optimization and novel view synthesis. Note that for comparable training times to InstantNGP[Müller et al. 2022], we achieve similar quality to theirs; while this is the maximum quality they reach, by training for 51min we achieve state-of-the-art quality, even slightly better than Mip-NeRF360[Barron et al. 2022].\nRadiance Field methods have recently revolutionized novel-view synthesis of scenes captured with multiple photos or videos.\nHowever, achieving high visual quality still requires neural networks that are costly to train and render, while recent faster methods inevitably trade off speed for quality.\nFor unbounded and complete scenes (rather than isolated objects) and 1080p resolution rendering, no current method can achieve real-time display rates.\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution."
+        },
+        {
+          "chunkIndex": 9,
+          "metadata": {
+            "chunk_index": 9,
+            "file_name": "target_paper.pdf",
+            "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "page": 1,
+            "page_index": 0,
+            "section_id": "section-2",
+            "section_title": "INTRODUCTION",
+            "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+          },
+          "pageIndex": 0,
+          "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "score": null,
+          "sectionId": "section-2",
+          "similarity": null,
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9",
+          "sourceType": "current_paper",
+          "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: INTRODUCTION\n\nContent:\nunstructured representation of radiance fields. • An optimization method of 3D Gaussian properties, interleaved with adaptive density control that creates high-quality representations for captured scenes. • A fast, differentiable rendering approach for the GPU, which is visibility-aware, allows anisotropic splatting and fast backpropagation to achieve high-quality novel view synthesis.\nOur results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches. We also can achieve training speeds and quality similar to the fastest methods and importantly provide the first real-time rendering with high quality for novel-view synthesis."
+        },
+        {
+          "chunkIndex": 64,
+          "metadata": {
+            "chunk_index": 64,
+            "file_name": "target_paper.pdf",
+            "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "page": 8,
+            "page_index": 7,
+            "section_id": "section-18",
+            "section_title": "Results and Evaluation",
+            "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+          },
+          "pageIndex": 7,
+          "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "score": null,
+          "sectionId": "section-18",
+          "similarity": null,
+          "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+          "sourceType": "current_paper",
+          "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Results and Evaluation\n\nContent:\nWe report and compare our achieved PSNR scores with previous methods in Table2using a white background for compatibility.\nExamples can be seen in Fig.10(second image from the left) and in supplemental material.\nThe trained synthetic scenes rendered at 180-300 FPS.\nCompactness. In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters. We showcase this by evaluating our approach against the highly compact, point-based models obtained by[Zhang et al. 2022]. We start from their initial point cloud which is obtained by space carving with foreground masks and optimize until we break even with their reported PSNR scores. This usually happens within 2-4 minutes. We surpass their reported metrics using approximately one-fourth of their point count, resulting in an average model size of 3.8 MB, as opposed to their 9 MB. We note that for this experiment, we only used two degrees of our spherical harmonics, similar to theirs."
+        },
+        {
+          "chunkIndex": 21,
+          "metadata": {
+            "chunk_index": 21,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 5,
+            "page_index": 4,
+            "section_id": "section-7",
+            "section_title": "Gaussian Attributes Vector Quantization",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 4,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-7",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nmethod strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+        },
+        {
+          "chunkIndex": 23,
+          "metadata": {
+            "chunk_index": 23,
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 6,
+            "page_index": 5,
+            "section_id": "section-9",
+            "section_title": "Experimental Settings",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 5,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "section-9",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nIn addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structural similarity (SSIM), and perceptual similarity as measured by LPIPS[66].\nCompared Baselines. We compare our approach with methods suited for large-scale scene modeling, including Plenoxel[12], Mip-NeRF360[7], and 3D-GS[16]. Additionally, we evaluate against efficient techniques like Instant-NGP[14], which uses a hash grid for storage efficiency, and VQ-DVGO[49], which extends DVGO[9]with voxel pruning and VQ for optimized representation.\nImplementation Details. Our framework is implemented in PyTorch and integrates the differentiable Gaussian rasterization technique from 3D-GS[16]. All performance evaluations are conducted on an A6000 GPU. In the Global Significance Calculation phase, we assign a power value of 0.1 in Eq. 4 and proceed to fine-tune the model for 5,000 steps during the Gaussian Co-adaptation process."
+        },
+        {
+          "chunkIndex": 38,
+          "metadata": {
+            "chunk_index": 38,
+            "evidence_kind": "table",
+            "file_name": "public-light.pdf",
+            "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "index_version": "2977684d0da4a8b6",
+            "page": 6,
+            "page_index": 5,
+            "section_id": "table-tab_0",
+            "section_title": "Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods",
+            "table_column_mapping_unverified": true,
+            "table_id": "tab_0",
+            "table_verified_data": "{\"groups\":[[\"Mip-NeRF 360 Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]],[\"Tank and Temple Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]]],\"rows\":[[7,\"Compact 3D-GS [37]\",[\"128\",\"48MB\",\"27.08\",\"0.798\",\"0.247\",\"185\",\"39MB\",\"23.32\",\"0.831\",\"0.201\"]],[8,\"3D-GS [16]\",[\"134\",\"734MB\",\"27.21\",\"0.815\",\"0.214\",\"154\",\"411MB\",\"23.14\",\"0.841\",\"0.183\"]],[9,\"3D-GS  *  [16]\",[\"144\",\"782MB\",\"27.40\",\"0.813\",\"0.217\",\"106\",\"433MB\",\"23.66\",\"0.845\",\"0.178\"]],[10,\"Ours\",[\"237\",\"45MB\",\"27.13\",\"0.806\",\"0.237\",\"357\",\"25MB\",\"23.44\",\"0.832\",\"0.202\"]]]}",
+            "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+          },
+          "pageIndex": 5,
+          "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "score": null,
+          "sectionId": "table-tab_0",
+          "similarity": null,
+          "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+          "sourceType": "current_paper",
+          "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\n\nContent:\nTable caption: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\nTable row 1: Methods | FPS↑ | Mip-NeRF 360 Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ FPS↑ [cols=5, rows=1] | Tank and Temple Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ [cols=4, rows=1]\nTable row 7: Compact 3D-GS [37] | 128 | 48MB | 27.08 | 0.798 | 0.247 | 185 | 39MB | 23.32 | 0.831 | 0.201\nTable row 8: 3D-GS [16] | 134 | 734MB | 27.21 | 0.815 | 0.214 | 154 | 411MB | 23.14 | 0.841 | 0.183\nTable row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178\nTable row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+        }
+      ],
+      "text": "推断：整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。 [1] [2]\n\n推断：Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]\n\n推断：Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]\n\n\n| 维度 | 论文 1 | 论文 2 |\n| --- | --- | --- |\n| 表示规模 | 原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。 [5] | 推断：LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。 [3] |\n| 渲染速度 | 原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。 [6] [5] | 推断：LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。 [3] |\n| 质量 | 原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。 [6] [7] | 推断：在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。 [3] |\n\n<details>\n<summary>比较范围</summary>\n\nLightGaussian主表中的3D-GS*是LightGaussian在同平台重训的版本；原始3DGS论文未报告该主表，跨论文直接比较受限于此；原始3DGS自身的规模、速度和质量数字来自不同场景或基线，与LightGaussian主表条件不一致，未进行数值拼接；当前仅使用已验证的主表结果行与基线行；未核对的表格列或合并单元格不用于数值比较。\n\n</details>\n\n<details>\n<summary>原文依据</summary>\n\n- 论文 1：3D Gaussian Splatting for Real-Time Radiance Field Rendering\n- 论文 2：LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n- [1] “method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.”\n- [2] “We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.”\n- [3] “Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202”\n- [3] “Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178”\n- [1] “For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .”\n- [4] “All performance evaluations are conducted on an A6000 GPU.”\n- [5] “In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters.”\n- [6] “We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.”\n- [5] “The trained synthetic scenes rendered at 180-300 FPS.”\n- [6] “Second, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;”\n- [7] “Our results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches.”\n\n</details>"
+    },
+    "capability": "compare",
+    "materialScope": {
+      "allowedPaperIds": [
+        "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+        "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+      ],
+      "primaryPaperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+      "strictScope": false,
+      "taskId": "stage4-3dgs-compare-20261010-v16"
+    },
+    "message": "推断：整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。 [1] [2]\n\n推断：Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]\n\n推断：Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]",
+    "partial": false,
+    "resultVersion": 1,
+    "sentenceSourceMap": [
+      {
+        "id": "grounded-1",
+        "kind": "inference",
+        "method": "literal_quote",
+        "references": [
+          {
+            "quote": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+          },
+          {
+            "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+            "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+          }
+        ],
+        "sentence": "整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。",
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+        ],
+        "target": "message"
+      },
+      {
+        "id": "grounded-2",
+        "kind": "inference",
+        "method": "literal_quote",
+        "references": [
+          {
+            "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+          },
+          {
+            "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+          },
+          {
+            "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+          },
+          {
+            "quote": "All performance evaluations are conducted on an A6000 GPU.",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+          }
+        ],
+        "sentence": "Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+        ],
+        "target": "message"
+      },
+      {
+        "id": "grounded-3",
+        "kind": "inference",
+        "method": "literal_quote",
+        "references": [
+          {
+            "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+          },
+          {
+            "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+          },
+          {
+            "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+          },
+          {
+            "quote": "All performance evaluations are conducted on an A6000 GPU.",
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+          }
+        ],
+        "sentence": "Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+        "sourceIds": [
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+        ],
+        "target": "message"
+      }
+    ],
+    "sources": [
+      {
+        "chunkIndex": 2,
+        "metadata": {
+          "chunk_index": 2,
+          "file_name": "target_paper.pdf",
+          "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "page": 1,
+          "page_index": 0,
+          "section_id": "section-1",
+          "section_title": "Ours (93 fps)",
+          "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+        },
+        "pageIndex": 0,
+        "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+        "score": null,
+        "sectionId": "section-1",
+        "similarity": null,
+        "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+        "sourceType": "current_paper",
+        "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.\nFirst, starting from sparse points produced during camera calibration, we represent the scene with 3D Gaussians that preserve desirable properties of continuous volumetric radiance fields for scene optimization while avoiding unnecessary computation in empty space;\nSecond, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;\nThird, we develop a fast visibility-aware rendering algorithm that supports anisotropic splatting and both accelerates training and allows realtime rendering.\nWe demonstrate state-of-the-art visual quality and real-time rendering on several established datasets.\nCCS Concepts: • Computing methodologies → Rendering; Point-based models; Rasterization; Machine learning approaches."
+      },
+      {
+        "chunkIndex": 1,
+        "metadata": {
+          "chunk_index": 1,
+          "file_name": "target_paper.pdf",
+          "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "page": 1,
+          "page_index": 0,
+          "section_id": "section-1",
+          "section_title": "Ours (93 fps)",
+          "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+        },
+        "pageIndex": 0,
+        "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+        "score": null,
+        "sectionId": "section-1",
+        "similarity": null,
+        "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1",
+        "sourceType": "current_paper",
+        "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\na real-time differentiable renderer, which offers significant speedup to both scene optimization and novel view synthesis. Note that for comparable training times to InstantNGP[Müller et al. 2022], we achieve similar quality to theirs; while this is the maximum quality they reach, by training for 51min we achieve state-of-the-art quality, even slightly better than Mip-NeRF360[Barron et al. 2022].\nRadiance Field methods have recently revolutionized novel-view synthesis of scenes captured with multiple photos or videos.\nHowever, achieving high visual quality still requires neural networks that are costly to train and render, while recent faster methods inevitably trade off speed for quality.\nFor unbounded and complete scenes (rather than isolated objects) and 1080p resolution rendering, no current method can achieve real-time display rates.\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution."
+      },
+      {
+        "chunkIndex": 9,
+        "metadata": {
+          "chunk_index": 9,
+          "file_name": "target_paper.pdf",
+          "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "page": 1,
+          "page_index": 0,
+          "section_id": "section-2",
+          "section_title": "INTRODUCTION",
+          "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+        },
+        "pageIndex": 0,
+        "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+        "score": null,
+        "sectionId": "section-2",
+        "similarity": null,
+        "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9",
+        "sourceType": "current_paper",
+        "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: INTRODUCTION\n\nContent:\nunstructured representation of radiance fields. • An optimization method of 3D Gaussian properties, interleaved with adaptive density control that creates high-quality representations for captured scenes. • A fast, differentiable rendering approach for the GPU, which is visibility-aware, allows anisotropic splatting and fast backpropagation to achieve high-quality novel view synthesis.\nOur results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches. We also can achieve training speeds and quality similar to the fastest methods and importantly provide the first real-time rendering with high quality for novel-view synthesis."
+      },
+      {
+        "chunkIndex": 64,
+        "metadata": {
+          "chunk_index": 64,
+          "file_name": "target_paper.pdf",
+          "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "page": 8,
+          "page_index": 7,
+          "section_id": "section-18",
+          "section_title": "Results and Evaluation",
+          "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+        },
+        "pageIndex": 7,
+        "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+        "score": null,
+        "sectionId": "section-18",
+        "similarity": null,
+        "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+        "sourceType": "current_paper",
+        "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Results and Evaluation\n\nContent:\nWe report and compare our achieved PSNR scores with previous methods in Table2using a white background for compatibility.\nExamples can be seen in Fig.10(second image from the left) and in supplemental material.\nThe trained synthetic scenes rendered at 180-300 FPS.\nCompactness. In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters. We showcase this by evaluating our approach against the highly compact, point-based models obtained by[Zhang et al. 2022]. We start from their initial point cloud which is obtained by space carving with foreground masks and optimize until we break even with their reported PSNR scores. This usually happens within 2-4 minutes. We surpass their reported metrics using approximately one-fourth of their point count, resulting in an average model size of 3.8 MB, as opposed to their 9 MB. We note that for this experiment, we only used two degrees of our spherical harmonics, similar to theirs."
+      },
+      {
+        "chunkIndex": 21,
+        "metadata": {
+          "chunk_index": 21,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 5,
+          "page_index": 4,
+          "section_id": "section-7",
+          "section_title": "Gaussian Attributes Vector Quantization",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 4,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-7",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nmethod strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+      },
+      {
+        "chunkIndex": 23,
+        "metadata": {
+          "chunk_index": 23,
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 6,
+          "page_index": 5,
+          "section_id": "section-9",
+          "section_title": "Experimental Settings",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 5,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "section-9",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nIn addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structural similarity (SSIM), and perceptual similarity as measured by LPIPS[66].\nCompared Baselines. We compare our approach with methods suited for large-scale scene modeling, including Plenoxel[12], Mip-NeRF360[7], and 3D-GS[16]. Additionally, we evaluate against efficient techniques like Instant-NGP[14], which uses a hash grid for storage efficiency, and VQ-DVGO[49], which extends DVGO[9]with voxel pruning and VQ for optimized representation.\nImplementation Details. Our framework is implemented in PyTorch and integrates the differentiable Gaussian rasterization technique from 3D-GS[16]. All performance evaluations are conducted on an A6000 GPU. In the Global Significance Calculation phase, we assign a power value of 0.1 in Eq. 4 and proceed to fine-tune the model for 5,000 steps during the Gaussian Co-adaptation process."
+      },
+      {
+        "chunkIndex": 38,
+        "metadata": {
+          "chunk_index": 38,
+          "evidence_kind": "table",
+          "file_name": "public-light.pdf",
+          "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+          "index_version": "2977684d0da4a8b6",
+          "page": 6,
+          "page_index": 5,
+          "section_id": "table-tab_0",
+          "section_title": "Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods",
+          "table_column_mapping_unverified": true,
+          "table_id": "tab_0",
+          "table_verified_data": "{\"groups\":[[\"Mip-NeRF 360 Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]],[\"Tank and Temple Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]]],\"rows\":[[7,\"Compact 3D-GS [37]\",[\"128\",\"48MB\",\"27.08\",\"0.798\",\"0.247\",\"185\",\"39MB\",\"23.32\",\"0.831\",\"0.201\"]],[8,\"3D-GS [16]\",[\"134\",\"734MB\",\"27.21\",\"0.815\",\"0.214\",\"154\",\"411MB\",\"23.14\",\"0.841\",\"0.183\"]],[9,\"3D-GS  *  [16]\",[\"144\",\"782MB\",\"27.40\",\"0.813\",\"0.217\",\"106\",\"433MB\",\"23.66\",\"0.845\",\"0.178\"]],[10,\"Ours\",[\"237\",\"45MB\",\"27.13\",\"0.806\",\"0.237\",\"357\",\"25MB\",\"23.44\",\"0.832\",\"0.202\"]]]}",
+          "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+        },
+        "pageIndex": 5,
+        "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+        "score": null,
+        "sectionId": "table-tab_0",
+        "similarity": null,
+        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+        "sourceType": "current_paper",
+        "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\n\nContent:\nTable caption: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\nTable row 1: Methods | FPS↑ | Mip-NeRF 360 Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ FPS↑ [cols=5, rows=1] | Tank and Temple Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ [cols=4, rows=1]\nTable row 7: Compact 3D-GS [37] | 128 | 48MB | 27.08 | 0.798 | 0.247 | 185 | 39MB | 23.32 | 0.831 | 0.201\nTable row 8: 3D-GS [16] | 134 | 734MB | 27.21 | 0.815 | 0.214 | 154 | 411MB | 23.14 | 0.841 | 0.183\nTable row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178\nTable row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+      }
+    ],
+    "status": "success",
+    "steps": [
+      {
+        "capability": "compare",
+        "results": [
+          {
+            "claims": [
+              {
+                "kind": "inference",
+                "references": [
+                  {
+                    "quote": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  },
+                  {
+                    "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+                  }
+                ],
+                "summary": "整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。"
+              },
+              {
+                "kind": "inference",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  },
+                  {
+                    "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+                  }
+                ],
+                "summary": "Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）"
+              },
+              {
+                "kind": "inference",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  },
+                  {
+                    "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+                  }
+                ],
+                "summary": "Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）"
+              },
+              {
+                "kind": "reported",
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "references": [
+                  {
+                    "quote": "In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                  }
+                ],
+                "summary": "原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。"
+              },
+              {
+                "kind": "inference",
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  }
+                ],
+                "summary": "LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。"
+              },
+              {
+                "kind": "reported",
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "references": [
+                  {
+                    "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+                  },
+                  {
+                    "quote": "The trained synthetic scenes rendered at 180-300 FPS.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                  }
+                ],
+                "summary": "原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。"
+              },
+              {
+                "kind": "inference",
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  }
+                ],
+                "summary": "LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。"
+              },
+              {
+                "kind": "reported",
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "references": [
+                  {
+                    "quote": "Second, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+                  },
+                  {
+                    "quote": "Our results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9"
+                  }
+                ],
+                "summary": "原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。"
+              },
+              {
+                "kind": "inference",
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  }
+                ],
+                "summary": "在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。"
+              }
+            ],
+            "comparisonTable": [
+              {
+                "cells": [
+                  {
+                    "kind": "reported",
+                    "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                    "references": [
+                      {
+                        "quote": "In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters.",
+                        "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                      }
+                    ],
+                    "summary": "原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。"
+                  },
+                  {
+                    "kind": "inference",
+                    "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                    "references": [
+                      {
+                        "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                      },
+                      {
+                        "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                      }
+                    ],
+                    "summary": "LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。"
+                  }
+                ],
+                "label": "表示规模"
+              },
+              {
+                "cells": [
+                  {
+                    "kind": "reported",
+                    "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                    "references": [
+                      {
+                        "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                        "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+                      },
+                      {
+                        "quote": "The trained synthetic scenes rendered at 180-300 FPS.",
+                        "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                      }
+                    ],
+                    "summary": "原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。"
+                  },
+                  {
+                    "kind": "inference",
+                    "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                    "references": [
+                      {
+                        "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                      },
+                      {
+                        "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                      }
+                    ],
+                    "summary": "LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。"
+                  }
+                ],
+                "label": "渲染速度"
+              },
+              {
+                "cells": [
+                  {
+                    "kind": "reported",
+                    "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                    "references": [
+                      {
+                        "quote": "Second, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;",
+                        "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+                      },
+                      {
+                        "quote": "Our results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches.",
+                        "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9"
+                      }
+                    ],
+                    "summary": "原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。"
+                  },
+                  {
+                    "kind": "inference",
+                    "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                    "references": [
+                      {
+                        "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                      },
+                      {
+                        "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                        "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                      }
+                    ],
+                    "summary": "在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。"
+                  }
+                ],
+                "label": "质量"
+              }
+            ],
+            "groundedClaims": [
+              {
+                "kind": "inference",
+                "references": [
+                  {
+                    "quote": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  },
+                  {
+                    "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+                  }
+                ],
+                "summary": "整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。"
+              },
+              {
+                "kind": "inference",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  },
+                  {
+                    "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+                  }
+                ],
+                "summary": "Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）"
+              },
+              {
+                "kind": "inference",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  },
+                  {
+                    "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+                  }
+                ],
+                "summary": "Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）"
+              },
+              {
+                "kind": "reported",
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "references": [
+                  {
+                    "quote": "In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                  }
+                ],
+                "summary": "原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。"
+              },
+              {
+                "kind": "inference",
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  }
+                ],
+                "summary": "LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。"
+              },
+              {
+                "kind": "reported",
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "references": [
+                  {
+                    "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+                  },
+                  {
+                    "quote": "The trained synthetic scenes rendered at 180-300 FPS.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                  }
+                ],
+                "summary": "原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。"
+              },
+              {
+                "kind": "inference",
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  }
+                ],
+                "summary": "LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。"
+              },
+              {
+                "kind": "reported",
+                "paperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "references": [
+                  {
+                    "quote": "Second, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+                  },
+                  {
+                    "quote": "Our results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9"
+                  }
+                ],
+                "summary": "原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。"
+              },
+              {
+                "kind": "inference",
+                "paperId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  }
+                ],
+                "summary": "在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。"
+              }
+            ],
+            "message": "推断：整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。 [1] [2]\n\n推断：Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]\n\n推断：Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]\n\n\n| 维度 | 论文 1 | 论文 2 |\n| --- | --- | --- |\n| 表示规模 | 原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。 [5] | 推断：LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。 [3] |\n| 渲染速度 | 原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。 [6] [5] | 推断：LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。 [3] |\n| 质量 | 原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。 [6] [7] | 推断：在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。 [3] |\n\n<details>\n<summary>比较范围</summary>\n\nLightGaussian主表中的3D-GS*是LightGaussian在同平台重训的版本；原始3DGS论文未报告该主表，跨论文直接比较受限于此；原始3DGS自身的规模、速度和质量数字来自不同场景或基线，与LightGaussian主表条件不一致，未进行数值拼接；当前仅使用已验证的主表结果行与基线行；未核对的表格列或合并单元格不用于数值比较。\n\n</details>\n\n<details>\n<summary>原文依据</summary>\n\n- 论文 1：3D Gaussian Splatting for Real-Time Radiance Field Rendering\n- 论文 2：LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n- [1] “method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.”\n- [2] “We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.”\n- [3] “Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202”\n- [3] “Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178”\n- [1] “For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .”\n- [4] “All performance evaluations are conducted on an A6000 GPU.”\n- [5] “In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters.”\n- [6] “We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.”\n- [5] “The trained synthetic scenes rendered at 180-300 FPS.”\n- [6] “Second, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;”\n- [7] “Our results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches.”\n\n</details>",
+            "partial": false,
+            "rag_sources": [
+              {
+                "chunkIndex": 2,
+                "metadata": {
+                  "chunk_index": 2,
+                  "file_name": "target_paper.pdf",
+                  "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                  "page": 1,
+                  "page_index": 0,
+                  "section_id": "section-1",
+                  "section_title": "Ours (93 fps)",
+                  "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+                },
+                "pageIndex": 0,
+                "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "score": null,
+                "sectionId": "section-1",
+                "similarity": null,
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                "sourceType": "current_paper",
+                "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.\nFirst, starting from sparse points produced during camera calibration, we represent the scene with 3D Gaussians that preserve desirable properties of continuous volumetric radiance fields for scene optimization while avoiding unnecessary computation in empty space;\nSecond, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;\nThird, we develop a fast visibility-aware rendering algorithm that supports anisotropic splatting and both accelerates training and allows realtime rendering.\nWe demonstrate state-of-the-art visual quality and real-time rendering on several established datasets.\nCCS Concepts: • Computing methodologies → Rendering; Point-based models; Rasterization; Machine learning approaches."
+              },
+              {
+                "chunkIndex": 1,
+                "metadata": {
+                  "chunk_index": 1,
+                  "file_name": "target_paper.pdf",
+                  "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                  "page": 1,
+                  "page_index": 0,
+                  "section_id": "section-1",
+                  "section_title": "Ours (93 fps)",
+                  "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+                },
+                "pageIndex": 0,
+                "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "score": null,
+                "sectionId": "section-1",
+                "similarity": null,
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1",
+                "sourceType": "current_paper",
+                "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\na real-time differentiable renderer, which offers significant speedup to both scene optimization and novel view synthesis. Note that for comparable training times to InstantNGP[Müller et al. 2022], we achieve similar quality to theirs; while this is the maximum quality they reach, by training for 51min we achieve state-of-the-art quality, even slightly better than Mip-NeRF360[Barron et al. 2022].\nRadiance Field methods have recently revolutionized novel-view synthesis of scenes captured with multiple photos or videos.\nHowever, achieving high visual quality still requires neural networks that are costly to train and render, while recent faster methods inevitably trade off speed for quality.\nFor unbounded and complete scenes (rather than isolated objects) and 1080p resolution rendering, no current method can achieve real-time display rates.\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution."
+              },
+              {
+                "chunkIndex": 9,
+                "metadata": {
+                  "chunk_index": 9,
+                  "file_name": "target_paper.pdf",
+                  "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                  "page": 1,
+                  "page_index": 0,
+                  "section_id": "section-2",
+                  "section_title": "INTRODUCTION",
+                  "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+                },
+                "pageIndex": 0,
+                "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "score": null,
+                "sectionId": "section-2",
+                "similarity": null,
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9",
+                "sourceType": "current_paper",
+                "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: INTRODUCTION\n\nContent:\nunstructured representation of radiance fields. • An optimization method of 3D Gaussian properties, interleaved with adaptive density control that creates high-quality representations for captured scenes. • A fast, differentiable rendering approach for the GPU, which is visibility-aware, allows anisotropic splatting and fast backpropagation to achieve high-quality novel view synthesis.\nOur results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches. We also can achieve training speeds and quality similar to the fastest methods and importantly provide the first real-time rendering with high quality for novel-view synthesis."
+              },
+              {
+                "chunkIndex": 64,
+                "metadata": {
+                  "chunk_index": 64,
+                  "file_name": "target_paper.pdf",
+                  "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                  "page": 8,
+                  "page_index": 7,
+                  "section_id": "section-18",
+                  "section_title": "Results and Evaluation",
+                  "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+                },
+                "pageIndex": 7,
+                "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+                "score": null,
+                "sectionId": "section-18",
+                "similarity": null,
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+                "sourceType": "current_paper",
+                "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Results and Evaluation\n\nContent:\nWe report and compare our achieved PSNR scores with previous methods in Table2using a white background for compatibility.\nExamples can be seen in Fig.10(second image from the left) and in supplemental material.\nThe trained synthetic scenes rendered at 180-300 FPS.\nCompactness. In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters. We showcase this by evaluating our approach against the highly compact, point-based models obtained by[Zhang et al. 2022]. We start from their initial point cloud which is obtained by space carving with foreground masks and optimize until we break even with their reported PSNR scores. This usually happens within 2-4 minutes. We surpass their reported metrics using approximately one-fourth of their point count, resulting in an average model size of 3.8 MB, as opposed to their 9 MB. We note that for this experiment, we only used two degrees of our spherical harmonics, similar to theirs."
+              },
+              {
+                "chunkIndex": 21,
+                "metadata": {
+                  "chunk_index": 21,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 5,
+                  "page_index": 4,
+                  "section_id": "section-7",
+                  "section_title": "Gaussian Attributes Vector Quantization",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 4,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-7",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nmethod strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+              },
+              {
+                "chunkIndex": 23,
+                "metadata": {
+                  "chunk_index": 23,
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 6,
+                  "page_index": 5,
+                  "section_id": "section-9",
+                  "section_title": "Experimental Settings",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 5,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "section-9",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nIn addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structural similarity (SSIM), and perceptual similarity as measured by LPIPS[66].\nCompared Baselines. We compare our approach with methods suited for large-scale scene modeling, including Plenoxel[12], Mip-NeRF360[7], and 3D-GS[16]. Additionally, we evaluate against efficient techniques like Instant-NGP[14], which uses a hash grid for storage efficiency, and VQ-DVGO[49], which extends DVGO[9]with voxel pruning and VQ for optimized representation.\nImplementation Details. Our framework is implemented in PyTorch and integrates the differentiable Gaussian rasterization technique from 3D-GS[16]. All performance evaluations are conducted on an A6000 GPU. In the Global Significance Calculation phase, we assign a power value of 0.1 in Eq. 4 and proceed to fine-tune the model for 5,000 steps during the Gaussian Co-adaptation process."
+              },
+              {
+                "chunkIndex": 38,
+                "metadata": {
+                  "chunk_index": 38,
+                  "evidence_kind": "table",
+                  "file_name": "public-light.pdf",
+                  "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                  "index_version": "2977684d0da4a8b6",
+                  "page": 6,
+                  "page_index": 5,
+                  "section_id": "table-tab_0",
+                  "section_title": "Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods",
+                  "table_column_mapping_unverified": true,
+                  "table_id": "tab_0",
+                  "table_verified_data": "{\"groups\":[[\"Mip-NeRF 360 Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]],[\"Tank and Temple Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]]],\"rows\":[[7,\"Compact 3D-GS [37]\",[\"128\",\"48MB\",\"27.08\",\"0.798\",\"0.247\",\"185\",\"39MB\",\"23.32\",\"0.831\",\"0.201\"]],[8,\"3D-GS [16]\",[\"134\",\"734MB\",\"27.21\",\"0.815\",\"0.214\",\"154\",\"411MB\",\"23.14\",\"0.841\",\"0.183\"]],[9,\"3D-GS  *  [16]\",[\"144\",\"782MB\",\"27.40\",\"0.813\",\"0.217\",\"106\",\"433MB\",\"23.66\",\"0.845\",\"0.178\"]],[10,\"Ours\",[\"237\",\"45MB\",\"27.13\",\"0.806\",\"0.237\",\"357\",\"25MB\",\"23.44\",\"0.832\",\"0.202\"]]]}",
+                  "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+                },
+                "pageIndex": 5,
+                "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+                "score": null,
+                "sectionId": "table-tab_0",
+                "similarity": null,
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                "sourceType": "current_paper",
+                "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\n\nContent:\nTable caption: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\nTable row 1: Methods | FPS↑ | Mip-NeRF 360 Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ FPS↑ [cols=5, rows=1] | Tank and Temple Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ [cols=4, rows=1]\nTable row 7: Compact 3D-GS [37] | 128 | 48MB | 27.08 | 0.798 | 0.247 | 185 | 39MB | 23.32 | 0.831 | 0.201\nTable row 8: 3D-GS [16] | 134 | 734MB | 27.21 | 0.815 | 0.214 | 154 | 411MB | 23.14 | 0.841 | 0.183\nTable row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178\nTable row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+              }
+            ],
+            "sentenceSourceMap": [
+              {
+                "id": "grounded-1",
+                "kind": "inference",
+                "method": "literal_quote",
+                "references": [
+                  {
+                    "quote": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  },
+                  {
+                    "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+                  }
+                ],
+                "sentence": "整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                  "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+                ],
+                "target": "message"
+              },
+              {
+                "id": "grounded-2",
+                "kind": "inference",
+                "method": "literal_quote",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  },
+                  {
+                    "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+                  }
+                ],
+                "sentence": "Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+                ],
+                "target": "message"
+              },
+              {
+                "id": "grounded-3",
+                "kind": "inference",
+                "method": "literal_quote",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+                  },
+                  {
+                    "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+                  }
+                ],
+                "sentence": "Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+                ],
+                "target": "message"
+              },
+              {
+                "id": "grounded-4",
+                "kind": "reported",
+                "method": "literal_quote",
+                "references": [
+                  {
+                    "quote": "In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                  }
+                ],
+                "sentence": "原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。",
+                "sourceIds": [
+                  "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                ],
+                "target": "message"
+              },
+              {
+                "id": "grounded-5",
+                "kind": "inference",
+                "method": "literal_quote",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  }
+                ],
+                "sentence": "LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                ],
+                "target": "message"
+              },
+              {
+                "id": "grounded-6",
+                "kind": "reported",
+                "method": "literal_quote",
+                "references": [
+                  {
+                    "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+                  },
+                  {
+                    "quote": "The trained synthetic scenes rendered at 180-300 FPS.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                  }
+                ],
+                "sentence": "原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。",
+                "sourceIds": [
+                  "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                  "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+                ],
+                "target": "message"
+              },
+              {
+                "id": "grounded-7",
+                "kind": "inference",
+                "method": "literal_quote",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  }
+                ],
+                "sentence": "LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                ],
+                "target": "message"
+              },
+              {
+                "id": "grounded-8",
+                "kind": "reported",
+                "method": "literal_quote",
+                "references": [
+                  {
+                    "quote": "Second, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+                  },
+                  {
+                    "quote": "Our results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches.",
+                    "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9"
+                  }
+                ],
+                "sentence": "原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。",
+                "sourceIds": [
+                  "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+                  "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9"
+                ],
+                "target": "message"
+              },
+              {
+                "id": "grounded-9",
+                "kind": "inference",
+                "method": "literal_quote",
+                "references": [
+                  {
+                    "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  },
+                  {
+                    "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                    "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                  }
+                ],
+                "sentence": "在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。",
+                "sourceIds": [
+                  "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+                ],
+                "target": "message"
+              }
+            ],
+            "status": "success",
+            "summary": "推断：整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。 [1] [2]\n\n推断：Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]\n\n推断：Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]"
+          }
+        ]
+      }
+    ]
+  },
+  "task": {
+    "id": "stage4-3dgs-compare-20261010-v16",
+    "title": "阶段4：compare表格范围修复核验-v16",
+    "paperIds": [
+      "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+      "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+    ],
+    "messages": [
+      {
+        "context": {
+          "allowedPaperIds": [
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "primaryPaperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "strictScope": false,
+          "taskId": "stage4-3dgs-compare-20261010-v16"
+        },
+        "content": "比较原始3DGS与LightGaussian如何在表示规模、质量和渲染速度之间取舍。若引用实验数字，请说明对应数据集、硬件与基线版本；先给简短结论，再给比较表。",
+        "id": "stage4-3dgs-compare-20261010-v16-request:user",
+        "role": "user",
+        "sourceRequestId": "stage4-3dgs-compare-20261010-v16-request"
+      },
+      {
+        "sourceRequestId": "stage4-3dgs-compare-20261010-v16-request",
+        "context": {
+          "allowedPaperIds": [
+            "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+          ],
+          "primaryPaperId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "strictScope": false,
+          "taskId": "stage4-3dgs-compare-20261010-v16"
+        },
+        "id": "stage4-3dgs-compare-20261010-v16-request:ai",
+        "capability": "compare",
+        "role": "ai",
+        "content": "推断：整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。 [1] [2]\n\n推断：Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]\n\n推断：Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]",
+        "rag_sources": [
+          {
+            "chunkIndex": 2,
+            "metadata": {
+              "chunk_index": 2,
+              "file_name": "target_paper.pdf",
+              "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "page": 1,
+              "page_index": 0,
+              "section_id": "section-1",
+              "section_title": "Ours (93 fps)",
+              "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+            },
+            "pageIndex": 0,
+            "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "score": null,
+            "sectionId": "section-1",
+            "similarity": null,
+            "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+            "sourceType": "current_paper",
+            "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.\nFirst, starting from sparse points produced during camera calibration, we represent the scene with 3D Gaussians that preserve desirable properties of continuous volumetric radiance fields for scene optimization while avoiding unnecessary computation in empty space;\nSecond, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;\nThird, we develop a fast visibility-aware rendering algorithm that supports anisotropic splatting and both accelerates training and allows realtime rendering.\nWe demonstrate state-of-the-art visual quality and real-time rendering on several established datasets.\nCCS Concepts: • Computing methodologies → Rendering; Point-based models; Rasterization; Machine learning approaches."
+          },
+          {
+            "chunkIndex": 1,
+            "metadata": {
+              "chunk_index": 1,
+              "file_name": "target_paper.pdf",
+              "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "page": 1,
+              "page_index": 0,
+              "section_id": "section-1",
+              "section_title": "Ours (93 fps)",
+              "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+            },
+            "pageIndex": 0,
+            "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "score": null,
+            "sectionId": "section-1",
+            "similarity": null,
+            "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1",
+            "sourceType": "current_paper",
+            "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\na real-time differentiable renderer, which offers significant speedup to both scene optimization and novel view synthesis. Note that for comparable training times to InstantNGP[Müller et al. 2022], we achieve similar quality to theirs; while this is the maximum quality they reach, by training for 51min we achieve state-of-the-art quality, even slightly better than Mip-NeRF360[Barron et al. 2022].\nRadiance Field methods have recently revolutionized novel-view synthesis of scenes captured with multiple photos or videos.\nHowever, achieving high visual quality still requires neural networks that are costly to train and render, while recent faster methods inevitably trade off speed for quality.\nFor unbounded and complete scenes (rather than isolated objects) and 1080p resolution rendering, no current method can achieve real-time display rates.\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution."
+          },
+          {
+            "chunkIndex": 9,
+            "metadata": {
+              "chunk_index": 9,
+              "file_name": "target_paper.pdf",
+              "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "page": 1,
+              "page_index": 0,
+              "section_id": "section-2",
+              "section_title": "INTRODUCTION",
+              "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+            },
+            "pageIndex": 0,
+            "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "score": null,
+            "sectionId": "section-2",
+            "similarity": null,
+            "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9",
+            "sourceType": "current_paper",
+            "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: INTRODUCTION\n\nContent:\nunstructured representation of radiance fields. • An optimization method of 3D Gaussian properties, interleaved with adaptive density control that creates high-quality representations for captured scenes. • A fast, differentiable rendering approach for the GPU, which is visibility-aware, allows anisotropic splatting and fast backpropagation to achieve high-quality novel view synthesis.\nOur results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches. We also can achieve training speeds and quality similar to the fastest methods and importantly provide the first real-time rendering with high quality for novel-view synthesis."
+          },
+          {
+            "chunkIndex": 64,
+            "metadata": {
+              "chunk_index": 64,
+              "file_name": "target_paper.pdf",
+              "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-18",
+              "section_title": "Results and Evaluation",
+              "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+            },
+            "pageIndex": 7,
+            "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "score": null,
+            "sectionId": "section-18",
+            "similarity": null,
+            "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+            "sourceType": "current_paper",
+            "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Results and Evaluation\n\nContent:\nWe report and compare our achieved PSNR scores with previous methods in Table2using a white background for compatibility.\nExamples can be seen in Fig.10(second image from the left) and in supplemental material.\nThe trained synthetic scenes rendered at 180-300 FPS.\nCompactness. In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters. We showcase this by evaluating our approach against the highly compact, point-based models obtained by[Zhang et al. 2022]. We start from their initial point cloud which is obtained by space carving with foreground masks and optimize until we break even with their reported PSNR scores. This usually happens within 2-4 minutes. We surpass their reported metrics using approximately one-fourth of their point count, resulting in an average model size of 3.8 MB, as opposed to their 9 MB. We note that for this experiment, we only used two degrees of our spherical harmonics, similar to theirs."
+          },
+          {
+            "chunkIndex": 21,
+            "metadata": {
+              "chunk_index": 21,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nmethod strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+          },
+          {
+            "chunkIndex": 23,
+            "metadata": {
+              "chunk_index": 23,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 6,
+              "page_index": 5,
+              "section_id": "section-9",
+              "section_title": "Experimental Settings",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 5,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-9",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nIn addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structural similarity (SSIM), and perceptual similarity as measured by LPIPS[66].\nCompared Baselines. We compare our approach with methods suited for large-scale scene modeling, including Plenoxel[12], Mip-NeRF360[7], and 3D-GS[16]. Additionally, we evaluate against efficient techniques like Instant-NGP[14], which uses a hash grid for storage efficiency, and VQ-DVGO[49], which extends DVGO[9]with voxel pruning and VQ for optimized representation.\nImplementation Details. Our framework is implemented in PyTorch and integrates the differentiable Gaussian rasterization technique from 3D-GS[16]. All performance evaluations are conducted on an A6000 GPU. In the Global Significance Calculation phase, we assign a power value of 0.1 in Eq. 4 and proceed to fine-tune the model for 5,000 steps during the Gaussian Co-adaptation process."
+          },
+          {
+            "chunkIndex": 38,
+            "metadata": {
+              "chunk_index": 38,
+              "evidence_kind": "table",
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 6,
+              "page_index": 5,
+              "section_id": "table-tab_0",
+              "section_title": "Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods",
+              "table_column_mapping_unverified": true,
+              "table_id": "tab_0",
+              "table_verified_data": "{\"groups\":[[\"Mip-NeRF 360 Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]],[\"Tank and Temple Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]]],\"rows\":[[7,\"Compact 3D-GS [37]\",[\"128\",\"48MB\",\"27.08\",\"0.798\",\"0.247\",\"185\",\"39MB\",\"23.32\",\"0.831\",\"0.201\"]],[8,\"3D-GS [16]\",[\"134\",\"734MB\",\"27.21\",\"0.815\",\"0.214\",\"154\",\"411MB\",\"23.14\",\"0.841\",\"0.183\"]],[9,\"3D-GS  *  [16]\",[\"144\",\"782MB\",\"27.40\",\"0.813\",\"0.217\",\"106\",\"433MB\",\"23.66\",\"0.845\",\"0.178\"]],[10,\"Ours\",[\"237\",\"45MB\",\"27.13\",\"0.806\",\"0.237\",\"357\",\"25MB\",\"23.44\",\"0.832\",\"0.202\"]]]}",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 5,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "table-tab_0",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\n\nContent:\nTable caption: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\nTable row 1: Methods | FPS↑ | Mip-NeRF 360 Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ FPS↑ [cols=5, rows=1] | Tank and Temple Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ [cols=4, rows=1]\nTable row 7: Compact 3D-GS [37] | 128 | 48MB | 27.08 | 0.798 | 0.247 | 185 | 39MB | 23.32 | 0.831 | 0.201\nTable row 8: 3D-GS [16] | 134 | 734MB | 27.21 | 0.815 | 0.214 | 154 | 411MB | 23.14 | 0.841 | 0.183\nTable row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178\nTable row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+          }
+        ],
+        "sentenceSourceMap": [
+          {
+            "id": "grounded-1",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              },
+              {
+                "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+              }
+            ],
+            "sentence": "整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-2",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              },
+              {
+                "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+              }
+            ],
+            "sentence": "Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-3",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              },
+              {
+                "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+              }
+            ],
+            "sentence": "Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+            ],
+            "target": "message"
+          }
+        ],
+        "artifactId": "stage4-3dgs-compare-20261010-v16-request:artifact"
+      }
+    ],
+    "notes": [],
+    "artifacts": [
+      {
+        "createdAt": "2026-10-10T05:53:14.188231800Z",
+        "sourceRequestId": "stage4-3dgs-compare-20261010-v16-request",
+        "versions": [],
+        "text": "推断：整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。 [1] [2]\n\n推断：Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]\n\n推断：Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]） [3] [1] [4]\n\n\n| 维度 | 论文 1 | 论文 2 |\n| --- | --- | --- |\n| 表示规模 | 原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。 [5] | 推断：LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。 [3] |\n| 渲染速度 | 原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。 [6] [5] | 推断：LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。 [3] |\n| 质量 | 原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。 [6] [7] | 推断：在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。 [3] |\n\n<details>\n<summary>比较范围</summary>\n\nLightGaussian主表中的3D-GS*是LightGaussian在同平台重训的版本；原始3DGS论文未报告该主表，跨论文直接比较受限于此；原始3DGS自身的规模、速度和质量数字来自不同场景或基线，与LightGaussian主表条件不一致，未进行数值拼接；当前仅使用已验证的主表结果行与基线行；未核对的表格列或合并单元格不用于数值比较。\n\n</details>\n\n<details>\n<summary>原文依据</summary>\n\n- 论文 1：3D Gaussian Splatting for Real-Time Radiance Field Rendering\n- 论文 2：LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n- [1] “method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.”\n- [2] “We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.”\n- [3] “Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202”\n- [3] “Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178”\n- [1] “For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .”\n- [4] “All performance evaluations are conducted on an A6000 GPU.”\n- [5] “In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters.”\n- [6] “We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.”\n- [5] “The trained synthetic scenes rendered at 180-300 FPS.”\n- [6] “Second, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;”\n- [7] “Our results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches.”\n\n</details>",
+        "paperIds": [
+          "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+          "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf"
+        ],
+        "id": "stage4-3dgs-compare-20261010-v16-request:artifact",
+        "sources": [
+          {
+            "chunkIndex": 2,
+            "metadata": {
+              "chunk_index": 2,
+              "file_name": "target_paper.pdf",
+              "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "page": 1,
+              "page_index": 0,
+              "section_id": "section-1",
+              "section_title": "Ours (93 fps)",
+              "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+            },
+            "pageIndex": 0,
+            "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "score": null,
+            "sectionId": "section-1",
+            "similarity": null,
+            "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+            "sourceType": "current_paper",
+            "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.\nFirst, starting from sparse points produced during camera calibration, we represent the scene with 3D Gaussians that preserve desirable properties of continuous volumetric radiance fields for scene optimization while avoiding unnecessary computation in empty space;\nSecond, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;\nThird, we develop a fast visibility-aware rendering algorithm that supports anisotropic splatting and both accelerates training and allows realtime rendering.\nWe demonstrate state-of-the-art visual quality and real-time rendering on several established datasets.\nCCS Concepts: • Computing methodologies → Rendering; Point-based models; Rasterization; Machine learning approaches."
+          },
+          {
+            "chunkIndex": 1,
+            "metadata": {
+              "chunk_index": 1,
+              "file_name": "target_paper.pdf",
+              "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "page": 1,
+              "page_index": 0,
+              "section_id": "section-1",
+              "section_title": "Ours (93 fps)",
+              "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+            },
+            "pageIndex": 0,
+            "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "score": null,
+            "sectionId": "section-1",
+            "similarity": null,
+            "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1",
+            "sourceType": "current_paper",
+            "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Ours (93 fps)\n\nContent:\na real-time differentiable renderer, which offers significant speedup to both scene optimization and novel view synthesis. Note that for comparable training times to InstantNGP[Müller et al. 2022], we achieve similar quality to theirs; while this is the maximum quality they reach, by training for 51min we achieve state-of-the-art quality, even slightly better than Mip-NeRF360[Barron et al. 2022].\nRadiance Field methods have recently revolutionized novel-view synthesis of scenes captured with multiple photos or videos.\nHowever, achieving high visual quality still requires neural networks that are costly to train and render, while recent faster methods inevitably trade off speed for quality.\nFor unbounded and complete scenes (rather than isolated objects) and 1080p resolution rendering, no current method can achieve real-time display rates.\nWe introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution."
+          },
+          {
+            "chunkIndex": 9,
+            "metadata": {
+              "chunk_index": 9,
+              "file_name": "target_paper.pdf",
+              "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "page": 1,
+              "page_index": 0,
+              "section_id": "section-2",
+              "section_title": "INTRODUCTION",
+              "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+            },
+            "pageIndex": 0,
+            "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "score": null,
+            "sectionId": "section-2",
+            "similarity": null,
+            "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9",
+            "sourceType": "current_paper",
+            "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: INTRODUCTION\n\nContent:\nunstructured representation of radiance fields. • An optimization method of 3D Gaussian properties, interleaved with adaptive density control that creates high-quality representations for captured scenes. • A fast, differentiable rendering approach for the GPU, which is visibility-aware, allows anisotropic splatting and fast backpropagation to achieve high-quality novel view synthesis.\nOur results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches. We also can achieve training speeds and quality similar to the fastest methods and importantly provide the first real-time rendering with high quality for novel-view synthesis."
+          },
+          {
+            "chunkIndex": 64,
+            "metadata": {
+              "chunk_index": 64,
+              "file_name": "target_paper.pdf",
+              "id": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+              "page": 8,
+              "page_index": 7,
+              "section_id": "section-18",
+              "section_title": "Results and Evaluation",
+              "title": "3D Gaussian Splatting for Real-Time Radiance Field Rendering"
+            },
+            "pageIndex": 7,
+            "pdfId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf",
+            "score": null,
+            "sectionId": "section-18",
+            "similarity": null,
+            "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64",
+            "sourceType": "current_paper",
+            "text": "Paper: 3D Gaussian Splatting for Real-Time Radiance Field Rendering\n\nSection: Results and Evaluation\n\nContent:\nWe report and compare our achieved PSNR scores with previous methods in Table2using a white background for compatibility.\nExamples can be seen in Fig.10(second image from the left) and in supplemental material.\nThe trained synthetic scenes rendered at 180-300 FPS.\nCompactness. In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters. We showcase this by evaluating our approach against the highly compact, point-based models obtained by[Zhang et al. 2022]. We start from their initial point cloud which is obtained by space carving with foreground masks and optimize until we break even with their reported PSNR scores. This usually happens within 2-4 minutes. We surpass their reported metrics using approximately one-fourth of their point count, resulting in an average model size of 3.8 MB, as opposed to their 9 MB. We note that for this experiment, we only used two degrees of our spherical harmonics, similar to theirs."
+          },
+          {
+            "chunkIndex": 21,
+            "metadata": {
+              "chunk_index": 21,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 5,
+              "page_index": 4,
+              "section_id": "section-7",
+              "section_title": "Gaussian Attributes Vector Quantization",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 4,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-7",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Gaussian Attributes Vector Quantization\n\nContent:\nmethod strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations. For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * . For a full dynamic viewpoint comparison, please see our supplementary video.\ncode vector using a moving average. We fine-tune the codebook for 5,000 iterations, while fixing the gaussian-to-codebook mapping. We disable additional clone/split operations and leverage photometric loss on the training views. To preserve essential attributes, including Spherical Harmonics with higher global significance scores, along with Gaussian position, shape, rotation, and opacity, we skip VQ for these elements and store them directly in float16 format.\nEquation: c k = λ d • c k + (1 − λ d ) • 1/T k • gj ∈R(c k ) GS j • g j , where T k = gj ∈R(c k ) GS j"
+          },
+          {
+            "chunkIndex": 23,
+            "metadata": {
+              "chunk_index": 23,
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 6,
+              "page_index": 5,
+              "section_id": "section-9",
+              "section_title": "Experimental Settings",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 5,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "section-9",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Experimental Settings\n\nContent:\nIn addition, we utilize the Tanks and Temples dataset[65], a comprehensive unbounded dataset, and select the same scenes as used in[16]. Performance metrics on synthetic object-level datasets will be detailed in the supplementary materials. We report metrics including the peak signal-to-noise ratio (PSNR), structural similarity (SSIM), and perceptual similarity as measured by LPIPS[66].\nCompared Baselines. We compare our approach with methods suited for large-scale scene modeling, including Plenoxel[12], Mip-NeRF360[7], and 3D-GS[16]. Additionally, we evaluate against efficient techniques like Instant-NGP[14], which uses a hash grid for storage efficiency, and VQ-DVGO[49], which extends DVGO[9]with voxel pruning and VQ for optimized representation.\nImplementation Details. Our framework is implemented in PyTorch and integrates the differentiable Gaussian rasterization technique from 3D-GS[16]. All performance evaluations are conducted on an A6000 GPU. In the Global Significance Calculation phase, we assign a power value of 0.1 in Eq. 4 and proceed to fine-tune the model for 5,000 steps during the Gaussian Co-adaptation process."
+          },
+          {
+            "chunkIndex": 38,
+            "metadata": {
+              "chunk_index": 38,
+              "evidence_kind": "table",
+              "file_name": "public-light.pdf",
+              "id": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+              "index_version": "2977684d0da4a8b6",
+              "page": 6,
+              "page_index": 5,
+              "section_id": "table-tab_0",
+              "section_title": "Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods",
+              "table_column_mapping_unverified": true,
+              "table_id": "tab_0",
+              "table_verified_data": "{\"groups\":[[\"Mip-NeRF 360 Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]],[\"Tank and Temple Datasets\",[\"FPS\",\"Size\",\"PSNR\",\"SSIM\",\"LPIPS\"]]],\"rows\":[[7,\"Compact 3D-GS [37]\",[\"128\",\"48MB\",\"27.08\",\"0.798\",\"0.247\",\"185\",\"39MB\",\"23.32\",\"0.831\",\"0.201\"]],[8,\"3D-GS [16]\",[\"134\",\"734MB\",\"27.21\",\"0.815\",\"0.214\",\"154\",\"411MB\",\"23.14\",\"0.841\",\"0.183\"]],[9,\"3D-GS  *  [16]\",[\"144\",\"782MB\",\"27.40\",\"0.813\",\"0.217\",\"106\",\"433MB\",\"23.66\",\"0.845\",\"0.178\"]],[10,\"Ours\",[\"237\",\"45MB\",\"27.13\",\"0.806\",\"0.237\",\"357\",\"25MB\",\"23.44\",\"0.832\",\"0.202\"]]]}",
+              "title": "LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS"
+            },
+            "pageIndex": 5,
+            "pdfId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf",
+            "score": null,
+            "sectionId": "table-tab_0",
+            "similarity": null,
+            "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+            "sourceType": "current_paper",
+            "text": "Paper: LightGaussian: Unbounded 3D Gaussian Compression with 15x Reduction and 200+ FPS\n\nSection: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\n\nContent:\nTable caption: Table 1 : Quantitative Comparisons in Real-world Large-scale Scenes: Voxel-based methods\nTable row 1: Methods | FPS↑ | Mip-NeRF 360 Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ FPS↑ [cols=5, rows=1] | Tank and Temple Datasets Size↓ PSNR↑ SSIM↑ LPIPS↓ [cols=4, rows=1]\nTable row 7: Compact 3D-GS [37] | 128 | 48MB | 27.08 | 0.798 | 0.247 | 185 | 39MB | 23.32 | 0.831 | 0.201\nTable row 8: 3D-GS [16] | 134 | 734MB | 27.21 | 0.815 | 0.214 | 154 | 411MB | 23.14 | 0.841 | 0.183\nTable row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178\nTable row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202"
+          }
+        ],
+        "title": "对话成果",
+        "sentenceSourceMap": [
+          {
+            "id": "grounded-1",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "method strikes a balance among FPS, model size, and rendering quality, achieving the best balance among efficient representations.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              },
+              {
+                "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+              }
+            ],
+            "sentence": "整体上，LightGaussian以较小的质量代价换取显著更小的表示规模和更高的渲染速度；原始3DGS则侧重高视觉质量与实时渲染。该比较主要来自LightGaussian论文中同平台重训的3D-GS*主表。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-1"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-2",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              },
+              {
+                "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+              }
+            ],
+            "sentence": "Mip-NeRF 360 Datasets（Ours）：在同一主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的1.65倍；质量差值为PSNR下降0.27 dB、SSIM下降0.007、LPIPS上升0.020。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-3",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "For fair metric and visual comparison, we re-trained 3D-GS and Compressed 3D-GS[34]using their original code and configurations on our platform (NVIDIA A6000 GPU), with results marked by * .",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21"
+              },
+              {
+                "quote": "All performance evaluations are conducted on an A6000 GPU.",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+              }
+            ],
+            "sentence": "Tank and Temple Datasets（Ours）：在另一个主表场景中，LightGaussian相对重训3D-GS*的体积比值为Size为基线的0.058倍，速度比值为FPS为基线的3.37倍；质量差值为PSNR下降0.22 dB、SSIM下降0.013、LPIPS上升0.024。（NVIDIA A6000 GPU，Ours相对基线3D-GS  *  [16]）",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-21",
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-23"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-4",
+            "kind": "reported",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "In comparison to previous explicit scene representations, the anisotropic Gaussians used in our optimization are capable of modelling complex shapes with a lower number of parameters.",
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+              }
+            ],
+            "sentence": "原始3DGS论文说明各向异性高斯能用更少参数建模复杂形状，但未提供与LightGaussian同表条件的规模比较。",
+            "sourceIds": [
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-5",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              }
+            ],
+            "sentence": "LightGaussian通过剪枝与向量量化显著压缩3D-GS；在已验证主表中其体积低于重训3D-GS*，质量代价见总体结论。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-6",
+            "kind": "reported",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "We introduce three key elements that allow us to achieve state-of-the-art visual quality while maintaining competitive training times and importantly allow high-quality real-time (≥ 30 fps) novel-view synthesis at 1080p resolution.",
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+              },
+              {
+                "quote": "The trained synthetic scenes rendered at 180-300 FPS.",
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+              }
+            ],
+            "sentence": "原始3DGS论文报告其方法支持实时渲染与高帧率，但条件与LightGaussian主表不同，不能直接排序。",
+            "sourceIds": [
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-64"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-7",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              }
+            ],
+            "sentence": "LightGaussian在已验证主表中的FPS高于重训3D-GS*，显示压缩表示释放了渲染速度。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-8",
+            "kind": "reported",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Second, we perform interleaved optimization/density control of the 3D Gaussians, notably optimizing anisotropic covariance to achieve an accurate representation of the scene;",
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2"
+              },
+              {
+                "quote": "Our results on previously published datasets show that we can optimize our 3D Gaussians from multi-view captures and achieve equal or better quality than the best quality previous implicit radiance field approaches.",
+                "sourceId": "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9"
+              }
+            ],
+            "sentence": "原始3DGS论文强调各向异性高斯与自适应密度控制以取得高视觉质量，但未提供与LightGaussian同表质量比较。",
+            "sourceIds": [
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-2",
+              "f4c0c9f27e2d02b0265017f66049d471eb66cb50203bc918f51ba07d20cbbe11.pdf-chunk-9"
+            ],
+            "target": "message"
+          },
+          {
+            "id": "grounded-9",
+            "kind": "inference",
+            "method": "literal_quote",
+            "references": [
+              {
+                "quote": "Table row 10: Ours | 237 | 45MB | 27.13 | 0.806 | 0.237 | 357 | 25MB | 23.44 | 0.832 | 0.202",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              },
+              {
+                "quote": "Table row 9: 3D-GS  *  [16] | 144 | 782MB | 27.40 | 0.813 | 0.217 | 106 | 433MB | 23.66 | 0.845 | 0.178",
+                "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+              }
+            ],
+            "sentence": "在已验证主表中，LightGaussian相对重训3D-GS*的PSNR/SSIM略低、LPIPS略高，说明存在一定质量代价。",
+            "sourceIds": [
+              "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-v2977684d0da4a8b6-chunk-38"
+            ],
+            "target": "message"
+          }
+        ]
+      }
+    ],
+    "researchRuns": [],
+    "activityHistory": [],
+    "appliedRequestIds": [
+      "stage4-3dgs-compare-20261010-v16-request"
+    ],
+    "focusedPaperId": null,
+    "activeActivity": null,
+    "updatedAt": "2026-10-10T05:53:14.188764Z",
+    "revision": 1
+  }
+}

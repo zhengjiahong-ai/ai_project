@@ -1,0 +1,22 @@
+{
+  "runId": "dr_run_8f5f2e8e9b6d507cbcd2555ec2e1426d",
+  "revision": "f8def81",
+  "promptVersion": "dr-v2.20261013.36",
+  "status": "completed",
+  "outcome": "partial",
+  "qualityAccepted": false,
+  "actualModelCalls": 11,
+  "actualTokens": 54033,
+  "elapsedSeconds": 242.704,
+  "repairStatus": "skipped_budget",
+  "findings": [
+    "All nine design roles generated; explicit four groups with proposed 50% pruning and SH 3 to 1.",
+    "Data proposal now cites original 3DGS thirteen-scene evaluation and every-eighth-photo split. Availability still not accepted because required verifier evidence was omitted.",
+    "Config verifier exceeded evidence capacity despite short aliases; c3/c4/c6 fail closed for missing visible evidence.",
+    "c2 intervention_levels audit fabricated a concatenation instead of quoting exact text; precise binding rejects it.",
+    "c9 absence_not_established correctly blocks a claim that LightGaussian did not report pruning ratio or retained SH degree.",
+    "Accepted analysis contains an ad hoc descriptive 9/13-sign rule; not proof that the I=0 hypothesis is statistically tested. Baseline training budget and seed aggregation need content review.",
+    "Partial publication is not an executable full experiment. No repeat submission."
+  ],
+  "nextAction": "Replay verifier capacity and audit bindings offline. Replace fragile redundant serialization/bindings before another full model run."
+}

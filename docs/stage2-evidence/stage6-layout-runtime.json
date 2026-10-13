@@ -1,0 +1,24 @@
+{
+  "taskId": "stage6-reading-demo-20261008",
+  "modelCalls": 0,
+  "mobile390": {
+    "readerWidth": 390,
+    "scrollWidth": 390,
+    "viewport": 390
+  },
+  "notebook900": {
+    "chatWidth": 323.84375,
+    "readerWidth": 380.15625,
+    "scrollWidth": 900,
+    "viewport": 900
+  },
+  "mobile320NoPageOverflow": true,
+  "wide1440NoPageOverflow": true,
+  "keyboardResize54To56": true,
+  "desktopFoldRestore": true,
+  "mobileEditorAndChatDraftRetained": true,
+  "mobileEscapeReturnsFocus": true,
+  "renameFocusWrapAndReturn": true,
+  "compactPaneRestoredAfterReload": true,
+  "isolatedBrowserProfileVerified": false
+}

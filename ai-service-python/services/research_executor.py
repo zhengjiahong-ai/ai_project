@@ -1,5 +1,7 @@
 import copy
+import hashlib
 from typing import Any
+from rag.store import normalize_id
 
 from services.evidence_service import format_evidence_context, normalize_evidence_items
 from services.external_query_planner import build_external_academic_queries
@@ -21,7 +23,11 @@ def research_sub_question(
     *,
     allow_web_search: bool = False,
     allow_iterative_search: bool = False,
+    allowed_paper_ids: list[str] | None = None,
 ) -> dict[str, Any]:
+    if allowed_paper_ids is not None and normalize_id(pdf_id) not in {normalize_id(value) for value in allowed_paper_ids}:
+        raise ValueError("Research primary paper is outside the material snapshot.")
+    scope_options = {"allowed_paper_ids": allowed_paper_ids} if allowed_paper_ids is not None else {}
     research_context = build_planning_context(question, paper_skeleton, documents)
     with trace_step(
         "research_query_plan",
@@ -47,6 +53,7 @@ def research_sub_question(
         library_evidence = retrieve_library_evidence(
             query_plan.get("rewritten") or query_plan.get("original") or sub_question,
             exclude_pdf_id=pdf_id,
+            **scope_options,
         )
         combined_evidence = merge_evidence_lists(current_evidence, library_evidence)
         with trace_step("research_judge_library", input_size=len(combined_evidence)) as step:
@@ -64,7 +71,7 @@ def research_sub_question(
             meta={"missingAspects": judge.get("missingAspects") or []},
         ):
             retry_current = retrieve_current_paper_evidence(retry_query, pdf_id=pdf_id)
-            retry_library = retrieve_library_evidence(retry_query, exclude_pdf_id=pdf_id)
+            retry_library = retrieve_library_evidence(retry_query, exclude_pdf_id=pdf_id, **scope_options)
         combined_evidence = merge_evidence_lists(current_evidence, library_evidence, retry_current, retry_library)
         with trace_step("research_judge_retry", input_size=len(combined_evidence)) as step:
             judge = judge_research_evidence(
@@ -184,10 +191,18 @@ def research_sub_question(
                         judge_step["outputSize"] = len(judge.get("missingAspects") or [])
                         annotate_judge_step(judge_step, judge, "stop")
 
-    summary = build_finding_summary(sub_question, combined_evidence, judge)
+    from services.research_synthesis import synthesize_research_finding
+    with trace_step("research_answer", input_size=len(combined_evidence)) as answer_step:
+        answer = synthesize_research_finding(sub_question, combined_evidence)
+        answer_step["outputSize"] = len(answer["claims"])
+    cited_ids = set(answer["sourceIds"])
     return {
         "subQuestion": sub_question,
-        "summary": summary,
+        "summary": answer["summary"],
+        "claims": answer["claims"],
+        "answerStatus": answer["answerStatus"],
+        "limitations": answer["limitations"],
+        "retrievedEvidence": combined_evidence,
         "verdict": str(judge.get("verdict") or "INCORRECT"),
         "judgeScore": normalize_judge_score(judge.get("judgeScore")),
         "coverage": normalize_judge_coverage(judge.get("coverage")),
@@ -195,12 +210,13 @@ def research_sub_question(
         "retryReason": retry_reason,
         "externalSearchDegradation": external_degradation,
         "webSearchUsed": web_search_used,
-        "sourceIds": [str(item.get("sourceId")) for item in combined_evidence if item.get("sourceId")][:6],
-        "sources": combined_evidence[:6],
+        "sourceIds": answer["sourceIds"],
+        "sources": [item for item in combined_evidence if item.get("sourceId") in cited_ids],
     }
 
 
-def retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, limit: int = 5) -> list[dict[str, Any]]:
+def retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, limit: int = 5,
+                                    *, allow_query_rewrite: bool = True) -> list[dict[str, Any]]:
     response = invoke_tool(
         "retrieve_current_paper",
         {
@@ -211,12 +227,27 @@ def retrieve_current_paper_evidence(query: str, pdf_id: str, top_k: int = 8, lim
             # 上游先截到 700 字符，下游的 format_evidence_context 再宽也没用，
             # 所以深度研究链路上的逐条证据夹口统一抬到 2000 字符。
             "maxTextChars": 2000,
+            **({"allowQueryRewrite": False} if not allow_query_rewrite else {}),
         },
     )
     return list(response.get("items") or [])
 
 
-def retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, top_k: int = 5, limit: int = 4) -> list[dict[str, Any]]:
+def retrieve_library_evidence(query: str, exclude_pdf_id: str | None = None, top_k: int = 5, limit: int = 4,
+                              allowed_paper_ids: list[str] | None = None) -> list[dict[str, Any]]:
+    if allowed_paper_ids is not None:
+        papers = list(dict.fromkeys(normalize_id(value) for value in allowed_paper_ids))
+        excluded = normalize_id(exclude_pdf_id) if exclude_pdf_id else None
+        groups = []
+        for paper in papers:
+            if paper == excluded:
+                continue
+            items = retrieve_current_paper_evidence(query, paper, top_k=top_k, limit=limit)
+            groups.append([item for item in items if normalize_id(item.get("pdfId") or "") == paper])
+        return merge_evidence_lists([
+            items[index] for index in range(max((len(group) for group in groups), default=0))
+            for items in groups if index < len(items)
+        ], limit=limit)
     response = invoke_tool(
         "retrieve_library",
         {
@@ -261,7 +292,11 @@ def ensure_stable_source_ids(items: list[dict[str, Any]], fallback_prefix: str) 
                 base = f"{pdf_id}-chunk-{chunk_index}"
             else:
                 base = f"{pdf_id}-{index + 1}"
-        current["sourceId"] = base[:80]
+        # Versioned PDF citations exceed 80 characters. Truncating their tail
+        # removes the chunk number and collapses every row to the same ID.
+        if len(base) > 180:
+            base = 'citation-' + hashlib.sha256(base.encode('utf-8')).hexdigest()
+        current["sourceId"] = base
         stabilized.append(current)
     return stabilized
 

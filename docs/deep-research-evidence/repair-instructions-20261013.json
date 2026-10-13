@@ -1,0 +1,15 @@
+{
+  "sourceRun": "dr_run_fef8cfc00fd15600a5e89fe1fffe60f6",
+  "change": "Condense duplicate repair instructions while preserving immutable claim identity/kind, source permissions, numeric bindings, prospective configuration rules, and complete role/spec requirements.",
+  "before": {"fixedBytes": 22042, "wholeEvidenceRows": 3, "promptBytes": 23968},
+  "after": {"fixedBytes": 21083, "wholeEvidenceRows": 5, "promptBytes": 23990},
+  "inputLimit": 24000,
+  "claimsOrSpecsDeleted": false,
+  "quotesTruncated": false,
+  "modelCalls": 0,
+  "targetedRegression": {"passed": 85, "seconds": 10.32},
+  "testAdjustment": "The former 21000-character quote fits after instruction compaction. Use a 25000-character quote exceeding the 24000-byte limit independently of instruction wording, preserving the omitted-evidence authorization regression.",
+  "qualityAccepted": false,
+  "runtimeLoaded": false,
+  "promptVersion": "dr-v2.20261013.45"
+}

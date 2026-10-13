@@ -10,6 +10,7 @@ class LLMRequest:
     messages: Optional[List[Dict[str, str]]] = None
     stop: Optional[List[str]] = None
     extra_body: Dict[str, Any] = field(default_factory=dict)
+    timeout_seconds: Optional[float] = None
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,7 @@ class LLMResult:
     model: str
     content: str
     usage: LLMUsage
+    finish_reason: Optional[str] = None
 
 
 class LLMProviderError(RuntimeError):

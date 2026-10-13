@@ -407,7 +407,9 @@ def _resolve_source_id(item: dict[str, Any], pdf_id: str | None, chunk_index: in
             return str(value)
 
     if pdf_id and chunk_index is not None:
-        return f"{pdf_id}-chunk-{chunk_index}"
+        version = (item.get('metadata') or {}).get('index_version')
+        prefix = f'{pdf_id}-v{version}' if isinstance(version, str) and re.fullmatch(r'[0-9a-f]{16}', version) else pdf_id
+        return f"{prefix}-chunk-{chunk_index}"
 
     return f"source-{fallback_index}"
 

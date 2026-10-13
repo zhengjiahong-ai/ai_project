@@ -1,0 +1,26 @@
+{
+  "scope": "Actual v9 artifact download and independent static-file display; new conservative transmittance translation and eight markers verified; does not prove all-paper translation quality",
+  "checks": {
+    "savedArtifactUnchanged": true,
+    "allTaskFieldsUnchanged": true,
+    "visibleArticleMatchesSavedText": true,
+    "savedPaperAndPageMatch": true,
+    "embeddedOriginalLoaded": true,
+    "standaloneWithoutScriptsOrStylesheets": true,
+    "sourcesInitiallyCollapsed": true,
+    "unsafeSubtractAllAbsent": true,
+    "eightUniqueMarkers": true,
+    "oldArtifactsUnchanged": true
+  },
+  "htmlBytes": 1606610,
+  "htmlSha256": "a0e1085df026b987d94fd75caf065d6aee380017a107b961a2119653fb6b208b",
+  "pngBytes": 1201505,
+  "sourcePage": 4,
+  "artifactId": "882613db-8f6e-4c27-9f3a-bc2bdfc85cff",
+  "taskRevision": 19,
+  "providerCalls": 0,
+  "taskWrites": 0,
+  "downloadEventObserved": false,
+  "downloadFileObserved": true,
+  "previewDirectoryScope": "tmp/stage6-html-review-v9 contains only this HTML"
+}

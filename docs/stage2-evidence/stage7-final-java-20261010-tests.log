@@ -1,0 +1,190 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------------------< com.ai.assistant:backend-java >--------------------
+[INFO] Building backend-java 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ backend-java ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ backend-java ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ backend-java ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ backend-java ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ backend-java ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.ai.assistant.backend_java.controller.TaskDocumentIdentityControllerTest
+15:48:55.402 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.ai.assistant.backend_java.controller.TaskDocumentIdentityControllerTest]: TaskDocumentIdentityControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+15:48:55.943 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.ai.assistant.backend_java.BackendJavaApplication for test class com.ai.assistant.backend_java.controller.TaskDocumentIdentityControllerTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.2)
+
+2026-10-10T15:48:58.195+08:00  INFO 50008 --- [backend-java-test] [           main] a.b.c.TaskDocumentIdentityControllerTest : Starting TaskDocumentIdentityControllerTest using Java 25.0.1 with PID 50008 (started by Lenovo in D:\aiproj\ai_project\backend-java)
+2026-10-10T15:48:58.199+08:00  INFO 50008 --- [backend-java-test] [           main] a.b.c.TaskDocumentIdentityControllerTest : No active profile set, falling back to 1 default profile: "default"
+2026-10-10T15:49:01.112+08:00  INFO 50008 --- [backend-java-test] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-10T15:49:01.374+08:00  INFO 50008 --- [backend-java-test] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 229 ms. Found 5 JPA repository interfaces.
+2026-10-10T15:49:03.041+08:00  INFO 50008 --- [backend-java-test] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-10-10T15:49:03.253+08:00  INFO 50008 --- [backend-java-test] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.5.Final
+2026-10-10T15:49:03.395+08:00  INFO 50008 --- [backend-java-test] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-10-10T15:49:04.769+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-10T15:49:04.891+08:00  INFO 50008 --- [backend-java-test] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-10T15:49:05.601+08:00  INFO 50008 --- [backend-java-test] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:stage7_final_20261010 user=SA
+2026-10-10T15:49:05.607+08:00  INFO 50008 --- [backend-java-test] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-10T15:49:05.704+08:00  WARN 50008 --- [backend-java-test] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-10-10T15:49:05.787+08:00  INFO 50008 --- [backend-java-test] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-10T15:49:08.479+08:00  INFO 50008 --- [backend-java-test] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-10T15:49:08.576+08:00  INFO 50008 --- [backend-java-test] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-10T15:49:09.471+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.apache.tomcat.jni.Library in an unnamed module (file:/C:/Users/Lenovo/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.34/tomcat-embed-core-10.1.34.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+2026-10-10T15:49:12.155+08:00  WARN 50008 --- [backend-java-test] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-10-10T15:49:13.442+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-10T15:49:13.442+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-10T15:49:13.447+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 3 ms
+2026-10-10T15:49:13.544+08:00  INFO 50008 --- [backend-java-test] [           main] a.b.c.TaskDocumentIdentityControllerTest : Started TaskDocumentIdentityControllerTest in 16.703 seconds (process running for 20.406)
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build what is described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\Lenovo\.m2\repository\net\bytebuddy\byte-buddy-agent\1.15.11\byte-buddy-agent-1.15.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by net.bytebuddy.dynamic.loading.ClassInjector$UsingUnsafe$Dispatcher$CreationAction (file:/C:/Users/Lenovo/.m2/repository/net/bytebuddy/byte-buddy/1.15.11/byte-buddy-1.15.11.jar)
+WARNING: Please consider reporting this to the maintainers of class net.bytebuddy.dynamic.loading.ClassInjector$UsingUnsafe$Dispatcher$CreationAction
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 24.99 s -- in com.ai.assistant.backend_java.controller.TaskDocumentIdentityControllerTest
+[INFO] Running com.ai.assistant.backend_java.controller.TaskDocumentTransferControllerTest
+2026-10-10T15:49:19.994+08:00  INFO 50008 --- [backend-java-test] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.ai.assistant.backend_java.controller.TaskDocumentTransferControllerTest]: TaskDocumentTransferControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-10T15:49:20.006+08:00  INFO 50008 --- [backend-java-test] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.ai.assistant.backend_java.BackendJavaApplication for test class com.ai.assistant.backend_java.controller.TaskDocumentTransferControllerTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.939 s -- in com.ai.assistant.backend_java.controller.TaskDocumentTransferControllerTest
+[INFO] Running com.ai.assistant.backend_java.controller.TaskLearningControllerTest
+2026-10-10T15:49:20.941+08:00  INFO 50008 --- [backend-java-test] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.ai.assistant.backend_java.controller.TaskLearningControllerTest]: TaskLearningControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-10T15:49:20.954+08:00  INFO 50008 --- [backend-java-test] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.ai.assistant.backend_java.BackendJavaApplication for test class com.ai.assistant.backend_java.controller.TaskLearningControllerTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.2)
+
+2026-10-10T15:49:21.057+08:00  INFO 50008 --- [backend-java-test] [           main] c.a.a.b.c.TaskLearningControllerTest     : Starting TaskLearningControllerTest using Java 25.0.1 with PID 50008 (started by Lenovo in D:\aiproj\ai_project\backend-java)
+2026-10-10T15:49:21.058+08:00  INFO 50008 --- [backend-java-test] [           main] c.a.a.b.c.TaskLearningControllerTest     : No active profile set, falling back to 1 default profile: "default"
+2026-10-10T15:49:21.694+08:00  INFO 50008 --- [backend-java-test] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-10T15:49:21.764+08:00  INFO 50008 --- [backend-java-test] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 61 ms. Found 5 JPA repository interfaces.
+2026-10-10T15:49:23.665+08:00  INFO 50008 --- [backend-java-test] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-10-10T15:49:23.702+08:00  INFO 50008 --- [backend-java-test] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-10-10T15:49:23.809+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-10T15:49:23.818+08:00  INFO 50008 --- [backend-java-test] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-10-10T15:49:23.822+08:00  INFO 50008 --- [backend-java-test] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection conn10: url=jdbc:h2:mem:stage7_final_20261010 user=SA
+2026-10-10T15:49:23.823+08:00  INFO 50008 --- [backend-java-test] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2026-10-10T15:49:23.826+08:00  WARN 50008 --- [backend-java-test] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-10-10T15:49:23.829+08:00  INFO 50008 --- [backend-java-test] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-2)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-10T15:49:24.228+08:00  INFO 50008 --- [backend-java-test] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-10T15:49:24.258+08:00  INFO 50008 --- [backend-java-test] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-10T15:49:24.887+08:00  WARN 50008 --- [backend-java-test] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-10-10T15:49:25.137+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-10T15:49:25.138+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-10T15:49:25.140+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 2 ms
+2026-10-10T15:49:25.172+08:00  INFO 50008 --- [backend-java-test] [           main] c.a.a.b.c.TaskLearningControllerTest     : Started TaskLearningControllerTest in 4.204 seconds (process running for 32.035)
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.787 s -- in com.ai.assistant.backend_java.controller.TaskLearningControllerTest
+[INFO] Running com.ai.assistant.backend_java.controller.TaskMaterialControllerTest
+2026-10-10T15:49:25.733+08:00  INFO 50008 --- [backend-java-test] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.ai.assistant.backend_java.controller.TaskMaterialControllerTest]: TaskMaterialControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-10T15:49:25.740+08:00  INFO 50008 --- [backend-java-test] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.ai.assistant.backend_java.BackendJavaApplication for test class com.ai.assistant.backend_java.controller.TaskMaterialControllerTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.456 s -- in com.ai.assistant.backend_java.controller.TaskMaterialControllerTest
+[INFO] Running com.ai.assistant.backend_java.controller.TaskOperationControllerTest
+2026-10-10T15:49:26.206+08:00  INFO 50008 --- [backend-java-test] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.ai.assistant.backend_java.controller.TaskOperationControllerTest]: TaskOperationControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-10T15:49:26.215+08:00  INFO 50008 --- [backend-java-test] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.ai.assistant.backend_java.BackendJavaApplication for test class com.ai.assistant.backend_java.controller.TaskOperationControllerTest
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.041 s -- in com.ai.assistant.backend_java.controller.TaskOperationControllerTest
+[INFO] Running com.ai.assistant.backend_java.controller.TaskResearchControllerTest
+2026-10-10T15:49:27.242+08:00  INFO 50008 --- [backend-java-test] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.ai.assistant.backend_java.controller.TaskResearchControllerTest]: TaskResearchControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-10T15:49:27.251+08:00  INFO 50008 --- [backend-java-test] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.ai.assistant.backend_java.BackendJavaApplication for test class com.ai.assistant.backend_java.controller.TaskResearchControllerTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.2)
+
+2026-10-10T15:49:27.378+08:00  INFO 50008 --- [backend-java-test] [           main] c.a.a.b.c.TaskResearchControllerTest     : Starting TaskResearchControllerTest using Java 25.0.1 with PID 50008 (started by Lenovo in D:\aiproj\ai_project\backend-java)
+2026-10-10T15:49:27.384+08:00  INFO 50008 --- [backend-java-test] [           main] c.a.a.b.c.TaskResearchControllerTest     : No active profile set, falling back to 1 default profile: "default"
+2026-10-10T15:49:28.062+08:00  INFO 50008 --- [backend-java-test] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-10T15:49:28.123+08:00  INFO 50008 --- [backend-java-test] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 56 ms. Found 5 JPA repository interfaces.
+2026-10-10T15:49:28.376+08:00  INFO 50008 --- [backend-java-test] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-10-10T15:49:28.387+08:00  INFO 50008 --- [backend-java-test] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-10-10T15:49:28.437+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-10T15:49:28.439+08:00  INFO 50008 --- [backend-java-test] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Starting...
+2026-10-10T15:49:28.440+08:00  INFO 50008 --- [backend-java-test] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-3 - Added connection conn20: url=jdbc:h2:mem:stage7_final_20261010 user=SA
+2026-10-10T15:49:28.441+08:00  INFO 50008 --- [backend-java-test] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Start completed.
+2026-10-10T15:49:28.443+08:00  WARN 50008 --- [backend-java-test] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-10-10T15:49:28.443+08:00  INFO 50008 --- [backend-java-test] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-3)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-10T15:49:28.654+08:00  INFO 50008 --- [backend-java-test] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-10T15:49:28.686+08:00  INFO 50008 --- [backend-java-test] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-10T15:49:28.900+08:00  WARN 50008 --- [backend-java-test] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-10-10T15:49:29.084+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-10-10T15:49:29.084+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-10-10T15:49:29.085+08:00  INFO 50008 --- [backend-java-test] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-10-10T15:49:29.095+08:00  INFO 50008 --- [backend-java-test] [           main] c.a.a.b.c.TaskResearchControllerTest     : Started TaskResearchControllerTest in 1.836 seconds (process running for 35.958)
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.418 s -- in com.ai.assistant.backend_java.controller.TaskResearchControllerTest
+[INFO] Running com.ai.assistant.backend_java.controller.TaskWorkspaceControllerTest
+2026-10-10T15:49:29.661+08:00  INFO 50008 --- [backend-java-test] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.ai.assistant.backend_java.controller.TaskWorkspaceControllerTest]: TaskWorkspaceControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-10-10T15:49:29.664+08:00  INFO 50008 --- [backend-java-test] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.ai.assistant.backend_java.BackendJavaApplication for test class com.ai.assistant.backend_java.controller.TaskWorkspaceControllerTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.211 s -- in com.ai.assistant.backend_java.controller.TaskWorkspaceControllerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  47.618 s
+[INFO] Finished at: 2026-10-10T15:49:30+08:00
+[INFO] ------------------------------------------------------------------------

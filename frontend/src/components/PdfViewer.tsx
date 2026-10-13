@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Worker, Viewer } from '@react-pdf-viewer/core';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Worker, Viewer, SpecialZoomLevel, type PluginFunctions } from '@react-pdf-viewer/core';
 import { highlightPlugin, type RenderHighlightTargetProps, type RenderHighlightsProps } from '@react-pdf-viewer/highlight';
 import {
   Bookmark,
@@ -17,7 +17,9 @@ import '@react-pdf-viewer/highlight/lib/styles/index.css';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.js?url';
 import { apiService } from '../services/api';
 import { buildExplainSelectionPayload } from '../utils/pdfFormulaSelection';
+import { focusSelectionContext } from '../utils/selectionContext';
 import { buildPageLayout } from '../utils/pdfTranslationLayout.js';
+import { recoverMathGlyphs } from '../utils/pdfMathGlyphs.js';
 import MarkdownContent from './MarkdownContent';
 import { getMessageMarkdownClassName } from './MessageMarkdownRenderer';
 import PdfSkeleton from './PdfSkeleton';
@@ -26,6 +28,13 @@ import {
   addHighlight,
   deleteHighlight,
 } from '../services/highlightStore';
+
+const PdfLoadError = ({ onVisible }: { onVisible: () => void }) => {
+  useEffect(onVisible, [onVisible]);
+  return <div role="alert" className="theme-empty-state flex h-full items-center justify-center p-6 text-sm">
+    这份 PDF 暂时无法打开，请检查文件是否完整或重新上传。
+  </div>;
+};
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -154,14 +163,6 @@ const INLINE_ACTIONS: InlineActionDef[] = [
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-const trimExplainContext = (text: string = ''): string => {
-  const trimmed: string = String(text || '').trim();
-  if (trimmed.length <= EXPLAIN_CONTEXT_MAX_CHARS) {
-    return trimmed;
-  }
-  return `${trimmed.slice(0, EXPLAIN_CONTEXT_MAX_CHARS).trimEnd()}\n\n[当前页上下文过长，已截断]`;
-};
 
 const normalizeHighlightRecord = (
   highlight: Record<string, unknown>,
@@ -315,12 +316,15 @@ interface InlineContextMenuProps {
   onAction: (actionId: string) => void;
 }
 
-const InlineContextMenu: React.FC<InlineContextMenuProps> = ({ selectionRegion, onAction }) => (
+const InlineContextMenu: React.FC<InlineContextMenuProps & { onColorHighlight?: (color: string) => void }> = ({ selectionRegion, onAction, onColorHighlight }) => (
   <div
     className="inline-context-menu absolute z-50 flex items-center gap-1.5"
     style={{
       top: `${selectionRegion.top + selectionRegion.height}%`,
-      left: `${selectionRegion.left}%`,
+      left: `clamp(8px, ${selectionRegion.left}%, max(8px, calc(100% - 360px)))`,
+      width: 'max-content',
+      maxWidth: 'min(360px, calc(100% - 16px))',
+      flexWrap: 'wrap',
       transform: 'translateY(10px)',
     }}
   >
@@ -339,6 +343,12 @@ const InlineContextMenu: React.FC<InlineContextMenuProps> = ({ selectionRegion, 
         </button>
       );
     })}
+    {onColorHighlight && <div role="group" aria-label="高亮颜色" style={{ display: 'flex', gap: 6, padding: '4px 8px' }}>
+      {HIGHLIGHT_COLORS.map(color => <button key={color.value} type="button" title={color.label}
+        onClick={() => onColorHighlight(color.value)}
+        style={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: color.hex,
+          border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.2)', cursor: 'pointer' }} />)}
+    </div>}
   </div>
 );
 
@@ -347,7 +357,7 @@ interface ExplanationPopupProps {
   onClose: () => void;
   onSubAsk: (query: string) => void;
   onDelete: () => void;
-  onSaveNote?: (payload: NotePayload) => void;
+  onSaveNote?: (payload: NotePayload) => void | Promise<void>;
 }
 
 export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
@@ -358,6 +368,19 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
   onSaveNote,
 }) => {
   const [query, setQuery] = useState<string>('');
+  const [expanded, setExpanded] = useState(false);
+  const explanationMessages = highlight.chatHistory.filter(message => message.role !== 'user');
+  const explanation = explanationMessages[explanationMessages.length - 1]?.content || '';
+  const shortExplanation = explanation.length > 220 ? `${explanation.slice(0, 220)}…` : explanation;
+  const canExpand = explanation.length > 220 || highlight.chatHistory.length > 2;
+  useEffect(() => { setExpanded(false); setQuery(''); }, [highlight.id]);
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const originalText: string = highlight.text || '暂无选中文本';
   const popupRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -390,7 +413,8 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
     setQuery('');
   };
 
-  const handleSave = (): void => {
+  const handleSave = async (): Promise<void> => {
+    if (saving) return;
     const historyToSave: PdfViewerChatMessage[] = highlight.chatHistory.slice(1);
 
     let interpretationMarkdown: string = '';
@@ -410,7 +434,8 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
     }
 
     if (onSaveNote) {
-      onSaveNote({
+      setSaving(true); setSaveError('');
+      try { await onSaveNote({
         text: highlight.text,
         aiInterpretation: interpretationMarkdown,
         pageNumber: highlight.position.pageIndex,
@@ -419,8 +444,9 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
         sourceActionId: highlight.actionId,
         sourceActionLabel: highlight.actionLabel,
       });
-      alert('包含追问记录的完整笔记已收藏到"学术笔记"栏目。');
       onClose();
+      } catch (error) { setSaveError((error as Error).message || '保存失败，当前解释仍保留'); }
+      finally { setSaving(false); }
     }
   };
 
@@ -429,14 +455,15 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
       ref={popupRef}
       role="dialog"
       aria-label={`${highlight.actionLabel || 'AI 解释'} - p.${highlight.position.pageIndex + 1}`}
-      aria-modal="true"
-      className="theme-popup absolute z-[999] flex max-h-[400px] w-80 flex-col rounded-xl animate-in fade-in zoom-in duration-200"
+      aria-modal="false"
+      className="theme-popup pdf-explanation-popup absolute z-[999] flex max-h-[400px] flex-col rounded-xl animate-in fade-in zoom-in duration-200"
       onKeyDown={handleKeyDown}
       style={{
         ...(highlight.position.top > 55
           ? { bottom: `${100 - highlight.position.top}%`, transform: 'translateY(-12px)' }
           : { top: `${highlight.position.top + highlight.position.height}%`, transform: 'translateY(12px)' }),
-        left: `min(${highlight.position.left}%, calc(100% - 340px))`,
+        width: 'min(320px, calc(100% - 16px))',
+        left: `clamp(8px, ${highlight.position.left}%, max(8px, calc(100% - 328px)))`,
       }}
     >
       <div className="theme-popup-header flex shrink-0 items-center justify-between rounded-t-xl border-b p-3">
@@ -461,12 +488,13 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {onSaveNote && (
+          {onSaveNote && (highlight.actionId !== 'note' || highlight.chatHistory.length > 1) && (
             <button
               onClick={handleSave}
+              disabled={saving || highlight.isLoading}
               className="rounded bg-pixiu px-2 py-1 text-[10px] text-white transition-colors hover:bg-pixiu-dark"
             >
-              存为笔记
+              {saving ? '保存中…' : '存为笔记'}
             </button>
           )}
           <button
@@ -488,8 +516,9 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
       </div>
 
       <div className="theme-panel flex-1 overflow-y-auto p-4 text-sm">
+        {saveError && <p role="alert" className="mb-3">{saveError}</p>}
         <div className="space-y-4">
-          <div className="theme-card-soft rounded-xl p-3">
+          <div className="theme-card-soft rounded-xl p-3" hidden={!expanded}>
             <div className="theme-text-muted mb-2 text-[11px] font-bold uppercase tracking-wide">原文片段</div>
             <MarkdownContent className="theme-text-primary prose prose-sm max-w-none text-sm">
               {originalText}
@@ -497,8 +526,9 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
           </div>
 
           <div className="theme-card-soft rounded-xl p-3">
-            <div className="theme-text-muted mb-2 text-[11px] font-bold uppercase tracking-wide">当前追问链</div>
-            {highlight.chatHistory.map((message: PdfViewerChatMessage, index: number) => {
+            <div className="theme-text-muted mb-2 text-[11px] font-bold uppercase tracking-wide">{expanded ? '当前追问链' : '简短解释'}</div>
+            {!expanded && <p className="theme-text-primary whitespace-pre-wrap text-sm leading-6">{shortExplanation}</p>}
+            {expanded && highlight.chatHistory.map((message: PdfViewerChatMessage, index: number) => {
               if (index === 0 && message.role === 'user') return null;
               return (
                 <div
@@ -524,6 +554,7 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
             })}
           </div>
 
+          {(canExpand || expanded) && <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)} className="text-xs text-pixiu">{expanded ? '收起解释' : '展开完整解释'}</button>}
           {highlight.isLoading && (
             <div className="theme-text-muted flex items-center gap-2 p-2 text-xs italic">
               <Sparkles size={12} className="animate-pulse" /> 正在生成...
@@ -556,8 +587,10 @@ export const ExplanationPopup: React.FC<ExplanationPopupProps> = ({
 
 interface PdfViewerProps {
   fileUrl: string | null;
+  readingKey?: string;
+  active?: boolean;
   onSelection?: (content: string, role: string, isSync: boolean, sourceMeta: Record<string, unknown>) => void;
-  onSaveNote?: (payload: NotePayload) => void;
+  onSaveNote?: (payload: NotePayload) => void | Promise<void>;
   pdfId?: string;
   paperSkeleton?: PaperSkeleton | null;
   initialHighlights?: unknown[];
@@ -575,6 +608,8 @@ interface PdfViewerProps {
 
 const PdfViewer: React.FC<PdfViewerProps> = ({
   fileUrl,
+  readingKey,
+  active = true,
   onSelection,
   onSaveNote,
   pdfId,
@@ -591,35 +626,113 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   parseStatus = null,
   onNarrowScreenChange,
 }) => {
+  const readerRef = useRef<HTMLDivElement | null>(null);
+  const activeRef = useRef(active);
+  activeRef.current = active;
+  const pageChangeRef = useRef(onPageChange);
+  pageChangeRef.current = onPageChange;
+  const positionKey = readingKey || pdfId || fileUrl || 'empty';
+  const positionKeyRef = useRef(positionKey);
+  positionKeyRef.current = positionKey;
+  const savedPosition = useMemo(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(`pdf-reading:${positionKey}`) || 'null');
+      return stored && typeof stored === 'object' ? stored : null;
+    } catch { return null; }
+  }, [positionKey]);
+  const readingPositionRef = useRef({ scale: 1, top: 0, left: 0 });
+  const restoringPositionRef = useRef(false);
+  const persistReadingPosition = useCallback(() => {
+    try { localStorage.setItem(`pdf-reading:${positionKey}`, JSON.stringify(readingPositionRef.current)); } catch { /* Reading remains usable without storage. */ }
+  }, [positionKey]);
   const [highlights, setHighlights] = useState<PdfViewerHighlight[]>([]);
   const [activeHighlightId, setActiveHighlightId] = useState<number | null>(null);
   const [isPdfLoading, setIsPdfLoading] = useState<boolean>(true);
+  const [displayScale, setDisplayScale] = useState(() => Number(savedPosition?.scale) > 0 ? Number(savedPosition.scale) : 1);
+  const [pageTextState, setPageTextState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
+  const clearPdfLoading = useCallback(() => setIsPdfLoading(false), []);
+  const [selectionNoteError, setSelectionNoteError] = useState('');
+  const savingSelectionNote = useRef(false);
 
   const pdfDocRef = useRef<unknown>(null);
+  // A cached child can report its document before this parent's passive effects.
+  const mountedRef = useRef(true);
+  const loadedDocumentRef = useRef<{ fileUrl: string | null; pdfId?: string } | null>(null);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const currentPageRef = useRef<number>(0);
   const isFirstRender = useRef<boolean>(true);
   const latestPdfIdRef = useRef<string | undefined>(pdfId);
+  latestPdfIdRef.current = pdfId;
   const pageTextByIndexRef = useRef<Record<number, string>>({});
-  const scaleRef = useRef<number>(1);
+  const scaleRef = useRef<number>(Number(savedPosition?.scale) > 0 ? Number(savedPosition.scale) : 1);
+  const navigationRef = useRef<PluginFunctions | null>(null);
+  const navigationPlugin = useMemo(() => ({
+    install: (functions: PluginFunctions) => { navigationRef.current = functions; },
+    uninstall: () => { navigationRef.current = null; },
+  }), []);
+  useLayoutEffect(() => {
+    readingPositionRef.current = {
+      scale: Number(savedPosition?.scale) > 0 ? Number(savedPosition.scale) : 1,
+      top: Math.max(0, Number(savedPosition?.top) || 0),
+      left: Math.max(0, Number(savedPosition?.left) || 0),
+    };
+  }, [savedPosition]);
+  useEffect(() => {
+    setActiveHighlightId(null);
+  }, [positionKey, fileUrl, active, targetPageIndex, targetPageJumpToken]);
+  const observedJumpRef = useRef({ page: targetPageIndex, token: targetPageJumpToken });
+  const pendingJumpRef = useRef(targetPageJumpToken > 0);
+  const appliedJumpRef = useRef(targetPageJumpToken > 0 ? null : { page: targetPageIndex, token: targetPageJumpToken });
+  useEffect(() => {
+    if (observedJumpRef.current.page !== targetPageIndex || observedJumpRef.current.token !== targetPageJumpToken) pendingJumpRef.current = true;
+    observedJumpRef.current = { page: targetPageIndex, token: targetPageJumpToken };
+    if (pendingJumpRef.current || !active || isPdfLoading || !pdfDocRef.current) return;
+    const position = readingPositionRef.current;
+    if (!savedPosition && position.top === 0 && position.left === 0 && position.scale === 1) return;
+    restoringPositionRef.current = true;
+    if (Math.abs(scaleRef.current - position.scale) > 0.001) navigationRef.current?.zoom(position.scale);
+    setDisplayScale(position.scale);
+    let secondFrame = 0;
+    const frame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        const scroller = readerRef.current?.querySelector<HTMLElement>('.rpv-core__inner-pages');
+        if (scroller) { scroller.scrollTop = position.top; scroller.scrollLeft = position.left; }
+        restoringPositionRef.current = false;
+      });
+    });
+    return () => { cancelAnimationFrame(frame); cancelAnimationFrame(secondFrame); restoringPositionRef.current = false; };
+  }, [active, isPdfLoading, savedPosition, positionKey, targetPageIndex, targetPageJumpToken]);
   const initialViewerPage: number = Number.isFinite(targetPageIndex) ? Math.max(0, targetPageIndex as number) : 0;
-  const viewerKey: string = `${pdfId || 'empty'}-${initialViewerPage}-${targetPageJumpToken}`;
+  const viewerKey: string = pdfId || 'empty';
+  useEffect(() => {
+    if (!active || isPdfLoading || !pdfDocRef.current || !Number.isFinite(targetPageIndex)) return;
+    if (!pendingJumpRef.current && appliedJumpRef.current?.page === targetPageIndex && appliedJumpRef.current?.token === targetPageJumpToken) return;
+    pendingJumpRef.current = false;
+    appliedJumpRef.current = { page: targetPageIndex, token: targetPageJumpToken };
+    const max = Math.max(((pdfDocRef.current as { numPages?: number }).numPages || 1) - 1, 0);
+    void navigationRef.current?.jumpToPage(Math.max(0, Math.min(targetPageIndex as number, max)));
+  }, [targetPageIndex, targetPageJumpToken, active, isPdfLoading]);
 
   useEffect(() => {
     latestPdfIdRef.current = pdfId;
   }, [pdfId]);
 
-  useEffect(() => {
-    if (fileUrl) {
+  useLayoutEffect(() => {
+    if (fileUrl && loadedDocumentRef.current?.fileUrl !== fileUrl) {
       setIsPdfLoading(true);
+      setDisplayScale(readingPositionRef.current.scale);
+      setPageTextState('loading');
     }
   }, [fileUrl]);
 
   useEffect(() => {
     setActiveHighlightId(null);
     setHighlights(normalizeHighlightCollection(initialHighlights));
-    pdfDocRef.current = null;
-    currentPageRef.current = 0;
-    pageTextByIndexRef.current = {};
+    if (loadedDocumentRef.current?.pdfId !== pdfId) {
+      pdfDocRef.current = null;
+      currentPageRef.current = 0;
+      pageTextByIndexRef.current = {};
+    }
     // We only want to reset annotations when switching papers, not when parent persistence echoes state back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfId]);
@@ -649,7 +762,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   }, [highlights, onHighlightsChange]);
 
   useEffect(() => {
-    if (!focusedSourceAnchorId) {
+    if (!active || !focusedSourceAnchorId) {
       return;
     }
 
@@ -659,7 +772,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
     if (targetHighlight) {
       setActiveHighlightId(targetHighlight.id);
     }
-  }, [focusedSourceAnchorId, focusedSourceAnchorToken, highlights]);
+  }, [focusedSourceAnchorId, focusedSourceAnchorToken, highlights, active]);
 
   // Responsive layout: detect narrow screens (< 1024px) and notify parent
   useEffect(() => {
@@ -690,19 +803,21 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
       }
 
       const requestedPdfId: string | undefined = latestPdfIdRef.current;
+      const requestedPositionKey = positionKeyRef.current;
 
       try {
         const docWithPage = doc as { getPage: (n: number) => Promise<unknown> };
         const page = await docWithPage.getPage(pageIndex + 1);
         const pageWithContent = page as { getTextContent: () => Promise<unknown>; getViewport: (opts: Record<string, number>) => unknown };
-        const textContent = await pageWithContent.getTextContent();
+        const textContent = await recoverMathGlyphs(page, await pageWithContent.getTextContent(), doc);
         const viewport = pageWithContent.getViewport({ scale: 1 });
         const { pageText, pageLayout } = buildPageLayout(textContent, viewport);
 
-        if (requestedPdfId !== latestPdfIdRef.current) {
+        if (!activeRef.current || requestedPositionKey !== positionKeyRef.current || !mountedRef.current || requestedPdfId !== latestPdfIdRef.current || pageIndex !== currentPageRef.current) {
           return;
         }
         pageTextByIndexRef.current[pageIndex] = pageText;
+        setPageTextState(pageText.trim() ? 'ready' : 'empty');
         onPageTextExtracted?.({
           pageIndex,
           pageText,
@@ -710,10 +825,11 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
         });
       } catch (error) {
         console.warn(`Failed to extract text for page ${pageIndex + 1}.`, error);
-        if (requestedPdfId !== latestPdfIdRef.current) {
+        if (!activeRef.current || requestedPositionKey !== positionKeyRef.current || !mountedRef.current || requestedPdfId !== latestPdfIdRef.current || pageIndex !== currentPageRef.current) {
           return;
         }
         pageTextByIndexRef.current[pageIndex] = '';
+        setPageTextState('error');
         onPageTextExtracted?.({
           pageIndex,
           pageText: '',
@@ -724,27 +840,37 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
     [onPageTextExtracted],
   );
 
+  useEffect(() => {
+    if (active && pdfDocRef.current) void extractPageText(currentPageRef.current);
+  }, [active, positionKey, extractPageText]);
+
   const handleDocumentLoad = useCallback(
     ({ doc }: { doc: { numPages?: number } }) => {
+      if (!mountedRef.current) return;
       pdfDocRef.current = doc;
+      loadedDocumentRef.current = {fileUrl, pdfId};
       const maxPageIndex: number = Math.max((doc?.numPages || 1) - 1, 0);
       const initialPageIndex: number = Number.isFinite(targetPageIndex)
         ? Math.max(0, Math.min(targetPageIndex as number, maxPageIndex))
         : currentPageRef.current;
       currentPageRef.current = initialPageIndex;
       setIsPdfLoading(false);
+      if (!activeRef.current) return;
       onPageChange?.({
         pageIndex: initialPageIndex,
         totalPages: doc?.numPages || 0,
       });
       extractPageText(initialPageIndex, doc);
     },
-    [extractPageText, onPageChange, targetPageIndex],
+    [extractPageText, onPageChange, targetPageIndex, fileUrl, pdfId],
   );
 
   const handleViewerPageChange = useCallback(
     (event: { currentPage: number; doc?: { numPages?: number } }) => {
+      if (!mountedRef.current || !activeRef.current) return;
+      if (event.currentPage !== currentPageRef.current) setActiveHighlightId(null);
       currentPageRef.current = event.currentPage;
+      setPageTextState('loading');
       const doc = event.doc || pdfDocRef.current;
       onPageChange?.({
         pageIndex: event.currentPage,
@@ -754,6 +880,13 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
     },
     [extractPageText, onPageChange],
   );
+  useEffect(() => {
+    if (!active || isPdfLoading || !pdfDocRef.current) return;
+    // A PDF may finish loading while an artifact is restored over it. Its viewer
+    // need not emit another page event when revealed, so publish the known count.
+    pageChangeRef.current?.({ pageIndex: currentPageRef.current,
+      totalPages: (pdfDocRef.current as { numPages?: number }).numPages || 0 });
+  }, [active, isPdfLoading, positionKey]);
 
   const syncSelectionMessage = useCallback(
     (content: string, role: string, highlight: PdfViewerHighlight): void => {
@@ -877,7 +1010,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   };
 
   const handleSelectionAction = useCallback(
-    (actionId: string, props: Record<string, unknown>): void => {
+    async (actionId: string, props: Record<string, unknown>): Promise<void> => {
       const selectedText: string = props.selectedText as string;
       const highlightAreas = props.highlightAreas as HighlightArea[] | undefined;
       const selectionRegion = props.selectionRegion as Record<string, number> | undefined;
@@ -887,7 +1020,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
         ...(selectionRegion || {}),
         pageIndex,
       };
-      const context: string = trimExplainContext(pageTextByIndexRef.current[pageIndex] || '');
+      const context: string = focusSelectionContext(pageTextByIndexRef.current[pageIndex] || '', selectedText, EXPLAIN_CONTEXT_MAX_CHARS);
       const sourceAnchorId: string = `selection-${Date.now()}`;
       const requestPayload: InlineActionPayload = buildInlineActionPayload(actionId, selectedText, context);
       const highlightId: number = Date.now();
@@ -906,7 +1039,11 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
       };
 
       if (actionId === 'note') {
-        onSaveNote?.({
+        if (savingSelectionNote.current) return;
+        savingSelectionNote.current = true; setSelectionNoteError('');
+        try {
+        if (!onSaveNote) throw new Error('当前页面不能保存笔记');
+        await onSaveNote({
           text: selectedText,
           aiInterpretation: '已保存为边注，可继续补充自己的观察与问题。',
           pageNumber: pageIndex,
@@ -915,6 +1052,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
           sourceActionId: actionId,
           sourceActionLabel: requestPayload.actionLabel,
         });
+        if (pdfId !== latestPdfIdRef.current) return;
 
         setHighlights((prev: PdfViewerHighlight[]) => [
           ...prev,
@@ -927,6 +1065,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
         ]);
         setActiveHighlightId(highlightId);
         (props.cancel as () => void)();
+        } catch (error) { setSelectionNoteError((error as Error).message || '笔记保存失败，选区仍保留，请重试'); }
+        finally { savingSelectionNote.current = false; }
         return;
       }
 
@@ -936,7 +1076,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
       syncSelectionMessage(requestPayload.displayMessage, 'user', nextHighlight);
       handleInitialAsk(highlightId, requestPayload, pageIndex, context);
     },
-    [handleInitialAsk, onSaveNote, syncSelectionMessage],
+    [handleInitialAsk, onSaveNote, syncSelectionMessage, pdfId],
   );
 
   const handleColorHighlight = useCallback(
@@ -977,21 +1117,11 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
       }
 
       return !activeHighlightId ? (
-        <>
-          <div style={{ display: 'flex', gap: 6, padding: '0 8px 4px', justifyContent: 'center' }}>
-            {HIGHLIGHT_COLORS.map((c) => (
-              <button key={c.value} type="button"
-                onClick={() => handleColorHighlight(c.value, props as unknown as Record<string, unknown>)}
-                style={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: c.hex,
-                  border: '2px solid #fff', boxShadow: '0 0 0 1px rgba(0,0,0,0.2)', cursor: 'pointer' }}
-                title={c.label} />
-            ))}
-          </div>
           <InlineContextMenu
             selectionRegion={props.selectionRegion}
             onAction={(actionId: string) => handleSelectionAction(actionId, props as unknown as Record<string, unknown>)}
+            onColorHighlight={(color: string) => handleColorHighlight(color, props as unknown as Record<string, unknown>)}
           />
-        </>
       ) : null;
     },
     renderHighlights: (props: RenderHighlightsProps) => (
@@ -1022,6 +1152,15 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
                 return (
                   <div
                     key={index}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`查看划线解释：${highlightEntity.text.slice(0, 60)}`}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setActiveHighlightId(highlightEntity.id);
+                      }
+                    }}
                     style={Object.assign(
                       {},
                       {
@@ -1057,22 +1196,50 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
     : null;
 
   return (
-    <div className="relative h-full w-full">
+    <div ref={readerRef} className="relative flex h-full w-full flex-col" onScrollCapture={(event) => {
+      if (!activeRef.current || restoringPositionRef.current) return;
+      const node = event.target as HTMLElement;
+      if (!node.classList.contains('rpv-core__inner-pages')) return;
+      readingPositionRef.current = { ...readingPositionRef.current, top: node.scrollTop, left: node.scrollLeft };
+      persistReadingPosition();
+    }}>
+      {selectionNoteError && <div role="alert" className="absolute bottom-3 left-3 right-3 z-50 rounded theme-panel p-3 text-sm">{selectionNoteError}</div>}
       {fileUrl ? (
         <>
-          {isPdfLoading && <PdfSkeleton />}
-          <div style={{ visibility: isPdfLoading ? 'hidden' : 'visible', height: '100%', width: '100%' }}>
+          <div role="group" aria-label="原文缩放" className="theme-panel flex shrink-0 items-center justify-end gap-2 border-b px-2 py-1 text-xs">
+            <button type="button" aria-label="缩小原文" className="rounded px-2 py-1 focus-visible:outline" disabled={isPdfLoading || !pdfDocRef.current || displayScale <= 0.25}
+              onClick={() => navigationRef.current?.zoom(Math.max(0.25, displayScale / 1.25))}>−</button>
+            <span aria-label="原文缩放比例">{Math.round(displayScale * 100)}%</span>
+            <button type="button" aria-label="放大原文" className="rounded px-2 py-1 focus-visible:outline" disabled={isPdfLoading || !pdfDocRef.current || displayScale >= 4}
+              onClick={() => navigationRef.current?.zoom(Math.min(4, displayScale * 1.25))}>＋</button>
+            <button type="button" className="rounded px-2 py-1 focus-visible:outline" disabled={isPdfLoading || !pdfDocRef.current}
+              onClick={() => navigationRef.current?.zoom(SpecialZoomLevel.PageWidth)}>适合宽度</button>
+          </div>
+          {!isPdfLoading && ['empty','error'].includes(pageTextState) && <p role="status" className="theme-panel shrink-0 px-3 py-2 text-xs theme-text-secondary">
+            {pageTextState === 'empty' ? '当前页没有可选文字，可先看原图；划词与文字翻译暂不可用。' : '当前页文字暂不可读取，可继续看原图。'}
+          </p>}
+          {isPdfLoading && <div className="pointer-events-none absolute inset-x-0 bottom-0 top-9 z-10"><PdfSkeleton /></div>}
+          <div className="min-h-0 flex-1" style={{ visibility: isPdfLoading ? 'hidden' : 'visible', width: '100%' }}>
             <Worker workerUrl={workerUrl}>
               <Viewer
                 key={viewerKey}
                 fileUrl={fileUrl}
+                enableSmoothScroll={false}
                 initialPage={initialViewerPage}
-                plugins={[highlightPluginInstance]}
+                defaultScale={Number(savedPosition?.scale) > 0 ? Number(savedPosition.scale) : SpecialZoomLevel.PageWidth}
+                plugins={[highlightPluginInstance, navigationPlugin]}
                 theme={theme}
                 onDocumentLoad={handleDocumentLoad}
                 onPageChange={handleViewerPageChange}
+                renderError={() => <PdfLoadError onVisible={clearPdfLoading} />}
                 onZoom={(event: { scale: number }) => {
                   scaleRef.current = event.scale;
+                  if (!activeRef.current) return;
+                  if (!restoringPositionRef.current) {
+                    readingPositionRef.current = { ...readingPositionRef.current, scale: event.scale };
+                    persistReadingPosition();
+                  }
+                  setDisplayScale(event.scale);
                 }}
               />
             </Worker>
@@ -1084,7 +1251,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
         </div>
       )}
 
-      {activeHighlight && (
+      {active && activeHighlight && (
         <ExplanationPopup
           highlight={activeHighlight}
           onClose={() => setActiveHighlightId(null)}

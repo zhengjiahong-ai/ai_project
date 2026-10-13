@@ -1,0 +1,28 @@
+{
+  "promptVersion": "dr-v2.20261013.28",
+  "change": "Factor repeated missingQuestions into one exact shared dictionary; preserve order, repetitions, original wording, all checks and claim associations. Do not modify generated protocol text or evidence quotations.",
+  "tests": {
+    "targeted": 101,
+    "full": 832,
+    "warnings": 2,
+    "seconds": 81.46,
+    "command": "python -m pytest tests/test_deep_research_*.py tests/test_llm_instance_timeout.py tests/test_offline_llm.py tests/test_pdf_table_columns.py tests/test_table_evidence.py -q -p no:cacheprovider --basetemp=/tmp/dr-repair-factor-full"
+  },
+  "readonlyReplay": {
+    "runId": "dr_run_9981b502aea454f286aa6f948e8b7023",
+    "previousFixedBytesWithoutEvidence": 21648,
+    "ceiling": 20815,
+    "newPromptBytesWithEvidence": 20751,
+    "wholeEvidenceRows": 4,
+    "allQuotesUnchanged": true,
+    "reservationTokens": 29967,
+    "remainingNormalTokens": 30031,
+    "modelCalls": 0,
+    "historyModified": false
+  },
+  "limits": [
+    "Runtime remains .27; .28 not yet loaded",
+    "Prompt fit does not establish repair content quality or availability of all evidence needed for every target",
+    "Independent post-repair verification and overall D3 acceptance remain unproven"
+  ]
+}

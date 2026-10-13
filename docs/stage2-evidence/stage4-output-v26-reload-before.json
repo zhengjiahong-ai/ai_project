@@ -1,0 +1,72 @@
+{
+  "mode": "before",
+  "taskHashes": {
+    "v12-critique": "52fd3f3074796ac12401eda87ec2bd760fd1cbe1c07ac7b56700e3631eb762f8",
+    "v12-compare": "735ff713007ab2563a5845d2768f9d30dda995759df9503ba1e0323f0c019185",
+    "v13-critique": "08bfcbc8f09fc940844879f86c4c4ff5d12d7183ba44c0a3fbf30e57ee03f774",
+    "v13-compare": "95eed55de2602899ef5569b5a7af05dd61d4d20c1fbcf44f5111ca4c4cce70a2",
+    "v16-critique": "b265f192dca5b6f0bfa05776b6bafd9dbfd9de07fd152c5188943d07d9d5ebd8",
+    "v16-compare": "e8bb36dcac4fe966d06b0130ea6b478c8a3efb7ed67ed5d47bd7b19fd802382b",
+    "v18-critique": "0a328a7080fe016d8564d27312cbee3f61a13cc8553faaf763ce4867d98b9dd9",
+    "reading": "83bdde7b8e1b17d9efff17521c87292a13531b089f77cf1b5321ee09be1d238f",
+    "v19-critique": "76d26d64a62e2cc7e3301abbf7d065078759354d6a812682d203ffcdf21f7791",
+    "v22-critique": "3aaf6a9bf77424efce0aa143e812e95d89b0a7d970866739d8bcab00a6d9c979",
+    "v24-critique": "372787fe7e53ba568329054fac4eb4183b47e24fa304aa9728e15d2835bf4de6",
+    "v25-critique": "13fe5c8835502c39b8c3f73fb1b4aa154a17d4cc9cee0f40fdfd5e30bab869ce"
+  },
+  "receiptHashes": {
+    "v12-critique": "891b36e2b27f9da375923a38b2a63de2e0f635b4eecd7623d46c1ad696b8d515",
+    "v12-compare": "6945cc0ed90a50073a5d32ba67c4a1cfb6d74dfa18f4723ca4a7eb3206faced9",
+    "v13-critique": "c9e06cec65039abcb071217d10957458a24d15abc8d30894722f890dd9fd8236",
+    "v13-compare": "a634f209e601012872e4278ea557b52df9dabdd71d24cbae6b79684aa58ba22d",
+    "v16-critique": "1aa0912ea6fb21cb62dd060e6854fb8bf1c5f982ef507bd7618278dc3edf8689",
+    "v16-compare": "a16826c2c92eb17a2de5d21320f78ce8dc67ded3c55877516616c147ffcac975",
+    "v18-critique": "1487db8550beb01369b0f447cdfe996671eb264e7eaa37dcd997dae0ac24810c",
+    "v19-critique": "83d370aaa7cb6a82fcad19ca76c6bf1e34ee9b6de46e2aac954194460fdaec20",
+    "v22-critique": "7838b4124412ddf64449db9fa5ef8f35bb1374c0fa261104da59a94386adad9e",
+    "v24-critique": "6b6ca4eaf8bc2b1502a577fd1cc059ccaa03b606971e38369d74323087121b26",
+    "v25-critique": "a7ba73fe50b37817f190c1296232f0ce2103462cac5ec649040bbf29872ad0c3"
+  },
+  "archivedReceiptDifferences": {
+    "v12-critique": [],
+    "v12-compare": [],
+    "v13-critique": [],
+    "v13-compare": [],
+    "v16-critique": [],
+    "v16-compare": [
+      "/task/revision: 1 -> 2",
+      "/task/focusedPaperId: type changed",
+      "/task/updatedAt: '2026-10-10T05:53:14.188764Z' -> '2026-10-10T06:10:15.699510Z'"
+    ],
+    "v18-critique": [
+      "/task/messages: length changed",
+      "/task/revision: 1 -> 3",
+      "/task/focusedPaperId: type changed",
+      "/task/updatedAt: '2026-10-10T06:19:27.937242Z' -> '2026-10-10T06:33:07.689913Z'",
+      "/task/appliedRequestIds: length changed"
+    ]
+  },
+  "archivedTaskDifferences": {
+    "v16-critique": [],
+    "v16-compare": [
+      "/revision: 1 -> 2",
+      "/focusedPaperId: type changed",
+      "/updatedAt: '2026-10-10T05:53:14.188764Z' -> '2026-10-10T06:10:15.699510Z'"
+    ],
+    "v18-critique": [
+      "/messages: length changed",
+      "/revision: 1 -> 3",
+      "/focusedPaperId: type changed",
+      "/updatedAt: '2026-10-10T06:19:27.937242Z' -> '2026-10-10T06:33:07.689913Z'",
+      "/appliedRequestIds: length changed"
+    ]
+  },
+  "changedTaskHashesSinceV17": [
+    "v16-compare"
+  ],
+  "readingRevision": 19,
+  "providerCalls": 0,
+  "taskWrites": 0,
+  "checkedAt": "2026-10-10T13:28:15.492265+00:00",
+  "runningSince": "2026-10-10T13:20:48.365078044Z"
+}

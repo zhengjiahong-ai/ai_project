@@ -1,0 +1,37 @@
+[
+  {
+    "open": false,
+    "summary": "历史版本（0）",
+    "text": "历史版本（0）"
+  },
+  {
+    "open": false,
+    "summary": "整理成果",
+    "text": "整理成果"
+  },
+  {
+    "open": false,
+    "summary": "材料来源（2）",
+    "text": "材料来源（2）"
+  },
+  {
+    "open": false,
+    "summary": "原图与图文下载 · 第 5 页",
+    "text": "原图与图文下载 · 第 5 页"
+  },
+  {
+    "open": false,
+    "summary": "尚待确认",
+    "text": "尚待确认"
+  },
+  {
+    "open": true,
+    "summary": "待核查问题",
+    "text": "待核查问题\n待核查：15倍压缩与200+FPS是否在论文其他章节有明确原始声明，还是仅由表1核对行推算；合成目标级数据集的性能数字是否支持这些主张。"
+  },
+  {
+    "open": false,
+    "summary": "原文依据",
+    "text": "原文依据"
+  }
+]

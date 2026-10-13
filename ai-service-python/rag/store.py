@@ -126,6 +126,7 @@ def retrieve_fused_evidence(
     query: str,
     top_k: int = 3,
     filter_metadata: Optional[dict] = None,
+    allow_query_rewrite: bool = True,
 ) -> List[Dict[str, Any]]:
     """返回融合后的证据列表（向量主导排序 + BM25 补召回）。
 
@@ -134,7 +135,8 @@ def retrieve_fused_evidence(
     注意长度可达 2 × top_k，调用方需自己截断。
     """
     try:
-        results = get_hybrid().retrieve(query, top_k=top_k, filter_metadata=filter_metadata)
+        options = {} if allow_query_rewrite else {"allow_query_rewrite": False}
+        results = get_hybrid().retrieve(query, top_k=top_k, filter_metadata=filter_metadata, **options)
         fused = _pick_channel(results, "fused")
         if fused:
             return fused

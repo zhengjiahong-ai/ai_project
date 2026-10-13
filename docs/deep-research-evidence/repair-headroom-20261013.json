@@ -1,0 +1,35 @@
+{
+  "sourceRun": "dr_run_fef8cfc00fd15600a5e89fe1fffe60f6",
+  "fixedRepairPromptBytes": 22042,
+  "sectionsBytes": {
+    "introduction": 916,
+    "acceptedContext": 1922,
+    "questionDictionary": 616,
+    "rejectedClaimsAndChecks": 7496,
+    "permissionAndEvidenceHeaders": 179,
+    "responseAndRepairRules": 2360,
+    "roleInstructions": 390,
+    "executionSpecContract": 3089,
+    "experimentalRequirements": 4530,
+    "finalInstructions": 544
+  },
+  "oldExplorationRepairHeadroom": 12288,
+  "newStandardHeadroom": 33216,
+  "formula": "min(24000 input bytes + 8192 output tokens + 1024 framing tokens, two thirds of normal pool)",
+  "totalBudgetIncreased": false,
+  "offlineReplayWithFullInputEnvelope": {
+    "promptBytes": 23968,
+    "targets": 7,
+    "wholeEvidenceRows": 3,
+    "modelCalls": 0,
+    "qualityAccepted": false
+  },
+  "limitation": "Earlier exploration stopping can reduce evidence gathering; live quality remains unverified. The old seven-target request still carries few evidence rows, so request organization remains unfinished.",
+  "runtimeLoaded": false,
+  "promptVersion": "dr-v2.20261013.44",
+  "fullOfflineRegression": {
+    "passed": 943,
+    "warnings": 2,
+    "seconds": 104.28
+  }
+}

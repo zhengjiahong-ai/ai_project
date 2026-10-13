@@ -1,0 +1,16 @@
+{
+  "newModelCalls": 0,
+  "checkedReferences": 19,
+  "fullBodyMismatches": [
+    {
+      "location": "压缩/取舍机制",
+      "sourceId": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634.pdf-chunk-28",
+      "quote": "Gaussian Pruning and Recovery effectively removes redundant Gaussians... SH Distillation reduces the Spherical Harmonics degree... Vector Quantization efficiently compresses the feature space",
+      "validLength": true,
+      "matchesFullIndexedBody": false,
+      "matchesFirst1400Chars": false,
+      "containsEllipsis": true
+    }
+  ],
+  "evidenceBoundary": "Existing indexed source text; full-body mismatches cannot be explained by prompt truncation alone."
+}

@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 export const LOCAL_DB_NAME = 'PixiuAcademicDB_v6';
-export const LOCAL_DB_VERSION = 6;
+export const LOCAL_DB_VERSION = 7;
 
 export const PAPER_SCOPED_STORES = [
   'pdfStore',
@@ -30,6 +30,8 @@ export const initDB = async () =>
       if (!db.objectStoreNames.contains('translationStore')) db.createObjectStore('translationStore');
       if (!db.objectStoreNames.contains('backgroundKnowledgeStore')) db.createObjectStore('backgroundKnowledgeStore');
       if (!db.objectStoreNames.contains('artifactStore')) db.createObjectStore('artifactStore');
+      if (!db.objectStoreNames.contains('taskWorkspaceStore')) db.createObjectStore('taskWorkspaceStore');
+      if (!db.objectStoreNames.contains('metaStore')) db.createObjectStore('metaStore');
     },
   });
 

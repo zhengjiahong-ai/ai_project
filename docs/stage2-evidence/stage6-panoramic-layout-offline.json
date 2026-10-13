@@ -1,0 +1,55 @@
+{
+  "filePath": "D:\\3DGS\\paper\\LightGaussian\\2311.17245v6.pdf",
+  "sha256": "803219bf205d0142621b1ac5339f8d918d3f883f814559f6336b8bfdec5ca634",
+  "pageNumber": 4,
+  "totalPages": 19,
+  "viewport": {
+    "width": 612,
+    "height": 792
+  },
+  "columnMode": "single-column",
+  "extractedBlocks": 5,
+  "acceptedBlocks": 5,
+  "renderedParagraphs": 5,
+  "sourceRegions": [
+    {
+      "left": 0,
+      "top": 0,
+      "width": 1,
+      "height": 0.256447
+    },
+    {
+      "left": 0,
+      "top": 0.3272785656565656,
+      "width": 1,
+      "height": 0.021897434343434385
+    },
+    {
+      "left": 0,
+      "top": 0.40793437373737373,
+      "width": 1,
+      "height": 0.04788562626262627
+    },
+    {
+      "left": 0,
+      "top": 0.5290989545454545,
+      "width": 1,
+      "height": 0.014562045454545425
+    },
+    {
+      "left": 0,
+      "top": 0.6948042525252525,
+      "width": 1,
+      "height": 0.012696747474747583
+    },
+    {
+      "left": 0,
+      "top": 0.8644536161616163,
+      "width": 1,
+      "height": 0.1355463838383837
+    }
+  ],
+  "inlineMathContexts": 3,
+  "modelRequests": 0,
+  "evidenceBoundary": "Real PDF text extraction and geometry; synthetic labels; not translation or browser rendering acceptance."
+}
